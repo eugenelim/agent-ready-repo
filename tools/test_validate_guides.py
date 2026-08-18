@@ -1,4 +1,4 @@
-"""Tests for tools/validate_guides.py — TDD suite (17 tests)."""
+"""Tests for tools/validate_guides.py — TDD suite."""
 import sys
 from pathlib import Path
 
@@ -24,12 +24,17 @@ def _write_guide(tmp_path: Path, name: str, content: str) -> Path:
     return p
 
 
-def _run(paths: list[Path], packs_root: Path = PACKS_ROOT) -> tuple[int, list[str], list[str]]:
+def _run(
+    paths: list[Path],
+    packs_root: Path = PACKS_ROOT,
+    guides_root: Path | None = None,
+) -> tuple[int, list[str], list[str]]:
     """Run validate_guides.validate_paths() and return (exit_code, errors, warnings)."""
     return validate_guides.validate_paths(
         [str(p) for p in paths],
         packs_root=str(packs_root),
         schema_path=str(SCHEMA_PATH),
+        guides_root=str(guides_root) if guides_root else None,
     )
 
 
@@ -376,4 +381,154 @@ kind: explanation
     assert errors == []
     assert any("_reference" in w or "undesignated" in w for w in warnings), (
         f"Expected a warning about _reference pack, got: {warnings}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Structural non-content allowlist (spec/guide-metadata-completion AC2-AC4)
+# ---------------------------------------------------------------------------
+
+# The five approved structural files, as guides-root-relative POSIX paths.
+APPROVED_EXCEPTIONS = [
+    "AGENTS.md",
+    "_shared/tutorials/README.md",
+    "_shared/how-to/README.md",
+    "_shared/reference/README.md",
+    "_shared/explanation/README.md",
+]
+
+
+@pytest.mark.parametrize("rel", APPROVED_EXCEPTIONS)
+def test_approved_structural_file_is_silent(tmp_path, rel):
+    """AC3: neither an error nor a warning for the exact approved five."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, rel, "# Structural index\n\nNo frontmatter here.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        # Same basename, different path — the allowlist is exact, not by basename.
+        "core/AGENTS.md",
+        "_shared/AGENTS.md",
+        "_shared/tutorials/nested/README.md",
+        # A sixth attempted exception: the quadrant dirs are allowlisted at
+        # _shared only, so a pack-local quadrant README is still content.
+        "core/how-to/README.md",
+        # Not a quadrant index at all.
+        "_shared/README.md",
+    ],
+)
+def test_same_basename_elsewhere_is_still_content(tmp_path, rel):
+    """AC2: a folder-wide or basename-wide exemption would hide public content."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, rel, "# Not exempt\n\nNo frontmatter here.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert any("has no frontmatter" in w for w in warnings), (
+        f"{rel} was silently exempted; warnings={warnings}"
+    )
+
+
+def test_allowlist_is_not_a_prefix_match(tmp_path):
+    """A path that merely starts with an allowlisted path must not be exempt."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, "AGENTS.md.bak.md", "# Backup\n\nNo frontmatter.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert any("has no frontmatter" in w for w in warnings), warnings
+
+
+def test_approved_file_with_frontmatter_is_still_silent(tmp_path):
+    """An allowlisted path is non-content whether or not it happens to carry
+    frontmatter — it must never be schema-validated into an error."""
+    guides = tmp_path / "guides"
+    _write_guide(
+        guides,
+        "AGENTS.md",
+        "---\nkind: not-a-valid-kind\n---\n\n# Structural\n",
+    )
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_the_allowlist_holds_exactly_the_five_approved_paths(tmp_path):
+    """The set is a reviewable constant, and its size is part of the contract."""
+    assert sorted(validate_guides.STRUCTURAL_NON_CONTENT) == sorted(APPROVED_EXCEPTIONS)
+
+
+def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
+    """Driven through main(), because --guides-root is the CLI surface at issue.
+
+    Pointing the root at a subdirectory collapses the allowlist comparison to a
+    basename, so `guides/core/AGENTS.md` would match the approved top-level
+    `AGENTS.md`. Reported as a real defect against the first implementation of the
+    allowlist, which only checked the relative path.
+    """
+    guides = tmp_path / "guides"
+    _write_guide(guides, "core/AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    # The honest root exempts nothing here, because core/AGENTS.md is not one of five.
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert any("has no frontmatter" in w for w in warnings), warnings
+    # And a subdirectory root must not turn it into the approved `AGENTS.md` — driven
+    # through main(), because --guides-root is the argparse surface at issue and the
+    # API-level helper above cannot exercise it.
+    sub = guides / "core"
+    code = validate_guides.main(
+        [str(sub), "--guides-root", str(sub), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0, "a warning must not change the exit code"
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a subdirectory guides root exempted core/AGENTS.md; stderr={captured.err!r}"
+    )
+    # Coverage is reported, so a gate can tell an empty run from a clean one.
+    assert "1 checked" in captured.out, captured.out
+
+
+def test_a_nested_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
+    """`guides/guides` satisfies a bare basename check and re-opens the collapse.
+
+    The first fix tested only `root.name == "guides"`. A root at `<tree>/guides/guides`
+    passes that, so `guides/guides/AGENTS.md` became relative path `AGENTS.md` and
+    matched the approved top-level entry. `docs/guides` satisfies it too. The guard
+    additionally rejects a root with an ancestor named `guides`, and this case is what
+    distinguishes the two — the subdirectory test above passes on the basename check
+    alone, so it cannot detect this clause going missing.
+    """
+    nested = tmp_path / "guides" / "guides"
+    _write_guide(nested, "AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    code = validate_guides.main(
+        [str(nested), "--guides-root", str(nested), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a nested guides root exempted guides/guides/AGENTS.md; stderr={captured.err!r}"
+    )
+
+
+def test_a_root_not_named_guides_cannot_exempt(tmp_path, capsys):
+    """Pins the BASENAME half of the guard, which nothing else covered.
+
+    Every other case here uses a root named `guides` or one sitting under a `guides`
+    ancestor, so deleting `root.name != "guides"` left the whole suite green while the
+    round-1 defect shape — an arbitrary root exempting its own top-level `AGENTS.md` —
+    went unpinned. The two clauses guard different shapes and each needs its own case.
+    """
+    root = tmp_path / "content"
+    _write_guide(root, "AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    code = validate_guides.main(
+        [str(root), "--guides-root", str(root), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a root not named 'guides' exempted AGENTS.md; stderr={captured.err!r}"
     )

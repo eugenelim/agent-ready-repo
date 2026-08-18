@@ -1,3 +1,10 @@
+---
+title: Inspect a Figma file
+summary: Retrieve and report the requested design-file structure, nodes, metadata, comments, history, renders, or connector graph.
+pack: figma
+kind: how-to
+---
+
 # Inspect a Figma file
 
 **Use this when:** you have a Figma URL and need to read page or frame structure, metadata, comments, version history, render frames to images, or convert a FigJam connector diagram to Mermaid.

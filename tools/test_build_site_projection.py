@@ -107,9 +107,16 @@ def test_kind_buckets_use_canonical_sequence():
 
 
 def test_kindless_non_index_record_precedes_kind_buckets():
-    """guides/_reference/catalogue-format is the one real file that is neither
-    an index nor kind-bearing; without an explicit rule it falls through into a
-    bucket that does not exist and is silently dropped."""
+    """A record that is neither an index nor kind-bearing falls through into a
+    bucket that does not exist and is silently dropped without an explicit rule.
+
+    `guides/_reference/catalogue-format` was the one real file in that shape, which
+    is why this case is written with its path. spec/guide-metadata-completion moved
+    it to `guides/_shared/reference/catalogue-format.md` and gave it
+    `kind: reference`, so no real file is kind-less today. The rule is retained
+    deliberately: the shape can recur the moment a guide lands without a kind, and
+    the record below is synthetic precisely so the rule outlives its motivating
+    file."""
     records = [
         _rec("guides/_reference/catalogue-format", pack="_reference"),
         _rec("guides/_reference/how-to/x", pack="_reference", kind="how-to"),

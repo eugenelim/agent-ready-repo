@@ -1,7 +1,7 @@
 # Plan: Guide metadata completion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -227,3 +227,20 @@ external-system change.
 - 2026-08-17: fixed the 125-row ledger, six review batches,
   catalogue-format ownership move with route compatibility, same-page content
   correction, and exhaustive emitted-output proof.
+- 2026-08-18: implemented. T1's allowlist is matched against the DECLARED guides
+  root, not the per-file fallback root the validator uses for slug derivation —
+  that fallback compares only the basename, so `core/AGENTS.md` would have been
+  exempted by the approved `AGENTS.md` entry. Five mutations pin it, including a
+  sixth attempted exception (AC2).
+- 2026-08-18: T2-T7 applied all 125 rows in the six approved batches; the
+  validator went 130 -> 125 -> 0 warnings. Batch 1 was reverted and re-applied
+  after the first pass omitted the blank line after the closing frontmatter fence
+  that every already-compliant guide carries.
+- 2026-08-18: T8 verified on the emitted site. 188 guide routes on `main`, 188 on
+  this branch, zero lost and zero new; all 188 pre-change routes resolve in the
+  build; 125/125 reviewed summaries appear in their emitted pages; the rendered
+  link audit is clean over 57,883 links across 269 pages. Route parity was derived
+  from git rather than from a baseline build: building `origin/main` in a fresh
+  worktree failed silently inside an `&&` chain because a new worktree has no
+  `node_modules`, which produced an empty baseline and a diff that appeared to add
+  every route.

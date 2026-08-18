@@ -1,3 +1,10 @@
+---
+title: How to plan and execute non-trivial work
+summary: Turn an approved spec into a locked plan, checked implementation, independent review, and merge-ready change.
+pack: core
+kind: how-to
+---
+
 # How to plan and execute non-trivial work
 
 **Use this when:** You are about to start a feature, refactor, or multi-file change that goes beyond a one-line edit.

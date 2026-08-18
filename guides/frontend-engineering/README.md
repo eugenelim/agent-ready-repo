@@ -1,3 +1,10 @@
+---
+title: Frontend Engineering guides
+summary: Find the create, retrofit, audit, verification, contract, and evidence workflows used to deliver a frontend surface.
+pack: frontend-engineering
+kind: explanation
+---
+
 # Frontend Engineering guides
 
 Need the shortest path? Say: "Build this dashboard screen from the brief and produce the frontend evidence for release review." Start at the [pack overview](../../../packs/frontend-engineering/), then open the [frontend engineering journey](../../../journeys/frontend-engineering/) to see how create, retrofit, audit, and verify work from mode choice through evidence and independent review.

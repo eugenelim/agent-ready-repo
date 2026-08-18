@@ -1,3 +1,10 @@
+---
+title: Crawl and publish Confluence
+summary: Mirror a documentation space to Markdown, publish reviewed Markdown back, or complete a controlled round trip.
+pack: atlassian
+kind: how-to
+---
+
 # Crawl and publish Confluence
 
 **Use this when:** You need to mirror a Confluence space to Markdown for editing, push Markdown back to a Confluence page, or round-trip crawled content.

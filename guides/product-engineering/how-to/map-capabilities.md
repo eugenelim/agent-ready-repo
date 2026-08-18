@@ -1,3 +1,10 @@
+---
+title: How to map capabilities
+summary: Convert a committed bet into a dependency-aware capability map with maturity, criticality, disposition, and build order.
+pack: product-engineering
+kind: how-to
+---
+
 # How to map capabilities
 
 **Use this when:** You have a committed bet from `place-bet` and need to enumerate what to build, buy, or adopt — and in what order — before any spec or initiative brief is written.

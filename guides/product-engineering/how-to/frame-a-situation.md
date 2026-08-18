@@ -1,3 +1,10 @@
+---
+title: How to frame a situation
+summary: Classify a raw signal, assess capability maturity, and select the correct entry point into product shaping.
+pack: product-engineering
+kind: how-to
+---
+
 # How to frame a situation
 
 **Use this when:** You hold a raw signal — market observation, OKR gap, user pain, or engineering finding — and need to classify it and find the right PE-sequence entry point before committing to any solution.

@@ -1,3 +1,10 @@
+---
+title: Survey a repo for what to adopt
+summary: Inventory an external repository, classify every candidate, and produce a resumable adoption RFC.
+pack: catalogue-curation
+kind: how-to
+---
+
 # Survey a repo for what to adopt
 
 **Use this when:** You want to evaluate an entire external repo or catalogue for skills to adopt, not just a single known unit.

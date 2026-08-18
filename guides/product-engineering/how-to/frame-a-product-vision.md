@@ -1,3 +1,10 @@
+---
+title: How to frame a product vision
+summary: Test a product-existence bet, record a de-risked vision intent, and decompose it toward a product strategy.
+pack: product-engineering
+kind: how-to
+---
+
 # How to frame a product vision
 
 **Use this when:** You are starting a new engagement with a product idea and the core question is whether this product should exist at all — not which features to build first.

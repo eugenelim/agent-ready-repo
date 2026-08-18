@@ -1,3 +1,10 @@
+---
+title: Why strategy is its own seat
+summary: Understand why market analysis, portfolio direction, objectives, and experience governance require a distinct upstream role.
+pack: product-strategy
+kind: explanation
+---
+
 # Why strategy is its own seat
 
 ## About the strategy seat

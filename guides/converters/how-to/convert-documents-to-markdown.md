@@ -1,3 +1,10 @@
+---
+title: Convert documents to Markdown
+summary: Extract readable Markdown from documents or images with explicit fidelity warnings and conversion statistics.
+pack: converters
+kind: how-to
+---
+
 # Convert documents to Markdown
 
 **Use this when:** You have a PDF, Word doc, slide deck, spreadsheet, or diagram image and need clean Markdown output.

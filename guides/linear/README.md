@@ -1,3 +1,10 @@
+---
+title: "`linear` — guides"
+summary: Understand the boundary between first-time repository intake and approval-gated synchronization of an existing brief.
+pack: linear
+kind: explanation
+---
+
 # `linear` — guides
 
 Linear integration for this catalogue. Read Linear work into the shared

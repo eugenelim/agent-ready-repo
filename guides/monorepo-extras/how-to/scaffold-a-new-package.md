@@ -1,3 +1,10 @@
+---
+title: Scaffold a new package
+summary: Create a conventions-complete shared library, wire it into the workspace, and verify its placeholder test and architecture entry.
+pack: monorepo-extras
+kind: how-to
+---
+
 # Scaffold a new package
 
 **Use this when:** you need a new shared library under `packages/` that matches monorepo conventions from the first commit.

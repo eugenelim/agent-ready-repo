@@ -1,3 +1,10 @@
+---
+title: "`credential-brokers` — guides"
+summary: Understand and select the credential setup and broker interfaces that keep cleartext secrets out of agent context.
+pack: credential-brokers
+kind: explanation
+---
+
 # `credential-brokers` — guides
 
 The credential layer behind every skill that touches a private API. A skill never holds a secret: it invokes a credentialed primitive — a CLI, an MCP server, a Python module — that resolves the secret in-process (environment variable → OS keyring → dotfile) and makes the API call itself. Cleartext never reaches the model. The `credential-setup` skill walks a user through entering the keys a skill declares.

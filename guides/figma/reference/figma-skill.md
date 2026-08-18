@@ -1,3 +1,10 @@
+---
+title: The `figma` skill
+summary: Look up the design-file skill’s commands, supported resources, output forms, permissions, and API limitations.
+pack: figma
+kind: reference
+---
+
 # The `figma` skill
 
 A thin, uniform interface to the Figma REST API. Reads files, nodes, metadata, version history, and comments; renders nodes to images; posts comments; converts FigJam connector graphs to Mermaid; and best-effort reads of variables and dev resources. Read and comment only — it does not modify design content, which requires the Plugin API or the Figma MCP server, not REST.

@@ -1,3 +1,10 @@
+---
+title: Configure your agent adapter
+summary: Pin or override the target adapter so installations consistently project into the intended agent environment.
+pack: _shared
+kind: how-to
+---
+
 # Configure your agent adapter
 
 **Use this when:** You work across several IDEs or want to pin a non-default adapter instead of relying on auto-detection.

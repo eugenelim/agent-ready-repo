@@ -1,3 +1,10 @@
+---
+title: How to shape a product strategy
+summary: Turn a survived vision into a tested strategic path and decompose it into capability intents.
+pack: product-engineering
+kind: how-to
+---
+
 # How to shape a product strategy
 
 **Use this when:** Your product vision has survived its market-existence test and you need the path — which problem, for which segment, in what order, and why now — named as a bet you can test.

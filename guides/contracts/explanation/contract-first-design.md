@@ -1,3 +1,10 @@
+---
+title: Contract-first design
+summary: Understand why versioned API or event agreements precede implementation and govern producers, consumers, tests, and tooling.
+pack: contracts
+kind: explanation
+---
+
 # Contract-first design
 
 A contract is the agreement between an API and everyone who calls it. Contract-first means you write that agreement *before* the code, not after. The OpenAPI or AsyncAPI document is the source of truth; the implementation is one consumer of it, alongside the test suite, the mock server, the SDK, and the docs.

@@ -1,3 +1,10 @@
+---
+title: The intent tree — level-agnostic product shaping
+summary: Understand how vision, strategy, capability, and feature intents reuse one recursive frame–de-risk–decompose model.
+pack: product-engineering
+kind: explanation
+---
+
 # The intent tree — level-agnostic product shaping
 
 :::note

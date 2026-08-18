@@ -1,3 +1,10 @@
+---
+title: How to start working on a project
+summary: Orient to an existing governed repository and identify the first ready work item without bypassing lifecycle state.
+pack: core
+kind: how-to
+---
+
 # How to start working on a project
 
 **Use this when:** You have been given access to an existing repo that uses `workspace.toml` and need to get oriented and pick up your first piece of work.

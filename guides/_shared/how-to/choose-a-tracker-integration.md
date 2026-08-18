@@ -1,3 +1,10 @@
+---
+title: Choose a tracker integration for work intake
+summary: Select the appropriate tracker intake route while keeping tracker object types separate from repository artifact routing.
+pack: _shared
+kind: how-to
+---
+
 # Choose a tracker integration for work intake
 
 **Use this when:** tracked work should become canonical repository work.

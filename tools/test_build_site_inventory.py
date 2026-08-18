@@ -87,7 +87,11 @@ def test_shared_and_reference_packs(tmp_path):
     assert _by_path(records, "_shared/explanation/loops.md")["pack"] == "_shared"
     ref = _by_path(records, "_reference/catalogue-format.md")
     assert ref["pack"] == "_reference"
-    # kind-less, non-index — the record that falls through every ordering rule
+    # kind-less, non-index — the shape that falls through every ordering rule. The
+    # real file that had it (`_reference/catalogue-format.md`) now lives at
+    # `_shared/reference/` with `kind: reference`, per
+    # spec/guide-metadata-completion; this fixture stays synthetic so inventory
+    # keeps classifying the shape correctly if it recurs.
     assert ref["kind"] is None
     assert ref["is_index"] is False
 

@@ -1,3 +1,10 @@
+---
+title: "`credbroker` SSO API"
+summary: Look up the supported in-process API for checking, capturing, and using brokered SSO sessions without handling subprocess details.
+pack: credential-brokers
+kind: reference
+---
+
 # `credbroker` SSO API
 
 The consumer surface for `auth: sso-cookie` skills. A consumer never resolves the

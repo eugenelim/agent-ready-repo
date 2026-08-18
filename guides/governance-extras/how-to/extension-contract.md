@@ -1,3 +1,10 @@
+---
+title: How to define an extension contract
+summary: Document an intentional extension hook’s shape, guarantees, exclusions, ownership, and verification method.
+pack: governance-extras
+kind: how-to
+---
+
 # How to define an extension contract
 
 **Use this when:** A component you ship exposes an intentional hook — a plugin point, config extension, or lifecycle callback — that adopters are expected to plug into.

@@ -1,3 +1,10 @@
+---
+title: Why the architect-diagram skill works the way it does
+summary: Understand the notation, layout, visual-encoding, grounding, and portability decisions behind the architecture-diagram workflow.
+pack: architect
+kind: explanation
+---
+
 # Why the architect-diagram skill works the way it does
 
 This page is a Diátaxis *explanation* — it answers *why*, not *how*. If you

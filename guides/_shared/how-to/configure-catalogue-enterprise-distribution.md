@@ -1,3 +1,10 @@
+---
+title: How to configure a catalogue for enterprise distribution
+summary: Configure catalogue distribution coordinates and generated defaults so managed installations use the approved internal channel automatically.
+pack: _shared
+kind: how-to
+---
+
 # How to configure a catalogue for enterprise distribution
 
 **Use this when:** You maintain a catalogue and want developers to run `agentbundle install` against your internal Artifactory channel without a manual `config set source` step.

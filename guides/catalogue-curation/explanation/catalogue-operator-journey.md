@@ -1,3 +1,10 @@
+---
+title: Catalogue operator journey
+summary: Understand how catalogue authors, maintainers, and organizational stack owners use the curation workflows at different operating altitudes.
+pack: catalogue-curation
+kind: explanation
+---
+
 # Catalogue operator journey
 
 How the three operator sub-personas — org-stack engineer, catalogue maintainer, and catalogue author — use the curation pack at their operating altitude.

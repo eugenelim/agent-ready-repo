@@ -1,3 +1,10 @@
+---
+title: Your first governance session
+summary: Install the governance pack and record one reviewed architecture decision through its confirmation gate.
+pack: governance-extras
+kind: tutorial
+---
+
 # Your first governance session
 
 **What you'll build:** A confirmed ADR file in `docs/adr/`, recorded through the `new-adr` skill's preview-confirm write gate.

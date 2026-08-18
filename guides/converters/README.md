@@ -1,3 +1,10 @@
+---
+title: "`converters` — guides"
+summary: Choose a conversion workflow for extracting Markdown, rendering diagrams, publishing HTML, or filling branded Office templates.
+pack: converters
+kind: explanation
+---
+
 # `converters` — guides
 
 Get documents into Markdown and back out again. The `converters` pack: pull text out of office files and diagrams (`file-to-markdown`), bake Mermaid fences into real images (`mermaid-renderer`), turn Markdown into a self-contained styled HTML page (`markdown-to-html`), publish Markdown back out as a branded Word doc / PowerPoint deck / Excel workbook by filling your template (`markdown-to-docx`, `markdown-to-pptx`, `markdown-to-xlsx`), and read Outlook `.msg` email into Markdown (`msg-to-markdown`). Each one is a thin wrapper: the agent invokes a script and reports where the output landed.

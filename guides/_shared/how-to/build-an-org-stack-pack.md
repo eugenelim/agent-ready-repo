@@ -1,3 +1,10 @@
+---
+title: "How to ship your organization's standard stack as a reusable pack"
+summary: Package organizational architecture, conventions, and framework knowledge into a reusable pack and one-command profile.
+pack: _shared
+kind: how-to
+---
+
 # How to ship your organization's standard stack as a reusable pack
 
 **Use this when:** You want every team in your organization to start from the same reference architecture, conventions, and internal framework knowledge, installed in one command.

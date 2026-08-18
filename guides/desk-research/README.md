@@ -1,3 +1,10 @@
+---
+title: "`desk-research` — guides"
+summary: Choose the appropriate episodic depth or sustained-project workflow for an evidence-grounded research question.
+pack: desk-research
+kind: explanation
+---
+
 # `desk-research` — guides
 
 Evidence-grounded research, with the depth dialed to the question. `/desk-research` runs anything from a quick look-up to a deep investigation, grading its confidence as it goes. Around it sit the pipeline skills — `build-outline`, `source-map`, `identify-perspectives`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` — and two retrieval subagents that do the fetching.

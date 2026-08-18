@@ -1,3 +1,10 @@
+---
+title: How to design a profile
+summary: Define a persona-specific pack profile that passes the catalogue’s cohesion, scope, dependency, and validation tests.
+pack: _shared
+kind: how-to
+---
+
 # How to design a profile
 
 **Use this when:** You want to propose a new curated set of packs that a named adopter persona would install in one command.

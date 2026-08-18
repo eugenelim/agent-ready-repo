@@ -1,3 +1,10 @@
+---
+title: The three loops — the company operating model
+summary: Understand why discovery, build, and release are separate supervised loops and how their handoffs form one operating model.
+pack: _shared
+kind: explanation
+---
+
 # The three loops — the company operating model
 
 Software delivery has always had three distinct jobs: shaping what to build, building it, and getting it to production. Those three jobs have different failure modes, different decision authorities, and different reversibility profiles. A single loop can't govern all three well — and an agent that tries will either move too slowly (treating every change as a prod ship) or too recklessly (treating a prod ship as just another change).

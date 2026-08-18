@@ -25,6 +25,8 @@ on:
       - 'tools/lint-guides-no-repo-only-refs.py'
       - 'tools/lint-guide-titles.py'
       - 'tools/test_lint_guide_titles.py'
+      - 'tools/validate_guides.py'
+      - 'tools/test_validate_guides.py'
       - 'tools/build-site.py'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
       - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
@@ -115,6 +117,44 @@ jobs:
         run: python3 tools/lint-guide-titles.py
       - name: Run its tests
         run: python3 tools/test_lint_guide_titles.py
+
+  validate-guides:
+    name: Published guides carry complete metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      # jsonschema + pyyaml: without them the validator silently degrades to a
+      # field-by-field fallback, so the install is part of the assertion.
+      - name: Install tooling requirements
+        run: pip install -r tools/requirements.txt
+      # Runs the CLI against the REAL tree. tools/test_validate_guides.py only
+      # exercises tmp_path fixtures, so before this step the zero-warning state
+      # spec/guide-metadata-completion established had no repeating guard: guide 126
+      # could land with no frontmatter and every gate stayed green.
+      - name: Validate published-guide metadata
+        run: python3 tools/validate_guides.py
+      - name: Fail on any warning, and assert the run had coverage
+        # Two assertions, because the first alone is blind. The validator exits 0 for
+        # warnings by design (they were advisory while the backfill was in flight), so
+        # a warning now means a regression. But "0 errors, 0 warnings" is ALSO what an
+        # empty or missing tree prints, so grepping only that asserts the absence of
+        # complaints without asserting anything was examined. The floor is well under
+        # the current 188 so ordinary additions do not trip it, and well above 0.
+        run: |
+          set -euo pipefail
+          out="$(python3 tools/validate_guides.py 2>&1)"
+          echo "$out"
+          if ! grep -q '0 errors, 0 warnings' <<<"$out"; then
+            echo "::error::published-guide metadata is incomplete — see the warnings above"
+            exit 1
+          fi
+          # grep -o, not sed: `\+` is a GNU extension, so a sed pattern using it
+          # cannot be verified on a BSD sed and would be untested until CI ran it.
+          checked="$(grep -o '[0-9][0-9]* checked' <<<"$out" | head -1 | cut -d' ' -f1)"
+          if [ -z "$checked" ] || [ "$checked" -lt 150 ]; then
+            echo "::error::validator examined ${checked:-no} files — expected at least 150; the guides tree is missing or the invocation is wrong"
+            exit 1
+          fi
 
   lint-skill-spec:
     name: agentskills.io spec

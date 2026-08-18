@@ -1,3 +1,10 @@
+---
+title: "`atlassian` — guides"
+summary: Choose the workflow for tracker intake, story improvement, team status, publishing, flow metrics, or adoption reporting.
+pack: atlassian
+kind: explanation
+---
+
 # `atlassian` — guides
 
 Jira, Jira Align, and Confluence over their REST APIs, plus flow metrics and

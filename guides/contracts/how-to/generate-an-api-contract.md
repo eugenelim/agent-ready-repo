@@ -1,3 +1,10 @@
+---
+title: Generate an API contract
+summary: Produce a validated OpenAPI 3.1 contract from requirements or a domain model under the active design standard.
+pack: contracts
+kind: how-to
+---
+
 # Generate an API contract
 
 **Use this when:** You own an API's resources and need a complete OpenAPI 3.1 contract from requirements, a domain model, or plain-English prose.

@@ -1,3 +1,10 @@
+---
+title: Cascade OKRs into the shaping queue
+summary: Convert objective gaps into ranked, traceable strategy entries ready for product shaping.
+pack: product-strategy
+kind: how-to
+---
+
 # Cascade OKRs into the shaping queue
 
 **Use this when:** you have company objectives and need to turn the gaps they expose into typed shaping-queue entries the build loop picks up automatically.

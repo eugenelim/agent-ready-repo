@@ -1,3 +1,10 @@
+---
+title: Run a research project and feed it into an RFC
+summary: Carry a multi-session corpus into a confidence-graded synthesis and preserve its evidence when opening an RFC.
+pack: desk-research
+kind: how-to
+---
+
 # Run a research project and feed it into an RFC
 
 **Use this when:** A decision needs more than one sitting and you want the research evidence to land in an RFC with citations and confidence tags intact.

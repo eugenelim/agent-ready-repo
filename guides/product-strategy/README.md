@@ -1,3 +1,10 @@
+---
+title: "`product-strategy` — guides"
+summary: Set the committed market, product, objective, experience, and content direction upstream of individual initiatives.
+pack: product-strategy
+kind: explanation
+---
+
 # `product-strategy` — guides
 
 The strategy seat **upstream** of product engineering and experience design:

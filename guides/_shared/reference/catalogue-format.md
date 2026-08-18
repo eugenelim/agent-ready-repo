@@ -1,3 +1,11 @@
+---
+title: Catalogue format
+summary: Use the authoritative directory, marker, schema, adapter-artifact, and validation contract when creating or checking a catalogue.
+pack: _shared
+kind: reference
+slug: guides/_reference/catalogue-format
+---
+
 # Catalogue format
 
 :::note
@@ -26,12 +34,12 @@ catalogues that project only a non-Claude adapter may omit it.
 ## Schema contracts
 
 All schemas live in `contracts/`:
-- [`catalogue.schema.json`](../../contracts/catalogue.schema.json)
-- [`pack.schema.json`](../../contracts/pack.schema.json)
-- [`skill.schema.json`](../../contracts/skill.schema.json)
-- [`skill-manifest.schema.json`](../../contracts/skill-manifest.schema.json)
-- [`profile.schema.json`](../../contracts/profile.schema.json)
-- [`adapter.schema.json`](../../contracts/adapter.schema.json)
+- [`catalogue.schema.json`](../../../contracts/catalogue.schema.json)
+- [`pack.schema.json`](../../../contracts/pack.schema.json)
+- [`skill.schema.json`](../../../contracts/skill.schema.json)
+- [`skill-manifest.schema.json`](../../../contracts/skill-manifest.schema.json)
+- [`profile.schema.json`](../../../contracts/profile.schema.json)
+- [`adapter.schema.json`](../../../contracts/adapter.schema.json)
 
 ## Format version
 
@@ -49,4 +57,4 @@ post-build artifact checks, and self-host drift detection.
 
 For CI pipeline patterns using `verify`, `lint`, and `package` — including
 publication ordering, exit codes, and JSON output shapes — see the
-[Catalogue CI contract](../_shared/reference/catalogue-ci-contract.md).
+[Catalogue CI contract](catalogue-ci-contract.md).

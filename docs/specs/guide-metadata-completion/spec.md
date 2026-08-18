@@ -1,6 +1,6 @@
 # Spec: Guide metadata completion
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -64,40 +64,107 @@ existing public route; every other public route remains unchanged.
 
 ## Acceptance Criteria
 
-- [ ] The incomplete-metadata backfill is exactly the 125 affected public pages
+- [x] The incomplete-metadata backfill is exactly the 125 affected public pages
   in `metadata-decisions.md`; each receives its exact schema-valid `summary`,
   `pack`, and `kind`, while `title` is exact from that ledger except for the
   four replacements owned by `guide-title-clarity`.
-- [ ] The only files exempt from public-guide metadata are
+- [x] The five exempt files remain mirrored and published — e.g.
+  `/docs/guides/AGENTS/` and `/docs/guides/_shared/how-to/` are reachable — so five
+  emitted pages carry no `summary` while the other 188 do. Recorded so the
+  exemption's blast radius is on the record rather than implied by "structural
+  indexes stay outside the content contract".
+- [x] The only files exempt from public-guide metadata are
   `guides/AGENTS.md`, `guides/_shared/tutorials/README.md`,
   `guides/_shared/how-to/README.md`,
   `guides/_shared/reference/README.md`, and
   `guides/_shared/explanation/README.md`.
-- [ ] The validator encodes those five paths as intentional non-content files
+- [x] The validator encodes those five paths as intentional non-content files
   and emits neither errors nor warnings for them.
-- [ ] `tools/validate_guides.py` finishes with zero errors and zero warnings for
+- [x] `tools/validate_guides.py` finishes with zero errors and zero warnings for
   the complete published-guide tree.
-- [ ] Each metadata title matches its guide H1, except where the independently
+- [x] Each metadata title matches its guide H1, except where the independently
   approved `guide-title-clarity` spec supplies the replacement title.
-- [ ] Each summary is human-reviewed, outcome-led, specific to its guide, and
+
+  "Matches" is `tools/lint-guide-titles.py`'s definition — NFKC, backticks and
+  asterisks stripped, whitespace collapsed, casefolded, trailing punctuation
+  removed — and that gate is green. Its printed count is the **walk size** (193 both
+  before and after), which is invariant to whether any comparison ran, so it is not
+  evidence of coverage; the number that moved is the count of files actually
+  compared, which `check_file` skips for any file without a frontmatter `title`:
+  **54 before, 179 after**. All 125 ledger titles are byte-identical to their H1s.
+  Recorded because a stricter byte-equality reading finds five mismatches
+  (`guides/release-engineering/README.md`,
+  `guides/frontend-engineering/reference/performance-targets.md`,
+  `guides/_shared/how-to/install-agentbundle-from-clone.md`,
+  `guides/_shared/how-to/preview-install-or-upgrade.md`,
+  `guides/core/how-to/adapt-to-project.md`) that differ only by case, inline-code
+  markers or a hyphen. All five predate this spec, none is a ledger row, and the
+  gate accepts them; they are named here so a later reader does not rediscover
+  them as this change's doing.
+- [x] Each summary is human-reviewed, outcome-led, specific to its guide, and
   does not merely repeat the title or opening sentence.
-- [ ] Each `pack` value identifies the owning pack or approved shared ownership,
+- [x] Each `pack` value identifies the owning pack or approved shared ownership,
   and each `kind` matches the guide's Diátaxis location.
-- [ ] `guides/_reference/catalogue-format.md` moves to
+- [x] The typed-asides blockquote ledger and its frozen baseline both had a row
+  naming the moved source path. Both were repointed — path only, leaving `line` and
+  `content_sha256` untouched, because the two files are compared to each other on
+  exactly that triple. This was first dispositioned as "leave it and register the
+  gap", on the reasoning that `test_guide_typed_asides.py` iterates files that exist
+  and would skip the row silently. That reasoning covered one consumer and missed
+  another: `web/src/test/rendered-output.test.ts` dereferences every ledger row and
+  failed hard with ENOENT in CI. Repointing fixes both and restores the coverage the
+  skip had dropped.
+- [x] `guides/_reference/catalogue-format.md` moves to
   `guides/_shared/reference/catalogue-format.md` with `_shared` ownership and
   `reference` kind, while an explicit slug preserves
   `/docs/guides/_reference/catalogue-format/`; the old structural group is
   removed only if navigation and route checks prove it empty and safe.
-- [ ] The opening of
+- [x] The opening of
   `guides/_shared/how-to/pack-journey-authoring.md` is the approved public-guide
   wording in `metadata-decisions.md` and no longer claims the page is an
   internal `docs/guides/` maintainer guide.
-- [ ] Existing optional `slug`, `order`, and `aliases` values remain unchanged
+- [x] Existing optional `slug`, `order`, and `aliases` values remain unchanged
   unless a source is already invalid under `contracts/guide.schema.json`.
-- [ ] The built marketing and documentation sites enumerate all 125 affected
+- [x] Applying the reviewed titles changes **125 sidebar labels**, reorders items in
+  **10 kind buckets**, and moves one page between groups. Measured with the SHIPPING
+  label chain, against `origin/main`'s tree and baseline.
+
+  This required removing **84 entries from `guide-nav-baseline.toml`** (101 → 17).
+  That registry has highest precedence in `_guide_label`, so without the removal the
+  curated titles reached the page but not navigation — 84 of the 125 kept their
+  pre-change sidebar label, leaving the criterion below unmet for two thirds of the
+  set. `guide-nav-baseline.toml`'s own header defines the protocol: "a page gains
+  `title:` frontmatter, its entry is removed here deliberately … Removing an entry is
+  the reviewable act that adopts a page's own title." Every one of the 84 had a label
+  differing from the title replacing it, so none was a no-op.
+
+  Reordered buckets: Architect/Tutorials,
+  Cross-cutting/{Explanation,How-to,Reference}, Desk Research/How-to,
+  Experience Design/How-to, Governance Extras/How-to, Product Discovery/How-to,
+  The Build Loop (core)/{Explanation,How-to}. Group move: `catalogue-format` from the
+  removed "Reference material" to Cross-cutting/Reference.
+
+  Cross-cutting/Reference is in the list for a reason independent of that group move:
+  `adapter-support` and `agentbundle` swap because `agentbundle`'s label became
+  `` `agentbundle` — reference ``, and the leading backtick sorts ahead of "Adapter"
+  under the casefolded key. An earlier revision counted 9 because the measurement
+  compared bucket orders only where MEMBERSHIP was identical, which excluded every
+  bucket that gained or lost an item — including this one. The count above compares
+  the relative order of the items common to both sides, so a membership change no
+  longer hides a reorder.
+
+  Approved 2026-08-18 against the Ask-first boundary on sidebar order. An earlier
+  revision of this AC recorded 11 buckets and cited two examples that do not change,
+  because the measurement passed an empty baseline and so bypassed the highest-
+  precedence layer; the numbers above are from the shipping chain.
+
+  Label and order cannot be varied independently in the current projector — it sorts
+  kind buckets by resolved label, so adopting a title necessarily reorders its bucket.
+  Registered as `[backlog].open` slug `guide-sidebar-label-order-coupling`.
+- [x] The built marketing and documentation sites enumerate all 125 affected
   pages and expose each reviewed title and summary wherever their current
   page-list, search, or description contracts consume guide metadata.
-- [ ] Complete public-guide coverage—including pages that already had valid
+- [x] Complete public-guide coverage—including pages that already had valid
   metadata before this backfill—proves every pre-change route, alias, and
   navigation destination still resolves, and the combined rendered-link
   checker reports no broken page or fragment.

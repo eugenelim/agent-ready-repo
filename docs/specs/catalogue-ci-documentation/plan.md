@@ -29,7 +29,7 @@ and documented command correctness must all be checked)
 Write the guide from scratch (not a copy of the internal doc). Audience: an engineer building
 their first external catalogue. Cover:
 1. Prerequisites (Python 3.11+, agentbundle ≥ 0.22.0)
-2. Create the layout — show the directory shape; reference `guides/_reference/catalogue-format.md`
+2. Create the layout — show the directory shape; reference `guides/_reference/catalogue-format.md` <!-- Moved 2026-08-18 by spec/guide-metadata-completion to `guides/_shared/reference/catalogue-format.md`; the public route is unchanged. -->
    for the full `catalogue.toml` schema (required fields span ~20 nested keys across 5 tables;
    not shown inline — point to the format reference)
 3. Run `agentbundle catalogue self-host --root . --write` to generate `marketplace.json`
