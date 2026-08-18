@@ -1204,11 +1204,9 @@ def _parse_release_identity(title: str) -> dict | None:
 class ParsedChangelog(NamedTuple):
     """Release records plus the authoring problems worth reporting.
 
-    Diagnostics are RETURNED rather than stashed on the function. As a function
-    attribute they were hidden mutable module state, non-reentrant, assigned only
-    on the success path — so a parse that raised left the previous document's
-    diagnostics readable — and they forced every caller that wanted them to parse
-    the file a second time.
+    Diagnostics are returned, not stashed on the function: as a function attribute
+    they were hidden module state assigned only on the success path, and they
+    forced a second parse.
     """
 
     releases: list[dict]
