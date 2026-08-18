@@ -223,6 +223,9 @@ shipped = [
   {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
   {path = "docs/specs/site-now-surface/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Publish released changelog highlights at Now without exposing in-progress work", needs = []},
   {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
+  {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
+  {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
+  {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
 ]
 queue   = [
   # RFC-0088 round 12 — measures open questions 4, 5 and 6 plus two residuals that
@@ -242,7 +245,6 @@ queue   = [
   # that the engine and the existing CLIs both call, so the two surfaces cannot
   # drift. Read-only guard surface only: no FSM, state-schema, or mutation-verb
   # change, and no MCP, daemon, or new dependency.
-  {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
 
   # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
   # This sequence is adaptive: at each completed slice, compare measured behavior and
@@ -290,13 +292,11 @@ queue   = [
   # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
   # The critical path is set by one serial job, so the fix is job layout, not
   # making any gate faster; the export-boundary gate's own cost is deferred.
-  {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
   # Follow-on to the spec above, under the same ADR-0086 decision: move the 27s
   # credbroker suite out of gate-main into its own job. Deliberately the CHEAPEST
   # extraction that reaches the current ceiling (gate-sast, mean 160s) — extracting
   # more buys nothing until that job shrinks. The RFC-0082 carve-out step is an
   # explicit non-goal; its coupling graph defeated four revisions of the spec above.
-  {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2775,6 +2775,21 @@ open = [
   # Needs a design pass first: `needs` carries no timestamp, so the comparison
   # has to come from git history or a new recorded field.
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
+  # LIVE INSTANCE, 2026-08-18 (spec/workspace-queue-reconciliation). This stopped
+  # being hypothetical. That PR moved the Shipped docs/specs/tracker-intake-adapters
+  # entry out of ini-008's queue into its shipped list — the truthful record — and the
+  # immediate effect was that docs/specs/tracker-refresh-writeback/spec.md became
+  # canonically READY, dispatchable by an argless work-loop. It should not be built as
+  # it stands: tracker-refresh-writeback-reanchor (above) says its spec/plan predates
+  # the Group 2/3 contracts it builds on and needs a refresh loop first. Nothing
+  # detected the transition; the ready-set delta was measured by hand before the move,
+  # and the move was made anyway because leaving a Shipped spec in a queue is a false
+  # record that blocks all reconciliation.
+  # So the failure mode is now demonstrated end to end: a routine, correct
+  # reconciliation edit silently promoted a stale spec to dispatchable. The reanchor
+  # entries are the one-off correction; this is the control. Raise the priority
+  # accordingly, and note the guard has to fire on a MEMBERSHIP change, not only on a
+  # dependency shipping — this instance was triggered by the former.
 
   # Surfaced 2026-08-15 while auditing every [backlog].open entry against the
   # engine's own classifier. The five reanchor entries above carry `type = "spec"`,
@@ -3208,12 +3223,12 @@ shipped = [
   {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
   # Group 4 — standalone work-intake front door and compatibility alias.
   {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
-]
-active = []
-queue = [
   # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
   # contract. Acquisition and normalization stay adapter-specific.
   {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
+]
+active = []
+queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
   {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
