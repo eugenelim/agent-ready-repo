@@ -112,6 +112,27 @@ def _output_path(root: Path, value: str | None) -> tuple[Path, bool]:
     return root / candidate, True
 
 
+def _is_link_or_reparse(path: Path) -> bool:
+    """Return whether a path entry is a symlink or Windows junction."""
+    junction_check = getattr(path, "is_junction", None)
+    return path.is_symlink() or bool(junction_check and junction_check())
+
+
+def _output_contains_link(root: Path, output: Path) -> bool:
+    """Return whether an output path traverses a link-like entry."""
+    try:
+        relative = output.relative_to(root)
+    except ValueError:
+        return _is_link_or_reparse(output) or _is_link_or_reparse(output.parent)
+
+    current = root
+    for part in relative.parts:
+        current /= part
+        if _is_link_or_reparse(current):
+            return True
+    return False
+
+
 def run(args: argparse.Namespace) -> int:
     """Generate, validate, and optionally publish a catalogue index."""
     root = Path(args.catalogue_root)
@@ -128,6 +149,8 @@ def run(args: argparse.Namespace) -> int:
                     "output path is outside the catalogue root",
                     "output",
                 ) from exc
+        if _output_contains_link(root, output):
+            raise CatalogueIndexError("unsafe-output", "output path is unsafe", "output")
         serialized = (
             json.dumps(index, allow_nan=False, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
         ).encode("utf-8")

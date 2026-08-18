@@ -273,7 +273,7 @@ def test_root_resolution_runtime_error_returns_structured_error(
     }
 
 
-def test_symlink_loop_output_returns_structured_error(
+def test_symlink_loop_output_is_rejected_as_unsafe_output(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -289,7 +289,7 @@ def test_symlink_loop_output_returns_structured_error(
     ) == 1
     result = json.loads(capsys.readouterr().out)
     diagnostic = result["diagnostics"][0]
-    assert diagnostic["code"] == "filesystem"
+    assert diagnostic["code"] == "unsafe-output"
     assert diagnostic["location"] == "output"
     assert "Traceback" not in diagnostic["message"]
 
