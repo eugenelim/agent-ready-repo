@@ -137,9 +137,10 @@ The procedure is the reproducible part, and it is five steps:
    — follow its block rather than a copy, then serve it with
    `npm run preview --prefix web -- --port <the port in web/src/test/e2e/site-base.ts>`.
 2. Per route, open a Playwright page and set **both**:
-   - `await page.emulateMedia({ media: 'print' })`, without which step 4 reads
-     *screen* media and every "hidden by print rules" attribution below is wrong —
-     Starlight's sidebar hiding lives inside `@media print`; and
+   - `await page.emulateMedia({ media: 'print' })`, without which the whole run
+     measures *screen* media. The content columns happen to be stable across the
+     two here, but nothing guarantees that, and any future chrome question depends
+     on it — Starlight's sidebar hiding lives inside `@media print`; and
    - the viewport to **717 × 900**, the printable width itself. `emulateMedia`
      switches media queries, not the layout viewport, so print media *without* this
      width is what produced the false clipping described above. Both are required;
@@ -200,23 +201,39 @@ question, and all three were wrong:
    `aside.right-sidebar-container`, which resolves to `display:none` inside
    `@media print`.
 
-The fourth attempt read the rendered PDF and diffed its text against `<main>`'s. That
-is the right oracle — *printed* means *in the printed output* — but PDF text
-extraction normalizes apostrophes, rewrites `://`, and rewraps lines, so the diff is
-dominated by extraction artifacts rather than chrome. What it does establish, and all
-this section claims:
+The fourth attempt read the rendered PDF and diffed its text against `<main>`'s.
+*Printed* does mean *in the printed output*, so the oracle is right in principle, but
+it has two limits that between them account for everything the diff reported.
 
-- On `/`, the nav **logo** and the **footer** print. The skip link, `.nav__links` and
-  both `.nav__cta` instances do not.
-- On the five docs routes, the **breadcrumb** and the **footer** print. The skip link,
-  the sidebar, and the table of contents in either form do not.
+**Extraction noise.** PDF text extraction normalizes apostrophes, rewrites `://`, and
+rewraps lines, so most "extra" lines are `<main>` content that merely fails to string
+match.
+
+**No discriminating power on the docs routes.** Starlight places the breadcrumb, the
+previous/next pagination **and the footer** inside `<main>`. A PDF-minus-`<main>` diff
+therefore cannot identify chrome on those five routes at all, and every line it
+flagged there was extraction noise. An earlier draft of this very section read that
+noise as evidence and claimed the breadcrumb prints as chrome — the same mistake as
+the rows it replaced, one layer up.
+
+So the diff establishes exactly two things, and they are all this section claims:
+
+- On `/`, where the nav and footer DO sit outside `<main>`, the nav **logo** prints
+  (page 1) and the **footer** prints (page 8: the brand line and `© 2026`).
 - Starlight's previous/next pagination is inside `<main>`, so it was never chrome —
   the rows that called it "not on this route" were answering the wrong question.
 
+For the five docs routes it establishes nothing either way. What is *dis*established
+there, by CSS that is unambiguous on inspection, is the set of claims the withdrawn
+rows made: the skip link cannot paint (`clip:rect(0,0,0,0)` until `:focus`), and the
+table of contents cannot paint (`print:hidden` → `display:none` inside `@media
+print` on `aside.right-sidebar-container`).
+
 A precise per-element paint inventory needs an oracle none of the four probes
-provided: paint, not layout, not computed style, not extracted text. Rather than ship
-a fourth guess, the column is withdrawn and registered as `[backlog].open` slug
-`print-chrome-paint-inventory`.
+provided: paint, not layout, not computed style, not extracted text — and, on the
+docs routes, one that does not depend on a chrome/content split the markup does not
+make. Rather than ship a fifth guess, the column is withdrawn and registered as
+`[backlog].open` slug `print-chrome-paint-inventory`.
 
 **This does not touch AC13.** `close-stale` rests on the content axes, which are
 unchanged and have now reproduced twice on all six routes: page counts 8/3/4/12/12/12,
@@ -226,10 +243,11 @@ therefore no print CSS from this programme.
 
 ## Residual, stated rather than hidden
 
-Some navigation-only chrome still prints — on `/` the nav logo and footer, on the
-five docs routes the breadcrumb and footer, per the section above. Which elements
-precisely, and why each is or is not painted, is the withdrawn inventory; this
-paragraph deliberately claims no more than that section supports.
+Some navigation-only chrome still prints: on `/`, the nav logo and the footer. On the
+five docs routes the question is open — Starlight keeps breadcrumb, pagination and
+footer inside `<main>`, so the method that answered it for `/` has no purchase there.
+Which elements precisely, and why each is or is not painted, is the withdrawn
+inventory; this paragraph deliberately claims no more than that section supports.
 
 What the evidence does show is that it **does not corrupt content** on the axes
 measured, and those axes are the ones `close-stale` rests on: no element exceeds the
