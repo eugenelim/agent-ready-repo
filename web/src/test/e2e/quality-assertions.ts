@@ -72,6 +72,13 @@ export function collectPageErrors(page: Page): string[] {
  *
  * Infinite animations are excluded rather than waited on: a looping animation would
  * never settle, and hanging the gate on one would be a worse failure than the flake.
+ * The emitted CSS contains no looping animation today (zero
+ * `animation-iteration-count` and zero `infinite` in the emitted stylesheets, checked
+ * 2026-08-18 — `Hero.astro` says as much, citing creative-direction), so that branch
+ * is exercised by its fixture rather than by real content. The boundary is exactly
+ * `iterations === Infinity`: an animation with a large FINITE count would be waited
+ * on and would trip the 5s timeout. None exists, and the failure would be loud and
+ * correctly attributed if one were added.
  */
 export async function waitForAnimationsToSettle(
   page: Page,
