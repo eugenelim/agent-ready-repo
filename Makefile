@@ -349,6 +349,7 @@ test:
 	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q

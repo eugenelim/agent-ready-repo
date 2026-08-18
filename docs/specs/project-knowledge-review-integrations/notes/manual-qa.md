@@ -84,7 +84,8 @@ Result: **pass — zero reviewer knowledge writes**.
 
 The final implementation gates produced these results:
 
-- focused core review-integration construction tests: **9 passed**;
+- focused core and repository-level review-integration construction tests:
+  **9 passed**;
 - focused architect review-integration construction tests: **6 passed**;
 - combined final focused run: **15 passed**;
 - existing project-knowledge suites: **169 passed**;
