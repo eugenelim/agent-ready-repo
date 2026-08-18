@@ -1468,6 +1468,42 @@ invented for it. Round 11 also recorded six instrument corrections of its own
 inherited from earlier rounds. Details in the
 [round-11 note](0088-notes/spikes/2026-08-18-experimental-round11.md).
 
+### Amended binding requirements — 2026-08-18, after round 11
+
+Round 11 measured the binding requirements the dispositions above attach and found
+two of them insufficient as written. **The approver amended those two on
+2026-08-18.** The dispositions themselves are unchanged — items 2, 3, 5 and 6 remain
+accepted risks, and the RFC remains `Experimental`. What changed is the wording of
+the construction requirements those acceptances carry, and each amendment is
+recorded with the measurement that forced it.
+
+**D / item 6 — was "service workers disabled". Now reads:**
+
+> Before an authenticated session is handed to an agent, the profile's persisted
+> service-worker storage is purged, **and** service-worker registration is blocked
+> for the session. Both clauses are required.
+
+*Why the second clause was not enough on its own.* `serviceWorkers: 'block'` is a
+per-context option: it refuses new registrations and does not reach a worker
+already on disk. Measured on one restored profile in one run, the realm reported a
+controller at document start and emitted the same 4 UDP packets under `block` as
+under `allow`. Purging the storage and blocking together closes it — controller
+`false`, zero packets, zero registrations.
+
+*Why the amendment is safe for the use case it protects.* The purge removes only
+`Default/Service Worker`; the session lives in a different store. Measured rather
+than inferred, because the first version of this recommendation rested on exactly
+the "sound reasoning, not a promoted arm" basis this RFC has been corrected for
+four times: after the purge, the authenticated endpoint answers `true` to the
+restored browser, while a control arm that purges the cookie store instead answers
+`false`.
+
+*What the requirement costs.* Measured as a taxonomy, suppression breaks only
+flows whose login path genuinely depends on a worker. A flow with no worker and a
+flow that merely registers one both complete. **How common the load-bearing class
+is among real identity providers is not measured** and remains a residual — the
+pilot can answer it for its own destination.
+
 The list maps onto the spikes as: S1 → item 1; S2 → items 1, 2 and 5; S3 → items
 1, 4 and 6; S5 → item 3. S4 and S6 contribute none, for the reasons stated
 below. Every residual named in a spike row above appears in this list, and every
@@ -2800,7 +2836,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (101 manifested files, round-7 archive SHA-256 `0c97fc37…bb82`), reconstructed
+  (103 manifested files, round-7 archive SHA-256 `9f6470bf…3cd0`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four

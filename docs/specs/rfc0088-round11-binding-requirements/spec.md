@@ -213,6 +213,19 @@ failing-row, `expectedFatal`, import-closure) → `verify-note-figures-r7.py` �
       `make build-check` passes when `dist/` is built by the gate chain with
       bytecode writing disabled, and the RFC status is still `Experimental`.
 
+## Approver-directed follow-up criteria — 2026-08-18
+
+Round 11's five arms closed against AC1–AC14. Walking the findings, the approver
+directed two follow-up arms and one apparatus fix on 2026-08-18. They are recorded
+as criteria here rather than in a new spec, because they test the same
+requirements this spec was written to measure.
+
+- [x] **AC15 — the item-6 remedy preserves the session it protects.** Purging the
+      profile's service-worker storage closes the realm **and** an authenticated
+      session survives it, verified against a server endpoint rather than inferred
+      from which files are on disk, with a control arm that purges the cookie store
+      instead and whose authenticated request therefore fails.
+
 ## Resolve-vs-surface record
 
 Opened at PLAN, closed here. Everything a referent could settle was settled; only
