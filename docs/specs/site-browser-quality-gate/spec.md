@@ -134,10 +134,10 @@ responsibility.
   [`notes/print-audit.md`](notes/print-audit.md) § Measured axes; this criterion
   deliberately does not restate them.
 
-  *Not measured (2026-08-18):* vertical overlap and page-break quality —
-  orphaned headings, unusable breaks, unexpected blank pages. Page count is not
-  page-break quality; judging breaks needs a human reading six PDFs. Registered
-  as `[backlog].open` slug `print-audit-page-break-quality`.
+  *Not measured (2026-08-18):* the page-break axis § Measured axes names as
+  undelivered. Page count is not page-break quality. Registered as
+  `[backlog].open` slug `print-audit-page-break-quality`, which carries the
+  actionable detail so it cannot rot here once the axis is measured.
 
   *Withdrawn (2026-08-18):* per-route navigation visibility. Four probe
   generations each produced wrong attributions — see § The navigation inventory

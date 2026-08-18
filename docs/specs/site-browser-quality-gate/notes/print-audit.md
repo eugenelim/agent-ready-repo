@@ -94,10 +94,11 @@ What each column is measured from, so no cell claims more than the method
 supports. The navigation column is **withdrawn** and nothing replaced it — see
 § The navigation inventory this audit does not deliver for why. (That column's history is part of why it is withdrawn: an earlier revision carried
 one hand-written value repeated across all six rows, and each attempt to replace it
-with a measured one was also wrong.) `Clipping / overlap / breaks`
+with a measured one was also wrong.) The `Clipping / width overflow` column
 reports element-box geometry against the printable width and document-level
-horizontal overflow — the column is headed `Clipping / width overflow` for that
-reason; **vertical overlap was not separately inspected**, and the
+horizontal overflow — § Measured axes 1 and 2. It was formerly headed
+`Clipping / overlap / breaks` and was renamed because
+**vertical overlap was not separately inspected**; the
 grounds for reading it as absent are that no element exceeds the page width and
 `<main>`'s rendered text length is unchanged under print media — a DOM measure, not
 a page measure, and named as such. `Content result` is the PDF page
@@ -212,8 +213,7 @@ The procedure is the reproducible part, and it is five steps:
    ```
 
 Anyone re-running this should expect the character and page counts to drift as guides
-are edited; the load-bearing values are the **0px overflow** and **0 boxes past the
-printable width** columns, which are what `close-stale` rests on. Both have now
+are edited; the load-bearing values are § Measured axes 1 and 2, and both have now
 reproduced twice on all six routes.
 
 ## The navigation inventory this audit does not deliver
