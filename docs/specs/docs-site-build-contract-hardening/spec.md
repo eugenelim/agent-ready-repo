@@ -107,7 +107,7 @@ behavior remain unchanged.
 - Technical: `docs-site/src/styles/starlight.css` no longer imports the copied
   marketing token file and locally defines its docs and compatibility tokens
   (source: repository inspection and `docs-site/AGENTS.md` on 2026-08-17).
-- Technical: `tools/build-site.py` still copies the vestigial file and exits
+- Technical (pre-change state, recorded as it was at authoring): `tools/build-site.py` copied the vestigial file and exited
   with a false dependency error when the marketing source is missing (source:
   repository inspection on 2026-08-17).
 - Technical: the Node runtime floor is whatever `docs-site/package.json`'s

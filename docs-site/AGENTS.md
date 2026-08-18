@@ -141,8 +141,9 @@ authority for page and fragment resolution. Run `make site-link-check`.
   `entry.data.title`, and `siteTitleHref` to derive and label the current trail
   inside the supported `PageTitle` override; and the
   `rehypeScrollableTables` plugin (`src/plugins/rehype-scrollable-tables.ts`,
-  wired in `astro.config.ts`) wraps markdown tables in a focusable scroll
-  region, and the paired rule in our `src/styles/starlight.css` overrides
+  wired in `astro.config.ts`; focused suite: `npm run test:plugins --prefix
+  docs-site`) wraps markdown tables in a focusable scroll region, and the
+  paired rule in our `src/styles/starlight.css` overrides
   Starlight's own `table { display: block; overflow: auto }` — which lives in
   `node_modules/@astrojs/starlight/style/markdown.css`, not in our file — so
   the wrapper, not the table, is the scroll container.

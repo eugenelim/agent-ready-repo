@@ -111,7 +111,12 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "
         "site build; the assertion's self-test remains in the blocking local "
-        "build gate chain.",
+        "build gate chain. Since spec/docs-site-build-contract-hardening it ALSO "
+        "carries one hard gate — the rehype plugin suite, whose local counterpart "
+        "is `make test` (npm run test:plugins --prefix docs-site) and whose "
+        "presence, ordering and path filters are pinned by "
+        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
+        "the deploy, not the merge: this workflow is not a required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":

@@ -130,6 +130,7 @@ tasks, not most — the work-loop skill covers when it's the right tool.
 ```bash
 python -m pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time
 pip install -r tools/requirements.txt          # jsonschema, pyyaml — one-time
+npm ci --prefix docs-site                      # docs-site deps; `make test` runs the plugin suite — one-time
 python3 -m pytest packages/<pkg>/tests/ -q    # test the package you're editing
 make lint-ruff                                 # lint + format
 make build-self                               # sync projected files after touching packs/

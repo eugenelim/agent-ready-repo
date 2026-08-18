@@ -134,6 +134,30 @@ def _on_block(text: str) -> str:
     return text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
 
 
+def _trigger_paths(on_blk: str) -> dict[str, list[str]]:
+    """Map each trigger to its `paths:` values.
+
+    `paths-ignore:` is deliberately NOT accepted as a substitute: it inverts the
+    filter, so the same path list that should make the gate run makes it never run.
+    A trigger carrying only `paths-ignore:` therefore reports an empty list and fails
+    the membership check.
+    """
+    out: dict[str, list[str]] = {}
+    for m in re.finditer(r"^  ([A-Za-z_]+):\s*$", on_blk, re.M):
+        name = m.group(1)
+        nxt = re.search(r"^  [A-Za-z_]+:\s*$", on_blk[m.end():], re.M)
+        body = on_blk[m.end():m.end() + nxt.start()] if nxt else on_blk[m.end():]
+        vals: list[str] = []
+        pm = re.search(r"^    paths:\s*$", body, re.M)
+        if pm:
+            tail = body[pm.end():]
+            stop = re.search(r"^    [A-Za-z_-]+:", tail, re.M)
+            seq = tail[:stop.start()] if stop else tail
+            vals = [v.strip().strip("'\"") for v in re.findall(r"^      - (.+)$", seq, re.M)]
+        out[name] = vals
+    return out
+
+
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     bad: list[str] = []
 
@@ -152,8 +176,15 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("steps-parsed", len(steps) > 0)
 
     # The gate itself, matched on its command rather than its name, so renaming the
-    # step cannot silently drop it.
-    owners = [i for i, s in enumerate(steps) if PLUGIN_TEST_CMD in _run_body(s)]
+    # step cannot silently drop it — and by STATEMENT EQUALITY, not containment.
+    # Containment was the first draft and it accepted `… || true`, `… ; true`,
+    # `… || echo skipped`, a `CI=false` assignment prefix, a body whose first line is
+    # `set +e`, and `echo '<the command>'` — which never executes it at all. The
+    # sibling parser closed this exact class; this one has one fixed statement, so
+    # equality is both available and correct.
+    owners = [i for i, s in enumerate(steps)
+              if [ln.strip() for ln in _run_body(s).splitlines() if ln.strip()]
+              == [PLUGIN_TEST_CMD]]
     check("plugin-test-present", len(owners) == 1)
 
     if owners:
@@ -171,12 +202,37 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check("plugin-test-after-install", after != -1 and i > after)
         check("plugin-test-before-upload", before != -1 and i < before)
 
+    # AC7's "blocks … deployment" half. Intra-`build` ordering is necessary but not
+    # sufficient: if `deploy` stops depending on `build`, or `build` itself is made
+    # advisory or conditional, a failing plugin test stops blocking the deploy while
+    # every step-level assertion above stays green. All three were measured green
+    # before these checks existed.
+    deploy = _job_block(text, "deploy")
+    check("deploy-job-present", bool(deploy))
+    check("deploy-needs-build",
+          re.search(r"^\s*needs:\s*(\[\s*)?build", deploy, re.M) is not None)
+    build_header = re.search(r"^  build:\n((?:    [^\n]*\n)*)", text, re.M)
+    build_keys = build_header.group(1) if build_header else ""
+    check("build-job-not-advisory",
+          not re.search(r"^    ['\"]?continue-on-error['\"]?\s*:", build_keys, re.M))
+    check("build-job-not-conditional",
+          not re.search(r"^    ['\"]?if['\"]?\s*:", build_keys, re.M))
+
     on_blk = _on_block(text)
     check("on-block-present", bool(on_blk))
+    # Parsed PER TRIGGER, not counted. An occurrence count over the whole `on:` block
+    # was satisfied by listing a path twice under `push` while deleting it from
+    # `pull_request`, and by flipping both keys to `paths-ignore:` — which inverts the
+    # filter so a `docs-site/**` edit runs the gate NEVER. Both measured green.
+    triggers = _trigger_paths(on_blk)
+    # Only the path-filtered triggers are required to carry the list. `workflow_dispatch`
+    # is a manual trigger with no `paths:` and legitimately must not have one — an
+    # earlier draft demanded paths from EVERY trigger and so failed on the clean file.
+    filtered = ("push", "pull_request")
+    check("triggers-parsed", all(k in triggers for k in filtered))
     for want in REQUIRED_PATHS:
-        # Counted per trigger: pages.yml filters both `push` and `pull_request`, and
-        # covering only one leaves the other blind.
-        check(f"path-filter[{want}]", on_blk.count(f"'{want}'") >= 2)
+        check(f"path-filter[{want}]",
+              all(want in triggers.get(k, []) for k in filtered))
 
     return bad
 
@@ -218,6 +274,29 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("\n      - ", "\n    - ")),
     ("rename-on-key", "on-block-present",
      lambda t: t.replace("on:\n", "'on':\n", 1)),
+    ("discard-exit-status", "plugin-test-present",
+     lambda t: t.replace(f"        run: {PLUGIN_TEST_CMD}",
+                         f"        run: {PLUGIN_TEST_CMD} || true")),
+    ("echo-only-gate", "plugin-test-present",
+     lambda t: t.replace(f"        run: {PLUGIN_TEST_CMD}",
+                         f"        run: echo '{PLUGIN_TEST_CMD}'")),
+    ("assignment-prefix-gate", "plugin-test-present",
+     lambda t: t.replace(f"        run: {PLUGIN_TEST_CMD}",
+                         f"        run: CI=false {PLUGIN_TEST_CMD}")),
+    ("drop-deploy-needs", "deploy-needs-build",
+     lambda t: t.replace("    needs: build\n", "", 1)),
+    ("rename-deploy-job", "deploy-job-present",
+     lambda t: t.replace("\n  deploy:\n", "\n  deploy2:\n", 1)),
+    ("advisory-build-job", "build-job-not-advisory",
+     lambda t: t.replace("  build:\n", "  build:\n    continue-on-error: true\n", 1)),
+    ("conditional-build-job", "build-job-not-conditional",
+     lambda t: t.replace("  build:\n", "  build:\n    if: ${{ false }}\n", 1)),
+    ("flip-to-paths-ignore", "path-filter[docs-site/**]",
+     lambda t: t.replace("    paths:\n", "    paths-ignore:\n")),
+    ("drop-filter-from-one-trigger", "path-filter[docs-site/**]",
+     lambda t: t.replace("      - 'docs-site/**'\n", "", 1)),
+    ("rename-a-trigger", "triggers-parsed",
+     lambda t: t.replace("\n  pull_request:\n", "\n  pull_request_target:\n", 1)),
     ("drop-docs-site-filter", "path-filter[docs-site/**]",
      lambda t: t.replace("      - 'docs-site/**'\n", "", 1)),
     ("drop-workflow-self-filter", "path-filter[.github/workflows/pages.yml]",

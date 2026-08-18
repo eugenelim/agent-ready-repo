@@ -65,13 +65,6 @@ test('wraps an unwrapped table in one focusable labelled region', () => {
   assert.equal(div.children?.[0]?.tagName, 'table');
 });
 
-test('wraps exactly once — the table is not double-nested', () => {
-  const tree = transform(root([table()]));
-  const div = wrapper(tree.children?.[0]);
-  assert.equal(div.children?.[0]?.tagName, 'table', 'no intermediate wrapper');
-  assert.equal(tree.children?.length, 1);
-});
-
 test('wraps a table nested inside a blockquote', () => {
   // The non-root, non-wrapper parent case. `headingFor` also has to work across
   // that container boundary rather than only at root level.

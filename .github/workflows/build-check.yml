@@ -311,7 +311,7 @@ jobs:
       # as a script, not via pytest: it defines no `test_` function, so a pytest
       # collection would silently run nothing.
       - name: pages.yml deploy-gate posture
-        run: python3 tools/test_pages_workflow.py
+        run: python3 tools/test-pages-workflow.py
       - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
         working-directory: packs/credential-brokers/tests/skills/credential-setup
         # `requires_crypto` gates on find_spec("cryptography") and ("argon2"), so a

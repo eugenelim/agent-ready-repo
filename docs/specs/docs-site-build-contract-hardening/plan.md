@@ -101,17 +101,18 @@ contract and passes only when generation is independent of both token paths.
 
 **Depends on:** T1
 
-**Touches:** tools/build-site.py, docs-site/AGENTS.md
-
-**Touches:** tools/build-site.py, docs-site/AGENTS.md, docs-site/.gitignore
+**Touches:** tools/build-site.py, docs-site/AGENTS.md, docs-site/.gitignore, .gitignore
 
 **Tests:**
 - Goal-based (`no stub (mode)`): run the focused generator tests and verify no
   generated docs token appears (AC1-AC2).
 - Goal-based (`no stub (mode)`): no living-guidance file still claims generation
-  copies marketing tokens — written absence-safe as
-  `! grep -q "tokens.css" docs-site/AGENTS.md`, because a bare `grep -c` exits 1
-  on no-match and would read as a failed check (AC3).
+  copies marketing tokens, or that docs CSS imports them. Targets the CLAIM, not the
+  substring: the corrected guidance legitimately still contains the string
+  `tokens.css` inside its negation ("Nothing copies … and nothing imports it"), so a
+  bare `! grep -q "tokens.css"` can never pass. The check is
+  `! grep -qE "(still copies|tokens\.css copy|copy is vestigial|imports .*tokens\.css)"`
+  over `docs-site/AGENTS.md`, `guides/AGENTS.md`, and `tools/build-site.py` (AC3).
 - Goal-based (`no stub (mode)`): run generation and the docs contrast checker from
   a normal checkout (AC2, AC9).
 
@@ -164,7 +165,7 @@ mutation is caught.
 
 **Depends on:** T3, spec:site-ci-contract-closure/T3
 
-**Touches:** .github/workflows/pages.yml, tools/test_pages_workflow.py, Makefile, .github/workflows/build-check.yml, tools/lint-ci-parity.py
+**Touches:** .github/workflows/pages.yml, tools/test-pages-workflow.py, Makefile, .github/workflows/build-check.yml, tools/lint-ci-parity.py
 
 **Tests:**
 - TDD (`stub: true`): assert the focused command is present in the `build` job,
