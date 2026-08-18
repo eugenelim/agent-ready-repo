@@ -1131,6 +1131,20 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     agg_flat = _strip_comments(agg)
     for job_id in work_jobs:
         var = _result_var(job_id)
+        # Branch protection requires a check by NAME, and a work job's `name:` was
+        # never asserted to equal its id. Renaming `gate-credbroker`'s name to
+        # anything else passes every other assertion family, all the mutations, and
+        # lint-ci-parity — while the required check never reports and every PR pends
+        # forever. It fails LOUD (PRs visibly hang) rather than silently green, which
+        # is why this is availability rather than a security bypass.
+        # `[]` is accepted alongside `[job_id]`: with no `name:` key GitHub displays
+        # the job id, so an absent key is already correct. Exactly-one-value semantics
+        # otherwise, per `_key_values` — a DUPLICATE `name:` must fail too.
+        # The aggregator is the deliberate exception (id `build-check`, name
+        # `make build-check`); it is excluded because `work_jobs` excludes it, and
+        # `one-required-name` + `required-name-is-aggregator` already pin it.
+        check(f"job-name-is-id[{job_id}]",
+              _key_values(_job_block(text, job_id), "name", "    ") in ([job_id], []))
         check(f"needs[{job_id}]",
               re.search(rf"^\s*- {re.escape(job_id)}\s*$", agg_flat, re.M) is not None)
         # On the GUARD step, not merely somewhere in the job: moving the bindings to
@@ -1836,6 +1850,11 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          "      - name: Require every gate\n        if: ${{ always() }}\n")),
     ("duplicate-required-name", "one-required-name",
      lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    name: make build-check\n")),
+    # A work job renamed away from its id: branch protection then waits on a check
+    # name that never reports. Parameterised, so `_family` collapses it to one family
+    # covering every work job present and future.
+    ("rename-work-job", "job-name-is-id[gate-credbroker]",
+     lambda t: t.replace("    name: gate-credbroker\n", "    name: credbroker gate\n")),
     ("add-needs-to-work-job", "no-needs[gate-sast]",
      lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    needs: [gate-main]\n")),
     ("reindent-steps", "steps-parsed[gate-sast]",

@@ -914,11 +914,23 @@ def _statelock():
     global _statelock_module
     if _statelock_module is None:
         lock_path = SCRIPT_DIR / "_statelock.py"
-        spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"loop-engine: cannot load {lock_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        # `sys.dont_write_bytecode` around the load, saved and restored to its
+        # PRIOR value rather than unconditionally to False — mirroring the
+        # `_loop_guards` loader above. Without it this import writes and later
+        # READS `__pycache__/_statelock.*.pyc`, and a poisoned or stale entry
+        # executes inside the lock-holding engine process. One that made
+        # `exclusive()` a no-op would be worse than one that made a guard lie:
+        # it would admit a second writer while both believe they hold the lock.
+        previous = sys.dont_write_bytecode
+        try:
+            sys.dont_write_bytecode = True
+            spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
+            if spec is None or spec.loader is None:
+                raise ImportError(f"loop-engine: cannot load {lock_path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous
         _statelock_module = module
     return _statelock_module
 
