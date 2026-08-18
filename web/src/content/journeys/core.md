@@ -14,13 +14,13 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → adversarial review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
+whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
 skills:
   - name: work-intake
     description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice without changing artifact authority."
+    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice, while one bounded CQ-REVIEW enquiry may inform candidate checks without changing reviewer authority."
     humanTouches: 2
   - name: new-spec
     description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
@@ -99,7 +99,7 @@ relatedJourneys:
 |----------|-------------|
 | `work-intake` | Route a start, remember, status, or refresh request into durable state |
 | `workspace-status` | Orient — what's ready, blocked, and done |
-| `work-loop` | Plan → execute → gates → adversarial review → merge |
+| `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `project-knowledge` | Capture, distill, and explicitly enquire over committed project lessons |
@@ -197,6 +197,12 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 At semantic gates, the workflow may hand one strict observation to `project-knowledge --capture`. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
 
 Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
+
+During review planning, `work-loop` can declare one consequential `CQ-REVIEW`
+question after fixing the target and structural scope. Adversarial, security,
+and quality reviewers share the same untrusted envelope, derive findings
+independently, and keep all scratch, findings, severities, and verdicts outside
+project knowledge. Missing knowledge is a named no-write skip.
 
 Scratch before capture can be lost if the workflow or worktree disappears. Retention and compaction are intentionally deferred to a future whole-partition policy; this slice has no per-event deletion path.
 
