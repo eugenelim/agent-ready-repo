@@ -267,6 +267,43 @@ the item-6 remedy arm records 6 of 6 rows passing.
 lives in a different profile store and is not measured here. The pilot's described
 shape is a cookie-borne session.
 
+## Follow-up arm — does a per-consumer job root close the third residue class?
+
+Commissioned by the approver on 2026-08-18. Arm 4 found that one consumer per
+connection clears two of the three surviving residue classes but not the committed
+download, because that is a filesystem artifact and separating a browser
+connection does not unlink a file.
+
+This matters more than it sounds in this pilot's threat model: the artifact
+consumer A downloaded was fetched **inside an authenticated session**. If consumer
+B can read it, B obtains data derived from A's session — the session-theft shape,
+arriving through the filesystem rather than through the browser.
+
+**Result: the class is closed by partitioning the job root.** Composing
+per-consumer job roots with the Node permission model — the confinement arm 3
+already measured holding, including in the `--allow-child-process` shape a
+Playwright host needs — a shared job root lets consumer B `READ` consumer A's
+committed artifact, while a per-consumer root answers `DENIED:ERR_ACCESS_DENIED`,
+while still reading its own artifact `READ`.
+
+That last reading is the guard that makes the denial mean confinement rather than a
+host whose filesystem access is broken for an unrelated reason.
+
+**An operational requirement fell out of it, and it is easy to get wrong.** The
+consumer host's own directory must **not** be an ancestor of any job root. The
+first version of this fixture put both roots under the host's working directory
+and granted read on that directory so the runtime could load its entry script —
+which granted every job root along with it, and the partitioned arm READ consumer
+A's artifact. The confinement had not failed; the grant had swallowed it. A broker
+that keeps job roots underneath its own working directory gets no partitioning from
+this control at all.
+
+the item-3 remedy arm records 5 of 5 rows passing.
+
+**What this does not establish**: the confinement is the Node permission model.
+Native code loaded through an open addon gate is not mediated by it, so the
+residual `rfc0088-native-addon-confinement-bypass` applies here too.
+
 ## Round-11 corrections
 
 | # | Round-11 claim or control | What was established | Status |
