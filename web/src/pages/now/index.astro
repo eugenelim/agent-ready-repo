@@ -1,0 +1,96 @@
+---
+// The public "Now" surface: outcomes that have actually shipped.
+//
+// `spec/site-now-surface`. Content comes from one place only — optional
+// `Highlights` subsections of RELEASED entries in `docs/product/changelog.md`,
+// projected by `tools/build-site.py` into `now-highlights.generated.json`. This
+// page renders that projection and derives nothing itself, so a claim can reach
+// the public site only by being written into a released changelog entry and
+// passing ordinary PR review.
+//
+// Deliberately absent: anything describing work in progress. No queue, no plans,
+// no commits, no `[Unreleased]` content. The tech-site principle "put verifiable
+// evidence beside every meaningful claim" is why every group links back to the
+// changelog entry it came from.
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import NowHighlights, { type NowGroup } from '../../components/now/NowHighlights.astro';
+import projection from '../../lib/now-highlights.generated.json';
+
+// The generated payload is the build's contract with the generator. A renamed or
+// restructured field would otherwise render an empty or half-blank public page;
+// failing the build is the honest outcome, and it makes `schemaVersion` load-
+// bearing rather than decorative.
+if (projection.schemaVersion !== 1) {
+  throw new Error(
+    `now-highlights.generated.json is schemaVersion ${projection.schemaVersion}, ` +
+      'but this page renders version 1 — regenerate or update the renderer.'
+  );
+}
+
+const groups = projection.groups as readonly NowGroup[];
+---
+
+<SiteLayout
+  title="Now — agent-ready-repo"
+  description="What has actually shipped, taken from released changelog entries. Every outcome links to the release it came from."
+>
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section class="now-hero" aria-labelledby="now-heading">
+    <div class="now-hero__inner">
+      <span class="now-hero__eyebrow">Shipped and released</span>
+      <h1 id="now-heading" class="now-hero__heading">Now</h1>
+      <p class="now-hero__body">
+        Outcomes that have shipped in a released version. Each one links to the
+        changelog entry that released it, so you can check it rather than take it
+        on trust.
+      </p>
+    </div>
+  </section>
+
+  <Section tone="surface" labelledby="now-releases-heading">
+    <h2 id="now-releases-heading" class="visually-hidden">Released highlights</h2>
+    <NowHighlights groups={groups} />
+  </Section>
+</SiteLayout>
+
+<style>
+  /* ── Hero ──────────────────────────────────────────────────────────── */
+  .now-hero {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+  }
+
+  .now-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .now-hero__eyebrow {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-hero__heading {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-hero-fg);
+  }
+
+  .now-hero__body {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-hero-fg-2);
+    max-width: 62ch;
+    line-height: var(--ds-lead-body);
+  }
+
+</style>

@@ -1,0 +1,169 @@
+---
+// The body of the public Now surface: released highlights, or the empty state.
+//
+// `spec/site-now-surface`. Extracted from the page so BOTH branches can be
+// rendered in a test. The empty state (AC8) is the branch an adopter fork with
+// no released Highlights lands on, and while it lived inline in the page it could
+// only be checked by grepping the template for its strings — which cannot catch
+// a broken link.
+import { withBase } from '../../lib/paths';
+
+export interface HighlightSegment {
+  readonly type: 'text' | 'strong' | 'code';
+  readonly value: string;
+}
+
+export interface NowHighlight {
+  readonly source: string;
+  readonly segments: readonly HighlightSegment[];
+}
+
+export interface NowGroup {
+  readonly packages: readonly { readonly name: string; readonly version: string }[];
+  readonly date: string;
+  readonly heading: string;
+  readonly changelogAnchor: string;
+  readonly highlights: readonly NowHighlight[];
+}
+
+interface Props {
+  groups: readonly NowGroup[];
+}
+
+const { groups } = Astro.props;
+
+const changelogHref = withBase('/docs/changelog/');
+
+// "governance-extras 0.9.7", or both names when one entry released two packages.
+const releaseLabel = (group: NowGroup) =>
+  group.packages.map((pkg) => `${pkg.name} ${pkg.version}`).join(' · ');
+
+// 2026-08-16 → "16 August 2026". Built from the ISO parts rather than
+// `new Date(iso)`: parsing a bare date string is UTC while formatting is local,
+// so a timezone behind UTC renders the previous day.
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const readableDate = (iso: string) => {
+  const [year, month, day] = iso.split('-').map(Number);
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+};
+---
+
+{groups.length === 0 ? (
+  <div class="now-empty">
+    <p class="now-empty__text">No released highlights yet.</p>
+    <a class="now-empty__link" href={changelogHref}>Read the changelog</a>
+  </div>
+) : (
+  <ol class="now-list">
+    {groups.map((group) => (
+      <li class="now-release">
+        <div class="now-release__meta">
+          <span class="now-release__name">{releaseLabel(group)}</span>
+          <time class="now-release__date" datetime={group.date}>{readableDate(group.date)}</time>
+        </div>
+        <ul class="now-release__highlights">
+          {group.highlights.map((highlight) => (
+            <li class="now-highlight">
+              {highlight.segments.map((segment) => (
+                segment.type === 'strong' ? <strong>{segment.value}</strong>
+                : segment.type === 'code' ? <code>{segment.value}</code>
+                : <Fragment>{segment.value}</Fragment>
+              ))}
+            </li>
+          ))}
+        </ul>
+        <a
+          class="now-release__source"
+          href={`${changelogHref}#${group.changelogAnchor}`}
+        >Release notes for {releaseLabel(group)}</a>
+      </li>
+    ))}
+  </ol>
+)}
+
+<style>
+  /* ── Releases ──────────────────────────────────────────────────────── */
+  .now-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--ds-space-6);
+  }
+
+  .now-release {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  .now-release__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ds-space-2) var(--ds-space-4);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-release__name {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+  }
+
+  .now-release__date {
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-2);
+  }
+
+  .now-release__highlights {
+    margin: 0 0 var(--ds-space-5);
+    padding-left: var(--ds-space-5);
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .now-highlight {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .now-highlight strong {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .now-release__source {
+    display: inline-block;
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+  }
+
+  /* ── Empty state ───────────────────────────────────────────────────── */
+  .now-empty {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  .now-empty__text {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-empty__link {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-medium);
+  }
+</style>

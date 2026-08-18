@@ -1,6 +1,6 @@
 # Spec: Site Now surface
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089
@@ -69,6 +69,12 @@ pipeline.
   seven calendar days ending on launch day, inclusive. The seed is written
   only from those released changelog entries—not reconstructed from plans,
   commits, or unfinished work.
+- The seven-day window is an authoring rule for the launch seed. The projection
+  applies no date window at all: it publishes every released entry carrying
+  Highlights, and a filter evaluated at build time would contradict the
+  determinism requirement below by changing the page at midnight from unchanged
+  source. A reader expecting a seven-day filter in the projection will not find
+  one, and should not add one.
 - If no released highlight qualifies, the page remains valid and says **No
   released highlights yet.** followed by a **Read the changelog** link.
 - `/now/` may later expand to other shipped adopter-facing formats only through
@@ -86,36 +92,36 @@ pipeline.
 
 ## Acceptance Criteria
 
-- [ ] The marketing build emits `/now/` with H1 `Now` and emits no `/work/`
+- [x] The marketing build emits `/now/` with H1 `Now` and emits no `/work/`
   page, redirect, navigation route, or public work-index projection.
-- [ ] The only initial Now content source is an optional `Highlights`
+- [x] The only initial Now content source is an optional `Highlights`
   subsection in the existing `docs/product/changelog.md` lifecycle; no new
   source file, service, dependency, or publishing pipeline exists.
-- [ ] Only Highlights belonging to versioned, dated release entries outside
+- [x] Only Highlights belonging to versioned, dated release entries outside
   `Unreleased` project to Now; fixtures prove that Unreleased content and
   releases without Highlights are absent.
-- [ ] Projected release groups identify package/version and date, link to their
+- [x] Projected release groups identify package/version and date, link to their
   changelog entry, sort by release date descending, and preserve source order
   for equal dates.
-- [ ] The launch seed contains all and only meaningful released highlights in
+- [x] The launch seed contains all and only meaningful released highlights in
   the inclusive seven-calendar-day window ending on launch day and is grounded
   in those released changelog entries.
-- [ ] The changelog maintenance contract permits AI-assisted drafting from the
+- [x] The changelog maintenance contract permits AI-assisted drafting from the
   implementation diff and verification evidence, requires ordinary PR review,
   and forbids publication while content remains Unreleased.
-- [ ] No model or nondeterministic editorial operation runs in CI, release
+- [x] No model or nondeterministic editorial operation runs in CI, release
   automation, or site generation; repeated builds from the same source produce
   identical Now content.
-- [ ] When no released highlight qualifies, `/now/` emits the exact approved
+- [x] When no released highlight qualifies, `/now/` emits the exact approved
   empty state and a working internal link to the complete changelog.
-- [ ] Emitted-output tests fail when Unreleased text, work/queue terminology,
+- [x] Emitted-output tests fail when Unreleased text, work/queue terminology,
   an ineligible date, broken changelog fragment, or `/work/` route appears.
-- [ ] Shared chrome may consume the `Now` label and `/now/` target only after
+- [x] Shared chrome may consume the `Now` label and `/now/` target only after
   the route contract passes; shared chrome remains the sole owner of its
   final navigation taxonomy, ordering, mobile behavior, and current-state
   treatment. The Now slice owns only replacing the current `Work` label and
   `/work/` target in place so it leaves no broken or stale public link.
-- [ ] The frozen `m6-astro-work-index` spec and plan remain byte-unchanged; the
+- [x] The frozen `m6-astro-work-index` spec and plan remain byte-unchanged; the
   living specs index identifies `site-now-surface` as its approved successor,
   and retirement removes the old public implementation, projection exporter,
   and their tests while preserving historical provenance.

@@ -81,9 +81,14 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install pyyaml
+        run: pip install pyyaml pytest
 
-      - name: Sync pack journeys
+      # Projects BOTH marketing-renderer inputs, despite the flag's name: the
+      # pack journeys under web/src/content/journeys/ and the released-highlight
+      # payload web/src/lib/now-highlights.generated.json that /now/ renders.
+      # Ordering is load-bearing — this must precede the Astro build below, and
+      # the full `build-site.py` pass runs only after it.
+      - name: Project marketing renderer inputs (journeys + released highlights)
         run: python tools/build-site.py --journeys-only
 
       - name: Build Astro marketing site
@@ -129,6 +134,26 @@ jobs:
         run: npm run build --prefix docs-site
         env:
           ASTRO_TELEMETRY_DISABLED: "1"
+
+      # The anchor-correspondence test needs `build/docs/changelog/index.html`,
+      # so it can only run here: build-check.yml has no site build and the test
+      # would skip there forever. It compares all 122 parsed release anchors
+      # against the emitted heading ids in document order — the only place the
+      # reimplemented github-slugger's `-N` duplicate counter is checked against
+      # reality.
+      # `test -f` first: a pytest selection that skips entirely exits 0, so
+      # without it this step reports success in exactly the case it exists to
+      # catch — the emitted changelog moving out from under it. The test itself
+      # also fails rather than skips when CI is set.
+      - name: Assert release anchors match the emitted changelog
+        env:
+          # Not `CI`: Actions sets that everywhere, and this module also runs in
+          # `gate-main`, which has no site build. This variable marks the one
+          # place the emitted artifact must exist.
+          REQUIRE_EMITTED_CHANGELOG: "1"
+        run: |
+          test -f build/docs/changelog/index.html
+          python3 -m pytest -p no:cacheprovider -q tools/test_build_site_routing.py -k anchor
 
       - name: Check rendered internal links
         run: python3 tools/check-rendered-site-links.py --build-dir build
