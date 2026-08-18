@@ -159,7 +159,11 @@ AGGREGATOR_RUN_STEPS = (
     "Run the build-check.yml posture test",
     "Require every gate",
 )
-REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary")
+# APPENDED, not inserted: `_GUARD_BASE` is built from this tuple in list order and
+# spliced into the fixture by exact text, so this order must match the fixture's
+# guard-body comparison order or `_differential_failures` reports itself blind.
+REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary",
+                      "gate-credbroker")
 
 # spec/site-ci-contract-closure AC2. The seven site/catalogue modules that
 # spec/build-check-coverage-gaps AC1 moved into gate-main. Enumerated HERE rather
@@ -275,6 +279,7 @@ _ALLOWED_STEP_ENV = frozenset({
     "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING",
     "BASE_SHA", "HEAD_SHA",
     "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
+    "GATE_CREDBROKER_RESULT",
 })
 
 
@@ -313,6 +318,34 @@ PINNED_SITE_BUILD_PYTEST = (
 )
 PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"
 PINNED_CONTRAST_SUITE = "python -m pytest tools/test_check_docs_contrast.py -q"
+# The GENERIC form of the five pins above, keyed by job id, for work jobs whose
+# gate is a whole step body rather than one statement. `gate-main`, `gate-sast` and
+# `gate-export-boundary` carry the bespoke constants above; a job added later gets
+# an entry here instead of a new assertion, which is why the emitted label is
+# parameterised — `_family` collapses `job-statements-pinned[*]` to one family, so
+# covering a fourth, fifth or tenth job costs no additional mutation.
+#
+# It pins the body as an ORDERED, EXACT list and the step's `working-directory`
+# together, because the three ways this gate was measured to be defeatable are all
+# invisible to a check on any one of them:
+#   - deleting both controls (the import probe and the ^SKIPPED assertion) left the
+#     step running the suite with nothing proving the [crypto] extra landed;
+#   - deleting `working-directory` silently changed WHICH suite runs;
+#   - `-k "not vault"` DESELECTS rather than skips, so it emits no SKIPPED line and
+#     exits 0 — 32 tests gone, every gate green.
+# All three audited clean before this pin existed.
+PINNED_JOB_STATEMENTS = {
+    "gate-credbroker": {
+        "step": "pytest credbroker (RFC-0023 Phase 1)",
+        "working-directory": "packages/credbroker",
+        "statements": (
+            _STRICT_SHELL,
+            'python -c "import cryptography, argon2"',
+            'python -m pytest -rs 2>&1 | tee "$RUNNER_TEMP/credbroker-out.txt"',
+            '! grep -Eq "^SKIPPED" "$RUNNER_TEMP/credbroker-out.txt"',
+        ),
+    },
+}
 # `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
 # of the `-C`/`-f` ban in `_REDIRECT_FLAGS` — and it was unasserted. Measured:
 # `working-directory: tools` on the anchor leaves the pinned text untouched, audits
@@ -361,7 +394,12 @@ PINNED_CHECKOUT_WITH = {
     "gate-main": {"fetch-depth": "0", "persist-credentials": "false"},
     "gate-sast": {"fetch-depth": "0", "persist-credentials": "false"},
     "gate-export-boundary": {"fetch-depth": "0", "persist-credentials": "false"},
-    # AC12 exempts the aggregator from fetch-depth: it touches no history.
+    # TWO jobs are exempt from fetch-depth, for the same reason — they touch no
+    # history. The aggregator runs one stdlib script over one workflow file;
+    # gate-credbroker runs a suite that invokes git nowhere. Set-equality means the
+    # exemption is decided here rather than hardened later: re-adding fetch-depth to
+    # either fails `checkout-with[<job>]`.
+    "gate-credbroker": {"persist-credentials": "false"},
     AGGREGATOR_JOB_ID: {"persist-credentials": "false"},
 }
 PINNED_SETUP_PYTHON_WITH = {"python-version": EXPECTED_PYTHON}
@@ -1170,6 +1208,25 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
             len(_step_key_values(st, key)) <= 1
             for _n, st in _steps(blk)
             for key in ("run", "uses", "working-directory", "name", "env", "with")))
+    # The generic whole-body pin. Ordered equality over the statements PLUS the
+    # step's working-directory, in one assertion: they are the same control, and
+    # splitting them would produce two checks neither of which can fail on the
+    # bypass the other covers.
+    for _jid, _want in PINNED_JOB_STATEMENTS.items():
+        _blk = _job_block(text, _jid)
+        _st = _step_named(_blk, _want["step"])
+        _actual = _run_lines(_st)
+        _cwd = _step_key_values(_st, "working-directory") if _st else []
+        _ok = (bool(_st)
+               and _actual == list(_want["statements"])
+               and _cwd == [_want["working-directory"]])
+        if not _ok:
+            _note_miss(
+                "\n              ".join(_want["statements"])
+                + f"\n            (working-directory: {_want['working-directory']})",
+                "\n              ".join(_actual) or "(step not found or empty body)")
+        check(f"job-statements-pinned[{_jid}]", _ok)
+
     # Blocker: `working-directory:` on a pinned step runs the pinned text somewhere else.
     for _jid, _stepname in _NO_CWD_STEPS:
         _st = _step_named(_job_block(text, _jid), _stepname)
@@ -1464,7 +1521,7 @@ _FIXTURE = REPO_ROOT / "tools" / "fixtures" / "build-check-good.yml"
 
 
 def _baseline() -> str:
-    """The clean four-job baseline every proof runs against.
+    """The clean five-job baseline every proof runs against.
 
     It must be SHAPE-REPRESENTATIVE of the real workflow, not merely valid: an
     earlier fixture had four single-line steps per job and no `push:` trigger, which
@@ -2055,6 +2112,38 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("        with:\n          fetch-depth: 0\n",
                          "        with:\n          fetch-depth: 0\n"
                          "        with:\n          persist-credentials: true\n", 1)),
+    # The JOB-SET INPUT to guard-body-exact's derivation — the dimension no other
+    # mutation varies. It is NOT isolated and does not claim to be: four sibling
+    # per-job assertions co-fire by design (`needs[gate-extra]`,
+    # `env-binding[gate-extra]`, `comparison[gate-extra]`, and
+    # `checkout-with[gate-extra]`, the last only because PINNED_CHECKOUT_WITH has no
+    # entry for a spliced job and `.get` fails closed). `self_test` requires
+    # `guard-body-exact` BY NAME, and it fires for the right reason — `_want_cmp`
+    # derived from `work_jobs` gains a fifth line the actual guard lacks.
+    # `_want_cmp` is built from `work_jobs`, and the two other mutations for that
+    # assertion both alter the guard BODY — so an edit substituting a literal list
+    # for the derived one would keep them green while a work job could land unwired.
+    # This is the named unpinned layer the module docstring's ladder asks a reader to
+    # look for, rather than hardening the innermost thing again. It targets an
+    # existing assertion, so it adds no assertion family.
+    # The whole-body pin, exercised by the bypass that motivated it: `-k` DESELECTS
+    # rather than skips, so the suite runs a subset, emits no SKIPPED line, and exits
+    # 0. Audited clean before PINNED_JOB_STATEMENTS existed.
+    ("deselect-narrows-credbroker-suite", "job-statements-pinned[gate-credbroker]",
+     lambda t: t.replace("python -m pytest -rs 2>&1",
+                         'python -m pytest -rs -k "not vault" 2>&1', 1)),
+    ("add-work-job-unwired", "guard-body-exact",
+     lambda t: t.replace("  build-check:\n",
+                         "  gate-extra:\n    runs-on: ubuntu-latest\n"
+                         "    timeout-minutes: 5\n    steps:\n"
+                         "      - uses: actions/checkout@"
+                         "11d5960a326750d5838078e36cf38b85af677262\n"
+                         "        with:\n          persist-credentials: false\n"
+                         "      - uses: actions/setup-python@"
+                         "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+                         "        with:\n          python-version: \"3.11\"\n"
+                         "      - name: Run the extra gate\n        run: echo hi\n"
+                         "  build-check:\n", 1)),
 ]
 
 
@@ -2123,8 +2212,17 @@ def _differential_failures() -> list[str]:
         return ["differential: guard body not found in the fixture — harness is blind"]
 
     env = dict(os.environ)
+    # EVERY work job's variable must be bound here, not just the one being failed.
+    # An unset variable is a `set -u` fatal expansion error, so any variant that
+    # reaches the comparison list dies before bash can report exit 0 — and a variant
+    # that is never green is never reported "green and accepted", i.e. it silently
+    # stops proving anything. Measured when gate-credbroker was added: 6 of 12
+    # variants green with the fourth variable missing, 10 of 12 with it, so exactly
+    # four proofs (subshell-or-true, reassign-result, always-false-conjunct,
+    # chained-false-test) were being lost without a single failure to show for it.
     env.update({"GATE_MAIN_RESULT": "failure", "GATE_SAST_RESULT": "success",
-                "GATE_EXPORT_BOUNDARY_RESULT": "success"})
+                "GATE_EXPORT_BOUNDARY_RESULT": "success",
+                "GATE_CREDBROKER_RESULT": "success"})
     out: list[str] = []
     for name, transform in _DIFFERENTIAL_VARIANTS:
         body = transform(_GUARD_BASE)  # type: ignore[operator]
