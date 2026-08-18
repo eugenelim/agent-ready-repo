@@ -307,15 +307,27 @@ def _classification_cells(text: str) -> list[tuple[str, int]]:
         if line.startswith("## "):
             in_section = line.strip() == CLASSIFICATION_HEADING
             continue
-        if not in_section:
+        if not in_section or not line.startswith("|"):
+            continue
+        # The separator, the header row and the total row are not classifications.
+        if _SEPARATOR_RE.match(line) or _HEADER_ROW_RE.match(line) or _TOTAL_RE.match(line):
             continue
         match = _CELL_RE.match(line)
-        if match and not line.startswith("| `"):
-            cells.append((_cell_name(match.group("name")), int(match.group("count"))))
+        # Unmatched table rows FAIL rather than being skipped. The previous form
+        # excluded any row whose first cell began with a backtick, so a cell written
+        # `| \`Spacing exception\` (…) | 99 |` was silently dropped from the sum while
+        # reading 99 on the page.
+        assert match, (
+            f"{TAP_TARGET_AUDIT.name}: unparsed row in {CLASSIFICATION_HEADING!r}: "
+            f"{line.strip()!r}"
+        )
+        cells.append((_cell_name(match.group("name")), int(match.group("count"))))
     return cells
 
 
 CLASSIFICATION_HEADING = "## Final shaping classification and exemption table"
+_SEPARATOR_RE = re.compile(r"^\|[\s:|-]+\|\s*$")
+_HEADER_ROW_RE = re.compile(r"^\|\s*Classification\s*\|")
 
 # Classes the audit carries at zero: real criterion outcomes with no evidence group
 # of their own. Enumerated, so a cell that is neither a group nor one of these is a
@@ -425,3 +437,11 @@ def test_each_classification_cell_matches_its_own_group_heading() -> None:
             f"{TAP_TARGET_AUDIT.name}: '{name}' carries no evidence group, so its "
             f"cell must be 0, not {count}"
         )
+    # Presence, not just permission: membership alone let a criterion class be
+    # DELETED from the record with every assertion still green. AC7 and AC8 rest on
+    # `Demonstrated non-exempt failure` being present and zero, not on it being absent.
+    missing = ZERO_CLASSES - set(by_name)
+    assert not missing, (
+        f"{TAP_TARGET_AUDIT.name}: classification table is missing required zero "
+        f"class(es): {sorted(missing)}"
+    )

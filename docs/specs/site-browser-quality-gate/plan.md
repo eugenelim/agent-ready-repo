@@ -173,9 +173,10 @@ proof.
 **Touches:** docs/specs/site-browser-quality-gate/notes/print-audit.md
 
 **Tests:**
-- Visual/manual QA: print the six exact representative routes and record
-  text/headings/links, code, aside, table, clipping,
-  overlap, and page-break evidence (AC12).
+- Visual/manual QA: print the six exact representative routes and record the four
+  axes in [`notes/print-audit.md`](notes/print-audit.md) § Measured axes (AC12).
+  Vertical overlap and page-break quality are out of scope — `[backlog].open` slug
+  `print-audit-page-break-quality`.
 - Goal-based: reject any proposed print rule that lacks an exact observed route,
   failure, and smallest owning selector boundary (AC13).
 
@@ -269,8 +270,12 @@ tests and evidence; there is no production infrastructure change.
     owning spec and no conditional remediation spec was materialized. The docs
     footer rows and the absent product-orientation band are flagged for
     re-measurement when `site-shared-chrome` lands.
-  - **T4 (print): `close-stale`.** Six routes, zero clipping, 0px overflow,
-    full body text present. No print CSS added.
+  - **T4 (print): `close-stale`, with two axes not delivered.** Six routes, zero
+    boxes past the printable width, 0px document overflow, and `<main>`'s rendered
+    text length unchanged under print media at 717px. No print CSS added. AC12 ships
+    deferred: per-route navigation visibility is withdrawn
+    (`print-chrome-paint-inventory`) and page-break quality was never measured
+    (`print-audit-page-break-quality`).
   - **T6: blocked, not passed.** No physical device is reachable; the release
     checklist records the blocker and owner rather than a pass.
 - 2026-08-18: T1's scope grew by one file. `web/src/test/e2e/site-base.ts` derives

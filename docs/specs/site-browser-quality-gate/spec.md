@@ -130,8 +130,9 @@ responsibility.
   code, asides, tables, clipping and width overflow.
 
   **Narrowed twice, and the second narrowing is why this criterion is deferred
-  rather than met.** The audit records three axes: element-box geometry against
-  the printable width, document horizontal overflow, and PDF page count.
+  rather than met.** The axes actually measured are listed once, in
+  [`notes/print-audit.md`](notes/print-audit.md) § Measured axes; this criterion
+  deliberately does not restate them.
 
   *Not measured (2026-08-18):* vertical overlap and page-break quality —
   orphaned headings, unusable breaks, unexpected blank pages. Page count is not

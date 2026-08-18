@@ -31,6 +31,27 @@ defaults are accepted and this programme adds no print CSS.
 
 Resolve every path through the configured deployment base.
 
+## Measured axes
+
+The canonical list, because an earlier revision stated it three incompatible ways
+across four files. **Four axes are measured**, all per route, all under print media
+at a 717px viewport:
+
+1. element-box geometry against the printable width — count of boxes wider than it;
+2. document horizontal overflow, in px;
+3. PDF page count;
+4. `<main>`'s rendered text length, in characters — a DOM measure, not a page measure.
+
+**`close-stale` rests on axes 1 and 2**, which are the only ones that can demonstrate
+a content failure; 3 and 4 are recorded so a re-runner can tell the routes were
+actually exercised. Nothing else is measured. Two axes the evidence contract below
+asks for are *not* delivered, each with a register slug: per-route navigation
+visibility (`print-chrome-paint-inventory`) and page-break quality
+(`print-audit-page-break-quality`).
+
+Everywhere else — `spec.md` AC12, `plan.md`'s T4 record, the `workspace.toml`
+comments — points here rather than restating this list.
+
 ## Evidence contract
 
 For each route, record:
@@ -46,7 +67,10 @@ For each route, record:
 - legibility and continuity of body text, headings, links, code, asides, and
   tables where present;
 - clipping, overlap, content outside the printable area, orphaned headings,
-  unusable page breaks, and unexpected blank pages;
+  unusable page breaks, and unexpected blank pages. **Delivered for clipping and
+  content outside the printable area (axes 1 and 2); vertical overlap and
+  page-break quality are NOT measured** — see `[backlog].open` slug
+  `print-audit-page-break-quality`;
 - whether link URLs or decorative treatments preserve or harm reading; and
 - the final disposition and owner.
 
@@ -192,8 +216,9 @@ reproduced twice on all six routes.
 
 ## The navigation inventory this audit does not deliver
 
-**Withdrawn, not deferred quietly.** The evidence contract asks which chrome is
-"absent or non-disruptive" per route. Three generations of probe answered that
+**Withdrawn, not deferred quietly.** The evidence contract asked, before this
+narrowing, which chrome is "absent or non-disruptive" per route; bullet 2 above now
+asks only for non-disruption. Three generations of probe answered that
 question, and all three were wrong:
 
 1. **Hand-written.** One value repeated across six rows. Claimed Starlight chrome on
@@ -275,8 +300,9 @@ the four failed probes above, an oracle for paint rather than layout.
 
 `workspace.toml [backlog].open` slug `docs-site-print-styles` remains open. It asks
 whether the docs accent colours and hairlines are tuned for paper — an aesthetic
-question. This audit measured content integrity: clipping, width overflow and body text
-presence. Per-route navigation visibility was attempted and withdrawn. `close-stale` here means no
+question. This audit measured the four axes in § Measured axes — clipping, width overflow, page
+count and `<main>`'s rendered text length. Per-route navigation visibility was
+attempted and withdrawn. `close-stale` here means no
 demonstrated content failure, and therefore no print CSS from this programme. It
 does not mean print is aesthetically finished, and the decision rule above bars
 proposing rules from preference.
