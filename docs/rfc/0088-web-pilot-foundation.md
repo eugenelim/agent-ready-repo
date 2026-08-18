@@ -1355,6 +1355,13 @@ than left to the reader:
 | Service workers disabled | D / item 6 | **No**, and it carries a live tension — see below |
 | First browser-digest pin established from an independently verified channel, and that channel recorded | D / item 2 | **Not measurable.** A process requirement; no experiment closes trust-on-first-use |
 
+> **Superseded as a status table by round 11, and left standing as the record of
+> what was true on 2026-08-18.** The four rows reading "No" have since been
+> measured: two of those requirements hold, and **two do not hold as written** —
+> see [the round-11 layer](#approver-dispositions--2026-08-18) below and the
+> [round-11 note](0088-notes/spikes/2026-08-18-experimental-round11.md). The
+> `Not measurable` row is unchanged. No disposition is revised by that round.
+
 **The tension in "service workers disabled".** Round 10 established that the shim
 does not cover a service-worker realm **on any profile** — 4 UDP packets in the fresh
 arm as well as the restored one — so this is not a restored-profile bug and a
@@ -1410,6 +1417,56 @@ count can still change what the counts mean**, which is why it has a layer.
 The round-9 layer — 6 published, 6 unchanged. Round 9 measured the apparatus
 rather than the architecture and touched no item. Its finding is carried in
 Decision A with a closure criterion and an owner, for the reason stated there.
+
+The round-11 layer — 6 published, 6 unchanged. **No blocker item opens or closes
+and no disposition is revised: round 11 measured the binding requirements the
+2026-08-18 dispositions attach, and those requirements are the approver's to
+restate.** Of the four measurable requirements, two hold and **two do not hold as
+written**:
+
+- **D / item 6 — "service workers disabled" is under-specified.** Playwright's
+  `serviceWorkers: 'block'` is a *context* option: it refuses new registrations
+  but does not reach a worker already persisted in a profile. Measured on one
+  restored profile in a single run, the realm reports a controller at document
+  start and emits the same 4 UDP packets under `block` as under `allow`.
+  Composing the block with a purge of the profile's service-worker storage
+  **does** close it — controller `false`, zero packets, zero registrations. The
+  requirement therefore needs a second clause naming the storage purge; the
+  control it names today governs registration only.
+- **D / item 6's tension is now bounded rather than open.** Measured as a
+  taxonomy, a flow with no worker and a flow that merely registers one both
+  complete with workers suppressed; only a flow whose login path genuinely
+  depends on a worker fails. The cost is confined to that class. **How large that
+  class is among real identity providers is not measured** and remains a named
+  residual, not a result.
+- **D / item 3 — "one consumer per connection" covers two of the three surviving
+  residue classes, not three.** Using round 3's own planting and teardown, the
+  init script and origin-scoped storage do not cross an unshared connection; the
+  committed download does, because it is a filesystem artifact rather than a
+  browser-connection one. Clearing that class needs job-root partitioning, a
+  different control from the one item 3 binds.
+- **D / item 5 — "deny `--allow-addons`" holds**, and the denial is provably a
+  policy denial rather than an unrelated failure: the same file yields
+  `ERR_DLOPEN_DISABLED` without the flag and `ERR_DLOPEN_FAILED` with it. Round
+  10 task 3's filesystem confinement survives the addon configuration, including
+  the `--allow-child-process` shape a browser host needs. **Bounded, not closed:**
+  whether a *compiled* addon defeats that confinement needs a toolchain in the
+  evidence tree and is carried as a residual.
+- **C — destination-only enforcement without termination holds**, as a standalone
+  arm rather than the composed terminating broker round 7 measured, with a
+  control that reaches the forbidden destination once the policy is removed. Its
+  cost is measured rather than assumed: every observed chunk on an allowed tunnel
+  is a TLS record and no method token appears in any of them.
+- **B — the two remaining macOS drivers are sandbox-invariant**, stated per
+  driver, with the mode read back by the OS-level argv instrument because both
+  run headless.
+
+**D / item 2's requirement remains not measurable** — an independently verified
+channel for the first browser-digest pin is a process commitment, and no arm was
+invented for it. Round 11 also recorded six instrument corrections of its own
+(R11-1 to R11-6), two of them in controls this round wrote and four in apparatus
+inherited from earlier rounds. Details in the
+[round-11 note](0088-notes/spikes/2026-08-18-experimental-round11.md).
 
 The list maps onto the spikes as: S1 → item 1; S2 → items 1, 2 and 5; S3 → items
 1, 4 and 6; S5 → item 3. S4 and S6 contribute none, for the reasons stated
@@ -2275,6 +2332,50 @@ that mechanism rather than record the channel as inherently uncontrollable.
 
 ### Amendment history / audit trail
 
+- **2026-08-18 — eleventh Experimental run: the binding requirements measured.**
+  Promoted the [round-11 note](0088-notes/spikes/2026-08-18-experimental-round11.md).
+  Round 11 ran the five commissioned arms and **contradicted two of the binding
+  requirements it was asked to confirm**, which is the outcome the round existed to
+  make possible rather than a failure of it.
+
+  Findings: **"service workers disabled" does not close item 6 as written** —
+  Playwright's `serviceWorkers: 'block'` is a context option that refuses new
+  registrations and does not reach a worker already persisted in a profile, which
+  still controls the first document and still emits 4 UDP packets; composing the
+  block with a purge of the profile's service-worker storage does close it, so the
+  requirement needs a second clause naming the purge. The item-6 tension is now
+  **bounded**: measured as a taxonomy, only a flow whose login path genuinely
+  depends on a worker fails under suppression, while a flow that merely registers
+  one completes — how large that class is among real identity providers is not
+  measured and stays a named residual. **"One consumer per connection" covers two
+  of the three surviving residue classes, not three**: the init script and
+  origin-scoped storage do not cross an unshared connection, but a committed
+  download does, because it is a filesystem artifact and clearing it needs job-root
+  partitioning. **"Deny `--allow-addons`" holds**, with the denial provably a policy
+  denial (`ERR_DLOPEN_DISABLED` versus `ERR_DLOPEN_FAILED` on the same file) and
+  round 10's filesystem confinement surviving it — bounded, because a compiled addon
+  is untested. **Destination-only enforcement without termination holds** as a
+  standalone arm with a control that reaches the forbidden destination once the
+  policy is removed, and its cost is measured: no method token appears in any
+  observed tunnel chunk. **Both remaining macOS drivers are sandbox-invariant**,
+  stated per driver.
+
+  **No blocker item opens or closes, no disposition is revised, and the status field
+  is unchanged.** The requirements are the approver's to restate in light of this.
+  Item 2's requirement remains not measurable and no arm was invented for it. Round
+  11 recorded six instrument corrections of its own (R11-1 to R11-6): a purge that
+  purged nothing and would have reported the opposite of the truth; a promote cycle
+  whose manifest could never match its own tree; a drifting corpus denominator whose
+  round-10 remedy failed in the very next round; eighteen figures that matched their
+  artifacts but not the note's line-wrapping; and — found only because round 11
+  re-ran the inherited controls instead of trusting them — round 10's negative-test
+  harness refusing to run its own twenty-five mutations, because round 11's facts
+  are claimed in a document that harness's hard-coded corpus did not list. The
+  sixth is diagnosed and deliberately left unfixed: the published archive digest
+  cannot converge, because the archive contains an artifact recording the
+  archive's own size, so it alternates between two values. Breaking that
+  self-reference is an evidence-base design decision rather than this round's.
+
 - **2026-08-18 — approver dispositions on A, B, C and D; eleventh round commissioned.**
   All four decisions answered. B accepted for macOS only (Linux and Windows deferred);
   C declined method policy in favour of destination-level constraint, which resolves
@@ -2697,7 +2798,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (86 manifested files, round-7 archive SHA-256 `ea2eaea6…df1d`), reconstructed
+  (101 manifested files, round-7 archive SHA-256 `e4186b24…9635`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four

@@ -936,6 +936,19 @@ open = [
   # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
   # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
   {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+  # RFC-0088 round 11 measured that Node's permission model refuses
+  # `process.dlopen` by POLICY when `--allow-addons` is absent
+  # (`ERR_DLOPEN_DISABLED`) and lets it through to a non-policy failure when the
+  # flag is granted (`ERR_DLOPEN_FAILED`) -- so the addon GATE is measured. What
+  # is NOT measured is whether a genuinely compiled `.node` addon, loaded through
+  # that granted gate, defeats the filesystem confinement that round 10 task 3
+  # established (reading the live browser profile -- the correction-9
+  # session-theft path). Measuring it needs node-gyp and a C++ toolchain in the
+  # evidence tree, which is a new dependency and outside a pre-acceptance spike.
+  # Node itself warns `--allow-addons` "could invalidate the permission model".
+  # Unblocks when: an approver accepts a toolchain in the evidence tree, or the
+  # pilot commits to denying addons unconditionally so the bypass is moot.
+  {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
   # `_statelock.py`'s two importlib loaders (in loop-engine.py and loop-cohort.py)
   # do not set `sys.dont_write_bytecode`, so they still write and read
   # `__pycache__`. Same class as the residual accepted in
