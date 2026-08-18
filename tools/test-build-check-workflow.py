@@ -251,7 +251,14 @@ def _key_re(key: str, indent: str = r"\s*") -> re.Pattern[str]:
 # a 6-space indent, and the `on.push` trigger each slipped past while the audit stayed
 # green. Indent is deliberately unconstrained: the block is already scoped to `on:`,
 # so any depth within it is a trigger option.
-_TRIGGER_PATHS_RES = (_key_re("paths", r"[ ]+"), _key_re("paths-ignore", r"[ ]+"))
+# Unanchored on purpose. `_key_re` pins a key to line start, so
+# `pull_request: {branches: [main], paths: ['x']}` hid the filter mid-line while the
+# bare block spelling above it kept `trigger-pull-request` satisfied. Matching after
+# any whitespace, `{` or `,` sees the flow form too.
+_TRIGGER_PATHS_RES = (
+    re.compile(r"(?:^|[\s{,])['\"]?paths['\"]?\s*:", re.M),
+    re.compile(r"(?:^|[\s{,])['\"]?paths-ignore['\"]?\s*:", re.M),
+)
 
 
 # Step-level `env:` stays legal — the detect step and the guard need it — but its KEYS
@@ -1297,20 +1304,15 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
                   or bool(_invocation(main_blk, "python3", _script)))
         check(f"contrast-gate[{_script}]", ok)
 
-    # Statement equality on the four fixed statements. The membership checks above
-    # stay as the roster pin (they name WHICH modules must appear); these pin HOW
-    # they are invoked, which is what closes argument-level neutering.
-    check("site-guides-pytest-pinned",
-          bool(_pinned(_step_named(main_blk, "pytest guides + catalogue navigation"),
-                       PINNED_SITE_GUIDES_PYTEST)))
-    check("site-build-pytest-pinned",
-          bool(_pinned(_step_named(main_blk, "pytest site build + link rewriting"),
-                       PINNED_SITE_BUILD_PYTEST)))
-    _contrast_step = _step_named(main_blk, "docs palette contrast gate")
-    check("contrast-checker-pinned",
-          bool(_pinned(_contrast_step, PINNED_CONTRAST_CHECKER)))
-    check("contrast-suite-pinned",
-          bool(_pinned(_contrast_step, PINNED_CONTRAST_SUITE)))
+    # The `*-body-exact` checks below subsume statement-equality pins on these four
+    # statements: `_run_lines(step) == [P]` implies `_pinned(step, P)` unconditionally
+    # (same source, and none of the pinned texts contains `;`, `&&`, `||` or a
+    # trailing `&`). Four such conjuncts were written here and removed rather than
+    # kept — this file's own history deletes conjuncts that cannot fail independently,
+    # because they inflate the family and mutation counts without adding a proof. The
+    # `site-module[*]` / `contrast-gate[*]` membership checks DO stay: they compare an
+    # independent roster against the pinned strings, so a coordinated edit to both the
+    # workflow and a `PINNED_*` constant still fails there.
 
     # Whole-body equality, not statement presence. `_pinned` finds a statement
     # wherever it sits, so a prepended `exit 0` left every pin satisfied while the
@@ -1347,6 +1349,21 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # what keeps this fail-closed. Without that, quoting the key as `'on':` (a
     # yamllint-truthy-friendly spelling nothing else here pins) made the whole
     # assertion vacuous and a paths: filter passed undetected.
+    # Every key assertion in this file matches a SPELLING (`k:`, `'k':`, `k :`). Two
+    # standard YAML forms resolve to the same key and match none of them, and both
+    # were measured green against the real workflow: an escape-encoded key
+    # (`"i\x66":` → `if`) and explicit-key syntax (`? if` / `: value`). Rather than
+    # teach every matcher a fourth and fifth spelling, refuse the syntax outright —
+    # neither appears in this workflow or the fixture, and neither has a legitimate
+    # use here. This is fail-closed for all nine `_key_re` consumers, not just the
+    # two assertions that surfaced it.
+    check("no-unmodelled-key-syntax",
+          not re.search(r'^[ ]*\?[ ]|^[ ]*"[^"\n]*\\', text, re.M))
+    # Exactly one top-level `on:`. Every other key in this file closes the
+    # duplicate-key class; `on:` was the one left open, and it is the key deciding
+    # whether the required contexts report at all. A second `on:` also truncates
+    # `_on_block`, so the mapping YAML actually resolves would go unscanned.
+    check("one-on-key", len(_key_values(text, "on", "")) == 1)
     _on = _on_block(text)
     check("no-path-filter",
           bool(_on) and not any(r.search(_on) for r in _TRIGGER_PATHS_RES))
@@ -1526,18 +1543,30 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "      - name: docs palette contrast gate\n        working-directory: tools\n")),
     # The vacuity guard: quoting the top-level key must not silently disable the
     # assertion above it.
-    ("collect-only-site-guides", "site-guides-pytest-pinned",
+    ("collect-only-site-guides", "site-guides-body-exact",
      lambda t: t.replace("          python -m pytest\n          tools/test_validate_guides.py",
                          "          python -m pytest --collect-only\n          tools/test_validate_guides.py")),
-    ("k-filter-site-build", "site-build-pytest-pinned",
+    ("k-filter-site-build", "site-build-body-exact",
      lambda t: t.replace("          tools/test_build_site_routing.py\n",
                          "          tools/test_build_site_routing.py -k nope\n")),
-    ("k-filter-contrast-suite", "contrast-suite-pinned",
+    ("k-filter-contrast-suite", "contrast-body-exact",
      lambda t: t.replace("python -m pytest tools/test_check_docs_contrast.py -q",
                          "python -m pytest tools/test_check_docs_contrast.py -q -k nope")),
-    ("dry-run-contrast-checker", "contrast-checker-pinned",
+    ("dry-run-contrast-checker", "contrast-body-exact",
      lambda t: t.replace("python3 tools/check-docs-contrast.py",
                          "python3 tools/check-docs-contrast.py --dry-run")),
+    ("escaped-key-syntax", "no-unmodelled-key-syntax",
+     lambda t: t.replace('      - name: docs palette contrast gate\n',
+                         '      - name: docs palette contrast gate\n        "i\\x66": ${{ false }}\n')),
+    ("explicit-key-syntax", "no-unmodelled-key-syntax",
+     lambda t: t.replace('      - name: docs palette contrast gate\n',
+                         '      - name: docs palette contrast gate\n        ? if\n        : ${{ false }}\n')),
+    ("duplicate-on-key", "one-on-key",
+     lambda t: t.rstrip() + "\non:\n  pull_request:\n    paths: ['x']\n"),
+    ("flow-style-trigger-paths", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n"
+                         "  pull_request: {branches: [main], paths: ['tools/**']}\n", 1)),
     ("exit-0-prefix-in-contrast-step", "contrast-body-exact",
      lambda t: t.replace("          python3 tools/check-docs-contrast.py\n",
                          "          exit 0\n          python3 tools/check-docs-contrast.py\n")),
@@ -1556,6 +1585,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("deep-indent-paths", "no-path-filter",
      lambda t: t.replace("  pull_request:\n    branches: [main]\n",
                          "  pull_request:\n      branches: [main]\n      paths:\n        - 'tools/**'\n", 1)),
+    # Vacuity guard: respelling the top-level `on:` key must not silently disable
+    # `no-path-filter` by emptying the span it searches.
     ("quote-on-key", "no-path-filter",
      lambda t: t.replace("on:\n", "'on':\n", 1)),
     # A paths: filter on a workflow whose jobs are required contexts leaves every
