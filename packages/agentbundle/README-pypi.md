@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.1
+
+`agentbundle catalogue self-host --check --windows` gained a stage that verifies
+a source catalogue's declared knowledge bundles against their committed output.
+The verification itself is performed by the catalogue's own tooling, so this
+changes nothing for installing or using a pack.
+
 ## What's new in 0.38.0
 
 `agentbundle show <pack> --format json` now emits the additive pre-release rich

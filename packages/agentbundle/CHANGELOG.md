@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.1] — 2026-08-18
+
+### Fixed
+
+- **The Windows compatibility suite now verifies declared knowledge bundles.**
+  It ran the adopter-facing pre-PR hook, which carries no knowledge-bundle gate,
+  so no Windows runner invoked the compiler. The suite now re-renders every
+  declared bundle and compares the result against the committed tree, so a
+  Windows-only encoding, path, or ordering difference fails there rather than
+  reaching main. Managed *writes* remain unavailable on Windows by design — they
+  require directory-descriptor-confined operations the platform does not offer —
+  so the Windows stage verifies committed output rather than producing it.
+
 ## [0.38.0] — 2026-08-17
 
 ### Added

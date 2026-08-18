@@ -585,34 +585,16 @@ EXPECTED_PRE_PR_REPO_STEPS = [
         "journey-contract lint self-test",
         [sys.executable, "tools/test-lint-journey-contract.py"],
     ),
+    # One gate, not one per pack: pack discovery moved into the shared script so
+    # the Linux aggregator and the Windows compat suite cannot drift into
+    # scanning different pack sets.
     (
-        "okf compiler check _okf-pilot-cost-engineering",
+        "okf compiler checks",
         [
             sys.executable,
-            str(
-                gc.REPO_ROOT
-                / "packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py"
-            ),
+            str(gc.REPO_ROOT / "tools" / "check-okf-managed-packs.py"),
             "--root",
             str(gc.REPO_ROOT),
-            "--pack",
-            "_okf-pilot-cost-engineering",
-            "--check",
-        ],
-    ),
-    (
-        "okf compiler check core",
-        [
-            sys.executable,
-            str(
-                gc.REPO_ROOT
-                / "packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py"
-            ),
-            "--root",
-            str(gc.REPO_ROOT),
-            "--pack",
-            "core",
-            "--check",
         ],
     ),
 ]

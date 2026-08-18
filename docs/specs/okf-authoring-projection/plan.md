@@ -407,7 +407,7 @@ and the baseline/case freeze predates generated runs.
 
 **Depends on:** T6, T7
 
-**Touches:** `tools/catalogue/pre_pr_catalogue.py`, `tools/test_*.py`, `packages/agentbundle/tests/build_pipeline/**`, `Makefile`
+**Touches:** `tools/catalogue/pre_pr_catalogue.py`, `tools/test_*.py`, `packages/agentbundle/tests/build_pipeline/**`, `Makefile`, `tools/check-okf-managed-packs.py`, `packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py`, `.github/workflows/build-check-windows.yml`
 
 **Verification mode:** Goal-based integration checks.
 

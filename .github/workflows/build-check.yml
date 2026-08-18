@@ -374,7 +374,8 @@ jobs:
             tools/test_check_release_impact.py \
             tools/test_scaffold_projection.py \
             tools/test_conformance_portability.py \
-            tools/test_lint_guides_no_repo_only_refs.py -q
+            tools/test_lint_guides_no_repo_only_refs.py \
+            tools/test_okf_pre_pr.py -q
 
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
