@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** none
+- **Constrained by:** RFC-0089
 - **Brief:** docs/product/briefs/tech-site-completion.md
 - **Discovery:** none
 - **Contract:** none
@@ -15,10 +15,11 @@
 ## Objective
 
 Contributors receive a deterministic required-CI signal when a representative
-marketing, catalogue, pack, journey, work, or documentation page becomes
+marketing, catalogue, pack, journey, Now, or documentation page becomes
 inaccessible or unusable at an approved viewport. The gate exercises the
-combined emitted site, uses explicit framework and inline-content exemptions,
-and leaves physical-device review as a visible release responsibility.
+combined emitted site, consumes measured and criterion-grounded tap-target
+evidence, and leaves physical-device review as a visible release
+responsibility.
 
 ## Boundaries
 
@@ -27,29 +28,39 @@ and leaves physical-device review as a visible release responsibility.
 - Exercise emitted pages after the marketing-first, docs-second combined build.
 - Resolve every route through the configured deployment base rather than a
   repository-name literal.
-- Consume the approved tap-target audit's rule and exemption record.
+- Record route, viewport, theme, selector/content context, target geometry,
+  spacing, WCAG 2.2 classification, rationale, owner, and exact remediation for
+  every tap-target candidate.
+- Audit print output before deciding whether any print rule exists.
 
 ### Ask first
 
-- Change the approved route, theme, width, accessibility-severity, overflow, or
-  tap-target contract.
-- Add a browser engine, visual-regression baseline, or framework exception.
-- Make a screenshot-writing test required CI.
+- Change the approved route, theme, width, accessibility-severity, overflow,
+  tap-target, or representative-print contract.
+- Add a browser engine, visual-regression baseline, dependency, framework
+  exception, broad selector exemption, or screenshot-writing required test.
+- Materialize a remediation spec before emitted evidence demonstrates an
+  independently shippable defect.
 
 ### Never do
 
-- Treat a screenshot's existence, a truthy path, or source shape as proof of
-  browser behavior.
+- Treat screenshot existence, a truthy path, source shape, or inferred CSS
+  geometry as proof of browser behavior.
 - Write tracked screenshot artifacts in required CI.
-- Add a dependency, silently suppress an axe rule, or classify a failure as a
-  framework exception without the accepted audit record.
+- Silently suppress an axe rule or classify framework ownership itself as a
+  WCAG exception.
+- Approve a broad selector exemption, an unmeasured responsive fix, or a
+  general print stylesheet without an observed failure.
 
 ## Testing Strategy
 
 - Browser helper invariants and seeded failure fixtures use TDD.
-- The route/theme/viewport matrix is an E2E goal-based check against the
+- The exact route/theme/viewport matrix is an E2E goal-based check against the
   combined emitted preview.
-- Physical-device review is a recorded manual QA gesture and remains outside
+- Tap-target and print outcomes require measurements from an actually exposed
+  browser runtime; absence of that runtime is recorded as missing evidence,
+  never converted into an inferred result.
+- Physical-device review is recorded manual QA and remains outside
   deterministic CI.
 
 ## Acceptance Criteria
@@ -58,7 +69,7 @@ and leaves physical-device review as a visible release responsibility.
   1440 CSS-pixel widths without theme mutation: `/`, `/catalogue/`,
   `/packs/core/`, `/journeys/`, `/journeys/core/`,
   `/journeys/product-engineering/`, `/journeys/release-engineering/`, and
-  `/work/`.
+  `/now/`.
 - [ ] Required CI exercises `/docs/` and
   `/docs/guides/core/how-to/start-a-project/` at all five approved widths in
   both the light and dark docs themes.
@@ -66,24 +77,41 @@ and leaves physical-device review as a visible release responsibility.
   emitted page without an HTTP error, client error, or unhandled page error.
 - [ ] Every matrix case has no more than 1px document-level horizontal overflow.
 - [ ] Every matrix case reports zero serious or critical axe findings; any
-  accepted lower-severity or framework exception is named, scoped, and linked
-  to its owning audit evidence.
+  accepted lower-severity result is exact, owned, and linked to audit evidence.
 - [ ] Representative primary navigation, mobile disclosure, docs search/theme
   controls, decision-to-gate links, and footer links are keyboard reachable,
   operable, and visibly focused on the routes where they appear.
-- [ ] Demonstrated non-exempt tap-target failures from the approved
-  `docs-tap-target-audit` are asserted by the gate; legitimate inline-content
-  and framework-owned exemptions remain narrowly enumerated.
+- [ ] The accepted tap-target audit classifies every candidate as conforming,
+  demonstrated non-exempt failure, inline-content exception,
+  user-agent/framework-controlled exception, equivalent-control exception, or
+  essential exception and records all required geometry, spacing, context,
+  rationale, owner, and remediation fields.
+- [ ] No tap-target exemption is broad, selector-only, inferred from CSS, or
+  justified solely by framework ownership; every demonstrated failure is
+  covered by a construction test before remediation and by emitted-browser
+  proof afterward.
 - [ ] A seeded overflow, broken route, serious axe violation, missing focus
-  state, and broken fragment each cause the focused suite to fail.
+  state, broken keyboard path, and broken fragment each cause the focused suite
+  to fail with route, width, and theme context.
 - [ ] The required workflow runs the deterministic subset on relevant site,
   guide, generator, test, dependency-lock, configuration, and workflow changes,
   and a failure blocks the workflow.
 - [ ] Screenshot capture remains optional, runs outside the required subset,
   and writes no tracked files during CI.
+- [ ] Print evidence covers `/`, `/docs/`, the ordinary, code-heavy,
+  aside-heavy, and long-table guide routes named in
+  [`notes/print-audit.md`](notes/print-audit.md), including navigation removal,
+  content, links, code, asides, tables, clipping, overlap, and page breaks.
+- [ ] Print closes stale when browser/framework defaults satisfy that contract;
+  otherwise the audit names each exact failure and the smallest narrow rule
+  boundary before a conditional remediation spec is created.
+- [ ] Any observed serious/critical axe failure, overflow beyond 1px, missing
+  focus indication, broken keyboard path, or unstable framework-owned control
+  is recorded as a demonstrated defect or exact accepted exception—never a
+  speculative visual preference.
 - [ ] The release checklist records a physical-device pass for one compact iOS
-  browser and one compact Android browser, or records the exact blocker and
-  owner before release approval.
+  browser and one compact Android browser, or the exact blocker and owner before
+  release approval.
 
 ## Assumptions
 
@@ -93,15 +121,15 @@ and leaves physical-device review as a visible release responsibility.
 - Technical: existing docs E2E coverage already exercises the selected docs
   home and nested core-guide routes (source:
   `web/src/test/e2e/docs-wayfinding.spec.ts`).
-- Product: the exact routes, five widths, and docs theme matrix are approved
-  (source: user confirmation 2026-08-17).
-- Product: the overflow ceiling is 1px and the axe ceiling is zero serious or
-  critical findings (source: user approval of
-  `docs/product/briefs/tech-site-completion.md`).
-- Product: WCAG 2.2 tap-target classification permits recorded legitimate
-  inline-content and framework exemptions (source:
-  `docs/product/briefs/tech-site-completion.md`).
-- Process: no browser-control runtime is exposed in the shaping session, so
-  physical-device execution belongs to future release evidence rather than
-  this non-implementation session (source: active managed tool surface on
-  2026-08-17).
+- Product: the exact routes, five widths, docs themes, 1px overflow ceiling,
+  and zero serious/critical axe ceiling are fixed (source: approved brief and
+  user confirmations 2026-08-17).
+- Product: zero tap-target exemptions and zero responsive defects are accepted
+  during shaping because no geometry was measured; the final table in the
+  owning audit records this evidence state (source: user approval 2026-08-17).
+- Product: framework ownership identifies an owner, not an automatic WCAG
+  exception (source: user approval 2026-08-17).
+- Process: no browser-control runtime is exposed in this shaping session, so
+  geometry, axe, overflow, focus, keyboard, and print results remain execution
+  evidence rather than inferred shaping claims (source: active managed tool
+  surface on 2026-08-17).

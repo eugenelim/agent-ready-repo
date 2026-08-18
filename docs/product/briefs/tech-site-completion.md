@@ -46,7 +46,8 @@ emitted-site behavior.
 **Non-goals:**
 
 - New product capabilities, routes, navigation destinations, or dependency
-  additions.
+  additions beyond the approved replacement of public `/work/` with released-
+  outcome `/now/`.
 - Aligning the docs palette with the marketing palette or replacing pinned
   Starlight behavior.
 - Reopening shipped SEO, sitemap, canonical, robots, npm-SCA, or superseded
@@ -59,8 +60,8 @@ emitted-site behavior.
 
 ## Appetite
 
-A bounded programme of four focused implementation waves, not a redesign
-quarter. Work that requires a new dependency, route or navigation change,
+A bounded programme of eight ordered completion waves, not a redesign quarter.
+Work that requires a new dependency, another route or navigation change,
 palette unification, or feature expansion leaves this programme unless an
 approved amendment explicitly changes the boundary.
 
@@ -100,7 +101,8 @@ The technology sites are complete when all of the following are true:
    reference is annotated without rewriting its body.
 3. Durable site principles are committed in the design-principles artifact;
    docs palette separation and pinned framework contracts remain intact.
-4. Existing routes and navigation contracts are preserved.
+4. Existing routes and navigation contracts are preserved except for the
+   approved removal of public `/work/` and addition of `/now/`.
 5. Every agreed public guide has reviewed metadata or an explicit non-content
    exception, and all nine reviewed guide-title decisions are applied.
 6. Priority journeys have reviewed output evidence, useful eyebrows, stable
@@ -114,8 +116,9 @@ The technology sites are complete when all of the following are true:
    behavior pass an accepted emitted-site baseline or have narrowly scoped
    follow-up fixes.
 10. Physical-device review remains an explicit manual release check.
-11. No dependency, route move, palette unification, speculative illustration
-    system, or new feature surface is introduced through this programme.
+11. No dependency, route move beyond catalogue-format source ownership with
+    route compatibility, palette unification, speculative illustration system,
+    or feature surface beyond approved `/now/` is introduced.
 12. No accepted programme decision remains unresolved.
 
 ## Approved decision log
@@ -173,6 +176,33 @@ The technology sites are complete when all of the following are true:
 18. At the decision gate this brief remained Draft. Canonical intake and
     `receive-brief` subsequently owned its Ready transition, decomposition,
     and lifecycle registration after the review pause.
+19. Public `/work/` is removed outright with no redirect. `/now/` is the
+    independently shippable replacement, publishes only released changelog
+    `Highlights`, and launches with all meaningful released highlights from the
+    seven calendar days ending on launch day, inclusive.
+20. Now drafting may be AI-assisted from implementation diff and verification
+    evidence inside the normal development lifecycle; ordinary PR review owns
+    acceptance, Unreleased content never publishes, and no model runs in CI,
+    release automation, or site generation.
+21. The shared destination order is How it works, Use cases, Catalogue, Now,
+    Docs, and Try the build loop. Docs product orientation remains distinct
+    from Starlight documentation navigation; destination data is shared but
+    renderer presentation and state are not.
+22. The 34 journey IDs, labels, three priority editorials, invocation
+    convention, and emitted evidence contract are fixed in the owning spec.
+    Pack versions and plugin descriptions stay unchanged because installed
+    functional behavior does not change.
+23. Browser and print measurement remains implementation evidence, not an open
+    shaping decision. The final shaping record contains zero measured passes,
+    failures, or exemptions and prohibits speculative remediation.
+24. Detailed shaping replaces decision 2's four-wave sequencing granularity
+    with the eight ordered completion waves below. The programme appetite stays
+    bounded; the added stages make dependencies and evidence gates explicit
+    rather than expanding scope.
+25. Decision 13's close-stale condition is met: repository dogfooding is not
+    third-party proof, and no durable permissioned, sourceable, owned signal
+    exists. Reopen only when a named owner can maintain source, freshness,
+    verification, presentation boundaries, and removal.
 
 ## Registered debt dispositions
 
@@ -192,10 +222,10 @@ The table below records the approved disposition.
 | `rehype-plugin-unit-tests` | ship | after built-in runner contract | mechanical-after-decision |
 | `docs-tap-target-audit` | shape | audit before fixes | judgment-led |
 | `site-design-principles` | ship | durable design-principles artifact | judgment-led |
-| `docs-site-print-styles` | research | print audit; close or shape from evidence | judgment-led |
+| `docs-site-print-styles` | research | six-route print audit; close stale or shape narrowly from evidence | judgment-led |
 | `web-docs-link-check-gate` | close-stale | shipped rendered-site link checker | mechanical-now |
 | `phase4b-docsurl-instruction-stale` | ship | frozen-spec status annotation | mechanical-now |
-| `site-social-proof-band` | research | stable proof signal or close-stale | judgment-led |
+| `site-social-proof-band` | close-stale | no durable owned external signal; reopen only with owner/freshness contract | judgment-led |
 | `site-mobile-responsiveness` | merge | `site-browser-quality-gate` | mixed |
 | `journey-good-output-transcripts` | merge | `journey-page-completion` | judgment-led |
 | `journey-hero-descriptive-eyebrow` | merge | `journey-page-completion` | judgment-led |
@@ -212,6 +242,7 @@ The table below records the approved disposition.
 | `docs-contrast-ci-gate` | ship | mechanical-now after gate placement |
 | `site-browser-quality-gate` | shape | mixed |
 | `journey-template-priority-id-drift` | merge into journey completion | mechanical-now |
+| `site-now-surface` | ship | mixed after released-highlight decisions |
 
 The orphan historical rendered-link comment block is register hygiene, not a
 separate product item; preserve its provenance when the stale membership is
@@ -240,16 +271,18 @@ artifacts decide their open product and technical questions.
 
 ## Dependency and sequencing map
 
-| Group | Contents | Dependency |
+| Wave | Contents | Dependency |
 | --- | --- | --- |
-| 0. Governance | Ratifying RFC, durable site principles, frozen-spec annotation | Approved brief |
-| 1. Mechanical integrity | Seven CI tests, rendered-link closure and guidance, vestigial token copy, contrast gate, journey ID drift | Group 0 contracts where applicable |
-| 2. Evidence and audits | Tap targets, browser matrix, print audit, social-proof evidence, metadata inventory | Principles and test baselines |
-| 3. Product/design completion | Shared chrome, journey completion, guide metadata batches and titles, rehype tests, demonstrated audit fixes | Groups 1 and 2 |
-| 4. Completion proof | Full emitted build, link, contrast, accessibility and browser gates, route evidence, physical-device check | All preceding groups |
+| 1. Rebaseline | Fresh `main`; reconcile Type 1/2/3; reconfirm inventory, routes, projections, and emitted baselines | Mechanical PRs merged |
+| 2. Contracts and deterministic test foundations | Guide exception validator; journey ID/label validation; shared-destination validation/projection; browser scaffolding | Wave 1 |
+| 3. Content and canonical sources | Six guide batches; canonical journey migration and priority copy; released Now projection and launch content | Wave 2 |
+| 4. Renderer consumption | Regenerate journey copies; label/fragment behavior; add Now; adapt both shared-chrome renderers together | Wave 3 |
+| 5. Emitted construction verification | Metadata, IDs, copies, routes, aliases, links, fragments, and shared destinations after marketing-first/docs-second build | Wave 4 |
+| 6. Measured browser and print audit | Full matrix; tap geometry; axe; overflow; focus; keyboard; fragments; framework controls; six print representatives | Wave 5 and exposed runtimes |
+| 7. Conditional remediation | Smallest fixes for demonstrated defects; new specs only for independently shippable outcomes | Wave 6 evidence |
+| 8. Completion review | Full reconciliation, spec/plan review, evidence audit, lifecycle status, and physical-device record | All preceding waves |
 
-The recommended first implementation wave is Group 1 after the minimum Group 0
-governance contracts exist.
+No implementation spec becomes Shipped merely because shaping is complete.
 
 ## Verification contract
 
@@ -257,14 +290,15 @@ Every derived implementation plan must test emitted behavior, not merely source
 shape. At minimum it must preserve the build order (`web/` first,
 `docs-site/` second), run the combined page and fragment checker after both
 builds, prove guide and journey metadata in generated pages, exercise both docs
-themes, preserve existing routes and navigation, and record any framework or
-manual exception explicitly. Construction tests must demonstrate a failure on a
+themes, preserve all routes/navigation except the approved Work-to-Now change,
+and record any framework or manual exception explicitly. Construction tests
+must demonstrate a failure on a
 seeded broken case rather than assert only that a source pattern exists.
 
 ## Spec map
 
-The confirmed cut contains eight independently shippable slices. Status is
-derived from each linked spec by the `receive-brief` coverage lint. All eight
+The confirmed cut contains nine independently shippable slices. Status is
+derived from each linked spec by the `receive-brief` coverage lint. All nine
 spec and plan contracts received explicit human approval on 2026-08-17 and
 were registered in the workspace work queue at approval; each slice moves to the
 shipped list as it lands.
@@ -277,6 +311,7 @@ shipped list as it lands.
 | `guide-title-clarity` | — |
 | `guide-metadata-completion` | — |
 | `journey-page-completion` | — |
+| `site-now-surface` | — |
 | `site-shared-chrome` | — |
 | `site-browser-quality-gate` | — |
 
@@ -301,4 +336,4 @@ shipped list as it lands.
   generation contracts, site instructions, workflows, and tests reconciled at
   intake
 - **Revision:** `7da8b07571e44fe5d6052f0efca7952484e173c8`
-- **Decision confirmation:** all eighteen decisions approved on 2026-08-17
+- **Decision confirmation:** all twenty-five decisions approved on 2026-08-17

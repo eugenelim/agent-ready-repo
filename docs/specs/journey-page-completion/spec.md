@@ -15,83 +15,103 @@
 ## Objective
 
 Readers evaluating a priority journey see an outcome-led orientation, a
-credible example of good output, and decision chips that take them directly to
-the corresponding human gate. Every journey uses stable gate identifiers so
-labels can evolve without breaking links, while existing routes and navigation
-remain unchanged.
+credible example of good output, and decision chips that use human language to
+take them directly to the corresponding decision. All journeys use stable
+internal semantic IDs so labels and order can evolve without breaking links;
+raw identifiers and legacy gate codes never leak into the adopter experience.
 
 ## Boundaries
 
 ### Always do
 
-- Use canonical gate IDs as the relationship between decision chips and gate
-  cards; render human-facing chip labels from the gate definitions.
-- Author and review priority-journey eyebrows and output transcripts as
-  product content.
+- Apply the 34 exact identifier and label mappings, fixed section copy, three
+  priority eyebrows, and three transcripts in
+  [`editorial-decisions.md`](editorial-decisions.md).
+- Treat `(journey_id, humanGate.id)` as identity and
+  `humanGates[].label` as the sole adopter-facing label source.
 - Treat `packs/*/JOURNEY.md` as canonical and generated web journey copies as
   derived output.
-- Apply the pack version, plugin-manifest, marketplace, and changelog rules to
-  every pack whose shipped journey source changes.
+- Keep pack versions and Claude-plugin descriptions unchanged because this
+  migration does not change installed functional behavior.
 
 ### Ask first
 
-- Change which journeys are priority, any journey route, or a public gate ID
-  after it ships.
-- Change a human-gate label, risk description, approval contract, or decision
-  meaning while migrating identifiers.
-- Extend the work beyond orientation, output evidence, anchors, and the known
-  priority-template ID correction.
+- Change the priority set, any approved ID or label, any journey route, or the
+  fixed editorial copy after it ships.
+- Change a risk description, approval contract, decision meaning, installed
+  payload, or runtime activation behavior while migrating identifiers.
+- Extend the work beyond the approved identity, editorial, rendering,
+  projection, and evidence contracts.
 
 ### Never do
 
-- Infer an identifier by normalizing display text.
+- Infer an identifier by normalizing display text or use an ordinal as
+  identity.
+- Show a semantic ID, `globalGate`, or legacy `G…` code to adopters.
 - Generate editorial eyebrow or output-transcript copy.
-- Add a dependency, route, navigation destination, or new journey.
+- Use `/skill-name` as a portable invocation contract.
+- Add a dependency, route, navigation destination, new journey, pack-version
+  bump, or plugin-description change without an approved amendment.
 
 ## Testing Strategy
 
-- Journey-schema rules, unique gate IDs, and reference integrity use TDD with
-  invalid and valid fixtures.
-- Projection, stable anchors, routes, and fragment links use goal-based
-  generated-output and full-site integration checks.
-- Eyebrow and transcript quality use recorded content/design review; priority
-  journey pages also receive rendered visual and accessibility review.
+- Journey-schema rules, the complete 34-ID mapping, uniqueness, and reference
+  integrity use TDD with invalid, mutation, and valid fixtures.
+- Projection parity, stable anchors, routes, labels, and absence of leaked
+  identifiers use exhaustive generated-output and full-site integration checks.
+- Eyebrow and transcript quality use the recorded approval in the decision
+  ledger; priority pages also receive rendered visual and accessibility review.
+- Browser evidence proves keyboard activation, focus transfer, scrolling,
+  fragment updates, and direct-fragment loading at the approved widths/themes.
 
 ## Acceptance Criteria
 
-- [ ] Every canonical journey source represents contract decisions as
+- [ ] Every canonical journey source represents contract decisions as ordered
   `decisionGateIds`, and every referenced ID resolves to exactly one human gate
   in that journey.
-- [ ] Every human gate has a stable, unique canonical ID that is independent of
-  its display label.
-- [ ] Each rendered decision chip uses its gate's current label and links to the
-  matching gate card's DOM fragment.
-- [ ] The combined rendered-link checker validates every decision-chip fragment
-  and reports no broken page or anchor.
-- [ ] The `core`, `product-engineering`, and `release-engineering` journeys each
-  have a human-reviewed, outcome-led eyebrow and a human-reviewed
-  `goodOutputDescription` transcript.
-- [ ] No non-priority journey is required to gain new eyebrow or transcript
-  copy through this spec.
+- [ ] All 34 human gates use the exact internal IDs and adopter-facing labels in
+  `editorial-decisions.md`; IDs satisfy the lowercase semantic-key contract and
+  are unique within their journey.
+- [ ] Identity is exactly `(journey_id, humanGate.id)`, independent of the gate
+  label and position; mutation tests prove that copy changes and reordering do
+  not change fragments.
+- [ ] Decision chips display only `humanGates[].label`, follow
+  `decisionGateIds` order, and derive human ordinals from that order without
+  storing them as identity.
+- [ ] The decision section uses the approved “Where you decide” heading and
+  intro; no visible content exposes a raw semantic ID, `globalGate`, or legacy
+  `G…` code.
+- [ ] Every chip is a real link to exactly one
+  `#decision-<semantic-id>` heading; click and keyboard activation update the
+  URL, bring the heading into view, move focus to it, and show a clear
+  renderer-native focused/targeted state.
+- [ ] Duplicate, malformed, missing, and unresolved ID fixtures fail before
+  rendering; a direct fragment load resolves without consulting label text.
+- [ ] The exact priority set is `core`, `product-engineering`, and
+  `release-engineering`; each emits its approved eyebrow and transcript
+  verbatim, and no non-priority journey is required to gain either field.
+- [ ] Priority transcript invocations follow the approved harness-neutral
+  convention: ordinary language demonstrates routing, while `discovery-loop`
+  and `release-loop` are explicitly named where their complete supervisor is
+  required; canonical content contains no slash-prefixed invocation.
 - [ ] The living journey-priority template identifies
   `product-engineering` and `release-engineering` by their canonical IDs rather
   than the stale `discovery` and `release` IDs.
-- [ ] Generated journey content matches canonical pack sources after the normal
-  generation command; no generated copy is maintained by hand.
-- [ ] Every pack whose `JOURNEY.md` changes receives matching patch-version
-  updates in `pack.toml` and `.claude-plugin/plugin.json`; self-hosted catalogue
-  projections, marketplace data, and changelog entries are synchronized and
-  catalogue lint/verification pass.
+- [ ] Generated journey content matches canonical pack sources exactly after
+  the normal generation command; no generated copy is maintained by hand.
+- [ ] All 12 emitted journey pages contain the exact approved labels, one link
+  and one matching target per gate, and no adopter-visible internal or legacy
+  identifier; the combined rendered-link checker reports no broken fragment.
+- [ ] Pack and plugin versions and plugin descriptions remain unchanged; if an
+  installed functional behavior change is discovered, implementation stops for
+  a spec amendment rather than silently versioning it.
 - [ ] Shipped journey content contains no repository-internal governance
-  citation or dead repository-only path.
-- [ ] Every pre-change journey route and navigation destination still resolves.
-- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths, each priority journey
-  exposes its eyebrow, output transcript, and keyboard-usable decision-to-gate
-  links with at most 1px horizontal overflow and zero serious or critical axe
-  findings.
-- [ ] A rendered design review finds no Major issue against the platform
-  aesthetic direction or the tech-site principles, including evidence beside
-  claims and stable orientation.
+  citation or dead repository-only path, and every pre-change journey route and
+  navigation destination still resolves.
+- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths in both approved themes,
+  priority journey interaction has at most 1px horizontal overflow, zero
+  serious or critical axe findings, correct keyboard focus/fragment behavior,
+  and no Major design-review issue against the governing principles.
 
 ## Assumptions
 
@@ -99,21 +119,16 @@ remain unchanged.
   `web/src/content.config.ts`, canonical sources live in
   `packs/*/JOURNEY.md`, and `web/src/content/journeys/` is generated (source:
   repository inspection on 2026-08-17).
-- Technical: display decision text is currently duplicated separately from
-  human-gate definitions and gate cards lack stable DOM IDs (source: repository
-  inspection on 2026-08-17).
-- Product: the priority set for this programme is exactly `core`,
-  `product-engineering`, and `release-engineering` (source: user confirmation
-  2026-08-17).
-- Product: canonical `decisionGateIds`, labels rendered from gate definitions,
-  and stable gate-card IDs are approved (source: user approval of
-  `docs/product/briefs/tech-site-completion.md`).
-- Product: eyebrow and transcript content is human-written (source:
-  `docs/product/briefs/tech-site-completion.md`).
+- Technical: the current renderer displays legacy gate codes but does not use
+  them as fragment identities, so no pre-existing gate deep-link contract must
+  be migrated (source: repository inspection on 2026-08-17).
+- Product: the exact 34 mappings, three priority journeys, copy, interaction,
+  and evidence contract are accepted in `editorial-decisions.md` (source: user
+  approvals 2026-08-17).
+- Product: internal IDs solve referential integrity and stable-link needs but
+  are not adopter content (source: user approval 2026-08-17).
+- Process: this site/content migration does not change installed pack behavior,
+  so pack versions and plugin descriptions stay unchanged (source: user
+  approval 2026-08-17).
 - Process: the platform aesthetic direction and tech-site principles govern
-  journey-page review (source: user confirmation 2026-08-17 and
-  `docs/design/principles/tech-site.md`).
-- Process: any non-cosmetic `packs/` content change requires synchronized pack
-  and plugin patch versions, self-hosting projection, marketplace regeneration,
-  and a changelog entry (source: `packs/AGENTS.md` and
-  `packs/AGENTS.local.md`).
+  journey-page review (source: `docs/design/principles/tech-site.md`).

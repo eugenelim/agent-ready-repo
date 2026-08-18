@@ -8,199 +8,231 @@
 
 ## Approach
 
-Establish the ID-based journey contract and its failure cases first, migrate
-all canonical sources through the normal generator, then author the three
-priority content additions. Renderer changes consume only canonical IDs and
-gate definitions. Full emitted-site tests prove routes and fragments, while a
-bounded browser pass proves the user-facing orientation and interaction.
+Establish the semantic-ID contract and failure cases first, migrate the exact
+34 approved mappings in canonical sources, and regenerate all derived copies.
+Then add the three accepted editorial payloads and adapt rendering to keep IDs
+internal while labels, focus, and fragments behave predictably. Exhaustive
+emitted and browser tests close the work; source shape alone is insufficient.
 
 ## Constraints
 
-- `packs/*/JOURNEY.md` remains canonical; generated web copies are never edited
+- `packs/*/JOURNEY.md` remains canonical; generated copies are never edited
   independently.
+- [`editorial-decisions.md`](editorial-decisions.md) is the accepted mapping,
+  copy, and interaction ledger; implementation does not reclassify it.
 - `docs/design/principles/tech-site.md` and
   `docs/specs/platform-site/aesthetic-direction.md` govern visual decisions.
 - Priority content is limited to `core`, `product-engineering`, and
   `release-engineering`.
-- No dependency, public route, or navigation change.
-- Every changed pack receives its own patch bump in `pack.toml` and
-  `.claude-plugin/plugin.json`; self-hosting runs only after all pack edits.
+- No dependency, public route, navigation change, pack-version bump, or
+  plugin-description change.
 - Shipped `JOURNEY.md` content carries no internal governance citation.
 
 ## Construction tests
 
-**Integration tests:** regenerate journey content, build the marketing site,
-assert decision-chip hrefs and gate IDs in emitted HTML, then run combined
-page-and-fragment checking.
+**Integration tests:** validate all 34 mappings, regenerate every journey,
+build the marketing site, enumerate every emitted gate link and target across
+all 12 pages, prove no raw identifier is visible, then run the combined
+page-and-fragment checker.
 
-**Manual verification:** record editorial approval for six content fields and
-rendered design review of all three priority routes. Record the programme's
-physical-device release gesture separately from deterministic browser tests.
+**Manual verification:** the exact editorial content already carries recorded
+approval. Rendered design review covers all three priority routes, while the
+programme's physical-device gesture remains separate from deterministic
+browser tests.
 
 ## Design (LLD)
 
 ### Design decisions
 
-- `decisionGateIds` is the sole decision-to-gate relationship. Keeping display
-  strings as a parallel source is rejected because labels and links drift.
-  Traces to: AC1-AC4.
+- `decisionGateIds` is the sole decision-to-gate relationship and
+  `humanGates[].label` is the sole visible-label source. Parallel display
+  strings are rejected because they drift. Traces to: AC1-AC5.
+- Identity is `(journey_id, gate.id)` and the renderer adds only the fixed
+  `decision-` fragment prefix. Label normalization and order-based identity are
+  rejected. Traces to: AC2, AC3, AC6, AC7.
 - All journey sources adopt the identifier contract in one migration, while
-  new editorial copy remains P1-only. Traces to: AC1, AC5, AC6.
+  editorial additions remain priority-only. Traces to: AC2, AC8.
 
 ### Data & schema
 
-- Every human gate owns one stable ID; `contract.decisionGateIds` is an ordered
-  array of those IDs. Validation rejects duplicates and missing references.
-  Traces to: AC1, AC2.
+- Every human gate owns one stable lowercase semantic ID;
+  `contract.decisionGateIds` is an ordered array of those IDs. Validation
+  rejects malformed values, duplicates, and missing references. Traces to:
+  AC1-AC3, AC7.
 - Optional `eyebrow` and `goodOutputDescription` are required by construction
-  tests only for the approved priority IDs. Traces to: AC5, AC6.
+  tests only for the three approved priority IDs. Traces to: AC8, AC9.
 
 ### Component / module decomposition
 
-- `JourneyContract.astro` resolves decision IDs to gate labels and emits links.
-- `GateDetail.astro` owns the matching fragment target.
+- `JourneyContract.astro` resolves IDs to gate labels and emits links and
+  derived ordinals.
+- `GateDetail.astro` owns the matching focusable heading and fragment target.
 - The journey page owns eyebrow and transcript placement without changing the
-  route shell. Traces to: AC3-AC5, AC10, AC11.
+  route shell. Traces to: AC4-AC9.
 
 ### State & control flow
 
-- Build-time validation fails before rendering when a decision ID is missing or
-  ambiguous. Valid IDs flow from canonical pack source through generated
-  content to both chip href and gate DOM ID. Traces to: AC1-AC4, AC8.
-
-### Behavior & rules
-
-- Chip order follows `decisionGateIds`; labels follow gate definitions. IDs do
-  not change when a label changes. Traces to: AC2, AC3.
-- Editorial fields are authored and reviewed, never synthesized. Traces to:
-  AC5, AC6.
+- Build-time validation fails before rendering when an ID is malformed,
+  missing, duplicate, or ambiguous. Valid IDs flow from canonical pack source
+  through generated content to both chip href and heading DOM ID. Traces to:
+  AC1-AC7, AC11.
+- Native links update the URL; a narrowly bounded enhancement moves focus and
+  scrolls the matching heading without inventing a second identity or label
+  store. Traces to: AC6, AC7.
 
 ### Quality attributes (NFRs)
 
-- Anchor links are keyboard-usable and browser checks enforce the approved
-  overflow and axe thresholds. Traces to: AC10.
+- Exhaustive emitted checks cover all 12 journeys; browser checks cover every
+  priority chip at all approved widths and themes. Traces to: AC12, AC15.
 
 ## Tasks
 
-### T1: Invalid journey gate relationships fail before rendering
+### T1: Invalid journey identity contracts fail before rendering
 
 **Depends on:** none
 
 **Touches:** web/src/content.config.ts, tools/test_build_site_routing.py, tools/test_catalogue_navigation.py
 
 **Tests:**
-- TDD: add failing fixtures for a missing gate ID, duplicate gate ID, duplicate
-  decision ID, and display text supplied instead of an ID (AC1, AC2).
-- TDD: add a passing fixture that changes a gate label without changing its ID
-  (AC2, AC3).
+- TDD: add failing fixtures for malformed, missing, duplicate, and unresolved
+  IDs and for a display string supplied where an ID is required (AC1-AC3, AC7).
+- TDD: prove label changes and gate reordering preserve fragments while only
+  displayed ordinals change (AC3, AC4).
 
 **Approach:**
-- Define the internal ID/reference shape and validate referential integrity at
-  build time.
-- Keep editorial labels on human-gate definitions only.
+- Define the internal semantic-key and referential-integrity contract.
+- Keep labels on human-gate definitions only.
 
-**Done when:** focused tests demonstrate all invalid relationships fail and the
-label-change fixture remains valid.
+**Done when:** each invalid fixture fails for the intended reason and both
+identity-independence mutations pass.
 
-### T2: Every canonical journey and generated copy uses stable gate IDs
+### T2: Canonical journeys adopt the exact 34-ID mapping
 
 **Depends on:** T1
 
-**Touches:** packs/*/JOURNEY.md, packs/*/pack.toml, packs/*/.claude-plugin/plugin.json, web/src/content/journeys/*.md, tools/build-site.py, marketplace.json, docs/product/changelog.md
+**Touches:** packs/*/JOURNEY.md
 
 **Tests:**
-- Goal-based: regenerate all journey copies and assert no source-shape drift remains (AC1,
-  AC8).
-- Goal-based: validate every ID reference and the complete existing route inventory (AC1,
-  AC2, AC11).
-- Goal-based: run catalogue lint, verification, self-host projection checks, version
-  consistency, and the shipped-content governance-citation check for every
-  changed pack (AC9, AC10).
+- Goal-based: enumerate all 34 ledger rows and prove every canonical source has
+  the exact ID, label, order, and reference (AC1, AC2).
+- Goal-based: prove visible source content contains no legacy gate code, raw
+  semantic ID, slash-prefixed invocation, or internal governance citation
+  (AC5, AC9, AC14).
 
 **Approach:**
-- Assign explicit semantic IDs to existing gates and replace parallel decision
-  display strings with ordered `decisionGateIds`.
-- Change canonical sources and let the existing generator project copies.
-- Patch-bump every changed pack and its plugin manifest, then run self-host once
-  after all pack edits and add the required changelog entries.
+- Apply only the accepted mapping to canonical sources; retain `globalGate`
+  only as non-rendered source coordination metadata where still required.
+- Replace visible legacy-code references with their approved labels.
+- Do not change pack/plugin versions, plugin descriptions, or changelogs.
 
-**Done when:** generation and catalogue projection are clean, all references
-resolve uniquely, version/provenance checks pass, and every pre-change journey
-route remains present.
+**Done when:** all 34 mappings validate, legacy identifiers are absent from
+visible content, and installed-payload metadata is unchanged.
 
-### T3: Priority journeys have reviewed orientation and good-output evidence
+### T3: Generated journey copies reproduce canonical identity exactly
 
 **Depends on:** T2
 
-**Touches:** packs/core/JOURNEY.md, packs/product-engineering/JOURNEY.md, packs/release-engineering/JOURNEY.md
+**Touches:** tools/build-site.py, web/src/content/journeys/*.md, marketplace.json
 
 **Tests:**
-- Goal-based: assert the three exact priority IDs carry non-empty eyebrow and transcript
-  fields and non-priority journeys remain optional (AC5, AC6).
-- Visual/manual QA: record content review for outcome focus, specificity, and credible evidence
-  (AC5, AC13).
+- Goal-based: regenerate all journey copies and assert byte-appropriate
+  canonical parity for IDs, labels, order, and source content (AC11).
+- Goal-based: prove all 12 existing route IDs remain present and pack/plugin
+  versions and descriptions are unchanged (AC13, AC14).
 
 **Approach:**
-- Author one outcome-led eyebrow and one transcript for each P1 source.
-- Regenerate web copies after approval.
+- Run the existing projector; never edit a generated copy by hand.
+- Recalculate catalogue/marketplace output only where deterministic projection
+  requires it, without changing installed version metadata.
 
-**Done when:** all six fields have recorded approval and generated copies match
-their canonical sources.
+**Done when:** projection is clean, route inventory is stable, and no version
+or description drift exists.
 
-### T4: Decision chips navigate to their canonical gate cards
+### T4: Priority journeys receive the accepted editorial payload
 
-**Depends on:** T2
+**Depends on:** T3
+
+**Touches:** packs/core/JOURNEY.md, packs/product-engineering/JOURNEY.md, packs/release-engineering/JOURNEY.md, web/src/content/journeys/*.md
+
+**Tests:**
+- Goal-based: compare the three eyebrows and transcripts verbatim with the
+  ledger and prove non-priority journeys remain optional (AC8, AC9).
+- Goal-based: regenerate and recheck canonical parity (AC11).
+
+**Approach:**
+- Copy the accepted content verbatim, using ordinary routing language for Core
+  and explicit bare skill names for the two supervisor-dependent examples.
+- Regenerate derived copies.
+
+**Done when:** all six fields match the ledger and generated copies match their
+canonical sources.
+
+### T5: Decision chips expose human labels and stable interaction
+
+**Depends on:** T3, T4
 
 **Touches:** web/src/components/journeys/JourneyContract.astro, web/src/components/journeys/GateDetail.astro
 
 **Tests:**
-- Goal-based: assert emitted chip labels come from gate definitions, each href targets the
-  corresponding gate ID, and every target occurs exactly once (AC2-AC4).
-- TDD: seed a broken fragment and prove the combined checker fails (AC4).
+- Goal-based: enumerate every emitted chip and assert label ownership, order,
+  derived ordinal, exact href, unique target, fixed section copy, and absence
+  of visible identifiers (AC4-AC6, AC12).
+- TDD: seed a broken fragment and prove the combined checker fails (AC7, AC12).
 
 **Approach:**
-- Resolve IDs once in the journey renderer and pass the stable ID to both link
-  and gate card.
-- Use ordinary fragment links so keyboard and browser behavior remain native.
+- Resolve IDs once in the renderer and pass the stable ID to both link and
+  heading while rendering labels only from the gate definition.
+- Use native links plus the smallest focus/scroll behavior needed by the
+  accepted interaction contract.
 
-**Done when:** emitted HTML and the combined fragment checker prove every chip
-lands on exactly one matching gate.
+**Done when:** emitted HTML proves every one-to-one relationship and no raw ID
+or legacy code is adopter-visible.
 
-### T5: Living priority IDs and emitted priority pages pass completion evidence
+### T6: Priority pages pass emitted, browser, and design evidence
 
-**Depends on:** T3, T4
+**Depends on:** T5, spec:site-browser-quality-gate/T2
 
 **Touches:** docs/specs/platform-site/journey-page-template.md, tools/test_build_site_routing.py, web/src/test/e2e/**/*.ts
 
 **Tests:**
-- Goal-based: assert the living priority template contains `product-engineering` and
-  `release-engineering`, not their stale aliases (AC7).
-- Goal-based E2E: exercise the three priority routes at all approved widths for keyboard links,
-  overflow, and axe thresholds (AC12).
-- Visual/manual QA: run rendered design review against the named aesthetic direction and
-  principles (AC13).
+- Goal-based: assert the living template uses `product-engineering` and
+  `release-engineering`, not stale aliases (AC10).
+- Goal-based: enumerate all 12 emitted pages and run the combined route and
+  fragment checker (AC12, AC14).
+- Goal-based E2E: activate every priority chip by keyboard at all approved
+  widths and themes; assert fragment, focus, scroll, direct-load, overflow, and
+  axe behavior (AC6, AC7, AC15).
+- Visual/manual QA: review the three rendered priority routes against the named
+  aesthetic direction and tech-site principles (AC15).
 
 **Approach:**
-- Correct only the stale template IDs.
-- Add deterministic browser assertions without screenshot writes.
+- Correct only the stale living-template IDs.
+- Verify emitted behavior; do not treat source props or screenshot existence as
+  proof.
 
-**Done when:** the template check, full build/link suite, browser matrix, and
-recorded design review all pass.
+**Done when:** exhaustive emitted checks, the browser matrix, and recorded
+design review pass with unchanged routes.
 
 ## Rollout
 
-Land the schema and all-source migration atomically so no generated journey
-observes a mixed contract. Editorial and renderer work can follow behind that
-contract. Rollback is a normal source revert; no infrastructure changes.
+Land validation before the all-source migration, then regenerate before adding
+editorial content and renderer behavior. Keep canonical and generated copies
+coherent at every task boundary. Rollback is a normal source revert; there is
+no version, dependency, migration, or infrastructure change.
 
 ## Risks
 
-- Hand-assigned IDs can accidentally collide; schema fixtures and all-source
-  validation make uniqueness a build invariant.
-- Editorial transcript scope can expand; exact P1 IDs keep the programme
-  bounded.
+- Hand-assigned IDs can collide; the exact ledger, complete enumeration, and
+  mutation-sensitive validation make uniqueness and stability build invariants.
+- IDs can leak through otherwise convenient rendering; emitted text assertions
+  across all 12 pages prevent internal vocabulary from becoming UI copy.
+- Runtime activation cannot be proven by transcript copy; adapter/runtime
+  tests retain ownership of that behavior.
 
 ## Changelog
 
-- 2026-08-17: initial plan after approval of the P1 and canonical gate-ID
+- 2026-08-17: initial plan after approval of the priority and canonical gate-ID
   contracts.
+- 2026-08-17: fixed the 34-ID mapping, label ownership, invisible-ID behavior,
+  exact priority copy, invocation convention, unchanged-version consequence,
+  deterministic migration order, and exhaustive evidence contract.

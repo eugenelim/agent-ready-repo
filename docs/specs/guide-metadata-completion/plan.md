@@ -19,13 +19,17 @@ summary, pack, and kind decision has received human review.
 - `contracts/guide.schema.json` remains the metadata authority.
 - User-facing guides remain under `guides/`; `docs/guides/` is maintainer-only.
 - `guide-title-clarity` owns the four approved title changes.
-- No dependency, public route, alias, or navigation destination changes.
+- [`metadata-decisions.md`](metadata-decisions.md) is the accepted 125-row
+  editorial ledger; implementation does not regenerate or reclassify it.
+- Catalogue-format moves to shared reference source ownership while an
+  explicit slug preserves its old route. No other public route, alias, or
+  navigation destination changes.
 
 ## Construction tests
 
 **Integration tests:** build the marketing site and Starlight site in their
-required order, inspect emitted metadata for representative shared and
-pack-owned guides, then run the combined page-and-fragment checker.
+required order, enumerate and inspect emitted metadata for all 125 affected
+pages, then run complete public-guide and combined page/fragment coverage.
 
 **Manual verification:** an editorial reviewer records approval for every
 summary and classification batch; emitted representative pages are checked for
@@ -41,18 +45,21 @@ useful, non-duplicative descriptions.
 - Metadata is authored in bounded batches and reviewed as content; automatic
   extraction is rejected because it cannot prove editorial usefulness. Traces
   to: AC1, AC5-AC7.
+- Source ownership and public route identity are separate: catalogue-format
+  moves to `_shared/reference`, while an explicit slug preserves its current
+  emitted route. Traces to: AC8.
 
 ### Data & schema
 
 - Required fields keep the types and vocabulary defined by
   `contracts/guide.schema.json`. Optional routing fields remain untouched.
-  Traces to: AC1, AC7, AC8 · `contracts/guide.schema.json`.
+  Traces to: AC1, AC7, AC10 · `contracts/guide.schema.json`.
 
 ### Interfaces & contracts
 
 - `tools/validate_guides.py` consumes source frontmatter; the site generator
   projects validated metadata into renderer inputs and emitted pages. Traces
-  to: AC3, AC4, AC9, AC10 · `contracts/guide.schema.json`.
+  to: AC3, AC4, AC11, AC12 · `contracts/guide.schema.json`.
 
 ## Tasks
 
@@ -76,61 +83,130 @@ useful, non-duplicative descriptions.
 **Done when:** the focused validator tests fail on seeded omissions and pass for
 the exact approved exception set.
 
-### T2: Shared and root guide metadata is complete and editorially approved
+### T2: Batch 1 completes root, shared, and catalogue metadata
 
 **Depends on:** T1
 
 **Touches:** guides/README.md, guides/_shared/**/*.md, guides/_reference/**/*.md
 
 **Tests:**
-- Goal-based: run the validator against the batch after each review round (AC1, AC4-AC7).
-- Visual/manual QA: record an editorial checklist covering title/H1 coherence, outcome-led
-  summary, pack ownership, and kind (AC5-AC7).
+- Goal-based: compare all 23 rows field-by-field with the accepted ledger and
+  run the validator and global duplicate scan (AC1, AC4-AC7).
+- Goal-based: prove the catalogue-format source move preserves its existing
+  route and navigation behavior (AC8).
+- Visual/manual QA: verify the pack-journey opening exactly matches its approved
+  correction and no other body copy changes (AC9).
 
 **Approach:**
-- Author metadata for publishable shared and reference content.
-- Leave the five structural exceptions and optional route fields unchanged.
+- Apply only ledger batch 1.
+- Move catalogue-format to shared reference ownership, set the compatibility
+  slug, and remove the empty old group only after route/navigation proof.
+- Apply the one approved pack-journey opening correction. Leave the five
+  structural exceptions and all other body and optional routing fields alone.
 
-**Done when:** the batch has no validation findings and every summary has a
-recorded human approval.
+**Done when:** all 23 rows match, validation and duplicate checks pass, the old
+route resolves, and the body diff is limited to the approved opening.
 
-### T3: Pack-owned guide metadata is complete in bounded review batches
+### T3: Batch 2 completes Architect, Atlassian, and Catalogue Curation
 
-**Depends on:** T1
+**Depends on:** T2
 
-**Touches:** guides/*/**/*.md
+**Touches:** guides/architect/**/*.md, guides/atlassian/**/*.md, guides/catalogue-curation/**/*.md
 
 **Tests:**
-- Goal-based: run the validator for each alphabetically bounded batch (AC1, AC4-AC8).
-- Visual/manual QA: record the same editorial checklist used by T2 for every changed guide.
+- Goal-based: compare all 23 rows field-by-field with ledger batch 2, then run
+  the validator and global duplicate scan (AC1, AC4-AC7).
 
 **Approach:**
-- Split pack-owned guides into review-sized alphabetical batches.
-- Coordinate the four title-owned files with `guide-title-clarity` so one
-  approved title is applied once.
+- Apply only ledger batch 2 and make no body edits.
 
-**Done when:** all pack batches have zero findings and recorded editorial
-approval.
+**Done when:** all 23 rows match and the scoped and global checks pass.
 
-### T4: Emitted guide metadata and all routes satisfy the published contract
+### T4: Batch 3 completes Contracts, Converters, and Core
 
-**Depends on:** T2, T3, spec:guide-title-clarity/T2
+**Depends on:** T3
+
+**Touches:** guides/contracts/**/*.md, guides/converters/**/*.md, guides/core/**/*.md
+
+**Tests:**
+- Goal-based: compare all 24 rows field-by-field with ledger batch 3, then run
+  the validator and global duplicate scan (AC1, AC4-AC7).
+
+**Approach:**
+- Apply only ledger batch 3; coordinate any title-owned row with
+  `guide-title-clarity` so the approved title is applied once.
+
+**Done when:** all 24 rows match and the scoped and global checks pass.
+
+### T5: Batch 4 completes six pack groups
+
+**Depends on:** T4
+
+**Touches:** guides/credential-brokers/**/*.md, guides/desk-research/**/*.md, guides/experience-design/**/*.md, guides/figma/**/*.md, guides/frontend-engineering/**/*.md, guides/github/**/*.md
+
+**Tests:**
+- Goal-based: compare all 22 rows field-by-field with ledger batch 4, then run
+  the validator and global duplicate scan (AC1, AC4-AC7).
+
+**Approach:**
+- Apply only ledger batch 4; coordinate any title-owned row with
+  `guide-title-clarity` so the approved title is applied once.
+
+**Done when:** all 22 rows match and the scoped and global checks pass.
+
+### T6: Batch 5 completes five pack groups
+
+**Depends on:** T5
+
+**Touches:** guides/governance-extras/**/*.md, guides/linear/**/*.md, guides/monorepo-extras/**/*.md, guides/product-documentation/**/*.md, guides/product-strategy/**/*.md
+
+**Tests:**
+- Goal-based: compare all 17 rows field-by-field with ledger batch 5, then run
+  the validator and global duplicate scan (AC1, AC4-AC7).
+
+**Approach:**
+- Apply only ledger batch 5; coordinate any title-owned row with
+  `guide-title-clarity` so the approved title is applied once.
+
+**Done when:** all 17 rows match and the scoped and global checks pass.
+
+### T7: Batch 6 completes Product Engineering
+
+**Depends on:** T6
+
+**Touches:** guides/product-engineering/**/*.md
+
+**Tests:**
+- Goal-based: compare all 16 rows field-by-field with ledger batch 6, then run
+  the validator and global duplicate scan (AC1, AC4-AC7).
+
+**Approach:**
+- Apply only ledger batch 6; coordinate any title-owned row with
+  `guide-title-clarity` so the approved title is applied once.
+
+**Done when:** all 16 rows match and the scoped and global checks pass.
+
+### T8: Emitted guide metadata and all routes satisfy the published contract
+
+**Depends on:** T7, spec:guide-title-clarity/T2
 
 **Touches:** tools/test_build_site_routing.py, tools/test_check_rendered_site_links.py
 
 **Tests:**
-- Goal-based: assert representative shared and pack pages emit the reviewed title and
-  summary in their current consumer surfaces (AC9).
-- Goal-based: build both sites, verify the pre-change route inventory, and run combined
-  page-and-fragment checking (AC10).
+- Goal-based: enumerate all 125 affected ledger rows and assert each emitted page uses
+  the reviewed title and summary in every current consumer surface (AC11).
+- Goal-based: build both sites, enumerate the complete public-guide route
+  inventory—including already compliant pages—and run combined page-and-
+  fragment checking, including catalogue-format's compatibility route and
+  unchanged aliases (AC8, AC12).
 
 **Approach:**
 - Prefer emitted-behavior assertions over source-shape checks.
 - Add a seeded broken metadata/route case to prove each construction test can
   fail.
 
-**Done when:** full builds, emitted metadata assertions, route inventory, and
-combined link checks pass.
+**Done when:** full builds, all-125 affected-page metadata assertions, complete
+public-guide route/alias inventory, and combined link checks pass.
 
 ## Rollout
 
@@ -148,3 +224,6 @@ external-system change.
 ## Changelog
 
 - 2026-08-17: initial plan after approval of the five-file exception contract.
+- 2026-08-17: fixed the 125-row ledger, six review batches,
+  catalogue-format ownership move with route compatibility, same-page content
+  correction, and exhaustive emitted-output proof.

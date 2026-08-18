@@ -249,7 +249,8 @@ queue   = [
   {path = "docs/specs/guide-metadata-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete reviewed metadata for every rendered public guide", needs = [{type = "local", kind = "spec", path = "docs/specs/guide-title-clarity/spec.md"}]},
   {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
   {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
-  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
+  {path = "docs/specs/site-now-surface/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Publish released changelog highlights at Now without exposing in-progress work", needs = []},
+  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-now-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
   # CI throughput. Independent of the project-knowledge chain above — it touches
   # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
   # The critical path is set by one serial job, so the fix is job layout, not
@@ -1326,14 +1327,14 @@ open = [
   # Unblocks when: Azure worked example is authored and passes the three-command gate.
   {slug = "iac-terraform-azure-validation"},
 
-  # Platform site (web/). The site ships zero social proof or credibility signal —
-  # no version/recency badge, no install count, no adopter logos, no dogfooding claim.
-  # The strongest available honest signals: agentbundle PyPI version badge, install
-  # count, "built with itself" dogfooding statement, adapter count.
-  # Fix: add a proof-band section between the hero and loops sections in
-  #   web/src/pages/index.astro; no formal spec needed — normal PR + experience-reviewer.
-  # Unblocks when: someone decides what signal is available and honest to publish.
-  {slug = "site-social-proof-band"},
+  # CLOSED STALE 2026-08-17 by tech-site-completion decision 13. The original
+  # proposal observed no credibility signal and suggested a version/recency
+  # badge, install count, adopter logos, dogfooding claim, or adapter count in a
+  # homepage proof band. Review found no durable permissioned external signal;
+  # repository dogfooding is not third-party proof, and unowned counts or logos
+  # would become stale claims. Reopen only when a named owner can source,
+  # maintain, verify, and remove an accepted signal. Social proof does not block
+  # tech-site completion.
 
   # Platform site mobile CSS covers the hero section only. Needs a full mobile audit:
   # cards grid on narrow viewports, navigation, code block overflow, table horizontal
