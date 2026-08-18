@@ -1328,6 +1328,75 @@ evidence base has been correcting since round 3.
   (item 4). D7 is better informed rather than narrower — the composition it
   turns on is now demonstrated.
 
+### Approver dispositions — 2026-08-18
+
+The four decisions above were answered on 2026-08-18. **The status field stays
+`Experimental` on purpose**: decision A commissioned an eleventh round rather than
+accepting, so there is nothing to promote yet. The dispositions are recorded here
+because they are binding on what round 11 measures and on what a later acceptance
+would carry.
+
+| # | Disposition |
+| --- | --- |
+| **B** | **Accepted for macOS only. Linux and Windows deferred.** macOS 26.5.2 arm64 on both channels. This accepts, on the pilot platform: Playwright's own bind endpoint remaining unconfined and reachable by any same-uid process; and the sandbox-off design choice, under which site content achieving renderer code execution becomes a same-uid actor. Deferring Linux removes the `0700` relay condition and the `SYS_ADMIN`-dependent namespace boundary from pilot scope; **it does not remove the failing endpoint-confinement row**, which round 10 measured failing on macOS too. |
+| **C** | **Method policy declined. Egress constrained by destination instead.** This resolves item 4: the broker is kept *outside* the credential boundary, so no component holds the user's session in cleartext. Because there is no TLS termination there is no interception certificate and therefore no SPKI pin on any command line, which retires item 5's argv half for the pilot. Method policy remains addable later behind the mechanism round 7 demonstrated. |
+| **D** | **Items 2, 3, 5 and 6 all accepted, each with a binding requirement** — see the table below. |
+| **A** | **An eleventh Experimental round is commissioned.** Not because a blocker is unresolved — after B, C and D every item has a disposition — but because **four of the five binding requirements those dispositions attach are themselves unmeasured**. Round 11 measures them. |
+
+**The five binding requirements, and which are measured.** A requirement that no arm
+has exercised is a requirement, not a result, and the distinction is recorded rather
+than left to the reader:
+
+| Requirement | From | Measured? |
+| --- | --- | --- |
+| Compose the OS profile with the Node permission model | D / item 5 | **Yes** — round 10 task 3. Closes the correction-9 session-theft path, and stays closed in the arm granting `--allow-child-process` that a Playwright host needs |
+| Deny `--allow-addons` | D / item 5 | **No.** A denial, so structurally safer than the measured configuration — but an addon bypasses the filesystem confinement above, which is why it is binding |
+| One consumer per connection | D / item 3 | **No.** The residue was measured *with* sharing; restricting it is the safer direction, and it sidesteps the three surviving classes rather than disclosing them |
+| Service workers disabled | D / item 6 | **No**, and it carries a live tension — see below |
+| First browser-digest pin established from an independently verified channel, and that channel recorded | D / item 2 | **Not measurable.** A process requirement; no experiment closes trust-on-first-use |
+
+**The tension in "service workers disabled".** Round 10 established that the shim
+does not cover a service-worker realm **on any profile** — 4 UDP packets in the fresh
+arm as well as the restored one — so this is not a restored-profile bug and a
+fresh-profile-per-session rule would not fix it. Disabling workers closes both the
+persisted realm and mid-session registration. But **some authentication and SSO flows
+depend on service workers**, and the pilot's whole purpose is to hand an
+interactively-authenticated session to an agent. If a target site's login path uses a
+worker, this requirement breaks the use case it exists to protect. No arm has measured
+that either way; it is an inference, and this RFC has been corrected four times for
+inferences of exactly that shape.
+
+**Residuals the dispositions themselves created**, named because a disposition that
+creates an unmeasured dependency should not read as a closure:
+
+1. **Destination-only enforcement was never measured as a standalone configuration.**
+   Round 7 measured the *composed terminating* broker. C rests on the architectural
+   fact that destination filtering does not require termination while method-level
+   filtering does — sound reasoning, not a promoted arm.
+2. **Two macOS drivers remain unmeasured sandboxed** —
+   `s1/r4-attachment-authorization.mjs` and `s2/r5-deny-default-boundary.mjs`. The
+   other two in round 10's list of four are Linux and left pilot scope with B.
+3. **Windows remains untested in every respect** and is deferred with Linux rather
+   than scoped out, so it becomes a blocker on any later admission.
+
+**What round 11 is commissioned to measure.** The list is derived from the
+dispositions above, not proposed independently, and it is bounded:
+
+1. Destination-only enforcement without TLS termination, as a standalone arm, with a
+   control that fails without the destination policy.
+2. Service workers disabled — that the control holds, **and** whether a real
+   authentication flow survives it. The second half is the one that matters.
+3. `--allow-addons` denied — that the denial holds and the filesystem confinement of
+   round 10 task 3 survives it.
+4. One consumer per connection — that the three surviving residue classes do not
+   cross a consumer boundary when the connection is not shared.
+5. The two remaining macOS drivers, re-measured sandboxed.
+
+Round 11 measures the architecture and **does not re-measure the apparatus**, on the
+same stopping rule round 10 carried: round 9 established that the coverage figure
+moves when controls are added, so a round that both adds facts and re-measures
+coverage reports its own activity as progress.
+
 The round-8 layer — 6 published, 6 unchanged. Round 8 corrected round 7's
 *claims* rather than its closures, so no item opened or closed: it withdrew the
 basis on which item 5's closure had been stated (the destination check compared a
@@ -1363,12 +1432,15 @@ post-acceptance work by design, not a pre-acceptance blocker.
 
 The *Reviewer brief* and the D1–D17 table at the top of this RFC address the
 **Draft → Experimental** decision, taken 2026-08-15. They are historical. This
-round asks four things, and nothing else:
+round asks four things, and nothing else. **All four were answered on 2026-08-18 —
+the dispositions are recorded in [Approver dispositions](#approver-dispositions--2026-08-18)
+immediately below this table, and each row here now carries the ruling it received.
+The status field is deliberately unchanged; see that section for why.**
 
 | # | Decision | Where the evidence is |
 | --- | --- | --- |
-| A | **Accept, reject, or commission an ELEVENTH Experimental round — the tenth has run.** Round 10 executed the four named measurement tasks and the Linux trust arm, so **no blocker item is now waiting on an experiment** except two gaps round 10 itself opened (four drivers unmeasured sandboxed; the service-worker realm the shim does not reach). It falsified one standing answer (item 6), refined one item in the design's favour (item 5), corrected a platform misattribution (the S1 row fails on macOS too), and produced **eight further instrument corrections, five of them in fixtures written during round 10** — a rate that is not visibly converging and is itself an input to this decision. The two halves must be weighed separately, and round 9 finally quantified the second one. The **subject** is holding: rounds 7 and 8 aimed new tests at it and found no defect in the architecture, closing one blocker and shrinking four. The **apparatus** is measured for the first time: `3959` single-field mutations across the promoted corpus establish that the controls can fail on **9.0%** of artifact fields, and that **146 unguarded artifact fields back 52 distinct claim values** that no control can fail on (an upper bound, and two counts rather than the one an earlier draft reported; the load-bearing ones are now closed). A second control built from the opposite direction — claims to artifacts, rather than artifacts to claims — surfaced traceability gaps the first structurally could not see, and after its own defects were fixed its residual contains no unsupported measurement claim; it does **not** corroborate the first, because the two measure different quantities, and both share an author, which is the limitation round 9 cannot remove from inside. Round 9 also found **23** defects in its own instruments (R9-1 to R9-23) — four before trusting their output, three from its own review, and the rest from a second pass aimed at the controls themselves. Among them: round 9's evidence was not promoted at all on the first attempt; a privacy control exempted real names sharing a first letter with a placeholder; the identifier-existence check reported clean because its skip rule excluded every identifier capable of failing it; and the claim-accounting tool read its own output, so its residual moved without its input moving. That is the seventh consecutive round in which a tool carried the defect it was built to detect, and the count rose fastest once the controls rather than the evidence became the subject. **Neither half is a clean pass, and they do not net out** | This section, and the round-4, rounds-5-and-6 and rounds-7-9 notes' *Review results* |
-| B | **Accept or defer the initial OS/browser support matrix**, on the terms in item 1 — macOS on both channels; Linux only with a broker-owned `0700` **relay** directory and only as an unprivileged user, with Playwright's own bind endpoint still unconfined; Windows untested in every respect; ~~no Linux arm for the trust/method composition~~ **— CLOSED by round 10**, both
+| A | **ANSWERED: an eleventh round is commissioned.** *(Accept, reject, or commission an eleventh Experimental round — the tenth has run.)* Round 10 executed the four named measurement tasks and the Linux trust arm, so **no blocker item is now waiting on an experiment** except two gaps round 10 itself opened (four drivers unmeasured sandboxed; the service-worker realm the shim does not reach). It falsified one standing answer (item 6), refined one item in the design's favour (item 5), corrected a platform misattribution (the S1 row fails on macOS too), and produced **eight further instrument corrections, five of them in fixtures written during round 10** — a rate that is not visibly converging and is itself an input to this decision. The two halves must be weighed separately, and round 9 finally quantified the second one. The **subject** is holding: rounds 7 and 8 aimed new tests at it and found no defect in the architecture, closing one blocker and shrinking four. The **apparatus** is measured for the first time: `3959` single-field mutations across the promoted corpus establish that the controls can fail on **9.0%** of artifact fields, and that **146 unguarded artifact fields back 52 distinct claim values** that no control can fail on (an upper bound, and two counts rather than the one an earlier draft reported; the load-bearing ones are now closed). A second control built from the opposite direction — claims to artifacts, rather than artifacts to claims — surfaced traceability gaps the first structurally could not see, and after its own defects were fixed its residual contains no unsupported measurement claim; it does **not** corroborate the first, because the two measure different quantities, and both share an author, which is the limitation round 9 cannot remove from inside. Round 9 also found **23** defects in its own instruments (R9-1 to R9-23) — four before trusting their output, three from its own review, and the rest from a second pass aimed at the controls themselves. Among them: round 9's evidence was not promoted at all on the first attempt; a privacy control exempted real names sharing a first letter with a placeholder; the identifier-existence check reported clean because its skip rule excluded every identifier capable of failing it; and the claim-accounting tool read its own output, so its residual moved without its input moving. That is the seventh consecutive round in which a tool carried the defect it was built to detect, and the count rose fastest once the controls rather than the evidence became the subject. **Neither half is a clean pass, and they do not net out** | This section, and the round-4, rounds-5-and-6 and rounds-7-9 notes' *Review results* |
+| B | **ANSWERED: accepted for macOS only; Linux and Windows deferred.** *(Accept or defer the initial OS/browser support matrix)*, on the terms in item 1 — macOS on both channels; Linux only with a broker-owned `0700` **relay** directory and only as an unprivileged user, with Playwright's own bind endpoint still unconfined; Windows untested in every respect; ~~no Linux arm for the trust/method composition~~ **— CLOSED by round 10**, both
 trust drivers 9 of 9 on Linux with `provenance.platform` asserted per artifact, though
 those arms ran sandbox-off because the container cannot start a sandboxed renderer
 without `SYS_ADMIN`; **the Linux namespace boundary established only inside a container holding `SYS_ADMIN`** — without it `unshare -rn` is unavailable; and — **corrected by round 10** — not "the S1 corpus, S4, S5 and five S3 rail
@@ -1376,8 +1448,8 @@ drivers": the S1 corpus and both trust drivers **are** now measured sandboxed, S
 S5 have no members in this archive at all, and the actual remaining gap is **four**
 manifested drivers (`s1/r4-attachment-authorization`, `s2/r5-deny-default-boundary`,
 `s2/r5-linux-os-boundary`, `s3/r5-linux`). The S3 egress rails *are* measured sandboxed on both platforms, so shipping sandbox-off is a choice — accepting that site content achieving renderer code execution becomes a same-uid actor — rather than a gap, for those rails only | Item 1; corrections 13 and 15; round-10 note tasks 1, 2 and the Linux trust arm |
-| C | **Give an explicit D7 disposition on method policy** (item 4), or decline method policy. Enforcing it moves the broker inside the credential boundary and it reads every cookie and `Authorization` header in cleartext. Round 7 makes this *more* decidable rather than less needed: a terminating broker that establishes trust properly **and** refuses a method is now demonstrated in one launch, so the approver is ruling on a working mechanism rather than an assumed one | Item 4; corrections 12 and 17 |
-| D | **Rule on the remaining items** — 2, 3, 5 and 6 — as accepted risks, or hold them open. **Round 10 moved two of the four, in opposite directions.** Item 2 is unchanged and is decidable in a way it was not: the platform code signature is definitively not an anchor, so the choice is whether pinning the digest alone is sufficient pending the attestation's signer identity. Item 3 is unchanged. **Item 5 got better and split:** its filesystem half is *closed* by composing the profile with the Node permission model — including in the configuration a browser host needs — while its argv half is *not confirmed*, because the profile admits `sysctl*` but denies both standard tools that would use it; the residual is an untested native-addon path, so accepting item 5 sensibly carries two binding construction requirements (compose with the permission model; deny `--allow-addons`). **Item 6 got worse:** correction 11's requirement — register the shim before any document exists — was the standing answer and is now measured and found **necessary but not sufficient**, because the realm a restored profile carries is a service worker that `addInitScript` never reaches, on any profile | Items 2, 3, 5 and 6; round-10 note tasks 3 and 4 |
+| C | **ANSWERED: method policy declined; egress constrained by destination instead.** *(Give an explicit D7 disposition on method policy)* (item 4), or decline method policy. Enforcing it moves the broker inside the credential boundary and it reads every cookie and `Authorization` header in cleartext. Round 7 makes this *more* decidable rather than less needed: a terminating broker that establishes trust properly **and** refuses a method is now demonstrated in one launch, so the approver is ruling on a working mechanism rather than an assumed one | Item 4; corrections 12 and 17 |
+| D | **ANSWERED: items 2, 3, 5 and 6 all accepted, each with a binding requirement.** *(Rule on the remaining items)* — 2, 3, 5 and 6 — as accepted risks, or hold them open. **Round 10 moved two of the four, in opposite directions.** Item 2 is unchanged and is decidable in a way it was not: the platform code signature is definitively not an anchor, so the choice is whether pinning the digest alone is sufficient pending the attestation's signer identity. Item 3 is unchanged. **Item 5 got better and split:** its filesystem half is *closed* by composing the profile with the Node permission model — including in the configuration a browser host needs — while its argv half is *not confirmed*, because the profile admits `sysctl*` but denies both standard tools that would use it; the residual is an untested native-addon path, so accepting item 5 sensibly carries two binding construction requirements (compose with the permission model; deny `--allow-addons`). **Item 6 got worse:** correction 11's requirement — register the shim before any document exists — was the standing answer and is now measured and found **necessary but not sufficient**, because the realm a restored profile carries is a service worker that `addInitScript` never reaches, on any profile | Items 2, 3, 5 and 6; round-10 note tasks 3 and 4 |
 
 Acceptance is not available while any of A–D is unanswered. Nothing in this
 round authorizes implementation, a specification, an ADR, a pack, a dependency,
@@ -2203,6 +2275,30 @@ that mechanism rather than record the channel as inherently uncontrollable.
 
 ### Amendment history / audit trail
 
+- **2026-08-18 — approver dispositions on A, B, C and D; eleventh round commissioned.**
+  All four decisions answered. B accepted for macOS only (Linux and Windows deferred);
+  C declined method policy in favour of destination-level constraint, which resolves
+  item 4 and retires item 5's argv half for the pilot; D accepted items 2, 3, 5 and 6
+  each with a binding requirement; A commissioned an eleventh Experimental round.
+
+  **A was not "accept", and the reason is recorded rather than paraphrased.** After
+  B, C and D every blocker has a disposition, so nothing waits on an experiment — but
+  four of the five binding requirements those dispositions attach are themselves
+  unmeasured, and the approver chose to measure them before accepting rather than
+  accept on a structural argument. Round 11's scope is derived from the dispositions
+  and is bounded to five arms.
+
+  **The status field is unchanged.** Nothing is promoted: acceptance was not given.
+  The recording agent also held a standing instruction not to move this RFC to
+  `Accepted`, and surfaced that constraint rather than acting on it; the approver
+  elected to leave the field alone.
+
+  One live tension is recorded with the disposition it qualifies: "service workers
+  disabled" closes item 6 on both halves, but some authentication flows depend on
+  service workers, and this pilot exists to hand an interactively-authenticated
+  session to an agent. No arm has measured that either way — it is an inference, and
+  round 11 is asked to settle it.
+
 - **2026-08-18 — tenth Experimental run, and a decision-text sync.** Promoted the
   [round-10 note](0088-notes/spikes/2026-08-17-experimental-round10.md). Round 10 ran
   the four named measurement tasks plus the Linux trust arm, so no blocker item is
@@ -2601,7 +2697,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (86 manifested files, round-7 archive SHA-256 `29fb063c…ca1f`), reconstructed
+  (86 manifested files, round-7 archive SHA-256 `ea2eaea6…df1d`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
