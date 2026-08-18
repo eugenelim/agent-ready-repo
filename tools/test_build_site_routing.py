@@ -526,6 +526,51 @@ def test_a_decorated_unreleased_heading_still_opens_an_unreleased_region():
         assert _groups(text) == [], f"{title!r} leaked its Highlights"
 
 
+def test_the_reference_link_unreleased_heading_opens_a_region_not_an_entry():
+    """`## [Unreleased][unreleased]` is release-SHAPED and means the opposite.
+
+    It is the Markdown reference-link form older Keep a Changelog templates ship,
+    and `docs/product/changelog.md` still carries the matching
+    `[Unreleased]: https://…compare/v1.0.0...HEAD` definition it pairs with — so
+    this is an upstream-canonical spelling, not a contrived one.
+
+    It regressed when release identity was moved ahead of the region test: the
+    guard that used to catch it compared through the Unreleased pattern, which had
+    just been broadened to a bare `unreleased`, and `re.match` against a string
+    starting with `[` can never succeed. Both halves of that change were right on
+    their own; the interaction was the defect.
+    """
+    for title in (
+        "## [Unreleased][unreleased] — 2026-08-18",
+        "## [Unreleased][HEAD] — 2026-08-18",
+        "## [unreleased][main] — 2026-08-18",
+    ):
+        text = f"""# Changelog
+
+{title}
+
+### [pkg][9.9.9] — 2026-08-18
+
+#### Highlights
+
+- In-progress content that must never publish.
+"""
+        assert _groups(text) == [], f"{title!r} leaked its Highlights"
+
+    # And the undated form must not hard-fail the build on the missing date.
+    undated = """# Changelog
+
+## [Unreleased][unreleased]
+
+### [pkg][9.9.9] — 2026-08-18
+
+#### Highlights
+
+- In-progress content that must never publish.
+"""
+    assert _groups(undated) == []
+
+
 def test_a_package_named_unreleased_something_still_releases():
     """Release identity is decided FIRST, so a pack name cannot suppress its entry."""
     text = """# Changelog
@@ -541,12 +586,19 @@ def test_a_package_named_unreleased_something_still_releases():
 
 
 def test_prose_headings_are_not_release_entries_and_do_not_fail_the_build():
-    """Ordinary prose must not be mistaken for a release, or for an Unreleased region.
+    """Ordinary prose must not be mistaken for a RELEASE, and must not break the build.
 
+    Deliberately NOT "and must not open an Unreleased region": a heading like
+    `### Fixed an unreleased regression` now does open one, on purpose, because
+    failing closed beats guessing. It is reported so the withholding is
+    diagnosable. What must never happen is the build stopping on a sentence —
     Markdown reference links share the `[a][b]` shape a release heading uses, so
-    an unanchored search made these look like malformed releases and hard-failed
-    the entire site build. The word "unreleased" inside a sentence did the same.
-    Both are now reported rather than fatal.
+    an unanchored search read these as malformed releases and raised.
+
+    These fixtures carry no dated child, so they prove only the no-raise half.
+    The leak half is `test_a_decorated_unreleased_heading_still_opens_an_unreleased_region`,
+    whose fixtures do carry one — a child-less fixture cannot leak, which is
+    exactly how an earlier round's hole stayed green.
     """
     for title in (
         "## Thanks to [everyone][credits] who filed issues",
@@ -1048,6 +1100,33 @@ def test_the_committed_now_projection_matches_the_changelog_source():
     assert committed == expected, (
         "web/src/lib/now-highlights.generated.json is stale — "
         "run `python3 tools/build-site.py --journeys-only`"
+    )
+
+
+def test_the_real_changelog_has_no_silently_withheld_highlights():
+    """Turn two advisory diagnostics into a required-suite failure.
+
+    Failing closed means a highlight can stop publishing without anything going
+    red — the note lands in the `pages.yml` DEPLOY log, not on a PR check, so the
+    author sees a missing paragraph on the page and no failure anywhere. Both of
+    these are zero on the real changelog today, so pinning them is free and makes
+    every future occurrence an actionable failure naming the heading and line.
+
+    Deliberately NOT `withheld_unreleased`: highlights sitting under
+    `[Unreleased]` are the normal pre-release state the changelog preamble tells
+    authors to expect, and they publish when the entry is promoted at release
+    time. Pinning that would fail the build for doing the documented thing.
+    """
+    parsed = build_site.parse_changelog_releases(
+        _CHANGELOG.read_text(encoding="utf-8")
+    )
+    assert parsed.diagnostics["misplaced_highlights"] == [], (
+        "a Highlights block is not its release entry's immediate child, so its "
+        "bullets do not publish"
+    )
+    assert parsed.diagnostics["unreleased_regions"] == [], (
+        "a heading reads as Unreleased without being the canonical "
+        "'## [Unreleased]', so everything beneath it is withheld"
     )
 
 

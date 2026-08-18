@@ -1146,7 +1146,21 @@ def _parse_release_identity(title: str) -> dict | None:
         {"name": name, "version": version}
         for name, version in _RELEASE_PKG_RE.findall(title)
     ]
-    if len(packages) == 1 and _UNRELEASED_RE.match(f"[{packages[0]['name']}]"):
+    # `## [Unreleased][unreleased] — 2026-08-18` is a RELEASE-SHAPED heading that
+    # means the opposite: it is the Markdown reference-link form older Keep a
+    # Changelog templates ship, and this file still carries the matching
+    # `[Unreleased]: https://…compare/v1.0.0...HEAD` definition it pairs with.
+    #
+    # Returning None hands it to the Unreleased region test, which is the only
+    # correct destination. The two alternatives both fail: treating it as a
+    # release publishes every dated child beneath it, and letting it reach the
+    # date check hard-fails the site build on the undated form.
+    #
+    # An exact-token test, not a substring one, so `unreleased-tools` keeps
+    # releasing. The previous guard compared through `_UNRELEASED_RE` and died
+    # silently when that pattern was broadened to a bare `unreleased` — `.match`
+    # against a string starting with `[` can never succeed.
+    if len(packages) == 1 and packages[0]["name"].casefold() == "unreleased":
         return None
     date_match = _RELEASE_DATE_RE.search(title)
     if date_match is None:
@@ -1438,8 +1452,14 @@ def project_now_highlights(text: str) -> dict:
 
     Pure and clock-free: the same source bytes always produce the same payload.
     """
-    releases = parse_changelog_releases(text).releases
-    eligible = [r for r in releases if not r["unreleased"] and r["highlights"]]
+    return _project_parsed(parse_changelog_releases(text))
+
+
+def _project_parsed(parsed: ParsedChangelog) -> dict:
+    """Build the payload from an already-parsed changelog."""
+    eligible = [
+        r for r in parsed.releases if not r["unreleased"] and r["highlights"]
+    ]
 
     # `sorted` is stable, so equal dates keep source order without a tiebreak
     # key. An index tiebreak would have to be reversed alongside the date and is
@@ -1468,14 +1488,19 @@ def generate_now_projection(
     out: Path,
     changelog: Path,
     dry_run: bool = False,
-) -> dict:
-    """Write the `/now/` projection JSON and return the payload."""
-    payload = project_now_highlights(changelog.read_text(encoding="utf-8"))
+) -> tuple[dict, dict]:
+    """Write the `/now/` projection JSON; return (payload, diagnostics).
+
+    Diagnostics come back with the payload so the caller does not parse a
+    4,000-line file a second time to report them.
+    """
+    parsed = parse_changelog_releases(changelog.read_text(encoding="utf-8"))
+    payload = _project_parsed(parsed)
     rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
     if not dry_run:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(rendered, encoding="utf-8")
-    return payload
+    return payload, parsed.diagnostics
 
 
 def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
@@ -1494,15 +1519,15 @@ def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
         raise FileNotFoundError(
             f"{changelog} is missing; /now/ cannot be projected"
         )
-    text = changelog.read_text(encoding="utf-8")
-    payload = generate_now_projection(NOW_PROJECTION, changelog, dry_run=dry_run)
+    payload, diagnostics = generate_now_projection(
+        NOW_PROJECTION, changelog, dry_run=dry_run
+    )
     groups = payload["groups"]
     bullets = sum(len(g["highlights"]) for g in groups)
     print(
         f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
         + (" (dry run)" if dry_run else "")
     )
-    diagnostics = parse_changelog_releases(text).diagnostics
     for heading, count in diagnostics["withheld_unreleased"]:
         print(
             f"  note  {count} highlight(s) not published — "
