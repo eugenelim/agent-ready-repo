@@ -22,7 +22,7 @@ coupling is what stops a job landing unwired, so T1 is one atomic edit.
 
 **T0 comes first because the gate T1 asserts cannot pass before it.**
 `SKIP_SAST=1 make build-check` chains `lint-spec-status`
-(`tools/repo/build_gate_chain.py:242`), which fails invariant (iv) on a
+(via `tools/repo/build_gate_chain.py`), which fails invariant (iv) on a
 `(deferred: <slug>)` that does not resolve in `[backlog].open`. Measured on this
 branch before T0: exit 1, 2 hard violations.
 
@@ -30,9 +30,9 @@ branch before T0: exit 1, 2 hard violations.
 
 Six are evident from its assertion list. Two are not:
 
-- `_ALLOWED_STEP_ENV` (`:220`) allowlists step-level `env:` keys — without
+- `_ALLOWED_STEP_ENV` allowlists step-level `env:` keys — without
   `GATE_CREDBROKER_RESULT`, `step-env-keys-allowlisted[build-check]` fails. Loud.
-- `_differential_failures()` (`:1845`) sets `GATE_*_RESULT` for real `bash`. **This
+- `_differential_failures()` sets `GATE_*_RESULT` for real `bash`. **This
   one is silent.** An unset fourth variable makes affected variants die on `set -u`,
   so they are never reported "green and accepted". Measured against the post-change
   guard body: **6/12 variants green without the edit, 10/12 with** — exactly four
@@ -54,41 +54,41 @@ diffing every transform against the `gate-credbroker` job span:
 
 | Mutation | Literal | First match must stay |
 |---|---|---|
-| `drop-strict-shell` (`:1416`) | `set -euo pipefail` | `gate-export-boundary` |
-| `architecture-on-setup-python` (`:1760`) | `python-version: "3.11"` | `gate-main` |
+| `drop-strict-shell` | `set -euo pipefail` | `gate-export-boundary` |
+| `architecture-on-setup-python` | `python-version: "3.11"` | `gate-main` |
 
 **Retired — the new job carries no such literal:** `duplicate-with-on-checkout`
-(`:1773`) and `drop-checkout` (`:1523`), by AC1a's shallow checkout;
-`grep-untied-from-tee` (`:1460`) and `grep-reads-suffixed-path` (`:1653`), by the
+and `drop-checkout`, by AC1a's shallow checkout;
+`grep-untied-from-tee` and `grep-reads-suffixed-path`, by the
 `credbroker-out.txt` tee target.
 
-**Placement-insensitive despite sharing a literal:** `drop-python-version` (`:1521`)
-is `count=2` and `gate-main` sits within the first two jobs at every placement, so
+**Placement-insensitive despite sharing a literal:** `drop-python-version` is `count=2` and `gate-main` sits within the first two jobs at every placement, so
 its occurrence is always among the two removed — a *different* mechanism from
 `architecture-on-setup-python`, which shares the literal but is `count=1`.
 
-**All-occurrence, placement irrelevant:** `or-true-grep` (`:1354`) and
-`un-negate-grep` (`:1390`); the latter touches the new step too, harmlessly.
+**All-occurrence, placement irrelevant:** `or-true-grep` and `un-negate-grep`; the latter touches the new step too, harmlessly.
 
-**Correctly absent:** `strict-shell-late` (`:1419`) anchors its literal as
+**Correctly absent:** `strict-shell-late` anchors its literal as
 `set -euo pipefail\n          test -d`, and `test -d` appears only in
 `gate-export-boundary`'s tree probe.
 
 ### One mutation added, no assertion
 
-The named unpinned layer: `guard-body-exact` derives `_want_cmp` from `work_jobs`
-(`:1000`), and both its existing mutations alter the guard *body* — nothing mutates
+The named unpinned layer: `guard-body-exact` derives `_want_cmp` from `work_jobs`, and both its existing mutations alter the guard *body* — nothing mutates
 the *job-set input*. A future edit substituting a literal list would keep both green
 while a job could land unwired, and this PR is the "add a work job" event.
 `add-work-job-unwired` targets that existing assertion, so counts move 143 → 144
 with families steady at 67.
 
-Equality-pinning the new job's statements is **declined here** and registered as
-`ci-gate-credbroker-job-statements-pin`. As two bare labels it costs +2 families and
-+2 mutations (`self_test()` fails on any evaluated family with no mutation); as a
-parameterised `job-statements-pinned[<job>]` it is +1 and +1 and closes the 3/4
-asymmetry for all jobs at once — that is the shape the follow-up should take. AC4's
-two in-step controls close the exposure meanwhile.
+Equality-pinning the new job's statements **landed here** (AC4a), after the diff
+review measured that AC4's two controls were themselves enforced by nothing: deleting
+both, deleting `working-directory`, and `-k "not vault"` — which *deselects* rather
+than skips, so no `SKIPPED` line and exit 0 — all audited clean. `PINNED_JOB_STATEMENTS`
+emits the parameterised `job-statements-pinned[<job>]`, so `_family` collapses it to
+one family: +1 family and +1 mutation whether it covers one job or ten. It was
+initially deferred on a +2/+2 estimate that assumed two bare labels; at the real price
+the deferral bought nothing, and the exposure would have opened the moment the check
+became required.
 
 ## Constraints
 
@@ -99,7 +99,7 @@ two in-step controls close the exposure meanwhile.
   touches the SAST leg or adds a dependency.
 - **`docs/specs/ci-gate-parallelization/`** is Shipped and frozen. Its AC16
   one-to-many parity model is inherited, so the new job's header comment names
-  `make test` (`Makefile:332`). The frozen spec is not amended.
+  `make test` (`make test`). The frozen spec is not amended.
 - Conventional Commits with a `Spec: docs/specs/ci-gate-credbroker/spec.md` footer;
   `AGENTS.md` § *Check before acting* — no new top-level directory, no new
   dependency, repo-settings writes go to the owner.
@@ -131,7 +131,7 @@ the SHAs `PINNED_USES` admits, then
 `tools/requirements.txt`, no editable `agentbundle`, no `httpx`.
 
 The checkout is shallow (AC1a) — `packages/credbroker` invokes git nowhere, and the
-aggregator already carries this carve-out at `build-check.yml:811`.
+aggregator already carries this carve-out at the aggregator's own checkout step.
 
 The `[crypto]` extra is not self-evidencing: a bogus extra exits 0. AC4 answers with
 **two** controls because they fail on different things — the probe names the
@@ -192,7 +192,7 @@ Traces to: AC5, AC8, AC13 · contracts: none.
 **Approach:**
 - Record the human approvals (`Approved` on both files at the two gates), then
   advance `spec.md → Implementing` and `plan.md → Executing`. Nothing enforces this
-  (`lint-spec-status.py:20` puts `plan.md`'s status out of scope), which is why it is
+  (`lint-spec-status` puts `plan.md`'s status out of scope), which is why it is
   written down.
 - Add three `[backlog].open` entries:
   - `ci-gate-credbroker-critical-path-measurement` — method (matched event class,
@@ -204,15 +204,17 @@ Traces to: AC5, AC8, AC13 · contracts: none.
   - `ci-gate-credbroker-branch-protection-widening` — the sub-resource endpoint, the
     `checks[]`-with-`app_id` body, the read-diff-write-verify sequence, all five
     contexts, the read-back.
-  - `ci-gate-credbroker-job-statements-pin` — the expiry condition of a hard Never-do.
-    Scope, stated once: a `PINNED_JOB_STATEMENTS = {job: (statements…)}` dict
-    emitting `job-statements-pinned[<job>]`, pinning each work job's load-bearing
-    statements **and its `working-directory`**. Cost +1 family, +1 mutation.
+  - `ci-gate-credbroker-job-name-pin` — the narrower gap left after
+    `PINNED_JOB_STATEMENTS` landed: no assertion compares a work job's `name:` to its
+    id, so a rename passes every gate while the required check never reports and PRs
+    pend forever. Loud rather than silent, hence not blocking.
 - Register the spec in `ini-002`'s `[work]` block; add it to `docs/specs/README.md`.
-- **Bundled fix**, same file and concern: correct
-  `ci-gate-parallelization-branch-protection-widening`'s comment, which still
-  describes the three-work-job widening as pending. It was applied (API-verified
-  2026-08-17). Maps to no AC by design; declared under `Bundled fixes:` in the PR.
+- **Bundled fix**, same file and concern: `ci-gate-parallelization-branch-protection-widening`
+  described the three-work-job widening as pending when it had been applied
+  (API-verified 2026-08-17), and its own work was complete. Closed outright rather
+  than reworded — the fifth check has its own tracker, and leaving two entries for
+  one event means whoever applies it must remember to close both. Maps to no AC by
+  design; declared under `Bundled fixes:` in the PR.
 
 **Done when:** all four checks pass, read unfiltered. The fourth — `Status:
 Implementing` — is the one nothing else enforces.
@@ -233,7 +235,7 @@ one-liner decides. No stub (goal-based).
   0. Verifies AC8.
 - `[ "$(grep -c 'pytest credbroker (RFC-0023 Phase 1)' .github/workflows/build-check.yml)" = 1 ]`
   — an equality, because `grep -c` exits 0 for any non-zero count and would pass a
-  copy. `lint-ci-parity`'s `duplicates` check (`:1010`) is the fail-closed second
+  copy. `lint-ci-parity`'s `duplicates` check is the fail-closed second
   artifact. Verifies AC2.
 - The step body is, in order: `set -euo pipefail`; `python -c "import cryptography,
   argon2"`; the `-rs` pipeline into `tee`; the negated `grep`. Verifies AC4.
@@ -258,14 +260,14 @@ one-liner decides. No stub (goal-based).
    `env.update({…})` += `"GATE_CREDBROKER_RESULT": "success"`; and
    `add-work-job-unwired` in `_MUTATIONS`. Two comments go stale and are corrected
    with it: `_baseline`'s "four-job baseline", and `PINNED_CHECKOUT_WITH`'s carve-out
-   note (`:288`) which names the aggregator as the sole `fetch-depth` exemption.
+   note which names the aggregator as the sole `fetch-depth` exemption.
 3. **`tools/fixtures/build-check-good.yml`** — declare `gate-credbroker` **fourth**,
    mirroring the real step shape including `working-directory:`. Move the fixture's
    existing `pytest credbroker` step out of `gate-main`. Add the aggregator's
    `needs:`, `env:` binding, and comparison — the comparison **last**, in
    `REQUIRED_WORK_JOBS` order. **Spell the invocation `-rs`, not `-q -rs`:**
-   `_MUTATIONS` apply to `_baseline()` (`:1292-1306`), which reads *this fixture* and
-   never the real workflow, and `collect-only` (`:1424`) replaces the literal
+   `_MUTATIONS` apply to `_baseline()`, which reads *this fixture* and
+   never the real workflow, and `collect-only` replaces the literal
    `"-q -rs"` with no count — mirroring `gate-export-boundary`'s spelling would pull
    this step into that mutation's blast radius.
 4. **`tools/lint-ci-parity.py`** — three `CI_ONLY` entries:

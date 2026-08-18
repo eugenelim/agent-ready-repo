@@ -133,7 +133,7 @@ jobs:
           python-version: "3.11"
       - name: Install credbroker (editable, with crypto extra) + pytest
         run: python -m pip install -e './packages/credbroker[crypto]' pytest
-      - name: pytest credbroker
+      - name: pytest credbroker (RFC-0023 Phase 1)
         working-directory: packages/credbroker
         # `-rs`, NOT `-q -rs`: collect-only replaces the literal "-q -rs" with no
         # count argument, so the export-boundary spelling would pull this step into

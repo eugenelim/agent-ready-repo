@@ -255,7 +255,9 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "Run make build-check":
         LOCAL("build-check"),
-    # ── spec/ci-gate-parallelization: build-check.yml is four jobs ────────────
+    # ── build-check.yml is FIVE jobs: four work jobs + the aggregator ────────
+    # spec/ci-gate-parallelization split out gate-sast and gate-export-boundary;
+    # spec/ci-gate-credbroker added gate-credbroker.
     # `make build-check` still covers gate-main ∪ gate-sast, but NO single local
     # command equals any single CI job — gate-main runs the local gate minus SAST.
     # That is AC16's one-to-many parity model; per-job reproduction is

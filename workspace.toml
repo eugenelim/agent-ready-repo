@@ -599,21 +599,23 @@ open = [
   # fixing the lock or calling the test flaky. Do not quarantine it first — a
   # quarantined concurrency test is a deleted one.
   {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
-  # AC2's apply step. DONE — the three work jobs were applied post-merge; the
-  # required set is now ["make build-check", "gate-main", "gate-sast",
-  # "gate-export-boundary"] with strict = true, each pinned to app_id 15368 (the
-  # GitHub Actions app). API-verified 2026-08-17 via
-  # `gh api …/branches/main/protection/required_status_checks`. The earlier text here
-  # described the widening as still pending, which had stopped being true.
+  # AC2's WORK IS DONE: the three work jobs were applied post-merge, and the required
+  # set is ["make build-check", "gate-main", "gate-sast", "gate-export-boundary"] with
+  # strict = true, each pinned to app_id 15368 (the GitHub Actions app). API-verified
+  # 2026-08-17 via `gh api …/branches/main/protection/required_status_checks`. The
+  # earlier text here described the widening as still pending, which had stopped
+  # being true.
   #
-  # Confirmed while reading it: there are NO stale "Gate A — agentbundle tests (…)"
-  # entries in the required set, so this spec's Gate A rename cannot orphan a required
-  # check. That was an open worry; it is closed.
+  # RETAINED ONLY AS AN ANCHOR, not as work. docs/specs/ci-gate-parallelization is
+  # frozen and its AC2 carries `(deferred: ci-gate-parallelization-branch-protection-widening)`,
+  # so lint-spec-status invariant (iv) requires this slug to exist until that spec is
+  # annotated. To close properly: annotate the frozen spec per CONVENTIONS and delete
+  # this entry — deliberately NOT done from spec/ci-gate-credbroker's PR, which has no
+  # business editing another spec's frozen record.
   #
-  # The FIFTH check (gate-credbroker) is tracked separately as
-  # ci-gate-credbroker-branch-protection-widening — see that entry for the endpoint
-  # and body shape, which differ from what this entry originally prescribed.
-  # Kept open only until that fifth check lands; the three-job half is closed.
+  # DO NOT treat this as the tracker for the FIFTH check (gate-credbroker). That is
+  # ci-gate-credbroker-branch-protection-widening, which carries the endpoint and body
+  # shape — both differ from what this entry originally prescribed.
   {slug = "ci-gate-parallelization-branch-protection-widening", source = "spec/ci-gate-parallelization AC2"},
   # AC12's open measurement. Whether gate-main's central tendency falls by ~27s and
   # whether gate-sast thereby becomes the longest work job on SAST-relevant diffs.
@@ -645,11 +647,22 @@ open = [
   # run has reported gate-credbroker — a required check cannot precede the job that
   # reports it, and the Settings UI only offers checks seen on main recently.
   #
+  # DURABLE HOME: docs/specs/ci-gate-credbroker/spec.md AC13. This entry is the
+  # TASK and is deleted when done ([backlog] has no `closed` array); the spec is the
+  # RECORD and persists frozen. AC13 carries the same sequence, the FORBIDDEN list,
+  # and the quoted GitHub `contexts`/`app_id` semantics that explain WHY. Read it
+  # before acting, and do not let closing this entry delete the procedure — the next
+  # widening needs the reasoning, not just the steps.
+  #
   # SEQUENCE — read, diff, write, verify. Do not transcribe the set below into the
   # write; it is a 2026-08-17 read and checks[] is REPLACE-semantics.
   #   1. GET  /repos/OWNER/REPO/branches/main/protection/required_status_checks
-  #   2. DIFF it against: strict = true; contexts {make build-check, gate-main,
-  #      gate-sast, gate-export-boundary}; app_id 15368 on every entry.
+  #   2. DIFF `checks[]` against: strict = true; the four check NAMES {make
+  #      build-check, gate-main, gate-sast, gate-export-boundary}; app_id 15368 on
+  #      every entry.
+  #      `checks[]` is the ONLY key name that should appear anywhere in this
+  #      procedure — see the FORBIDDEN block below for why naming the other one,
+  #      even in a comparison, is how it ends up in the write body.
   #      MISMATCH ON ANY -> STOP and return to the owner. Do not write.
   #   3. PATCH the same endpoint with a JSON BODY (gh api --method PATCH … --input -),
   #      never `-f key=value`: checks is an array of objects that -f cannot express.
@@ -675,33 +688,25 @@ open = [
   # THEN: PRs #993 and #994 predate this and go permanently pending on the new check.
   # They need a rebase. Check `gh pr list` for others opened before the apply.
   {slug = "ci-gate-credbroker-branch-protection-widening", source = "spec/ci-gate-credbroker AC13"},
-  # The expiry condition of a HARD Never-do in spec/ci-gate-credbroker, which is why
-  # it is registered rather than left in prose that freezes at ship.
+  # PINNED_JOB_STATEMENTS landed with spec/ci-gate-credbroker (AC4a), so the
+  # statements + working-directory half of this is CLOSED. What remains unpinned is
+  # narrower and was found in the same review: a work job's `name:` is never asserted
+  # to equal its job id.
   #
-  # gate-credbroker is the only work job in build-check.yml with no equality-pinned
-  # load-bearing statement (3/4 rather than 4/4). Consequence: AC4's two in-step
-  # controls — the `import cryptography, argon2` probe and the reason-agnostic
-  # `^SKIPPED` assertion — are enforced by NOTHING after merge. The posture test does
-  # not pin that step; branch protection anchors at job granularity (the job cannot
-  # vanish, but its body is free); and lint-ci-parity's roster is per-step, so it
-  # cannot see a gate REMOVED from inside a dispositioned step — that residual is
-  # asserted deliberately as roster-residual-hidden-gate-in-known-step. A Never-do is
-  # the current stopgap and a prose rule is weaker than a pin.
+  # Why it matters: branch protection requires a check by NAME. Renaming
+  # `gate-credbroker`'s `name:` to anything else passes every one of the 68 assertion
+  # families, all 145 mutations, and lint-ci-parity — while the required check never
+  # reports and every PR pends forever. It fails LOUD (PRs visibly hang) rather than
+  # silently green, which is why this is availability rather than a security bypass,
+  # and why it was not blocking.
   #
-  # SCOPE, stated once here: add PINNED_JOB_STATEMENTS = {job: (statements…)} to
-  # tools/test-build-check-workflow.py, emitting `job-statements-pinned[<job>]`, and
-  # pin each work job's load-bearing statements AND its `working-directory`. The
-  # parameterised label matters: _family() collapses ids ending in [...], so this
-  # costs +1 assertion family and +1 mutation and closes all four jobs at once —
-  # whereas two bare labels would cost +2 and +2 (self_test fails on any evaluated
-  # family with no mutation).
-  #
-  # Also closes a second gap: nothing pins `working-directory: packages/credbroker` on
-  # the moved step today. Its loss fails loudly only because the repo has no root
-  # pytest config, so a dropped value collects the monorepo and exits 2 at collection
-  # (measured: 6353 tests, 33 errors). Adding a root [tool.pytest.ini_options],
-  # pytest.ini, setup.cfg or conftest.py REMOVES that backing.
-  {slug = "ci-gate-credbroker-job-statements-pin", source = "spec/ci-gate-credbroker, review round 12"},
+  # SCOPE: add a `job-name-is-id[<job>]` assertion to
+  # tools/test-build-check-workflow.py comparing each work job's `name:` to its id,
+  # plus one mutation. Parameterised label, so _family() collapses it: +1 family,
+  # +1 mutation, covering every work job present and future. The aggregator is the
+  # deliberate exception — its id is `build-check` and its name is `make build-check`,
+  # which `one-required-name` and `required-name-is-aggregator` already pin.
+  {slug = "ci-gate-credbroker-job-name-pin", source = "spec/ci-gate-credbroker, diff review"},
   # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
   # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
   # keys, an inferred base indent, positive-substring-over-a-block, and key spelling

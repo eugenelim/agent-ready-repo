@@ -40,10 +40,11 @@ spec extracts the cheapest step that reaches that ceiling and stops.
 
 - Keep `working-directory: packages/credbroker` on the moved step — it is what makes
   bare `python -m pytest` resolve the suite through that package's `testpaths`.
-  Nothing pins this value (`tools/test-build-check-workflow.py:252`, `:1096`); its
-  loss fails loudly only because the repo has no root pytest config, so a dropped
-  value collects the monorepo and exits 2 at collection. Adding a root pytest config
-  removes that backing.
+  `PINNED_JOB_STATEMENTS` pins this value alongside the step's statements, so a
+  dropped or altered `working-directory` fails `job-statements-pinned[gate-credbroker]`.
+  Before that pin its loss failed loudly only incidentally — the repo has no root
+  pytest config, so a dropped value collects the monorepo and exits 2 at collection,
+  a backing any future root pytest config would remove.
 - Install the `[crypto]` extra **and prove it landed in the step that runs the
   suite**. A bogus extra warns and exits 0, and 21 `test_vault.py` tests plus 11
   `@requires_crypto` decorators would skip silently.
@@ -79,10 +80,13 @@ spec extracts the cheapest step that reaches that ceiling and stops.
 - Remove `Install credbroker (editable, with crypto extra)` from `gate-main` — four
   later steps in that job depend on it.
 - Remove or narrow either of AC4's two controls, or key its grep to specific skip
-  reasons. **This boundary is currently the only thing standing behind them**: the
-  posture test does not pin that step, branch protection anchors at job granularity,
-  and `lint-ci-parity`'s roster is per-step and cannot see a gate removed from inside
-  a dispositioned step. Lifts when `ci-gate-credbroker-job-statements-pin` lands.
+  reasons. `PINNED_JOB_STATEMENTS` enforces this mechanically —
+  `job-statements-pinned[gate-credbroker]` compares the whole body as an ordered
+  list plus the step's `working-directory` — so the boundary states the intent and
+  the pin carries it. Measured before the pin existed: deleting both controls,
+  deleting `working-directory`, and `-k "not vault"` (which DESELECTS, emitting no
+  `SKIPPED` line and exiting 0) all audited clean. Update the pin when the step
+  legitimately changes; never relax it to make a check pass.
 - Apply the branch-protection widening from inside this loop; with
   `PUT …/branches/main/protection` (clears every field it omits); or with the
   deprecated `contexts` field (see AC13).
@@ -100,12 +104,15 @@ invariant, so no behavior is TDD-mode.
   splicing an unwired fifth job into the fixture. Nothing currently mutates the
   job-set *input* to `guard-body-exact`; both its existing mutations alter the guard
   *body*.
+- **That the new job's gate cannot be quietly narrowed** — goal-based, via
+  `PINNED_JOB_STATEMENTS`, which compares the moved step's body as an ordered exact
+  list *and* its `working-directory` in one assertion. They are one control: split
+  apart, neither check can fail on the bypass the other covers.
 - **Step-disposition completeness** — goal-based, via `tools/lint-ci-parity.py` and
   `tools/test-lint-ci-parity.py`.
 - **That the suite verifies what it verified inside `gate-main`** — goal-based, via
   two standing in-step controls (AC4): an import probe naming the precondition, and a
-  reason-agnostic zero-skip assertion. The pair mirrors `gate-export-boundary`
-  (`build-check.yml:782-786`); a probe proves only what it names.
+  reason-agnostic zero-skip assertion. The pair mirrors `gate-export-boundary`'s tree probe plus `^SKIPPED` grep; a probe proves only what it names.
 - **The measured outcome** — manual QA, reading per-job and per-step timings from
   `gh api …/actions/runs/<id>/jobs`, each computed as **`completed_at - started_at`**
   (named so a later reader does not substitute the web UI's duration). Not a gate: no
@@ -122,8 +129,8 @@ invariant, so no behavior is TDD-mode.
       `pytest credbroker (RFC-0023 Phase 1)` step carrying
       `working-directory: packages/credbroker`.
 - [x] **AC1a — the checkout is shallow.** Its `with:` mapping is exactly
-      `{persist-credentials: false}`, mirroring the aggregator's carve-out at
-      `build-check.yml:811`; `packages/credbroker` invokes git nowhere. Because
+      `{persist-credentials: false}`, mirroring the carve-out on the aggregator's own checkout (the step whose comment
+      reads "AC12 exempts this job from fetch-depth"); `packages/credbroker` invokes git nowhere. Because
       `PINNED_CHECKOUT_WITH` is a set-equality pin this is decided here, and the
       reason travels in the workflow comment.
 - [x] **AC2 — the step moved rather than being copied.** `gate-main` no longer
@@ -146,6 +153,16 @@ invariant, so no behavior is TDD-mode.
       `.agentbundle/bin/sso-broker.py` becoming untracked, and any new module-scope
       `importorskip` — so a cross-domain red is self-diagnosing rather than inviting
       the edit the Never-do forbids.
+- [x] **AC4a — the moved step's body and `working-directory` are pinned by
+      equality.** `PINNED_JOB_STATEMENTS` emits `job-statements-pinned[<job>]`,
+      comparing the step's `run:` body as an ordered exact list and its
+      `working-directory` value together. Verified against the real workflow by five
+      bypasses, each of which audited **clean** before the pin and is caught after:
+      deleting both AC4 controls; deleting either one alone; deleting
+      `working-directory`; `-k "not vault"` (deselects rather than skips, so no
+      `SKIPPED` line and exit 0); and pointing the grep at a file nothing writes.
+      The label is parameterised so `_family` collapses it — a future work job adds
+      a dict entry, not an assertion, and costs no further mutation.
 - [x] **AC5 — `python3 tools/test-build-check-workflow.py` exits 0**, which requires
       its `--self-test` to pass: baseline clean, every mutation caught, every
       evaluated family mutated, every differential guard body agreeing with bash.
@@ -215,12 +232,19 @@ single maintainer performs all four steps in one sitting.
   `importorskip`, and 11 `@requires_crypto` decorators (1 + 7 + 3) gate more (source:
   `python -m pytest -rs` → `505 passed in 31.94s`; `grep -rc '^@requires_crypto'`)
 - Technical: **AC4's zero-skip assertion holds on `ubuntu-latest` by enumeration, not
-  by a Linux run.** Of five non-crypto skip sites, four are platform-gated
-  (`test_vault.py:213`, `test_master_sourcing.py:80`, `test_sso_recapture.py:143`,
-  `test_sso_broker_verbs.py:259`) and the fifth, `test_sso_broker_verbs.py:64`, is
-  gated on `.agentbundle/bin/sso-broker.py` being present — git-tracked, no ignore
-  rule, and a projected artifact under the self-host drift gate, so untracking it
-  reddens AC4 rather than skipping (source: reading each site; `git ls-files
+  by a Linux run.** There are **ten** non-crypto skip sites. Eight are platform-gated
+  and unreachable on a POSIX runner — `test_vault.py:213`,
+  `test_master_sourcing.py:80`, `test_sso_lock_wiring.py:245` and `:271`,
+  `test_sso_profile_lock.py:177`, `:186` and `:237` (all `os.name != "posix"`), plus
+  `test_sso_recapture.py:143` inside the Windows `tasklist` branch. The other two are
+  the ones worth knowing: `test_sso_broker_verbs.py:259` is **inverse-gated**, skipping
+  when `playwright` *is* importable, which nothing in this job installs; and
+  `test_sso_broker_verbs.py:64` is gated on `.agentbundle/bin/sso-broker.py` being
+  present — a **repository-tree** property, not a platform one. That file is
+  git-tracked, matches no ignore rule, and is a projected artifact under the self-host
+  drift gate, so untracking it reddens `gate-main` *and* trips AC4's `^SKIPPED`
+  assertion here. It is called out because it is the site a reader auditing "can AC4
+  actually go red?" most needs to see (source: reading every site; `git ls-files
   --error-unmatch`; `git check-ignore -v`)
 - Technical: an unrecognised extra is not an error —
   `pip install --dry-run -e './packages/credbroker[typo]'` warns, prints
@@ -248,7 +272,8 @@ single maintainer performs all four steps in one sitting.
   | 32063058843 | push | 184 | 160 | 123 |
 
   `gate-main` means: 179 (`pull_request`, n=3), 171.5 (`push`, n=2). The moved step
-  cost exactly 27 s on all five. This table is the single home for these figures
+  cost exactly 27 s on all five. The register entry `ci-gate-credbroker-critical-path-measurement` carries these
+  same rows and is the home that OUTLIVES this spec's freeze; re-derive from there
   (source: `gh api …/actions/runs/<id>` and `/jobs`, 2026-08-17)
 - Process: `main` requires `make build-check`, `gate-main`, `gate-sast`,
   `gate-export-boundary`, `strict: true`, **each pinned to `app_id: 15368`** — the
@@ -266,8 +291,8 @@ single maintainer performs all four steps in one sitting.
   deletion, with its roster row, leaves both gates green; after AC13 it owns a job
   whose disappearance makes a required check never report. The merge→AC13 window is
   neutral, not weakened — `make build-check` is required, `needs: gate-credbroker`,
-  and its comparison fails closed (source: ADR-0086 § Consequences;
-  `build-check.yml:120-122`)
+  and its comparison fails closed (source: ADR-0086 § Consequences; the aggregator's `needs:` list and its
+  `GATE_CREDBROKER_RESULT` comparison in `build-check.yml`)
 - Process: ADR-0086 already decides that a leg of `build-check.yml` may become its own
   job; this applies that decision, so no new ADR (source: `docs/adr/0086-…md`)
 - Process: branch-protection writes are the owner's to apply; PRs #993 and #994

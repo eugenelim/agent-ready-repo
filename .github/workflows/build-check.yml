@@ -257,11 +257,17 @@ jobs:
       - name: pytest guides sidebar generation
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
       - name: Install credbroker (editable, with crypto extra)
-        # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
-        # AND runs the stdlib-purity gate under the *stronger* condition — with
-        # cryptography/argon2 present, the subprocess still proves the base
-        # import never reaches them (credbroker AC4). The vault tests that need
-        # the extra arrive with task T4.
+        # Required by four LATER steps in this job that import credbroker and its
+        # crypto extras: the credential-setup skill suite (which probes
+        # `import credbroker, cryptography, argon2` directly), the jira and
+        # confluence-crawler SSO suites, and the user-libs vendored-floor purity
+        # test.
+        #
+        # It no longer backs the stdlib-purity gate: that lives in
+        # packages/credbroker/tests/unit/ and travelled to gate-credbroker with the
+        # suite (spec/ci-gate-credbroker). Do not delete this step on the strength
+        # of the purity gate having moved — the four consumers above are the reason
+        # it stays.
         run: python -m pip install -e './packages/credbroker[crypto]'
 
       # The credential-setup skill's own suite (RFC-0023 T8 + the
