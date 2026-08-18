@@ -637,6 +637,14 @@ open = [
   #   32063058843   push          184        160                123
   # The moved step cost exactly 27s on all five (zero variance).
   #
+  # BASELINE BOUNDARY — the five runs above predate 333c4091 (#998), which added a
+  # `docs palette contrast gate` step to gate-main. Measured at ~1s on the first
+  # post-rebase run, so it does not invalidate a -27s comparison (≈4%), but it means
+  # gate-main's work is NOT identical across the boundary. Name the boundary commit
+  # when reporting, and if gate-main gains anything heavier before this closes,
+  # re-baseline rather than comparing across it — an unlike-for-unlike comparison is
+  # the failure this entry's method section exists to prevent.
+  #
   # STOP CONDITION: >=3 same-class post-merge runs. "INCONCLUSIVE at n=3" is a
   # permitted and expected outcome and closes this entry honestly — gate-main's
   # spread (159-193) exceeds the 27s effect, so the measurement may never resolve. A
