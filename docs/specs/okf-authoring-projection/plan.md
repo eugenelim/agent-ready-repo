@@ -200,7 +200,7 @@ outside shipped pack content.
 
 **Depends on:** none
 
-**Touches:** `contracts/jsonschema/okf-*.schema.json`, `packs/catalogue-curation/tests/skills/compile-okf/fixtures/contracts/**`, `packs/catalogue-curation/tests/skills/compile-okf/test_contracts.py`
+**Touches:** `contracts/jsonschema/okf-*.schema.json`, `packs/catalogue-curation/tests/skills/compile-okf/fixtures/contracts/**`, `tests/roster/test_okf_contracts.py`
 
 **Verification mode:** TDD.
 
@@ -376,7 +376,7 @@ output are reviewable and frozen before generated evaluation.
 
 **Depends on:** T5
 
-**Touches:** `packs/core/okf/**`, `packs/core/.apm/skills/security-checklists/**`, `packs/core/.okf-generated.json`, `packs/core/tests/skills/security-checklists/**`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `docs/rfc/0087-notes/pilot-cases/security-checklists.json`, `docs/rfc/0087-notes/pilot-baselines/**`
+**Touches:** `packs/core/okf/**`, `packs/core/.apm/skills/security-checklists/**`, `packs/core/.okf-generated.json`, `tests/roster/test_security_checklists_okf_projection.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.md`, `docs/rfc/0087-notes/pilot-cases/security-checklists.json`, `docs/rfc/0087-notes/pilot-baselines/**`
 
 **Verification mode:** TDD for construction plus recorded E2E baseline.
 

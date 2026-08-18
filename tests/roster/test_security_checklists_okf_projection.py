@@ -1,4 +1,4 @@
-"""Construction checks for the security-checklists OKF pilot projection."""
+"""Repository construction checks for the security-checklists OKF pilot."""
 
 from __future__ import annotations
 
@@ -6,11 +6,12 @@ import json
 import tomllib
 from pathlib import Path
 
-PACK_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PACK_ROOT = REPO_ROOT / "packs" / "core"
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "security-checklists"
 OKF_ROOT = PACK_ROOT / "okf" / "security-checklists"
 MANIFEST = PACK_ROOT / ".okf-generated.json"
-RFC_NOTES = PACK_ROOT.parents[1] / "docs" / "rfc" / "0087-notes"
+RFC_NOTES = REPO_ROOT / "docs" / "rfc" / "0087-notes"
 
 MODULES = [
     "access-control",

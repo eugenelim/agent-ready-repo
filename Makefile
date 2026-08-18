@@ -358,6 +358,8 @@ test:
 	$(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
+	$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
+	$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
 	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q

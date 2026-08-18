@@ -31,10 +31,10 @@ STRICT_JSON_VECTOR = b'{"a":[true,null],"b":1}\n'
 STRICT_JSON_DIGEST = "sha256:b7c64ebef4296c41c0c46ab5e7a71a88ab124b5fdb82613abc75327ce6195ec6"
 
 
-def _copy_fixture(tmp_path: Path, name: str = "rich") -> Path:
+def _copy_fixture(tmp_path: Path) -> Path:
     tmp_path.mkdir(parents=True, exist_ok=True)
     bundle = tmp_path / "bundle"
-    shutil.copytree(FIXTURE_ROOT / name, bundle)
+    shutil.copytree(FIXTURE_ROOT / "rich", bundle)
     (bundle / "empty").mkdir(exist_ok=True)
     return bundle
 

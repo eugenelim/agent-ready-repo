@@ -25,9 +25,9 @@ DEEP_FRONTMATTER += f"\n{'  ' * 21}value: leaf\n"
 EXCESSIVELY_DEEP_FRONTMATTER = "value: " + "[" * 1_200 + "0" + "]" * 1_200 + "\n"
 
 
-def _copy_fixture(tmp_path: Path, name: str = "simple") -> Path:
+def _copy_fixture(tmp_path: Path) -> Path:
     bundle = tmp_path / "bundle"
-    shutil.copytree(FIXTURE_ROOT / "valid" / name, bundle)
+    shutil.copytree(FIXTURE_ROOT / "valid" / "simple", bundle)
     return bundle
 
 

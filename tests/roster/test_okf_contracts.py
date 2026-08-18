@@ -1,4 +1,4 @@
-"""Contract fixtures for the OKF authoring JSON Schemas."""
+"""Repository contract fixtures for the OKF authoring JSON Schemas."""
 
 from __future__ import annotations
 
@@ -8,9 +8,18 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator
 
-ROOT = Path(__file__).resolve().parents[5]
-SCHEMA_ROOT = ROOT / "contracts" / "jsonschema"
-FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "contracts"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCHEMA_ROOT = REPO_ROOT / "contracts" / "jsonschema"
+FIXTURE_ROOT = (
+    REPO_ROOT
+    / "packs"
+    / "catalogue-curation"
+    / "tests"
+    / "skills"
+    / "compile-okf"
+    / "fixtures"
+    / "contracts"
+)
 SCHEMAS = {
     "extension": SCHEMA_ROOT / "okf-agentbundle-extension-v1.schema.json",
     "pack": SCHEMA_ROOT / "okf-pack-profile-v1.schema.json",
