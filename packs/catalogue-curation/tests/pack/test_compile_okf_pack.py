@@ -51,8 +51,8 @@ def test_catalogue_curation_version_bump_is_synchronized() -> None:
     pack = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
-    assert pack["pack"]["version"] == "0.3.0"
-    assert plugin["version"] == "0.3.0"
+    assert pack["pack"]["version"] == "0.4.0"
+    assert plugin["version"] == "0.4.0"
 
 
 def test_compile_okf_has_no_internal_governance_citations() -> None:

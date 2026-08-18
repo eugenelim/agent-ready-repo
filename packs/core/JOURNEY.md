@@ -57,6 +57,9 @@ skills:
   - name: security-checklists
     description: "Provides boundary-keyed security checklists for the security-reviewer. The work-loop loads only the boundary-matching modules — not invoked directly."
     humanTouches: 0
+  - name: security-checklists-reference
+    description: "Provides a read-only reference view of the security checklist library. Normal security reviews use security-checklists."
+    humanTouches: 0
 humanGates:
   - id: G-plan
     globalGate: null

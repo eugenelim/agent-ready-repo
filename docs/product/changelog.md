@@ -37,6 +37,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.9.0] — 2026-08-18
+
+#### Fixed
+
+- **Security reviewers can again select their boundary-specific depth.** The
+  `security-checklists` router again maps each trust boundary to its direct
+  reference module, including the standards anchor and the `tool` / `hybrid` /
+  `reason` delegation guidance. Its compiled reference companion remains
+  independently verifiable without owning the production router.
+
+### [catalogue-curation][0.4.0] — 2026-08-18
+
+#### Changed
+
+- **OKF router renames can hand their former router back to authors safely.**
+  The compiler cedes only an explicitly marked, non-generated former
+  `SKILL.md`; it continues to verify and remove every other stale generated
+  file before writing the new managed directory. The migration is
+  manifest-driven and applies to every pack and corpus alike.
+
 ### Added
 
 - **Every site release is now checked in a real browser before it can deploy.**
