@@ -282,6 +282,8 @@ TAP_TARGET_AUDIT = (
 )
 _GROUP_RE = re.compile(r"^### (?P<name>.+?) — (?P<count>\d+) candidates\s*$")
 _TOTAL_RE = re.compile(r"^\|\s*\*\*Total classified\*\*\s*\|\s*(?P<total>\d+)\s*\|")
+# The prose figure in § Evidence availability: "resolve to **56 distinct candidates**".
+_PROSE_TOTAL_RE = re.compile(r"\*\*(?P<total>\d+) distinct\s+candidates\*\*")
 # `| Inline-content exception (SC 2.5.8, Inline) | 29 | Measured 2026-08-18 |`
 _CELL_RE = re.compile(r"^\|\s*(?P<name>[^|*]+?)\s*\|\s*(?P<count>\d+)\s*\|\s*\S")
 
@@ -393,6 +395,29 @@ def test_the_classification_total_is_the_sum_of_its_group_cells() -> None:
     cell_total = sum(count for _name, count in _classification_cells(text))
     assert cell_total == totals[0], (
         f"{TAP_TARGET_AUDIT.name}: the classification cells sum to {cell_total} but "
+        f"**Total classified** says {totals[0]}"
+    )
+
+
+def test_the_prose_candidate_count_matches_the_classification_total() -> None:
+    """The one copy of the total that nothing read.
+
+    Deleting a whole group — heading, evidence rows and cell — and lowering the total
+    row to match left all other assertions green while the prose still claimed the old
+    figure, so candidates could leave the record with the document self-contradicting.
+    """
+    text = TAP_TARGET_AUDIT.read_text(encoding="utf-8")
+    prose = _PROSE_TOTAL_RE.findall(text)
+    assert len(prose) == 1, (
+        f"{TAP_TARGET_AUDIT.name}: expected exactly one '**N distinct candidates**' "
+        f"prose figure, found {len(prose)}"
+    )
+    totals = [
+        int(m.group("total")) for m in (_TOTAL_RE.match(ln) for ln in text.splitlines()) if m
+    ]
+    assert len(totals) == 1, f"{TAP_TARGET_AUDIT.name}: expected one total cell"
+    assert int(prose[0]) == totals[0], (
+        f"{TAP_TARGET_AUDIT.name}: prose says {prose[0]} distinct candidates but "
         f"**Total classified** says {totals[0]}"
     )
 

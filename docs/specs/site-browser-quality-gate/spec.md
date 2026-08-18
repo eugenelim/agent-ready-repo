@@ -145,7 +145,8 @@ responsibility.
   missing evidence into an inferred result. Registered as `[backlog].open` slug
   `print-chrome-paint-inventory`.
 
-  `close-stale` in AC13 rests only on the three measured axes, which is why that
+  `close-stale` in AC13 rests only on axes 1 and 2 of
+  [`notes/print-audit.md`](notes/print-audit.md) § Measured axes, which is why that
   criterion stays met while this one does not.
 - [x] Print closes stale when browser/framework defaults satisfy that contract;
   otherwise the audit names each exact failure and the smallest narrow rule

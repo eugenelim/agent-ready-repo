@@ -154,9 +154,11 @@ deliver. The layout fact above is measured and stable. The per-element attributi
 were not, and two successive revisions of the rows stated them wrongly — including
 one that named a breakpoint where a `print:hidden` rule was doing the work.
 
-What is unchanged by any of that, and what `close-stale` rests on: page counts,
-`<main>` character counts, 0px document overflow and 0 boxes past the printable
-width, reproduced on all six routes.
+What is unchanged by any of that: `close-stale` rests on § Measured axes 1 and 2 —
+0 boxes past the printable width and 0px document overflow — reproduced on all six
+routes. Page counts and `<main>` character counts (axes 3 and 4) are also unchanged,
+and are recorded so a re-runner can tell the routes were exercised rather than
+assumed; they cannot demonstrate a content failure.
 
 ### Re-measuring the content rows
 
@@ -270,11 +272,13 @@ docs routes, one that does not depend on a chrome/content split the markup does 
 make. Rather than ship a fifth guess, the column is withdrawn and registered as
 `[backlog].open` slug `print-chrome-paint-inventory`.
 
-**This does not touch AC13.** `close-stale` rests on the content axes, which are
-unchanged and have now reproduced twice on all six routes: page counts 8/3/4/12/12/12,
-`<main>` character counts 5,588/3,260/3,842/14,992/13,397/15,488, **0px** document
-overflow, **0** boxes past the printable width. No demonstrated content failure, and
-therefore no print CSS from this programme.
+**This does not touch AC13.** `close-stale` rests on § Measured axes 1 and 2, and
+both have now reproduced twice on all six routes: **0** boxes past the printable
+width and **0px** document overflow. Axes 3 and 4 also reproduced — page counts
+8/3/4/12/12/12 and `<main>` character counts
+5,588/3,260/3,842/14,992/13,397/15,488 — and are recorded as exercise evidence, not
+as grounds for the disposition. No demonstrated content failure, and therefore no
+print CSS from this programme.
 
 ## Residual, stated rather than hidden
 
@@ -284,9 +288,9 @@ footer inside `<main>`, so the method that answered it for `/` has no purchase t
 Which elements precisely, and why each is or is not painted, is the withdrawn
 inventory; this paragraph deliberately claims no more than that section supports.
 
-What the evidence does show is that it **does not corrupt content** on the axes
-measured, and those axes are the ones `close-stale` rests on: no element exceeds the
-printable width, and document horizontal overflow is 0px on all six routes. The third axis is
+What the evidence does show is that it **does not corrupt content** on § Measured
+axes 1 and 2, the two `close-stale` rests on: no element exceeds the printable width,
+and document horizontal overflow is 0px on all six routes. Axis 4 is
 stated as what was actually measured — `<main>`'s rendered text length under print
 media at 717px — rather than as "the body text reached the page", which would need
 the PDF-versus-`<main>` comparison this file discredits in exactly that
@@ -300,9 +304,8 @@ the four failed probes above, an oracle for paint rather than layout.
 
 `workspace.toml [backlog].open` slug `docs-site-print-styles` remains open. It asks
 whether the docs accent colours and hairlines are tuned for paper — an aesthetic
-question. This audit measured the four axes in § Measured axes — clipping, width overflow, page
-count and `<main>`'s rendered text length. Per-route navigation visibility was
-attempted and withdrawn. `close-stale` here means no
+question. This audit measured the four axes in § Measured axes. Per-route navigation
+visibility was attempted and withdrawn. `close-stale` here means no
 demonstrated content failure, and therefore no print CSS from this programme. It
 does not mean print is aesthetically finished, and the decision rule above bars
 proposing rules from preference.

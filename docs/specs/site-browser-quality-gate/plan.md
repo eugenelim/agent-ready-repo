@@ -270,9 +270,9 @@ tests and evidence; there is no production infrastructure change.
     owning spec and no conditional remediation spec was materialized. The docs
     footer rows and the absent product-orientation band are flagged for
     re-measurement when `site-shared-chrome` lands.
-  - **T4 (print): `close-stale`, with two axes not delivered.** Six routes, zero
-    boxes past the printable width, 0px document overflow, and `<main>`'s rendered
-    text length unchanged under print media at 717px. No print CSS added. AC12 ships
+  - **T4 (print): `close-stale`, with two axes not delivered.** Six routes, measured
+    on the four axes in [`notes/print-audit.md`](notes/print-audit.md) § Measured
+    axes; `close-stale` rests on axes 1 and 2. No print CSS added. AC12 ships
     deferred: per-route navigation visibility is withdrawn
     (`print-chrome-paint-inventory`) and page-break quality was never measured
     (`print-audit-page-break-quality`).

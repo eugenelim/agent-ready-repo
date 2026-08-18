@@ -1681,8 +1681,8 @@ open = [
   # rendering left at Starlight defaults (accent/hairlines untuned for paper).
   # NOT discharged by spec/site-browser-quality-gate's print audit (2026-08-18),
   # despite that audit closing `close-stale`. The two ask different questions: the
-  # audit measured CONTENT INTEGRITY on six representative routes — clipping, width
-  # overflow (see the audit's Measured axes section) — and found no
+  # audit measured CONTENT INTEGRITY on six representative routes (see that audit's
+  # Measured axes section for the list) and found no
   # failure, which is why it added no print CSS. This anchor is about AESTHETIC
   # tuning for paper, which the audit did not evaluate and its decision rule
   # explicitly bars proposing from preference. Print is settled for correctness and
@@ -2591,13 +2591,12 @@ open = [
   # notes/docs-tap-target-audit.md.
   {slug = "tap-target-audit-remeasure-after-shared-chrome", source = "spec/site-browser-quality-gate T0", summary = "Re-measure the docs tap-target audit after site-shared-chrome replaces the footer and adds the orientation band"},
   # spec/site-browser-quality-gate AC12 was narrowed to the axes its print audit
-  # actually measures: box geometry against the printable width, document horizontal
-  # overflow (the audit's Measured axes section is the one home for the list).
-  # Navigation visibility withdrawn to
+  # actually measures, listed once in that audit's Measured axes section; close-stale
+  # rests on axes 1 and 2. Navigation visibility is withdrawn to
   # print-chrome-paint-inventory. NOT measured: vertical
   # overlap, orphaned headings, unusable page breaks, unexpected blank pages. Page
-  # COUNT is not break quality, and `close-stale` in AC13 rests only on the measured
-  # axes. Fix: read the six generated PDFs and record break quality, or state in the
+  # COUNT is not break quality, and `close-stale` in AC13 rests only on axes 1 and 2.
+  # Fix: read the six generated PDFs and record break quality, or state in the
   # audit that break quality is out of scope and why.
   {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
   # Withdrawn from the print audit after four probe generations each answered it
