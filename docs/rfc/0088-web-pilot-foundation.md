@@ -920,6 +920,9 @@ history assumptions.
 1. **Which operating systems and browser channels enter the first supported release?** Recommended candidate: macOS with bundled Chromium; S1 must also test one system channel so the Experimental exit can either admit it or record an explicit deferral. Keep path and IPC contracts portable. Owner: RFC approver. Decide by: Experimental exit.
 2. **Does adapter packaging require build-only bundler tooling?** Recommended default: accept plain self-contained ESM if S2 proves dependency isolation; add exact-pinned, scanned, non-shipped build tooling only when the spike demonstrates it is necessary and record the deviation in this RFC before acceptance. Owner: RFC owner with approver. Decide by: S2 / Experimental exit.
 3. **Does the pack clear the charter's “used often enough” bar?** Recommended default: require S5 to prove two independent software-delivery provider consumers before acceptance. Owner: RFC approver. Decide by: Experimental exit.
+4. **Should service-worker suppression be destination-scoped rather than global?** D/item 6 currently reads as a session-wide control. Measurement shows real destinations have opposite needs: a sign-in surface needs no worker, a mail surface has one but does not depend on it, and a real-time collaboration surface breaks without one. A global switch therefore forces a choice between losing a surface and losing the control. Recommended candidate: fold worker policy into the **destination** constraint decision C already established, so one policy decides both where a session may talk and whether a worker may run there. Owner: RFC approver. Decide by: Experimental exit.
+5. **How is a consumer that captures and replays a scoped API token accommodated?** The RFC's credential posture assumes the session stays in the browser, and decision C keeps the broker outside the credential boundary so that no component holds the user's session in cleartext. A realistic consumer instead intercepts a scoped bearer token from the page's own requests and replays it, because that is how an agent acts as a frontend user at volume. No blocker item covers this pattern. Recommended candidate: require the token to remain **page-resident** — captured and used inside the document by the same init-script mechanism the egress shim already uses — so the broker still never holds it. Owner: RFC approver. Decide by: Experimental exit.
+6. **Is the browser-provenance anchor a file digest or a signing identity?** Item 2 assumes a digest pinned from an independently verified channel. That is unachievable for an MDM-provisioned, auto-updating system browser, which is the runtime a real adopter requires because only it reaches the OS keychain for the device-compliance certificate. Such a binary does, however, carry a **stable vendor team identifier, notarization, and library-validation** — an anchor that survives updates and blocks a code-injection class a digest pin never addressed. Recommended candidate: accept signing identity as the anchor for system channels and keep digest pinning for bundled ones. Owner: RFC approver. Decide by: Experimental exit.
 
 ## Follow-on artifacts
 
@@ -1500,9 +1503,20 @@ restored browser, while a control arm that purges the cookie store instead answe
 
 *What the requirement costs.* Measured as a taxonomy, suppression breaks only
 flows whose login path genuinely depends on a worker. A flow with no worker and a
-flow that merely registers one both complete. **How common the load-bearing class
-is among real identity providers is not measured** and remains a residual — the
-pilot can answer it for its own destination.
+flow that merely registers one both complete.
+
+*How common the load-bearing class is — narrowed, not closed.* An exploratory
+probe against three public enterprise front doors, addressed by role, found:
+an identity provider's **sign-in surface registers no worker and renders
+identically with workers blocked**, so authentication itself does not depend on
+one; a **webmail surface is the present-but-idle class**, rendering byte-identically
+without its worker; and a **real-time collaboration surface is load-bearing** and
+does not survive suppression. So the expensive class exists in the wild, and the
+sign-in step — the part the pilot most needed to protect — is not in it. The
+post-authentication silent-SSO path remains unmeasured, because it requires
+credentials. Details, limits, and one instrument that proved untrustworthy are in
+the [front-door worker landscape probe](0088-notes/spikes/2026-08-18-front-door-worker-landscape-probe.md).
+**That probe is exploratory and is not a promoted arm.**
 
 **D / item 3 — was "one consumer per connection". Now reads:**
 
