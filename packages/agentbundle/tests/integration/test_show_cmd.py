@@ -24,9 +24,16 @@ from types import SimpleNamespace
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import show
 from agentbundle.config import PackState, State, dump_state
+from jsonschema import Draft202012Validator
 
 # A URI that forces CatalogueError (SSH is deferred → raises immediately).
 UNRESOLVABLE = "git+ssh://example.com/owner/repo"
+SHOW_SCHEMA = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "show_contract"
+    / "agentbundle-show.schema.json"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -73,12 +80,46 @@ def _make_catalogue(
     for s in skills:
         (pack / ".apm" / "skills" / s).mkdir(parents=True)
         (pack / ".apm" / "skills" / s / "SKILL.md").write_text(
-            "# s\n", encoding="utf-8", newline="\n"
+            f"---\nname: {s}\ndescription: {s} skill\n---\n# {s}\n",
+            encoding="utf-8",
+            newline="\n",
         )
     for a in agents:
         (pack / ".apm" / "agents").mkdir(parents=True, exist_ok=True)
         (pack / ".apm" / "agents" / f"{a}.md").write_text("# a\n", encoding="utf-8", newline="\n")
     return root
+
+
+def _show_validator() -> Draft202012Validator:
+    schema = json.loads(SHOW_SCHEMA.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema)
+
+
+def _assert_show_schema(obj: dict) -> None:
+    _show_validator().validate(obj)
+
+
+def _add_okf_bundle(pack: Path) -> None:
+    pack_toml = pack / "pack.toml"
+    pack_toml.write_text(
+        pack_toml.read_text(encoding="utf-8")
+        + "\n[pack.metadata.okf]\n"
+        + 'profile = "agentbundle-okf/v1"\n'
+        + "\n[[pack.metadata.okf.bundles]]\n"
+        + 'id = "demo"\n'
+        + 'path = "okf/demo"\n'
+        + '"router-skill" = "demo-router"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    from tests.unit.test_okf_discovery import (
+        _write_generated_router,
+        _write_okf_bundle,
+    )
+
+    _write_okf_bundle(pack)
+    _write_generated_router(pack)
 
 
 # ---------------------------------------------------------------------------
@@ -165,16 +206,78 @@ def test_json_exact_keys_sorted_arrays_source_catalogue(tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 0
     obj = json.loads(out)  # parses as valid JSON
-    # STUB: integrations key added; fails until show.py gains integrations param
     assert set(obj) == {
-        "name", "version", "description", "skills", "agents", "source", "integrations"
+        "name",
+        "version",
+        "description",
+        "skills",
+        "agents",
+        "integrations",
+        "source",
+        "pack_metadata",
+        "skill_metadata",
+        "knowledge",
     }
+    _assert_show_schema(obj)
     assert obj["source"] == "catalogue"
     assert obj["name"] == "demo"
     assert obj["skills"] == ["alpha", "zeta"]
     assert obj["agents"] == ["aardvark", "beta"]
     assert obj["version"] == "1.2.3"
     assert obj["description"] == "Demo fixture pack"
+    assert obj["pack_metadata"] == {"categories": [], "keywords": [], "license": None}
+    assert [item["name"] for item in obj["skill_metadata"]] == ["alpha", "zeta"]
+    assert obj["knowledge"] == []
+
+
+def test_json_schema_valid_empty_non_okf_pack(tmp_path, capsys):
+    cat = _make_catalogue(tmp_path, skills=(), agents=(), meta=False)
+
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    obj = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert obj["version"] is None
+    assert obj["description"] is None
+    assert obj["skills"] == []
+    assert obj["agents"] == []
+    assert obj["skill_metadata"] == []
+    assert obj["knowledge"] == []
+    _assert_show_schema(obj)
+
+
+def test_json_schema_valid_generated_okf_pack(tmp_path, capsys):
+    cat = _make_catalogue(tmp_path, skills=("manual-skill",), agents=())
+    _add_okf_bundle(cat / "packs" / "demo")
+
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    obj = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    _assert_show_schema(obj)
+    assert obj["knowledge"][0]["id"] == "demo"
+    assert obj["knowledge"][0]["format"] == "okf"
+    assert {item["name"] for item in obj["skill_metadata"]} == {
+        "demo-router",
+        "manual-skill",
+    }
+    router = next(item for item in obj["skill_metadata"] if item["name"] == "demo-router")
+    assert router["generated_from"] == "okf/demo"
+    assert router["profile"] == "agentbundle-okf/v1"
+
+
+def test_excluded_surfaces_do_not_gain_okf_metadata(tmp_path, capsys):
+    from agentbundle.commands import list_packs
+
+    catalogue = _make_catalogue(tmp_path, skills=("security-checklists",), agents=())
+    rc = list_packs.run(SimpleNamespace(catalogue=str(catalogue)))
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "security-checklists" not in out
+    assert "pack_metadata" not in out
+    assert "skill_metadata" not in out
+    assert "knowledge" not in out
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +292,7 @@ def test_pack_with_no_apm_dirs_shows_empty_lists(tmp_path, capsys):
     assert rc == 0
     obj = json.loads(out)
     assert obj["skills"] == [] and obj["agents"] == []
+    _assert_show_schema(obj)
 
 
 # ---------------------------------------------------------------------------
@@ -244,6 +348,10 @@ def test_degrade_installed_repo_scope(tmp_path, capsys):
     assert obj["version"] is None and obj["description"] is None
     assert obj["skills"] == ["alpha", "zeta"]
     assert obj["agents"] == ["beta"]
+    assert obj["pack_metadata"] is None
+    assert obj["skill_metadata"] is None
+    assert obj["knowledge"] is None
+    _assert_show_schema(obj)
 
 
 def test_degrade_table_omits_version_prints_source_line(tmp_path, capsys):
@@ -302,6 +410,9 @@ def test_degrade_multi_adapter_dedupes_across_extensions(tmp_path, capsys):
     assert rc == 0
     assert obj["skills"] == ["alpha"]
     assert obj["agents"] == ["bot"]  # never "bot.agent" / "bot.json"
+    assert obj["pack_metadata"] is None
+    assert obj["skill_metadata"] is None
+    assert obj["knowledge"] is None
 
 
 def test_degrade_legacy_state_scope_warned_not_fatal(tmp_path, capsys, _isolate_user_config_dir):
@@ -330,6 +441,7 @@ def test_degrade_legacy_state_scope_warned_not_fatal(tmp_path, capsys, _isolate_
     assert rc == 0
     assert obj["skills"] == ["recovered"]
     assert "skipping repo scope" in captured.err
+    _assert_show_schema(obj)
 
 
 def test_degrade_installed_user_scope_only(tmp_path, capsys, _isolate_user_config_dir):
@@ -351,6 +463,54 @@ def test_degrade_installed_user_scope_only(tmp_path, capsys, _isolate_user_confi
     obj = json.loads(capsys.readouterr().out)
     assert rc == 0
     assert obj["skills"] == ["solo"]
+    _assert_show_schema(obj)
+
+
+def test_catalogue_discovery_failure_uses_existing_error_channel(tmp_path, capsys):
+    cat = _make_catalogue(tmp_path)
+    skill = cat / "packs" / "demo" / ".apm" / "skills" / "alpha" / "SKILL.md"
+    skill.write_text(
+        "---\n"
+        "name: alpha\n"
+        "description: alpha skill\n"
+        "compatibility:\n"
+        "  target:\n"
+        "    nested: value\n"
+        "---\n"
+        "# alpha\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    captured = capsys.readouterr()
+
+    assert rc == 1
+    assert captured.out == ""
+    assert "show:" in captured.err
+    assert captured.err.count("\n") == 1
+
+
+def test_strict_json_rejects_non_finite_metadata_before_stdout(
+    tmp_path, capsys, monkeypatch
+):
+    cat = _make_catalogue(tmp_path)
+
+    def fake_discover(_pack_dir):
+        return SimpleNamespace(
+            pack_metadata={"categories": [], "keywords": [], "license": float("nan")},
+            skill_metadata=[],
+            knowledge=[],
+        )
+
+    monkeypatch.setattr(show.okf_discovery, "discover_pack", fake_discover)
+
+    rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
+    captured = capsys.readouterr()
+
+    assert rc == 1
+    assert captured.out == ""
+    assert "strict JSON" in captured.err
 
 
 # ---------------------------------------------------------------------------
@@ -458,18 +618,18 @@ def _make_catalogue_with_integrations(root: Path) -> Path:
     for s in ("alpha", "zeta"):
         (pack / ".apm" / "skills" / s).mkdir(parents=True)
         (pack / ".apm" / "skills" / s / "SKILL.md").write_text(
-            "# s\n", encoding="utf-8", newline="\n"
+            f"---\nname: {s}\ndescription: {s} skill\n---\n# {s}\n",
+            encoding="utf-8",
+            newline="\n",
         )
     return root
 
 
 # ---------------------------------------------------------------------------
-# STUBS: integrations in show output (Task 3 TDD)
-# All fail until show.py gains the `integrations` parameter on _emit().
+# Integrations in show output
 # ---------------------------------------------------------------------------
 
 
-# STUB: JSON includes integrations when declared; all ten keys present
 def test_show_integrations_json_present_when_declared(tmp_path, capsys):
     cat = _make_catalogue_with_integrations(tmp_path)
     rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
@@ -489,7 +649,6 @@ def test_show_integrations_json_present_when_declared(tmp_path, capsys):
     assert entry["version"] is None
 
 
-# STUB: JSON has integrations: [] when not declared
 def test_show_integrations_json_empty_when_not_declared(tmp_path, capsys):
     cat = _make_catalogue(tmp_path)  # no integrations in pack.toml
     rc = show.run(_args("demo", catalogue=str(cat), fmt="json"))
@@ -500,7 +659,6 @@ def test_show_integrations_json_empty_when_not_declared(tmp_path, capsys):
     assert obj["integrations"] == []
 
 
-# STUB: table includes integrations row with id/kind/pack summary
 def test_show_integrations_table_row_when_declared(tmp_path, capsys):
     cat = _make_catalogue_with_integrations(tmp_path)
     rc = show.run(_args("demo", catalogue=str(cat)))
@@ -513,7 +671,6 @@ def test_show_integrations_table_row_when_declared(tmp_path, capsys):
     assert "other-pack" in out
 
 
-# STUB: table shows "-" for integrations when none declared
 def test_show_integrations_table_row_shows_dash_when_absent(tmp_path, capsys):
     cat = _make_catalogue(tmp_path, skills=("alpha",), agents=())
     rc = show.run(_args("demo", catalogue=str(cat)))

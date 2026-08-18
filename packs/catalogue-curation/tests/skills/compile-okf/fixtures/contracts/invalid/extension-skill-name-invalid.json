@@ -1,0 +1,8 @@
+{
+  "profile": "agentbundle-okf/v1",
+  "skill": {
+    "name": "Reviewed_Triage",
+    "description": "Use when a reviewed OKF procedure should guide triage.",
+    "instruction-section": "Procedure"
+  }
+}

@@ -10,9 +10,11 @@ write" (the credentialed-lint substring trap is the cautionary case). This guard
 is therefore **two honest layers**, neither of them intent-detection:
 
   1. **Presence layer (pure tree check).** Every ``catalogue-curation`` skill
-     carries an explicit refusal clause naming the two protected trees, scoped to
-     the *running* repo. This lint asserts the clause is *present* — a structural
-     fact — not that the prose is obeyed.
+     carries an explicit refusal clause. Legacy skills name the two protected
+     trees in the running catalogue; adopter-facing skills instead confine writes
+     to their declared pack surface and reserve other protected trees for an
+     authorized change path. This lint asserts a recognized clause is *present*
+     — a structural fact — not that the prose is obeyed.
 
   2. **Path-gate layer (changeset check).** A changeset that touches the engine's
      *behavioural* code (``packages/agentbundle/**``) or ``packs/credential-brokers/**``
@@ -55,11 +57,13 @@ The path-classification and exemption-detection logic are pure functions
 
 Usage:
     python tools/lint-catalogue-curation-guard.py [--root .] [--base <ref>]
+    python tools/lint-catalogue-curation-guard.py --local-skip-path-gate
 
 ``--base`` names the ref to diff against for the path-gate (default:
-``origin/main``); if git or the base ref is unavailable the path-gate is skipped
-with a note (the presence layer still runs), so the lint no-ops cleanly outside
-CI. Exit codes: 0 = pass, 1 = one or more violations.
+``origin/main``). Git or base-ref unavailability fails closed. Local operators
+who intentionally lack the base may pass ``--local-skip-path-gate``; presence
+and parity still run. CI must never use that flag. Exit codes: 0 = pass, 1 = one
+or more violations.
 """
 
 from __future__ import annotations
@@ -83,9 +87,16 @@ RECIPE_CARVE_OUT = "packages/agentbundle/agentbundle/build/recipes/"
 EXEMPTION_MARKER = "Engine-Change-RFC:"
 
 PACK_SKILLS_DIR = "packs/catalogue-curation/.apm/skills"
-# A refusal clause must name both protected trees. We check for the two path
-# tokens co-occurring in the skill body (structural presence, not prose intent).
-REFUSAL_TOKENS = ("packages/agentbundle/", "packs/credential-brokers/")
+# A legacy refusal names both checkout-local protected trees. A portable,
+# adopter-facing refusal instead names the selected pack boundary and reserves
+# protected trees for a separate authorized change path. This remains a
+# structural presence check, not prose intent detection.
+LEGACY_REFUSAL_TOKENS = ("packages/agentbundle/", "packs/credential-brokers/")
+PORTABLE_REFUSAL_TOKENS = (
+    "selected pack's declared",
+    "protected trees",
+    "authorized change path",
+)
 
 # Duplicated-helper parity (RFC-0059 D-scripts, option (a) "with pack lint"):
 # the pack model has no cross-skill shared-code location, so security-critical
@@ -122,20 +133,20 @@ def has_exemption(commit_messages: str) -> bool:
 
 
 def check_presence(root: Path) -> list[str]:
-    """Presence layer: every catalogue-curation skill body names both protected
-    trees (its scoped refusal clause). Returns a list of violation messages."""
+    """Return skills without a recognized legacy or portable refusal clause."""
     violations: list[str] = []
     skills_dir = root / PACK_SKILLS_DIR
     if not skills_dir.is_dir():
         return violations  # pack not present in this tree — nothing to check
     for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
         body = skill_md.read_text(encoding="utf-8")
-        missing = [tok for tok in REFUSAL_TOKENS if tok not in body]
-        if missing:
+        has_legacy_refusal = all(token in body for token in LEGACY_REFUSAL_TOKENS)
+        has_portable_refusal = all(token in body for token in PORTABLE_REFUSAL_TOKENS)
+        if not (has_legacy_refusal or has_portable_refusal):
             rel = skill_md.relative_to(root)
             violations.append(
-                f"{rel}: missing refusal clause — does not name protected tree(s): "
-                + ", ".join(missing)
+                f"{rel}: missing refusal clause — expected both legacy protected-tree "
+                "paths or the portable selected-pack/protected-tree/authorized-path clause"
             )
     return violations
 
@@ -206,20 +217,30 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".", help="repo root (default: .)")
     ap.add_argument("--base", default="origin/main", help="diff base ref for the path-gate")
+    ap.add_argument(
+        "--local-skip-path-gate",
+        action="store_true",
+        help="explicitly skip git path-gate for a local checkout without the diff base",
+    )
     args = ap.parse_args(argv)
     root = Path(args.root).resolve()
 
     violations = check_presence(root)
     violations.extend(check_dup_sync(root))
-    gate_violations, ran = check_path_gate(root, args.base)
-    violations.extend(gate_violations)
-
-    if not ran:
+    if args.local_skip_path_gate:
         print(
-            "lint-catalogue-curation-guard: path-gate skipped "
-            f"(git or base '{args.base}' unavailable); presence layer ran.",
+            "lint-catalogue-curation-guard: path-gate explicitly skipped for local run; "
+            "presence and parity layers ran.",
             file=sys.stderr,
         )
+    else:
+        gate_violations, ran = check_path_gate(root, args.base)
+        violations.extend(gate_violations)
+        if not ran:
+            violations.append(
+                "path-gate: cannot evaluate changes because git or diff base "
+                f"'{args.base}' is unavailable"
+            )
 
     if violations:
         for v in violations:

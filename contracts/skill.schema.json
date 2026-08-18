@@ -24,7 +24,14 @@
     },
     "compatibility": {
       "type": "object",
-      "description": "Open object — adapter-compatibility constraints declared by the skill."
+      "description": "Adapter-compatibility constraints declared by the skill. Values are bounded to the show JSON discovery-compatible scalar/list subset.",
+      "maxProperties": 256,
+      "propertyNames": {
+        "maxLength": 1024
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/compatibilityValue"
+      }
     },
     "metadata": {
       "type": "object",
@@ -34,6 +41,38 @@
       "type": "array",
       "items": {"type": "string"},
       "description": "Explicit tool allowlist for this skill."
+    }
+  },
+  "$defs": {
+    "compatibilityScalar": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 1024
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      ]
+    },
+    "compatibilityValue": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/compatibilityScalar"
+        },
+        {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/compatibilityScalar"
+          }
+        }
+      ]
     }
   }
 }

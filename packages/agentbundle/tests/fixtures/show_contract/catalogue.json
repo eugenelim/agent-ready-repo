@@ -1,0 +1,76 @@
+{
+  "name": "demo-pack",
+  "version": "1.2.3",
+  "description": "Catalogue demo pack",
+  "skills": ["demo-router", "demo-reviewed"],
+  "agents": ["demo-agent"],
+  "integrations": [
+    {
+      "id": "demo-handoff",
+      "pack": "demo-pack",
+      "kind": "handoff",
+      "role": "handoff",
+      "consumers": ["demo-router"],
+      "providers": ["demo-agent"],
+      "when": "After routing",
+      "purpose": "Demonstrate integration contract",
+      "fallback": "Use the router directly"
+    }
+  ],
+  "source": "catalogue",
+  "pack_metadata": {
+    "categories": ["security"],
+    "keywords": ["okf"],
+    "license": "MIT"
+  },
+  "skill_metadata": [
+    {
+      "name": "demo-reviewed",
+      "description": "A reviewed generated skill",
+      "license": "MIT",
+      "compatibility": {
+        "adapter": "claude-code",
+        "stable": true,
+        "max_tokens": 9007199254740991,
+        "targets": ["repo", true, -9007199254740991]
+      },
+      "generated_from": "okf/demo/concepts/demo.md",
+      "profile": "agentbundle-okf/v1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "boundaries": ["no-network"]
+    },
+    {
+      "name": "demo-router",
+      "description": "A generated router skill",
+      "license": null,
+      "compatibility": null,
+      "generated_from": "okf/demo/index.md",
+      "profile": "agentbundle-okf/v1",
+      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "boundaries": []
+    },
+    {
+      "name": "manual-skill",
+      "description": "An authored skill",
+      "license": null,
+      "compatibility": {
+        "notes": ["portable", false, 0]
+      },
+      "generated_from": null,
+      "profile": null,
+      "digest": null,
+      "boundaries": []
+    }
+  ],
+  "knowledge": [
+    {
+      "id": "demo",
+      "format": "okf",
+      "okf_version": "0.2",
+      "router_skill": "demo-router",
+      "content_license": "MIT",
+      "concept_count": 2,
+      "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ]
+}

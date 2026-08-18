@@ -1,7 +1,7 @@
 # Plan: OKF catalogue discovery
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence changes.
@@ -32,6 +32,10 @@ with the package release surfaces required for a public output-format addition.
   PyYAML, compiler import, pack-local script import, network, or LLM.
 - A changed public JSON format requires the package version, PyPI README, and
   release notes to move together.
+- Every live file read uses
+  `catalogue_tooling.file_safety.read_confined_regular_file`; the package does
+  not introduce a second path jail. JSON emission is strict RFC 8259 with
+  `allow_nan=False`.
 
 ## Construction tests
 
@@ -169,7 +173,7 @@ all behavior is machine-observable.
 
 **Depends on:** none
 
-**Touches:** `contracts/jsonschema/agentbundle-show.schema.json`, `packages/agentbundle/tests/contracts/test_agentbundle_show_schema.py`, `packages/agentbundle/tests/fixtures/show_contract/**`
+**Touches:** `contracts/jsonschema/agentbundle-show.schema.json`, `contracts/skill.schema.json`, `packages/agentbundle/agentbundle/_data/skill.schema.json`, `packages/agentbundle/tests/contracts/test_agentbundle_show_schema.py`, `packages/agentbundle/tests/contracts/test_skill_schema.py`, `packages/agentbundle/tests/fixtures/show_contract/**`
 
 **Verification mode:** TDD.
 
@@ -177,12 +181,20 @@ all behavior is machine-observable.
 
 - Add catalogue and installed-state golden objects plus one invalid mutation for
   every required key, closed object, scalar/array type, source conditional,
-  digest, normalized path, and nested allowlist in AC1–AC16.
+  digest, normalized path, bounded compatibility object, compatibility integer
+  range boundary/boundary-plus-one, and nested allowlist in AC1–AC16.
+- Prove the canonical Skill schema and packaged projection accept the same
+  bounded compatibility values as the show schema and reject the same nested,
+  oversized, and out-of-range values.
 - Validate the schema itself as JSON Schema 2020-12.
+- `stub: draft (uncompiled)` — the contract test module is introduced by T1;
+  materialize and collect the AC1–AC16 schema stubs first, including an
+  integration record without `version`, then verify red before schema edits.
 
 **Approach:**
 
-- Keep the schema self-contained and model source-specific nullability with
+- Keep the schemas self-contained, project the canonical Skill schema through
+  the existing build path, and model source-specific nullability with
   conditional branches over `source`.
 
 **Done when:** The contract suite covers every response field and both success
@@ -201,11 +213,17 @@ variants with no implementation import.
 - Stub and implement AC4–AC14 and AC19 across authored/generated neutral
   fixtures, no-OKF packs, live edits, boundary-equal/boundary-plus-one size,
   depth and list limits, malformed inputs, portable-path failures, collisions,
-  router/procedure review-marker rules, marker/manifest disagreement, and shared
-  compiler digest vectors. Actual pilot coverage remains in T4 after T6–T8
-  produce the pilot artifacts.
+  router/procedure review-marker rules, marker/manifest disagreement, hard-link,
+  reparse/junction, resolution-failure and inspection-to-open-swap cases,
+  non-finite scalar rejection, compatibility scalar/list acceptance,
+  compatibility integer range boundary/boundary-plus-one for scalar and list
+  values, nested map rejection, and shared compiler digest vectors. Actual
+  pilot coverage remains in T4 after T6–T8 produce the pilot artifacts.
 - Monkeypatch network, process execution, write APIs, and optional YAML imports
   to fail if the extractor attempts them.
+- `stub: draft (uncompiled)` — `okf_discovery.py` does not exist until T2; the
+  first EXECUTE action materializes and collects the AC4–AC14/AC19 pytest stubs
+  and verifies their red state before production code.
 
 **Approach:**
 
@@ -230,7 +248,10 @@ complete normalized record or one safe relative diagnostic.
   empty, non-OKF, neutral generated-OKF, and installed-state responses.
 - Preserve byte/snapshot coverage for table output, unknown packs,
   unavailable-not-installed errors, legacy state warnings, and multi-scope
-  inventory union under AC15–AC19.
+  inventory union under AC15–AC19. Add `NaN`/infinity fixtures proving strict
+  JSON failure before stdout emission.
+- `stub: draft (uncompiled)` — T3 begins by extending the existing collected
+  `test_show_cmd.py` surface with red AC2/AC3/AC14–AC19 assertions.
 
 **Approach:**
 
@@ -246,7 +267,7 @@ against the complete schema.
 
 **Depends on:** T3, spec:okf-authoring-projection/T8
 
-**Touches:** `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/README-pypi.md`, `packages/agentbundle/CHANGELOG.md`, `packages/agentbundle/tests/**`, `docs/architecture/agentbundle.md`, `docs/architecture/pack-layout.md`
+**Touches:** `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/README-pypi.md`, `packages/agentbundle/CHANGELOG.md`, `packages/agentbundle/tests/**`, `tests/roster/test_okf_catalogue_discovery.py`, `docs/architecture/agentbundle.md`, `docs/architecture/pack-layout.md`
 
 **Verification mode:** Goal-based package, regression, and documentation checks.
 
@@ -254,16 +275,19 @@ against the complete schema.
 
 - Run AC18 and AC21 regression coverage over list-packs, marketplace,
   `catalogue-index.json`, package build metadata, schema files, base-only
-  installation, and user-facing examples.
+  installation, user-facing examples, and the required
+  `Engine-Change-RFC: RFC-0087` commit trailer.
 - Run AC20 against the actual generated `security-checklists` pack and the
   exact cost-pilot bytes staged beneath a temporary discoverable catalogue
   path, validating both complete CLI responses against the schema.
 - Run the full AgentBundle package suite and documentation link/lint gates.
+- `no stub (goal-based package/documentation mode)` — package, regression, and
+  documentation commands are the construction oracles.
 
 **Approach:**
 
 - Apply one compatible package version bump and update release documentation
-  only after T3 is green. Document rich discovery as Experimental while keeping
+  only after T3 is green. Document rich discovery as pre-release while keeping
   excluded surfaces explicit.
 
 **Done when:** Package and documentation gates pass, version metadata agrees,
@@ -272,8 +296,9 @@ and no excluded discovery artifact changes.
 ## Rollout
 
 - **Delivery:** Ship as an additive JSON response in the AgentBundle version
-  produced by T4. Consumers must treat the new rich fields as Experimental
-  until RFC-0087 reaches a terminal decision.
+  produced by T4 only after the Approver chooses release rather than correction
+  or supersession. Consumers must treat the rich fields as pre-release until
+  that decision.
 - **Infrastructure:** None; the command reads local catalogue or install-state
   files only.
 - **External-system integration:** None. No registry, network service, or
@@ -304,5 +329,5 @@ and no excluded discovery artifact changes.
 
 ## Changelog
 
-- 2026-08-15: Initial plan following RFC-0087 Open approval and confirmation
+- 2026-08-15: Initial plan following RFC-0087 acceptance and confirmation
   that one JSON Schema governs the complete `agentbundle show` success response.

@@ -1,0 +1,22 @@
+{
+  "pilot": "security-checklists",
+  "status": "pending",
+  "baseline_kind": "model-e2e",
+  "case_file": "docs/rfc/0087-notes/pilot-cases/security-checklists.json",
+  "harness": {
+    "id": "okf-routing-baseline-v1",
+    "model": "pending-local-model-e2e",
+    "runs_per_case": 3,
+    "temperature": 0,
+    "top_p": 1
+  },
+  "reason": "No local model E2E harness is available in this implementer environment. Cases are frozen; generated-router model results must be recorded before AC27 promotion.",
+  "summary": {
+    "case_count": 20,
+    "security_critical_count": 6,
+    "top_1_expected_path_success": null,
+    "security_critical_success": null,
+    "fabricated_paths": null
+  },
+  "results": []
+}

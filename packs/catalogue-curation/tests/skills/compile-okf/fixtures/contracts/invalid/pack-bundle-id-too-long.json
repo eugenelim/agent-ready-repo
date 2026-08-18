@@ -1,0 +1,10 @@
+{
+  "profile": "agentbundle-okf/v1",
+  "bundles": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "path": "okf/core-routing",
+      "router-skill": "core-routing"
+    }
+  ]
+}

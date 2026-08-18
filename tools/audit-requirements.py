@@ -9,15 +9,16 @@ That inverts this repo's order, which is merge first and tag after.
 
 Skipping those pins costs no coverage. Both shipped distributions declare
 `dependencies = []`, so a first-party pin contributes no third-party tree to
-audit, and `make sast` already audits the one optional extra either package can
-pull. What is left in each file — the genuinely third-party pins — is audited
-exactly as before.
+audit, and `make sast` separately extracts each audited optional group from its
+package contract. What is left in each file — the genuinely third-party pins —
+is audited exactly as before.
 
 Nothing is dropped silently: every skipped pin is printed with its reason, and a
 file whose remainder is empty says so rather than passing quietly.
 
 Usage:
     audit-requirements.py <requirements.txt> [<requirements.txt> ...]
+    audit-requirements.py --optional-group <name> <pyproject.toml> [...]
 """
 
 from __future__ import annotations
@@ -127,6 +128,21 @@ def build_system_requirements(paths: list[Path]) -> list[str]:
     return requirements
 
 
+def optional_dependency_requirements(paths: list[Path], group: str) -> list[str]:
+    """Return one declared optional-dependency group from *paths*."""
+
+    requirements: list[str] = []
+    for path in paths:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+        declared = data.get("project", {}).get("optional-dependencies", {}).get(group)
+        if not isinstance(declared, list) or not declared or not all(
+            isinstance(item, str) and item.strip() for item in declared
+        ):
+            raise ValueError(f"{path}: missing or invalid optional-dependency group {group!r}")
+        requirements.extend(declared)
+    return requirements
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print("usage: audit-requirements.py <requirements.txt> ...", file=sys.stderr)
@@ -159,6 +175,26 @@ def main(argv: list[str]) -> int:
             print(f"audit-requirements: {exc}", file=sys.stderr)
             return 2
         return audit_lines("build-system-requirements", requirements, first_party)
+
+    if argv[0] == "--optional-group":
+        if len(argv) < 3:
+            print(
+                "audit-requirements: --optional-group requires a group and pyproject.toml paths",
+                file=sys.stderr,
+            )
+            return 2
+        group = argv[1]
+        paths = [Path(raw) for raw in argv[2:]]
+        for path in paths:
+            if not path.is_file():
+                print(f"audit-requirements: no such file: {path}", file=sys.stderr)
+                return 2
+        try:
+            requirements = optional_dependency_requirements(paths, group)
+        except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
+            print(f"audit-requirements: {exc}", file=sys.stderr)
+            return 2
+        return audit_lines(f"optional-dependency:{group}", requirements, first_party)
 
     failed = 0
     for raw in argv:

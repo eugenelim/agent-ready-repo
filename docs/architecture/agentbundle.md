@@ -73,6 +73,20 @@ install target, the adopter's config, or a catalogue you own. Run
 There is no `creds` verb — it went out with the rest of the credential surface
 in 0.2.0 (see [Package shape](#package-shape) above).
 
+`show --format json` is also the pre-release OKF catalogue discovery surface for
+one selected pack. On live catalogue reads it adds `pack_metadata`,
+`skill_metadata`, and `knowledge` to the legacy inventory fields; on
+installed-state fallback those three fields are `null` because state files do
+not retain source metadata. The discovery data is excluded from `list-packs`,
+Claude marketplace output, and `catalogue-index.json`; those remain cross-pack
+inventory/publication surfaces with their existing contracts.
+
+OKF authoring is also pre-release and remains outside the AgentBundle runtime
+CLI. Maintainers run the `compile-okf` Skill from the `catalogue-curation` pack
+against local pack source; normal AgentBundle install, render, and adapter
+projection paths consume the resulting ordinary `.apm/skills/` files without
+adding a base runtime dependency or an OKF-specific primitive.
+
 `cli.py` rewrites unknown verb flags into a contract-shaped error message
 ("unknown flag `--foo` for `install`") so every wrapper around the CLI sees
 the same shape.

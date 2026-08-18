@@ -1,0 +1,36 @@
+{
+  "skill_name": "compile-okf",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Compile the confined demo OKF pack under catalogue/, then run the same compiler in check mode.",
+      "expected_output": "The agent invokes python3 <skill-dir>/scripts/compile_okf.py --root catalogue --pack demo, then repeats it with --check. The first command writes only compiler-owned output beneath catalogue/packs/demo; the second reports the committed output clean.",
+      "assertions": [
+        "Invokes the shipped compile_okf.py entry point with --root catalogue and --pack demo",
+        "Runs write mode before check mode",
+        "Reports both the successful write and clean check diagnostics",
+        "Does not write outside catalogue/packs/demo"
+      ],
+      "files": [
+        "evals/files/catalogue/packs/demo/pack.toml",
+        "evals/files/catalogue/packs/demo/okf/demo/index.md",
+        "evals/files/catalogue/packs/demo/okf/demo/concepts/example.md"
+      ],
+      "expect": {
+        "produces": [
+          "catalogue/packs/demo/.okf-generated.json",
+          "catalogue/packs/demo/.apm/skills/demo-router/SKILL.md"
+        ],
+        "output_contains": [
+          "OKF000 wrote packs/demo",
+          "OKF000 check clean packs/demo"
+        ],
+        "output_excludes": [
+          "Traceback",
+          "OKF010",
+          "OKF011"
+        ]
+      }
+    }
+  ]
+}

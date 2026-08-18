@@ -1,13 +1,14 @@
 """Construction tests for ``tools/check-guide-index.py``.
 
-The cases use in-memory inputs so the coverage contract stays testable in
-restricted environments without a writable temporary directory.
+The parser cases use in-memory inputs; discovery uses an isolated standard-
+library temporary directory.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import io
+import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -48,6 +49,22 @@ def test_extracts_only_direct_guide_home_links() -> None:
     )
 
     assert CHECKER.extract_linked_packs(index) == {"core"}
+
+
+def test_underscore_prefixed_pack_is_not_active() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        packs_dir = Path(tmp)
+        for name in ("_private-pilot", "public-pack"):
+            pack_dir = packs_dir / name
+            pack_dir.mkdir()
+            (pack_dir / "pack.toml").write_text("[pack]\n", encoding="utf-8")
+
+        original_packs_dir = CHECKER.PACKS_DIR
+        CHECKER.PACKS_DIR = packs_dir
+        try:
+            assert CHECKER.discover_active_packs() == ["public-pack"]
+        finally:
+            CHECKER.PACKS_DIR = original_packs_dir
 
 
 def test_missing_pack_returns_failure() -> None:

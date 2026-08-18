@@ -34,10 +34,16 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from agentbundle.catalogue_tooling import okf_discovery
+
 if TYPE_CHECKING:
     import argparse
 
     from agentbundle.config import State
+
+
+class _ShowRenderError(ValueError):
+    """A show response could not be serialized safely."""
 
 
 def run(args: argparse.Namespace) -> int:
@@ -64,19 +70,33 @@ def run(args: argparse.Namespace) -> int:
 
     pack_dir, toml = match
     pack = toml.get("pack", {})
-    _emit(
-        fmt,
-        name=pack.get("name") or pack_dir.name,
-        # Pass metadata through as-is: an *absent* key is null; a present
-        # (even empty) value is not coerced, so "declared empty" and "absent"
-        # stay distinguishable on the authoritative catalogue path.
-        version=pack.get("version"),
-        description=pack.get("description"),
-        skills=skill_names(pack_dir),
-        agents=agent_names(pack_dir),
-        integrations=pack.get("integrations") or [],
-        source="catalogue",
-    )
+    rich_metadata: okf_discovery.DiscoveryRecord | None = None
+    if fmt == "json":
+        try:
+            rich_metadata = okf_discovery.discover_pack(pack_dir)
+        except okf_discovery.DiscoveryError as exc:
+            print(f"show: {exc.diagnostic}", file=sys.stderr)
+            return 1
+    try:
+        _emit(
+            fmt,
+            name=pack.get("name") or pack_dir.name,
+            # Pass metadata through as-is: an *absent* key is null; a present
+            # (even empty) value is not coerced, so "declared empty" and "absent"
+            # stay distinguishable on the authoritative catalogue path.
+            version=pack.get("version"),
+            description=pack.get("description"),
+            skills=skill_names(pack_dir),
+            agents=agent_names(pack_dir),
+            integrations=pack.get("integrations") or [],
+            source="catalogue",
+            pack_metadata=rich_metadata.pack_metadata if rich_metadata else None,
+            skill_metadata=rich_metadata.skill_metadata if rich_metadata else None,
+            knowledge=rich_metadata.knowledge if rich_metadata else None,
+        )
+    except _ShowRenderError as exc:
+        print(f"show: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -144,16 +164,23 @@ def _degrade(args: argparse.Namespace, pack_name: str, fmt: str) -> int:
                 if agent:
                     agents.add(agent)
 
-    _emit(
-        fmt,
-        name=pack_name,  # the argument passed to `show`; state has no pack name
-        version=None,  # inventory-only fallback — never fabricated from state
-        description=None,
-        skills=sorted(skills),
-        agents=sorted(agents),
-        integrations=[],  # degrade path has no TOML; empty array surfaces nothing
-        source="installed-state",
-    )
+    try:
+        _emit(
+            fmt,
+            name=pack_name,  # the argument passed to `show`; state has no pack name
+            version=None,  # inventory-only fallback — never fabricated from state
+            description=None,
+            skills=sorted(skills),
+            agents=sorted(agents),
+            integrations=[],  # degrade path has no TOML; empty array surfaces nothing
+            source="installed-state",
+            pack_metadata=None,
+            skill_metadata=None,
+            knowledge=None,
+        )
+    except _ShowRenderError as exc:
+        print(f"show: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -250,6 +277,9 @@ def _emit(
     agents: list[str],
     integrations: list[dict],
     source: str,
+    pack_metadata: dict | None,
+    skill_metadata: list[dict] | None,
+    knowledge: list[dict] | None,
 ) -> None:
     """Render the inventory as a table block or a single JSON object."""
     if fmt == "json":
@@ -277,8 +307,20 @@ def _emit(
                 for e in integrations
             ],
             "source": source,
+            "pack_metadata": pack_metadata,
+            "skill_metadata": skill_metadata,
+            "knowledge": knowledge,
         }
-        print(json.dumps(obj))
+        try:
+            payload = json.dumps(
+                obj,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            )
+        except ValueError as exc:
+            raise _ShowRenderError("strict JSON serialization failed") from exc
+        print(payload)
         return
 
     from agentbundle.commands._common import render_table

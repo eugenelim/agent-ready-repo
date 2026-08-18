@@ -22,6 +22,7 @@ import argparse
 import os
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -88,6 +89,67 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _okf_pack_dirs(repo_root: Path) -> list[Path]:
+    """Return every pack directory declaring managed OKF metadata.
+
+    This is repo-level experiment plumbing, not public catalogue discovery:
+    underscore-prefixed pilot packs are intentionally included here while normal
+    list/install/publish surfaces still skip them.
+    """
+    packs_root = repo_root / "packs"
+    if not packs_root.is_dir():
+        return []
+    managed: list[Path] = []
+    for pack_dir in sorted(packs_root.iterdir(), key=lambda path: path.name):
+        pack_toml = pack_dir / "pack.toml"
+        if not pack_toml.is_file():
+            continue
+        try:
+            data = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError):
+            continue
+        pack = data.get("pack")
+        metadata = pack.get("metadata") if isinstance(pack, dict) else None
+        okf = metadata.get("okf") if isinstance(metadata, dict) else None
+        if isinstance(okf, dict):
+            managed.append(pack_dir)
+    return managed
+
+
+def _okf_compiler_script(repo_root: Path) -> Path:
+    return (
+        repo_root
+        / "packs"
+        / "catalogue-curation"
+        / ".apm"
+        / "skills"
+        / "compile-okf"
+        / "scripts"
+        / "compile_okf.py"
+    )
+
+
+def _run_okf_checks(repo_root: Path, py: str) -> None:
+    compiler = _okf_compiler_script(repo_root)
+    packs = _okf_pack_dirs(repo_root)
+    if not packs:
+        print("pre-pr: ✓ okf compiler checks (no managed packs)")
+        return
+    for pack_dir in packs:
+        _run(
+            f"okf compiler check {pack_dir.name}",
+            [
+                py,
+                str(compiler),
+                "--root",
+                str(repo_root),
+                "--pack",
+                pack_dir.name,
+                "--check",
+            ],
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run portable verification unless delegated, then every repository gate."""
     args = _build_parser().parse_args(argv)
@@ -134,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     _run("journey-contract lint", [py, "tools/lint-journey-contract.py"])
     _run("journey-contract lint self-test",
          [py, "tools/test-lint-journey-contract.py"])
+    _run_okf_checks(repo_root, py)
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(

@@ -1,0 +1,26 @@
+[
+  {
+    "query": "Compile the OKF bundle for the catalogue-curation pack and update generated skills",
+    "should_trigger": true
+  },
+  {
+    "query": "Run compile-okf --check for this pack before I commit",
+    "should_trigger": true
+  },
+  {
+    "query": "The OKF generated router is stale; regenerate it from source",
+    "should_trigger": true
+  },
+  {
+    "query": "Review this product spec for missing edge cases",
+    "should_trigger": false
+  },
+  {
+    "query": "Install the core pack into my repository",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a new architecture decision record",
+    "should_trigger": false
+  }
+]

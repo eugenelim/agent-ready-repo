@@ -21,7 +21,7 @@ MARKDOWN_SURFACES = (
     REPO_ROOT / "guides/README.md",
     REPO_ROOT / "docs-site/src/content/docs/index.mdx",
 )
-EXCLUDED_PACKS = {"_example", "user-guide-diataxis"}
+EXCLUDED_PACKS = {"user-guide-diataxis"}
 
 
 def _navigation_source() -> str:
@@ -43,7 +43,9 @@ def _outcome_titles(source: str) -> set[str]:
 
 def test_all_active_packs_have_an_outcome() -> None:
     active = {
-        manifest.parent.name for manifest in (REPO_ROOT / "packs").glob("*/pack.toml")
+        manifest.parent.name
+        for manifest in (REPO_ROOT / "packs").glob("*/pack.toml")
+        if not manifest.parent.name.startswith("_")
     } - EXCLUDED_PACKS
     assert _pack_memberships(_navigation_source()) == active
 

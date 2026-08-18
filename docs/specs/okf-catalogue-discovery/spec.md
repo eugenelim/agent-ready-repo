@@ -1,6 +1,6 @@
 # Spec: OKF catalogue discovery
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087, RFC-0060, RFC-0076
@@ -91,29 +91,38 @@ derivation needed to produce them. It does not make OKF a registry or runtime.
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `contracts/jsonschema/agentbundle-show.schema.json` is valid JSON
+- [x] **AC1:** `contracts/jsonschema/agentbundle-show.schema.json` is valid JSON
   Schema 2020-12, links back to this spec, closes every object, and governs the
   complete successful response rather than an OKF fragment.
-- [ ] **AC2:** Every successful JSON response contains exactly these top-level
+- [x] **AC2:** Every successful JSON response contains exactly these top-level
   keys: `name`, `version`, `description`, `skills`, `agents`, `integrations`,
   `source`, `pack_metadata`, `skill_metadata`, and `knowledge`.
-- [ ] **AC3:** The existing `name`, `version`, `description`, `skills`, `agents`,
+- [x] **AC3:** The existing `name`, `version`, `description`, `skills`, `agents`,
   `integrations`, and `source` fields retain their current types, ordering,
   catalogue derivation, installed-state degradation, and meaning, including
-  `null` catalogue `version` or `description` when that optional key is absent.
-- [ ] **AC4:** On `source: "catalogue"`, `pack_metadata` is an object containing
+  `null` catalogue `version` or `description` when that optional key is absent
+  and an optional `integrations[].version` field when the pack omits it.
+- [x] **AC4:** On `source: "catalogue"`, `pack_metadata` is an object containing
   exactly `categories`, `keywords`, and `license`, derived from `[pack]` in
   `pack.toml`; absent categories/keywords become empty arrays and an absent
   licence becomes `null`.
-- [ ] **AC5:** On `source: "catalogue"`, `skill_metadata` is a name-sorted array
+- [x] **AC5:** On `source: "catalogue"`, `skill_metadata` is a name-sorted array
   with exactly one entry for every live `.apm/skills/<name>/` directory that
   has a valid `SKILL.md`, matching the full untagged `skills` inventory rather
   than `[pack.evals].skills`.
-- [ ] **AC6:** Each Skill entry contains exactly `name`, `description`,
+- [x] **AC6:** Each Skill entry contains exactly `name`, `description`,
   `license`, `compatibility`, `generated_from`, `profile`, `digest`, and
   `boundaries`. Authored values come from the allowed Skill frontmatter fields;
   missing values use `null` or `[]`, never inferred pack values.
-- [ ] **AC7:** A generated Skill entry reports `generated_from`, `profile`, and
+  `compatibility` is either `null` or an object with at most 256 keys whose
+  values are bounded strings, booleans, integers in the JSON interoperability
+  range `-9007199254740991` through `9007199254740991`, or arrays of those
+  scalars; unsupported nested maps, out-of-range integers, or other numeric
+  forms fail inspection rather than being serialized as arbitrary frontmatter.
+  The canonical Skill schema and its packaged projection enforce this same
+  compatibility shape, so every schema-valid live Skill is discoverable rather
+  than being accepted at lint time and rejected by inspection.
+- [x] **AC7:** A generated Skill entry reports `generated_from`, `profile`, and
   `digest` only when its generated markers are complete, string-valued, use a
   confined normalized relative source path, name the supported profile, and
   agree with the compiler manifest. A concept-derived procedure must also carry
@@ -121,59 +130,66 @@ derivation needed to produce them. It does not make OKF a registry or runtime.
   omit that marker. Both report their `boundaries` list; incomplete, unexpected,
   or conflicting markers fail inspection. The review digest is validated but
   not emitted because it is outside the response allowlist.
-- [ ] **AC8:** On `source: "catalogue"`, `knowledge` is sorted by bundle ID and
+- [x] **AC8:** On `source: "catalogue"`, `knowledge` is sorted by bundle ID and
   contains exactly one entry for every `[pack.metadata.okf.bundles]`
   declaration; packs without that table return `knowledge: []`.
-- [ ] **AC9:** Each knowledge entry contains exactly `id`, `format`,
+- [x] **AC9:** Each knowledge entry contains exactly `id`, `format`,
   `okf_version`, `router_skill`, `content_license`, `concept_count`, and
   `digest`; `format` is `"okf"`, `okf_version` is `"0.2"`, paths are never
   emitted, and all other values derive from the declaration and live bundle.
-- [ ] **AC10:** `concept_count` counts valid concept Markdown files beneath the
+- [x] **AC10:** `concept_count` counts valid concept Markdown files beneath the
   bundle root, excluding compiler-owned indexes and non-concept includes. The
   bundle digest uses the compiler's canonical source-digest algorithm and
   matches its manifest; disagreement fails inspection.
-- [ ] **AC11:** `content_license` comes from the root OKF licence declaration or
+- [x] **AC11:** `content_license` comes from the root OKF licence declaration or
   from an explicit, compiler-validated SPDX-compatible pack-licence inheritance
   marker; absence or incompatible inheritance fails inspection rather than
   guessing.
-- [ ] **AC12:** Catalogue discovery parses only the bounded scalar/list
+- [x] **AC12:** Catalogue discovery parses only the bounded scalar/list
   frontmatter subset required by the allowlist using the base-runtime standard
   library path; aliases, tags, malformed structures, unsupported profiles,
-  unsafe or non-portable paths, missing roots, manifest drift, duplicate
-  IDs/names, and Unicode-NFC or case-folded collisions return nonzero with empty
-  stdout and one normalized one-line stderr diagnostic.
-- [ ] **AC12a:** Before full parsing, discovery rejects `pack.toml` above 1 MiB,
+  unsafe or non-portable paths, non-finite numeric values, missing roots,
+  manifest drift, duplicate IDs/names, and Unicode-NFC or case-folded
+  collisions return nonzero with empty stdout and one normalized one-line
+  stderr diagnostic. All live file reads use the package's confined regular
+  file helper and reject hard links, reparse points/junctions, resolve failures,
+  and inspection-to-open swaps.
+- [x] **AC12a:** Before full parsing, discovery rejects `pack.toml` above 1 MiB,
   `.okf-generated.json` above 8 MiB, more than 4,096 Skill or agent directories,
   more than 128 integrations or declared bundles, a `SKILL.md` above 2 MiB,
   Skill frontmatter above 64 KiB, parsed manifest or frontmatter nesting above
-  20 levels, or any categories, keywords, boundaries, consumers, or providers
-  list above 256 items. Declared bundles retain the OKF corpus limits.
+  20 levels, a compatibility object above 256 keys, or any categories,
+  keywords, boundaries, consumers, providers, or compatibility value list above
+  256 items, or a compatibility integer outside the inclusive
+  `-9007199254740991` through `9007199254740991` range. Declared bundles retain
+  the OKF corpus limits.
   Boundary-equal fixtures pass and boundary-plus-one fixtures fail before
   oversized content is fully parsed.
-- [ ] **AC13:** The command never emits concept bodies, instruction sections,
+- [x] **AC13:** The command never emits concept bodies, instruction sections,
   includes, executor/attester/runtime data, remote resource URLs, authors,
   source records, absolute paths, arbitrary pack metadata, or unknown
   frontmatter/extensions.
-- [ ] **AC14:** All name, boundary, category, keyword, and bundle arrays use
+- [x] **AC14:** All name, boundary, category, keyword, and bundle arrays use
   stable ascending Unicode-NFC ordering with duplicates removed; repeated calls
-  over the same pack bytes emit byte-identical compact JSON plus one LF.
-- [ ] **AC15:** On `source: "installed-state"`, `version` and `description` stay
+  over the same pack bytes emit byte-identical strict RFC 8259 compact JSON plus
+  one LF. Serialization uses `allow_nan=False` and rejects `NaN` or infinities.
+- [x] **AC15:** On `source: "installed-state"`, `version` and `description` stay
   `null`, `integrations` stays `[]`, current multi-scope/multi-adapter
   `skills`/`agents` union behavior is unchanged, and `pack_metadata`,
   `skill_metadata`, and `knowledge` are each exactly `null`.
-- [ ] **AC16:** A catalogue-backed pack with no Skills or OKF declaration
+- [x] **AC16:** A catalogue-backed pack with no Skills or OKF declaration
   returns empty `skills`, `agents`, `skill_metadata`, and `knowledge` arrays and
   a non-null `pack_metadata` object; this is a successful schema-valid response.
-- [ ] **AC17:** An unknown catalogue pack, or an unavailable catalogue plus a
+- [x] **AC17:** An unknown catalogue pack, or an unavailable catalogue plus a
   pack absent from install state, preserves the current exit-1, empty-stdout,
   one-line-stderr behavior under both table and JSON formats.
-- [ ] **AC18:** Human-readable `show`, `list-packs`, marketplace output, and the
+- [x] **AC18:** Human-readable `show`, `list-packs`, marketplace output, and the
   RFC-0076 `catalogue-index.json` contract and bytes are unchanged by the
   experiment.
-- [ ] **AC19:** `show` reads live sources on every catalogue-backed invocation,
+- [x] **AC19:** `show` reads live sources on every catalogue-backed invocation,
   performs no network call, compiler call, cache write, state write, or pack
   write, and behaves identically when PyYAML is not installed.
-- [ ] **AC20:** The discovery implementation and full-schema tests cover both
+- [x] **AC20:** The discovery implementation and full-schema tests cover both
   generated pilots and a non-OKF pack. The cost pilot's exact reserved
   pack-shaped bytes are staged under a temporary discoverable catalogue path
   for the CLI test; the working catalogue continues to omit the reserved source
@@ -181,10 +197,11 @@ derivation needed to produce them. It does not make OKF a registry or runtime.
   call without regeneration of a discovery index; an OKF source edit that has
   not regenerated its manifest/projection fails honestly as drift on the next
   call.
-- [ ] **AC21:** The release-bearing AgentBundle change receives synchronized
+- [x] **AC21:** The release-bearing AgentBundle change receives synchronized
   package version metadata, `README-pypi.md` documentation of the additive JSON
-  fields and installed-state null behavior, changelog/release notes, and all
-  package integration tests before publication.
+  fields and installed-state null behavior, changelog/release notes, the
+  required `Engine-Change-RFC: RFC-0087` commit trailer, and all package
+  integration tests before publication.
 
 ## Assumptions
 

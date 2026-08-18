@@ -1,6 +1,6 @@
 # Spec: OKF authoring projection
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087
@@ -134,8 +134,9 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   ownership conflict; `OKF011` committed-output drift; `OKF012`
   non-deterministic repeated compilation.
 - [ ] **AC8:** Parsing rejects YAML explicit tags and aliases, disables object
-  construction, and rejects structures deeper than 20 levels without
-  executing constructors or resolving remote references.
+  construction, rejects non-finite numeric scalars, and rejects structures
+  deeper than 20 levels without executing constructors or resolving remote
+  references.
 - [ ] **AC9:** A bundle is rejected before generation if it exceeds 4,096
   regular files, 2,000 concepts, 32 MiB total bytes, 16 directory levels,
   2 MiB for one Markdown file, or 64 KiB of frontmatter; boundary-equal fixtures
@@ -143,8 +144,12 @@ RFC-0087 apply to every compiler mode and pilot fixture.
 - [ ] **AC10:** Absolute paths, `..` traversal, backslash variants, ASCII
   controls, Windows-reserved characters or device-name segments, trailing dots
   or spaces, escaping symlinks, symlink inputs or outputs, non-regular files,
-  duplicate normalized paths, and Unicode-NFC or case-folded collisions fail
-  before any pack write on every host.
+  multiply linked regular files, Windows reparse points or junctions, failed
+  path resolution, duplicate normalized paths, and Unicode-NFC or case-folded
+  collisions fail before any pack write on every host. Reads use the
+  repository's confined-regular-file contract where it is importable; the
+  standalone compiler path implements that exact contract and passes parity
+  fixtures, including a symlink swap between inspection and open.
 - [ ] **AC11:** Every managed `index.md` is wholly compiler-owned, carries a
   first-body-line marker exactly
   `<!-- agentbundle-managed: profile=agentbundle-okf/v1 kind=okf-index -->`, is
@@ -174,14 +179,15 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   activation description, resolved licence and compatibility, boundary list,
   instruction-section identifier and SHA-256 of its normalized bytes, SHA-256
   of the exact fixed Skill-template source bytes, and an ordered list of every
-  include's normalized path and byte SHA-256. The tuple uses UTF-8 canonical
-  JSON with sorted keys and no insignificant whitespace; published golden
-  encoding/digest vectors fix the representation. Any tuple change fails as
-  `OKF008` until a maintainer records the newly printed candidate digest.
+  include's normalized path and byte SHA-256. The tuple uses UTF-8 strict RFC
+  8259 canonical JSON with sorted keys, no insignificant whitespace, and
+  `allow_nan=False`; published golden encoding/digest vectors fix the
+  representation. Any tuple change fails as `OKF008` until a maintainer records
+  the newly printed candidate digest.
 - [ ] **AC15:** A generated procedure Skill contains only the reviewed Markdown
   section inside the fixed wrapper, copies at most 64 declared regular-file
-  includes, labels included content as untrusted data, and contains no
-  `allowed-tools` field.
+  includes, and labels included content as untrusted data. Generated routers
+  and procedure Skills contain no `allowed-tools` field.
 - [ ] **AC16:** Router and generated procedure Skills carry `generated-by`,
   `source-path`, and `source-digest` string markers plus
   `metadata.boundaries: [filesystem_read_untrusted]`; procedure Skills also
@@ -197,9 +203,10 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   canonical output.
 - [ ] **AC19:** `.okf-generated.json` contains only the profile, normalized
   managed source/output paths, managed kind, exact expected marker, source and
-  complete-output digests, with stable UTF-8/LF serialization and no time, host
-  path, or nondeterministic value. Every index record uses kind `okf-index` and
-  the exact AC11 marker.
+  complete-output digests, with stable UTF-8/LF strict RFC 8259 serialization
+  and no time, host path, non-finite number, or nondeterministic value. JSON
+  serialization uses `allow_nan=False`. Every index record uses kind
+  `okf-index` and the exact AC11 marker.
 - [ ] **AC20:** Stale Skill-output removal occurs only for a real directory
   beneath the selected pack's `.apm/skills/` root whose complete current digest
   and applicable generated markers match the prior manifest. A managed
@@ -213,26 +220,28 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   the working tree unchanged.
 - [ ] **AC22:** Two write-mode compiles from identical canonical bytes and
   profile/compiler versions produce byte-identical complete managed trees on
-  macOS, Linux, and Windows test runners.
+  Linux and Windows CI runners and in a recorded local macOS verification.
 - [ ] **AC23:** Claude Code, Kiro IDE, Kiro CLI, Copilot, Cursor, Codex, and
   Gemini projections preserve the generated router's nested OKF regular-file
   bytes and pass existing Agent Skills/catalogue lint rules.
 - [ ] **AC24:** `catalogue-curation` ships the `compile-okf` Skill and script,
-  declares its authoring-time PyYAML prerequisite without adding a base
+  declares the audited `pyyaml>=6.0` authoring-time prerequisite through the
+  existing lint extra and `tools/requirements.txt` without adding a base
   AgentBundle runtime dependency, includes activation and behavior evals, and
   receives the required synchronized minor pack/plugin version bump and
-  changelog entry.
+  changelog entry. The final compiler/dependency gate runs the repository's
+  complete SAST/SCA path without `SKIP_SAST`.
 - [ ] **AC25:** Both pilot corpora compile through the same functions and
   profile with no condition on caller, pack, bundle, cost, FinOps, security, or
   boundary names; an instrumentation test records the same generic pipeline
   stages for both.
 - [ ] **AC25a:** The cost pilot is a complete but non-published pack-shaped
-  fixture at `packs/_okf-pilot-cost-engineering/`. The compiler may select that
-  exact immediate child by its `--pack` value even though underscore-prefixed
-  authoring assets remain absent from normal catalogue discovery and publishing.
-  Discovery CLI tests stage the same pack bytes under a temporary discoverable
-  catalogue path; production `list-packs` and marketplace behavior stay
-  unchanged.
+  fixture at `packs/_okf-pilot-cost-engineering/`. Tests stage those exact bytes
+  beneath a temporary catalogue's ordinary `packs/cost-engineering/` path
+  before invoking the unchanged generic compiler selection path. The working
+  catalogue's underscore-prefixed authoring asset remains absent from normal
+  discovery and publishing; production `list-packs` and marketplace behavior
+  stay unchanged.
 - [ ] **AC26:** Before generated pilot evaluation, each caller has at least 20
   frozen cases with expected and forbidden concept paths, at least five fixed
   security-critical cases, and a recorded hand-authored baseline using the same
@@ -271,6 +280,7 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   are directly authored without rule-enforcement and validated with the
   repository toolchain (source: `docs/CONVENTIONS.md`; user confirmation
   2026-08-15).
-- Process: RFC-0087 is Open and the Approver signs the frozen cases, pilot
-  results, and any transition to Experimental or a terminal state (source:
-  RFC-0087 lifecycle and D5).
+- Process: RFC-0087 is Accepted. The Approver signs the frozen cases and pilot
+  results before deciding release, correction, or supersession; the accepted
+  RFC explicitly has no Experimental lifecycle stop (source: RFC-0087
+  lifecycle and D5).

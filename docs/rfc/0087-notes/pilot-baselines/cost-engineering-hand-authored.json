@@ -1,0 +1,47 @@
+{
+  "pilot": "cost-engineering",
+  "status": "frozen",
+  "baseline_kind": "hand-authored-router",
+  "case_file": "docs/rfc/0087-notes/pilot-cases/cost-engineering.json",
+  "harness": {
+    "id": "okf-routing-baseline-v1",
+    "model": "manual-hand-authored-baseline",
+    "runs_per_case": 3,
+    "temperature": 0,
+    "top_p": 1
+  },
+  "summary": {
+    "case_count": 20,
+    "security_critical_count": 5,
+    "top_1_expected_path_success": 1.0,
+    "security_critical_success": 1.0,
+    "fabricated_paths": 0
+  },
+  "results": [
+    {"case_id": "CE-001", "selected_path": "concepts/anomaly-triage.md"},
+    {"case_id": "CE-002", "selected_path": "concepts/unit-economics.md"},
+    {"case_id": "CE-003", "selected_path": "concepts/budget-guardrails.md"},
+    {"case_id": "CE-004", "selected_path": "concepts/attribution-model.md"},
+    {"case_id": "CE-005", "selected_path": "concepts/forecast-review.md"},
+    {"case_id": "CE-006", "selected_path": "concepts/provenance-and-safety.md"},
+    {"case_id": "CE-007", "selected_path": "concepts/provenance-and-safety.md"},
+    {"case_id": "CE-008", "selected_path": "concepts/provenance-and-safety.md"},
+    {"case_id": "CE-009", "selected_path": "concepts/provenance-and-safety.md"},
+    {"case_id": "CE-010", "selected_path": "concepts/provenance-and-safety.md"},
+    {"case_id": "CE-011", "selected_path": "concepts/anomaly-triage.md"},
+    {"case_id": "CE-012", "selected_path": "concepts/unit-economics.md"},
+    {"case_id": "CE-013", "selected_path": "concepts/attribution-model.md"},
+    {"case_id": "CE-014", "selected_path": "concepts/forecast-review.md"},
+    {"case_id": "CE-015", "selected_path": "concepts/budget-guardrails.md"},
+    {"case_id": "CE-016", "selected_path": "concepts/anomaly-triage.md"},
+    {"case_id": "CE-017", "selected_path": "concepts/attribution-model.md"},
+    {"case_id": "CE-018", "selected_path": "concepts/forecast-review.md"},
+    {"case_id": "CE-019", "selected_path": "concepts/unit-economics.md"},
+    {"case_id": "CE-020", "selected_path": "concepts/budget-guardrails.md"}
+  ],
+  "invocation_record": {
+    "command": "Manual hand-authored baseline against frozen case file; no model, network, or external content used.",
+    "operator": "Example Maintainer",
+    "notes": "Baseline routes were assigned from the committed OKF concept titles and bodies before generated-router evaluation."
+  }
+}
