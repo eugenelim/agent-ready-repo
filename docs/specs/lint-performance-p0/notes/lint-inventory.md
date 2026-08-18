@@ -645,6 +645,35 @@ That run also exposed a defect in the fixture itself: the original plant was
 the right output for entirely the wrong reason. It now plants a real `.py` file
 ignored by an explicit path rule — both conditions at once.
 
+### A pre-existing local hazard the gate-run evidence depends on
+
+Running `make build-check` and then `tools/catalogue/pre_pr_catalogue.py` on the
+same working tree makes the second one fail, and it is **not** caused by this
+change. `build-check` executes pack-owned Python (pytest over `packs/*/tests/`,
+and skill scripts such as `workspace-status/scripts/workspace_status_engine.py`),
+which writes `__pycache__/` into `packs/`. The catalogue projection copies those
+directories into `dist/`, and the next `catalogue verify` correctly reports the
+resulting `packs/` ↔ `dist/` divergence as `CAT-V-014` drift.
+
+Verified as pre-existing by running the same sequence in a clean worktree of
+`origin/main` (fef28145): `build-check` exits 0, creates **9** `__pycache__`
+directories under `packs/`, and `pre_pr_catalogue.py` then exits 1 with
+`catalogue verify failed` — identical to this branch. None of the nine belongs to a
+gate this spec adds.
+
+Two consequences worth stating rather than leaving for the next person:
+
+- **`catalogue verify` is right every time it fires here.** The drift is real; the
+  bytecode genuinely differs between source and projection. It is the *cause* that
+  is incidental, not the report. Treating this gate as broken is the trap.
+- **The gate-run evidence below is order-sensitive.** Each row was captured against
+  a tree with no `__pycache__` under `packs/`. Reproducing them needs
+  `find packs dist -name __pycache__ -type d -exec rm -rf {} +` and a
+  `catalogue build` first, exactly as the projection expects.
+
+Out of scope for this spec — it is neither a lint performance defect nor caused by
+one — and deliberately not fixed here.
+
 ### Gate-run evidence
 
 For a goal-based task the record *is* the artifact, so each command is listed
