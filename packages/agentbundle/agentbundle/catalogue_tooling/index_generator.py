@@ -346,7 +346,7 @@ def _pack_entry(
             if unknown:
                 raise CatalogueIndexError(
                     "invalid-pack",
-                    "allowed-adapters contains an unknown adapter",
+                    f"allowed-adapters contains unknown adapters: {unknown}",
                     location,
                 )
             adapters = sorted(allowed)

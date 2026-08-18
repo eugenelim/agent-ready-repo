@@ -4,21 +4,12 @@ from __future__ import annotations
 
 import copy
 import json
-from pathlib import Path
+from importlib.resources import files
 
 import pytest
 from agentbundle.build.validate import validate
 
-ROOT = Path(__file__).parents[4]
-CONTRACT = ROOT / "contracts" / "catalogue-index.schema.json"
-BUNDLED = (
-    ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / "catalogue-index.schema.json"
-)
+BUNDLED_SCHEMA = files("agentbundle").joinpath("_data/catalogue-index.schema.json")
 
 
 def _minimal_index() -> dict[str, object]:
@@ -95,7 +86,7 @@ def _full_index() -> dict[str, object]:
 
 
 def _schema() -> dict[str, object]:
-    return json.loads(CONTRACT.read_text(encoding="utf-8"))
+    return json.loads(BUNDLED_SCHEMA.read_text(encoding="utf-8"))
 
 
 def test_schema_parses_as_valid_json() -> None:
@@ -141,10 +132,6 @@ def test_unknown_properties_fail_validation(
     assert isinstance(target, dict)
     target.update(extra)
     assert validate(instance, _schema())
-
-
-def test_contracts_and_data_copies_byte_identical() -> None:
-    assert CONTRACT.read_bytes() == BUNDLED.read_bytes()
 
 
 def test_contract_requires_all_journey_contract_fields() -> None:

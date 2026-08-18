@@ -147,7 +147,7 @@ interface AsideLedgerRow {
   content_sha256: string;
   anchor: string;
   classification: 'quotation' | 'note' | 'tip' | 'caution' | 'danger';
-  status: 'done';
+  status: 'done' | 'superseded';
   reason: string;
 }
 
@@ -155,7 +155,8 @@ function asideLedger(): AsideLedgerRow[] {
   return readFileSync(ASIDE_LEDGER, 'utf8')
     .split('\n')
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as AsideLedgerRow);
+    .map((line) => JSON.parse(line) as AsideLedgerRow)
+    .filter((row) => row.status === 'done');
 }
 
 function builtGuidePage(sourcePath: string): string {

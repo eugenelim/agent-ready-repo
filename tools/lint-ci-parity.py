@@ -428,6 +428,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest enriched-pack-manifest (RFC-0031)":
         LOCAL("test"),
+    "pytest catalogue Wave 4 live contracts (roster-owned)":
+        LOCAL("test"),
     "pytest consolidated-pack-layout installer append (RFC-0040)":
         LOCAL("test"),
     "pytest kiro drop-warning contract":

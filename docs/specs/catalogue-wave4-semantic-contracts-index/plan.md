@@ -898,7 +898,7 @@ with all required frontmatter keys from AC1.
 - `docs/product/changelog.md`
 - `docs/specs/catalogue-wave4-semantic-contracts-index/spec.md` (Status: Implementing → Shipped)
 - `docs/specs/catalogue-wave4-semantic-contracts-index/plan.md` (Status: Executing → Done)
-- `workspace.toml` (read-only at this gate; publication-confirmed follow-up owns the move)
+- `workspace.toml` (Wave 4 queue → shipped in this landing PR, per the human closeout decision)
 
 **Tests:** none (goal-based)
 
@@ -928,11 +928,10 @@ with all required frontmatter keys from AC1.
 7. Mark every shipped acceptance criterion in `spec.md` `[x]`; if an acceptance
    criterion is genuinely deferred, record the explicit workspace anchor instead.
    Then update spec.md Status: Shipped and plan.md Status: Done.
-8. Keep the Wave 4 entry queued in `workspace.toml` through the human merge/release
-   gate. The package release convention permits the version-bump PR to mark the spec
-   Shipped and plan Done, but the workspace move occurs only after publication is
-   confirmed. Record that publication-confirmed follow-up explicitly in the handoff;
-   do not mutate `workspace.toml` in this pre-merge worktree.
+8. Per the human closeout decision on 2026-08-18, treat this PR landing as the Wave 4
+   shipped signal and move its entry from `[work].queue` to `[work].shipped` in the same
+   diff. The subsequent PyPI publication remains a release operation, but is not a
+   second workspace-lifecycle gate for this initiative.
 9. Run `python3 .agents/skills/work-loop/scripts/lint-spec-status.py --root .` and
    `python3 tools/lint-ruff.py`; fix any issues.
 
@@ -944,6 +943,7 @@ with all required frontmatter keys from AC1.
 - Spec Status shows Shipped
 - Plan Status shows Done, every acceptance criterion is checked or explicitly deferred,
   and `lint-spec-status.py` exits 0
+- `workspace.toml` lists Wave 4 once under `[work].shipped` and not under `[work].queue`
 
 ## Constraints
 

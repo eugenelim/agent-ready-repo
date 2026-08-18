@@ -5,16 +5,18 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 from agentbundle.build.validate import validate
 from agentbundle.catalogue_tooling.index_generator import CatalogueIndexError, generate_index
 
-ROOT = Path(__file__).parents[4]
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "catalogue_wave4"
 SCHEMA = json.loads(
-    (ROOT / "contracts" / "catalogue-index.schema.json").read_text(encoding="utf-8")
+    files("agentbundle")
+    .joinpath("_data/catalogue-index.schema.json")
+    .read_text(encoding="utf-8")
 )
 
 
@@ -256,21 +258,19 @@ def test_nonlegacy_pack_uses_allowed_adapter_subset(tmp_path: Path) -> None:
     assert _pack(index, "pack-with-journey")["adapters"] == ["claude-code"]
 
 
-def test_live_catalogue_indexes_every_manifest_pack() -> None:
-    index = generate_index(ROOT)
-    expected = {
-        path.parent.name
-        for path in (ROOT / "packs").glob("*/pack.toml")
-        if not path.parent.name.startswith("_")
-    }
-    assert {pack["name"] for pack in index["packs"]} == expected  # type: ignore[index]
-    with_journeys = {
-        pack["name"] for pack in index["packs"] if pack["journeys"]  # type: ignore[index]
-    }
-    expected_journeys = {
-        path.parent.name
-        for path in (ROOT / "packs").glob("*/JOURNEY.md")
-        if not path.parent.name.startswith("_")
-    }
-    assert expected_journeys
-    assert with_journeys == expected_journeys
+def test_unknown_allowed_adapter_names_rejected_value(tmp_path: Path) -> None:
+    root = _copy_fixture(tmp_path)
+    manifest = root / "packs" / "pack-with-journey" / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'allowed-adapters = ["claude-code"]',
+            'allowed-adapters = ["claude"]',
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(CatalogueIndexError) as caught:
+        generate_index(root)
+
+    assert caught.value.code == "invalid-pack"
+    assert caught.value.message == "allowed-adapters contains unknown adapters: ['claude']"
