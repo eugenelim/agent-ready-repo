@@ -535,6 +535,13 @@ open = [
   # than against live files, so repointing one row alone would desynchronise the
   # pair. Not rewritten here. Fix: regenerate ledger and baseline together, or
   # accept the one-row gap explicitly.
+  # spec/guide-metadata-completion removed 84 guide-nav-baseline.toml entries so the
+  # reviewed titles reach navigation. project_guide_sidebar sorts kind buckets by
+  # resolved label, so label and order cannot be varied independently: adopting a
+  # title necessarily reorders its bucket. Nine buckets moved as a result, approved
+  # 2026-08-18. Fix: decide whether the projector should carry an explicit order key
+  # independent of label, or whether label-derived order is the intended contract.
+  {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   {slug = "typed-asides-ledger-row-orphaned-by-guide-move", source = "spec/guide-metadata-completion AC8", summary = "Row 1 of the typed-asides blockquote ledger names a path moved by the metadata spec; the suite skips missing files so its coverage vanishes silently"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
   # tools/test_guide_typed_asides.py used to assert README-pypi.md names the exact

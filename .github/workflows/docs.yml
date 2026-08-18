@@ -133,16 +133,26 @@ jobs:
       # could land with no frontmatter and every gate stayed green.
       - name: Validate published-guide metadata
         run: python3 tools/validate_guides.py
-      - name: Fail on any warning, not only on errors
-        # The validator exits 0 for warnings by design (migration warnings were
-        # advisory while the backfill was in flight). The backfill is complete, so a
-        # warning now means a regression.
+      - name: Fail on any warning, and assert the run had coverage
+        # Two assertions, because the first alone is blind. The validator exits 0 for
+        # warnings by design (they were advisory while the backfill was in flight), so
+        # a warning now means a regression. But "0 errors, 0 warnings" is ALSO what an
+        # empty or missing tree prints, so grepping only that asserts the absence of
+        # complaints without asserting anything was examined. The floor is well under
+        # the current 188 so ordinary additions do not trip it, and well above 0.
         run: |
           set -euo pipefail
           out="$(python3 tools/validate_guides.py 2>&1)"
           echo "$out"
           if ! grep -q '0 errors, 0 warnings' <<<"$out"; then
             echo "::error::published-guide metadata is incomplete — see the warnings above"
+            exit 1
+          fi
+          # grep -o, not sed: `\+` is a GNU extension, so a sed pattern using it
+          # cannot be verified on a BSD sed and would be untested until CI ran it.
+          checked="$(grep -o '[0-9][0-9]* checked' <<<"$out" | head -1 | cut -d' ' -f1)"
+          if [ -z "$checked" ] || [ "$checked" -lt 150 ]; then
+            echo "::error::validator examined ${checked:-no} files — expected at least 150; the guides tree is missing or the invocation is wrong"
             exit 1
           fi
 

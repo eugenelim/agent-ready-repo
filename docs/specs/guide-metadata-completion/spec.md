@@ -116,21 +116,28 @@ existing public route; every other public route remains unchanged.
   internal `docs/guides/` maintainer guide.
 - [x] Existing optional `slug`, `order`, and `aliases` values remain unchanged
   unless a source is already invalid under `contracts/guide.schema.json`.
-- [x] Applying the reviewed titles changes **125 sidebar labels** and reorders items
-  in **11 sidebar groups**, and that is accepted rather than incidental. Each of the
-  125 previously took a title-cased filename fallback ("Pack Catalogue",
-  "Shaping A New Engagement"); the curated title replacing it is what the criterion
-  below requires. The reorder follows because `project_guide_sidebar` sorts kind
-  buckets by resolved label, so labels and order cannot move independently in the
-  current projector. Affected groups: Architect/Tutorials,
-  Cross-cutting/{Explanation,How-to}, Desk Research/Tutorials,
-  Experience Design/How-to, Governance Extras/How-to,
-  Product Discovery/{How-to,Reference}, Product Documentation/How-to,
-  The Build Loop (core)/{Explanation,How-to}. `catalogue-format` also moves group,
-  from the removed "Reference material" to Cross-cutting/Reference. Approved
-  2026-08-18 against the Ask-first boundary on sidebar order; registered as
-  `[backlog].open` slug `guide-sidebar-label-order-coupling` because a projector that
-  could vary order independently of label does not exist and is not built here.
+- [x] Applying the reviewed titles changes **125 sidebar labels**, reorders items in
+  **9 kind buckets**, and moves one page between groups. Measured with the SHIPPING
+  label chain, against `origin/main`'s tree and baseline.
+
+  This required removing **84 entries from `guide-nav-baseline.toml`** (101 → 17).
+  That registry has highest precedence in `_guide_label`, so without the removal the
+  curated titles reached the page but not navigation — 84 of the 125 kept their
+  pre-change sidebar label, leaving the criterion below unmet for two thirds of the
+  set. `guide-nav-baseline.toml`'s own header defines the protocol: "a page gains
+  `title:` frontmatter, its entry is removed here deliberately … Removing an entry is
+  the reviewable act that adopts a page's own title." Every one of the 84 had a label
+  differing from the title replacing it, so none was a no-op.
+
+  Reordered buckets: Architect/Tutorials, Cross-cutting/{Explanation,How-to},
+  Desk Research/How-to, Experience Design/How-to, Governance Extras/How-to,
+  Product Discovery/How-to, The Build Loop (core)/{Explanation,How-to}. Group move:
+  `catalogue-format` from the removed "Reference material" to Cross-cutting/Reference.
+
+  Approved 2026-08-18 against the Ask-first boundary on sidebar order. An earlier
+  revision of this AC recorded 11 buckets and cited two examples that do not change,
+  because the measurement passed an empty baseline and so bypassed the highest-
+  precedence layer; the numbers above are from the shipping chain.
 - [x] The built marketing and documentation sites enumerate all 125 affected
   pages and expose each reviewed title and summary wherever their current
   page-list, search, or description contracts consume guide metadata.

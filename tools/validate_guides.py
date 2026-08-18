@@ -81,7 +81,9 @@ def is_structural_non_content(path: Path, guides_root: Path) -> bool:
     # five gains a `slug:` or `aliases:`, the duplicate-slug and alias-collision
     # guards go blind for it while
     # test_approved_file_with_frontmatter_is_still_silent keeps passing.
-    if root.name != "guides":
+    if root.name != "guides" or any(p.name == "guides" for p in root.parents):
+        # `guides/guides` and `docs/guides` both satisfy a bare basename check, and
+        # the first re-enables exactly the collapse this guard exists to stop.
         return False
     try:
         rel = path.resolve().relative_to(root)
@@ -269,6 +271,7 @@ def validate_paths(
     paths: list[str],
     *,
     guides_root: str | None = None,
+    stats: dict | None = None,
     packs_root: str | None = None,
     schema_path: str | None = None,
     exclude_paths: list[str] | None = None,
@@ -301,6 +304,8 @@ def validate_paths(
 
     errors: list[str] = []
     warnings: list[str] = []
+    checked = 0
+    exempt = 0
     canonical_slugs: dict[str, Path] = {}
     all_aliases: dict[str, Path] = {}
 
@@ -328,6 +333,7 @@ def validate_paths(
         # or not it happens to carry frontmatter, so it is never schema-validated
         # into an error either.
         if is_structural_non_content(resolved, gr):
+            exempt += 1
             continue
 
         # Use the guides root for slug derivation; fall back to the file's parent if outside.
@@ -338,6 +344,7 @@ def validate_paths(
         except ValueError:
             effective_root = resolved.parent
 
+        checked += 1
         _validate_file(
             resolved,
             effective_root,
@@ -348,6 +355,14 @@ def validate_paths(
             canonical_slugs,
             all_aliases,
         )
+
+    if stats is not None:
+        # Coverage, not just absence of complaints. Without this the CLI prints
+        # "0 errors, 0 warnings" for an EMPTY or MISSING tree, so a gate grepping that
+        # string asserts nothing — the same blindness as counting a linter's walk size
+        # or a link checker that skips the scheme the broken links ended up using.
+        stats["checked"] = checked
+        stats["exempt"] = exempt
 
     _check_alias_canonical_collisions(canonical_slugs, all_aliases, errors)
     _check_dangling_aliases(canonical_slugs, all_aliases, warnings)
@@ -386,11 +401,13 @@ def main(argv: list[str] | None = None) -> int:
     # This guards against accidentally passing docs/ or docs/guides/ as a scan target.
     exclude = [str(REPO_ROOT / "docs" / "guides")]
 
+    stats: dict = {}
     code, errors, warnings = validate_paths(
         args.paths,
         guides_root=args.guides_root,
         packs_root=args.packs_root,
         exclude_paths=exclude,
+        stats=stats,
     )
 
     for w in warnings:
@@ -400,10 +417,16 @@ def main(argv: list[str] | None = None) -> int:
 
     total = len(errors)
     if code == 0:
-        print(f"validate-guides: OK (0 errors, {len(warnings)} warnings)")
+        print(
+            f"validate-guides: OK (0 errors, {len(warnings)} warnings, "
+            f"{stats['checked']} checked, {stats['exempt']} exempt)"
+        )
     else:
         suffix = "s" if total != 1 else ""
-        print(f"validate-guides: FAIL ({total} error{suffix}, {len(warnings)} warnings)")
+        print(
+            f"validate-guides: FAIL ({total} error{suffix}, {len(warnings)} warnings, "
+            f"{stats['checked']} checked, {stats['exempt']} exempt)"
+        )
 
     return code
 

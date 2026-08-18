@@ -463,8 +463,8 @@ def test_the_allowlist_holds_exactly_the_five_approved_paths(tmp_path):
     assert sorted(validate_guides.STRUCTURAL_NON_CONTENT) == sorted(APPROVED_EXCEPTIONS)
 
 
-def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path):
-    """The CLI reaches this via --guides-root, which the API tests above never vary.
+def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
+    """Driven through main(), because --guides-root is the CLI surface at issue.
 
     Pointing the root at a subdirectory collapses the allowlist comparison to a
     basename, so `guides/core/AGENTS.md` would match the approved top-level
@@ -476,9 +476,39 @@ def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path):
     # The honest root exempts nothing here, because core/AGENTS.md is not one of five.
     code, errors, warnings = _run([guides], guides_root=guides)
     assert any("has no frontmatter" in w for w in warnings), warnings
-    # And a subdirectory root must not turn it into the approved `AGENTS.md`.
-    code, errors, warnings = _run([guides / "core"], guides_root=guides / "core")
-    assert code == 0, errors
-    assert any("has no frontmatter" in w for w in warnings), (
-        f"a subdirectory guides root exempted core/AGENTS.md; warnings={warnings}"
+    # And a subdirectory root must not turn it into the approved `AGENTS.md` — driven
+    # through main(), because --guides-root is the argparse surface at issue and the
+    # API-level helper above cannot exercise it.
+    sub = guides / "core"
+    code = validate_guides.main(
+        [str(sub), "--guides-root", str(sub), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0, "a warning must not change the exit code"
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a subdirectory guides root exempted core/AGENTS.md; stderr={captured.err!r}"
+    )
+    # Coverage is reported, so a gate can tell an empty run from a clean one.
+    assert "1 checked" in captured.out, captured.out
+
+
+def test_a_nested_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
+    """`guides/guides` satisfies a bare basename check and re-opens the collapse.
+
+    The first fix tested only `root.name == "guides"`. A root at `<tree>/guides/guides`
+    passes that, so `guides/guides/AGENTS.md` became relative path `AGENTS.md` and
+    matched the approved top-level entry. `docs/guides` satisfies it too. The guard
+    additionally rejects a root with an ancestor named `guides`, and this case is what
+    distinguishes the two — the subdirectory test above passes on the basename check
+    alone, so it cannot detect this clause going missing.
+    """
+    nested = tmp_path / "guides" / "guides"
+    _write_guide(nested, "AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    code = validate_guides.main(
+        [str(nested), "--guides-root", str(nested), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a nested guides root exempted guides/guides/AGENTS.md; stderr={captured.err!r}"
     )
