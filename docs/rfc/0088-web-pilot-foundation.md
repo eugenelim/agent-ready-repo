@@ -1504,6 +1504,29 @@ flow that merely registers one both complete. **How common the load-bearing clas
 is among real identity providers is not measured** and remains a residual — the
 pilot can answer it for its own destination.
 
+**D / item 3 — was "one consumer per connection". Now reads:**
+
+> Each consumer gets its own connection **and** its own job root, and the consumer
+> host's working directory is not an ancestor of any job root.
+
+*Why the first clause was not enough on its own.* Measured with round 3's own
+planting and teardown, restricting the connection clears the init script and
+origin-scoped storage but not a committed download, which is a filesystem artifact:
+separating the browser connection does not unlink a file. The disposition's basis —
+that restricting sharing "sidesteps the three surviving classes" — holds for two of
+three.
+
+*Why the second clause closes it.* Composing per-consumer job roots with the Node
+permission model, the confinement item 5 already requires, a shared root lets
+consumer B read consumer A's artifact while a per-consumer root denies it and B
+still reads its own.
+
+*Why the third clause exists.* If the host's working directory is an ancestor of
+the job roots, the read grant that lets the runtime load its entry script also
+grants every root, and the partitioning silently does nothing. This was measured,
+not anticipated — the first fixture had exactly that layout and reported the
+confinement failing when the grant had swallowed it.
+
 The list maps onto the spikes as: S1 → item 1; S2 → items 1, 2 and 5; S3 → items
 1, 4 and 6; S5 → item 3. S4 and S6 contribute none, for the reasons stated
 below. Every residual named in a spike row above appears in this list, and every
@@ -2836,7 +2859,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (103 manifested files, round-7 archive SHA-256 `9f6470bf…3cd0`), reconstructed
+  (105 manifested files, round-7 archive SHA-256 `8b5c8338…d570`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
