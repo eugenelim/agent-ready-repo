@@ -25,6 +25,7 @@ jobs:
   gate-main:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    name: gate-main
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -73,6 +74,7 @@ jobs:
   gate-sast:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    name: gate-sast
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -96,6 +98,7 @@ jobs:
   gate-export-boundary:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    name: gate-export-boundary
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -125,6 +128,7 @@ jobs:
   gate-credbroker:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    name: gate-credbroker
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

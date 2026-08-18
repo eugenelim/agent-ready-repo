@@ -959,25 +959,6 @@ open = [
   # THEN: PRs #993 and #994 predate this and go permanently pending on the new check.
   # They need a rebase. Check `gh pr list` for others opened before the apply.
   {slug = "ci-gate-credbroker-branch-protection-widening", source = "spec/ci-gate-credbroker AC13"},
-  # PINNED_JOB_STATEMENTS landed with spec/ci-gate-credbroker (AC4a), so the
-  # statements + working-directory half of this is CLOSED. What remains unpinned is
-  # narrower and was found in the same review: a work job's `name:` is never asserted
-  # to equal its job id.
-  #
-  # Why it matters: branch protection requires a check by NAME. Renaming
-  # `gate-credbroker`'s `name:` to anything else passes every one of the 68 assertion
-  # families, all 145 mutations, and lint-ci-parity — while the required check never
-  # reports and every PR pends forever. It fails LOUD (PRs visibly hang) rather than
-  # silently green, which is why this is availability rather than a security bypass,
-  # and why it was not blocking.
-  #
-  # SCOPE: add a `job-name-is-id[<job>]` assertion to
-  # tools/test-build-check-workflow.py comparing each work job's `name:` to its id,
-  # plus one mutation. Parameterised label, so _family() collapses it: +1 family,
-  # +1 mutation, covering every work job present and future. The aggregator is the
-  # deliberate exception — its id is `build-check` and its name is `make build-check`,
-  # which `one-required-name` and `required-name-is-aggregator` already pin.
-  {slug = "ci-gate-credbroker-job-name-pin", source = "spec/ci-gate-credbroker, diff review"},
   # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
   # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
   # keys, an inferred base indent, positive-substring-over-a-block, and key spelling
@@ -1140,19 +1121,6 @@ open = [
   # not a sibling of docs/rfc so it falls outside the bundled-fixes carve-out.
   # Unblocks when: any PR that legitimately touches root AGENTS.md adds the command.
   {slug = "agents-md-missing-web-npm-ci", source = "spec/rfc0088-round11-binding-requirements drift"},
-  # `_statelock.py`'s two importlib loaders (in loop-engine.py and loop-cohort.py)
-  # do not set `sys.dont_write_bytecode`, so they still write and read
-  # `__pycache__`. Same class as the residual accepted in
-  # spec/work-loop-in-process-guards AC13 for `_loop_guards.py` and
-  # `lint-spec-status.py`, but in code that change never touched. A poisoned or
-  # stale `.pyc` there executes inside the lock-holding engine process, and one
-  # that made `exclusive()` a no-op would be worse than one that made a guard lie.
-  {slug = "statelock-loader-bytecode-cache", source = "spec/work-loop-in-process-guards AC13"},
-  # `loop-cohort.py`'s `run_git` has no `timeout=`. Not reachable while the ENGINE
-  # holds its lock, so outside that budget — but it is the nearest copy-paste hazard
-  # to the guard extraction site, and it is the only `subprocess.` call site in that
-  # file, so bounding it is a one-line change with no precedent to establish.
-  {slug = "loop-cohort-run-git-unbounded", source = "spec/work-loop-in-process-guards AC21"},
   # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
   # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
   # assertion in test_loop_concurrency.py — so bounding them is not a mechanical

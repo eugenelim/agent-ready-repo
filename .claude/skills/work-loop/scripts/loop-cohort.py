@@ -170,11 +170,19 @@ def _statelock():
     global _statelock_module
     if _statelock_module is None:
         lock_path = SCRIPT_DIR / "_statelock.py"
-        spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"loop-cohort: cannot load {lock_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        # See the twin in `loop-engine.py`: bytecode writing is disabled across
+        # the load and restored to its PRIOR value, so a stale or poisoned
+        # `__pycache__` entry for the lock module cannot be executed here.
+        previous = sys.dont_write_bytecode
+        try:
+            sys.dont_write_bytecode = True
+            spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
+            if spec is None or spec.loader is None:
+                raise ImportError(f"loop-cohort: cannot load {lock_path}")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        finally:
+            sys.dont_write_bytecode = previous
         _statelock_module = module
     return _statelock_module
 
@@ -222,13 +230,32 @@ def _locked(verb: str):
     return decorate
 
 
+# Matches `loop-engine.py`'s SUBPROCESS_TIMEOUT_S. Not derived from it — these are
+# separate scripts with no shared module — but deliberately the same number, so the
+# two files do not drift into disagreeing about how long a git call may take.
+GIT_TIMEOUT_S = 20.0
+
+
 def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
+    """Run a git command, bounded.
+
+    `timeout=` is not currently load-bearing: this helper has no callers (verified
+    repo-wide), and it is unreachable while the ENGINE holds its lock, so it sits
+    outside that budget's arithmetic. It is bounded anyway because it is the nearest
+    copy-paste hazard to the guard extraction site — an unbounded `subprocess.run`
+    that a future caller inherits is how a lock-holding process learns to hang.
+
+    `TimeoutExpired` is left to propagate. Every current entry point is a CLI verb
+    that already turns an exception into a non-zero exit; swallowing it here would
+    invent a "git timed out so we continued" path that no caller asked for.
+    """
     return subprocess.run(
         ["git", *args],
         cwd=str(cwd) if cwd else None,
         capture_output=True,
         text=True,
         check=False,
+        timeout=GIT_TIMEOUT_S,
     )
 
 
