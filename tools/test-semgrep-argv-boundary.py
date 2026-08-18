@@ -44,6 +44,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+# PyYAML, not stdlib. Deliberate, and safe in the one place this file runs:
+# `make sast` (Makefile), which the module docstring explains is the only
+# invocation because the test needs semgrep on PATH. That target's CI job
+# installs tools/requirements-sast.txt, whose `bandit` requires `PyYAML>=5.3.1`,
+# so the import resolves there; pyyaml is also declared directly in
+# tools/requirements.txt for local runs. The alternative — regex-scraping
+# `paths.include` out of the rule file — is the re-implement-a-YAML-parser
+# antipattern that produced five of six review rounds against
+# tools/test-build-check-workflow.py (see
+# `ci-gate-parallelization-posture-test-yaml-parser` in workspace.toml).
+import yaml
+
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -52,12 +64,61 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RULE = REPO_ROOT / "tools" / "semgrep" / "argv-path-boundary.yml"
 FIXTURES = REPO_ROOT / "tools" / "semgrep" / "fixtures" / "argv-path-boundary"
 
-SCRIPTS_DIR = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts"
-FIXED_SCRIPTS = [
-    SCRIPTS_DIR / "lint-traceability.py",
-    SCRIPTS_DIR / "lint-spec-status.py",
-    SCRIPTS_DIR / "loop-cohort.py",
-]
+# The rule under test, parsed once. `--config` names a FILE, so a finding's
+# check_id is `<file-stem>.<rule-id>`; RULE_ID is the bare id used to filter.
+RULE_ID = "argv-path-without-boundary-validator"
+
+
+def ratcheted_scope() -> tuple[list[Path], list[str]]:
+    """Split the rule's own `paths.include` into (concrete files, glob patterns).
+
+    THE RULE FILE IS THE ONLY SCOPE DEFINITION. This used to be a FIXED_SCRIPTS
+    constant that restated `paths.include`, with nothing reconciling the two, and
+    the direction that can drift silently is the one that was unchecked: a list
+    SHORTER than the rule's scope leaves a ratcheted script unscanned while every
+    assertion still passes.
+
+    That was not hypothetical. Measured on the commit this function replaced:
+      * `_loop_guards.py` had been added to `paths.include` and never to
+        FIXED_SCRIPTS, so it was never a scan target and never asserted silent.
+      * Setting `FIXED_SCRIPTS = []` printed "2/2 passed" and exited 0 — the
+        entire production half of the ratchet proving nothing, with `make sast`
+        green.
+
+    Deriving the list makes both impossible: a path in the rule is a path this
+    test scans and asserts, and `test_ratcheted_scope_is_covered` fails by name
+    if semgrep did not report one as scanned.
+    """
+    document = yaml.safe_load(RULE.read_text(encoding="utf-8"))
+    rules = document.get("rules") or []
+    if len(rules) != 1:
+        # Not a style objection: the check_id filter below names ONE rule, and
+        # `paths.include` is per-rule. A second rule would need its own scope
+        # read and its own assertions, so fail loudly rather than silently
+        # ratchet against the first one only.
+        raise RuntimeError(
+            f"{RULE.name}: expected exactly 1 rule, found {len(rules)} — "
+            "this self-test's scope derivation and check_id filter both assume one"
+        )
+    include = rules[0].get("paths", {}).get("include") or []
+    if not include:
+        raise RuntimeError(f"{RULE.name}: rule declares no paths.include — nothing is ratcheted")
+    concrete = [REPO_ROOT / entry for entry in include if "*" not in entry]
+    globs = [entry for entry in include if "*" in entry]
+    if not concrete:
+        # Every entry a glob would mean no production script is ratcheted, which
+        # is the fail-open state this function exists to make impossible.
+        raise RuntimeError(
+            f"{RULE.name}: paths.include has no concrete file entries — "
+            f"only globs {globs!r}; no production script would be asserted"
+        )
+    return concrete, globs
+
+
+# NOT called at import time, deliberately. main() returns 0 with a `skip:` line
+# when semgrep is absent, matching `make sast`'s optional-tool posture; a
+# module-level call would turn a malformed rule file into exit 1 on a machine
+# with no semgrep, which is a behaviour change this fix has no business making.
 
 failures: list[str] = []
 ran = 0
@@ -165,7 +226,18 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
             # A finding on a path semgrep did not list as scanned means the two
             # halves of its own report disagree. Raise rather than create the
             # key, which would hand a caller findings for an unscanned file.
+            # Checked before the rule filter: an inconsistent report is a defect
+            # whichever rule produced the finding.
             raise RuntimeError(f"semgrep reported a finding in unscanned {key}")
+        # Key on the RULE, not just the file. `--config` names a file, so every
+        # rule in argv-path-boundary.yml lands in these results. Grouping by path
+        # alone means a second rule in that file — or a replacement one — could
+        # satisfy the positive-fixture proof-of-life while
+        # argv-path-without-boundary-validator itself is neutered. `ratcheted_scope`
+        # refuses a multi-rule file, so today this filter is belt to that brace;
+        # keep both, because the failure it prevents is a green ratchet.
+        if not hit["check_id"].endswith(RULE_ID):
+            continue
         findings[key].append(hit)
     return findings
 
@@ -230,8 +302,33 @@ def test_negative_fixture_silent(findings: dict[str, list[dict]]) -> None:
         ok(name)
 
 
-def test_fixed_scripts_silent(findings: dict[str, list[dict]]) -> None:
-    for script in FIXED_SCRIPTS:
+def test_ratcheted_scope_is_covered(
+    findings: dict[str, list[dict]], ratcheted: list[Path]
+) -> None:
+    """Every concrete `paths.include` entry was requested AND reported scanned.
+
+    This is the assertion that makes the derived scope load-bearing rather than
+    decorative. `test_ratcheted_scripts_silent` proves each file has no findings;
+    without this one, "no findings" would still be satisfiable by semgrep never
+    having looked — which is precisely how a shrinking target list used to pass.
+    """
+    name = "every ratcheted path in the rule was scanned"
+    missing = [_key(script) for script in ratcheted if _key(script) not in findings]
+    if missing:
+        fail(
+            name,
+            f"in the rule's paths.include but not reported scanned: {missing}. "
+            "Either the path no longer exists, or semgrep declined it — both leave "
+            "that file unratcheted while its silence reads as clean.",
+        )
+    else:
+        ok(name)
+
+
+def test_ratcheted_scripts_silent(
+    findings: dict[str, list[dict]], ratcheted: list[Path]
+) -> None:
+    for script in ratcheted:
         name = f"{script.name} is silent after the fix"
         if not script.is_file():
             fail(name, f"subject not found at {script} — path drifted?")
@@ -262,6 +359,8 @@ def main() -> int:
     # own subjects. Without this a renamed fixture is dropped from the argv and
     # the only diagnosis is hits_for's "check paths.include in the rule", which
     # points at the rule when the file is simply gone.
+    ratcheted, _globs = ratcheted_scope()
+
     missing = [p for p in (FIXTURES / "positive.py", FIXTURES / "negative.py") if not p.is_file()]
     for path in missing:
         fail(f"{path.name} fixture is present", f"fixture not found at {path} — path drifted?")
@@ -270,7 +369,7 @@ def main() -> int:
         print("Failed:", ", ".join(failures), file=sys.stderr)
         return 1
 
-    targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *FIXED_SCRIPTS]
+    targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *ratcheted]
     present = [t for t in targets if t.is_file()]
 
     unwired = unwired_fixtures(present)
@@ -281,7 +380,8 @@ def main() -> int:
 
     test_positive_fixture_fires(findings)
     test_negative_fixture_silent(findings)
-    test_fixed_scripts_silent(findings)
+    test_ratcheted_scope_is_covered(findings, ratcheted)
+    test_ratcheted_scripts_silent(findings, ratcheted)
 
     total = ran
     passed = total - len(failures)
