@@ -4,7 +4,7 @@
 Two distinct silent shapes are covered:
   1. `_validated_root(...)` — the validator this spec introduces.
   2. resolve()-then-is_relative_to() in one function — the pre-existing
-     exemplar at check-spec-status.py:72-80, which was already taint-legible
+     exemplar at _loop_guards.check_artifact_status, which was already taint-legible
      and must not be flagged.
 """
 from __future__ import annotations

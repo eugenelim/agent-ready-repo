@@ -48,11 +48,11 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# ── the lock-hold budget (ADR-0074 / spec AC10) ────────────────────────────
+# ── the lock-hold budget (ADR-0074 / spec/work-loop-in-process-guards AC22) ─
 #
-# `cmd_transition` holds the state lock across git-shelling guards. Three
-# numbers are ONE budget, and breaking the ordering silently reinstates the
-# lost update this lock exists to prevent:
+# `cmd_transition` holds the state lock across a read-decide-write section. Three
+# numbers are ONE budget, and breaking the ordering silently reinstates the lost
+# update this lock exists to prevent:
 #
 #     statelock timeout (10s)  <  max hold  <  statelock stale_after (300s)
 #
@@ -60,18 +60,47 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # live holder. `stale_after` must exceed one, or a merely-slow holder is judged
 # dead, its lock is reclaimed, and a second writer is admitted.
 #
-# max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
-#          = 20 x 6 = 120s, comfortably inside 300s.
+# THE BUDGET IS IN TWO HALVES, and saying so is the point — the previous version of
+# this comment implied one number bounded everything, which stopped being true the
+# moment the guards moved in-process.
 #
-# Bounding every call is what makes the hold provable rather than hoped-for.
-# test-loop-concurrency.py's budget case walks this module's locked call graph
-# and fails if a subprocess call appears without a `timeout=`, so adding a guard
-# cannot quietly break the arithmetic.
+# 1. The SUBPROCESS half is time-bounded:
+#
+#        max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
+#                 = 20 x 2 = 40s, comfortably inside 300s.
+#
+#    The constant counts INVOCATION EDGES on the reachable call graph, not call
+#    sites. There is exactly ONE `subprocess.run` site under the lock — inside
+#    `_get_repo_root` — reached along two edges from `cmd_transition`: once via its
+#    own `_resolve_spec_dir`, once directly. The `_locked` decorator's
+#    `_resolve_spec_dir` runs BEFORE `sl.exclusive()` and is deliberately not
+#    counted. It was 6 before the guards moved in-process, which was a conservative
+#    bound over a measured maximum of five.
+#
+# 2. The IN-PROCESS half is byte-bounded, NOT time-bounded. Every file the guard
+#    layer reads goes through `read_managed_json` / `read_managed_text`, capped at
+#    8 MiB, and `canonical_contract` costs roughly 0.14 s/MiB — so about 1.0 s at
+#    the cap. Guard calls are function calls and are deliberately NOT counted as
+#    subprocesses; counting them would make the arithmetic describe something it
+#    does not measure.
+#
+#    A byte cap bounds bytes, not seconds. `O_NONBLOCK` closes the reachable local
+#    case — a FIFO or device swapped in after the type pre-check, which would
+#    otherwise block `os.open` forever — but a stalled network mount can still block
+#    `os.read`, and `_recover_pending` reads repo-global state under this same lock.
+#    That residual is ACCEPTED and named rather than papered over: its only recovery
+#    is the stale-lock reclaim, which is itself the hazard this budget exists to
+#    prevent. There is no stdlib way to bound a blocking read without threads or
+#    signals, and adding either under the lock would be a worse trade.
+#
+# `test_loop_concurrency.py`'s budget case derives all of this from source: it walks
+# the locked call graph, fails if a subprocess call appears without a `timeout=`,
+# fails if this constant disagrees with the edge count, and fails if the inequality
+# breaks. Adding a guard cannot quietly break the arithmetic.
 SUBPROCESS_TIMEOUT_S = 20.0
-MAX_SUBPROCESS_CALLS_UNDER_LOCK = 6
+MAX_SUBPROCESS_CALLS_UNDER_LOCK = 2
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
-_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
 
 # Environment variables that could redirect git to a foreign repo root.
 _GIT_OVERRIDE_VARS = frozenset({
@@ -86,6 +115,25 @@ _GIT_OVERRIDE_VARS = frozenset({
 # "both" modes share the SPEC-PLAN-* states.
 
 # ── repo-root helper ───────────────────────────────────────────────────────
+
+
+# Control-character neutralisation for the engine's own diagnostics.
+#
+# A DELIBERATE second copy of `_loop_guards._CONTROL_ESCAPES`, and the duplication is
+# the point: these warnings fire on paths where the guard module may be unavailable or
+# unloadable, which is exactly when a diagnostic matters most. Reaching through
+# `_guards()` here would make the sanitiser fail in the case it exists for.
+#
+# Not cosmetic. `_recover_engine_state_tmp` interpolates a filename that comes from a
+# `glob()`, under the same planted-file threat model it already accepts for the file's
+# CONTENT — so a `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real
+# screen-clear and colour change into the stream a supervising agent captures.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
+
+
+def _diag(text: object) -> str:
+    """One-line, control-character-safe text for a warning or refusal."""
+    return " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
 
 
 def _get_repo_root() -> Path:
@@ -124,70 +172,14 @@ def _events_pending_path(repo_root: Path) -> Path:
 
 
 def _read_managed_json(path: Path, label: str) -> dict:
-    """Read a bounded regular JSON file without following or racing a symlink."""
-    try:
-        before = os.lstat(path)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be examined: {exc}") from exc
-    if not stat.S_ISREG(before.st_mode):
-        raise ValueError(f"{label} must be a regular file")
-    if before.st_size > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        fd = os.open(path, flags)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
-    try:
-        try:
-            opened = os.fstat(fd)
-            if not stat.S_ISREG(opened.st_mode):
-                raise ValueError(f"{label} must be a regular file")
-            identity = (before.st_dev, before.st_ino)
-            if (opened.st_dev, opened.st_ino) != identity:
-                raise ValueError(f"{label} changed while being opened")
-            chunks: list[bytes] = []
-            remaining = _MAX_MANAGED_JSON_BYTES + 1
-            while remaining:
-                chunk = os.read(fd, min(64 * 1024, remaining))
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                remaining -= len(chunk)
-            raw = b"".join(chunks)
-            after_fd = os.fstat(fd)
-        except OSError as exc:
-            raise ValueError(f"{label} could not be read safely: {exc}") from exc
-    finally:
-        os.close(fd)
-    try:
-        after_path = os.lstat(path)
-    except OSError as exc:
-        raise ValueError(f"{label} changed while being read") from exc
-    if (
-        (after_fd.st_dev, after_fd.st_ino) != identity
-        or (after_path.st_dev, after_path.st_ino) != identity
-    ):
-        raise ValueError(f"{label} changed while being read")
-    if len(raw) > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    try:
-        data = json.loads(raw.decode("utf-8"))
-    except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
-    if not isinstance(data, dict):
-        raise ValueError(f"{label} root must be an object")
-    return data
+    """Delegate to the shared bounded reader.
+
+    This was a byte-identical copy of `loop-cohort.py`'s. After this change the
+    engine loads `_loop_guards` anyway, so a third copy of the bounded,
+    symlink-safe, dev/ino-checked reader is exactly the drift AC3 forbids — and it
+    would have been the one copy missing `O_NONBLOCK`.
+    """
+    return _guards().read_managed_json(path, label)
 
 
 def _discard_regular_file(path: Path) -> bool:
@@ -206,7 +198,25 @@ def _discard_regular_file(path: Path) -> bool:
 
 
 def _ensure_gitignore_entry(gitignore_path: Path, entry: str) -> None:
-    existing = gitignore_path.read_text(encoding="utf-8") if gitignore_path.exists() else ""
+    """Append `entry` to `.gitignore` unless already present.
+
+    Reached from `cmd_init`, which is `@_locked`, so the read happens inside the
+    critical section. It used to be a plain `read_text()`: unbounded and BLOCKING, and
+    the caller's `is_symlink()` pre-check does not exclude a FIFO. With the repo-root
+    `.gitignore` as a FIFO, `init` hung indefinitely holding
+    `engine-state.json.lock` — past `stale_after`, at which point the lock is
+    reclaimed and a second writer admitted, which is exactly the lost update the lock
+    exists to prevent. `O_NONBLOCK` in the shared reader is what closes it, so this
+    goes through the reader rather than around it.
+
+    A read failure raises; the sole caller already wraps this in a warning, and
+    skipping the gitignore courtesy is the right degradation — it is a convenience,
+    not a correctness control.
+    """
+    try:
+        existing = _guards().read_managed_text(gitignore_path, ".gitignore")
+    except FileNotFoundError:
+        existing = ""
     if entry in existing.splitlines():
         return
     with gitignore_path.open("a", encoding="utf-8") as fh:
@@ -311,27 +321,90 @@ def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
             raise OSError(f"event log changed while being written ({path})")
 
 
+def _is_content_invalid(exc: BaseException) -> bool:
+    """Is this failure "the bytes are unusable" rather than "the read failed"?
+
+    Gates the DELETION of `events.pending`, a durable audit record, so getting it
+    wrong in the permissive direction destroys evidence. Asks the reader's own
+    exception hierarchy — `ManagedContentError` — rather than substring-matching
+    `str(exc)` against a hand-listed set of message fragments, which is what this did
+    at both call sites. That list had already fallen behind the reader: it omitted the
+    non-finite-number message, so a `NaN` in `events.pending` was never recognised as
+    invalid content and the file was retained forever, re-warning on every transition.
+
+    Resolved through the loaded guard module, not imported, because the engine loads
+    that module by path. A load failure is deliberately NOT content-invalid: it says
+    nothing about this file, and discarding a valid audit record over a build problem
+    is the data loss this function exists to prevent.
+    """
+    try:
+        return isinstance(exc, _guards().ManagedContentError)
+    except GuardsUnavailable:
+        return False
+
+
+class _MissingRequiredFields(ValueError):
+    """A promoted engine-state tmp parsed but lacks `state` or `run_id`.
+
+    A distinct class rather than a bare `ValueError`, so the delete decision can be
+    `isinstance`-based end to end: this IS invalid content (the tool wrote it and it
+    is unusable), while the reader's structural `ValueError`s are not.
+    """
+
+
 def _recover_engine_state_tmp(spec_dir: Path) -> None:
     """Complete any crash-left atomic engine-state rename; validate JSON before promoting."""
     for tmp_path in spec_dir.glob(".engine-state-*.json.tmp"):
         try:
             data = _read_managed_json(tmp_path, "engine-state tmp")
             if not isinstance(data, dict) or not data.get("state") or not data.get("run_id"):
-                raise ValueError("engine-state tmp is missing required fields")
-        except Exception as exc:
+                raise _MissingRequiredFields(
+                    "engine-state tmp is missing required fields"
+                )
+        except FileNotFoundError:
+            continue
+        except BaseException as exc:  # noqa: BLE001 — see below; nothing may escape
+            # TWO separate decisions here, and conflating them caused a bug in each
+            # direction on this line already.
+            #
+            # 1. WHAT IS CAUGHT: everything. An earlier revision narrowed this to
+            #    `(FileNotFoundError, ValueError)`, which missed `RecursionError` —
+            #    `json.loads` raises it on a deeply nested document, it is not a
+            #    `ValueError`, and `main()` catches only `GuardsUnavailable` and
+            #    `KeyboardInterrupt`. So a planted `.engine-state-*.json.tmp` holding
+            #    20k nested arrays produced a traceback from inside
+            #    `sl.exclusive(...)`, and because the dotfile was never removed, EVERY
+            #    later transition on that spec failed identically. Reproduced.
+            #
+            # 2. WHAT AUTHORISES THE DELETE: only invalid content. `_read_managed_json`
+            #    goes through the shared reader, so it can fail for reasons that say
+            #    nothing about this file — `GuardsUnavailable` from a missing guard
+            #    module, a permission error, a benign concurrent-writer race. Treating
+            #    those as "content invalid" unlinked a byte-perfect crash-recovery
+            #    artifact; observed. The two conditions co-occur naturally (an
+            #    interrupted `make build-self` plus a crash-left rename) and the loss
+            #    is irreversible.
+            #
+            # Catching broadly while deleting narrowly is what satisfies both.
+            if isinstance(exc, KeyboardInterrupt):
+                raise
+            invalid = isinstance(exc, _MissingRequiredFields) or _is_content_invalid(exc)
+            if invalid:
+                with contextlib.suppress(OSError):
+                    tmp_path.unlink(missing_ok=True)
             print(
-                f"loop-engine: warning — engine-state tmp invalid ({exc});"
-                f" discarding {tmp_path.name}",
+                f"loop-engine: warning — engine-state tmp unusable "
+                f"({type(exc).__name__}: {_diag(exc)}); "
+                + (f"discarding {_diag(tmp_path.name)}" if invalid
+                   else f"{_diag(tmp_path.name)} left in place; remove manually"),
                 file=sys.stderr,
             )
-            with contextlib.suppress(OSError):
-                tmp_path.unlink(missing_ok=True)
             continue
         try:
             tmp_path.replace(spec_dir / "engine-state.json")
         except OSError as exc:
             print(
-                f"loop-engine: warning — could not promote engine-state tmp ({exc})",
+                f"loop-engine: warning — could not promote engine-state tmp ({_diag(exc)})",
                 file=sys.stderr,
             )
         break  # only one tmp at a time
@@ -366,18 +439,14 @@ def _recover_pending(repo_root: Path) -> None:
     try:
         pending = _read_managed_json(pending_path, "events.pending")
     except Exception as exc:
-        detail = str(exc)
-        content_invalid = isinstance(exc, ValueError) and any(
-            marker in detail
-            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
-        )
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
             if content_invalid and _discard_regular_file(pending_path)
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — could not parse events.pending ({exc}); {action}",
+            f"loop-engine: warning — could not parse events.pending ({_diag(exc)}); {action}",
             file=sys.stderr,
         )
         return
@@ -400,7 +469,7 @@ def _recover_pending(repo_root: Path) -> None:
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — events.pending spec path invalid ({exc}); {action}",
+            f"loop-engine: warning — events.pending spec path invalid ({_diag(exc)}); {action}",
             file=sys.stderr,
         )
         return
@@ -416,13 +485,20 @@ def _recover_pending(repo_root: Path) -> None:
         _discard_regular_file(pending_path)
         return
     except Exception as exc:
+        # Only a genuine CONTENT problem may authorise discarding the audit record —
+        # the same discrimination the events.pending read above already makes.
+        # `_read_managed_json` delegates to the shared reader now, so it can raise for
+        # reasons unrelated to this file (a `GuardsUnavailable` when `_loop_guards.py`
+        # cannot be loaded), and discarding `events.pending` over a build problem
+        # would destroy a durable audit record.
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
-            if _discard_regular_file(pending_path)
+            if content_invalid and _discard_regular_file(pending_path)
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — could not parse owning engine-state.json ({exc});"
+            f"loop-engine: warning — could not parse owning engine-state.json ({_diag(exc)});"
             f" pending {action}",
             file=sys.stderr,
         )
@@ -508,152 +584,215 @@ _DONE_EXEMPT_FROM_SCHEDULE_GUARD = frozenset({"done"})
 # Each entry: (mode, event) → guard_call_fn(spec_dir, engine_state, event_args)
 # Guard functions return None on success, or a non-empty error string on failure.
 
-LOOP_COHORT = str(SCRIPT_DIR / "loop-cohort.py")
-CHECK_SPEC_STATUS = str(SCRIPT_DIR / "check-spec-status.py")
+
+class GuardsUnavailable(RuntimeError):
+    """`_loop_guards.py` could not be loaded; every verb must refuse."""
 
 
-def _run(cmd: list[str]) -> tuple[int, str]:
-    """Run a subprocess; return (returncode, combined stderr). Bounded."""
+_guards_module: object | None = None
+
+
+def _guards():
+    """Load the sibling `_loop_guards.py` by path, once per process.
+
+    ── This function body is identical in all three of `loop-cohort.py`,
+    ── `loop-engine.py` and `check-spec-status.py`. That is a decision, not an
+    ── accident: the loader cannot live in the module it loads, and importing
+    ── `loop-cohort.py`'s 1500-line argparse CLI just to borrow it is the coupling
+    ── the whole change exists to avoid. `test_loader_copies_are_structurally_identical`
+    ── compares the three ASTs and keeps them from drifting.
+    ──
+    ── By path rather than `import _loop_guards`, matching `_statelock()`: a plain
+    ── import resolves under file-path invocation but not under the importlib-based
+    ── test harness, which does not put this directory on `sys.path`.
+    ──
+    ── NOT registered in `sys.modules`, also matching `_statelock()`. `exec_module`
+    ── does not remove a registered entry when the module body raises, so
+    ── registering would mean hand-rolling the failed-load cleanup that `import`
+    ── does for free — and would make the module a session-global singleton whose
+    ── memoised parser leaks between test files.
+    ──
+    ── `sys.dont_write_bytecode` is saved and restored to its PRIOR value, never to
+    ── `False`, so a host interpreter started with `-B` keeps its setting.
+    """
+    global _guards_module
+    if _guards_module is not None:
+        return _guards_module
+    path = SCRIPT_DIR / "_loop_guards.py"
     try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, encoding="utf-8", check=False,
-            timeout=SUBPROCESS_TIMEOUT_S,
+        info = os.lstat(path)
+    except OSError as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run `make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise GuardsUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
         )
-    except subprocess.TimeoutExpired:
-        return 1, (
-            f"timed out after {SUBPROCESS_TIMEOUT_S:.0f}s: {' '.join(cmd[:3])}"
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_loop_guards", str(path))
+        if spec is None or spec.loader is None:
+            raise GuardsUnavailable(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except GuardsUnavailable:
+        raise
+    except BaseException as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the file or "
+            "re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    if not getattr(module, "_MODULE_COMPLETE", False):
+        raise GuardsUnavailable(
+            f"cannot load {path}: module is truncated (no completeness marker). "
+            "Restore the file or re-run `make build-self`."
         )
-    return proc.returncode, (proc.stderr.strip() or proc.stdout.strip())
+    # AC13's completeness check: the module's OWN `__all__` is the contract, so it
+    # is never restated here. Three hand-enumerated copies drifted immediately —
+    # `check-spec-status.py`'s omitted `check_artifact_status`, the only function it
+    # calls — which is why an enumeration is explicitly rejected. A file truncated
+    # at a clean statement boundary loads WITHOUT raising, so `__all__` is present
+    # while the names it promises are not; that is the gap this closes.
+    exported = getattr(module, "__all__", None)
+    if not exported:
+        raise GuardsUnavailable(
+            f"cannot load {path}: module declares no __all__. Restore the file or "
+            "re-run `make build-self`."
+        )
+    missing = sorted(set(exported) - set(dir(module)))
+    if missing:
+        # Naming a few is diagnostic; naming all 21 makes a 450-char "one-line"
+        # refusal. The count carries the rest.
+        shown = ", ".join(missing[:5])
+        if len(missing) > 5:
+            shown += f" (+{len(missing) - 5} more)"
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {shown}. Restore the "
+            "file or re-run `make build-self`."
+        )
+    _guards_module = module
+    return _guards_module
 
 
-def _guard_plan_check_current_require_schedule(
-    spec_dir: Path, engine_state: dict, _
-) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir), "--require-schedule"]
-    )
-    if rc != 0:
-        return f"plan check-current --require-schedule failed: {msg}"
-    return None
+# Each entry: (mode, event) → guard_fn(spec_dir, engine_state, event_args).
+# Guard functions return None on success, or a non-empty error string on failure —
+# the convention that predates this change and that `cmd_transition` still reads.
+#
+# Every one of these used to be `_run([sys.executable, LOOP_COHORT, ...])`. The
+# decisions now come from `_loop_guards`, so a transition is one interpreter. The
+# engine's own prefix is preserved verbatim on each; what disappeared is the nested
+# `loop-cohort: stop — ` / `check-spec-status: ` marker that only existed because a
+# child process's stderr was being captured.
 
 
-def _guard_plan_check_current(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir)]
-    )
-    if rc != 0:
-        return f"plan check-current failed: {msg}"
-    return None
+def _guard_reason(prefix: str, result) -> str | None:
+    """Compose the engine's error text from a GuardResult.
+
+    Branches on `ok`, never on `reason` — an `ok=False, reason=None` result would
+    otherwise read as success, and `GuardResult` raises rather than allowing that
+    combination in the first place.
+    """
+    if result.ok:
+        return None
+    return f"{prefix}: {result.reason}"
 
 
 def _guard_check_phase_implement(spec_dir: Path, engine_state: dict, _) -> str | None:
-    # Phase-1 stub: exits 0 unconditionally.
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "implement"]
+    return _guard_reason(
+        "check --phase implement failed",
+        _guards().check_phase(spec_dir, phase="implement"),
     )
-    if rc != 0:
-        return f"check --phase implement failed: {msg}"
-    return None
 
 
 def _guard_check_phase_gates_failed(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "gates-failed"]
+    return _guard_reason(
+        "check --phase gates-failed failed",
+        _guards().check_phase(spec_dir, phase="gates-failed"),
     )
-    if rc != 0:
-        return f"check --phase gates-failed failed: {msg}"
-    return None
 
 
 def _guard_wave_check_more(spec_dir: Path, engine_state: dict, event_args: dict) -> str | None:
     wave_index = event_args.get("wave_index")
     if wave_index is None:
         return "wave-passed requires --wave-index"
-    cmd = [
-        sys.executable, LOOP_COHORT, "wave", "check", str(spec_dir),
-        "--expect", "more", "--wave-index", str(wave_index),
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"wave check --expect more --wave-index {wave_index} failed: {msg}"
-    return None
+    return _guard_reason(
+        f"wave check --expect more --wave-index {wave_index} failed",
+        _guards().check_wave(spec_dir, expect="more", wave_index=wave_index),
+    )
 
 
 def _guard_wave_check_last(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "wave", "check", str(spec_dir), "--expect", "last"]
+    return _guard_reason(
+        "wave check --expect last failed",
+        _guards().check_wave(spec_dir, expect="last"),
     )
-    if rc != 0:
-        return f"wave check --expect last failed: {msg}"
-    return None
 
 
 def _guard_check_phase_review(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "review"]
+    return _guard_reason(
+        "check --phase review failed",
+        _guards().check_phase(spec_dir, phase="review"),
     )
-    if rc != 0:
-        return f"check --phase review failed: {msg}"
-    return None
 
 
 def _guard_check_spec_status(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run([sys.executable, CHECK_SPEC_STATUS, str(spec_dir)])
-    if rc != 0:
-        return f"check-spec-status failed: {msg}"
-    return None
+    return _guard_reason(
+        "check-spec-status failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Shipped"),
+    )
 
 
 def _guard_spec_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
     """Guard for spec-approved: spec.md must have Status: Approved."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    return _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    return None
 
 
 def _guard_plan_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
     """Guard for plan-approved: plan.md must have Status: Approved."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir),
-         "--expect", "Approved", "--file", "plan.md"]
+    return _guard_reason(
+        "check-spec-status --expect Approved --file plan.md failed",
+        _guards().check_artifact_status(spec_dir, filename="plan.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved --file plan.md failed: {msg}"
-    return None
 
 
 def _guard_plan_locked_code(spec_dir: Path, engine_state: dict, _) -> str | None:
-    """Guard for plan-locked (code mode): spec Approved + plan check-current --require-schedule."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    """plan-locked (code mode): spec Approved, then plan check-current --require-schedule.
+
+    Two checks in the same order as before — they were two child processes and are
+    now two function calls.
+    """
+    err = _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir),
-         "--require-schedule"]
+    if err:
+        return err
+    return _guard_reason(
+        "plan check-current --require-schedule failed",
+        _guards().check_plan_current(spec_dir, require_schedule=True),
     )
-    if rc != 0:
-        return f"plan check-current --require-schedule failed: {msg}"
-    return None
 
 
 def _guard_plan_locked_spec_plan(spec_dir: Path, engine_state: dict, _) -> str | None:
-    """Guard for plan-locked (spec-plan mode): spec Approved + plan check-current."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    """plan-locked (spec-plan mode): spec Approved, then plan check-current."""
+    err = _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir)]
+    if err:
+        return err
+    return _guard_reason(
+        "plan check-current failed",
+        _guards().check_plan_current(spec_dir, require_schedule=False),
     )
-    if rc != 0:
-        return f"plan check-current failed: {msg}"
-    return None
 
 
 def _guard_check_spec_status_on_code_review(
@@ -746,7 +885,7 @@ def _resolve_spec_dir(raw: str) -> Path:
 
 
 def stop(reason: str, code: int = 1) -> int:
-    print(f"loop-engine: stop — {reason}", file=sys.stderr)
+    print(f"loop-engine: stop — {_diag(reason)}", file=sys.stderr)
     return code
 
 
@@ -874,7 +1013,20 @@ def cmd_init(args: argparse.Namespace) -> int:
                 os.close(event_fd)
                 gitignore = repo_root / ".gitignore"
                 if not gitignore.is_symlink():
-                    _ensure_gitignore_entry(gitignore, ".loop-run/")
+                    # Its OWN handler. Sharing the outer one reported "could not
+                    # initialise .loop-run/" for a failure in which `.loop-run/`, the
+                    # event log and the state write had all succeeded and only the
+                    # gitignore courtesy failed — sending an operator to the wrong
+                    # place. It is a convenience, so skipping it is the right
+                    # degradation, but it must say what it actually skipped.
+                    try:
+                        _ensure_gitignore_entry(gitignore, ".loop-run/")
+                    except Exception as exc:  # noqa: BLE001 — a courtesy, never fatal
+                        print(
+                            "loop-engine: warning — could not add .loop-run/ to "
+                            f".gitignore ({_diag(exc)}); add it manually",
+                            file=sys.stderr,
+                        )
         except Exception as exc:
             print(
                 f"loop-engine: warning — could not initialise .loop-run/: {exc}",
@@ -961,28 +1113,19 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def _run_id_preflight(spec_dir: Path, engine_run_id: str) -> str | None:
-    """Call loop-cohort identity --expect-run-id; return error string on failure."""
-    cmd = [
-        sys.executable, str(SCRIPT_DIR / "loop-cohort.py"),
-        "identity", str(spec_dir),
-        "--expect-run-id", engine_run_id,
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"run_id preflight failed: {msg}"
-    return None
+    """Engine/cohort run-ID pairing. In-process; was `loop-cohort.py identity`."""
+    return _guard_reason(
+        "run_id preflight failed",
+        _guards().check_identity(spec_dir, expect_run_id=engine_run_id),
+    )
 
 
 def _schedule_check_current(spec_dir: Path) -> str | None:
-    """Call loop-cohort schedule check-current; return error string on failure."""
-    cmd = [
-        sys.executable, str(SCRIPT_DIR / "loop-cohort.py"),
-        "schedule", "check-current", str(spec_dir),
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"schedule check-current failed: {msg}"
-    return None
+    """Scheduled-plan currency. In-process; was `loop-cohort.py schedule check-current`."""
+    return _guard_reason(
+        "schedule check-current failed",
+        _guards().check_schedule_current(spec_dir),
+    )
 
 
 @_locked("transition")
@@ -1168,6 +1311,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
+    except GuardsUnavailable as exc:
+        # The engine's chokepoint, matching loop-cohort's. Without this every
+        # `_loop_guards.py` load failure printed a traceback out of `cmd_transition`
+        # while `sl.exclusive(...)` was held — the one outcome the whole change
+        # exists to prevent. `_guards()` is called lazily from inside the locked
+        # section, so the raise cannot be caught any earlier than here.
+        return stop(str(exc))
     except KeyboardInterrupt:
         return stop("interrupted")
 

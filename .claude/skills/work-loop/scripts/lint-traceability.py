@@ -1273,7 +1273,7 @@ def _validated_root(candidate: Path | None) -> Path:
     the argv read*. Taint analysers recognise that shape; they do not follow
     the `_within()` / `_confined()` confinement applied to every path derived
     from this root, because that check is interprocedural and expressed as a
-    comprehension filter. Same pattern as `check-spec-status.py:72-80`.
+    comprehension filter. Same pattern as `_loop_guards.check_artifact_status`.
 
     This normalises and asserts directory-ness; it deliberately does **not**
     confine the root to a fixed prefix. `--root` *is* the caller-supplied scan

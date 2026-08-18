@@ -206,6 +206,16 @@ shipped = [
   {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
 ]
 queue   = [
+  # Work-loop runtime: one transition, one Python process. `loop-engine.py
+  # transition` shelled out to `loop-cohort.py` and `check-spec-status.py` for
+  # its read-only guards, so a single transition started up to three extra
+  # interpreters (measured 2026-08-17 over nine representative paths). The guard
+  # decisions move to a shared, callable, silent, non-mutating sibling module
+  # that the engine and the existing CLIs both call, so the two surfaces cannot
+  # drift. Read-only guard surface only: no FSM, state-schema, or mutation-verb
+  # change, and no MCP, daemon, or new dependency.
+  {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
+
   # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
   # This sequence is adaptive: at each completed slice, compare measured behavior and
   # repository evidence with the remaining entries. Update, split, combine, reorder, or
@@ -716,6 +726,25 @@ open = [
   # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
   # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
   {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+  # `_statelock.py`'s two importlib loaders (in loop-engine.py and loop-cohort.py)
+  # do not set `sys.dont_write_bytecode`, so they still write and read
+  # `__pycache__`. Same class as the residual accepted in
+  # spec/work-loop-in-process-guards AC13 for `_loop_guards.py` and
+  # `lint-spec-status.py`, but in code that change never touched. A poisoned or
+  # stale `.pyc` there executes inside the lock-holding engine process, and one
+  # that made `exclusive()` a no-op would be worse than one that made a guard lie.
+  {slug = "statelock-loader-bytecode-cache", source = "spec/work-loop-in-process-guards AC13"},
+  # `loop-cohort.py`'s `run_git` has no `timeout=`. Not reachable while the ENGINE
+  # holds its lock, so outside that budget — but it is the nearest copy-paste hazard
+  # to the guard extraction site, and it is the only `subprocess.` call site in that
+  # file, so bounding it is a one-line change with no precedent to establish.
+  {slug = "loop-cohort-run-git-unbounded", source = "spec/work-loop-in-process-guards AC21"},
+  # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
+  # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
+  # assertion in test_loop_concurrency.py — so bounding them is not a mechanical
+  # ride-along but an observable change to a shipped CLI's failure mode on a slow
+  # repository, which needs its own criterion.
+  {slug = "lint-spec-status-git-unbounded", source = "spec/work-loop-in-process-guards AC21"},
 
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment

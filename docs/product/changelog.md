@@ -18,6 +18,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.7.5] — 2026-08-17
+
+#### Changed
+
+- **One work-loop transition is now one Python process.** `loop-engine transition`
+  used to start a separate Python interpreter for each read-only guard it runs —
+  run-ID pairing, scheduled-plan currency, approved baselines, retry caps, wave
+  position, artifact status — up to three per transition. Those decisions moved into
+  a shared module the engine and the `loop-cohort` / `check-spec-status` commands all
+  call, so a transition costs one interpreter startup instead of four and the two
+  surfaces cannot drift into disagreeing about whether a transition is legal. Every
+  command keeps its arguments, exit codes and messages.
+
+#### Fixed
+
+- **A broken status parser no longer lets an approval check pass silently.** If the
+  canonical parser could not be loaded, the post-approval status check treated the
+  artifact as having no status line and skipped — reporting success for a check that
+  never ran. It now refuses and says why.
+
+- **Unsafe spec or plan files are refused instead of hanging or being trusted.**
+  Reads of `spec.md` and `plan.md` are size-capped, rejected if the path is not a
+  regular file, and refused rather than followed when it is a symlink. Previously a
+  named pipe in place of `spec.md` could block a transition indefinitely while it
+  held the state lock.
+
+- **Malformed retry counters refuse rather than being silently coerced.** A
+  non-integer, negative, or non-finite value in `state.json` now produces a one-line
+  refusal; some previously changed the retry arithmetic without comment and
+  `Infinity` crashed with a traceback.
+
+- **`check-spec-status --file` takes a single filename.** A multi-segment path that
+  happened to resolve inside the spec directory was previously accepted; it is now
+  refused, because only the final segment of a path can be checked for a symlink.
+
 ### [core][2.7.4] and [architect][0.14.5] — 2026-08-17
 
 #### Changed
