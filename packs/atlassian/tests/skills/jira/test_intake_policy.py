@@ -102,6 +102,48 @@ def test_policy_disables_redirects_and_refuses_writes(monkeypatch) -> None:
     assert len(seen) == 1
 
 
+def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(503, request=request)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(
+            *args, **{**kwargs, "transport": transport}
+        ),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE,
+        "https://tracker.example.test",
+        resolver=_public_resolver,
+        allow_write=True,
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(
+            credentials,
+            intake_policy=policy,
+        ) as client:
+            with pytest.raises(client_module.JiraError, match="Exhausted 1 attempts"):
+                await client._request("POST", "/rest/api/2/issue/EX-1/comment")
+
+    asyncio.run(exercise())
+    assert len(seen) == 1
+
+
 def test_policy_enforces_response_bytes(tmp_path, monkeypatch) -> None:
     client_module = _load_client()
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))

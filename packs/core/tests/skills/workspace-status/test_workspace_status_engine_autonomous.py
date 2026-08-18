@@ -2728,6 +2728,338 @@ def test_t2_coordination_receipt_block_contract(tmp_path: Path) -> None:
     assert "invalid_artifact_path" in escaped_codes
 
 
+def test_status_projects_refresh_authority_without_owned_fields(tmp_path: Path) -> None:
+    mod = _load_engine()
+    spec_dir = tmp_path / "docs/specs/tracker-backed"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        """# Spec: Tracker backed
+
+- **Status:** Approved
+- **Brief:** none
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+accepted_revision = "remote-rev-1"
+
+[owned_fields]
+Outcome = "local"
+Behavior = "source"
+
+[[conflicts]]
+source_revision = "remote-rev-2"
+field = "Outcome"
+status = "unresolved"
+```
+""",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [
+                    {
+                        "path": "docs/specs/tracker-backed/spec.md",
+                        "kind": "spec",
+                        "source": {
+                            "mode": "tracker-origin",
+                            "ref": "example-service://ABC-123",
+                            "revision": "remote-rev-2",
+                            "tracker_profile": {"id": "example-service", "version": "1.0"},
+                        },
+                        "summary": "Tracker-backed work",
+                        "needs": [],
+                    }
+                ],
+                "active": [],
+                "shipped": [],
+            },
+            "shaping_queue": {"active": [], "backlog": []},
+        }
+    }
+
+    result = mod.run_canonical_reconciliation(workspace, tmp_path)
+    status = result.evaluations[0].authority_status
+
+    assert status == {
+        "origin_mode": "tracker-origin",
+        "profile": {"id": "example-service", "version": "1.0"},
+        "refresh": {
+            "available": "unknown",
+            "write_back_available": "unknown",
+            "compared_revision": "remote-rev-2",
+            "accepted_revision": "remote-rev-1",
+            "conflict": True,
+        },
+    }
+    assert "owned_fields" not in status
+    assert "provenance_mismatch" not in {
+        finding.code for finding in result.evaluations[0].findings
+    }
+
+    workspace["ini-001"]["work"]["queue"][0]["source"]["revision"] = "wrong-rev"
+    mismatched = mod.run_canonical_reconciliation(workspace, tmp_path)
+    assert "provenance_mismatch" in {
+        finding.code for finding in mismatched.evaluations[0].findings
+    }
+
+
+def test_status_refuses_prose_or_plain_toml_as_source_authority(tmp_path: Path) -> None:
+    mod = _load_engine()
+    spec_dir = tmp_path / "docs/specs/prose-inert"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        """# Spec: Prose inert
+
+- **Status:** Approved
+- **Brief:** none
+
+accepted_revision = "prose-should-not-win"
+
+```toml
+accepted_revision = "plain-toml-should-not-win"
+```
+""",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [
+                    {
+                        "path": "docs/specs/prose-inert/spec.md",
+                        "kind": "spec",
+                        "source": {
+                            "mode": "tracker-origin",
+                            "ref": "example-service://ABC-123",
+                            "revision": "remote-rev-2",
+                        },
+                        "summary": "Tracker-backed work",
+                        "needs": [],
+                    }
+                ],
+                "active": [],
+                "shipped": [],
+            },
+            "shaping_queue": {"active": [], "backlog": []},
+        }
+    }
+
+    result = mod.run_canonical_reconciliation(workspace, tmp_path)
+    evaluation = result.evaluations[0]
+
+    assert evaluation.authority_status is None
+    assert {finding.code for finding in evaluation.findings} >= {
+        "invalid_source_authority"
+    }
+    assert "prose-should-not-win" not in repr(evaluation)
+    assert "plain-toml-should-not-win" not in repr(evaluation)
+
+
+@pytest.mark.parametrize(
+    ("nested_name", "nested_authority"),
+    [
+        (
+            "acceptance",
+            """[acceptance]
+identity = "example-approver"
+role = "maintainer"
+decided_at = "2026-08-17T12:00:00Z"
+authorization_source = "workspace-policy"
+unexpected = "not-allowed"
+""",
+        ),
+        (
+            "source_decisions",
+            """[[source_decisions]]
+source_revision = "remote-rev-2"
+field = "Outcome"
+decision = "keep-local"
+identity = "example-approver"
+role = "maintainer"
+decided_at = "2026-08-17T12:00:00Z"
+authorization_source = "workspace-policy"
+unexpected = "not-allowed"
+""",
+        ),
+        (
+            "conflicts",
+            """[[conflicts]]
+source_revision = "remote-rev-2"
+field = "Outcome"
+status = "unresolved"
+unexpected = "not-allowed"
+""",
+        ),
+        (
+            "local_receipts",
+            f"""[[local_receipts]]
+update_id = "update-1"
+artifact_digest = "{'a' * 64}"
+workspace_digest = "{'b' * 64}"
+status = "committed"
+recorded_at = "2026-08-17T12:00:00Z"
+unexpected = "not-allowed"
+""",
+        ),
+        (
+            "remote_actions",
+            f"""[[remote_actions]]
+confirmation_id = "confirmation-1"
+binding_digest = "{'a' * 64}"
+profile_version = "1.0"
+payload_digest = "{'b' * 64}"
+identity = "example-approver"
+role = "maintainer"
+confirmed_at = "2026-08-17T12:00:00Z"
+authorization_source = "workspace-policy"
+action = "comment"
+target = "example-service://ABC-123"
+status = "pending"
+unexpected = "not-allowed"
+""",
+        ),
+    ],
+)
+def test_status_rejects_malformed_nested_source_authority(
+    tmp_path: Path,
+    nested_name: str,
+    nested_authority: str,
+) -> None:
+    mod = _load_engine()
+    artifact_path = "docs/specs/malformed-authority/spec.md"
+    spec_dir = tmp_path / "docs/specs/malformed-authority"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        f"""# Spec: Malformed authority
+
+- **Status:** Approved
+- **Brief:** none
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+
+[owned_fields]
+Outcome = "local"
+
+{nested_authority}```
+""",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [
+                    {
+                        "path": artifact_path,
+                        "kind": "spec",
+                        "source": {
+                            "mode": "tracker-origin",
+                            "ref": "example-service://ABC-123",
+                            "revision": "remote-rev-2",
+                            "tracker_profile": {
+                                "id": "example-service",
+                                "version": "1.0",
+                            },
+                        },
+                        "summary": f"Malformed {nested_name}",
+                        "needs": [],
+                    }
+                ],
+                "active": [],
+                "shipped": [],
+            },
+            "shaping_queue": {"active": [], "backlog": []},
+        }
+    }
+
+    result = mod.run_canonical_reconciliation(workspace, tmp_path)
+    evaluation = result.evaluations[0]
+    authority_findings = [
+        finding
+        for finding in evaluation.findings
+        if finding.code == "invalid_source_authority"
+    ]
+
+    assert evaluation.authority_status is None
+    assert evaluation.dispatchable is False
+    assert len(authority_findings) == 1
+    assert authority_findings[0].path == artifact_path
+    assert authority_findings[0].next_action == (
+        "Correct the closed source-authority block, then rerun reconciliation."
+    )
+
+
+def test_status_projects_lifecycle_locks_without_claiming_a_processor(tmp_path: Path) -> None:
+    mod = _load_engine()
+    spec_dir = tmp_path / "docs/specs/locked"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+        """# Spec: Locked
+
+- **Status:** Implementing
+- **Brief:** none
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+
+[owned_fields]
+Outcome = "local"
+```
+""",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    workspace = {
+        "ini-001": {
+            "status": "active",
+            "work": {
+                "queue": [],
+                "active": [
+                    {
+                        "path": "docs/specs/locked/spec.md",
+                        "kind": "spec",
+                        "source": {
+                            "mode": "tracker-origin",
+                            "ref": "example-service://ABC-123",
+                            "revision": "remote-rev-2",
+                            "tracker_profile": {
+                                "id": "example-service",
+                                "version": "1.0",
+                            },
+                        },
+                        "summary": "Locked tracker-backed work",
+                        "needs": [],
+                    }
+                ],
+                "shipped": [],
+            },
+            "shaping_queue": {"active": [], "backlog": []},
+        }
+    }
+
+    result = mod.run_canonical_reconciliation(workspace, tmp_path)
+    refresh = result.evaluations[0].authority_status["refresh"]
+
+    assert refresh["available"] is False
+    assert refresh["write_back_available"] is False
+
+
 def _make_ini(
     slug: str = "ini-001",
     shaping_active_slugs: list[str] | None = None,

@@ -450,7 +450,7 @@ each Claude Code session. It exposes six tools over MCP stdio:
 
 | Tool | What it does |
 |---|---|
-| `workspace_status` | Returns the queue (ready / blocked / active / shaping items) and active-run state — current phase, whether a gate is pending, and the gate question |
+| `workspace_status` | Returns the queue (ready / blocked / active / shaping items), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
 | `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
 | `git_status` | Returns uncommitted changes (`git status --short`) |
 | `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |

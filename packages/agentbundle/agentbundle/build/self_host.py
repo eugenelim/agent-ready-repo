@@ -1509,10 +1509,12 @@ def run_build_check_drift_gates(
     1. **Writer-template drift:** every derived
        ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
        must be byte-identical to the canonical template.
-    2. **Source-shape plugin.json:** every
+    2. **Packaged runtime drift:** the bundled workspace-status engine and
+       work-intake refresh runtime must match their core pack sources.
+    3. **Source-shape plugin.json:** every
        ``packs/<pack>/.claude-plugin/plugin.json`` must NOT carry a ``hooks``
        block (defence-in-depth, in-Python rail).
-    3. **Vendored ``_emit_basic_string`` parity:** the template's
+    4. **Vendored ``_emit_basic_string`` parity:** the template's
        vendored copy must produce byte-identical output to the source primitive
        ``agentbundle.config._emit_basic_string`` across the fixed corpus.
 
@@ -1627,6 +1629,37 @@ def run_build_check_drift_gates(
             "packages/agentbundle/agentbundle/_data/install-marker.py` "
             "to re-sync"
         )
+
+    # workspace-status can run from package data when no installed core skill
+    # tree is present. Keep both bundled runtimes byte-identical to their pack
+    # sources so that path never drifts into a weaker contract.
+    _core_skills = REPO_ROOT / "packs" / "core" / ".apm" / "skills"
+    _package_data = (
+        REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
+    )
+    _runtime_projections = (
+        (
+            _core_skills
+            / "workspace-status"
+            / "scripts"
+            / "workspace_status_engine.py",
+            _package_data / "workspace_status_engine.py",
+        ),
+        (
+            _core_skills / "work-intake" / "scripts" / "refresh.py",
+            _package_data / "work_intake_refresh.py",
+        ),
+    )
+    for source_path, bundled_path in _runtime_projections:
+        if (
+            not source_path.is_file()
+            or not bundled_path.is_file()
+            or source_path.read_bytes() != bundled_path.read_bytes()
+        ):
+            failures.append(
+                "build-check: packaged runtime drift — "
+                f"{bundled_path.name} must be byte-identical to its core pack source"
+            )
 
     # ------------------------------------------------------------------
     # Gate 1c: APM writer-template drift

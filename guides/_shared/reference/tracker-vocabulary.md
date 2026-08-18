@@ -12,6 +12,8 @@ artifact that `work-intake` must create.
 | Compare tracker profiles | Equivalent content produces the same artifact, membership, processor, and authority |
 | Handle a collection | Coherent content may become a brief; unrelated content becomes separate units or view-only |
 | Report a regression | `bug-fix` only when durable expected-behavior evidence exists |
+| Refresh registered tracked work | A reviewed field delta governed by the artifact's source-authority record |
+| Write coordination facts back | One profile-declared action after one fresh exact confirmation |
 
 ## Object names are hints
 
@@ -55,6 +57,11 @@ human decision.
 **Limits:** every profile fixes maximum pages, items, bytes, timeout, retries,
 backoff, and the explicit incomplete or refusal outcome.
 
+Refresh preserves this intake boundary. It is a later operation against an
+existing tracker-origin artifact, not another intake route. Local requirement
+decisions and remote coordination writes are separate: approving one never
+approves the other.
+
 ## Route vocabulary
 
 | Repository term | Meaning |
@@ -66,10 +73,22 @@ backoff, and the explicit incomplete or refusal outcome.
 | view-only | A collection that should be inspected without materialization |
 | authority mode | Which side is authoritative for the current intake record |
 
-Refresh conflict handling, execution locks, and tracker write-back are outside
-tracker intake.
+## Refresh vocabulary
+
+| Refresh term | Meaning |
+| --- | --- |
+| compared revision | Latest source revision successfully compared, even when local values are kept |
+| accepted revision | Source revision whose requirement values were accepted locally |
+| conflict | A reviewed `revise-both` result that remains unresolved |
+| local receipt | Evidence that the artifact and workspace mirror advanced together |
+| remote-action receipt | Pending, failed, or succeeded evidence for one separately confirmed tracker mutation |
+
+Implementing specs and Executing briefs refuse requirement refresh. Shipped
+requirements stay locked, while the active profile may allow confirmed
+coordination-only write-back.
 
 ## See also
 
 - [Choose a tracker integration](../how-to/choose-a-tracker-integration.md)
 - [Work intake routing reference](../../core/reference/work-intake-routing-and-lifecycle.md)
+- [Refresh tracked work safely](../how-to/use-work-intake.md)

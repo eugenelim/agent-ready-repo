@@ -116,8 +116,21 @@ canonical.active                 — canonical valid work.active specs; resumabl
 canonical.blocked                — canonical non-dispatchable entries and retained legacy memberships
 canonical.findings               — stable finding code/path/dispatchable/next_action records (no raw artifact text)
 canonical.legacy_memberships     — retained legacy context; always non-dispatchable
+canonical.*[].origin_mode        — repository or tracker origin from structured provenance
+canonical.*[].profile            — active tracker profile id/version when declared
+canonical.*[].refresh            — compared/accepted revisions, unresolved-conflict flag,
+                                   and refresh/write-back availability
 diagnostics.spec_files_read      — number of spec.md files examined (status + reconcile only)
 ```
+
+Refresh authority facts come only from the canonical workspace source record
+and exactly one closed `toml source-authority` block in the confined artifact.
+Never infer them from prose, comments, labels, summaries, or tracker content.
+The status surface reports availability as `unknown` until a configured
+processor supplies an explicit capability result; tracker origin plus a profile
+is not proof that refresh or write-back is available. Status projects only the
+facts needed for orientation and never copies field ownership, decisions,
+receipts, approver identity, or raw source values into its output.
 
 ### 1a. Canonical findings
 
@@ -140,6 +153,7 @@ Every canonical refusal carries a stable code, repository-relative path,
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
+| `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |

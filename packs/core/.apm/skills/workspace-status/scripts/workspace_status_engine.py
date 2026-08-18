@@ -32,13 +32,17 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import hashlib
+import importlib
+import importlib.util
 import json
 import math
 import os
 import re
+import sys
 import time
 import tomllib
 from pathlib import Path
+from typing import Any
 
 # ── Data types ────────────────────────────────────────────────────────────────
 
@@ -89,6 +93,9 @@ _FINDING_NEXT_ACTIONS = {
     ),
     "configuration_mismatch": (
         "Install or select a consistent versioned configuration, then rerun."
+    ),
+    "invalid_source_authority": (
+        "Correct the closed source-authority block, then rerun reconciliation."
     ),
 }
 
@@ -219,6 +226,8 @@ class ArtifactMetadata:
     revision: str | None = None
     refresh_conflict: bool = False
     resolution: str | None = None
+    authority_status: dict[str, object] | None = None
+    authority_error: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -230,6 +239,7 @@ class DispatchEvaluation:
     collection: str
     dispatchable: bool
     findings: list[RoutingFinding]
+    authority_status: dict[str, object] | None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1428,6 +1438,91 @@ def _parse_generic_status(text: str, kind: str) -> str | None:
     return value.split()[0] if value.split() else None
 
 
+def _source_authority_module_path() -> Path | None:
+    engine_path = Path(__file__).resolve()
+    installed_path = (
+        engine_path.parents[2] / "work-intake" / "scripts" / "refresh.py"
+    )
+    if installed_path.is_file():
+        return installed_path
+    packaged_path = engine_path.parent / "work_intake_refresh.py"
+    if packaged_path.is_file():
+        return packaged_path
+    # The package-data engine is exercised directly in development before the
+    # installed skill projection exists. Resolve that checkout without relying
+    # on the caller's working directory.
+    if len(engine_path.parents) > 4:
+        source_path = (
+            engine_path.parents[4]
+            / "packs"
+            / "core"
+            / ".apm"
+            / "skills"
+            / "work-intake"
+            / "scripts"
+            / "refresh.py"
+        )
+        if source_path.is_file():
+            return source_path
+    return None
+
+
+def _load_source_authority_parser() -> Any:
+    parser_path = _source_authority_module_path()
+    if parser_path is None:
+        try:
+            module = importlib.import_module(
+                "agentbundle._data.work_intake_refresh"
+            )
+        except ImportError as exc:
+            raise RuntimeError("source authority parser unavailable") from exc
+        parser = getattr(module, "parse_source_authority", None)
+        if not callable(parser):
+            raise RuntimeError("source authority parser unavailable")
+        return parser
+    module_name = "_workspace_status_source_authority_" + hashlib.sha256(
+        str(parser_path).encode("utf-8")
+    ).hexdigest()
+    module = sys.modules.get(module_name)
+    if module is None:
+        spec = importlib.util.spec_from_file_location(module_name, parser_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("source authority parser unavailable")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        try:
+            spec.loader.exec_module(module)
+        except Exception as exc:
+            sys.modules.pop(module_name, None)
+            raise RuntimeError("source authority parser unavailable") from exc
+    parser = getattr(module, "parse_source_authority", None)
+    if not callable(parser):
+        raise RuntimeError("source authority parser unavailable")
+    return parser
+
+
+def _parse_source_authority_status(
+    text: str,
+) -> tuple[dict[str, object] | None, str | None, str | None, str | None]:
+    try:
+        parser = _load_source_authority_parser()
+        authority = parser(text)
+    except RuntimeError:
+        return None, "configuration_mismatch", None, None
+    except ValueError:
+        return None, "invalid_source_authority", None, None
+    refresh: dict[str, object] = {
+        "compared_revision": authority.source_revision,
+        "conflict": any(
+            conflict.get("status") == "unresolved"
+            for conflict in authority.conflicts
+        ),
+    }
+    if authority.accepted_revision is not None:
+        refresh["accepted_revision"] = authority.accepted_revision
+    return refresh, None, authority.source_ref, authority.source_revision
+
+
 def _normalized_optional_artifact_value(value: str | None) -> str | None:
     if value is None:
         return None
@@ -1471,6 +1566,17 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
     revision = fields.get("source revision") or fields.get("revision")
     refresh_conflict = fields.get("refresh conflict", "").lower() == "true"
     resolution = fields.get("resolution")
+    authority_status = None
+    authority_error = None
+    if entry.source.mode == "tracker-origin":
+        authority_status, authority_error, authority_ref, authority_revision = (
+            _parse_source_authority_status(text)
+        )
+        ref = authority_ref
+        revision = authority_revision
+        refresh_conflict = bool(
+            authority_status is not None and authority_status.get("conflict")
+        )
     plan_invalid_path = False
     if entry.kind == "spec":
         plan_path = _confined_artifact_path(
@@ -1503,6 +1609,8 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
         revision=revision,
         refresh_conflict=refresh_conflict,
         resolution=resolution,
+        authority_status=authority_status,
+        authority_error=authority_error,
     )
 
 
@@ -2128,6 +2236,57 @@ def _append_plan_findings(
         )
 
 
+def _authority_status_for_entry(
+    entry: WorkspaceEntry,
+    metadata: ArtifactMetadata | None,
+) -> dict[str, object] | None:
+    if (
+        entry.source.mode == "tracker-origin"
+        and metadata is not None
+        and metadata.authority_error is not None
+    ):
+        return None
+    profile = entry.source.tracker_profile
+    refresh_available: bool | str = "unknown"
+    write_back_available: bool | str = "unknown"
+    if profile is None:
+        refresh_available = False
+        write_back_available = False
+    elif entry.source.mode == "repo-origin":
+        refresh_available = False
+    elif metadata is not None and metadata.status in {
+        "Implementing",
+        "Executing",
+        "Shipped",
+    }:
+        refresh_available = False
+        if metadata.status != "Shipped":
+            write_back_available = False
+    refresh: dict[str, object] = {
+        "available": refresh_available,
+        "write_back_available": write_back_available,
+        "conflict": bool(metadata.refresh_conflict) if metadata is not None else False,
+    }
+    if entry.source.revision is not None:
+        refresh["compared_revision"] = entry.source.revision
+    if metadata is not None and metadata.authority_status is not None:
+        authority_refresh = metadata.authority_status
+        if "compared_revision" in authority_refresh:
+            refresh["compared_revision"] = authority_refresh["compared_revision"]
+        if "accepted_revision" in authority_refresh:
+            refresh["accepted_revision"] = authority_refresh["accepted_revision"]
+        refresh["conflict"] = bool(refresh["conflict"]) or bool(
+            authority_refresh.get("conflict")
+        )
+    status: dict[str, object] = {
+        "origin_mode": entry.source.mode,
+        "refresh": refresh,
+    }
+    if profile is not None:
+        status["profile"] = dict(profile)
+    return status
+
+
 def _structural_findings(
     membership: WorkspaceMembership,
     metadata: ArtifactMetadata | None,
@@ -2165,6 +2324,10 @@ def _structural_findings(
     if not metadata.readable:
         findings.append(_finding("unreadable_artifact", entry.path, "artifact is unreadable"))
         return findings
+    if metadata.authority_error is not None:
+        findings.append(
+            _finding(metadata.authority_error, entry.path, "source authority block")
+        )
     if metadata.refresh_conflict:
         findings.append(_finding("refresh_conflict", entry.path, "unresolved refresh conflict"))
     if _provenance_path_is_invalid(
@@ -2275,6 +2438,7 @@ def evaluate_dispatch(
         collection=membership.collection,
         dispatchable=dispatchable,
         findings=findings,
+        authority_status=_authority_status_for_entry(entry, metadata),
     )
 
 

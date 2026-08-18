@@ -67,7 +67,7 @@ class AuthError(JiraError):
 
 @dataclass(frozen=True)
 class IntakeRequestPolicy:
-    """Profile-bound controls for a credentialed, read-only intake request."""
+    """Profile-bound controls for a credentialed tracker request."""
 
     origin: str
     addresses: frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]
@@ -78,6 +78,7 @@ class IntakeRequestPolicy:
     resolver: Callable[..., Iterable[tuple[Any, ...]]] = dataclass_field(
         repr=False, compare=False
     )
+    allow_write: bool = False
 
     @classmethod
     def from_profile(
@@ -86,6 +87,7 @@ class IntakeRequestPolicy:
         destination: str,
         *,
         resolver: Callable[..., Iterable[tuple[Any, ...]]] = socket.getaddrinfo,
+        allow_write: bool = False,
     ) -> IntakeRequestPolicy:
         """Load a strict profile and validate its destination before auth."""
         try:
@@ -131,6 +133,7 @@ class IntakeRequestPolicy:
                 max_attempts=max_retries + 1,
                 max_bytes=int(budget["max_bytes"]),
                 backoff_s=backoff,
+                allow_write=allow_write,
                 resolver=resolver,
             )
             origin, addresses = policy._validate_destination(
@@ -143,6 +146,7 @@ class IntakeRequestPolicy:
                 max_attempts=policy.max_attempts,
                 max_bytes=policy.max_bytes,
                 backoff_s=policy.backoff_s,
+                allow_write=allow_write,
                 resolver=resolver,
             )
         except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
@@ -708,13 +712,17 @@ class JiraClient:
                 "writes over SSO-cookie auth are not supported yet; "
                 "use a personal access token, or wait for the XSRF follow-on"
             )
-        if self._intake_policy is not None and method.upper() not in ("GET", "HEAD"):
+        if (
+            self._intake_policy is not None
+            and not self._intake_policy.allow_write
+            and method.upper() not in ("GET", "HEAD")
+        ):
             raise JiraError("tracker intake is read-only; request refused")
 
         async with self._sem:
             last_exc: Exception | None = None
             last_status: int | None = None
-            attempts = (
+            attempts = 1 if method.upper() not in ("GET", "HEAD") else (
                 self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES

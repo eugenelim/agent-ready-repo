@@ -56,6 +56,14 @@ After validation, `work-intake` may write the selected repository artifact and
 register it. If that dependency is missing, intake stops with
 `missing dependency: work-intake`.
 
+Once a tracker-origin artifact exists, refresh is a separate operation. It
+compares the registered GitHub revision and requires local field decisions.
+The configured refresh processor may comment, add a trace or pull-request link,
+set a display-status label, or close the linked Issue. Each action requires its
+own fresh confirmation and pending receipt before one shell-free `gh`
+invocation. It cannot rewrite Issue bodies or let source content select the
+host, repository, executable, or command options.
+
 ## Limits and incomplete results
 
 The default profile allows at most 5 pages, 100 items, 2 MiB, 30 seconds per
@@ -82,4 +90,5 @@ Accept the proposed spec route and start new-spec.
 ```
 
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
-shared route terms.
+shared route terms. For an existing artifact, see
+[Refresh tracked work safely](../../_shared/how-to/use-work-intake.md).

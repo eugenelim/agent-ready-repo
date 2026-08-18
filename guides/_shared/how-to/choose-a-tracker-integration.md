@@ -59,6 +59,12 @@ the destination.
 If `work-intake` is missing, the adapter returns
 `missing dependency: work-intake` and stops. There is no local fallback.
 
+After intake has created a tracker-origin artifact, a later refresh is a
+separate workflow. It compares the registered source revision, requires local
+field decisions, and may offer only the coordination write-back actions
+declared by that exact profile. Every remote mutation requires its own fresh
+confirmation; intake itself remains read-only.
+
 ## Limits
 
 Every profile declares page, item, byte, timeout, retry, and backoff limits.
@@ -70,11 +76,13 @@ tools, routing, or authority.
 
 After reviewing the route, answer any named gap or confidentiality question.
 Then continue with the selected processor, such as `new-spec`, `author-brief`,
-or `bug-fix`.
+or `bug-fix`. For an existing artifact whose tracker source changed, follow
+[Refresh tracked work safely](use-work-intake.md).
 
 ## See also
 
 - [Tracker vocabulary](../reference/tracker-vocabulary.md)
+- [Refresh tracked work safely](use-work-intake.md)
 - [Start or remember work](../../core/how-to/start-or-remember-work.md)
 - [GitHub intake](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
 - [Linear intake and sync](../../linear/how-to/linear-brief-intake-and-sync.md)

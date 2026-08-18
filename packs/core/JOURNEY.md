@@ -12,11 +12,13 @@ contract:
   youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
   yourDecisions:
     - "Approve the plan"
+    - "Approve each local refresh field decision"
+    - "Confirm every remote tracker mutation separately"
     - "Merge the PR"
-whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → adversarial review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
+whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any start-work processor runs. For an existing tracker-origin artifact, refresh resolves the configured profile, shows a field-level delta, and applies only authorized local decisions. Every optional tracker mutation has a separate fresh confirmation. Approved specs then move through work-loop: plan → execute → verify → adversarial review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
 skills:
   - name: work-intake
-    description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
+    description: "Routes start, remember, and status requests, or reviews an existing tracker-origin artifact through the configured refresh processor. Local field decisions and remote mutation confirmations remain separate."
     humanTouches: 0
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice without changing artifact authority."
@@ -135,6 +137,19 @@ continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
+
+#### Optional return path — refresh tracked work
+
+For an existing tracker-origin artifact, ask `work-intake` to compare the
+registered source revision. You receive a field-level delta before anything
+changes. Approve each local decision; if you later request a tracker comment,
+trace link, pull-request link, display-status change, or closure, confirm that
+one remote mutation separately.
+
+- **You decide:** each local field outcome, then each exact remote mutation.
+- **Output:** updated local authority and revision mirror, plus a pending,
+  failed, or succeeded receipt for any confirmed remote action.
+- **State:** confirmed-write
 
 ---
 

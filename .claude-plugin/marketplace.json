@@ -37,7 +37,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route.",
+      "description": "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -55,7 +55,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.8.4"
+      "version": "0.9.0"
     },
     {
       "author": {
@@ -248,7 +248,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub.",
+      "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -267,7 +267,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.1.4"
+      "version": "0.2.0"
     },
     {
       "author": {
@@ -275,7 +275,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs.",
+      "description": "Read Linear work into repository intake, then review later source changes and confirm narrow coordination write-back.",
       "displayName": "Linear",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -293,7 +293,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.3"
+      "version": "0.2.4"
     },
     {
       "author": {

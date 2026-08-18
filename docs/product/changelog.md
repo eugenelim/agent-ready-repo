@@ -18,6 +18,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [agentbundle][0.37.2] — 2026-08-17
+
+#### Changed
+
+- **Workspace status clients now receive the same structured refresh facts as
+  the core skill.** MCP and CLI results expose origin mode, configured profile,
+  compared and accepted revisions, conflict state, and known refresh or
+  write-back availability without publishing authority maps or identities.
+
+### [core][2.7.2] — 2026-08-17
+
+#### Added
+
+- **Registered tracker-origin work can now be refreshed through one reviewed
+  authority path.** `work-intake` resolves the exact configured profile,
+  presents a field-level delta, preserves lifecycle locks, and updates the
+  canonical artifact plus workspace revision mirror as one guarded operation.
+  Tracker content remains untrusted and cannot select the processor, approval,
+  destination, or write payload.
+
+#### Changed
+
+- **Workspace status now shows refresh facts without becoming an authority
+  store.** It reports origin mode, profile, compared and accepted revisions,
+  unresolved conflict state, and known availability while omitting ownership,
+  decisions, receipts, and approver identities.
+- **Remote coordination writes have a per-mutation confirmation and receipt.**
+  Every supported action binds one fresh confirmation to the artifact,
+  revision, profile, destination, target, and canonical payload. A pending
+  receipt lands before the adapter call, and failed writes are not retried
+  automatically.
+
+### [linear][0.2.4] — 2026-08-17
+
+#### Added
+
+- **Linear refresh now supports reviewed local deltas and narrow coordination
+  write-back.** Trace links, pull-request links, display status, comments, and
+  closure use documented GraphQL mutations, a pinned fixed destination, one
+  fresh confirmation per mutation, and no automatic write retry.
+
+### [github][0.2.0] — 2026-08-17
+
+#### Added
+
+- **GitHub refresh uses the approved fixed-host `gh` boundary.** It can add
+  trace links, pull-request links, display-status labels, comments, or closure
+  after separate exact confirmations. Tracker content stays in argv-safe or
+  stdin data positions and cannot choose the host, repository, executable, or
+  command options. Requirement and Issue-body rewrites remain unsupported.
+
+### [atlassian][0.9.0] — 2026-08-17
+
+#### Added
+
+- **Jira and Jira Align now share the reviewed tracker-refresh lifecycle.**
+  Token-authenticated Jira can comment, transition display status, or close
+  through the pinned guarded client after a separate exact confirmation. Jira
+  SSO-cookie writes remain zero-wire refusals. Jira Align supports local
+  reviewed refresh and truthfully declares remote write-back unavailable.
+
 ### [core][2.7.1] — 2026-08-17
 
 #### Added

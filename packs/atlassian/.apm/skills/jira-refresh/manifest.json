@@ -1,0 +1,19 @@
+{
+  "id": "jira-refresh",
+  "name": "Jira Refresh",
+  "version": "1.0.0",
+  "description": "Review Jira source changes and execute separately confirmed, capability-scoped coordination write-back.",
+  "category": "workflows",
+  "tags": ["jira", "work-intake", "refresh", "write-back", "credentialed"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Skills are addressed by registered name; source values are install guidance only.",
+    "skills": [
+      {"name": "work-intake", "source": "core pack", "purpose": "Shared refresh lifecycle, authority, confirmation, and receipt runtime."},
+      {"name": "jira", "source": "atlassian pack", "purpose": "Guarded token-authenticated Jira client and SSO-cookie zero-wire refusal."}
+    ]
+  },
+  "input": {"arguments": "A registered Jira tracker-origin artifact, shared refresh policy, guarded Jira client, and exact confirmation for any remote action."},
+  "output": {"artifacts": ["One redacted refresh or write-back result and local receipt update."]},
+  "targets": {"default": {"file": "SKILL.md"}}
+}

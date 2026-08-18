@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.37.2] — 2026-08-17
+
+### Changed
+
+- **The `workspace_status` MCP result now includes safe tracker-refresh
+  availability facts.** Callers can read origin mode, active profile, compared
+  and accepted revisions, unresolved conflict state, and explicit or unknown
+  refresh/write-back availability. The response does not expose field
+  ownership, decisions, receipts, or approver identities.
+
 ## [0.37.1] — 2026-08-16
 
 ### Changed

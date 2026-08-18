@@ -33,6 +33,19 @@ On any session return, type `workspace-status` to orient.
 ✓ sprint-7/payment-ui      done     shipped 2026-07-25
 ```
 
+For a registered tracker-origin artifact, ask for a refresh rather than a new
+intake:
+
+```text
+Refresh docs/specs/export-retention/spec.md from its registered source.
+Show the field delta and do not write back yet.
+```
+
+`work-intake` resolves the exact profile processor and preserves the artifact's
+authority record. Local requirement changes need authorized field decisions.
+Each optional tracker coordination mutation then needs its own fresh exact
+confirmation and pending receipt.
+
 ---
 
 ## Entry points
@@ -140,4 +153,5 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 - **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.
 - **Go deeper:** the `core` guides in `guides/core/`.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
+- **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
 - **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

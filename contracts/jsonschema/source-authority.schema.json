@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/source-authority.schema.json",
+  "title": "Canonical artifact source authority",
+  "description": "Closed tracker-origin authority record embedded in one canonical artifact.",
+  "type": "object",
+  "contract_version": "source-authority.v1",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "mode",
+    "source_ref",
+    "source_revision",
+    "owned_fields"
+  ],
+  "properties": {
+    "contract_version": {"const": "source-authority.v1"},
+    "mode": {"const": "tracker-origin"},
+    "source_ref": {"$ref": "#/$defs/boundedString"},
+    "source_revision": {"$ref": "#/$defs/revision"},
+    "accepted_revision": {"$ref": "#/$defs/revision"},
+    "owned_fields": {
+      "type": "object",
+      "maxProperties": 200,
+      "propertyNames": {"type": "string", "minLength": 1, "maxLength": 200},
+      "additionalProperties": {"enum": ["source", "local"]}
+    },
+    "acceptance": {"$ref": "#/$defs/approval"},
+    "source_decisions": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceDecision"}
+    },
+    "conflicts": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/conflict"}
+    },
+    "local_receipts": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/localReceipt"}
+    },
+    "remote_actions": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/remoteAction"}
+    }
+  },
+  "$defs": {
+    "boundedString": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "shortString": {"type": "string", "minLength": 1, "maxLength": 200},
+    "revision": {"type": "string", "minLength": 1, "maxLength": 200},
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time", "maxLength": 40},
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "role", "decided_at", "authorization_source"],
+      "properties": {
+        "identity": {"$ref": "#/$defs/shortString"},
+        "role": {"$ref": "#/$defs/shortString"},
+        "decided_at": {"$ref": "#/$defs/timestamp"},
+        "authorization_source": {"$ref": "#/$defs/shortString"}
+      }
+    },
+    "sourceDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_revision",
+        "field",
+        "decision",
+        "identity",
+        "role",
+        "decided_at",
+        "authorization_source"
+      ],
+      "properties": {
+        "source_revision": {"$ref": "#/$defs/revision"},
+        "field": {"$ref": "#/$defs/shortString"},
+        "decision": {"enum": ["keep-local", "accept-source", "revise-both"]},
+        "value_digest": {"$ref": "#/$defs/digest"},
+        "identity": {"$ref": "#/$defs/shortString"},
+        "role": {"$ref": "#/$defs/shortString"},
+        "decided_at": {"$ref": "#/$defs/timestamp"},
+        "authorization_source": {"$ref": "#/$defs/shortString"}
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_revision", "field", "status"],
+      "properties": {
+        "source_revision": {"$ref": "#/$defs/revision"},
+        "field": {"$ref": "#/$defs/shortString"},
+        "status": {"enum": ["unresolved", "resolved"]},
+        "decision": {"enum": ["keep-local", "accept-source", "revise-both"]}
+      }
+    },
+    "localReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["update_id", "artifact_digest", "workspace_digest", "status", "recorded_at"],
+      "properties": {
+        "update_id": {"$ref": "#/$defs/shortString"},
+        "artifact_digest": {"$ref": "#/$defs/digest"},
+        "workspace_digest": {"$ref": "#/$defs/digest"},
+        "status": {"enum": ["pending", "failed", "committed"]},
+        "recorded_at": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "remoteAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirmation_id",
+        "binding_digest",
+        "profile_version",
+        "payload_digest",
+        "identity",
+        "role",
+        "confirmed_at",
+        "authorization_source",
+        "action",
+        "target",
+        "status"
+      ],
+      "properties": {
+        "confirmation_id": {"$ref": "#/$defs/shortString"},
+        "binding_digest": {"$ref": "#/$defs/digest"},
+        "profile_version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "payload_digest": {"$ref": "#/$defs/digest"},
+        "identity": {"$ref": "#/$defs/shortString"},
+        "role": {"$ref": "#/$defs/shortString"},
+        "confirmed_at": {"$ref": "#/$defs/timestamp"},
+        "authorization_source": {"$ref": "#/$defs/shortString"},
+        "action": {"enum": ["trace-link", "display-status", "comment", "pull-request-link", "closure"]},
+        "target": {"$ref": "#/$defs/boundedString"},
+        "status": {"enum": ["pending", "failed", "succeeded"]}
+      }
+    }
+  }
+}

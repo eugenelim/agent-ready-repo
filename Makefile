@@ -337,11 +337,14 @@ test:
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_refresh_processor.py -q
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_refresh_processor.py -q
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 	$(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+	$(PYTHON) -m pytest packs/github/tests/skills/github-refresh/ -q
 	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q

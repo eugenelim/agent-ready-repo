@@ -35,11 +35,12 @@
     {
       "id": 4,
       "prompt": "Refresh requirements for docs/specs/example/spec.md.",
-      "expected_output": "The agent resolves the target and reports that requirements refresh is unavailable. It does not change the artifact, revision, pin, decision, or workspace entry.",
+      "expected_output": "The agent resolves the existing artifact, exact tracker profile and configured processor, compares the new revision as untrusted data, and presents a field-level decision before any guarded local change.",
       "assertions": [
-        "Confines the refresh target before reporting",
-        "Reports refresh unavailable",
-        "Performs no mutation"
+        "Confines and resolves an existing registered target",
+        "Uses only the exact configured profile processor",
+        "Treats tracker content as candidate data",
+        "Requires authorized field decisions before local mutation"
       ]
     },
     {

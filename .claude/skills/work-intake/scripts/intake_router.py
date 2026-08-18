@@ -3,6 +3,46 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol
+
+
+class RefreshProcessor(Protocol):
+    """Executable registration shape consumed by the intake front door."""
+
+    name: str
+    capabilities: frozenset[str]
+
+    def acquire_map_compare(self, request: RefreshRequest) -> RefreshInvocation:
+        """Acquire, map, validate, and compare one exact source revision."""
+
+
+class RefreshRequest(Protocol):
+    """Trusted local request fields checked before processor invocation."""
+
+    artifact_path: str
+    artifact_kind: str
+    authority_mode: str
+    profile_id: str
+    profile_version: str
+
+
+class RefreshInvocation(Protocol):
+    """Redacted configured-processor result."""
+
+    code: str
+    processor: str
+
+
+class RefreshProcessorResolver(Protocol):
+    """Configured registry contract; tracker-specific behavior stays outside core."""
+
+    def resolve(
+        self,
+        profile_id: str,
+        profile_version: str,
+        required_capability: str | None = None,
+    ) -> RefreshProcessor:
+        """Resolve an exact profile registration or fail closed."""
 
 
 @dataclass(frozen=True)
@@ -16,6 +56,8 @@ class RoutingSignals:
     named_gaps: bool = False
     ready_brief: bool = False
     alias: str | None = None
+    profile_id: str | None = None
+    profile_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -30,6 +72,16 @@ class Route:
     mutation: str
 
 
+@dataclass(frozen=True)
+class RefreshFrontDoorResult:
+    """Public refresh delegation outcome with one stable next action."""
+
+    route: Route
+    code: str
+    remediation: str
+    invocation: RefreshInvocation | None = None
+
+
 _START_ROUTES = {
     "intent": ("shaping_queue.backlog", "none"),
     "spec": ("work.queue", "new-spec"),
@@ -38,14 +90,30 @@ _START_ROUTES = {
 }
 
 
-def route_intake(signals: RoutingSignals) -> Route:
+def route_intake(
+    signals: RoutingSignals,
+    refresh_processors: RefreshProcessorResolver | None = None,
+) -> Route:
     """Map validated semantic signals to one deterministic intake route."""
 
     if signals.action == "status":
         return _route(signals, "passthrough", "workspace-status", "none")
 
     if signals.action == "refresh":
-        processor = _START_ROUTES.get(signals.artifact_kind, ("", "none"))[1]
+        processor = "none"
+        if (
+            refresh_processors is not None
+            and signals.profile_id is not None
+            and signals.profile_version is not None
+        ):
+            try:
+                processor = refresh_processors.resolve(
+                    signals.profile_id, signals.profile_version
+                ).name
+            except ValueError:
+                # Missing and version-incompatible registrations share the stable,
+                # no-effect refresh-unavailable route at this public front door.
+                processor = "none"
         return _route(signals, "resolved-existing", processor, "none")
 
     if signals.ready_brief:
@@ -69,6 +137,61 @@ def route_intake(signals: RoutingSignals) -> Route:
 
     membership, processor = _START_ROUTES[signals.artifact_kind]
     return _route(signals, membership, processor, "materialize-and-register")
+
+
+def invoke_refresh(
+    signals: RoutingSignals,
+    refresh_processors: RefreshProcessorResolver,
+    request: RefreshRequest,
+) -> RefreshFrontDoorResult:
+    """Resolve and invoke one configured refresh processor through work-intake."""
+
+    if signals.action != "refresh":
+        raise ValueError("refresh invocation requires refresh routing signals")
+    route = route_intake(signals, refresh_processors)
+    if (
+        signals.profile_id is None
+        or signals.profile_version is None
+        or route.processor == "none"
+    ):
+        return RefreshFrontDoorResult(
+            route,
+            "refresh-unavailable",
+            "configure-compatible-refresh-processor",
+        )
+    if (
+        request.artifact_path != signals.artifact
+        or request.artifact_kind != signals.artifact_kind
+        or request.authority_mode != signals.authority_mode
+        or request.profile_id != signals.profile_id
+        or request.profile_version != signals.profile_version
+    ):
+        return RefreshFrontDoorResult(
+            route,
+            "invalid-refresh-request",
+            "repair-refresh-request-profile",
+        )
+    try:
+        processor = refresh_processors.resolve(
+            signals.profile_id,
+            signals.profile_version,
+            "acquire",
+        )
+    except ValueError:
+        return RefreshFrontDoorResult(
+            _route(signals, "resolved-existing", "none", "none"),
+            "refresh-unavailable",
+            "configure-compatible-refresh-processor",
+        )
+    invocation = processor.acquire_map_compare(request)
+    if invocation.code != "completed":
+        return RefreshFrontDoorResult(
+            route,
+            invocation.code,
+            "retry-or-repair-configured-refresh-processor",
+            invocation,
+        )
+    return RefreshFrontDoorResult(route, "completed", "none", invocation)
 
 
 def _route(

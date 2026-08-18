@@ -32,6 +32,9 @@ CORE_PACK = REPO_ROOT / "packs" / "core"
 SKILL_NAME = "workspace-status"
 _SCRIPTS = ("workspace_status.py", "workspace_status_engine.py")
 _SCHEMAS = REPO_ROOT / "contracts" / "jsonschema"
+_PACKAGED_DATA = (
+    REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
+)
 
 
 def _load_workspace_status_engine():
@@ -68,6 +71,32 @@ def test_t1_group2_schema_constants_match_engine() -> None:
     assert tuple(
         intake_schema["properties"]["action"]["enum"]
     ) == engine.NORMALIZED_INTAKE_ACTIONS
+
+
+def test_workspace_status_package_runtimes_match_canonical_sources() -> None:
+    status_engine = (
+        CORE_PACK
+        / ".apm"
+        / "skills"
+        / SKILL_NAME
+        / "scripts"
+        / "workspace_status_engine.py"
+    )
+    refresh_runtime = (
+        CORE_PACK
+        / ".apm"
+        / "skills"
+        / "work-intake"
+        / "scripts"
+        / "refresh.py"
+    )
+
+    assert (_PACKAGED_DATA / "workspace_status_engine.py").read_bytes() == (
+        status_engine.read_bytes()
+    )
+    assert (_PACKAGED_DATA / "work_intake_refresh.py").read_bytes() == (
+        refresh_runtime.read_bytes()
+    )
 
 
 def _documented_finding_rows(text: str) -> dict[str, tuple[str, str]]:

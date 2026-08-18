@@ -32,6 +32,13 @@ that artifact, never in the workspace index.
 Human decision: A person chooses the canonical artifact route, approves
 requirement-bearing artifacts, and decides how to migrate a legacy entry.
 
+Repositories that enable tracker refresh also carry a global
+`[authorization.refresh]` role policy outside initiative entries. See
+[Refresh tracked work safely](../../_shared/how-to/use-work-intake.md) for
+the exact required keys and confirmation boundaries. The policy contains roles
+only; artifact authority, approver identities, decisions, conflicts, and
+receipts remain in the canonical artifact.
+
 Comments, `summary`, list order, tracker object type, and profile hints are
 display context only. They must not decide routing, reconciliation, dependency
 satisfaction, dispatch, or which processor runs.
@@ -261,6 +268,7 @@ Every refusal is visible as a stable code with a safe next action.
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
+| `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |

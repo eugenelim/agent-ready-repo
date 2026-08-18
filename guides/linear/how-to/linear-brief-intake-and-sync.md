@@ -1,7 +1,9 @@
 # Choose Linear intake or brief sync
 
 Use intake when Linear work should enter the repository for the first time. Use
-sync only when an existing brief needs an approval-gated catch-up from Linear.
+refresh when an existing tracker-origin artifact needs an approval-gated
+catch-up from Linear. `linear-brief-sync` preserves the older brief-specific
+request language but delegates to that same refresh authority.
 
 For intake, say:
 
@@ -28,20 +30,26 @@ units, a view-only result, or one clarifying question.
 repository artifact directly. `work-intake` owns repository materialization
 after validation and required human decisions.
 
-## Catch up an existing brief with sync
+## Catch up an existing artifact with refresh
 
-Use `linear-brief-sync` only when a brief already exists and source fields have
-changed:
+When a registered artifact already exists and source fields have changed, ask:
 
 ```text
 Sync Linear issue LIN-123 into docs/product/briefs/example-feature.md.
 Show the delta and wait for approval.
 ```
 
-Sync re-fetches the Issue, compares only Linear-sourced sections, and shows a
-before/after diff. It writes only approved sections and refuses while the brief
-is executing. Sync is a separate workflow; its write behavior does not broaden
-the read-only intake boundary.
+The configured Linear processor validates and pins `api.linear.app` before
+credentials, re-fetches the source, and shows a field-level diff. Local
+requirement changes need the authority decision defined by the artifact and
+repository policy. Refresh refuses while a spec is Implementing or a brief is
+Executing.
+
+Optional coordination write-back is separate from the local decision. Trace
+links, pull-request links, display status, comments, and closure each require a
+fresh confirmation bound to the exact target and payload. The processor records
+a pending receipt before one GraphQL mutation and never retries that mutation
+automatically.
 
 ## Decision table
 
@@ -51,7 +59,7 @@ the read-only intake boundary.
 | An Issue may be one shippable feature | intake; let content select the spec route |
 | A Project or Issue with children may be one outcome | intake; let coherence select the route |
 | A collection contains unrelated work | intake; expect separate units or view-only |
-| An existing brief's imported source sections changed | sync, with diff approval |
+| An existing tracker-origin artifact changed | refresh, with field-level approval |
 | The brief is executing | neither sync nor refresh; wait for the execution boundary |
 
 ## Intake limits
@@ -68,8 +76,9 @@ redaction, or a confidentiality mismatch stops before repository writes.
 
 ## Next request
 
-After intake, review the selected route and answer any named gap. After sync,
+After intake, review the selected route and answer any named gap. After refresh,
 review the proposed sections and approve only those you want changed.
 
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
-shared terms.
+shared terms and [Refresh tracked work safely](../../_shared/how-to/use-work-intake.md)
+for the common lifecycle and confirmation procedure.

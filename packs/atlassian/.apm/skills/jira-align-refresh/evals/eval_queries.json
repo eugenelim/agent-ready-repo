@@ -1,0 +1,19 @@
+[
+  {"query": "Refresh this tracker-origin artifact from Jira Align", "should_trigger": true},
+  {"query": "Show the Jira Align changes for this registered brief", "should_trigger": true},
+  {"query": "Catch this artifact up with Jira Align feature 42", "should_trigger": true},
+  {"query": "Compare the accepted artifact with the latest Jira Align revision", "should_trigger": true},
+  {"query": "Review Jira Align source changes but preserve local decisions", "should_trigger": true},
+  {"query": "Refresh from Jira Align without writing back", "should_trigger": true},
+  {"query": "Show which Jira Align fields changed since the accepted revision", "should_trigger": true},
+  {"query": "Resolve this Jira Align refresh conflict", "should_trigger": true},
+
+  {"query": "Intake a new Jira Align feature", "should_trigger": false},
+  {"query": "Update Jira Align feature 42 directly", "should_trigger": false},
+  {"query": "Search Jira for open bugs", "should_trigger": false},
+  {"query": "Refresh this artifact from Linear", "should_trigger": false},
+  {"query": "Publish this page to Confluence", "should_trigger": false},
+  {"query": "Run workspace status", "should_trigger": false},
+  {"query": "Draft a new specification", "should_trigger": false},
+  {"query": "Review this code diff", "should_trigger": false}
+]

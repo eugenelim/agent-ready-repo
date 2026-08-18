@@ -32,14 +32,17 @@ as a discrete argument and invoke with shell execution disabled.
 The adapter enforces only its side of the approved-`gh` boundary: the fixed
 configured host, trusted repository, read-only verbs, shell-free argv, and
 pre-invocation mismatch rejection. Authentication, redirect, DNS, and
-transport enforcement belong to `gh` and are not claimed here.
+transport enforcement belong to `gh` and are not claimed here. Optional
+refresh coordination write-back belongs to `github-refresh`, not this intake
+adapter.
 
 ## Bounded acquisition
 
 Read Milestone metadata with `gh api` and Issues with `gh issue list`. Request
 stable number/URL, `updatedAt`, title/body, labels, state, and only facts needed
 for outcome, behavior, constraint, evidence, and repository coordination.
-Never use `gh issue create`, `edit`, `close`, `comment`, or another write verb.
+Never use `gh issue create`, `edit`, `close`, `comment`, or another write verb
+from this intake adapter.
 
 Stop after 5 pages, 100 items, 2 MiB, 30 seconds per request, or one retry with
 a 1-second backoff. Mark safe truncation `incomplete`; otherwise return a

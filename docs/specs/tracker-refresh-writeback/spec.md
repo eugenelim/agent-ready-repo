@@ -1,12 +1,12 @@
 # Spec: Tracker refresh and write-back
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0083, ADR-0077, ADR-0078
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** `contracts/jsonschema/normalized-intake.schema.json`, `contracts/jsonschema/workspace-entry.schema.json`
+- **Contract:** `contracts/jsonschema/normalized-intake.schema.json`, `contracts/jsonschema/workspace-entry.schema.json`, `contracts/jsonschema/source-authority.schema.json`, `contracts/jsonschema/refresh-authorization-policy.schema.json`, `contracts/jsonschema/refresh-result.schema.json`
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -53,6 +53,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Treat the canonical artifact's source-authority record as authoritative and
   `workspace.toml` as a mirror of only the mode, source locator, and compared
   revision.
+- Parse exactly one fenced `toml source-authority` block from a tracker-origin
+  artifact and validate its closed record before using ownership, acceptance,
+  decision, conflict, receipt, or revision data. Surrounding prose and tracker
+  content are never authority.
 - Present requirement deltas field by field and require the local approver's
   decision before changing a requirement, accepted revision, receipt,
   dependency pin, or tracker projection.
@@ -66,6 +70,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Draft-refresh approver role when no acceptance record exists; check that
   identity and role before any effect and record the authorized identity, role,
   decision time, and source.
+- Validate the repository's global `[authorization.refresh]` table against the
+  refresh-authorization-policy contract. The table declares permitted roles
+  only; artifact ownership, decisions, conflicts, receipts, and identities
+  remain in the canonical artifact. The current human session supplies the
+  approver identity and claimed role through an explicit confirmation.
 - Validate every credential-bearing, user-configured destination used by
   repository-owned HTTP before credential loading or network I/O: enforce the
   profile's permitted scheme and host allowlist, resolve and pin an allowed
@@ -113,6 +122,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   option, credential scope, or repository target.
 - Introduce a second refresh lifecycle or tracker-specific authority vocabulary
   beside the Group 2 contracts.
+- Reuse a remote confirmation, or apply it to any artifact, revision, profile,
+  destination, action, target, or payload other than the exact mutation whose
+  digest it approved.
 
 ## Testing Strategy
 
@@ -127,7 +139,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   transports and command runners assert exact method, path, payload,
   confirmation, and refusal behavior without live tracker writes.
 - **Status and `work-intake` delegation — TDD integration tests.** Tests
-  exercise the Group 4 processor interface and Group 3 status result so a
+  exercise Group 4's public refresh front door, the Group 6 configured
+  processor interface, and Group 3's status result so a
   missing processor, conflict, or unsupported capability remains visible and
   non-mutating.
 - **Pack projection, activation, and documentation — goal-based checks.**
@@ -141,9 +154,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Existing-artifact boundary.** Refresh rejects a missing,
-  malformed, out-of-repository, or provenance-mismatched artifact/workspace
-  pair before tracker acquisition and creates no artifact or workspace entry.
+- [ ] **AC1 — Existing-artifact boundary.** Refresh resolves the artifact and
+  workspace paths to canonical real paths beneath the repository root and
+  rejects a missing, malformed, lexically traversing, symlink-escaping,
+  out-of-repository, or provenance-mismatched pair before any artifact read,
+  tracker acquisition, or effect. It creates no artifact or workspace entry
+  and revalidates both confined targets and their exact fingerprints
+  immediately before guarded replacement.
 - [ ] **AC2 — Contract validation.** Every acquired record accepted by refresh
   validates against `contracts/jsonschema/normalized-intake.schema.json`, and
   every workspace mirror written by refresh validates against
@@ -167,7 +184,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   repository policy; the check occurs before any effect, missing/ambiguous or
   unauthorized identity fails closed, and the record includes identity, role,
   timestamp, and authorization source. Accepted fields remain locally owned
-  afterward.
+  afterward. The guarded commit rejects a changed accepted field unless its
+  existing and proposed ownership are both `local`, and rejects any ownership
+  map change unless a separate explicit origin/ownership-change path authorized
+  it.
 - [ ] **AC6 — Compared-revision semantics.** A completed comparison advances
   `source_revision` and its workspace mirror even when the approver keeps local
   requirements or leaves a conflict unresolved; acquisition or comparison
@@ -248,7 +268,33 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `primitive-class`, `auth`/`auth-fallback`, namespace, and key metadata field
   without inventing locally managed keys for an approved CLI. Per-processor
   source tests and supported-adapter projection tests prove these declarations
-  survive unchanged and are never broadened.
+  survive unchanged and are never broadened. `github-refresh` declares
+  `metadata.credentialed: true`, `metadata.primitive-class: credentialed-cli`,
+  and `metadata.auth: cli`, with no locally managed `namespace` or `keys`.
+  Linear honors `HTTPS_PROXY`/`NO_PROXY`, `REQUESTS_CA_BUNDLE`,
+  `SSL_CERT_FILE`, and `SSL_CERT_DIR` without weakening AC21-AC22 destination,
+  redirect, or DNS-rebinding controls; an unsafe or unusable proxy/trust
+  configuration fails closed with redacted output.
+- [ ] **AC24 — Closed authority and policy encoding.** A tracker-origin
+  artifact contains exactly one fenced `toml source-authority` block whose
+  parsed object validates against `source-authority.schema.json`; the block is
+  the only source for mode, locator, compared revision, accepted revision,
+  field ownership, acceptance, decisions, conflicts, local receipts, and remote
+  action receipts. The global `[authorization.refresh]` table validates against
+  `refresh-authorization-policy.schema.json` and declares permitted Draft and
+  accepted approver roles without storing identities or artifact authority.
+  Missing, duplicate, malformed, unknown, or contradictory fields fail before
+  acquisition or effects, and surrounding prose or tracker text cannot become
+  authority. Every coordinator result validates against
+  `refresh-result.schema.json`.
+- [ ] **AC25 — Exact single-use remote confirmation.** Every remote mutation
+  consumes one fresh confirmation bound to approver identity and role, artifact
+  path, compared source revision, tracker profile and destination, action type,
+  target locator, and a canonical payload digest. The confirmation identifier
+  and binding are recorded in the artifact's remote-action receipt before the
+  adapter call; reuse, mismatch, stale, ambiguous, or unauthorized confirmation
+  fails before transport or `gh` invocation. A failed call updates only that
+  receipt to a retry-safe failed state and a retry requires a new confirmation.
 
 ## Assumptions
 
@@ -256,12 +302,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   workspace-entry JSON Schemas rather than defining parallel encodings
   (source: user confirmation 2026-08-09).
 - Technical: Group 3 supplies reconciliation/status support for authority
-  mismatches and guarded workspace transitions, and Group 4 supplies the
-  configured refresh-processor interface (source: user confirmation
-  2026-08-09).
+  mismatches, Group 4 supplies the public refresh front door and fail-closed
+  unavailable result, and Group 6 supplies the configured refresh-processor
+  interface and registry (source: user confirmations 2026-08-09 and
+  2026-08-17).
 - Technical: Group 5's supported profile registry covers Jira, Jira Align,
   Linear, and GitHub and distinguishes tracker profile capability from
   authentication capability (source: user confirmation 2026-08-09).
+- Technical: Group 6 owns the missing configured refresh-processor registry,
+  guarded artifact/workspace writer, and the three refresh-specific schemas;
+  these extend the shipped Group 2–5 seams without changing their normalized
+  intake, workspace-entry, lifecycle, or profile vocabularies (source: user
+  confirmation 2026-08-17).
+- Product: the current human session is the trusted source of the explicit
+  approver identity and role presented to refresh; repository policy authorizes
+  the role and the canonical artifact records the identity and evidence (source:
+  user confirmation 2026-08-17).
 - Technical: Jira SSO-cookie authentication remains read-only unless a
   separate security-reviewed XSRF change is approved (source:
   `packs/atlassian/.apm/skills/jira/scripts/_client.py`).

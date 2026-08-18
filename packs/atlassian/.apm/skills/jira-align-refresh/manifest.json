@@ -1,0 +1,19 @@
+{
+  "id": "jira-align-refresh",
+  "name": "Jira Align Refresh",
+  "version": "1.0.0",
+  "description": "Review Jira Align source changes through shared local authority while failing closed for remote write-back.",
+  "category": "workflows",
+  "tags": ["jira-align", "work-intake", "refresh", "credentialed"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Skills are addressed by registered name; source values are install guidance only.",
+    "skills": [
+      {"name": "work-intake", "source": "core pack", "purpose": "Shared refresh lifecycle, authority, confirmation, and receipt runtime."},
+      {"name": "jira-align", "source": "atlassian pack", "purpose": "Guarded Jira Align acquisition client."}
+    ]
+  },
+  "input": {"arguments": "A registered Jira Align tracker-origin artifact and shared refresh policy."},
+  "output": {"artifacts": ["One redacted local refresh result; remote write-back remains unsupported."]},
+  "targets": {"default": {"file": "SKILL.md"}}
+}

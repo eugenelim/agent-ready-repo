@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/refresh-authorization-policy.schema.json",
+  "title": "Repository refresh authorization policy",
+  "description": "Role-only policy for reviewed refresh and remote mutation approval.",
+  "type": "object",
+  "contract_version": "refresh-authorization-policy.v1",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "draft_approver_roles",
+    "accepted_approver_roles",
+    "remote_mutation_approver_roles"
+  ],
+  "properties": {
+    "contract_version": {"const": "refresh-authorization-policy.v1"},
+    "draft_approver_roles": {"$ref": "#/$defs/roles"},
+    "accepted_approver_roles": {"$ref": "#/$defs/roles"},
+    "remote_mutation_approver_roles": {"$ref": "#/$defs/roles"}
+  },
+  "$defs": {
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 100}
+    }
+  }
+}

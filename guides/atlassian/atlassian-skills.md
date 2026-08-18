@@ -32,6 +32,8 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 | Compare flow metrics before and after a change | [ai-adoption-report](#ai-adoption-report) |
 | Start repository work from Jira | [jira-brief-intake](#jira-brief-intake) |
 | Start repository work from Jira Align | [jira-align-brief-intake](#jira-align-brief-intake) |
+| Refresh registered Jira work | [jira-refresh](#jira-refresh) |
+| Refresh registered Jira Align work | [jira-align-refresh](#jira-align-refresh) |
 | Fix a defect end-to-end from a Jira ticket | [jira-defect-flow](#jira-defect-flow) |
 | Read or write Jira Align portfolio data | [jira-align](#jira-align) |
 
@@ -253,6 +255,36 @@ automatically a brief.
 
 ---
 
+## jira-refresh
+
+**Use it for:** comparing an existing tracker-origin artifact with its latest
+Jira revision through the shared lifecycle and authority rules.
+
+**Reads:** the exact `jira-default` profile, registered artifact provenance,
+and bounded Jira source data. Token destinations are HTTPS-only, host-scoped,
+and pinned before credentials or transport.
+
+**Writes:** approved local fields through `work-intake`. Optional Jira
+coordination write-back is limited to comment, display-status transition, and
+closure. Each remote mutation needs its own fresh exact confirmation and
+pending receipt and is never retried automatically.
+
+**Authentication:** token-authenticated writes use the guarded Jira client.
+SSO-cookie non-GET/HEAD actions refuse before any request.
+
+---
+
+## jira-align-refresh
+
+**Use it for:** comparing an existing tracker-origin artifact with its latest
+Jira Align revision through the shared lifecycle and authority rules.
+
+**Writes:** approved local fields through `work-intake`. The current profile
+declares no Jira Align remote write-back actions; unsupported requests produce
+no payload or transport call.
+
+---
+
 ## jira-defect-flow
 
 **Use it for:** handling a Jira defect end-to-end — pull the ticket, fix the code, open a PR, comment and transition the ticket.
@@ -276,3 +308,4 @@ automatically a brief.
 | [How the Atlassian pack works](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/) | Composition model and why the workflows are separate |
 | [Atlassian journey](/journeys/atlassian/) | Four-stage visual storyboard |
 | [Atlassian pack](/packs/atlassian/) | Pack overview, install, credentials |
+| [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared refresh lifecycle and confirmation contract |

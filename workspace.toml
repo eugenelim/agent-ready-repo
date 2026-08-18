@@ -2142,12 +2142,12 @@ shipped = [
   {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
   # Group 4 — standalone work-intake front door and compatibility alias.
   {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
-]
-active = []
-queue = [
   # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
   # contract. Acquisition and normalization stay adapter-specific.
   {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
+]
+active = []
+queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
   {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},

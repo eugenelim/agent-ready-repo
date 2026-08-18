@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 _MODULE_PATH = Path(__file__).resolve().parents[1] / "agentbundle" / "workspace_mcp.py"
+_DATA_DIR = _MODULE_PATH.parent / "_data"
 
 
 def _load_module():
@@ -20,6 +21,43 @@ def _load_module():
     sys.modules.setdefault("agentbundle.workspace_mcp", mod)
     spec.loader.exec_module(mod)
     return mod
+
+
+def test_packaged_engine_loads_refresh_parser_without_checkout(tmp_path: Path) -> None:
+    isolated_data = tmp_path / "installed" / "agentbundle" / "_data"
+    isolated_data.mkdir(parents=True)
+    engine_path = isolated_data / "workspace_status_engine.py"
+    refresh_path = isolated_data / "work_intake_refresh.py"
+    shutil.copy2(_DATA_DIR / engine_path.name, engine_path)
+    shutil.copy2(_DATA_DIR / refresh_path.name, refresh_path)
+    spec = importlib.util.spec_from_file_location(
+        "isolated_workspace_status_engine", engine_path
+    )
+    engine = importlib.util.module_from_spec(spec)
+    sys.modules["isolated_workspace_status_engine"] = engine
+    spec.loader.exec_module(engine)
+    markdown = """# Spec: Packaged authority
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+
+[owned_fields]
+Outcome = "local"
+```
+"""
+
+    status, error, source_ref, source_revision = engine._parse_source_authority_status(
+        markdown
+    )
+
+    assert engine._source_authority_module_path() == refresh_path
+    assert error is None
+    assert source_ref == "example-service://ABC-123"
+    assert source_revision == "remote-rev-2"
+    assert status == {"compared_revision": "remote-rev-2", "conflict": False}
 
 
 class _FakeBridge:
@@ -90,6 +128,74 @@ backlog = []
         ("legacy_entry", "spec/legacy-alpha"),
         ("unapproved_spec", "docs/specs/blocked-alpha/spec.md"),
     }
+    assert str(root) not in repr(result)
+
+
+def test_t2_mcp_projects_refresh_authority_without_owned_fields(tmp_path: Path) -> None:
+    mod = _load_module()
+    root = tmp_path / "workspace"
+    root.mkdir()
+    (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/tracker-backed/spec.md", kind = "spec", source = {mode = "tracker-origin", ref = "example-service://ABC-123", revision = "remote-rev-2", tracker_profile = {id = "example-service", version = "1.0"}}, summary = "ready", needs = []},
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+""",
+        encoding="utf-8",
+    )
+    spec_dir = root / "docs/specs/tracker-backed"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text(
+            """# Spec: Tracker backed
+
+- **Status:** Approved
+- **Brief:** none
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+accepted_revision = "remote-rev-1"
+
+[owned_fields]
+Outcome = "local"
+
+[[conflicts]]
+source_revision = "remote-rev-2"
+field = "Outcome"
+status = "unresolved"
+```
+""",
+        encoding="utf-8",
+    )
+    (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+    result = mod._WorkspaceStatusTool(root, _FakeBridge()).call()
+
+    item = result["canonical"]["evaluations"][0]
+    assert item["origin_mode"] == "tracker-origin"
+    assert item["profile"] == {"id": "example-service", "version": "1.0"}
+    assert item["refresh"] == {
+        "available": "unknown",
+        "write_back_available": "unknown",
+        "compared_revision": "remote-rev-2",
+        "accepted_revision": "remote-rev-1",
+        "conflict": True,
+    }
+    assert "owned_fields" not in repr(result)
     assert str(root) not in repr(result)
 
 

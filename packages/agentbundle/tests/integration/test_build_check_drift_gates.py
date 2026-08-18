@@ -1,4 +1,4 @@
-"""Integration tests for the three mechanical drift gates in ``make build-check`` (T9).
+"""Integration tests for the mechanical drift gates in ``make build-check`` (T9).
 
 The three gates are wired into ``run_build_check_drift_gates`` in
 ``agentbundle.build.self_host`` and called from ``cmd_check``.
@@ -7,11 +7,15 @@ The three gates are wired into ``run_build_check_drift_gates`` in
      ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
      must be byte-identical to the canonical template.
 
-  2. **Source-shape plugin.json (gate 2, in-Python defence-in-depth):**
+  2. **Packaged runtime drift:** package-data workspace-status runtimes must be
+     byte-identical to their core pack sources. Source parity is covered by the
+     workspace-status projection suite.
+
+  3. **Source-shape plugin.json (gate 2, in-Python defence-in-depth):**
      every ``packs/<pack>/.claude-plugin/plugin.json`` must not carry a
      ``hooks`` block.
 
-  3. **Vendored ``_emit_basic_string`` parity:** the template's
+  4. **Vendored ``_emit_basic_string`` parity:** the template's
      vendored ``_emit_basic_string`` must produce byte-identical output to
      ``agentbundle.config._emit_basic_string`` across the fixed attack corpus.
 
