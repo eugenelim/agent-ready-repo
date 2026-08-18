@@ -17,8 +17,11 @@
 Readers scanning guide pages, navigation, and search results see four specific,
 task-oriented titles that name the actual outcome without generic wording or
 internal shorthand. Routes remain stable, and title presentation follows the
-platform site's precision-authority direction and the tech-site principle to
-lead with the user's job.
+docs site's own direction — `docs/specs/docs-site-design-refresh/creative-direction.md`'s
+dominant goal "Instrument-grade clarity" — together with the tech-site principle
+to lead with the user's job. NOT the marketing site's "Precision authority":
+these four pages render only on `docs-site/`, and the brief's non-goals bar
+aligning the two surfaces. AC11 states the same boundary.
 
 ## Boundaries
 
@@ -46,8 +49,10 @@ lead with the user's job.
   and focused fixtures.
 - Route preservation and emitted title behavior use goal-based full-site build
   assertions.
-- The user-facing scan uses manual design review against the existing platform
-  aesthetic direction and tech-site principles.
+- The user-facing scan uses manual design review against the OWNING surface's
+  direction — `docs-site-design-refresh/creative-direction.md`'s
+  "Instrument-grade clarity" — and tech-site principles, per AC11. Not the
+  marketing site's "Precision authority", which governs `web/`.
 
 ## Acceptance Criteria
 
@@ -82,18 +87,17 @@ lead with the user's job.
   - `guides/governance-extras/how-to/new-adr.md`
 - [x] **AC8** — The four retired strings — `Write a Page/Screen Contract`, `Run an Audit`,
   `Scaffold a Component`, `IaC (Terraform) guides` — appear in none of the four
-  source files. They legitimately persist as provenance elsewhere and must not
-  be scrubbed: `tools/test_build_site_sidebar.py`'s `RETIRED_STRINGS`, which is
-  what enforces this criterion and therefore names all four;
+  source files. Verification asserts absence in those four files only, never
+  repository-wide: the retired wording legitimately survives elsewhere and must
+  not be scrubbed. The sites below each hold AT LEAST ONE retired string — the
+  count per site varies and is not part of this criterion:
+  `tools/test_build_site_sidebar.py`'s `RETIRED_STRINGS`, which enforces this
+  criterion and is the only site naming all four;
   `docs/product/briefs/tech-site-completion.md` § Approved decision log,
   decision 7 (cited by heading, not line range: that brief is Status Ready and
   its Spec map rolls up as specs ship); this spec and its plan; `workspace.toml`;
   `tools/test_lint_guide_titles.py` fixtures; and `docs/product/changelog.md`
-  with its docs mirror, whose release note quotes three of the four old titles
-  beside their new ones — `IaC (Terraform) guides` is not among them, because
-  the entry describes that change by naming the pack rather than the old title.
-  Verification asserts absence in the four source files, not repository-wide
-  absence.
+  with its docs mirror.
 - [x] **AC9** — `guides/frontend-engineering/README.md`'s link text for the three
   frontend-engineering pages matches their approved titles, so the pack's primary
   in-site entry point does not contradict them.

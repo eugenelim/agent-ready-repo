@@ -7,12 +7,18 @@ actually deliver the feature, asserted against the real tree:
 - AC9  (slug, label) pair equality — a slug-only check is blind to the 90
        label regressions filename derivation would cause
 - AC10 determinism under a shuffled enumerator
+
+Also covers T1 of docs/specs/guide-title-clarity, in the second block below its
+banner comment. Bare `ACn` tokens are ambiguous across this file as a result:
+those above the banner cite guides-sidebar-generation, those below cite
+guide-title-clarity and say so explicitly.
 """
 from __future__ import annotations
 
 import importlib.util
 import json
 import random
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -269,7 +275,7 @@ CONTROL_TITLES = {
     "guides/governance-extras/how-to/new-adr.md":
         "How to record a decision with an ADR",
 }
-# AC6: every retitled page's sidebar ITEM label, keyed slug -> source path so the
+# guide-title-clarity AC6: every retitled page's sidebar ITEM label, keyed slug -> source path so the
 # expected wording is looked up in APPROVED_TITLES rather than restated.
 # All FOUR, not just the two de-baselined ones: `page-screen-contract` and
 # `iac-terraform` never had a baseline entry, so nothing else in this module
@@ -293,9 +299,10 @@ DEBASELINED_SLUGS = (
     "guides/frontend-engineering/tutorials/scaffold-a-component",
     "guides/frontend-engineering/how-to/run-an-audit",
 )
-# AC9: the pack index's link TEXT for the three retitled guides. Distinct from
-# the frontmatter pins above — a reader arrives through this table, and nothing
-# else in the repo compares Markdown link text against anything.
+# guide-title-clarity AC9: the pack index's link TEXT for the three retitled
+# guides. Distinct from the frontmatter pins above — a reader arrives through
+# this table, and nothing else in the repo compares Markdown link text against
+# anything.
 PACK_INDEX_LINKS = (
     "how-to/page-screen-contract.md",
     "how-to/run-an-audit.md",
@@ -388,8 +395,13 @@ def test_debaselined_slugs_resolve_their_label_from_frontmatter():
 
 
 def test_no_projected_sidebar_label_is_a_retired_string():
-    """Tree-wide, not path-scoped: a retired label reaching ANY sidebar item is
-    the regression, whichever page it lands on and however it got there."""
+    """Every item in the emitted Guides group, not just the four retitled pages.
+
+    Scope is exactly what `_pairs(_guides_group())` yields — the slug-bearing
+    items inside the `Guides` super-group. Group labels carry no slug and are not
+    covered here; `IaC (Terraform)` is a group label and is deliberately retained
+    (see `notes/render-review.md`).
+    """
     offenders = {slug: label for slug, label in _pairs(_guides_group())
                  if label in RETIRED_STRINGS}
     assert not offenders, offenders
@@ -407,11 +419,15 @@ def test_pack_index_link_text_names_the_approved_titles():
     text = (REPO_ROOT / PACK_INDEX).read_text(encoding="utf-8")
     for target in PACK_INDEX_LINKS:
         want = APPROVED_TITLES[f"guides/frontend-engineering/{target}"]
-        assert f"[{want}]({target})" in text, (
-            f"{PACK_INDEX} must link to {target} with the text {want!r}"
+        # Enumerate the links rather than counting one exact spelling. A
+        # `str.count` comparison was evaded by both `](./how-to/…)` and
+        # `](how-to/…#anchor)`, either of which ships a retired title on the
+        # pack's primary in-site entry point while the assertion passed.
+        found = re.findall(
+            rf"\[([^\]]*)\]\(\.?/?{re.escape(target)}(?:#[^)]*)?\)", text
         )
-        # Every link to the page carries the approved text, not just one of them:
-        # a stale cross-reference elsewhere in the index would otherwise pass.
-        assert text.count(f"]({target})") == text.count(f"[{want}]({target})"), (
-            f"{PACK_INDEX} has a link to {target} with text other than {want!r}"
+        assert found, f"{PACK_INDEX} must link to {target}"
+        wrong = [label for label in found if label != want]
+        assert not wrong, (
+            f"{PACK_INDEX} links to {target} with text {wrong} — expected {want!r}"
         )

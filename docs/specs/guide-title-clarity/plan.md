@@ -12,8 +12,12 @@ from these pages remains the responsibility of the dependent metadata spec.
 
 ## Constraints
 
-- Follow `docs/design/principles/tech-site.md` and the existing platform
-  aesthetic direction.
+- Follow `docs/design/principles/tech-site.md` and the OWNING surface's
+  direction, `docs/specs/docs-site-design-refresh/creative-direction.md`
+  ("Instrument-grade clarity"). Not `docs/specs/platform-site/aesthetic-direction.md`'s
+  "Precision authority": that governs the `web/` marketing surface, these four
+  pages render only on `docs-site/`, and the brief's non-goals bar aligning the
+  two. AC11 is the normative statement.
 - Preserve paths, slugs, aliases, and link targets.
 - Keep the change limited to the nine reviewed title decisions.
 
@@ -23,7 +27,8 @@ from these pages remains the responsibility of the dependent metadata spec.
 combined rendered-link checking.
 
 **Manual verification:** inspect the four emitted pages in navigation and
-search/title contexts against the precision-authority design goal.
+search/title contexts against the "Instrument-grade clarity" design goal that
+owns `docs-site/` (AC11), not the marketing site's "Precision authority".
 
 ## Design (LLD)
 
@@ -213,6 +218,24 @@ strings without migration; no alias or redirect changes.
 
 ## Changelog
 
+- 2026-08-18 (fifth revision): the Objective, Testing Strategy, Constraints, and
+  Manual-verification line all still named the MARKETING site's "Precision
+  authority" as the governing standard — the direction AC11 rules out in bold.
+  Round 1 rewrote AC11 and rounds 2-4 swept AC numbering; nobody re-read the
+  surrounding prose. All four now name the owning surface's "Instrument-grade
+  clarity". Also: the AC9 link-text assertion counted one exact spelling, so
+  `](./how-to/…)` and `](how-to/…#anchor)` both evaded it while shipping a
+  retired title on the pack index; it enumerates links with a regex now.
+- 2026-08-18 (fourth revision): widened AC6's verification from the two
+  de-baselined pages to all four retitled pages. `page-screen-contract` and
+  `iac-terraform` never had a baseline entry, so nothing in the module reached
+  them and a baseline entry pinning a retired label to either regressed the
+  emitted sidebar with every test passing. Added a test over every emitted Guides
+  item for retired labels, and the AC9 pack-index link-text test.
+- 2026-08-17 (third revision, continued): replaced raw right-hand-side title
+  comparison with `build_site._parse_frontmatter`, so the tests pin wording and
+  not YAML quoting — `guide-metadata-completion` rewrites 125 frontmatter rows
+  next and would have tripped the raw form.
 - 2026-08-17 (third revision): renumbered every citation in this file against the
   explicit **AC1**-**AC11** labels the spec now carries. The two ACs added at
   spec-stage review shifted the rest by two, and this Changelog block was written
