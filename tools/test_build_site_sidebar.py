@@ -249,26 +249,37 @@ APPROVED_TITLES = {
 }
 # The five reviewed titles the same decision holds UNCHANGED.
 # Read from the tree, not from memory: an earlier draft of this dict guessed the
-# wording and the test caught it. Quoting is preserved as written in each file.
+# wording and the test caught it.
 CONTROL_TITLES = {
     "guides/_shared/how-to/install-user-scope-pack-into-codex.md":
-        '"How to install a user-scope pack into Codex"',
+        "How to install a user-scope pack into Codex",
     "guides/_shared/how-to/install-user-scope-pack-into-kiro.md":
-        '"How to install a user-scope pack into Kiro"',
+        "How to install a user-scope pack into Kiro",
     "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md":
-        '"Authenticate Jira and Confluence with an SSO web session"',
+        "Authenticate Jira and Confluence with an SSO web session",
     "guides/frontend-engineering/reference/frontend-engineering.md":
         "Frontend Engineering Pack",
     "guides/governance-extras/how-to/new-adr.md":
-        '"How to record a decision with an ADR"',
+        "How to record a decision with an ADR",
 }
 # Slugs whose baseline entry was DELETED so the label resolves from frontmatter.
+# The expected label is looked up in APPROVED_TITLES rather than restated: two
+# copies of a string that must stay identical is one copy too many.
 DEBASELINED_SLUGS = {
     "guides/frontend-engineering/tutorials/scaffold-a-component":
-        "Scaffold a component from a screen brief",
+        "guides/frontend-engineering/tutorials/scaffold-a-component.md",
     "guides/frontend-engineering/how-to/run-an-audit":
-        "Run a frontend audit",
+        "guides/frontend-engineering/how-to/run-an-audit.md",
 }
+# AC9: the pack index's link TEXT for the three retitled guides. Distinct from
+# the frontmatter pins above — a reader arrives through this table, and nothing
+# else in the repo compares Markdown link text against anything.
+PACK_INDEX_LINKS = (
+    "how-to/page-screen-contract.md",
+    "how-to/run-an-audit.md",
+    "tutorials/scaffold-a-component.md",
+)
+PACK_INDEX = "guides/frontend-engineering/README.md"
 # The retired wording, which must not survive in the four sources.
 RETIRED_STRINGS = (
     "Write a Page/Screen Contract",
@@ -279,10 +290,18 @@ RETIRED_STRINGS = (
 
 
 def _frontmatter_title(rel: str) -> str:
-    for line in (REPO_ROOT / rel).read_text(encoding="utf-8").splitlines():
-        if line.startswith("title:"):
-            return line[len("title:"):].strip()
-    return ""
+    """The parsed title, via the same parser the generator uses.
+
+    NOT the raw right-hand side: that pins YAML quoting as well as wording, so
+    requoting a title without changing a character of it would fail a test whose
+    subject is the wording. `guide-metadata-completion` rewrites 125 guide
+    frontmatter rows next, which is exactly when that would have misfired.
+    """
+    fm = build_site._parse_frontmatter(
+        (REPO_ROOT / rel).read_text(encoding="utf-8")
+    )
+    title = fm.get("title")
+    return title if isinstance(title, str) else ""
 
 
 def _body_h1(rel: str) -> str:
@@ -335,6 +354,24 @@ def test_debaselined_slugs_resolve_their_label_from_frontmatter():
     """
     baseline = build_site.load_guide_baseline(REPO_ROOT / "guide-nav-baseline.toml")
     projected = dict(_pairs(_guides_group()))
-    for slug, want in DEBASELINED_SLUGS.items():
+    for slug, source in DEBASELINED_SLUGS.items():
+        want = APPROVED_TITLES[source]
         assert slug not in baseline, f"{slug} must have no baseline entry"
         assert projected.get(slug) == want, (slug, projected.get(slug), want)
+
+
+def test_pack_index_link_text_names_the_approved_titles():
+    """AC9: the three link labels in the frontend-engineering pack index.
+
+    Separate from the frontmatter pins: a reader reaches these guides through
+    this table, and no other check in the repo compares Markdown link TEXT
+    against anything — `check-rendered-site-links.py` validates targets only.
+    The expected wording is looked up in APPROVED_TITLES so the label and the
+    page title cannot drift apart.
+    """
+    text = (REPO_ROOT / PACK_INDEX).read_text(encoding="utf-8")
+    for target in PACK_INDEX_LINKS:
+        want = APPROVED_TITLES[f"guides/frontend-engineering/{target}"]
+        assert f"[{want}]({target})" in text, (
+            f"{PACK_INDEX} must link to {target} with the text {want!r}"
+        )

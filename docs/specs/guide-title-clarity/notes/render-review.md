@@ -87,8 +87,11 @@ way at 360 px (`governance-extras/how-to/new-adr` 219px,
 (`page-screen-contract`) reports 0px. The correlation is with page content — wide
 tables and code blocks — not with titles.
 
-Overflow is owned by `docs/specs/site-browser-quality-gate/spec.md`, whose AC4
-sets the ≤1px document-level ceiling across the approved matrix. That spec is
+Overflow is owned by `docs/specs/site-browser-quality-gate/spec.md`, whose
+criterion "Every matrix case has no more than 1px document-level horizontal
+overflow" sets the ceiling across the approved matrix. That spec's criteria carry
+no labels, so the wording is quoted rather than cited by position — it is the
+fourth bullet today and would move the instant one is inserted above it. That spec is
 explicitly out of scope for this run, so the measurements above are recorded as
 evidence for it rather than acted on here. They are not a finding against this
 change.

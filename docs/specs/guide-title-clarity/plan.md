@@ -36,8 +36,8 @@ navigation. No route is derived from the new wording. Traces to: AC1-AC9.
 ### Component / module decomposition
 
 The source Markdown owns page wording, `guide-nav-baseline.toml` owns pinned
-sidebar labels, and generated Starlight pages provide the emitted evidence.
-Traces to: AC1-AC9.
+sidebar labels, and generated Starlight pages provide the emitted evidence —
+including the route set, which no title change may alter. Traces to: AC1-AC10.
 
 ### Quality attributes (NFRs)
 
@@ -63,6 +63,10 @@ Major design finding against the approved directions. Traces to: AC11.
   provenance elsewhere (AC8).
 - TDD (`stub: true`): the sidebar item label for the two de-baselined pages
   resolves from the frontmatter title (AC6).
+- TDD (`stub: true`): the pack index's link TEXT for the three retitled guides
+  names the approved string (AC9). Nothing else in the repo compares Markdown
+  link text against anything — `check-rendered-site-links.py` validates targets
+  only — so without this, reverting a label fails nothing.
 
 Shipped as five tests appended to `tools/test_build_site_sidebar.py`, over the
 constants `APPROVED_TITLES`, `CONTROL_TITLES`, `DEBASELINED_SLUGS`, and
@@ -85,8 +89,12 @@ behaviour these tests exist to provide.
   `Run A Frontend Audit`. `lint-guide-titles.py` keeps its existing job — the
   relational title↔H1 invariant — and gains no content registry, which would be a
   second unsynced source of truth against the frontmatter itself.
-- The nine pinned strings live in the spec's acceptance criteria; the tests
-  reference that enumeration rather than restating it a second time.
+- The nine pinned strings exist in two places on purpose: the spec's acceptance
+  criteria, which is what was approved, and `APPROVED_TITLES` / `CONTROL_TITLES`
+  in the test, which is what fails when the tree drifts. A test that read the
+  strings out of the spec would pass whenever both moved together, which is the
+  drift worth catching. The two must be edited as a pair — the AC text and the
+  dict are the same decision written twice, deliberately.
 - Navigation assertions go in `tools/test_build_site_sidebar.py`, which already
   makes real-tree sidebar assertions. NOT `tools/test_lint_guide_titles.py`: its
   own docstring declares it deliberately not a pytest module, with `_run_*` entry
@@ -103,13 +111,16 @@ by the suite merely passing.
 **Touches:** guides/frontend-engineering/how-to/page-screen-contract.md, guides/frontend-engineering/how-to/run-an-audit.md, guides/frontend-engineering/tutorials/scaffold-a-component.md, guides/iac-terraform/README.md, guides/frontend-engineering/README.md, guide-nav-baseline.toml
 
 **Tests:**
-- Goal-based (`no stub (mode)`): run the title linter and the focused tests
-  (AC1-AC8).
-- Goal-based (`no stub (mode)`): `! grep -q` each retired string over exactly the
-  four source paths — `! grep -q`, because `grep -c` exits 1 on no-match and CI
-  would read success as failure. Path-scoped, because the retired strings
-  legitimately persist as provenance in the changelogs, `workspace.toml`, and the
-  lint fixtures (AC1-AC4).
+- Goal-based (`no stub (mode)`): run the title linter and T1's focused tests
+  (AC1-AC9). T1 is what makes this a real gate rather than a one-time command —
+  it pins the nine strings, the four retired strings, the two de-baselined
+  labels, and the three pack-index link labels, and each was proven to fail on a
+  seeded reversion.
+- Superseded by T1: an earlier revision planned a `! grep -q` sweep for the
+  retired strings here. `test_retired_title_strings_absent_from_the_four_sources`
+  does that durably instead, over the same four paths and for the same reason —
+  the retired wording legitimately persists as provenance elsewhere, enumerated
+  once in AC8 rather than restated here (AC8).
 
 **Approach:**
 - Change each frontmatter `title:` and its body H1 together — a CI gate asserts
@@ -121,7 +132,13 @@ by the suite merely passing.
   `page-screen-contract` and `iac-terraform/README` have no baseline entry, so
   nothing to remove there. Add no navigation entries.
 - Update the three stale link labels in `guides/frontend-engineering/README.md` (AC9).
-- Leave `site.toml`'s `IaC (Terraform)` group label alone (AC5 records why).
+- Leave the `IaC (Terraform)` sidebar GROUP label alone. It is pack identity from
+  `packs/iac-terraform/pack.toml`'s `display_name`, mirrored to `site.toml` and
+  `docs-site/src/sidebar-config.json`, and also rendered in the marketing
+  catalogue and pack cards. AC6 scopes this spec to the ITEM label;
+  `notes/render-review.md` records the resulting
+  `IaC (Terraform) › Terraform and OpenTofu guides` reading and the deferral to
+  `[backlog].open` as `iac-terraform-group-label-alignment`.
 
 **Done when:** all source and navigation title contracts pass.
 
@@ -129,7 +146,14 @@ by the suite merely passing.
 
 **Depends on:** T2
 
-**Touches:** docs/specs/guide-title-clarity/notes/route-baseline.txt (evidence only)
+**Touches:** docs/specs/guide-title-clarity/notes/route-baseline.txt (evidence only),
+docs/specs/guide-title-clarity/notes/render-review.md (evidence only)
+
+**Shipping metadata, owned by no single task above:** `docs/product/changelog.md`
+(the release note this change owes its adopters), `docs/specs/README.md` (the
+status row and AC count), and `workspace.toml` (the queue-to-shipped move plus the
+`iac-terraform-group-label-alignment` deferral). Named here so a reviewer does not
+have to infer why they appear in the diff.
 
 **Tests:**
 - Goal-based (`no stub (mode)`): build in the mandated order — `tools/build-site.py`,
@@ -173,19 +197,26 @@ strings without migration; no alias or redirect changes.
 
 ## Changelog
 
-- 2026-08-17: corrected at spec-stage review, before any code. AC8 arbitrated
+- 2026-08-17 (third revision): renumbered every citation in this file against the
+  explicit **AC1**-**AC11** labels the spec now carries. The two ACs added at
+  spec-stage review shifted the rest by two, and this Changelog block was written
+  under the old 8-AC numbering — the entry below is restated with the current
+  numbers. Also implemented plan task T1, which the previous revision declared and
+  did not ship.
+- 2026-08-17: corrected at spec-stage review, before any code. AC11 arbitrated
   against the MARKETING site's "Precision authority" though all four pages render
   only on docs-site, whose direction is "Instrument-grade clarity" — and the brief
-  bars aligning the two surfaces. AC6's "the five reviewed titles" and the four
+  bars aligning the two surfaces. AC7's "the five reviewed titles" and the four
   retired strings were recorded nowhere and recoverable only by git archaeology;
-  both are now enumerated in the spec. AC5's sidebar half would have been
+  both are now enumerated in the spec. AC6's sidebar half would have been
   tautological: relabelling a baseline entry passes a guard that loads the same
   file, so the entries are DELETED instead, which is what guides/AGENTS.md
-  documents. AC5 is also scoped to the sidebar ITEM label, with site.toml's
-  `IaC (Terraform)` GROUP label recorded as deliberately unchanged — changing a
-  declared guide group is Ask-first and outside the approved four strings. Added an
-  AC for the pack index's stale link text, a route baseline artifact for AC7, the
-  mandated build order and approved widths for T3, raw-string comparison (not
-  `normalise()`, which would accept a wrong casing), and the correct test homes.
-  Scope unchanged: the four frozen strings and five controls are untouched.
+  documents. AC6 is also scoped to the sidebar ITEM label, with the
+  `IaC (Terraform)` GROUP label recorded as deliberately unchanged — it is pack
+  identity from packs/iac-terraform/pack.toml and outside the approved four
+  strings. Added an AC for the pack index's stale link text (AC9), a route
+  baseline artifact for AC10, the mandated build order and approved widths for T3,
+  raw-string comparison (not `normalise()`, which would accept a wrong casing),
+  and the correct test homes. Scope unchanged: the four frozen strings and five
+  controls are untouched.
 - 2026-08-17: initial plan derived from the approved tech-site completion brief.
