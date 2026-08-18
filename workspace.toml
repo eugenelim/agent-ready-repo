@@ -949,6 +949,15 @@ open = [
   # Unblocks when: an approver accepts a toolchain in the evidence tree, or the
   # pilot commits to denying addons unconditionally so the bypass is moot.
   {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
+  # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
+  # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
+  # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
+  # found`, which reads as a broken gate rather than missing setup. Found in RFC-0088
+  # round 11, where it was almost recorded as a pre-existing failure. Not fixed in
+  # that PR: the round's own scope boundary is evidence-only, and root AGENTS.md is
+  # not a sibling of docs/rfc so it falls outside the bundled-fixes carve-out.
+  # Unblocks when: any PR that legitimately touches root AGENTS.md adds the command.
+  {slug = "agents-md-missing-web-npm-ci", source = "spec/rfc0088-round11-binding-requirements drift"},
   # `_statelock.py`'s two importlib loaders (in loop-engine.py and loop-cohort.py)
   # do not set `sys.dont_write_bytecode`, so they still write and read
   # `__pycache__`. Same class as the residual accepted in

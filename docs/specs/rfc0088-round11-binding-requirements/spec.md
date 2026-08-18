@@ -213,6 +213,47 @@ failing-row, `expectedFatal`, import-closure) → `verify-note-figures-r7.py` �
       `make build-check` passes when `dist/` is built by the gate chain with
       bytecode writing disabled, and the RFC status is still `Experimental`.
 
+## Resolve-vs-surface record
+
+Opened at PLAN, closed here. Everything a referent could settle was settled; only
+the irreducible is surfaced.
+
+**Resolved (no human input needed).**
+
+- R11-1 to R11-5 — five instrument defects found and fixed in-round, each with the
+  fix verified rather than asserted (a purge that purged nothing; a manifest that
+  could not match its tree; a corpus denominator whose round-10 remedy re-broke; 18
+  figures matching artifacts but not the note's line-wrapping; round 10's
+  negative-test harness silently refusing to run).
+- The `CAT-V-014` build-check failure — diagnosed as stale local `dist/` state
+  rather than a repository defect, and cleared. An earlier draft of this spec
+  recorded it as pre-existing, which was wrong in the direction of blaming the repo.
+- `site-link-check` failing on `astro: command not found` — uninstalled `web/`
+  dependencies, not a broken gate. Installed; the gate passes.
+- The `services.mjs` reuse assumption — its handlers cannot express the request
+  header and 401 both new arms need, and it is a promoted member, so each arm owns
+  its origin instead.
+
+**Surfaced (needs a decision that is not this round's to take).**
+
+- **R11-6 — the published archive digest cannot converge.** Diagnosed precisely (a
+  two-cycle, because the archive contains an artifact recording the archive's own
+  size) and deliberately left unfixed: breaking the self-reference means changing
+  what the archive contains or what the accounting tool records, which is an
+  evidence-base design decision. The strictly worse defect underneath it (R11-2) is
+  fixed, so the manifest now matches its tree at rest.
+- **Whether real identity providers put a service worker on the login path.** A
+  landscape question, not a fixture question. It bounds how expensive D/item 6's
+  requirement is in practice, and no arm here answers it.
+- **Whether a compiled native addon defeats the filesystem confinement**
+  (`rfc0088-native-addon-confinement-bypass`). Needs a toolchain in the evidence
+  tree, which is a new dependency.
+- **AGENTS.md drift** (`agents-md-missing-web-npm-ci`) — flagged rather than fixed,
+  because root `AGENTS.md` is not a sibling of `docs/rfc` and so falls outside the
+  bundled-fixes carve-out, and this round's own scope boundary is evidence-only.
+- **What the approver does with two contradicted requirements.** Round 11 reports
+  them; restating a binding requirement is the approver's act, not the round's.
+
 ## Assumptions
 
 - Technical: the evidence tree survives at `/private/tmp/rfc0088-round9-evidence.C5FnKi` with all helpers present, so no reconstruction from the base64 payload is needed (source: `ls` of that path, 2026-08-18)
