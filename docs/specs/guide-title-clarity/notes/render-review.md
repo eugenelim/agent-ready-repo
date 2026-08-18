@@ -76,6 +76,19 @@ narrow widths, in both themes:
 | `run-an-audit` | 281px | 266px | 251px | 227px |
 | `scaffold-a-component` | 367px | 352px | 337px | 313px |
 
+**Measurement timing, because the absolute figures are cited elsewhere.** These
+were taken after `load`, without an explicit settle for late JS or webfont swap.
+A parallel session running the `site-browser-quality-gate` matrix found that a
+`networkidle` + `document.fonts.ready` + 700ms settle inverts the verdict on 20
+axe cases (Expressive Code adds `tabindex="0"`/`role="region"` to `<pre>` about
+600ms after `load`, and an early `color-contrast` run fires pre-paint). This note
+asserts nothing about axe, focusability, or contrast, so that does not bear on
+any row in the table above. It does mean the absolute pixel figures below should
+be re-measured with a settle before any spec acts on their exact values. The
+load-bearing claim here is not the magnitude — it is the before/after equality,
+which used identical methodology on both sides and is therefore invariant to the
+settle question.
+
 Measured before and after, and it is **byte-identical**: with the change stashed
 and the docs site rebuilt, `run-an-audit` still reports 281px at 360 and 227px at
 414, and `scaffold-a-component` still reports 367px and 313px — with the old

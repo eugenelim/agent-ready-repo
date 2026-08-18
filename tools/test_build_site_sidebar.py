@@ -425,7 +425,18 @@ def test_pack_index_link_text_names_the_approved_titles():
     # destinations, reference-style links and raw HTML each still slipped a
     # retired label past it. Enumerating spellings is a losing game — the actual
     # contract is that no retired title appears on this page in any form.
-    stale = [s for s in RETIRED_STRINGS if s in text]
+    # Whitespace-normalised, because a label broken across a source line —
+    # `[Run an\nAudit](...)` — defeats a byte-substring scan while the intact
+    # correct link keeps the secondary check below satisfied, so neither fires.
+    # Normalising closes every line-break variant at once rather than adding
+    # another spelling to enumerate.
+    #
+    # KNOWN OPEN, and only closable against emitted HTML: inline markup and
+    # entity spellings inside the label (`Run an *Audit*`, `Run an&nbsp;Audit`)
+    # are invisible to any source-level scan. Nothing in this repo asserts the
+    # emitted HTML of this page, so that residual is recorded, not covered.
+    flat = " ".join(text.split())
+    stale = [s for s in RETIRED_STRINGS if s in flat]
     assert not stale, f"{PACK_INDEX} still carries retired title(s): {stale}"
 
     for target in PACK_INDEX_LINKS:

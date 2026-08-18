@@ -104,7 +104,9 @@ surface.
   surface's aesthetic direction — `docs/specs/docs-site-design-refresh/creative-direction.md`'s
   dominant goal “Instrument-grade clarity” — or the tech-site principle “Lead
   with the user's job; reveal the system second.” NOT the marketing site's
-  “Precision authority”: all four pages render only on `docs-site/`, and the
+  “Precision authority” (`docs/specs/platform-site/aesthetic-direction.md`,
+  which governs the `web/` marketing surface): all four pages render only on
+  `docs-site/`, and the
   brief's non-goals bar aligning the two surfaces. Severity uses the
   `frontend-engineering` skill's Blocker/Major/Minor/Note scale and is assigned
   by a human reviewer; the brief bars generated severity classifications.

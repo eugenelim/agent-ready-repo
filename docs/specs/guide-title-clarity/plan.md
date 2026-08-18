@@ -155,7 +155,7 @@ by the suite merely passing.
 - Leave the `IaC (Terraform)` sidebar GROUP label alone. It is pack identity from
   `packs/iac-terraform/pack.toml`'s `display_name`, mirrored to `site.toml` and
   `docs-site/src/sidebar-config.json`, and also rendered in the marketing
-  catalogue and pack cards. AC6 scopes this spec to the ITEM label;
+  catalogue and pack cards. AC5 scopes this spec to the ITEM label;
   `notes/render-review.md` records the resulting
   `IaC (Terraform) › Terraform and OpenTofu guides` reading and the deferral to
   `[backlog].open` as `iac-terraform-group-label-alignment`.
@@ -249,7 +249,7 @@ strings without migration; no alias or redirect changes.
   both are now enumerated in the spec. AC6's sidebar half would have been
   tautological: relabelling a baseline entry passes a guard that loads the same
   file, so the entries are DELETED instead, which is what guides/AGENTS.md
-  documents. AC6 is also scoped to the sidebar ITEM label, with the
+  documents. AC5 is also scoped to the sidebar ITEM label, with the
   `IaC (Terraform)` GROUP label recorded as deliberately unchanged — it is pack
   identity from packs/iac-terraform/pack.toml and outside the approved four
   strings. Added an AC for the pack index's stale link text (AC9), a route
