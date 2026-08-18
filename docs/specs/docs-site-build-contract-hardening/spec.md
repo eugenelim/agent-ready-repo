@@ -16,8 +16,8 @@
 
 Contributors can trust the Starlight build boundary because generation no
 longer depends on an unused marketing token file, the table accessibility
-plugin has fast behavioral unit coverage, and required CI proves those
-contracts before deployment. The docs palette, routes, and pinned Starlight
+plugin has fast behavioral unit coverage, and the deploy workflow proves those
+contracts before deployment while a required context pins that posture. The docs palette, routes, and pinned Starlight
 behavior remain unchanged.
 
 ## Boundaries

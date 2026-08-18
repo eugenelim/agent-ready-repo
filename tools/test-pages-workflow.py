@@ -56,6 +56,40 @@ BEFORE_STEP = "Upload Pages artifact"
 # manifest; the workflow's own path is what makes an edit disabling the gate
 # trigger a run.
 REQUIRED_PATHS = ("docs-site/**", ".github/workflows/pages.yml")
+# What `test:plugins` must actually BE. An explicit path fails closed when the suite
+# moves; a glob exits 0 with `tests 0`, and so does `true`.
+PLUGIN_SUITE = "docs-site/src/plugins/rehype-scrollable-tables.test.ts"
+EXPECTED_PLUGIN_SCRIPT = "node --test src/plugins/rehype-scrollable-tables.test.ts"
+PACKAGE_JSON = "docs-site/package.json"
+
+
+def script_is_pinned(script: str) -> bool:
+    """Is `scripts["test:plugins"]` the exact explicit-path invocation?
+
+    Kept PURE and separate from `audit()`: the workflow-text mutation matrix cannot
+    flip a value read from `docs-site/package.json`, so asserting it inside `audit()`
+    would be a decorative check the coverage rule exists to reject. The self-test
+    proves this predicate with crafted inputs; `main()` applies it to the real tree.
+
+    The invocation spelling in the workflow is not the gate. Nothing else reads the
+    manifest, so replacing the script with `true`, or with the glob it used to be,
+    left the workflow posture, lint-ci-parity and `make test` all green having run
+    zero tests — `node --test` exits 0 on a zero-test run.
+    """
+    return script == EXPECTED_PLUGIN_SCRIPT
+
+
+def _plugin_script() -> str:
+    """`scripts["test:plugins"]` from the docs package manifest, or ""."""
+    import json
+    p = REPO_ROOT / PACKAGE_JSON
+    if not p.is_file():
+        return ""
+    try:
+        return json.loads(p.read_text(encoding="utf-8")).get("scripts", {}).get(
+            "test:plugins", "")
+    except (ValueError, OSError):
+        return ""
 
 
 def _strip_comments(text: str) -> str:
@@ -148,6 +182,10 @@ def _trigger_paths(on_blk: str) -> dict[str, list[str]]:
         nxt = re.search(r"^  [A-Za-z_]+:\s*$", on_blk[m.end():], re.M)
         body = on_blk[m.end():m.end() + nxt.start()] if nxt else on_blk[m.end():]
         vals: list[str] = []
+        inline = re.search(r"^    paths:\s*\[(.+)\]\s*$", body, re.M)
+        if inline:
+            out[name] = [v.strip().strip("'\"") for v in inline.group(1).split(",")]
+            continue
         pm = re.search(r"^    paths:\s*$", body, re.M)
         if pm:
             tail = body[pm.end():]
@@ -196,6 +234,10 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check("plugin-test-no-continue-on-error", not _has_key(step, "continue-on-error"))
         check("plugin-test-no-if", not _has_key(step, "if"))
         check("plugin-test-no-cwd", not _has_key(step, "working-directory"))
+        # A custom `shell:` replaces the interpreter entirely — `shell: cat {0}`
+        # leaves the run body byte-identical, so statement equality still passes
+        # while the suite never executes.
+        check("plugin-test-no-shell", not _has_key(step, "shell"))
         # Ordering is the half that decides whether failure blocks the upload.
         after = names.index(AFTER_STEP) if AFTER_STEP in names else -1
         before = names.index(BEFORE_STEP) if BEFORE_STEP in names else -1
@@ -209,14 +251,24 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # before these checks existed.
     deploy = _job_block(text, "deploy")
     check("deploy-job-present", bool(deploy))
+    # Membership, not first-element anchoring: `needs: [other, build]` and the
+    # block-sequence form are both legitimate and previously reported a false
+    # violation.
+    _needs = re.search(r"^\s*needs:\s*(.*(?:\n\s+- .*)*)", deploy, re.M)
     check("deploy-needs-build",
-          re.search(r"^\s*needs:\s*(\[\s*)?build", deploy, re.M) is not None)
-    build_header = re.search(r"^  build:\n((?:    [^\n]*\n)*)", text, re.M)
-    build_keys = build_header.group(1) if build_header else ""
+          bool(_needs) and "build" in re.findall(r"[A-Za-z0-9_-]+", _needs.group(1)))
+    # Scanned over the WHOLE job block. An earlier draft captured only the keys
+    # before the first blank line — about 5 of this job's 90 lines — so appending
+    # `    if: ${{ false }}` AFTER the steps list is valid YAML that defeated both
+    # checks while `audit()` returned []. Its two mutations passed only because they
+    # inserted at the one offset the window covered, which made the self-test's
+    # family-coverage claim false assurance for the exact fail-open these close.
+    # Job-level keys are 4-space indented; step keys are 8, so `^    ` cannot match
+    # a step key.
     check("build-job-not-advisory",
-          not re.search(r"^    ['\"]?continue-on-error['\"]?\s*:", build_keys, re.M))
+          not re.search(r"^    ['\"]?continue-on-error['\"]?\s*:", block, re.M))
     check("build-job-not-conditional",
-          not re.search(r"^    ['\"]?if['\"]?\s*:", build_keys, re.M))
+          not re.search(r"^    ['\"]?if['\"]?\s*:", block, re.M))
 
     on_blk = _on_block(text)
     check("on-block-present", bool(on_blk))
@@ -274,6 +326,13 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("\n      - ", "\n    - ")),
     ("rename-on-key", "on-block-present",
      lambda t: t.replace("on:\n", "'on':\n", 1)),
+    ("shell-override-gate", "plugin-test-no-shell",
+     lambda t: t.replace(f"        run: {PLUGIN_TEST_CMD}",
+                         f"        shell: cat {{0}}\n        run: {PLUGIN_TEST_CMD}")),
+    ("post-steps-job-if", "build-job-not-conditional",
+     lambda t: t.replace("\n  deploy:", "\n    if: ${{ false }}\n\n  deploy:", 1)),
+    ("post-steps-job-advisory", "build-job-not-advisory",
+     lambda t: t.replace("\n  deploy:", "\n    continue-on-error: true\n\n  deploy:", 1)),
     ("discard-exit-status", "plugin-test-present",
      lambda t: t.replace(f"        run: {PLUGIN_TEST_CMD}",
                          f"        run: {PLUGIN_TEST_CMD} || true")),
@@ -306,7 +365,6 @@ _MUTATIONS: list[tuple[str, str, object]] = [
 
 def _extract_gate_step(text: str) -> tuple[str, str]:
     """Pull the plugin-test step chunk out of `text`. Returns (chunk, remainder)."""
-    m = re.search(r"^      - name: [^\n]*\n(?:        [^\n]*\n)*", text, re.M)
     # Find the chunk that actually carries the command, not merely the first step.
     for m in re.finditer(r"^      - name: [^\n]*\n(?:        [^\n]*\n)*", text, re.M):
         if PLUGIN_TEST_CMD in m.group(0):
@@ -361,6 +419,13 @@ def self_test() -> int:
         got = audit(mutated)
         if expected not in got:
             failures.append(f"{mut_id}: expected {expected!r}, got {got}")
+    # The real-tree predicate, proved with crafted inputs rather than left asserted.
+    for bad_script in ("true", "node --test src/plugins/*.test.ts", "", "echo ok"):
+        if script_is_pinned(bad_script):
+            failures.append(f"script_is_pinned accepted {bad_script!r}")
+    if not script_is_pinned(EXPECTED_PLUGIN_SCRIPT):
+        failures.append("script_is_pinned rejected the expected invocation")
+
     covered = {_family(e) for _, e, _ in _MUTATIONS}
     uncovered = sorted({_family(i) for i in evaluated} - covered)
     if uncovered:
@@ -387,6 +452,13 @@ def main(argv: list[str]) -> int:
         print(f"✖ {WORKFLOW} not found", file=sys.stderr)
         return 1
     violations = audit(WORKFLOW.read_text(encoding="utf-8"))
+    # Real-tree checks, outside the workflow-text domain (see script_is_pinned).
+    if not script_is_pinned(_plugin_script()):
+        violations.append(
+            f"plugin-script-pinned ({PACKAGE_JSON} scripts['test:plugins'] must be "
+            f"{EXPECTED_PLUGIN_SCRIPT!r}, got {_plugin_script()!r})")
+    if not (REPO_ROOT / PLUGIN_SUITE).is_file():
+        violations.append(f"plugin-suite-file-exists ({PLUGIN_SUITE} is missing)")
     if violations:
         print(f"✖ {len(violations)} posture violation(s):", file=sys.stderr)
         for v in violations:

@@ -10,8 +10,8 @@
 
 Pin the false token dependency with a construction fixture before deleting it,
 then give the pure rehype transform a focused Node built-in test suite. Wire
-that suite into required site CI through the existing workflow construction
-contract. Finish with the canonical combined build and emitted table, route,
+that suite into the DEPLOY workflow, and pin its posture from a required context
+through a workflow construction contract. Finish with the canonical combined build and emitted table, route,
 link, fragment, contrast, and Starlight-behavior evidence.
 
 ## Constraints
@@ -45,8 +45,9 @@ owned by `site-browser-quality-gate`; this spec's behavior is deterministic.
 ### Dependencies & integration
 
 - The generator remains stdlib Python. Plugin tests consume only Node built-ins
-  plus the plugin's already declared runtime import. Required site CI runs the
-  focused command after package installation and before deployment. Traces to:
+  plus the plugin's already declared runtime import. The DEPLOY workflow runs the
+  focused command after package installation and before artifact upload; required CI
+  runs only the posture check that pins that arrangement. Traces to:
   AC2, AC4, AC7.
 
 ### Interfaces & contracts
@@ -134,7 +135,7 @@ matches the self-contained palette contract.
 
 **Depends on:** none
 
-**Touches:** docs-site/package.json, docs-site/src/plugins/rehype-scrollable-tables.test.ts, docs-site/src/plugins/rehype-scrollable-tables.ts, Makefile
+**Touches:** docs-site/package.json, docs-site/src/plugins/rehype-scrollable-tables.test.ts, docs-site/src/plugins/rehype-scrollable-tables.ts, Makefile, AGENTS.md
 
 **Tests:**
 - TDD (`stub: true`): cover wrapping, a table nested in a blockquote/aside,
@@ -161,7 +162,7 @@ matches the self-contained palette contract.
 **Done when:** the clean suite passes with no added dependency and each seeded
 mutation is caught.
 
-### T4: Required site CI blocks on plugin unit-test failure
+### T4: The deploy workflow blocks on plugin unit-test failure, and a required context pins it
 
 **Depends on:** T3, spec:site-ci-contract-closure/T3
 
@@ -203,7 +204,7 @@ prove the focused suite cannot be skipped or tolerated.
 
 **Depends on:** T2, T4
 
-**Touches:** none (read-only verification)
+**Touches:** docs/specs/README.md (status row, on shipping)
 
 **Tests:**
 - Goal-based (`no stub (mode)`): run the canonical generator, marketing build, and
@@ -232,8 +233,14 @@ fragment, contrast, route, and pinned-control checks pass.
 
 Land generator decoupling and plugin tests before requiring the new CI command.
 The final change ships atomically with the blocking workflow step. Rollback is
-a normal source revert; there is no data, dependency, or infrastructure
-migration.
+a normal source revert. Two local migrations DO apply, recorded here rather than
+only in a PR description, which is not a durable home:
+- Pre-existing worktrees keep an untracked `docs-site/src/styles/tokens.css` that
+  nothing regenerates and nothing reads, because both ignore rules for it are gone:
+  `rm -f docs-site/src/styles/tokens.css`. A stale copy of exactly this file is what
+  made the first verification pass for the wrong reason.
+- `make test` now requires `npm ci --prefix docs-site`; it fails with that remedy in
+  the message rather than an `ERR_MODULE_NOT_FOUND`.
 
 ## Risks
 
@@ -249,6 +256,17 @@ migration.
 
 ## Changelog
 
+- 2026-08-17: corrected again at implementation review, AFTER code. Two fail-open
+  gates of mine were measured green and fixed: the job-level advisory/conditional
+  checks scanned only the keys before the job's first blank line, so placing
+  `if:`/`continue-on-error:` after the steps list defeated both; and nothing pinned
+  what `test:plugins` IS, so replacing it with `true` left every gate green having
+  run zero tests. Added a `shell:` neuter check, corrected `needs:` to test
+  membership rather than the first element, taught the trigger parser the inline
+  flow-sequence form, and moved the two real-tree checks out of `audit()` — a
+  workflow-text mutation cannot flip them, so inside `audit()` they were decorative.
+  Also corrected four surviving "required site CI" claims that contradicted the
+  restated AC7, and replaced the Rollout section's denial of any migration.
 - 2026-08-17: corrected at spec-stage review, before any code. AC7 conflated
   "required site CI" with a required status check: `pages.yml` is not one, and the
   only required workflow cannot carry the path-triggered behaviour AC7 also wants,
