@@ -647,15 +647,80 @@ open = [
   # re-baseline rather than comparing across it — an unlike-for-unlike comparison is
   # the failure this entry's method section exists to prevent.
   #
-  # STOP CONDITION: >=3 same-class post-merge runs. "INCONCLUSIVE at n=3" is a
-  # permitted and expected outcome and closes this entry honestly — gate-main's
-  # spread (159-193) exceeds the 27s effect, so the measurement may never resolve. A
-  # quiet pass does not close it. CONSEQUENCE if no shift is observed: open a
-  # follow-up questioning whether the extra runner earns its cost.
+  # STOP CONDITION: >=3 same-class post-merge runs. MET at n=4 (2026-08-18).
+  #
+  # RESULT — NO SHIFT. gate-main remained the longest work job on ALL FOUR
+  # post-merge push runs, and its total went UP, not down:
+  #   sha        gate-main  gate-sast  gate-export-boundary  gate-credbroker
+  #   a3d4fcfe   204        163        145                   44
+  #   cf46953e   185        152        144                   44
+  #   a02389ad   181        166        140                   37
+  #   caaabe12   202        132        142                   44
+  # post-change push mean: gate-main 193.0 (n=4) vs pre-change push 171.5 (n=2).
+  #
+  # DIAGNOSIS, so the result is not misread as "the extraction failed". The 28s DID
+  # leave gate-main — verified step-level: `pytest credbroker (RFC-0023 Phase 1)` is
+  # absent from gate-main's step list and present in gate-credbroker's at 28s on
+  # a3d4fcfe. gate-main's step COUNT is unchanged (60 both at 823cd174 and a3d4fcfe:
+  # this change removed one, #998 added one). The growth is inside a single step —
+  # `Run make build-check` measured 69s on a3d4fcfe — which other merges in the same
+  # window kept adding linters and suites to. So the extraction worked and was
+  # swamped: gate-main is ~21s slower net despite shedding 28s, meaning the chained
+  # gate grew by roughly 49s over the same period.
+  #
+  # This is the confound the BASELINE BOUNDARY note above predicted, larger than
+  # predicted. Do NOT re-baseline and re-run this comparison: on a trunk this active,
+  # gate-main's total is not a stable enough signal to attribute anything to a single
+  # 28s extraction. The step-level measurement is the one that answers the question.
+  #
+  # CONSEQUENCE, as pre-committed: opened
+  # ci-gate-credbroker-runner-cost-review below. This entry is retained (not deleted)
+  # because spec/ci-gate-credbroker AC12 carries a `(deferred: <slug>)` marker and a
+  # frozen spec accepts only a Status-line parenthetical — so the slug must resolve
+  # for lint-spec-status invariant (iv) as long as that spec stands. The MEASUREMENT
+  # is closed; the anchor stays.
+  #
+  # AC12 ITSELF IS MET, and was deliberately scoped to what one run can settle:
+  # the step is present in gate-credbroker and absent from gate-main, and the job
+  # completed in 37-44s against a <=90s bound. The throughput question was never an
+  # acceptance criterion, for exactly the reason this result demonstrates.
   {slug = "ci-gate-credbroker-critical-path-measurement", source = "spec/ci-gate-credbroker AC12"},
-  # AC13's apply step, performed by the repo owner AFTER the post-merge push-to-main
-  # run has reported gate-credbroker — a required check cannot precede the job that
-  # reports it, and the Settings UI only offers checks seen on main recently.
+  # The consequence ci-gate-credbroker-critical-path-measurement pre-committed to if
+  # no critical-path shift was observed. It was not: gate-main stayed the longest work
+  # job on 4/4 post-merge runs. So the honest question is whether gate-credbroker earns
+  # its own runner.
+  #
+  # THE CASE FOR KEEPING IT, which is not nothing: the job is 37-44s of a ~200s
+  # critical path, so it costs nothing in wall-clock; it made the credbroker suite's
+  # [crypto] precondition and zero-skip property into standing gates that did not
+  # exist when the step lived in gate-main; and gate-main will be the target of any
+  # future extraction, which is easier with the pattern already proven.
+  #
+  # THE CASE AGAINST: one more runner per CI run, one more required status check to
+  # keep green, and the throughput benefit it was justified by is unobservable.
+  #
+  # TO DECIDE: do NOT re-litigate on gate-main totals — that signal is too noisy on
+  # this trunk (see the measurement entry's diagnosis). Decide on whether the two
+  # standing controls in AC4 are worth a required check, which is a judgment call, not
+  # a measurement. If the answer is no, reverting is clean: the spec, plan and this
+  # register carry the whole rationale, and the posture test's job-set derivation makes
+  # removing a job as loud as adding one.
+  {slug = "ci-gate-credbroker-runner-cost-review", source = "spec/ci-gate-credbroker AC12 consequence"},
+  # AC13 IS DONE — applied by the repo owner 2026-08-18 and verified by read-back:
+  #   strict=true, and checks[] = the exact five contexts {make build-check, gate-main,
+  #   gate-sast, gate-export-boundary, gate-credbroker}, EVERY entry app_id=15368.
+  # The app pinning survived, which was the point of preferring checks[] over the
+  # deprecated contexts array.
+  #
+  # RETAINED AS AN ANCHOR, not as work: spec/ci-gate-credbroker AC13 carries a
+  # `(deferred: <slug>)` marker, a frozen spec accepts only a Status-line
+  # parenthetical, so this slug must resolve for lint-spec-status invariant (iv) as
+  # long as that spec stands. The procedure below is kept because it is the record
+  # the NEXT widening should follow, not because anything here is outstanding.
+  #
+  # Original context, retained: the apply had to follow a post-merge push-to-main run
+  # reporting gate-credbroker — a required check cannot precede the job that reports
+  # it, and the Settings UI only offers checks seen on main recently.
   #
   # DURABLE HOME: docs/specs/ci-gate-credbroker/spec.md AC13. This entry is the
   # TASK and is deleted when done ([backlog] has no `closed` array); the spec is the
