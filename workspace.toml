@@ -24,6 +24,14 @@
 # Note: the top-level [backlog] section (repo-durable — open work not scoped to
 # an active initiative) is distinct from a shaping_queue's `backlog` array (its
 # non-active tier).
+#
+# [backlog] holds two arrays. `open` is live work; `closed` is work whose
+# disposition is settled, kept rather than deleted so a reader arriving from a
+# stale reference finds the reason instead of a silent gap. Neither is
+# dispatchable — `workspace-status` surfaces backlog items as context only, and a
+# "backlog:<slug>" dependency is satisfied by the item appearing in `closed`.
+# Moving an item between them is a deliberate edit that records what closed it and
+# names any residual the closure does not cover.
 
 ["ini-002"]
 name      = "Platform Core"
@@ -1265,19 +1273,11 @@ open = [
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
-  # Unrelated finds from spec/npm-sca-gate — both cost that loop real time.
-  #
-  # Self-test mutates a tracked file: tools/test-lint-pack-test-boundary.py
-  #   appends a deliberately-violating `lint-selftest-scratch` target to the
-  #   REAL Makefile to prove the boundary linter fires, then restores it
-  #   (~lines 560-610). Any `git add -A` during that window commits the
-  #   injected violation, and the local re-run then passes because the file was
-  #   restored — so it only fails in CI, against a tree the developer cannot
-  #   reproduce. That happened on PR #961. Fix: build the fixture in a tmpdir
-  #   copy, or drive the linter with a --makefile argument, so no tracked file
-  #   is ever mid-mutation. Same pattern is worth auditing across tools/test-*.
-  # Unblocks when: picked up — no dependency.
-  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
+  # The second unrelated find from spec/npm-sca-gate — the self-test that
+  # mutated the real Makefile — is RESOLVED by spec/lint-performance-p0
+  # (2026-08-17). Its full description moved with the entry to
+  # [backlog].closed rather than being left orphaned here, where a reader of
+  # `open` would see a described item that tomllib says is not present.
 
   # project-knowledge --capture refuses: a well-formed capture request built
   #   against the contract in packs/core/tests/skills/project-knowledge/
@@ -2409,6 +2409,45 @@ open = [
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
   # Closed 2026-08-17 to docs/design/principles/tech-site.md.
+  # The live remnant of `selftest-mutates-tracked-makefile` (now in `closed`). That
+  # item's tracked-`Makefile` mutation is gone; its MECHANISM is not. Layer 3 of
+  # `tools/test-lint-pack-test-boundary.py` plants two UNTRACKED files in the real
+  # worktree for one lint launch each — `packs/figma/.apm/skills/figma/scripts/
+  # test_planted_boundary_violation.py` and a symlinked `packs/figma/tests/
+  # test_planted_link.py` — so a concurrent `git add -A` can still stage an
+  # injected violation, and the local re-run then passes because cleanup restored
+  # the tree. Bounded today by refuse-before-plant, a `finally` scoped to the
+  # planting branch, and direct absence assertions (porcelain cannot see an
+  # untracked leftover). Closing it fully means giving up the end-to-end proof that
+  # the production CLI is wired to the real catalogue, or copying the worktree per
+  # run — so it needs a design decision, not a patch.
+  # Unblocks when: ready now.
+  { slug = "selftest-untracked-plant-window", type = "shape" },
+]
+
+# Resolved repo-durable items. Kept rather than deleted so a reader who arrives
+# from a stale reference finds the disposition instead of a silent gap.
+closed = [
+  # Original report (spec/npm-sca-gate): the suite appended a
+  #   deliberately-violating `lint-selftest-scratch` target to the REAL Makefile
+  #   to prove the boundary linter fires, then restored it. Any `git add -A`
+  #   during that window committed the injected violation, and the local re-run
+  #   then passed because the file was restored — so it failed only in CI,
+  #   against a tree the developer could not reproduce. That happened on PR #961.
+  # Resolved by spec/lint-performance-p0 (2026-08-17). The falsification suite
+  # no longer touches any tracked file: individual plants moved to temporary
+  # fixture catalogues driven through the lint's callable API, and the suite now
+  # asserts that the difference it makes to `git status --porcelain` is empty.
+  # The two real-Makefile rewrites behind the PR #961 failure are gone. Reduced,
+  # not eliminated: layer 3 still plants two UNTRACKED files in the real worktree
+  # for one lint launch each, so a concurrent `git add -A` can still stage an
+  # injected violation. Successor: `selftest-untracked-plant-window` in
+  # [backlog].open; bounded meanwhile by refuse-before-plant and a
+  # planting-branch-scoped finally. The
+  # trailing "worth auditing across tools/test-*" note is discharged as well —
+  # all 66 other lint self-tests were audited and none mutates a tracked file
+  # (docs/specs/lint-performance-p0/notes/lint-inventory.md § 4).
+  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2514,6 +2553,18 @@ shipped = [
   # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
   # exact string, and Wave 3 is registered (and will ship) under the canonical form.
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
+  # Lint execution performance — P0. Shipped 2026-08-17 (ADR-0087).
+  # The boundary lint went from a check-ignore subprocess per candidate path to
+  # one batched call, and from six checks each rebuilding overlapping state to
+  # one per-invocation inventory. Its falsification suite moved off the real
+  # worktree onto fixture catalogues, which closed the tracked-file half of the
+  # `selftest-mutates-tracked-makefile` backlog item (PR #961's failure mode). Two
+  # untracked plants remain for one lint launch each — successor:
+  # `selftest-untracked-plant-window` in [backlog].open.
+  # Behaviour preservation is proven by a captured golden baseline rather than a
+  # prose enumeration. Measured before/after:
+  #   docs/specs/lint-performance-p0/notes/lint-inventory.md § After evidence
+  {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
   {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
   {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
   {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},
@@ -2529,7 +2580,6 @@ shipped = [
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
 ]
 queue   = [
-
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
   # the next AgentBundle minor; concurrent merges would claim the same release number.

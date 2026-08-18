@@ -24,16 +24,25 @@ import time
 import tomllib
 from pathlib import Path
 
+import lint_git_ignore  # tools/ is sys.path[0] for a script run
+
 MAX_ROOT_LINES = 250
 MAX_SUB_LINES = 150
 STALE_DAYS = 180  # warn-only threshold
 
 
 def _repo_root() -> Path:
+    # Scrubbed env here too: `rev-parse --show-toplevel` honours an ambient
+    # GIT_WORK_TREE/GIT_DIR, which Git sets for hook processes — and this lint
+    # runs from the pre-PR hook, then chdir()s to whatever this returns. An
+    # unscrubbed call could redirect the entire lint to another tree.
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, check=False,
+            # repo_root=None: this call is *discovering* the root, so there is
+            # nothing to fence to yet.
+            env=lint_git_ignore.hermetic_git_env(os.environ, repo_root=None),
         )
         if result.returncode == 0 and result.stdout.strip():
             return Path(result.stdout.strip())
@@ -43,7 +52,8 @@ def _repo_root() -> Path:
 
 
 def main() -> int:
-    os.chdir(_repo_root())
+    repo_root = _repo_root()
+    os.chdir(repo_root)
     fail = 0
 
     def note(msg: str) -> None:
@@ -305,21 +315,62 @@ def main() -> int:
                     )
 
     # 10e — Session-scratch artifacts must be gitignored.
-    for probe in (
+    #
+    # One batched `check-ignore` for all three probes, not one per probe. Note
+    # this check's assertion is *inverted* relative to the pack-boundary lint:
+    # there, an ignored path is skipped; here, a probe that is NOT ignored is the
+    # finding. That makes an unresolved ignore layer actively misleading — a
+    # naive fail-open would report `.gitignore` drift when the truth is that git
+    # never answered, sending the operator to fix a file that is fine. So a
+    # degraded or refused resolution is reported as what it is.
+    probes = (
         "docs/specs/example/state.json",
         "docs/specs/example/notes/implementer-T1-0.md",
         ".worktrees/T1/README.md",
-    ):
-        result = subprocess.run(
-            ["git", "check-ignore", "--quiet", probe],
-            capture_output=True, check=False,
+    )
+    try:
+        resolution = lint_git_ignore.git_ignored_paths(
+            repo_root,
+            [Path(probe) for probe in probes],
+            missing_git_policy=lint_git_ignore.MissingGitPolicy.FAIL_OPEN,
+            timeout=30.0,
         )
-        if result.returncode != 0:
+    except lint_git_ignore.GitIgnoreError as exc:
+        # Git RAN and exited outside {0, 1} — a nested repository root, or a probe
+        # beyond a symlink. "Re-run where git works" is the wrong remedy: git works
+        # fine, and the same run will fail the same way anywhere.
+        note(
+            f"drift-watch: git rejected the probe batch, so the session-scratch "
+            f"gitignore probes could not be resolved ({exc}). This is not a "
+            f".gitignore finding — one probe path was unusable."
+        )
+    except ValueError as exc:
+        # The resolver refused before launching git: a probe outside the repository
+        # root, or one carrying a leading `:` git would read as pathspec magic.
+        note(
+            f"drift-watch: a probe was refused before git was called, so the "
+            f"session-scratch gitignore probes could not be resolved ({exc}). This "
+            f"is not a .gitignore finding — the path is outside the repository root "
+            f"or carries a leading `:`."
+        )
+    else:
+        if resolution.degraded:
             note(
-                f"drift-watch: '{probe}' should be gitignored "
-                f"(session-scratch — see .claude/skills/work-loop/references/state-schema.md, "
-                f"CONVENTIONS.md#supervisor-mode)."
+                f"drift-watch: git is unavailable, so the session-scratch "
+                f"gitignore probes could not be resolved "
+                f"({resolution.detail}). This is not a .gitignore finding — "
+                f"re-run where git works."
             )
+        else:
+            ignored = set(resolution.ignored)
+            for probe in probes:
+                if Path(probe) not in ignored:
+                    note(
+                        f"drift-watch: '{probe}' should be gitignored "
+                        f"(session-scratch — see "
+                        f".claude/skills/work-loop/references/state-schema.md, "
+                        f"CONVENTIONS.md#supervisor-mode)."
+                    )
 
     # 10g — risk-trigger block byte-identical across the four docs that
     # carry it (work-loop-light-mode spec AC2): the projected work-loop
