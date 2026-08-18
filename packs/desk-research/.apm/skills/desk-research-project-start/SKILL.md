@@ -195,6 +195,18 @@ mapping:
 The four `research-project-*` skills orchestrate these; they add the lifecycle
 (folder, phases, digest, brief), not new retrieval or synthesis primitives.
 
+## Project-knowledge non-gate
+
+Project start is scaffold-only. Creating the project folder, `overview.md`, and
+`sources/`, resolving or eliciting the output directory, and setting the
+initial phase perform no capture, distillation, or enquiry. This skill does not discover the project-knowledge provider, creates no fallback file, and does not
+persist transient scratch.
+
+This classification does not change output-directory resolution, adopter
+confirmation, configuration writes, source provenance, or phase ownership.
+Those remain desk-research behavior; project knowledge receives no handoff from
+the scaffold.
+
 ## What this skill is not
 
 - Not `/research` — that is the episodic depth axis; this is the project

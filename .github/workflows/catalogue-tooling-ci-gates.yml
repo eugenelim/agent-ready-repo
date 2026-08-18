@@ -167,8 +167,14 @@ jobs:
             packs/core/tests/skills/work-loop/ \
             packs/core/tests/skills/workspace-status/ \
             packs/product-documentation/tests/ \
+            packs/desk-research/tests/pack/ \
             packs/desk-research/tests/skills/desk-research/ \
-            packs/desk-research/tests/skills/desk-research-project-start/; do
+            packs/desk-research/tests/skills/desk-research-project-start/ \
+            packs/desk-research/tests/skills/desk-research-project-check/ \
+            packs/desk-research/tests/skills/desk-research-project-digest/ \
+            packs/desk-research/tests/skills/desk-research-project-status/ \
+            packs/desk-research/tests/skills/desk-research-project-synthesize/ \
+            packs/desk-research/tests/skills/devils-advocate/; do
             python -m pytest "$d" -q -rs 2>&1 | tee -a "$RUNNER_TEMP/packs-out.txt"
           done
           ! grep -Eiq "SKIPPED.*(not installed|no module named|could not import)" "$RUNNER_TEMP/packs-out.txt"
