@@ -1007,9 +1007,12 @@ def test_the_frozen_work_index_spec_remains_byte_unchanged():
 
     for rel, expected in _FROZEN_M6_BLOBS.items():
         raw = (_REPO_ROOT / rel).read_bytes()
-        # git blob id = sha1("blob <len>\0" + bytes)
+        # git blob id = sha1("blob <len>\0" + bytes). `usedforsecurity=False`
+        # because this is content ADDRESSING, not a security control — the
+        # algorithm is dictated by git's object format, not chosen here.
         actual = hashlib.sha1(
-            b"blob " + str(len(raw)).encode() + b"\0" + raw
+            b"blob " + str(len(raw)).encode() + b"\0" + raw,
+            usedforsecurity=False,
         ).hexdigest()
         assert actual == expected, (
             f"{rel} is no longer byte-identical to its frozen record "
