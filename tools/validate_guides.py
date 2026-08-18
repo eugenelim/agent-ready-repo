@@ -39,6 +39,41 @@ VALID_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 # Frontmatter parsing
 # ---------------------------------------------------------------------------
 
+# Structural, non-content files under the guides root: navigation indexes and the
+# agent-context file. Guides-root-relative POSIX paths, matched EXACTLY.
+#
+# Exact paths rather than a basename or folder rule, because either would hide future
+# public content: `core/AGENTS.md` and `core/how-to/README.md` are content and must
+# still be required to carry metadata. The set is a reviewable constant, and
+# tools/test_validate_guides.py asserts both its contents and that same-basename
+# files elsewhere still warn.
+#
+# Traces to: spec/guide-metadata-completion AC2, AC3.
+STRUCTURAL_NON_CONTENT = frozenset(
+    {
+        "AGENTS.md",
+        "_shared/tutorials/README.md",
+        "_shared/how-to/README.md",
+        "_shared/reference/README.md",
+        "_shared/explanation/README.md",
+    }
+)
+
+
+def is_structural_non_content(path: Path, guides_root: Path) -> bool:
+    """True when `path` is one of the five approved structural files.
+
+    `guides_root` must be the DECLARED root, not a per-file fallback: the match is on
+    the full guides-root-relative path, so passing a file's own parent would reduce
+    this to a basename comparison.
+    """
+    try:
+        rel = path.resolve().relative_to(guides_root.resolve())
+    except ValueError:
+        return False
+    return rel.as_posix() in STRUCTURAL_NON_CONTENT
+
+
 def parse_frontmatter(text: str) -> dict | None:
     """Return the YAML frontmatter dict, or None if the file has none.
 
@@ -265,6 +300,18 @@ def validate_paths(
             except ValueError:
                 pass
         if skip:
+            continue
+
+        # Allowlist check against the DECLARED guides root, never the per-file
+        # fallback below. Matching on the fallback would compare only the basename,
+        # so `core/AGENTS.md` would read as the approved `AGENTS.md` — the exact
+        # fail-open the exception set exists to prevent. A file outside the declared
+        # root cannot be one of the five, so it stays content.
+        #
+        # Checked before the file is read: an allowlisted path is non-content whether
+        # or not it happens to carry frontmatter, so it is never schema-validated
+        # into an error either.
+        if is_structural_non_content(resolved, gr):
             continue
 
         # Use the guides root for slug derivation; fall back to the file's parent if outside.

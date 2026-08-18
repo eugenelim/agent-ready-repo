@@ -1,3 +1,10 @@
+---
+title: Episodic vs project research — the two axes
+summary: Understand when a question deserves one research session and when it requires a durable project corpus.
+pack: desk-research
+kind: explanation
+---
+
 # Episodic vs project research — the two axes
 
 The `desk-research` pack answers questions at two very different scales, and it's

@@ -1,3 +1,10 @@
+---
+title: "Shaping a new engagement: product intent and the architecture concept"
+summary: Understand how product intent and architecture concepts constrain and inform one another at the start of an engagement.
+pack: _shared
+kind: explanation
+---
+
 # Shaping a new engagement: product intent and the architecture concept
 
 *About how a product vision, a product strategy, and an architecture concept inform each other when you start a new engagement.* This page is the *why*; the procedures live in the how-tos it links, and the stage-by-stage menu lives in [Run a full inception](../how-to/run-a-full-inception.md).

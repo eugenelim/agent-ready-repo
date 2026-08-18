@@ -1,3 +1,10 @@
+---
+title: "From idea to a walking skeleton: start a new project"
+summary: Create a new governed repository with a recorded foundation and an approved first walking-skeleton spec.
+pack: core
+kind: tutorial
+---
+
 # From idea to a walking skeleton: start a new project
 
 **What you'll build:** A brand-new repo with a recorded foundation (an ADR and `docs/architecture/reference.md`) and a walking-skeleton spec authored and ready to build.

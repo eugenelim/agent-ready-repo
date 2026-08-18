@@ -1,3 +1,10 @@
+---
+title: "`experience-design` — skill and reviewer reference"
+summary: Look up each design skill and reviewer’s inputs, outputs, write boundary, routing rules, and artifact contract.
+pack: experience-design
+kind: reference
+---
+
 # `experience-design` — skill and reviewer reference
 
 :::note

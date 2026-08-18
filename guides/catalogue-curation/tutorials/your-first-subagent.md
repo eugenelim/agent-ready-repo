@@ -1,3 +1,10 @@
+---
+title: Your first subagent assimilation
+summary: Safely review, reshape, verify, and adopt one external subagent definition into the catalogue.
+pack: catalogue-curation
+kind: tutorial
+---
+
 # Your first subagent assimilation
 
 **What you'll build:** One external subagent definition adopted into the catalogue — OWASP AST-reviewed with subagent-specific emphasis, shaped to catalogue convention, and verified.

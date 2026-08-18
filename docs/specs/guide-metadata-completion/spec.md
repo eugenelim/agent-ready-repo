@@ -1,6 +1,6 @@
 # Spec: Guide metadata completion
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -64,40 +64,53 @@ existing public route; every other public route remains unchanged.
 
 ## Acceptance Criteria
 
-- [ ] The incomplete-metadata backfill is exactly the 125 affected public pages
+- [x] The incomplete-metadata backfill is exactly the 125 affected public pages
   in `metadata-decisions.md`; each receives its exact schema-valid `summary`,
   `pack`, and `kind`, while `title` is exact from that ledger except for the
   four replacements owned by `guide-title-clarity`.
-- [ ] The only files exempt from public-guide metadata are
+- [x] The only files exempt from public-guide metadata are
   `guides/AGENTS.md`, `guides/_shared/tutorials/README.md`,
   `guides/_shared/how-to/README.md`,
   `guides/_shared/reference/README.md`, and
   `guides/_shared/explanation/README.md`.
-- [ ] The validator encodes those five paths as intentional non-content files
+- [x] The validator encodes those five paths as intentional non-content files
   and emits neither errors nor warnings for them.
-- [ ] `tools/validate_guides.py` finishes with zero errors and zero warnings for
+- [x] `tools/validate_guides.py` finishes with zero errors and zero warnings for
   the complete published-guide tree.
-- [ ] Each metadata title matches its guide H1, except where the independently
+- [x] Each metadata title matches its guide H1, except where the independently
   approved `guide-title-clarity` spec supplies the replacement title.
-- [ ] Each summary is human-reviewed, outcome-led, specific to its guide, and
+
+  "Matches" is `tools/lint-guide-titles.py`'s definition — NFKC, backticks and
+  asterisks stripped, whitespace collapsed, casefolded, trailing punctuation
+  removed — and that gate is green over 193 files, the same count as on `main`.
+  Recorded because a stricter byte-equality reading finds five mismatches
+  (`release-engineering/README.md`,
+  `frontend-engineering/reference/performance-targets.md`,
+  `_shared/how-to/install-agentbundle-from-clone.md`,
+  `_shared/how-to/preview-install-or-upgrade.md`,
+  `core/how-to/adapt-to-project.md`) that differ only by case, inline-code
+  markers or a hyphen. All five predate this spec, none is a ledger row, and the
+  gate accepts them; they are named here so a later reader does not rediscover
+  them as this change's doing.
+- [x] Each summary is human-reviewed, outcome-led, specific to its guide, and
   does not merely repeat the title or opening sentence.
-- [ ] Each `pack` value identifies the owning pack or approved shared ownership,
+- [x] Each `pack` value identifies the owning pack or approved shared ownership,
   and each `kind` matches the guide's Diátaxis location.
-- [ ] `guides/_reference/catalogue-format.md` moves to
+- [x] `guides/_reference/catalogue-format.md` moves to
   `guides/_shared/reference/catalogue-format.md` with `_shared` ownership and
   `reference` kind, while an explicit slug preserves
   `/docs/guides/_reference/catalogue-format/`; the old structural group is
   removed only if navigation and route checks prove it empty and safe.
-- [ ] The opening of
+- [x] The opening of
   `guides/_shared/how-to/pack-journey-authoring.md` is the approved public-guide
   wording in `metadata-decisions.md` and no longer claims the page is an
   internal `docs/guides/` maintainer guide.
-- [ ] Existing optional `slug`, `order`, and `aliases` values remain unchanged
+- [x] Existing optional `slug`, `order`, and `aliases` values remain unchanged
   unless a source is already invalid under `contracts/guide.schema.json`.
-- [ ] The built marketing and documentation sites enumerate all 125 affected
+- [x] The built marketing and documentation sites enumerate all 125 affected
   pages and expose each reviewed title and summary wherever their current
   page-list, search, or description contracts consume guide metadata.
-- [ ] Complete public-guide coverage—including pages that already had valid
+- [x] Complete public-guide coverage—including pages that already had valid
   metadata before this backfill—proves every pre-change route, alias, and
   navigation destination still resolves, and the combined rendered-link
   checker reports no broken page or fragment.

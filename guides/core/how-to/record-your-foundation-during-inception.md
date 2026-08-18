@@ -1,3 +1,10 @@
+---
+title: Decide and record your foundation during inception
+summary: Select a stack, record the rationale, and seed the normative reference architecture before the walking skeleton.
+pack: core
+kind: how-to
+---
+
 # Decide and record your foundation during inception
 
 **Use this when:** You are at the foundation step of `init-project` and need to choose a stack, record the rationale as an ADR, and instantiate `docs/architecture/reference.md`.

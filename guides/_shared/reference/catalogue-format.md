@@ -1,3 +1,11 @@
+---
+title: Catalogue format
+summary: Use the authoritative directory, marker, schema, adapter-artifact, and validation contract when creating or checking a catalogue.
+pack: _shared
+kind: reference
+slug: guides/_reference/catalogue-format
+---
+
 # Catalogue format
 
 :::note

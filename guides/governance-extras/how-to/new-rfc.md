@@ -1,3 +1,10 @@
+---
+title: How to propose a cross-cutting change (RFC)
+summary: Produce and progress a researched RFC for a cross-cutting, prior-decision, or consensus-requiring change.
+pack: governance-extras
+kind: how-to
+---
+
 # How to propose a cross-cutting change (RFC)
 
 **Use this when:** A change touches more than one package, reverses a prior decision, or needs cross-team consensus before implementation begins.

@@ -1,3 +1,10 @@
+---
+title: "`governance-extras` — guides"
+summary: Choose the governed workflow for proposing a cross-cutting change, recording a decision, or updating repository conventions.
+pack: governance-extras
+kind: explanation
+---
+
 # `governance-extras` — guides
 
 A written trail for the decisions a long-lived repo accumulates. Three skills, three artifacts: `new-rfc` proposes a cross-cutting change before it's decided, `new-adr` records a decision after it's made, and `update-conventions` changes the rules of the repo through review rather than a silent edit. The pack also ships the `docs/rfc/` and `docs/adr/` shapes those skills write into.

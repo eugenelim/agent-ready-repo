@@ -1,3 +1,10 @@
+---
+title: Run a full inception for a new project
+summary: Sequence research, product, architecture, and core workflows from a raw idea to a build-ready walking-skeleton spec.
+pack: _shared
+kind: how-to
+---
+
 # Run a full inception for a new project
 
 **Use this when:** You are starting a greenfield project and need to know which packs and skills to apply at each stage — from raw idea to a first buildable slice — before the build loop takes over.

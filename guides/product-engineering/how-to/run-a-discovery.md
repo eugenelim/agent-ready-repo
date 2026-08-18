@@ -1,3 +1,10 @@
+---
+title: How to run a discovery end-to-end
+summary: Run the complete divergence-to-validation discovery loop and obtain a ratified, build-ready decision brief.
+pack: product-engineering
+kind: how-to
+---
+
 # How to run a discovery end-to-end
 
 **Use this when:** You have a raw product idea and want a ratified, build-ready decision brief by running the full discovery loop through three consent gates — without skipping the divergence, lensing, and validation steps.

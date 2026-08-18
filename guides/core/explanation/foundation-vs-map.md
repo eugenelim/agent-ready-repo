@@ -1,3 +1,10 @@
+---
+title: About foundation vs. map
+summary: Understand why normative architecture standards and the descriptive codebase map belong in separate documents.
+pack: core
+kind: explanation
+---
+
 # About foundation vs. map
 
 :::note

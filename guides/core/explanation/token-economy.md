@@ -1,3 +1,10 @@
+---
+title: The token economy of the loop
+summary: Understand where the supervised loop spends context and why independent planning and review are worth their cost.
+pack: core
+kind: explanation
+---
+
 # The token economy of the loop
 
 The loop runs adversarial reviewers in fresh sessions, spins up sub-agents, plans before it codes, and re-reviews until a cold reader says `Clean`. All of that costs tokens, and the first reaction to a token bill is usually "where's the waste?" The waste is worth finding, but it is the smaller point. The loop is not trying to spend the fewest tokens. It spends them where they buy something you can't measure in tokens.

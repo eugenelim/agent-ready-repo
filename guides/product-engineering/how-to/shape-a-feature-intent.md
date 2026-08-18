@@ -1,3 +1,10 @@
+---
+title: How to shape a feature intent in an app repo
+summary: Turn an application-scale idea into a de-risked feature intent and a delivery-ready core brief.
+pack: product-engineering
+kind: how-to
+---
+
 # How to shape a feature intent in an app repo
 
 **Use this when:** You have an idea or request at app scale (one repo, one feature) and want to turn it into a spec your delivery loop can build — without skipping framing, de-risking, and decomposition.

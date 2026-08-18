@@ -1,7 +1,13 @@
+---
+title: How to author a pack-local JOURNEY.md
+summary: Author a canonical pack-owned journey with validated metadata, gates, state transitions, and projection-safe migration.
+pack: _shared
+kind: how-to
+---
+
 # How to author a pack-local JOURNEY.md
 
-Internal maintainer guide for Phase 2B pack-owned canonical journeys.
-Not for end users — this file lives in `docs/guides/how-to/`, not `guides/` (catalogue-facing).
+Use this when you maintain a catalogue whose packs publish canonical journey pages. This guide defines the source, metadata, migration, and projection contract for a pack-owned `JOURNEY.md`.
 
 ---
 

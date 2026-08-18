@@ -1,3 +1,10 @@
+---
+title: How to run a capability across a value stream (many component repos)
+summary: Coordinate a cross-repository capability through a meta-repository, shared contracts, per-component briefs, and AND-completion rollup.
+pack: product-engineering
+kind: how-to
+---
+
 # How to run a capability across a value stream (many component repos)
 
 **Use this when:** A capability you want to ship cuts across multiple component repos in a polyrepo and you need to shape, slice, and track delivery across all of them — without standing up a runtime coordination service.

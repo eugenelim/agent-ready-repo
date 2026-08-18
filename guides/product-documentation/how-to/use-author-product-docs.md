@@ -1,3 +1,10 @@
+---
+title: How to create and maintain product documentation
+summary: Create, revise, retrofit, audit, or verify the correct reader-facing documentation artifact against canonical product behavior.
+pack: product-documentation
+kind: how-to
+---
+
 # How to create and maintain product documentation
 
 **Use this when:** you need to create a new guide, improve an existing one, audit documentation for quality issues, or verify that docs match what actually ships.

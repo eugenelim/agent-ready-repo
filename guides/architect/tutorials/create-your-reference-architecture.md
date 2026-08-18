@@ -1,3 +1,10 @@
+---
+title: Create and use your `reference.md`
+summary: Commit one real architecture standard and use it immediately to steer a design decision.
+pack: architect
+kind: tutorial
+---
+
 # Create and use your `reference.md`
 
 **What you'll build:** A committed `docs/architecture/reference.md` with one real architecture standard filled in, used to steer one design decision.

@@ -1,3 +1,10 @@
+---
+title: "Establish your repo's reference architecture"
+summary: Create a normative `reference.md` from settled repository decisions so later designs and reviews follow a real golden path.
+pack: architect
+kind: how-to
+---
+
 # Establish your repo's reference architecture
 
 **Use this when:** Your repo lacks a `docs/architecture/reference.md` and you want a normative golden path that the architect skills steer designs, diagrams, and reviews against.

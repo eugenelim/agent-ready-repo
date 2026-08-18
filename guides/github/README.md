@@ -1,3 +1,10 @@
+---
+title: "`github` — guides"
+summary: Understand the fixed-host, read-only intake workflow that turns selected repository work into canonical local work.
+pack: github
+kind: explanation
+---
+
 # `github` — guides
 
 GitHub integration for this catalogue. The pack ships one skill:

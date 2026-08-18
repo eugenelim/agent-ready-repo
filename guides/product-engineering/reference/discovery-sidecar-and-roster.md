@@ -1,3 +1,10 @@
+---
+title: Reference — the discovery sidecar, plan-tree, and roster
+summary: Look up discovery state slots, statuses, plan-tree shape, verdicts, specialist roster, gates, and bounds.
+pack: product-engineering
+kind: reference
+---
+
 # Reference — the discovery sidecar, plan-tree, and roster
 
 :::note

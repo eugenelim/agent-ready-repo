@@ -1,3 +1,10 @@
+---
+title: Measuring AI adoption with flow metrics
+summary: Understand what delivery-flow comparisons can and cannot establish about AI-assisted engineering adoption.
+pack: atlassian
+kind: explanation
+---
+
 # Measuring AI adoption with flow metrics
 
 The `flow-metrics` and `ai-adoption-report` skills answer one question: **are the teams that use AI coding assistants delivering differently from the teams that aren't?** This doc explains the measurement model, why self-certification produces trustworthy data, what the metrics actually tell you, and where the limits of this approach sit.

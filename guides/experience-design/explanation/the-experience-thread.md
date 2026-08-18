@@ -1,3 +1,10 @@
+---
+title: The experience thread
+summary: Understand how journey, flow, service, content, visual, interaction, and review artifacts form one traceable design thread.
+pack: experience-design
+kind: explanation
+---
+
 # The experience thread
 
 :::note

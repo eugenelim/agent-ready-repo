@@ -1,3 +1,10 @@
+---
+title: Author an event contract
+summary: Produce a validated AsyncAPI contract with channels, operations, messages, envelopes, and schemas ready for consumers.
+pack: contracts
+kind: how-to
+---
+
 # Author an event contract
 
 **Use this when:** You own an event type and need a complete, validated AsyncAPI contract for consumers to integrate against.

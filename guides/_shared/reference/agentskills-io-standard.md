@@ -1,3 +1,10 @@
+---
+title: agentskills.io specification — applied reference
+summary: Apply the external skill specification together with this catalogue’s additional layout, description, security, and enforcement rules.
+pack: _shared
+kind: reference
+---
+
 # agentskills.io specification — applied reference
 
 The [agentskills.io](https://agentskills.io) specification is the external standard every skill in this catalogue follows.

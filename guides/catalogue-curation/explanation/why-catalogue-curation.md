@@ -1,3 +1,10 @@
+---
+title: Why curation is its own pack
+summary: Understand why catalogue growth, adoption, and reproduction require a governance layer distinct from ordinary repository governance.
+pack: catalogue-curation
+kind: explanation
+---
+
 # Why curation is its own pack
 
 `catalogue-curation` sits one meta-level above the rest of the catalogue. Where

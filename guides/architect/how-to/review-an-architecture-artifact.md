@@ -1,3 +1,10 @@
+---
+title: Review an architecture artifact
+summary: Obtain a severity-ranked architecture verdict, concrete findings, and an independent review for a finished-enough design artifact.
+pack: architect
+kind: how-to
+---
+
 # Review an architecture artifact
 
 **Use this when:** You have a finished-enough artifact — design doc, diagram, RFC, or ADR — and want severity-tagged findings rather than a design conversation.

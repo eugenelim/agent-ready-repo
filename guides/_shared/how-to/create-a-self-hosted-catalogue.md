@@ -1,3 +1,10 @@
+---
+title: How to create a self-hosted catalogue
+summary: Derive, brand, validate, and package an owned catalogue from an existing source without losing provenance or safety rails.
+pack: _shared
+kind: how-to
+---
+
 # How to create a self-hosted catalogue
 
 **Use this guide when** you want to create an enterprise-derived or domain-specific

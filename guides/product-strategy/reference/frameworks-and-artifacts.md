@@ -1,3 +1,10 @@
+---
+title: "Reference: frameworks and artifacts"
+summary: Look up every strategy skill, its framework, emitted artifact, owning pillar, and configurable output location.
+pack: product-strategy
+kind: reference
+---
+
 # Reference: frameworks and artifacts
 
 Every `product-strategy` skill, the framework it applies, and the artifact it

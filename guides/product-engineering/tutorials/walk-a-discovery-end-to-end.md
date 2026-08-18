@@ -1,3 +1,10 @@
+---
+title: Walk a discovery end-to-end
+summary: Follow a complete discovery through divergence, human gates, rejection recovery, reviewer coverage, and delivery handoff.
+pack: product-engineering
+kind: tutorial
+---
+
 # Walk a discovery end-to-end
 
 **What you'll build:** A complete discovery artifact set — decision brief, intent tree, journey maps, ordered backlog, and validation plan — by running the full discovery loop from a raw product idea to a G3 handoff.

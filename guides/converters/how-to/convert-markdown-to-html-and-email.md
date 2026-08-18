@@ -1,3 +1,10 @@
+---
+title: Convert Markdown to HTML, and email to Markdown
+summary: Produce self-contained HTML from Markdown or structured Markdown from an email file.
+pack: converters
+kind: how-to
+---
+
 # Convert Markdown to HTML, and email to Markdown
 
 **Use this when:** You need a shareable self-contained HTML page from a Markdown document, or you need to bring an Outlook `.msg` email into Markdown.

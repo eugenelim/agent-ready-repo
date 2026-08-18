@@ -1,3 +1,10 @@
+---
+title: About the plan owning the low-level design
+summary: Understand why implementation design belongs in the mutable plan while the spec remains a behavioral contract.
+pack: core
+kind: explanation
+---
+
 # About the plan owning the low-level design
 
 :::note

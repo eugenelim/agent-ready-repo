@@ -1,3 +1,10 @@
+---
+title: "`figma` — guides"
+summary: Understand the read, render, comment, history, and diagram-conversion capabilities exposed through the credentialed design-file primitive.
+pack: figma
+kind: explanation
+---
+
 # `figma` — guides
 
 The Figma REST primitive. Point it at a file URL and read what's there: the document tree, specific nodes, file metadata, version history, and comments. Render any frame to PNG, SVG, JPG, or PDF. Turn a FigJam connector graph into a Mermaid flowchart. It reads design — it never modifies it, because the REST API can't.

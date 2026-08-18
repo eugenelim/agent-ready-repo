@@ -1,3 +1,10 @@
+---
+title: "`agentbundle` — reference"
+summary: Look up the supported install, inspection, preview, configuration, source-resolution, networking, and failure behavior of `agentbundle`.
+pack: _shared
+kind: reference
+---
+
 # `agentbundle` — reference
 
 :::note

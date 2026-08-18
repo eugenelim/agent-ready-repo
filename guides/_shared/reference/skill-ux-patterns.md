@@ -1,3 +1,10 @@
+---
+title: Skill UX patterns
+summary: Apply the detailed alignment, truncation, command-bar, confirmation, card, and progress patterns used by structured skill output.
+pack: _shared
+kind: reference
+---
+
 # Skill UX patterns
 
 Craft-depth companion to [Output rendering directives](output-rendering.md). That document defines which rendering shape to declare in `## Output rendering` (Table, Status list, Diagram, etc.) and the canonical glyph set. **This page covers the craft rules within each shape**: column alignment, truncation limits, the persistent command bar pattern, the delete-gate box, card format for review flows, and progress reporting. Read both when authoring a skill that surfaces structured output in chat.

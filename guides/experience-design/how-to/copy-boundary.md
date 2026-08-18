@@ -1,3 +1,10 @@
+---
+title: Choose the right copy skill
+summary: Route a copy task to copy direction, tone of voice, content design, or product microcopy without duplicating work.
+pack: experience-design
+kind: how-to
+---
+
 # Choose the right copy skill
 
 **Use this when:** you have a copy task and need to know whether to invoke `copy-direction`, `tone-of-voice`, `content-design`, or `ux-writing`.

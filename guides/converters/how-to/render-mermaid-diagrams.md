@@ -1,3 +1,10 @@
+---
+title: Render Mermaid diagrams to images
+summary: Convert Mermaid fences into PNG or SVG assets and optionally rewrite the Markdown to reference them.
+pack: converters
+kind: how-to
+---
+
 # Render Mermaid diagrams to images
 
 **Use this when:** Your Markdown has Mermaid fenced blocks and the target tool (Confluence, PDF pipeline, or slide deck) doesn't render Mermaid live.

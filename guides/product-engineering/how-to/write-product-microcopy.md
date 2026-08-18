@@ -1,3 +1,10 @@
+---
+title: "How to write a product's voice and microcopy"
+summary: Establish a reusable voice chart and write actionable, consistent errors, empty states, labels, and calls to action.
+pack: product-engineering
+kind: how-to
+---
+
 # How to write a product's voice and microcopy
 
 **Use this when:** You have a shaped feature with a spec and need the actual words users read — errors, empty states, buttons, and labels — written consistently with the product's voice.

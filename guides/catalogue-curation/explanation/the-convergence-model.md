@@ -1,3 +1,10 @@
+---
+title: The convergence model
+summary: Understand why safe assimilation reviews and reshapes external primitives instead of copying them directly.
+pack: catalogue-curation
+kind: explanation
+---
+
 # The convergence model
 
 Convergence is not import.

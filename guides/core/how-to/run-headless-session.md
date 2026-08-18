@@ -1,3 +1,10 @@
+---
+title: Run a headless session with workspace-mcp
+summary: Drive unattended sessions through structured queue discovery, state observation, scoped Git operations, and explicit gate handling.
+pack: core
+kind: how-to
+---
+
 # Run a headless session with workspace-mcp
 
 A control harness drives Claude Code sessions programmatically — no human watching each turn. workspace-mcp is the per-session MCP server the `core` pack ships for exactly this use: structured queue discovery, FSM-state observability, and scoped git operations.

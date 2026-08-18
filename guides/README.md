@@ -1,3 +1,10 @@
+---
+title: Guides
+summary: Choose the pack and guide that matches your outcome, from supervised delivery loops to research, architecture, integrations, and catalogue operations.
+pack: _shared
+kind: explanation
+---
+
 # Guides
 
 Use this catalogue to add repeatable, supervised ways of working to your agent. Start with the outcome you need; the linked pack guides explain what to install, what to ask for, what the agent produces, and where a human decides.

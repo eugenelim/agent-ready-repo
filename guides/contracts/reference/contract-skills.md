@@ -1,3 +1,10 @@
+---
+title: The contract skills
+summary: Look up each contract skill’s inputs, stages, emitted document shape, validation, and standard-selection mechanism.
+pack: contracts
+kind: reference
+---
+
 # The contract skills
 
 The `contracts` pack ships two skills. Both apply a contract-design *method* over a pluggable *standard* supplied as data. This page describes their inputs, outputs, and the standard mechanism.

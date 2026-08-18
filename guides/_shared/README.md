@@ -1,3 +1,10 @@
+---
+title: Shared guides
+summary: Find cross-catalogue guidance for installing, upgrading, authoring, integrating, and understanding packs regardless of which packs you use.
+pack: _shared
+kind: explanation
+---
+
 # Shared guides
 
 Guides about the catalogue itself — installing it, upgrading it, seeing what each agent tool supports, authoring new skills — rather than any one pack. Pack-specific guides live under each pack's own home; these are the cross-cutting ones.

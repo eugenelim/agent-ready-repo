@@ -1,3 +1,10 @@
+---
+title: Your first Figma session
+summary: Establish a credentialed connection and inspect the page and frame structure of an accessible design file.
+pack: figma
+kind: tutorial
+---
+
 # Your first Figma session
 
 **What you'll build:** a working connection between the agent and your Figma account, with a real file's page and frame structure read and summarized.

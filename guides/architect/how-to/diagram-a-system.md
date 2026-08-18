@@ -1,3 +1,10 @@
+---
+title: Diagram a system
+summary: Produce a self-checked Mermaid diagram in the notation appropriate to a system, flow, state model, data model, or deployment.
+pack: architect
+kind: how-to
+---
+
 # Diagram a system
 
 **Use this when:** You know what you want drawn and need a Mermaid diagram of a system, flow, state machine, data model, or deployment topology.

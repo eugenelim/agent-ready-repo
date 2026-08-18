@@ -1,3 +1,10 @@
+---
+title: "Review a branch or PR you didn't write"
+summary: Run an independent, severity-ranked review of another author’s change and return actionable findings.
+pack: core
+kind: how-to
+---
+
 # Review a branch or PR you didn't write
 
 **Use this when:** You need to run an adversarial (and specialist) review on a branch or PR you did not write.

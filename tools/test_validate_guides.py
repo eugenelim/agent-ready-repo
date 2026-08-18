@@ -1,4 +1,4 @@
-"""Tests for tools/validate_guides.py — TDD suite (17 tests)."""
+"""Tests for tools/validate_guides.py — TDD suite."""
 import sys
 from pathlib import Path
 
@@ -24,12 +24,17 @@ def _write_guide(tmp_path: Path, name: str, content: str) -> Path:
     return p
 
 
-def _run(paths: list[Path], packs_root: Path = PACKS_ROOT) -> tuple[int, list[str], list[str]]:
+def _run(
+    paths: list[Path],
+    packs_root: Path = PACKS_ROOT,
+    guides_root: Path | None = None,
+) -> tuple[int, list[str], list[str]]:
     """Run validate_guides.validate_paths() and return (exit_code, errors, warnings)."""
     return validate_guides.validate_paths(
         [str(p) for p in paths],
         packs_root=str(packs_root),
         schema_path=str(SCHEMA_PATH),
+        guides_root=str(guides_root) if guides_root else None,
     )
 
 
@@ -377,3 +382,82 @@ kind: explanation
     assert any("_reference" in w or "undesignated" in w for w in warnings), (
         f"Expected a warning about _reference pack, got: {warnings}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Structural non-content allowlist (spec/guide-metadata-completion AC2-AC4)
+# ---------------------------------------------------------------------------
+
+# The five approved structural files, as guides-root-relative POSIX paths.
+APPROVED_EXCEPTIONS = [
+    "AGENTS.md",
+    "_shared/tutorials/README.md",
+    "_shared/how-to/README.md",
+    "_shared/reference/README.md",
+    "_shared/explanation/README.md",
+]
+
+
+@pytest.mark.parametrize("rel", APPROVED_EXCEPTIONS)
+def test_approved_structural_file_is_silent(tmp_path, rel):
+    """AC3: neither an error nor a warning for the exact approved five."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, rel, "# Structural index\n\nNo frontmatter here.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        # Same basename, different path — the allowlist is exact, not by basename.
+        "core/AGENTS.md",
+        "_shared/AGENTS.md",
+        "_shared/tutorials/nested/README.md",
+        # A sixth attempted exception: the quadrant dirs are allowlisted at
+        # _shared only, so a pack-local quadrant README is still content.
+        "core/how-to/README.md",
+        # Not a quadrant index at all.
+        "_shared/README.md",
+    ],
+)
+def test_same_basename_elsewhere_is_still_content(tmp_path, rel):
+    """AC2: a folder-wide or basename-wide exemption would hide public content."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, rel, "# Not exempt\n\nNo frontmatter here.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert any("has no frontmatter" in w for w in warnings), (
+        f"{rel} was silently exempted; warnings={warnings}"
+    )
+
+
+def test_allowlist_is_not_a_prefix_match(tmp_path):
+    """A path that merely starts with an allowlisted path must not be exempt."""
+    guides = tmp_path / "guides"
+    _write_guide(guides, "AGENTS.md.bak.md", "# Backup\n\nNo frontmatter.\n")
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert any("has no frontmatter" in w for w in warnings), warnings
+
+
+def test_approved_file_with_frontmatter_is_still_silent(tmp_path):
+    """An allowlisted path is non-content whether or not it happens to carry
+    frontmatter — it must never be schema-validated into an error."""
+    guides = tmp_path / "guides"
+    _write_guide(
+        guides,
+        "AGENTS.md",
+        "---\nkind: not-a-valid-kind\n---\n\n# Structural\n",
+    )
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert code == 0, errors
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_the_allowlist_holds_exactly_the_five_approved_paths(tmp_path):
+    """The set is a reviewable constant, and its size is part of the contract."""
+    assert sorted(validate_guides.STRUCTURAL_NON_CONTENT) == sorted(APPROVED_EXCEPTIONS)

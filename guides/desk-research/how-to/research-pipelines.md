@@ -1,3 +1,10 @@
+---
+title: How to run the research pipelines
+summary: Run the survey, competing-hypotheses, or decision-archaeology pipeline appropriate to a bounded research question.
+pack: desk-research
+kind: how-to
+---
+
 # How to run the research pipelines
 
 **Use this when:** You have a research question and need a one-shot pipeline — broad survey, contested-choice comparison, or "why did we do it this way" archaeology.

@@ -1,3 +1,10 @@
+---
+title: Choose Linear intake or brief sync
+summary: Choose first-time intake or controlled brief synchronization and receive the corresponding validated route or update preview.
+pack: linear
+kind: how-to
+---
+
 # Choose Linear intake or brief sync
 
 Use intake when Linear work should enter the repository for the first time. Use

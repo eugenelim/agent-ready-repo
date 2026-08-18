@@ -1,3 +1,10 @@
+---
+title: "Spec `Shape:` and the plan's `## Design (LLD)`"
+summary: Look up the feature-shape classification, plan design sections, stack derivation, and boundary between behavioral and implementation decisions.
+pack: core
+kind: reference
+---
+
 # Spec `Shape:` and the plan's `## Design (LLD)`
 
 :::note
