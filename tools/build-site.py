@@ -25,6 +25,7 @@ import sys
 import tomllib
 from datetime import date, timedelta
 from pathlib import Path
+from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
@@ -1051,14 +1052,22 @@ def sync_pack_journeys(
 # ---------------------------------------------------------------------------
 
 _CHANGELOG_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
-# Matches `[Unreleased]`, `Unreleased`, and every decorated form seen in the
-# wild — `## [Unreleased] — 2026-08-18`, `## Unreleased (2.9.0)`,
-# `## [Unreleased] (agentbundle)`, `## Unreleased:`. An exact-match anchor here
-# fails OPEN: a decorated heading stops being recognised as Unreleased, the
-# region is recorded as released, and every dated child beneath it publishes.
-# That leak is invisible to the emitted vocabulary check, because the leaked
-# bullet text need not contain the word "unreleased" anywhere.
-_UNRELEASED_RE = re.compile(r"^\[?unreleased\]?(?:\W|$)", re.IGNORECASE)
+# Any heading that says "unreleased" and is not itself a release entry opens an
+# Unreleased region. Deliberately broad, and it FAILS CLOSED.
+#
+# Three narrower rules were tried and each leaked. An exact `^\[?unreleased\]?$`
+# anchor missed `## [Unreleased] — 2026-08-18`. Adding `(?:\W|$)` still missed
+# `## (Unreleased)`, `## **Unreleased**`, `## _Unreleased_`, `## 🚧 Unreleased`,
+# `## — Unreleased —` and `## Next (unreleased)`. Leading-token matching misses
+# the last of those. In every miss the region was recorded as RELEASED and every
+# dated child beneath it published — and the emitted vocabulary check cannot see
+# it, because the leaked bullet need not contain the word "unreleased" at all.
+#
+# The two error directions are not symmetric. A false positive withholds content
+# from `/now/`, which the generation report names out loud and an author fixes by
+# rewording a heading. A false negative publishes in-progress work, which the
+# spec forbids outright. So this errs toward withholding.
+_UNRELEASED_RE = re.compile(r"unreleased", re.IGNORECASE)
 # `[core][2.7.4] and [architect][0.14.5] — 2026-08-17` — one entry may release
 # several packages at once, so identity is a list, not a scalar.
 _RELEASE_PKG_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
@@ -1071,12 +1080,18 @@ _RELEASE_LEAD_RE = re.compile(r"^\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
 _RELEASE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})\s*$")
 _HIGHLIGHTS_RE = re.compile(r"^highlights$", re.IGNORECASE)
 _BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
-# Capture the marker CHARACTER and its run length. A bare `(```|~~~)` closes a
-# ````-fenced block on the ``` inside it, and the trailing markers then restore
-# parity so the unterminated-fence raise never fires — sample content publishes
-# as a real release. CommonMark: a closing fence uses the same character and is
-# at least as long as the opener.
-_FENCE_RE_CHANGELOG = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+# Two orthogonal rules, and conflating them cost a regression each way.
+#
+# 1. Capture the marker CHARACTER and run LENGTH. A bare `(```|~~~)` closes a
+#    ````-fenced block on the ``` inside it, and the trailing markers then
+#    restore parity so the unterminated-fence raise never fires — sample content
+#    publishes as a real release.
+# 2. Keep the leading-whitespace allowance permissive. Tightening it to
+#    `^ {0,3}` while fixing (1) lost 4-space-indented fences, so a sample nested
+#    under a list item stopped being skipped and its ```bash lines published as
+#    highlight prose. Being permissive here fails closed: more content skipped,
+#    never less.
+_FENCE_RE_CHANGELOG = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
 _COMMENT_INLINE_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
@@ -1158,10 +1173,24 @@ def _parse_release_identity(title: str) -> dict | None:
     return {"packages": packages, "date": release_date.isoformat()}
 
 
-def parse_changelog_releases(text: str) -> list[dict]:
-    """Extract every release entry and its optional Highlights bullets.
+class ParsedChangelog(NamedTuple):
+    """Release records plus the authoring problems worth reporting.
 
-    Returns source-order records carrying package identity, release date,
+    Diagnostics are RETURNED rather than stashed on the function. As a function
+    attribute they were hidden mutable module state, non-reentrant, assigned only
+    on the success path — so a parse that raised left the previous document's
+    diagnostics readable — and they forced every caller that wanted them to parse
+    the file a second time.
+    """
+
+    releases: list[dict]
+    diagnostics: dict
+
+
+def parse_changelog_releases(text: str) -> ParsedChangelog:
+    """Extract every release entry, its optional Highlights, and any diagnostics.
+
+    Releases are source-order records carrying package identity, release date,
     heading text, anchor slug, whether the entry sits beneath `Unreleased`, and
     the Highlights bullets when the entry declares them.
     """
@@ -1192,11 +1221,18 @@ def parse_changelog_releases(text: str) -> list[dict]:
         # sample text, not a comment.
         if in_fence:
             closer = _FENCE_RE_CHANGELOG.match(raw)
+            # CommonMark's closer rule has THREE parts, and each missing one was
+            # its own fail-open: same marker character, run at least as long as
+            # the opener, and nothing but whitespace after the run. Without the
+            # third, ```` ```bash ```` closes a ```` ``` ```` block, the sample's
+            # release heading becomes a real entry, and the two trailing markers
+            # restore parity so the unterminated-fence raise never fires.
             if (
                 closer is not None
                 and fence_marker is not None
-                and closer.group(1)[0] == fence_marker[0]
-                and len(closer.group(1)) >= len(fence_marker)
+                and closer.group(2)[0] == fence_marker[0]
+                and len(closer.group(2)) >= len(fence_marker)
+                and closer.group(3).strip() == ""
             ):
                 in_fence = False
                 fence_opened_at = None
@@ -1225,9 +1261,16 @@ def parse_changelog_releases(text: str) -> list[dict]:
 
         opener = _FENCE_RE_CHANGELOG.match(raw)
         if opener is not None:
+            # The opener is matched LOOSELY on indentation. A fence indented four
+            # spaces is the ordinary shape inside a list item, and tightening
+            # this to `^ {0,3}` while fixing the closer rule regressed those into
+            # published copy — literal backticks and sample lines reaching the
+            # public page. For this parser a loose opener fails closed (more
+            # content skipped) and a strict closer fails closed (the fence stays
+            # open, and if it never closes the raise below fires).
             in_fence = True
             fence_opened_at = lineno
-            fence_marker = opener.group(1)
+            fence_marker = opener.group(2)
             continue
 
         heading = _CHANGELOG_HEADING_RE.match(raw)
@@ -1262,15 +1305,23 @@ def parse_changelog_releases(text: str) -> list[dict]:
             entry_level = None
 
         beneath_unreleased = any(is_unreleased for _, is_unreleased in stack)
-        is_unreleased_heading = bool(_UNRELEASED_RE.match(title))
 
-        if is_unreleased_heading:
+        identity = _parse_release_identity(title)
+
+        # Release identity is decided FIRST. A release heading is never an
+        # Unreleased region opener, so a package literally named `unreleased-foo`
+        # cannot suppress its own entry.
+        if identity is None and _UNRELEASED_RE.search(title):
             stack.append((level, True))
             current = None
             entry_level = None
+            if title.strip().strip("[]").casefold() != "unreleased":
+                # A non-canonical opener. Honoured — nothing beneath it publishes
+                # — but reported, so an author whose section stopped publishing
+                # can see which heading did it.
+                ambiguous.append((lineno, title))
             continue
 
-        identity = _parse_release_identity(title)
         if identity is not None:
             current = {
                 "packages": identity["packages"],
@@ -1284,13 +1335,6 @@ def parse_changelog_releases(text: str) -> list[dict]:
             releases.append(current)
             stack.append((level, False))
             continue
-
-        if "unreleased" in title.casefold():
-            # Says "unreleased" yet opened neither a region nor an entry. Worth
-            # surfacing, NOT worth failing the build on: `### Fixed an unreleased
-            # regression` is ordinary prose, and raising here stopped the whole
-            # site render on it.
-            ambiguous.append((lineno, title))
 
         # A `Highlights` heading counts only as the entry's IMMEDIATE child. At
         # any other depth it belongs to something else, and attaching its
@@ -1320,11 +1364,18 @@ def parse_changelog_releases(text: str) -> list[dict]:
             f"{comment_opened_at}; every release after it would be ignored"
         )
 
-    parse_changelog_releases.last_diagnostics = {  # type: ignore[attr-defined]
-        "ambiguous_unreleased": ambiguous,
-        "misplaced_highlights": misplaced,
-    }
-    return releases
+    return ParsedChangelog(
+        releases=releases,
+        diagnostics={
+            "withheld_unreleased": [
+                (r["heading"], len(r["highlights"]))
+                for r in releases
+                if r["unreleased"] and r["highlights"]
+            ],
+            "misplaced_highlights": misplaced,
+            "unreleased_regions": ambiguous,
+        },
+    )
 
 
 _INLINE_MD_RE = re.compile(r"\*\*(.+?)\*\*|`(.+?)`", re.DOTALL)
@@ -1387,7 +1438,7 @@ def project_now_highlights(text: str) -> dict:
 
     Pure and clock-free: the same source bytes always produce the same payload.
     """
-    releases = parse_changelog_releases(text)
+    releases = parse_changelog_releases(text).releases
     eligible = [r for r in releases if not r["unreleased"] and r["highlights"]]
 
     # `sorted` is stable, so equal dates keep source order without a tiebreak
@@ -1451,23 +1502,21 @@ def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
         f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
         + (" (dry run)" if dry_run else "")
     )
-    releases = parse_changelog_releases(text)
-    diagnostics = getattr(parse_changelog_releases, "last_diagnostics", {})
-    for entry in releases:
-        if entry["unreleased"] and entry["highlights"]:
-            print(
-                f"  note  {len(entry['highlights'])} highlight(s) not published — "
-                f"beneath [Unreleased]: {entry['heading']}"
-            )
-    for lineno, level, title in diagnostics.get("misplaced_highlights", []):
+    diagnostics = parse_changelog_releases(text).diagnostics
+    for heading, count in diagnostics["withheld_unreleased"]:
+        print(
+            f"  note  {count} highlight(s) not published — "
+            f"beneath [Unreleased]: {heading}"
+        )
+    for lineno, level, title in diagnostics["misplaced_highlights"]:
         print(
             f"  note  line {lineno}: '{'#' * level} {title}' is not a release "
             "entry's immediate child, so its bullets do not publish"
         )
-    for lineno, title in diagnostics.get("ambiguous_unreleased", []):
+    for lineno, title in diagnostics["unreleased_regions"]:
         print(
-            f"  note  line {lineno}: heading {title!r} mentions 'unreleased' but "
-            "opens no Unreleased section; entries beneath it count as released"
+            f"  note  line {lineno}: heading {title!r} reads as Unreleased, so "
+            "nothing beneath it publishes; reword it if that is wrong"
         )
 
 

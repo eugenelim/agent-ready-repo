@@ -81,7 +81,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install pyyaml
+        run: pip install pyyaml pytest
 
       # Projects BOTH marketing-renderer inputs, despite the flag's name: the
       # pack journeys under web/src/content/journeys/ and the released-highlight
@@ -141,10 +141,16 @@ jobs:
       # against the emitted heading ids in document order — the only place the
       # reimplemented github-slugger's `-N` duplicate counter is checked against
       # reality.
-      - name: Install test runner
-        run: pip install pytest
+      # `test -f` first: a pytest selection that skips entirely exits 0, so
+      # without it this step reports success in exactly the case it exists to
+      # catch — the emitted changelog moving out from under it. The test itself
+      # also fails rather than skips when CI is set.
       - name: Assert release anchors match the emitted changelog
-        run: python3 -m pytest -p no:cacheprovider -q tools/test_build_site_routing.py -k anchor
+        env:
+          CI: "true"
+        run: |
+          test -f build/docs/changelog/index.html
+          python3 -m pytest -p no:cacheprovider -q tools/test_build_site_routing.py -k anchor
 
       - name: Check rendered internal links
         run: python3 tools/check-rendered-site-links.py --build-dir build

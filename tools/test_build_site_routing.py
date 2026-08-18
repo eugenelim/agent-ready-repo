@@ -490,13 +490,29 @@ def test_a_decorated_unreleased_heading_still_opens_an_unreleased_region():
     below leaked in-progress copy before this was fixed.
     """
     for title in (
+        "## [Unreleased]",
+        "## Unreleased",
         "## [Unreleased] — 2026-08-18",
         "## Unreleased (2.9.0)",
         "## [Unreleased] (agentbundle)",
         "## Unreleased:",
-        "## [Unreleased]",
-        "## Unreleased",
+        # Decoration. Each of these leaked before the test stopped being anchored
+        # to the start of the heading.
+        "## (Unreleased)",
+        "## **Unreleased**",
+        "## _Unreleased_",
+        "## 🚧 Unreleased",
+        "## — Unreleased —",
+        # And the forms where the word is not the leading token at all. A
+        # leading-token rule misses these three.
+        "## Next (unreleased)",
+        "## The unreleased queue",
+        "## Pending / unreleased",
+        "## Work not yet released — unreleased",
     ):
+        # The dated child carrying Highlights is the load-bearing part of this
+        # fixture: a bare prose heading with nothing beneath it cannot leak, so a
+        # fixture without the child passes even while the leak is wide open.
         text = f"""# Changelog
 
 {title}
@@ -508,6 +524,20 @@ def test_a_decorated_unreleased_heading_still_opens_an_unreleased_region():
 - In-progress content that must never publish.
 """
         assert _groups(text) == [], f"{title!r} leaked its Highlights"
+
+
+def test_a_package_named_unreleased_something_still_releases():
+    """Release identity is decided FIRST, so a pack name cannot suppress its entry."""
+    text = """# Changelog
+
+## [unreleased-tools][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Should publish.
+"""
+    groups = _groups(text)
+    assert [g["packages"][0]["name"] for g in groups] == ["unreleased-tools"]
 
 
 def test_prose_headings_are_not_release_entries_and_do_not_fail_the_build():
@@ -543,11 +573,10 @@ def test_a_heading_mentioning_unreleased_outside_a_region_is_reported():
 
 - Ambiguous.
 """
-    build_site.parse_changelog_releases(text)
-    reported = build_site.parse_changelog_releases.last_diagnostics[
-        "ambiguous_unreleased"
+    parsed = build_site.parse_changelog_releases(text)
+    assert [t for _, t in parsed.diagnostics["unreleased_regions"]] == [
+        "Notes on unreleased material"
     ]
-    assert [title for _, title in reported] == ["Notes on unreleased material"]
 
 
 def test_a_misplaced_highlights_block_is_reported_rather_than_dropped_in_silence():
@@ -563,10 +592,10 @@ def test_a_misplaced_highlights_block_is_reported_rather_than_dropped_in_silence
 - Nested too deep to publish.
 """
     assert _groups(text) == []
-    reported = build_site.parse_changelog_releases.last_diagnostics[
-        "misplaced_highlights"
-    ]
-    assert [(level, title) for _, level, title in reported] == [(4, "Highlights")]
+    parsed = build_site.parse_changelog_releases(text)
+    assert [
+        (level, title) for _, level, title in parsed.diagnostics["misplaced_highlights"]
+    ] == [(4, "Highlights")]
 
 
 def test_a_release_entry_closes_at_the_next_heading_of_its_own_level():
@@ -661,6 +690,49 @@ def test_a_nested_fence_does_not_close_its_outer_block():
     groups = _groups(text)
     assert [g["packages"][0]["name"] for g in groups] == ["real"]
     assert _bullets(groups[0]) == ["Real."]
+
+
+def test_a_marker_run_with_an_info_string_does_not_close_a_fence():
+    """CommonMark's third closer rule: nothing but whitespace after the run.
+
+    Without it ```` ```bash ```` closes a ```` ``` ```` block, the sample's
+    release heading becomes a real entry, and the trailing marker restores parity
+    so the unterminated-fence raise never fires.
+    """
+    text = """# Changelog
+
+## [real][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Real.
+
+```markdown
+```bash
+## [fake][9.9.9] — 2026-08-06
+
+### Highlights
+
+- fake copy
+```
+"""
+    assert [g["packages"][0]["name"] for g in _groups(text)] == ["real"]
+
+
+def test_an_indented_fence_is_still_skipped():
+    """A fence indented under a list item is ordinary Markdown.
+
+    Tightening the opener to `^ {0,3}` while fixing the closer rule regressed
+    these into published copy — sample lines and literal backticks reaching the
+    public page. The opener stays LOOSE on indentation, which fails closed.
+    """
+    for indent, label in ((" " * 2, "two spaces"), (" " * 4, "four spaces"), ("\t", "a tab")):
+        text = (
+            "# Changelog\n\n## [pkg][1.0.0] — 2026-08-05\n\n### Highlights\n\n"
+            "- Example config:\n\n"
+            f"{indent}```toml\n{indent}not-a-highlight = true\n{indent}```\n"
+        )
+        assert _bullets(_groups(text)[0]) == ["Example config:"], label
 
 
 def test_a_tilde_fence_is_not_closed_by_a_backtick_run():
@@ -761,7 +833,7 @@ def test_a_commented_heading_consumes_no_duplicate_slug_slot():
 
 - The only real one.
 """
-    releases = build_site.parse_changelog_releases(text)
+    releases = build_site.parse_changelog_releases(text).releases
     assert [r["anchor"] for r in releases] == ["core230--2026-08-07"]
 
 
@@ -1024,7 +1096,7 @@ def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
     """
     text = _CHANGELOG.read_text(encoding="utf-8")
     start, end = build_site.launch_window(_LAUNCH_DATE)
-    releases = build_site.parse_changelog_releases(text)
+    releases = build_site.parse_changelog_releases(text).releases
     in_window = [r for r in releases if start <= r["date"] <= end]
 
     released = [r for r in in_window if not r["unreleased"]]
@@ -1074,12 +1146,22 @@ def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
     import re
 
     if not _EMITTED_CHANGELOG.exists():
+        import os
+
         import pytest
 
-        pytest.skip(
+        # In CI this test is wired into the ONE job that builds the site, so a
+        # missing artifact means the wiring broke — and a fully-skipped pytest
+        # selection exits 0, which would report success for the only check that
+        # holds the duplicate-slug counter against reality. Locally a skip is the
+        # right answer.
+        message = (
             "needs the combined build: python3 tools/build-site.py && "
             "npm run build --prefix web && npm run build --prefix docs-site"
         )
+        if os.environ.get("CI"):
+            raise AssertionError(f"emitted changelog absent in CI — {message}")
+        pytest.skip(message)
 
     page = _EMITTED_CHANGELOG.read_text(encoding="utf-8")
     emitted: list[tuple[str, str]] = []
@@ -1098,7 +1180,7 @@ def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
 
     releases = build_site.parse_changelog_releases(
         _CHANGELOG.read_text(encoding="utf-8")
-    )
+    ).releases
     assert releases, "no release entries parsed from the real changelog"
 
     expected = [(r["anchor"], " ".join(r["heading"].split())) for r in releases]
