@@ -260,7 +260,8 @@ sast:
 	# mcp CVEs requires a Semgrep backend compromise + targeted CI attack; the click CVE
 	# requires controlling semgrep's CLI args (i.e. write access to this repo).
 	# Suppression is unblocked once semgrep ships mcp>=1.28.1 + click>=8.3.3 deps.
-	# Full diagnosis and unblock condition: docs/backlog.md § semgrep-mcp-cve-allowlist.
+	# Full diagnosis and unblock condition: workspace.toml [backlog].open, entry
+	# `semgrep-mcp-cve-allowlist` — the suppressions' only recorded expiry.
 	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
 	@pip-audit -r tools/requirements-sast.txt \
 		--ignore-vuln CVE-2026-52870 \
