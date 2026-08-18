@@ -113,7 +113,7 @@ suite (`r9-gates.sh`).
       sandboxed result is compared against its sandbox-off result and recorded as
       *identical* or *differing*, per driver. A single "no differences" summary
       does not satisfy this.
-- [ ] **AC3 — Profile × Node permission model.** The macOS `deny default` profile
+- [x] **AC3 — Profile × Node permission model.** The macOS `deny default` profile
       runs composed with the Node permission model, and the artifact records which
       filesystem reads the permission model denies that the profile admits —
       including whether the correction-9 defeat (reading the live browser profile)
