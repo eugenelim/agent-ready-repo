@@ -230,6 +230,43 @@ instrument goes blind and the reading comes from the OS-level argv instrument
 (`ps argv (kern.procargs2 class)`). That instrument is itself the capability item
 5 describes, which is why every artifact labels it.
 
+## Follow-up arm — does the item-6 remedy preserve the session?
+
+Commissioned by the approver on 2026-08-18, after this round recommended "purge
+plus block" for item 6 and the recommendation itself turned out to be only
+half-verified.
+
+It was verified to **suppress the realm**. It was not verified to **preserve the
+session** — which is the entire thing the pilot exists to hand over. A control that
+silently destroys the authenticated session breaks the use case exactly as badly as
+the realm it closes, and this RFC's own words about decision C were "sound
+reasoning, not a promoted arm".
+
+**Result: the remedy is safe.** Against a profile seeded by authenticating and then
+registering a worker, removing only `Default/Service Worker`,
+the worker purge leaves the controller `false` at document start,
+with 0 registrations visible — and the server answers the restored
+browser `true` on `/whoami`, the authenticated endpoint that checks the session
+cookie rather than inspecting which files are on disk.
+
+**The failable row is the control**, and it is the point of the design. An
+"authenticated request still succeeds" check that could only ever pass would prove
+nothing, so a second arm purges the **cookie** store instead of the worker store:
+purging the COOKIE store instead answers `false`. So `/whoami` can fail, and
+the row above means what it says.
+
+Two smaller guards, both earned rather than assumed. The cookie store is a **file**,
+not a directory, so a directory-only walk would have purged nothing and the control
+would have passed for the wrong reason (the R11-1 shape). And the confined consumer
+reads its own artifact, so a denial is confinement rather than a host whose
+filesystem access is broken.
+
+the item-6 remedy arm records 6 of 6 rows passing.
+
+**What this does not establish**: a session carried in IndexedDB or Cache Storage
+lives in a different profile store and is not measured here. The pilot's described
+shape is a cookie-borne session.
+
 ## Round-11 corrections
 
 | # | Round-11 claim or control | What was established | Status |
