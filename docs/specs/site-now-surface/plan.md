@@ -73,7 +73,7 @@ absence of in-progress or invented claims.
 
 **Depends on:** none
 
-**Touches:** docs/product/changelog.md, tools/build-site.py, tools/test_build_site_routing.py, tools/test_check_release_impact.py
+**Touches:** docs/product/changelog.md, tools/build-site.py, tools/test_build_site_routing.py
 
 **Tests:**
 - TDD: cover released/Unreleased placement, optional/missing Highlights,
@@ -84,9 +84,12 @@ absence of in-progress or invented claims.
   and rejects day minus seven (AC5).
 
 **Approach:**
-- Document optional Highlights in the existing changelog maintenance preamble
-  and prove the current release-impact workflow still owns the update; do not
-  create or amend a repository-wide convention for this one surface.
+- Document optional Highlights in the existing changelog maintenance preamble;
+  do not create or amend a repository-wide convention for this one surface.
+- Release-impact tooling needed no change and none was made:
+  `tools/repo/check_release_impact.py` classifies changed PATHS and parses no
+  changelog structure, so a new subsection inside `changelog.md` is invisible to
+  it. `tools/test_check_release_impact.py` is therefore untouched.
 - Add the smallest pure parser/projection to the existing stdlib generator.
 
 **Done when:** mutation-sensitive fixtures prove eligibility, order, source
@@ -152,7 +155,7 @@ ordinary-review approved.
 
 **Depends on:** T3
 
-**Touches:** tools/test_check_rendered_site_links.py, tools/test_build_site_routing.py
+**Touches:** web/src/test/rendered-output.test.ts, web/src/test/NowHighlights.test.ts, tools/test_build_site_routing.py
 
 **Tests:**
 - Goal-based: build both sites and verify the Now route, changelog fragments,

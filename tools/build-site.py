@@ -23,6 +23,7 @@ import re
 import shutil
 import sys
 import tomllib
+from datetime import date, timedelta
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.resolve()
@@ -1050,7 +1051,14 @@ def sync_pack_journeys(
 # ---------------------------------------------------------------------------
 
 _CHANGELOG_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
-_UNRELEASED_RE = re.compile(r"^\[?unreleased\]?$", re.IGNORECASE)
+# Matches `[Unreleased]`, `Unreleased`, and every decorated form seen in the
+# wild — `## [Unreleased] — 2026-08-18`, `## Unreleased (2.9.0)`,
+# `## [Unreleased] (agentbundle)`, `## Unreleased:`. An exact-match anchor here
+# fails OPEN: a decorated heading stops being recognised as Unreleased, the
+# region is recorded as released, and every dated child beneath it publishes.
+# That leak is invisible to the emitted vocabulary check, because the leaked
+# bullet text need not contain the word "unreleased" anywhere.
+_UNRELEASED_RE = re.compile(r"^\[?unreleased\]?(?:\W|$)", re.IGNORECASE)
 # `[core][2.7.4] and [architect][0.14.5] — 2026-08-17` — one entry may release
 # several packages at once, so identity is a list, not a scalar.
 _RELEASE_PKG_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
@@ -1058,6 +1066,7 @@ _RELEASE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})\s*$")
 _HIGHLIGHTS_RE = re.compile(r"^highlights$", re.IGNORECASE)
 _BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
 _FENCE_RE_CHANGELOG = re.compile(r"^\s*(```|~~~)")
+_COMMENT_INLINE_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
 def _slug_base(text: str) -> str:
@@ -1115,16 +1124,27 @@ def _parse_release_identity(title: str) -> dict | None:
         return None
     date_match = _RELEASE_DATE_RE.search(title)
     if date_match is None:
-        return None
+        # Package identity but no trailing date — e.g.
+        # `## [pkg][1.0.0] — 2026-08-17 (yanked)`. Returning None here treats it
+        # as "not a release", which silently drops its Highlights or donates
+        # them to whichever entry happens to be open. Fail closed instead; the
+        # real changelog has no such heading (verified), so this can only fire
+        # on a genuine authoring mistake.
+        raise ValueError(
+            "changelog release heading carries a package version but no "
+            f"trailing release date: {title!r}"
+        )
     year, month, day = (int(g) for g in date_match.groups())
-    if not (1 <= month <= 12 and 1 <= day <= 31):
+    try:
+        # `date()` rather than a 1..31 range check: the range accepts
+        # 2026-02-31, which then renders as "31 February 2026" behind an invalid
+        # <time datetime>.
+        release_date = date(year, month, day)
+    except ValueError as exc:
         raise ValueError(
             f"changelog release heading has an impossible date: {title!r}"
-        )
-    return {
-        "packages": packages,
-        "date": f"{year:04d}-{month:02d}-{day:02d}",
-    }
+        ) from exc
+    return {"packages": packages, "date": release_date.isoformat()}
 
 
 def parse_changelog_releases(text: str) -> list[dict]:
@@ -1141,17 +1161,50 @@ def parse_changelog_releases(text: str) -> list[dict]:
     # (level, is_unreleased) for every heading currently enclosing this line.
     stack: list[tuple[int, bool]] = []
     current: dict | None = None
+    # Heading level of the release entry `current` refers to. Tracked because a
+    # release entry's scope has to CLOSE: without it, `current` survives every
+    # following non-release heading, and a `### Highlights` under a later
+    # `## Notes for maintainers` appends its bullets to the previous release.
+    entry_level: int | None = None
     # Level of the Highlights heading whose bullets we are collecting, if any.
     highlights_level: int | None = None
     in_fence = False
+    fence_opened_at: int | None = None
+    in_comment = False
+    comment_opened_at: int | None = None
 
-    for raw in lines:
-        if _FENCE_RE_CHANGELOG.match(raw):
-            in_fence = not in_fence
-            continue
+    for lineno, raw in enumerate(lines, start=1):
+        # Fenced code wins over comment syntax: `<!--` inside a shell sample is
+        # sample text, not a comment.
         if in_fence:
+            if _FENCE_RE_CHANGELOG.match(raw):
+                in_fence = False
+                fence_opened_at = None
             # A `#` inside a fenced block is shell syntax, not a heading, and a
             # `-` inside one is not a bullet.
+            continue
+
+        # HTML comments must be skipped, not merely ignored as unmatched text.
+        # `changelog.md` ships a commented-out `## [1.0.0] — YYYY-MM-DD` release
+        # template, and without this a commented-out entry publishes its
+        # Highlights — trailing `-->` and all. It also consumes a `_Slugger`
+        # slot that `github-slugger` never sees, which would shift every later
+        # `-N` suffix and point source links at the wrong release.
+        if in_comment:
+            if "-->" not in raw:
+                continue
+            in_comment = False
+            comment_opened_at = None
+            raw = raw.split("-->", 1)[1]
+        raw = _COMMENT_INLINE_RE.sub("", raw)
+        if "<!--" in raw:
+            raw = raw.split("<!--", 1)[0]
+            in_comment = True
+            comment_opened_at = lineno
+
+        if _FENCE_RE_CHANGELOG.match(raw):
+            in_fence = True
+            fence_opened_at = lineno
             continue
 
         heading = _CHANGELOG_HEADING_RE.match(raw)
@@ -1177,6 +1230,13 @@ def parse_changelog_releases(text: str) -> list[dict]:
             stack.pop()
         if highlights_level is not None and level <= highlights_level:
             highlights_level = None
+        # A heading at or above the open entry's level ends that entry, whatever
+        # it is. `### Added` under `## [pkg][1.0.0]` is deeper and leaves the
+        # entry open, which is correct; `## Notes for maintainers` is a sibling
+        # and closes it.
+        if entry_level is not None and level <= entry_level:
+            current = None
+            entry_level = None
 
         beneath_unreleased = any(is_unreleased for _, is_unreleased in stack)
         is_unreleased_heading = bool(_UNRELEASED_RE.match(title))
@@ -1184,6 +1244,7 @@ def parse_changelog_releases(text: str) -> list[dict]:
         if is_unreleased_heading:
             stack.append((level, True))
             current = None
+            entry_level = None
             continue
 
         identity = _parse_release_identity(title)
@@ -1196,13 +1257,45 @@ def parse_changelog_releases(text: str) -> list[dict]:
                 "unreleased": beneath_unreleased,
                 "highlights": [],
             }
+            entry_level = level
             releases.append(current)
             stack.append((level, False))
             continue
 
-        if _HIGHLIGHTS_RE.match(title) and current is not None:
+        if "unreleased" in title.casefold():
+            # Classified as neither an Unreleased region nor a release entry, yet
+            # it says "unreleased". Rather than guess, refuse: guessing wrong in
+            # this direction publishes in-progress work.
+            raise ValueError(
+                "changelog heading mentions 'unreleased' but does not open an "
+                f"Unreleased section: {title!r}"
+            )
+
+        # A `Highlights` heading counts only as the entry's IMMEDIATE child. At
+        # any other depth it belongs to something else, and attaching its
+        # bullets to the nearest open release publishes copy under a release
+        # that does not claim it.
+        if (
+            _HIGHLIGHTS_RE.match(title)
+            and entry_level is not None
+            and level == entry_level + 1
+        ):
             highlights_level = level
         stack.append((level, False))
+
+    if in_fence:
+        # One stray fence would otherwise swallow every release after it, and
+        # the drift gate cannot see the loss because expected and committed
+        # values come from this same parser.
+        raise ValueError(
+            "changelog has an unterminated code fence opened at line "
+            f"{fence_opened_at}; every release after it would be ignored"
+        )
+    if in_comment:
+        raise ValueError(
+            "changelog has an unterminated HTML comment opened at line "
+            f"{comment_opened_at}; every release after it would be ignored"
+        )
 
     return releases
 
@@ -1242,6 +1335,10 @@ def highlight_segments(bullet: str) -> list[dict]:
 def launch_window(end_date: str, days: int = NOW_WINDOW_DAYS) -> tuple[str, str]:
     """Inclusive [start, end] ISO dates for the `days`-long launch-seed window.
 
+    Sole caller is
+    `tools/test_build_site_routing.py::test_the_launch_seed_covers_exactly_the_released_entries_in_its_window`.
+    Deliberately not called by the generator — see below.
+
     The window is an AUTHORING rule, not a render filter. It decides which
     released entries should have gained a `Highlights` block by launch day; it
     never limits what `/now/` publishes afterwards. Keeping it out of the
@@ -1249,8 +1346,6 @@ def launch_window(end_date: str, days: int = NOW_WINDOW_DAYS) -> tuple[str, str]
     evaluated at build time would change the page every midnight from unchanged
     source, which the spec forbids.
     """
-    from datetime import date, timedelta
-
     end = date.fromisoformat(end_date)
     start = end - timedelta(days=days - 1)
     return start.isoformat(), end.isoformat()
@@ -1306,10 +1401,22 @@ def generate_now_projection(
 
 
 def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
-    """Emit the `/now/` projection and print what reached the public page."""
+    """Emit the `/now/` projection and print what reached the public page.
+
+    Also names what did NOT publish. Writing a `Highlights` block under an entry
+    that is still `[Unreleased]` is the overwhelmingly likely authoring mistake,
+    and it is indistinguishable from writing nothing at all if generation only
+    reports successes — the author is left reading the parser to find out why
+    their copy never appeared.
+    """
     if not changelog.exists():
-        print(f"  warn  {changelog.name} missing — /now/ projection skipped", file=sys.stderr)
-        return
+        # Returning here would leave the marketing build rendering whatever
+        # projection was last committed — a stale public page reported as a
+        # successful build.
+        raise FileNotFoundError(
+            f"{changelog} is missing; /now/ cannot be projected"
+        )
+    text = changelog.read_text(encoding="utf-8")
     payload = generate_now_projection(NOW_PROJECTION, changelog, dry_run=dry_run)
     groups = payload["groups"]
     bullets = sum(len(g["highlights"]) for g in groups)
@@ -1317,6 +1424,15 @@ def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
         f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
         + (" (dry run)" if dry_run else "")
     )
+    withheld = [
+        r for r in parse_changelog_releases(text)
+        if r["unreleased"] and r["highlights"]
+    ]
+    for entry in withheld:
+        print(
+            f"  note  {len(entry['highlights'])} highlight(s) not published — "
+            f"beneath [Unreleased]: {entry['heading']}"
+        )
 
 
 def load_guide_baseline(path: Path) -> dict:

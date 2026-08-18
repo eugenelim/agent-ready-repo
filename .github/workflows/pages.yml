@@ -83,7 +83,12 @@ jobs:
       - name: Install Python dependencies
         run: pip install pyyaml
 
-      - name: Sync pack journeys
+      # Projects BOTH marketing-renderer inputs, despite the flag's name: the
+      # pack journeys under web/src/content/journeys/ and the released-highlight
+      # payload web/src/lib/now-highlights.generated.json that /now/ renders.
+      # Ordering is load-bearing — this must precede the Astro build below, and
+      # the full `build-site.py` pass runs only after it.
+      - name: Project marketing renderer inputs (journeys + released highlights)
         run: python tools/build-site.py --journeys-only
 
       - name: Build Astro marketing site

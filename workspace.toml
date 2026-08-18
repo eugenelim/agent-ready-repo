@@ -2355,19 +2355,23 @@ open = [
   # That asymmetry is the defect that produced #958, and spec/
   # build-check-coverage-gaps fixed the instance without closing the class.
   # Measured 2026-08-17 by scanning Makefile + .github/workflows/ + every
-  # non-test tools/**/*.py and packages/agentbundle/**/*.py for each of the 65
-  # tools/test*.py filenames: EIGHT are invoked by nothing at all --
+  # non-test tools/**/*.py and packages/agentbundle/**/*.py for each of the
+  # tools/test*.py filenames: SEVEN are invoked by nothing at all --
   # test-check-atlassian-phase3-readiness, test-check-contract-drift,
   # test-compare-bandit-suppressions, test_build_site_dry_run,
-  # test_enterprise_rollout_playbook, test_export_work_index,
-  # test_guide_typed_asides, test_live_demo_guide. Two of those arrived in the
-  # last two merges (#980, #982), so this is an active leak, not a backlog.
+  # test_enterprise_rollout_playbook, test_guide_typed_asides,
+  # test_live_demo_guide. Two of those arrived in the last two merges (#980,
+  # #982), so this is an active leak, not a backlog. This list read EIGHT until
+  # spec/site-now-surface deleted tools/test_export_work_index.py along with the
+  # public /work/ surface it covered. The scanned-file total in the line above is
+  # left unstated rather than decremented: that figure came from the 2026-08-17
+  # scan and re-deriving it is part of the fix, not of this deletion.
   # Note the scan must include tools/catalogue/ and tools/hooks/ as invocation
   # sources: an earlier pass over Makefile + workflows alone reported 14 and was
   # wrong, because pre_pr_catalogue.py invokes several directly.
   # Fix: extend the _RUNNER_FILES/_NO_RUNNER discipline to tools/test*.py -- a
   # test file must name a runner or carry an explicit no-runner disposition.
-  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; eight are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   # Wiring the seven guides/site suites into build-check.yml (spec/
   # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
   # tests substring-assert against. test_check_rendered_site_links.py's

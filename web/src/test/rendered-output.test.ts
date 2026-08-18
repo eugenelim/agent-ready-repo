@@ -472,6 +472,54 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     });
   });
 
+  it('now AC4: each Now anchor resolves to its OWN changelog heading', () => {
+    // Correspondence, not membership. `changelog.md` has two
+    // `[core][2.3.0] — 2026-08-07` headings, so github-slugger emits one plain id
+    // and one `-1`; if the generator assigned them in the opposite order both ids
+    // would still exist on the page and a membership check would pass while every
+    // source link pointed at the wrong release.
+    //
+    // Lives here rather than in the pytest module because this suite runs in
+    // `pages.yml` AFTER both builds, whereas the pytest module runs in
+    // `build-check.yml` with no site build and could only ever skip.
+    const changelogPage = join(DOCS_ROOT, 'changelog', 'index.html');
+    if (!existsSync(changelogPage)) {
+      throw new Error(
+        'built docs changelog missing — run the combined build before this suite'
+      );
+    }
+    const emitted = new JSDOM(readFileSync(changelogPage, 'utf8')).window.document;
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    expect(projection.groups.length).toBeGreaterThan(0);
+
+    const normalise = (value: string) => value.replace(/\s+/g, ' ').trim();
+    for (const group of projection.groups) {
+      const target = emitted.getElementById(group.changelogAnchor);
+      expect(target, `#${group.changelogAnchor} is absent from the changelog`).not.toBeNull();
+      // Starlight appends an anchor-link affordance to headings, so compare the
+      // heading's own text rather than requiring exact equality.
+      expect(normalise(target!.textContent ?? '')).toContain(normalise(group.heading));
+    }
+  });
+
+  it('now AC4: repeated release headings get distinct anchors, original first', () => {
+    // Grounded in the real file's two genuine repeats rather than derived from a
+    // pattern: `/-\d+$/` matches every date-suffixed anchor (`…--2026-08-17`
+    // ends in `-17`), so a shape-based duplicate detector tests nothing. These
+    // two bases are where the parser's `-N` counter and github-slugger must agree.
+    const changelogPage = join(DOCS_ROOT, 'changelog', 'index.html');
+    if (!existsSync(changelogPage)) {
+      throw new Error('built docs changelog missing — run the combined build first');
+    }
+    const html = readFileSync(changelogPage, 'utf8');
+    const ids = [...html.matchAll(/<h[1-6][^>]*\bid="([^"]+)"/g)].map((m) => m[1]);
+    for (const base of ['core255--2026-08-10', 'core230--2026-08-07']) {
+      expect(ids, `${base} should still be a repeated heading`).toContain(base);
+      expect(ids).toContain(`${base}-1`);
+      expect(ids.indexOf(base)).toBeLessThan(ids.indexOf(`${base}-1`));
+    }
+  });
+
   it('now AC9: emitted Now text carries no Unreleased or development-state vocabulary', () => {
     const d = doc(NOW_PAGE);
     const text = (d.querySelector('main')?.textContent ?? '').toLowerCase();
@@ -484,16 +532,10 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(text).not.toContain('**');
   });
 
-  it('now AC8: the empty state and its changelog link are wired for a zero-group projection', () => {
-    // The live projection is non-empty, so the empty branch cannot be asserted
-    // from this build. Assert its two exact strings exist in the template rather
-    // than pretending the built page proves them — a silent skip here would read
-    // as coverage that isn't there.
-    const src = readFileSync(join(REPO_ROOT, 'web/src/pages/now/index.astro'), 'utf8');
-    expect(src).toContain('No released highlights yet.');
-    expect(src).toContain('Read the changelog');
-    expect(src).toContain('groups.length === 0');
-  });
+  // now AC8 (empty state) is covered by src/test/NowHighlights.test.ts, which
+  // RENDERS the zero-group branch through the container. It cannot be asserted
+  // from `build/` because the live projection is non-empty, and the earlier
+  // template-grep form here could not catch a broken link.
 
   it('now AC7: the built page is a pure function of the committed projection', () => {
     // No clock, no window, no build date reaches the page. A date-derived filter

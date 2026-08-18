@@ -218,8 +218,15 @@ def _generator_fixture(tmp_path):
     # The trees the generator reads and writes. Empty is fine: this asserts the
     # token contract, not mirroring behaviour, which the tests above cover.
     for d in ("guides", "packs", "docs-site/src/content/docs", "docs-site/src/styles",
-              "web/src/styles"):
+              "web/src/styles", "docs/product", "web/src/lib"):
         (tmp_path / d).mkdir(parents=True, exist_ok=True)
+    # The generator refuses to run without a changelog rather than leaving the
+    # marketing build to render a stale committed `/now/` projection, so the
+    # fixture supplies a minimal one. Content is irrelevant here — these two
+    # tests assert the design-token contract.
+    (tmp_path / "docs" / "product" / "changelog.md").write_text(
+        "# Changelog\n\n## [Unreleased]\n", encoding="utf-8"
+    )
     return tmp_path
 
 
@@ -426,17 +433,30 @@ def test_one_entry_releasing_two_packages_keeps_both_identities():
     ], got
 
 
-def test_an_entry_without_a_date_is_not_a_release():
-    """Version but no date is not publishable — the contract requires both."""
-    text = """# Changelog
+def test_a_release_heading_without_a_trailing_date_fails_generation():
+    """Package identity but no trailing date is malformed, not "not a release".
 
-## [pkg][1.0.0]
+    Treating it as an ordinary heading is worse than failing: its Highlights are
+    either dropped without a word or attached to whichever entry happens to be
+    open, publishing copy under a release that does not claim it. Verified
+    against the real changelog — no heading there carries a version without a
+    trailing date, so this can only fire on an authoring mistake.
+    """
+    for title in ("## [pkg][1.0.0]", "## [pkg][1.0.0] — 2026-08-17 (yanked)"):
+        text = f"""# Changelog
+
+{title}
 
 ### Highlights
 
-- No date, so not released.
+- Would be misfiled.
 """
-    assert _groups(text) == []
+        try:
+            build_site.project_now_highlights(text)
+        except ValueError as exc:
+            assert "trailing release date" in str(exc), str(exc)
+        else:  # pragma: no cover - the raise below is the failure report
+            raise AssertionError(f"{title!r} did not fail generation")
 
 
 def test_an_impossible_date_fails_generation_loudly():
@@ -458,6 +478,257 @@ def test_an_impossible_date_fails_generation_loudly():
         assert "impossible date" in str(exc)
     else:  # pragma: no cover - the assertion below is the failure report
         raise AssertionError("a 13th month did not fail generation")
+
+
+def test_a_decorated_unreleased_heading_still_opens_an_unreleased_region():
+    """The Unreleased test must not be defeated by decoration.
+
+    An exact-match anchor fails OPEN here: a decorated heading stops registering
+    as Unreleased, its region is recorded as released, and every dated child
+    beneath it publishes. The emitted vocabulary check cannot catch that — the
+    leaked bullet need not contain the word "unreleased" anywhere. Each variant
+    below leaked in-progress copy before this was fixed.
+    """
+    for title in (
+        "## [Unreleased] — 2026-08-18",
+        "## Unreleased (2.9.0)",
+        "## [Unreleased] (agentbundle)",
+        "## Unreleased:",
+        "## [Unreleased]",
+        "## Unreleased",
+    ):
+        text = f"""# Changelog
+
+{title}
+
+### [pkg][9.9.9] — 2026-08-18
+
+#### Highlights
+
+- In-progress content that must never publish.
+"""
+        assert _groups(text) == [], f"{title!r} leaked its Highlights"
+
+
+def test_a_heading_mentioning_unreleased_that_classifies_as_neither_fails():
+    """Refuse rather than guess — guessing wrong publishes in-progress work."""
+    text = """# Changelog
+
+## Notes on unreleased material
+
+### Highlights
+
+- Ambiguous.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "does not open an Unreleased section" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("an ambiguous 'unreleased' heading did not fail")
+
+
+def test_a_release_entry_closes_at_the_next_heading_of_its_own_level():
+    """A later sibling heading must not donate its Highlights to an earlier release.
+
+    Before the entry scope was tracked, `current` survived every following
+    non-release heading, so these bullets were appended to `[old][0.1.0]` and
+    published under a release that does not claim them.
+    """
+    text = """# Changelog
+
+## [old][0.1.0] — 2026-08-01
+
+### Highlights
+
+- Legitimately belongs to old 0.1.0.
+
+## Notes for maintainers
+
+### Highlights
+
+- Belongs to no release at all.
+"""
+    groups = _groups(text)
+    assert len(groups) == 1
+    assert _bullets(groups[0]) == ["Legitimately belongs to old 0.1.0."]
+
+
+def test_a_child_group_heading_does_not_close_its_own_release_entry():
+    """`### Added` is deeper than its entry, so the entry stays open.
+
+    The guard against the previous test must close a SIBLING, not a child.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Added
+
+- technical note
+
+### Highlights
+
+- Still attaches to pkg 1.0.0.
+"""
+    groups = _groups(text)
+    assert len(groups) == 1
+    assert _bullets(groups[0]) == ["Still attaches to pkg 1.0.0."]
+
+
+def test_a_highlights_heading_below_the_entrys_immediate_child_level_is_ignored():
+    """Only the entry's immediate child may be its Highlights block."""
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Changed
+
+#### Highlights
+
+- Nested two levels down; belongs to `Changed`, not to the release.
+"""
+    assert _groups(text) == []
+
+
+def test_an_unterminated_code_fence_fails_instead_of_swallowing_the_file():
+    """One stray fence would otherwise silently discard every later release.
+
+    The drift gate cannot notice, because expected and committed values both
+    come from this parser — it would agree with its own blind spot.
+    """
+    text = """# Changelog
+
+## [a][1.0.0] — 2026-08-05
+
+### Highlights
+
+- First.
+
+```bash
+echo "fence never closed"
+
+## [b][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Would vanish.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "unterminated code fence" in str(exc)
+        assert "line 9" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("an unterminated fence did not fail generation")
+
+
+def test_a_commented_out_release_entry_does_not_publish():
+    """`changelog.md` ships a commented-out release template, so this is its real shape.
+
+    Before comments were skipped, the entry below published its Highlights —
+    trailing `-->` included — and consumed a slugger slot that `github-slugger`
+    never sees, which shifts every later `-N` duplicate suffix and points source
+    links at the wrong release.
+    """
+    text = """# Changelog
+
+<!--
+## [draft][9.9.9] — 2026-08-18
+
+### Highlights
+
+- Commented out; must never publish.
+-->
+
+## [real][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Real.
+"""
+    groups = _groups(text)
+    assert [g["packages"][0]["name"] for g in groups] == ["real"]
+    assert _bullets(groups[0]) == ["Real."]
+
+
+def test_a_commented_heading_consumes_no_duplicate_slug_slot():
+    """Anchor suffixes must count only headings the renderer actually emits."""
+    text = """# Changelog
+
+<!--
+## [core][2.3.0] — 2026-08-07
+-->
+
+## [core][2.3.0] — 2026-08-07
+
+### Highlights
+
+- The only real one.
+"""
+    releases = build_site.parse_changelog_releases(text)
+    assert [r["anchor"] for r in releases] == ["core230--2026-08-07"]
+
+
+def test_a_comment_inside_a_fenced_block_is_sample_text_not_a_comment():
+    """Fenced code wins over comment syntax."""
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Real.
+
+```html
+<!-- a sample comment that never closes
+```
+
+## [later][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Must still publish.
+"""
+    assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "pkg"]
+
+
+def test_an_unterminated_html_comment_fails_instead_of_swallowing_the_file():
+    text = """# Changelog
+
+<!-- opened and never closed
+
+## [b][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Would vanish.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "unterminated HTML comment" in str(exc)
+        assert "line 3" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("an unterminated comment did not fail generation")
+
+
+def test_an_impossible_calendar_day_fails_generation():
+    """`2026-02-31` passes a 1..31 range and renders as "31 February 2026"."""
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-02-31
+
+### Highlights
+
+- Feb 31st.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "impossible date" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("2026-02-31 did not fail generation")
 
 
 def test_headings_inside_a_fenced_block_are_not_release_entries():
@@ -496,18 +767,36 @@ def test_a_wrapped_bullet_keeps_its_continuation_text():
     ]
 
 
-def test_the_projection_is_deterministic_for_identical_source():
-    """Repeated projection of the same bytes yields byte-identical output.
+def test_the_projection_payload_matches_a_frozen_expectation():
+    """Pin the exact payload shape, not merely that a pure function is pure.
 
-    This is what lets the page be generated in CI without a clock: the payload
-    carries no date-of-build and no window evaluated at build time.
+    Calling the projection twice in one process cannot fail unless module state
+    mutates, so a today-based filter added to the projection would pass a
+    same-process equality check. Freezing the expected payload is what actually
+    fails: any clock, window, build stamp, or renamed field changes it.
     """
-    import json
-
-    once = json.dumps(build_site.project_now_highlights(_RELEASED), sort_keys=False)
-    twice = json.dumps(build_site.project_now_highlights(_RELEASED), sort_keys=False)
-    assert once == twice
-    assert "launchDate" not in once
+    assert build_site.project_now_highlights(_RELEASED) == {
+        "schemaVersion": 1,
+        "groups": [
+            {
+                "packages": [{"name": "pkg-b", "version": "1.0.0"}],
+                "date": "2026-08-17",
+                "heading": "[pkg-b][1.0.0] — 2026-08-17",
+                "changelogAnchor": "pkg-b100--2026-08-17",
+                "highlights": [
+                    {
+                        "source": "Released highlight that must publish.",
+                        "segments": [
+                            {
+                                "type": "text",
+                                "value": "Released highlight that must publish.",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
 
 
 def test_markdown_emphasis_becomes_typed_segments_not_raw_html():
@@ -595,20 +884,38 @@ def test_the_committed_now_projection_matches_the_changelog_source():
     )
 
 
-def test_every_projected_release_is_released_and_carries_highlights():
-    """Nothing on the public page comes from an `[Unreleased]` entry."""
-    releases = build_site.parse_changelog_releases(
-        _CHANGELOG.read_text(encoding="utf-8")
-    )
-    by_anchor = {r["anchor"]: r for r in releases}
-    payload = build_site.project_now_highlights(
-        _CHANGELOG.read_text(encoding="utf-8")
-    )
+def test_no_projected_release_heading_lives_under_an_unreleased_region():
+    """Check the page's provenance against the RAW source, not the parser again.
+
+    Re-asserting the parser's own predicate over the parser's own output cannot
+    fail for the reason that matters. This instead walks the raw file, tracking
+    `## [Unreleased]` regions by heading level independently, and requires every
+    projected heading to appear outside all of them.
+    """
+    import re
+
+    text = _CHANGELOG.read_text(encoding="utf-8")
+    payload = build_site.project_now_highlights(text)
     assert payload["groups"], "the real changelog projects no highlight at all"
+
+    released_headings, unreleased_headings = set(), set()
+    region_level = None
+    for raw in text.splitlines():
+        m = re.match(r"^(#{1,6})[ \t]+(.+?)[ \t]*$", raw)
+        if m is None:
+            continue
+        level, title = len(m.group(1)), m.group(2).strip()
+        if region_level is not None and level <= region_level:
+            region_level = None
+        if re.match(r"^\[?unreleased\]?(\W|$)", title, re.IGNORECASE):
+            region_level = level
+            continue
+        (unreleased_headings if region_level is not None else released_headings).add(title)
+
+    assert unreleased_headings, "fixture drift: no Unreleased region found in the source"
     for group in payload["groups"]:
-        source = by_anchor[group["changelogAnchor"]]
-        assert not source["unreleased"], group["heading"]
-        assert source["highlights"], group["heading"]
+        assert group["heading"] in released_headings, group["heading"]
+        assert group["heading"] not in unreleased_headings, group["heading"]
 
 
 def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
@@ -633,49 +940,27 @@ def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
 
     unreleased = [r for r in in_window if r["unreleased"]]
     assert unreleased, "fixture drift: the window should still hold Unreleased entries"
-    projected = {
-        g["changelogAnchor"]
-        for g in build_site.project_now_highlights(text)["groups"]
-    }
+    groups = build_site.project_now_highlights(text)["groups"]
+    projected = {g["changelogAnchor"] for g in groups}
     assert not projected & {r["anchor"] for r in unreleased}
 
+    # AC5 says "all AND ONLY". The projection deliberately applies no date
+    # window, so the "only" half holds as a measured launch fact rather than by
+    # construction — which is exactly why it needs an assertion. If a released
+    # entry outside the window later gains Highlights this fails, and that is the
+    # signal to re-read AC5 rather than to quietly widen it.
+    assert all(start <= g["date"] <= end for g in groups), [
+        g["date"] for g in groups
+    ]
 
-def test_the_slugger_reproduces_every_emitted_changelog_anchor():
-    """Source links must land on the heading Starlight actually emitted.
 
-    Starlight anchors headings with `github-slugger`, including its `-N` suffix
-    for repeats — `changelog.md` repeats `[core][2.3.0] — 2026-08-07`, so a slug
-    derived from heading text alone would send a Now link to the wrong release.
-    Reproducing the algorithm is only credible if checked against the real
-    emitted page, which is what this does.
-    """
-    import html
-    import re
-
-    if not _EMITTED_CHANGELOG.exists():
-        import pytest
-
-        pytest.skip(
-            "needs the combined build: python3 tools/build-site.py && "
-            "npm run build --prefix web && npm run build --prefix docs-site"
-        )
-
-    emitted = set()
-    page = _EMITTED_CHANGELOG.read_text(encoding="utf-8")
-    for level in (1, 2, 3, 4, 5, 6):
-        for anchor, _ in re.findall(
-            rf'<h{level}[^>]*id="([^"]+)"[^>]*>(.*?)</h{level}>', page, re.S
-        ):
-            emitted.add(anchor)
-
-    releases = build_site.parse_changelog_releases(
-        _CHANGELOG.read_text(encoding="utf-8")
-    )
-    assert releases, "no release entries parsed from the real changelog"
-    missing = [r["anchor"] for r in releases if r["anchor"] not in emitted]
-    assert not missing, f"anchors absent from the emitted page: {missing[:5]}"
-    assert html  # the import documents why the emitted text is unescaped upstream
-
+# Anchor CORRESPONDENCE — that each release's anchor resolves to its own heading —
+# is asserted in `web/src/test/rendered-output.test.ts`, not here. This module runs
+# in `build-check.yml` with no site build, so a test needing `build/` could only
+# ever skip in CI; `rendered-output.test.ts` runs in `pages.yml` after both builds.
+# Membership alone was also too weak: with two `[core][2.3.0] — 2026-08-07`
+# headings in the file, swapping which one got the `-1` suffix left both ids
+# present and passed.
 
 def test_the_public_work_surface_is_gone_from_the_marketing_source():
     """`/work/` is removed outright — no page, no component, no exporter, no redirect.
@@ -701,9 +986,41 @@ def test_the_public_work_surface_is_gone_from_the_marketing_source():
     assert "withBase('/now/')" in nav
 
 
-def test_the_frozen_work_index_spec_remains_intact_as_provenance():
-    """The shipped m6 spec/plan stay as history; only the living index moves on."""
-    spec = _REPO_ROOT / "docs" / "specs" / "m6-astro-work-index" / "spec.md"
-    plan = _REPO_ROOT / "docs" / "specs" / "m6-astro-work-index" / "plan.md"
-    assert spec.exists() and plan.exists()
-    assert "**Status:** Shipped" in spec.read_text(encoding="utf-8")
+# Git blob hashes of the frozen m6 artifacts, recorded from `origin/main` at
+# `0152c1da` before this spec shipped. AC11 promises they stay BYTE-unchanged, so
+# the gate has to compare bytes: asserting the files exist and still say
+# "Shipped" leaves every paragraph free to be rewritten.
+_FROZEN_M6_BLOBS = {
+    "docs/specs/m6-astro-work-index/spec.md": "7432ed7f5be1a744a2371c659bbe2456fc4f765b",
+    "docs/specs/m6-astro-work-index/plan.md": "cc00d0b577120423d0e746a797a532462422cb26",
+}
+
+
+def test_the_frozen_work_index_spec_remains_byte_unchanged():
+    """AC11: the shipped m6 spec and plan are historical provenance, not living docs.
+
+    Compared by content hash rather than by "does it still exist and say
+    Shipped", which cannot fail for a rewrite. Uses git's own blob-id function so
+    the recorded values are reproducible with `git hash-object <path>`.
+    """
+    import hashlib
+
+    for rel, expected in _FROZEN_M6_BLOBS.items():
+        raw = (_REPO_ROOT / rel).read_bytes()
+        # git blob id = sha1("blob <len>\0" + bytes)
+        actual = hashlib.sha1(
+            b"blob " + str(len(raw)).encode() + b"\0" + raw
+        ).hexdigest()
+        assert actual == expected, (
+            f"{rel} is no longer byte-identical to its frozen record "
+            f"(expected {expected}, got {actual}); AC11 forbids rewriting it"
+        )
+
+    # AC11's other half: the LIVING index is where supersession is recorded,
+    # since the frozen artifacts may not be annotated. Nothing else asserts it,
+    # so the pointer could be reverted silently.
+    index = (_REPO_ROOT / "docs" / "specs" / "README.md").read_text(encoding="utf-8")
+    m6_row = next(
+        line for line in index.splitlines() if "m6-astro-work-index/" in line
+    )
+    assert "site-now-surface/spec.md" in m6_row, m6_row

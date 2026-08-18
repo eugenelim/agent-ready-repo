@@ -69,6 +69,12 @@ pipeline.
   seven calendar days ending on launch day, inclusive. The seed is written
   only from those released changelog entries—not reconstructed from plans,
   commits, or unfinished work.
+- The seven-day window is an authoring rule for the launch seed. The projection
+  applies no date window at all: it publishes every released entry carrying
+  Highlights, and a filter evaluated at build time would contradict the
+  determinism requirement below by changing the page at midnight from unchanged
+  source. A reader expecting a seven-day filter in the projection will not find
+  one, and should not add one.
 - If no released highlight qualifies, the page remains valid and says **No
   released highlights yet.** followed by a **Read the changelog** link.
 - `/now/` may later expand to other shipped adopter-facing formats only through
