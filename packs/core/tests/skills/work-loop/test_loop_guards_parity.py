@@ -479,6 +479,17 @@ EXEMPT_ROWS = {
 }
 
 
+# Sibling modules an EXEMPT_ROWS entry may name, mapped to LITERAL paths.
+#
+# Not `Path(__file__).parent / module_name`: `tools/lint-pack-test-boundary.py`'s
+# `pack-tests-stay-in-pack` check requires a pack test's paths to be PROVABLY inside
+# its own pack, and a join through a variable component is not — the linter cannot
+# see where it lands. Literal components are provable, so they are what it accepts.
+_SIBLING_MODULES = {
+    "test_loop_guards.py": Path(__file__).resolve().parent / "test_loop_guards.py",
+}
+
+
 def test_every_intentional_change_is_exercised(goldens) -> None:
     """Every `change_reason` in the goldens appears in this table or in EXEMPT_ROWS."""
     declared = {k for k, r in goldens.items() if "change_reason" in r}
@@ -516,9 +527,12 @@ def test_every_exemption_names_a_test_that_exists() -> None:
     """
     import ast
 
-    here = Path(__file__).resolve().parent
     for key, (module_name, test_name) in sorted(EXEMPT_ROWS.items()):
-        module_path = here / module_name
+        module_path = _SIBLING_MODULES.get(module_name)
+        assert module_path is not None, (
+            f"{key}: exemption names {module_name}, which is not in _SIBLING_MODULES — "
+            "add a literal path entry for it"
+        )
         assert module_path.is_file(), f"{key}: exemption names a missing module {module_name}"
         tree = ast.parse(module_path.read_text(encoding="utf-8"))
         names = {

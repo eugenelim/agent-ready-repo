@@ -33,6 +33,34 @@ import spawn_support as ss
 
 SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 GUARDS = SCRIPTS / "_loop_guards.py"
+
+# Every work-loop script these tests read, at a LITERAL path.
+#
+# `tools/lint-pack-test-boundary.py`'s `pack-tests-stay-in-pack` check requires a pack
+# test's paths to be PROVABLY inside its own pack, and `SCRIPTS / <variable>` is not —
+# the linter cannot see where a variable component lands. Literal components are
+# provable. So a parametrised test that picks a script by name goes through this table
+# rather than joining the name onto `SCRIPTS` itself.
+_SCRIPT_PATHS = {
+    "loop-cohort.py": SCRIPTS / "loop-cohort.py",
+    "loop-engine.py": SCRIPTS / "loop-engine.py",
+    "check-spec-status.py": SCRIPTS / "check-spec-status.py",
+    "_loop_guards.py": SCRIPTS / "_loop_guards.py",
+    "_statelock.py": SCRIPTS / "_statelock.py",
+    "lint-spec-status.py": SCRIPTS / "lint-spec-status.py",
+}
+
+
+def _script(name: str) -> Path:
+    """A work-loop script's path, by name, from the literal table above."""
+    path = _SCRIPT_PATHS.get(name)
+    assert path is not None, (
+        f"{name} is not in _SCRIPT_PATHS — add a literal entry rather than joining "
+        "the name onto SCRIPTS, which the pack-test boundary lint rejects"
+    )
+    return path
+
+
 COHORT = SCRIPTS / "loop-cohort.py"
 LINT_SPEC_STATUS = SCRIPTS / "lint-spec-status.py"
 
@@ -745,7 +773,7 @@ def test_a_crashing_guard_is_a_nonzero_exit_with_no_traceback(tmp_path: Path) ->
     sandbox = tmp_path / "scripts"
     sandbox.mkdir()
     for name in ("_loop_guards.py", "lint-spec-status.py", "check-spec-status.py"):
-        (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+        (sandbox / name).write_bytes(_script(name).read_bytes())
     (sandbox.parent / "assets").mkdir()
     (sandbox.parent / "assets" / "state.json").write_bytes(
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
@@ -1079,7 +1107,7 @@ def test_the_write_block_refuses_a_mid_verb_swap_without_writing(tmp_path: Path)
     scripts = tmp_path / "scripts"
     scripts.mkdir()
     for name in ("loop-cohort.py", "_statelock.py", "lint-spec-status.py"):
-        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+        (scripts / name).write_bytes(_script(name).read_bytes())
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "state.json").write_bytes(
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
@@ -1160,7 +1188,7 @@ def test_a_lock_holding_verb_refuses_an_unloadable_parser_without_writing(
     scripts = tmp_path / "scripts"
     scripts.mkdir()
     for name in ("loop-cohort.py", "_loop_guards.py", "_statelock.py"):
-        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+        (scripts / name).write_bytes(_script(name).read_bytes())
     (scripts / "lint-spec-status.py").write_text(
         "def parse_status(  # truncated mid-signature\n", encoding="utf-8"
     )
@@ -1257,7 +1285,7 @@ def test_an_artifact_integrity_change_matches_its_golden(key: str, tmp_path: Pat
     argv = ([str(spec_dir), *extra_argv] if extra_argv is not None
             else ["plan", "check-current", str(spec_dir)])
     proc = subprocess.run(
-        [sys.executable, str(SCRIPTS / script_name), *argv],
+        [sys.executable, str(_script(script_name)), *argv],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         check=False, cwd=str(repo), timeout=60,
     )
@@ -1289,7 +1317,7 @@ def _engine_sandbox(tmp_path: Path, *, guard_body: str | None) -> tuple[Path, Pa
     scripts.mkdir()
     for name in ("loop-engine.py", "loop-cohort.py", "_statelock.py",
                  "lint-spec-status.py"):
-        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+        (scripts / name).write_bytes(_script(name).read_bytes())
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "state.json").write_bytes(
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
@@ -1411,7 +1439,7 @@ def test_a_newly_bounded_read_refuses_and_says_why(tmp_path: Path) -> None:
     scripts.mkdir()
     for name in ("loop-cohort.py", "_loop_guards.py", "_statelock.py",
                  "lint-spec-status.py"):
-        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+        (scripts / name).write_bytes(_script(name).read_bytes())
     (tmp_path / "assets").mkdir()
     template = tmp_path / "assets" / "state.json"
     template.write_bytes((SCRIPTS.parent / "assets" / "state.json").read_bytes())
@@ -1551,7 +1579,7 @@ def test_unloadable_parser_refuses_instead_of_skipping(tmp_path: Path) -> None:
     sandbox = tmp_path / "scripts"
     sandbox.mkdir()
     for name in ("_loop_guards.py", "lint-spec-status.py"):
-        (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+        (sandbox / name).write_bytes(_script(name).read_bytes())
     (sandbox.parent / "assets").mkdir()
     (sandbox.parent / "assets" / "state.json").write_bytes(
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
@@ -1638,9 +1666,9 @@ def test_load_failure_is_a_one_line_refusal(
     for name in ("loop-cohort.py", "lint-spec-status.py", "_statelock.py",
                  "_loop_guards.py"):
         if name != target_name:
-            (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+            (sandbox / name).write_bytes(_script(name).read_bytes())
     target = sandbox / target_name
-    original = (SCRIPTS / target_name).read_text(encoding="utf-8")
+    original = _script(target_name).read_text(encoding="utf-8")
 
     if mode == "missing":
         pass
@@ -1754,7 +1782,7 @@ def test_every_cohort_verb_refuses_when_the_module_is_unavailable(tmp_path: Path
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
     )
     for name in ("loop-cohort.py", "lint-spec-status.py", "_statelock.py"):
-        (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+        (sandbox / name).write_bytes(_script(name).read_bytes())
     # _loop_guards.py deliberately absent.
     spec_dir = tmp_path / "spec"
     spec_dir.mkdir()
@@ -1809,7 +1837,7 @@ def test_loader_copies_are_structurally_identical() -> None:
     }
     bodies: dict[str, str] = {}
     for filename, funcname in wanted.items():
-        path = SCRIPTS / filename
+        path = _script(filename)
         assert path.is_file(), f"loader copy {filename} is missing"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         fn = next((n for n in tree.body
@@ -2290,7 +2318,7 @@ def test_every_loader_derives_completeness_from_all_not_an_enumeration() -> None
     }
 
     for filename, funcname in loaders.items():
-        src = (SCRIPTS / filename).read_text(encoding="utf-8")
+        src = _script(filename).read_text(encoding="utf-8")
         tree = _ast.parse(src)
 
         assert "_GUARDS_REQUIRED" not in {
