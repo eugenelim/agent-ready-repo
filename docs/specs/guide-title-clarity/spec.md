@@ -1,9 +1,9 @@
 # Spec: Guide title clarity
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** none
+- **Constrained by:** [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md), [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [`docs-site-design-refresh/creative-direction.md`](../docs-site-design-refresh/creative-direction.md)
 - **Brief:** docs/product/briefs/tech-site-completion.md
 - **Discovery:** none
 - **Contract:** none
@@ -51,24 +51,53 @@ lead with the user's job.
 
 ## Acceptance Criteria
 
-- [ ] `page-screen-contract.md` presents
+- [x] `page-screen-contract.md` presents
   “Write a page or screen contract” as its canonical title.
-- [ ] `run-an-audit.md` presents “Run a frontend audit” as its canonical
+- [x] `run-an-audit.md` presents “Run a frontend audit” as its canonical
   title.
-- [ ] `scaffold-a-component.md` presents
+- [x] `scaffold-a-component.md` presents
   “Scaffold a component from a screen brief” as its canonical title.
-- [ ] `guides/iac-terraform/README.md` presents
+- [x] `guides/iac-terraform/README.md` presents
   “Terraform and OpenTofu guides” as its canonical title.
-- [ ] For each changed guide, the source H1, frontmatter title when present,
-  generated page H1, browser/search title, and applicable sidebar label are
-  coherent with the approved string.
-- [ ] The existing five reviewed titles outside this four-file set do not
-  change.
-- [ ] Every pre-change route for the four guides still resolves and the
+- [x] For each changed guide, the source H1, the frontmatter `title:` (the
+  published canonical title — the build strips the body H1), the generated page
+  H1, the browser/search title, and the sidebar ITEM label are coherent with the
+  approved string. The `iac-terraform` sidebar GROUP label in `site.toml`
+  (`IaC (Terraform)`) is deliberately unchanged: the approved decision names the
+  page title, and changing a declared guide group is an “Ask first” boundary
+  outside this spec.
+- [x] Where a baseline label previously froze one of these titles, its
+  `guide-nav-baseline.toml` entry is DELETED rather than relabelled, so the
+  sidebar label resolves from the frontmatter title. Editing the label instead
+  would make the pair guard tautological: `tools/test_build_site_sidebar.py`
+  loads the same baseline file it compares against, so an edited label passes by
+  construction and witnesses nothing.
+- [x] The five reviewed titles outside this four-file set do not change,
+  enumerated here because “the five” was previously recoverable only by git
+  archaeology:
+  - `guides/_shared/how-to/install-user-scope-pack-into-codex.md`
+  - `guides/_shared/how-to/install-user-scope-pack-into-kiro.md`
+  - `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`
+  - `guides/frontend-engineering/reference/frontend-engineering.md`
+  - `guides/governance-extras/how-to/new-adr.md`
+- [x] The four retired strings — `Write a Page/Screen Contract`, `Run an Audit`,
+  `Scaffold a Component`, `IaC (Terraform) guides` — appear in none of the four
+  source files. They legitimately persist as provenance in
+  `docs/product/changelog.md`, the mirrored docs changelog, `workspace.toml`, and
+  `tools/test_lint_guide_titles.py` fixtures; those must not change.
+- [x] `guides/frontend-engineering/README.md`'s link text for the three
+  frontend-engineering pages matches their approved titles, so the pack's primary
+  in-site entry point does not contradict them.
+- [x] Every pre-change route for the four guides still resolves and the
   combined rendered-link checker reports no broken page or fragment.
-- [ ] A rendered-surface review finds no Major issue against “Precision
-  authority” or the principle “Lead with the user's job; reveal the system
-  second.”
+- [x] A rendered-surface review finds no Major issue against the owning
+  surface's aesthetic direction — `docs/specs/docs-site-design-refresh/creative-direction.md`'s
+  dominant goal “Instrument-grade clarity” — or the tech-site principle “Lead
+  with the user's job; reveal the system second.” NOT the marketing site's
+  “Precision authority”: all four pages render only on `docs-site/`, and the
+  brief's non-goals bar aligning the two surfaces. Severity uses the
+  `frontend-engineering` skill's Blocker/Major/Minor/Note scale and is assigned
+  by a human reviewer; the brief bars generated severity classifications.
 
 ## Assumptions
 

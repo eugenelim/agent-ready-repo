@@ -1,7 +1,7 @@
 # Plan: Guide title clarity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 ## Approach
 
@@ -50,16 +50,28 @@ Major design finding against the approved directions. Traces to: AC8.
 
 **Depends on:** none
 
-**Touches:** tools/lint-guide-titles.py, tools/test_lint_guide_titles.py, guide-nav-baseline.toml, guides/**/*.md
+**Touches:** tools/test_lint_guide_titles.py, tools/test_build_site_sidebar.py
 
 **Tests:**
-- TDD: require each of the four approved source-title mappings (AC1-AC4).
-- TDD: pin the five reviewed no-change titles (AC6).
-- TDD: require applicable navigation labels to agree (AC5).
+- TDD (`stub: true`): the four approved strings are the frontmatter `title:` of
+  their four source files, compared as RAW strings (AC1-AC4).
+- TDD (`stub: true`): the five enumerated control titles are unchanged (AC6).
+- TDD (`stub: true`): the sidebar item label for the two de-baselined pages
+  resolves from the frontmatter title (AC5).
 
 **Approach:**
-- Extend the existing title-linter fixture and assertions.
-- Test public behavior and mappings rather than line numbers.
+- Compare RAW strings, not through `tools/lint-guide-titles.py`'s `normalise()`:
+  that helper casefolds and strips punctuation, and three of the four decisions
+  are substantially casing changes, so a normalised comparison would accept
+  `Run A Frontend Audit`. `lint-guide-titles.py` keeps its existing job — the
+  relational title↔H1 invariant — and gains no content registry, which would be a
+  second unsynced source of truth against the frontmatter itself.
+- The nine pinned strings live in the spec's acceptance criteria; the tests
+  reference that enumeration rather than restating it a second time.
+- Navigation assertions go in `tools/test_build_site_sidebar.py`, which already
+  makes real-tree sidebar assertions. NOT `tools/test_lint_guide_titles.py`: its
+  own docstring declares it deliberately not a pytest module, with `_run_*` entry
+  points pytest cannot collect.
 
 **Done when:** the focused tests fail on the old four strings and protect the
 five controls.
@@ -68,16 +80,28 @@ five controls.
 
 **Depends on:** T1
 
-**Touches:** guides/frontend-engineering/how-to/page-screen-contract.md, guides/frontend-engineering/how-to/run-an-audit.md, guides/frontend-engineering/tutorials/scaffold-a-component.md, guides/iac-terraform/README.md, guide-nav-baseline.toml
+**Touches:** guides/frontend-engineering/how-to/page-screen-contract.md, guides/frontend-engineering/how-to/run-an-audit.md, guides/frontend-engineering/tutorials/scaffold-a-component.md, guides/iac-terraform/README.md, guides/frontend-engineering/README.md, guide-nav-baseline.toml
 
 **Tests:**
-- Goal-based: run the title linter and its focused tests (AC1-AC6).
-- Goal-based: search the four sources for the retired strings and require zero
-  hits (AC1-AC4).
+- Goal-based (`no stub (mode)`): run the title linter and the focused tests
+  (AC1-AC6).
+- Goal-based (`no stub (mode)`): `! grep -q` each retired string over exactly the
+  four source paths — `! grep -q`, because `grep -c` exits 1 on no-match and CI
+  would read success as failure. Path-scoped, because the retired strings
+  legitimately persist as provenance in the changelogs, `workspace.toml`, and the
+  lint fixtures (AC1-AC4).
 
 **Approach:**
-- Change each source H1 exactly once.
-- Change only the applicable baseline labels; do not add navigation entries.
+- Change each frontmatter `title:` and its body H1 together — a CI gate asserts
+  they match, so moving one alone fails.
+- DELETE the two `guide-nav-baseline.toml` entries that froze
+  `Scaffold a Component` and `Run an Audit` rather than relabelling them. Both
+  pages carry `title:`, and `guides/AGENTS.md` documents deletion as the
+  deliberate act; relabelling would make the pair guard tautological.
+  `page-screen-contract` and `iac-terraform/README` have no baseline entry, so
+  nothing to remove there. Add no navigation entries.
+- Update the three stale link labels in `guides/frontend-engineering/README.md`.
+- Leave `site.toml`'s `IaC (Terraform)` group label alone (AC5 records why).
 
 **Done when:** all source and navigation title contracts pass.
 
@@ -85,15 +109,31 @@ five controls.
 
 **Depends on:** T2
 
+**Touches:** docs/specs/guide-title-clarity/notes/route-baseline.txt (evidence only)
+
 **Tests:**
-- Goal-based: build both sites and assert the four generated H1/title surfaces
-  (AC5).
-- Goal-based: run combined rendered-link checking and route assertions (AC7).
-- Visual/manual QA: review navigation and search/title presentation at desktop
-  and phone widths (AC8).
+- Goal-based (`no stub (mode)`): build in the mandated order — `tools/build-site.py`,
+  then `npm run build --prefix web`, then `npm run build --prefix docs-site` — and
+  assert the four emitted `<h1>` and `<title>` surfaces from the built HTML. These
+  read files directly and launch NO browser (AC5).
+- Goal-based (`no stub (mode)`): diff the emitted route set against the pre-change
+  inventory captured in `notes/route-baseline.txt`, compared as MEMBERSHIP not
+  count (a rename preserves a count), then run
+  `tools/check-rendered-site-links.py --build-dir build` (AC7).
+- Manual QA (`no stub (mode)`): a human reviewer reads the four titles in
+  navigation and in the browser/search title at the brief's approved widths — 360,
+  375, 390, 414, 1440 — in both docs themes, and records the observation and its
+  severity in `notes/render-review.md`. The invariant: each title names the
+  reader's job and is not truncated in the sidebar at the narrowest width (AC8).
 
 **Approach:**
 - Use emitted HTML as evidence rather than source-only assertions.
+- Capture the route baseline BEFORE any edit; a post-change count cannot detect a
+  rename.
+- The manual pass runs in the real user environment with `HOME` intact. Playwright's
+  Chromium resolves from `~/Library/Caches/ms-playwright`, so a fixture given a
+  synthetic `HOME` loses the browser and reports passes without launching one — the
+  emitted-title assertions above deliberately need no browser at all.
 - Record screenshots only as temporary review evidence, never tracked output.
 
 **Done when:** all four titles are correct in emitted behavior and every route
@@ -113,4 +153,19 @@ strings without migration; no alias or redirect changes.
 
 ## Changelog
 
+- 2026-08-17: corrected at spec-stage review, before any code. AC8 arbitrated
+  against the MARKETING site's "Precision authority" though all four pages render
+  only on docs-site, whose direction is "Instrument-grade clarity" — and the brief
+  bars aligning the two surfaces. AC6's "the five reviewed titles" and the four
+  retired strings were recorded nowhere and recoverable only by git archaeology;
+  both are now enumerated in the spec. AC5's sidebar half would have been
+  tautological: relabelling a baseline entry passes a guard that loads the same
+  file, so the entries are DELETED instead, which is what guides/AGENTS.md
+  documents. AC5 is also scoped to the sidebar ITEM label, with site.toml's
+  `IaC (Terraform)` GROUP label recorded as deliberately unchanged — changing a
+  declared guide group is Ask-first and outside the approved four strings. Added an
+  AC for the pack index's stale link text, a route baseline artifact for AC7, the
+  mandated build order and approved widths for T3, raw-string comparison (not
+  `normalise()`, which would accept a wrong casing), and the correct test homes.
+  Scope unchanged: the four frozen strings and five controls are untouched.
 - 2026-08-17: initial plan derived from the approved tech-site completion brief.
