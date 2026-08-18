@@ -96,9 +96,9 @@ candidate as one of:
 
 The list is complete against the criterion: SC 2.5.8 defines exactly five
 exceptions — Spacing, Equivalent, Inline, User agent control, Essential. An earlier
-revision of this contract, and of the spec's AC7, omitted Spacing, which left 27 of
-the measured candidates classified against a class neither document admitted — the
-two Spacing groups in § Final shaping classification.
+revision of this contract, and of the spec's AC7, omitted Spacing, which left every
+candidate now in § Final shaping classification's two Spacing groups classified
+against a class neither document admitted.
 
 Framework ownership identifies an implementation owner; it is not itself an
 exception. Record exact geometry and spacing in emitted output. Never infer a

@@ -282,6 +282,22 @@ TAP_TARGET_AUDIT = (
 )
 _GROUP_RE = re.compile(r"^### (?P<name>.+?) — (?P<count>\d+) candidates\s*$")
 _TOTAL_RE = re.compile(r"^\|\s*\*\*Total classified\*\*\s*\|\s*(?P<total>\d+)\s*\|")
+# `| Inline-content exception (SC 2.5.8, Inline) | 29 | Measured 2026-08-18 |`
+_CELL_RE = re.compile(r"^\|\s*(?P<name>[^|*]+?)\s*\|\s*(?P<count>\d+)\s*\|\s*\S")
+
+
+def _cell_name(name: str) -> str:
+    """Cell labels carry a criterion reference the group headings do not."""
+    return re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()
+
+
+def _classification_cells(text: str) -> dict[str, int]:
+    cells: dict[str, int] = {}
+    for line in text.splitlines():
+        match = _CELL_RE.match(line)
+        if match and not line.startswith("| `"):
+            cells[_cell_name(match.group("name"))] = int(match.group("count"))
+    return cells
 
 
 def _audit_groups() -> dict[str, tuple[int, int]]:
@@ -328,9 +344,25 @@ def test_the_classification_total_is_the_sum_of_its_group_cells() -> None:
         f"{TAP_TARGET_AUDIT.name}: **Total classified** says {totals[0]} but the "
         f"group headings sum to {expected}"
     )
-    # And each group's cell in the classification table agrees with its heading.
-    for name, (claimed, _rows) in groups.items():
-        assert f"| {claimed} | Measured" in text, (
-            f"{TAP_TARGET_AUDIT.name}: no classification-table cell carries group "
-            f"'{name}'s count of {claimed}"
+
+
+def test_each_classification_cell_matches_its_own_group_heading() -> None:
+    """Bound BY NAME, not by membership.
+
+    An earlier form asserted only that the number appeared somewhere in a cell, so
+    swapping the two Spacing cells — misattributing hover-revealed against plain —
+    left every assertion green, and a group that fell to 0 was satisfied by the
+    unrelated `| 0 |` rows already in the table.
+    """
+    text = TAP_TARGET_AUDIT.read_text(encoding="utf-8")
+    cells = _classification_cells(text)
+    assert cells, f"no classification-table cells parsed from {TAP_TARGET_AUDIT.name}"
+    for name, (claimed, _rows) in _audit_groups().items():
+        assert name in cells, (
+            f"{TAP_TARGET_AUDIT.name}: group '{name}' has no classification-table "
+            f"cell of its own (cells found: {sorted(cells)})"
+        )
+        assert cells[name] == claimed, (
+            f"{TAP_TARGET_AUDIT.name}: group '{name}' heading claims {claimed} but "
+            f"its classification cell says {cells[name]}"
         )

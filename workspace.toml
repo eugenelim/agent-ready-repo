@@ -2598,6 +2598,9 @@ open = [
   # axes. Fix: read the six generated PDFs and record break quality, or state in the
   # audit that break quality is out of scope and why.
   {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
+  # Withdrawn from the print audit after four probe generations each answered it
+  # wrongly: layout, computed style and extracted PDF text are none of them paint.
+  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC13", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   # Same orphan class one layer up, and deliberately a separate slug: the entry above
   # is scoped to tools/test*.py, so closing it would not discharge an e2e spec.

@@ -62,12 +62,10 @@ that column and dropped the engine from every row, which left the evidence
 contract's "browser, version … scale" clause unmet.
 
 What each column is measured from, so no cell claims more than the method
-supports. `Navigation, measured per route` is computed visibility under print media
-(`display`/`visibility`) **measured on each route separately**, not a visual
-inspection. An earlier revision of this table carried one hand-written value
-repeated across all six rows, which claimed Starlight chrome on `/` where none
-exists and claimed pagination "remains present" where it is absent — recorded
-here because a column described as measured must be measured. `Clipping / overlap / breaks`
+supports. `Navigation, measured per route` is **withdrawn** — see the section of that
+name below for why, and for what replaced it. (That column's history is part of why it is withdrawn: an earlier revision carried
+one hand-written value repeated across all six rows, and each attempt to replace it
+with a measured one was also wrong.) `Clipping / overlap / breaks`
 reports element-box geometry against the printable width and document-level
 horizontal overflow — the column is headed `Clipping / width overflow` for that
 reason; **vertical overlap was not separately inspected**, and the
@@ -77,12 +75,12 @@ count and the character count of `<main>`'s rendered text.
 
 | Route | Paper settings | Navigation, measured per route | Content result | Code / aside / table result | Clipping / width overflow | Observed failure and smallest rule boundary | Disposition | Owner |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` | A4 portrait, 0.4in margins, backgrounds off | present: marketing nav bar (717×76) with logo and the 44×44 mobile disclosure, footer (717×823), skip link (148×42), and ONE of the two `.nav__cta` instances (35×110); NOT printed — `.nav__links` `display:none` from the sub-desktop breakpoint, and the other `.nav__cta` (the copy inside the closed `.nav__drawer`) zero-box because the `<details>` is shut, which is not a breakpoint effect; not on this route: Starlight header, sidebar, table of contents, pagination | 8 page(s), 5,588 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 3 page(s), 3,260 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/core/how-to/start-a-project/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 4 page(s), 3,842 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/catalogue-curation/tutorials/your-first-skill/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 14,992 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/atlassian/tutorials/review-your-team-backlog/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 13,397 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/converters/reference/converter-skills/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 15,488 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 8 page(s), 5,588 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 3 page(s), 3,260 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/core/how-to/start-a-project/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 4 page(s), 3,842 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/catalogue-curation/tutorials/your-first-skill/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 12 page(s), 14,992 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/atlassian/tutorials/review-your-team-backlog/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 12 page(s), 13,397 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/converters/reference/converter-skills/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 12 page(s), 15,488 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
 
 Per-route content inventory, so a later reader can tell the representative roles
 were actually exercised rather than assumed: `/` 1 table / 35 links / 25 headings;
@@ -107,36 +105,32 @@ naive method is the one a later reader will reach for first.
 
 The printable width is below **both** renderers' desktop breakpoints, so **A4
 portrait prints the mobile layout on all six routes**. That is a property of the
-paper, not a defect, but it changes what several rows mean and an earlier revision of
-this record got two of them wrong.
+paper, not a defect, but it is why several attempts at the navigation inventory went
+wrong, and it is worth stating on its own:
 
-On `/` the nav collapses to its burger: `.nav__links` goes `display:none`, one of the
-two `.nav__cta` instances prints at 35×110 while the copy inside the closed
-`.nav__drawer` is zero-box, and a reader expecting the desktop link list will not
-find it.
+- On `/`, `ul.nav__links` is `display:none` below 768px, so the desktop link list is
+  not in the printed output and a reader expecting it will not find it.
+- On the five docs routes, 717px is below Starlight's 800px main breakpoint and its
+  `72rem` table-of-contents breakpoint, so the desktop layout — sidebar beside
+  content, table of contents in a right rail — is not what prints.
 
-On the five docs routes, 717px is below Starlight's 800px main breakpoint and its
-`72rem` TOC breakpoint, which means **no table of contents prints in either form** —
-the desktop panel is `display:none` from `sl-hidden lg:sl-block`, a breakpoint rather
-than a print rule, and the collapsed `#starlight__mobile-toc` bar is zero-box under
-print. An earlier revision of the rows claimed the table of contents was present on
-all five; it is not. That error came from a probe that tested only `display` and
-`visibility` and so read a zero-box element as present — the fourth instance of this
-audit's recurring trap, and the reason the procedure below now defines "prints" as a
-real box AND neither `display:none` nor `visibility:hidden`.
+Which individual elements survive into the printed page, and by which rule, is the
+question this audit **withdraws**; see § The navigation inventory this audit does not
+deliver. The layout fact above is measured and stable. The per-element attributions
+were not, and two successive revisions of the rows stated them wrongly — including
+one that named a breakpoint where a `print:hidden` rule was doing the work.
 
-The sidebar is likewise doubly hidden: `.sidebar-pane` is already
-`visibility:hidden` from the sub-desktop default at 717px — the binding cause — and
-`nav.sidebar` is additionally `display:none` from print rules. Attributing it to
-print rules alone names a cause that is not the one doing the work.
+What is unchanged by any of that, and what `close-stale` rests on: page counts,
+`<main>` character counts, 0px document overflow and 0 boxes past the printable
+width, reproduced on all six routes.
 
-Re-measured 2026-08-18 with the corrected probe. Values are in the rows above.
+### Re-measuring the content rows
 
-### Re-measuring these rows
-
-The probe was ad-hoc and is deliberately not committed: it measures a disposition
-that this audit closes, so a tracked script would be dead code the repository has
-to keep working. The procedure is the reproducible part, and it is five steps:
+This reproduces the columns the audit still stands behind: page count, `<main>`
+character count, document overflow and boxes past the printable width. The probe was
+ad-hoc and is deliberately not committed — it measures a disposition this audit
+closes, so a tracked script would be dead code the repository has to keep working.
+The procedure is the reproducible part, and it is five steps:
 
 1. Build and serve the emitted site. The build order is load-bearing and owned by
    [`docs/guides/how-to/verify-a-site-release.md`](../../../guides/how-to/verify-a-site-release.md)
@@ -156,13 +150,16 @@ to keep working. The procedure is the reproducible part, and it is five steps:
    It must be `addInitScript` rather than a `page.evaluate` before the first `goto`:
    that would run on `about:blank`, where `localStorage` throws `SecurityError` and
    the value would not belong to the preview origin anyway.
-4. Per route, decide *prints* / *does not print* for each chrome selector as: a
-   non-zero `getBoundingClientRect()` **and** neither `display:none` nor
-   `visibility:hidden`. Testing only `display` and `visibility` reports a zero-box
-   element as present, which is how an earlier revision came to claim a table of
-   contents that does not print. Use `querySelectorAll` and report every instance:
-   `.nav__cta` matches two elements whose fates differ. Never carry a result across
-   routes.
+4. **Skip the per-element chrome inventory.** It is withdrawn — see § The navigation
+   inventory this audit does not deliver. If you are re-deriving it anyway, know what
+   the three abandoned definitions were and why none of them answers the question:
+   `display`/`visibility` alone reports a zero-box element as printing; adding a
+   non-zero `getBoundingClientRect()` still reports `clip:rect(0,0,0,0)`,
+   `transform:translateY(-150%)` and a box inside a closed disclosure as printing,
+   because a box is not paint; and diffing extracted PDF text against `<main>`'s is
+   the right oracle but is swamped by extraction artifacts. Whatever you use, use
+   `querySelectorAll` — `.nav__cta` matches two elements whose fates differ — and
+   never carry a result across routes.
 5. Take the PDF for the page count, and `<main>`'s `innerText.length` for the
    character count. `margin` is an object, not a string — a string throws
    `pdf.margin: expected object, got string`, and dropping it silently yields
@@ -177,32 +174,78 @@ to keep working. The procedure is the reproducible part, and it is five steps:
    });
    ```
 
-Anyone re-running this should expect the counts to drift as guides are edited; the
-load-bearing values are the **0px overflow** and **0 boxes past the printable
-width** columns, which are what `close-stale` rests on.
+Anyone re-running this should expect the character and page counts to drift as guides
+are edited; the load-bearing values are the **0px overflow** and **0 boxes past the
+printable width** columns, which are what `close-stale` rests on. Both have now
+reproduced twice on all six routes.
+
+## The navigation inventory this audit does not deliver
+
+**Withdrawn, not deferred quietly.** The evidence contract asks which chrome is
+"absent or non-disruptive" per route. Three generations of probe answered that
+question, and all three were wrong:
+
+1. **Hand-written.** One value repeated across six rows. Claimed Starlight chrome on
+   `/`, where none exists.
+2. **`display`/`visibility` per route.** Reported any element with neither property
+   as present — so a zero-box element read as printing. This is how five rows came to
+   claim a table of contents that does not print.
+3. **Box-aware, multi-instance.** Rejected zero-box elements, and still wrong,
+   because a box is not paint. It recorded the skip link as printing at 148×42 and
+   114×28 (`clip:rect(0,0,0,0)` on docs, `transform:translateY(-150%)` on `/` — laid
+   out, painting nothing) and recorded a `.nav__cta` as printing at 35×110 (a box
+   inside the closed mobile drawer that paints nothing). It also attributed the
+   hidden table of contents to the `sl-hidden lg:sl-block` breakpoint when the
+   binding, width-independent cause is `print:hidden` on
+   `aside.right-sidebar-container`, which resolves to `display:none` inside
+   `@media print`.
+
+The fourth attempt read the rendered PDF and diffed its text against `<main>`'s. That
+is the right oracle — *printed* means *in the printed output* — but PDF text
+extraction normalizes apostrophes, rewrites `://`, and rewraps lines, so the diff is
+dominated by extraction artifacts rather than chrome. What it does establish, and all
+this section claims:
+
+- On `/`, the nav **logo** and the **footer** print. The skip link, `.nav__links` and
+  both `.nav__cta` instances do not.
+- On the five docs routes, the **breadcrumb** and the **footer** print. The skip link,
+  the sidebar, and the table of contents in either form do not.
+- Starlight's previous/next pagination is inside `<main>`, so it was never chrome —
+  the rows that called it "not on this route" were answering the wrong question.
+
+A precise per-element paint inventory needs an oracle none of the four probes
+provided: paint, not layout, not computed style, not extracted text. Rather than ship
+a fourth guess, the column is withdrawn and registered as `[backlog].open` slug
+`print-chrome-paint-inventory`.
+
+**This does not touch AC13.** `close-stale` rests on the content axes, which are
+unchanged and have now reproduced twice on all six routes: page counts 8/3/4/12/12/12,
+`<main>` character counts 5,588/3,260/3,842/14,992/13,397/15,488, **0px** document
+overflow, **0** boxes past the printable width. No demonstrated content failure, and
+therefore no print CSS from this programme.
 
 ## Residual, stated rather than hidden
 
-Navigation-only chrome is still present in print output, and which chrome differs
-by route: `/` prints its marketing nav bar — in the **collapsed mobile form**, since
-717px is below the desktop breakpoint, so the burger prints and the desktop link
-list and CTA do not — plus its footer and skip link, and has no Starlight elements
-at all; the five docs routes print the Starlight header, table of
-contents, footer and skip link, with the sidebar hidden by Starlight's own print
-rules and pagination absent from these routes entirely. The evidence above shows
-it does not corrupt content on the axes measured: no element exceeds the printable
-width, document horizontal overflow is 0px, and the full body text is present on
-every route. Whether its *presence* is worth removing is
-a legibility preference, not a demonstrated contract failure, and the decision
-rule prefers `close-stale` and bars proposing print rules from preference. If a
-future reader wants it gone, that needs an observed failure first.
+Some navigation-only chrome still prints — on `/` the nav logo and footer, on the
+five docs routes the breadcrumb and footer, per the section above. Which elements
+precisely, and why each is or is not painted, is the withdrawn inventory; this
+paragraph deliberately claims no more than that section supports.
+
+What the evidence does show is that it **does not corrupt content** on the axes
+measured, and those axes are the ones `close-stale` rests on: no element exceeds the
+printable width, document horizontal overflow is 0px on all six routes, and the full
+body text is present on every route. Whether the *presence* of surviving chrome is
+worth removing is a legibility preference, not a demonstrated contract failure; the
+decision rule prefers `close-stale` and bars proposing print rules from preference.
+If a future reader wants it gone, that needs an observed failure first — and, given
+the four failed probes above, an oracle for paint rather than layout.
 
 ## What this audit does not discharge
 
 `workspace.toml [backlog].open` slug `docs-site-print-styles` remains open. It asks
 whether the docs accent colours and hairlines are tuned for paper — an aesthetic
-question. This audit measured content integrity: clipping, width overflow, per-route
-navigation visibility and body text presence. `close-stale` here means no
+question. This audit measured content integrity: clipping, width overflow and body text
+presence. Per-route navigation visibility was attempted and withdrawn. `close-stale` here means no
 demonstrated content failure, and therefore no print CSS from this programme. It
 does not mean print is aesthetically finished, and the decision rule above bars
 proposing rules from preference.
@@ -211,6 +254,9 @@ Also not measured: vertical overlap and page-break quality — orphaned headings
 unusable breaks, unexpected blank pages. Page COUNT is recorded; break quality is
 not, and the two are not the same. Registered as `[backlog].open` slug
 `print-audit-page-break-quality`.
+
+Also not delivered: the per-element print-paint inventory, withdrawn above and
+registered as `[backlog].open` slug `print-chrome-paint-inventory`.
 
 ## Acceptance bar
 
