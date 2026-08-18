@@ -12,12 +12,11 @@ from these pages remains the responsibility of the dependent metadata spec.
 
 ## Constraints
 
-- Follow `docs/design/principles/tech-site.md` and the OWNING surface's
-  direction, `docs/specs/docs-site-design-refresh/creative-direction.md`
-  ("Instrument-grade clarity"). Not `docs/specs/platform-site/aesthetic-direction.md`'s
-  "Precision authority": that governs the `web/` marketing surface, these four
-  pages render only on `docs-site/`, and the brief's non-goals bar aligning the
-  two. AC11 is the normative statement.
+- Follow `docs/design/principles/tech-site.md` and the owning surface's design
+  direction, per AC11 — which is the single normative statement of which
+  direction owns these pages and why. Do not restate it here; the last time this
+  contrast was duplicated across four sites, all four drifted to the wrong
+  answer while the criterion said the opposite.
 - Preserve paths, slugs, aliases, and link targets.
 - Keep the change limited to the nine reviewed title decisions.
 
@@ -27,8 +26,7 @@ from these pages remains the responsibility of the dependent metadata spec.
 combined rendered-link checking.
 
 **Manual verification:** inspect the four emitted pages in navigation and
-search/title contexts against the "Instrument-grade clarity" design goal that
-owns `docs-site/` (AC11), not the marketing site's "Precision authority".
+search/title contexts against the design goal AC11 names.
 
 ## Design (LLD)
 
@@ -68,11 +66,12 @@ Major design finding against the approved directions. Traces to: AC11.
   files — and only those four files, since the strings legitimately persist as
   provenance elsewhere (AC8).
 - TDD (`stub: true`): the sidebar ITEM label for all FOUR retitled pages equals
-  the approved string, and the two de-baselined pages have no baseline entry
-  backing that (AC6). All four, not just the de-baselined two: the other two
-  never had a baseline entry, so nothing else in the module reaches them and a
-  baseline entry pinning a retired label to either would regress the emitted
-  sidebar silently.
+  the approved string (AC5), and the two de-baselined pages have no baseline
+  entry backing that (AC6). The split matters: AC6 is scoped "Where a baseline
+  label previously froze one of these titles", which reaches only the two
+  de-baselined pages; the ITEM label for the other two is AC5's clause. All four
+  are covered because a baseline entry pinning a retired label to either of the
+  never-baselined pages would regress the emitted sidebar silently.
 - TDD (`stub: true`): no projected sidebar label anywhere in the real guide tree
   is one of the retired strings — tree-wide, not path-scoped, because a retired
   label reaching any item is the regression whichever page it lands on (AC6,

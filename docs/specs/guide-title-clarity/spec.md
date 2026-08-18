@@ -17,11 +17,10 @@
 Readers scanning guide pages, navigation, and search results see four specific,
 task-oriented titles that name the actual outcome without generic wording or
 internal shorthand. Routes remain stable, and title presentation follows the
-docs site's own direction — `docs/specs/docs-site-design-refresh/creative-direction.md`'s
-dominant goal "Instrument-grade clarity" — together with the tech-site principle
-to lead with the user's job. NOT the marketing site's "Precision authority":
-these four pages render only on `docs-site/`, and the brief's non-goals bar
-aligning the two surfaces. AC11 states the same boundary.
+design direction AC11 names, together with the tech-site principle to lead with
+the user's job. AC11 is the only place that statement is made in full — an
+earlier revision restated it across four sites and every copy named the wrong
+surface.
 
 ## Boundaries
 
@@ -49,10 +48,8 @@ aligning the two surfaces. AC11 states the same boundary.
   and focused fixtures.
 - Route preservation and emitted title behavior use goal-based full-site build
   assertions.
-- The user-facing scan uses manual design review against the OWNING surface's
-  direction — `docs-site-design-refresh/creative-direction.md`'s
-  "Instrument-grade clarity" — and tech-site principles, per AC11. Not the
-  marketing site's "Precision authority", which governs `web/`.
+- The user-facing scan uses manual design review against the direction AC11
+  names, and tech-site principles.
 
 ## Acceptance Criteria
 

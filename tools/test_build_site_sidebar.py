@@ -275,7 +275,8 @@ CONTROL_TITLES = {
     "guides/governance-extras/how-to/new-adr.md":
         "How to record a decision with an ADR",
 }
-# guide-title-clarity AC6: every retitled page's sidebar ITEM label, keyed slug -> source path so the
+# guide-title-clarity AC5 (and AC6 for the de-baselined subset): every
+# retitled page's sidebar ITEM label, keyed slug -> source path so the
 # expected wording is looked up in APPROVED_TITLES rather than restated.
 # All FOUR, not just the two de-baselined ones: `page-screen-contract` and
 # `iac-terraform` never had a baseline entry, so nothing else in this module
@@ -417,16 +418,30 @@ def test_pack_index_link_text_names_the_approved_titles():
     page title cannot drift apart.
     """
     text = (REPO_ROOT / PACK_INDEX).read_text(encoding="utf-8")
+
+    # The load-bearing assertion, and deliberately NOT a link-syntax pattern.
+    # Three rounds of review widened a regex to cover `./`-prefixed, then
+    # fragment-anchored links; `../` traversal, title attributes, `<>`-wrapped
+    # destinations, reference-style links and raw HTML each still slipped a
+    # retired label past it. Enumerating spellings is a losing game — the actual
+    # contract is that no retired title appears on this page in any form.
+    stale = [s for s in RETIRED_STRINGS if s in text]
+    assert not stale, f"{PACK_INDEX} still carries retired title(s): {stale}"
+
     for target in PACK_INDEX_LINKS:
         want = APPROVED_TITLES[f"guides/frontend-engineering/{target}"]
-        # Enumerate the links rather than counting one exact spelling. A
-        # `str.count` comparison was evaded by both `](./how-to/…)` and
-        # `](how-to/…#anchor)`, either of which ships a retired title on the
-        # pack's primary in-site entry point while the assertion passed.
+        # Secondary: an arbitrary WRONG label (not merely a retired one) in the
+        # ordinary inline spelling. This one does enumerate spellings, and that
+        # is acceptable only because the check above is spelling-agnostic. It
+        # fails CLOSED — an exotic-but-correct spelling makes `found` empty and
+        # fails loudly rather than passing silently.
         found = re.findall(
             rf"\[([^\]]*)\]\(\.?/?{re.escape(target)}(?:#[^)]*)?\)", text
         )
-        assert found, f"{PACK_INDEX} must link to {target}"
+        assert found, (
+            f"{PACK_INDEX} must link to {target} in the ordinary inline form; "
+            f"if the spelling changed deliberately, update this test"
+        )
         wrong = [label for label in found if label != want]
         assert not wrong, (
             f"{PACK_INDEX} links to {target} with text {wrong} — expected {want!r}"
