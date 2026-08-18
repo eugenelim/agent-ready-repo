@@ -80,6 +80,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `compile-okf` authoring skill ships a confined script that projects pack-local
   OKF source into generated router and reviewed procedure Skills, with write and
   read-only check modes for committed-output drift.
+### Fixed
+
+- **The Claude-plugin marketplace now advertises the branch it is published to.**
+  `catalogue.toml` named `main` as the plugin branch while every published manifest
+  and all three publish tools use `claude-plugins-dist`. Nothing that ships to
+  adopters was affected — the committed `.claude-plugin/marketplace.json` already
+  advertised the right branch — but a fork that builds its own catalogue from this
+  configuration would have produced a marketplace pointing at a branch that carries
+  no packs, and `agentbundle catalogue verify` reported an unfixable
+  generated-output-drift error on any machine with a local `dist/`. The value is
+  corrected and a parity check now fails if the advertised branch, the branch the
+  publisher pushes to, and the branch the publish ruleset protects ever disagree.
+
 ### [core][2.7.5] — 2026-08-17
 
 #### Changed

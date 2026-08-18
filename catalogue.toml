@@ -19,8 +19,15 @@ build-output = "dist"
 [catalogue.build]
 recipes                  = ["default"]
 self-host                = false
-claude-plugin-branch     = "main"
-marketplace-description  = "Reference catalogue providing agent-ready skills, agents, and tooling for the adapter contract."
+# ADR-0072 pins the advertised `source.ref` to this branch and rests its accepted
+# mutable-ref residual on that branch's protection ruleset, so this value is not free
+# to differ from `build/main.py`'s `_DIST_BRANCH`, from the publisher's push target,
+# or from `.github/claude-plugin-publish-control.json`'s `branch.target`. It said
+# "main" until 2026-08-18, which no build published from — `main` carries the packs
+# under `packs/`, not at the top level the emitted `source.path` expects.
+# `tools/test_marketplace_envelope_parity.py` is what keeps all five in agreement.
+claude-plugin-branch     = "claude-plugins-dist"
+marketplace-description  = "Agent skills, subagents, and hooks for Claude Code and other coding agents."
 
 [catalogue.package]
 # Packs to include in a packaged archive; 'core' is always required.
