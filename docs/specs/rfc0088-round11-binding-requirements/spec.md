@@ -236,12 +236,13 @@ the irreducible is surfaced.
 
 **Surfaced (needs a decision that is not this round's to take).**
 
-- **R11-6 — the published archive digest cannot converge.** Diagnosed precisely (a
-  two-cycle, because the archive contains an artifact recording the archive's own
-  size) and deliberately left unfixed: breaking the self-reference means changing
-  what the archive contains or what the accounting tool records, which is an
-  evidence-base design decision. The strictly worse defect underneath it (R11-2) is
-  fixed, so the manifest now matches its tree at rest.
+- **R11-6 — the published archive digest could not converge.** Surfaced rather
+  than decided, and the approver directed the fix on 2026-08-18: stop accounting
+  for envelope facts, then verify convergence. Done and verified (four consecutive
+  promotes, identical digest in both passes), delivered as its own apparatus PR per
+  the same decision. Recorded here as **surfaced-then-resolved** rather than moved
+  to the resolved list, because the decision that closed it was not this round's to
+  take.
 - **Whether real identity providers put a service worker on the login path.** A
   landscape question, not a fixture question. It bounds how expensive D/item 6's
   requirement is in practice, and no arm here answers it.
