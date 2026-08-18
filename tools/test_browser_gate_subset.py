@@ -291,13 +291,43 @@ def _cell_name(name: str) -> str:
     return re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()
 
 
-def _classification_cells(text: str) -> dict[str, int]:
-    cells: dict[str, int] = {}
+def _classification_cells(text: str) -> list[tuple[str, int]]:
+    """Every cell, in order, duplicates included.
+
+    A dict silently kept the last row for a repeated name, so inserting a second
+    `Spacing exception` cell reading 99 left every assertion green while the visible
+    column summed to 140 against a total of 56.
+    """
+    cells: list[tuple[str, int]] = []
+    # Scoped to the one section, because the file holds other `| name | 0 | ... |`
+    # tables — the AC5 defect register among them — and an unscoped parse pulled four
+    # of its rows in as classifications.
+    in_section = False
     for line in text.splitlines():
+        if line.startswith("## "):
+            in_section = line.strip() == CLASSIFICATION_HEADING
+            continue
+        if not in_section:
+            continue
         match = _CELL_RE.match(line)
         if match and not line.startswith("| `"):
-            cells[_cell_name(match.group("name"))] = int(match.group("count"))
+            cells.append((_cell_name(match.group("name")), int(match.group("count"))))
     return cells
+
+
+CLASSIFICATION_HEADING = "## Final shaping classification and exemption table"
+
+# Classes the audit carries at zero: real criterion outcomes with no evidence group
+# of their own. Enumerated, so a cell that is neither a group nor one of these is a
+# parse error rather than something the checks quietly skip.
+ZERO_CLASSES = frozenset(
+    {
+        "Demonstrated non-exempt failure",
+        "User-agent/framework-controlled exception",
+        "Equivalent-control exception",
+        "Essential exception",
+    }
+)
 
 
 def _audit_groups() -> dict[str, tuple[int, int]]:
@@ -344,6 +374,15 @@ def test_the_classification_total_is_the_sum_of_its_group_cells() -> None:
         f"{TAP_TARGET_AUDIT.name}: **Total classified** says {totals[0]} but the "
         f"group headings sum to {expected}"
     )
+    # And against the cells themselves, which is what a reader adds up. Comparing
+    # only to the headings left the table's own arithmetic unguarded: a zero class
+    # edited off zero, or a duplicated row, changed the visible column and nothing
+    # failed.
+    cell_total = sum(count for _name, count in _classification_cells(text))
+    assert cell_total == totals[0], (
+        f"{TAP_TARGET_AUDIT.name}: the classification cells sum to {cell_total} but "
+        f"**Total classified** says {totals[0]}"
+    )
 
 
 def test_each_classification_cell_matches_its_own_group_heading() -> None:
@@ -357,12 +396,32 @@ def test_each_classification_cell_matches_its_own_group_heading() -> None:
     text = TAP_TARGET_AUDIT.read_text(encoding="utf-8")
     cells = _classification_cells(text)
     assert cells, f"no classification-table cells parsed from {TAP_TARGET_AUDIT.name}"
-    for name, (claimed, _rows) in _audit_groups().items():
-        assert name in cells, (
+    names = [name for name, _count in cells]
+    assert len(names) == len(set(names)), (
+        f"{TAP_TARGET_AUDIT.name}: duplicated classification cell(s): "
+        f"{sorted({n for n in names if names.count(n) > 1})}"
+    )
+    by_name = dict(cells)
+    # Heading names go through the same normalization as cell names, so a heading
+    # that gains a criterion parenthetical reports a mismatch rather than 'no cell'.
+    groups = {_cell_name(name): claimed for name, (claimed, _rows) in _audit_groups().items()}
+    for name, claimed in groups.items():
+        assert name in by_name, (
             f"{TAP_TARGET_AUDIT.name}: group '{name}' has no classification-table "
-            f"cell of its own (cells found: {sorted(cells)})"
+            f"cell of its own (cells found: {sorted(by_name)})"
         )
-        assert cells[name] == claimed, (
+        assert by_name[name] == claimed, (
             f"{TAP_TARGET_AUDIT.name}: group '{name}' heading claims {claimed} but "
-            f"its classification cell says {cells[name]}"
+            f"its classification cell says {by_name[name]}"
+        )
+    for name, count in cells:
+        if name in groups:
+            continue
+        assert name in ZERO_CLASSES, (
+            f"{TAP_TARGET_AUDIT.name}: classification cell '{name}' matches no group "
+            f"heading and is not an enumerated zero class"
+        )
+        assert count == 0, (
+            f"{TAP_TARGET_AUDIT.name}: '{name}' carries no evidence group, so its "
+            f"cell must be 0, not {count}"
         )

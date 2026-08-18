@@ -174,7 +174,7 @@ proof.
 
 **Tests:**
 - Visual/manual QA: print the six exact representative routes and record
-  navigation removal, text/headings/links, code, aside, table, clipping,
+  text/headings/links, code, aside, table, clipping,
   overlap, and page-break evidence (AC12).
 - Goal-based: reject any proposed print rule that lacks an exact observed route,
   failure, and smallest owning selector boundary (AC13).

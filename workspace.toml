@@ -1682,7 +1682,7 @@ open = [
   # NOT discharged by spec/site-browser-quality-gate's print audit (2026-08-18),
   # despite that audit closing `close-stale`. The two ask different questions: the
   # audit measured CONTENT INTEGRITY on six representative routes — clipping, width
-  # overflow, per-route navigation visibility, body text present — and found no
+  # overflow, and main's rendered text length — and found no
   # failure, which is why it added no print CSS. This anchor is about AESTHETIC
   # tuning for paper, which the audit did not evaluate and its decision rule
   # explicitly bars proposing from preference. Print is settled for correctness and
@@ -2592,7 +2592,8 @@ open = [
   {slug = "tap-target-audit-remeasure-after-shared-chrome", source = "spec/site-browser-quality-gate T0", summary = "Re-measure the docs tap-target audit after site-shared-chrome replaces the footer and adds the orientation band"},
   # spec/site-browser-quality-gate AC12 was narrowed to the axes its print audit
   # actually measures: box geometry against the printable width, document horizontal
-  # overflow, per-route navigation visibility, PDF page count. NOT measured: vertical
+  # overflow, PDF page count. Navigation visibility withdrawn to
+  # print-chrome-paint-inventory. NOT measured: vertical
   # overlap, orphaned headings, unusable page breaks, unexpected blank pages. Page
   # COUNT is not break quality, and `close-stale` in AC13 rests only on the measured
   # axes. Fix: read the six generated PDFs and record break quality, or state in the
@@ -2600,7 +2601,7 @@ open = [
   {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
   # Withdrawn from the print audit after four probe generations each answered it
   # wrongly: layout, computed style and extracted PDF text are none of them paint.
-  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC13", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
+  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   # Same orphan class one layer up, and deliberately a separate slug: the entry above
   # is scoped to tools/test*.py, so closing it would not discharge an e2e spec.

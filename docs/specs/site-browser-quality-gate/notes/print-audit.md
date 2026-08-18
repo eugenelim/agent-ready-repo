@@ -37,7 +37,12 @@ For each route, record:
 
 - browser, version, paper size, orientation, scale, margins, and print settings;
 - whether marketing, product-orientation, Starlight, sidebar, table of contents,
-  pagination, and footer navigation are absent or non-disruptive;
+  pagination, and footer navigation are non-disruptive on the measured axes.
+  **The per-element disposition — which of them prints, and by which rule — is
+  withdrawn**; see § The navigation inventory this audit does not deliver, and
+  `[backlog].open` slug `print-chrome-paint-inventory`. What this audit records
+  against this bullet is non-disruption: nothing exceeds the printable width and
+  document overflow is 0px on all six routes;
 - legibility and continuity of body text, headings, links, code, asides, and
   tables where present;
 - clipping, overlap, content outside the printable area, orphaned headings,
@@ -62,18 +67,19 @@ that column and dropped the engine from every row, which left the evidence
 contract's "browser, version … scale" clause unmet.
 
 What each column is measured from, so no cell claims more than the method
-supports. `Navigation, measured per route` is **withdrawn** — see the section of that
-name below for why, and for what replaced it. (That column's history is part of why it is withdrawn: an earlier revision carried
+supports. The navigation column is **withdrawn** and nothing replaced it — see
+§ The navigation inventory this audit does not deliver for why. (That column's history is part of why it is withdrawn: an earlier revision carried
 one hand-written value repeated across all six rows, and each attempt to replace it
 with a measured one was also wrong.) `Clipping / overlap / breaks`
 reports element-box geometry against the printable width and document-level
 horizontal overflow — the column is headed `Clipping / width overflow` for that
 reason; **vertical overlap was not separately inspected**, and the
 grounds for reading it as absent are that no element exceeds the page width and
-the full body text is present on every route. `Content result` is the PDF page
+`<main>`'s rendered text length is unchanged under print media — a DOM measure, not
+a page measure, and named as such. `Content result` is the PDF page
 count and the character count of `<main>`'s rendered text.
 
-| Route | Paper settings | Navigation, measured per route | Content result | Code / aside / table result | Clipping / width overflow | Observed failure and smallest rule boundary | Disposition | Owner |
+| Route | Paper settings | Navigation (withdrawn) | Content result | Code / aside / table result | Clipping / width overflow | Observed failure and smallest rule boundary | Disposition | Owner |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 8 page(s), 5,588 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
 | `/docs/` | A4 portrait, 0.4in margins, backgrounds off | withdrawn — see § The navigation inventory this audit does not deliver | 3 page(s), 3,260 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
@@ -112,7 +118,11 @@ wrong, and it is worth stating on its own:
   not in the printed output and a reader expecting it will not find it.
 - On the five docs routes, 717px is below Starlight's 800px main breakpoint and its
   `72rem` table-of-contents breakpoint, so the desktop layout — sidebar beside
-  content, table of contents in a right rail — is not what prints.
+  content, table of contents in a right rail — is not the *screen* layout at that
+  width. For print the width is beside the point: `nav.sidebar` and
+  `aside.right-sidebar-container` both carry `print:hidden`, which resolves to
+  `display:none` inside `@media print`, so neither prints at **any** width. Stated
+  separately because conflating the two is the error this audit kept making.
 
 Which individual elements survive into the printed page, and by which rule, is the
 question this audit **withdraws**; see § The navigation inventory this audit does not
@@ -251,8 +261,11 @@ inventory; this paragraph deliberately claims no more than that section supports
 
 What the evidence does show is that it **does not corrupt content** on the axes
 measured, and those axes are the ones `close-stale` rests on: no element exceeds the
-printable width, document horizontal overflow is 0px on all six routes, and the full
-body text is present on every route. Whether the *presence* of surviving chrome is
+printable width, and document horizontal overflow is 0px on all six routes. The third axis is
+stated as what was actually measured — `<main>`'s rendered text length under print
+media at 717px — rather than as "the body text reached the page", which would need
+the PDF-versus-`<main>` comparison this file discredits in exactly that
+string-matching direction. Whether the *presence* of surviving chrome is
 worth removing is a legibility preference, not a demonstrated contract failure; the
 decision rule prefers `close-stale` and bars proposing print rules from preference.
 If a future reader wants it gone, that needs an observed failure first — and, given

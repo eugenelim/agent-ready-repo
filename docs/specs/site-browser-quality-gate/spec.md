@@ -124,19 +124,28 @@ responsibility.
   required `make build-check` context.
 - [x] Screenshot capture remains optional, runs outside the required subset,
   and writes no tracked files during CI.
-- [x] Print evidence covers `/`, `/docs/`, the ordinary, code-heavy,
-  aside-heavy, and long-table guide routes named in
-  [`notes/print-audit.md`](notes/print-audit.md), including navigation
-  visibility, content, links, code, asides, tables, clipping and width overflow.
+- [ ] (deferred: print-chrome-paint-inventory) Print evidence covers `/`,
+  `/docs/`, the ordinary, code-heavy, aside-heavy, and long-table guide routes
+  named in [`notes/print-audit.md`](notes/print-audit.md) for content, links,
+  code, asides, tables, clipping and width overflow.
 
-  **Narrowed on 2026-08-18 to the axes actually measured.** Vertical overlap and
-  page-break quality — orphaned headings, unusable breaks, unexpected blank
-  pages — were NOT measured: the audit records element-box geometry against the
-  printable width, document horizontal overflow, per-route navigation
-  visibility, and PDF page count, and page count is not page-break quality.
-  Judging breaks needs a human reading six PDFs. Registered as
-  `[backlog].open` slug `print-audit-page-break-quality` rather than left as an
-  implied claim, because `close-stale` in AC13 rests only on the axes above.
+  **Narrowed twice, and the second narrowing is why this criterion is deferred
+  rather than met.** The audit records three axes: element-box geometry against
+  the printable width, document horizontal overflow, and PDF page count.
+
+  *Not measured (2026-08-18):* vertical overlap and page-break quality —
+  orphaned headings, unusable breaks, unexpected blank pages. Page count is not
+  page-break quality; judging breaks needs a human reading six PDFs. Registered
+  as `[backlog].open` slug `print-audit-page-break-quality`.
+
+  *Withdrawn (2026-08-18):* per-route navigation visibility. Four probe
+  generations each produced wrong attributions — see § The navigation inventory
+  this audit does not deliver — and the Testing Strategy above forbids converting
+  missing evidence into an inferred result. Registered as `[backlog].open` slug
+  `print-chrome-paint-inventory`.
+
+  `close-stale` in AC13 rests only on the three measured axes, which is why that
+  criterion stays met while this one does not.
 - [x] Print closes stale when browser/framework defaults satisfy that contract;
   otherwise the audit names each exact failure and the smallest narrow rule
   boundary before a conditional remediation spec is created.
