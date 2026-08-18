@@ -159,7 +159,11 @@ AGGREGATOR_RUN_STEPS = (
     "Run the build-check.yml posture test",
     "Require every gate",
 )
-REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary")
+# APPENDED, not inserted: `_GUARD_BASE` is built from this tuple in list order and
+# spliced into the fixture by exact text, so this order must match the fixture's
+# guard-body comparison order or `_differential_failures` reports itself blind.
+REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary",
+                      "gate-credbroker")
 
 # spec/site-ci-contract-closure AC2. The seven site/catalogue modules that
 # spec/build-check-coverage-gaps AC1 moved into gate-main. Enumerated HERE rather
@@ -275,6 +279,7 @@ _ALLOWED_STEP_ENV = frozenset({
     "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING",
     "BASE_SHA", "HEAD_SHA",
     "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
+    "GATE_CREDBROKER_RESULT",
 })
 
 
@@ -361,7 +366,12 @@ PINNED_CHECKOUT_WITH = {
     "gate-main": {"fetch-depth": "0", "persist-credentials": "false"},
     "gate-sast": {"fetch-depth": "0", "persist-credentials": "false"},
     "gate-export-boundary": {"fetch-depth": "0", "persist-credentials": "false"},
-    # AC12 exempts the aggregator from fetch-depth: it touches no history.
+    # TWO jobs are exempt from fetch-depth, for the same reason — they touch no
+    # history. The aggregator runs one stdlib script over one workflow file;
+    # gate-credbroker runs a suite that invokes git nowhere. Set-equality means the
+    # exemption is decided here rather than hardened later: re-adding fetch-depth to
+    # either fails `checkout-with[<job>]`.
+    "gate-credbroker": {"persist-credentials": "false"},
     AGGREGATOR_JOB_ID: {"persist-credentials": "false"},
 }
 PINNED_SETUP_PYTHON_WITH = {"python-version": EXPECTED_PYTHON}
@@ -1464,7 +1474,7 @@ _FIXTURE = REPO_ROOT / "tools" / "fixtures" / "build-check-good.yml"
 
 
 def _baseline() -> str:
-    """The clean four-job baseline every proof runs against.
+    """The clean five-job baseline every proof runs against.
 
     It must be SHAPE-REPRESENTATIVE of the real workflow, not merely valid: an
     earlier fixture had four single-line steps per job and no `push:` trigger, which
@@ -2055,6 +2065,25 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("        with:\n          fetch-depth: 0\n",
                          "        with:\n          fetch-depth: 0\n"
                          "        with:\n          persist-credentials: true\n", 1)),
+    # The JOB-SET INPUT to guard-body-exact's derivation, which nothing else mutates.
+    # `_want_cmp` is built from `work_jobs`, and the two other mutations for that
+    # assertion both alter the guard BODY — so an edit substituting a literal list
+    # for the derived one would keep them green while a work job could land unwired.
+    # This is the named unpinned layer the module docstring's ladder asks a reader to
+    # look for, rather than hardening the innermost thing again. It targets an
+    # existing assertion, so it adds no assertion family.
+    ("add-work-job-unwired", "guard-body-exact",
+     lambda t: t.replace("  build-check:\n",
+                         "  gate-extra:\n    runs-on: ubuntu-latest\n"
+                         "    timeout-minutes: 5\n    steps:\n"
+                         "      - uses: actions/checkout@"
+                         "11d5960a326750d5838078e36cf38b85af677262\n"
+                         "        with:\n          persist-credentials: false\n"
+                         "      - uses: actions/setup-python@"
+                         "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+                         "        with:\n          python-version: \"3.11\"\n"
+                         "      - name: Run the extra gate\n        run: echo hi\n"
+                         "  build-check:\n", 1)),
 ]
 
 
@@ -2123,8 +2152,17 @@ def _differential_failures() -> list[str]:
         return ["differential: guard body not found in the fixture — harness is blind"]
 
     env = dict(os.environ)
+    # EVERY work job's variable must be bound here, not just the one being failed.
+    # An unset variable is a `set -u` fatal expansion error, so any variant that
+    # reaches the comparison list dies before bash can report exit 0 — and a variant
+    # that is never green is never reported "green and accepted", i.e. it silently
+    # stops proving anything. Measured when gate-credbroker was added: 6 of 12
+    # variants green with the fourth variable missing, 10 of 12 with it, so exactly
+    # four proofs (subshell-or-true, reassign-result, always-false-conjunct,
+    # chained-false-test) were being lost without a single failure to show for it.
     env.update({"GATE_MAIN_RESULT": "failure", "GATE_SAST_RESULT": "success",
-                "GATE_EXPORT_BOUNDARY_RESULT": "success"})
+                "GATE_EXPORT_BOUNDARY_RESULT": "success",
+                "GATE_CREDBROKER_RESULT": "success"})
     out: list[str] = []
     for name, transform in _DIFFERENTIAL_VARIANTS:
         body = transform(_GUARD_BASE)  # type: ignore[operator]

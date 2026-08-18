@@ -291,6 +291,23 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
             "Provisioning. check-artifact-contents.py's _DEPENDENCY_IMPORTS "
             "includes credbroker and RAISES on a miss."
         ),
+    "<unnamed step in gate-credbroker>":
+        CI_ONLY(
+            "Repository checkout for the credbroker job. Deliberately SHALLOW — no "
+            "fetch-depth: 0, because packages/credbroker invokes git nowhere; the "
+            "same carve-out the aggregator carries. No local equivalent: a working "
+            "tree is the local precondition, not a gate."
+        ),
+    "Set up Python (gate-credbroker)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)":
+        CI_ONLY(
+            "Provisioning, and the whole of this job's dependency need: the suite "
+            "imports only stdlib, pytest, credbroker, and cryptography/argon2 from "
+            "the [crypto] extra. The extra is not optional — without it 21 vault "
+            "tests and 11 @requires_crypto cases skip silently, which is why the "
+            "pytest step below probes for it rather than trusting this step."
+        ),
     "Set up Python (aggregator)":
         CI_ONLY("Interpreter provisioning for the posture test."),
     "Run the build-check.yml posture test":
