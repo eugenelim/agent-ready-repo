@@ -105,6 +105,15 @@ existing public route; every other public route remains unchanged.
   does not merely repeat the title or opening sentence.
 - [x] Each `pack` value identifies the owning pack or approved shared ownership,
   and each `kind` matches the guide's Diátaxis location.
+- [x] The typed-asides blockquote ledger and its frozen baseline both had a row
+  naming the moved source path. Both were repointed — path only, leaving `line` and
+  `content_sha256` untouched, because the two files are compared to each other on
+  exactly that triple. This was first dispositioned as "leave it and register the
+  gap", on the reasoning that `test_guide_typed_asides.py` iterates files that exist
+  and would skip the row silently. That reasoning covered one consumer and missed
+  another: `web/src/test/rendered-output.test.ts` dereferences every ledger row and
+  failed hard with ENOENT in CI. Repointing fixes both and restores the coverage the
+  skip had dropped.
 - [x] `guides/_reference/catalogue-format.md` moves to
   `guides/_shared/reference/catalogue-format.md` with `_shared` ownership and
   `reference` kind, while an explicit slug preserves
@@ -117,7 +126,7 @@ existing public route; every other public route remains unchanged.
 - [x] Existing optional `slug`, `order`, and `aliases` values remain unchanged
   unless a source is already invalid under `contracts/guide.schema.json`.
 - [x] Applying the reviewed titles changes **125 sidebar labels**, reorders items in
-  **9 kind buckets**, and moves one page between groups. Measured with the SHIPPING
+  **10 kind buckets**, and moves one page between groups. Measured with the SHIPPING
   label chain, against `origin/main`'s tree and baseline.
 
   This required removing **84 entries from `guide-nav-baseline.toml`** (101 → 17).
@@ -129,15 +138,29 @@ existing public route; every other public route remains unchanged.
   the reviewable act that adopts a page's own title." Every one of the 84 had a label
   differing from the title replacing it, so none was a no-op.
 
-  Reordered buckets: Architect/Tutorials, Cross-cutting/{Explanation,How-to},
-  Desk Research/How-to, Experience Design/How-to, Governance Extras/How-to,
-  Product Discovery/How-to, The Build Loop (core)/{Explanation,How-to}. Group move:
-  `catalogue-format` from the removed "Reference material" to Cross-cutting/Reference.
+  Reordered buckets: Architect/Tutorials,
+  Cross-cutting/{Explanation,How-to,Reference}, Desk Research/How-to,
+  Experience Design/How-to, Governance Extras/How-to, Product Discovery/How-to,
+  The Build Loop (core)/{Explanation,How-to}. Group move: `catalogue-format` from the
+  removed "Reference material" to Cross-cutting/Reference.
+
+  Cross-cutting/Reference is in the list for a reason independent of that group move:
+  `adapter-support` and `agentbundle` swap because `agentbundle`'s label became
+  `` `agentbundle` — reference ``, and the leading backtick sorts ahead of "Adapter"
+  under the casefolded key. An earlier revision counted 9 because the measurement
+  compared bucket orders only where MEMBERSHIP was identical, which excluded every
+  bucket that gained or lost an item — including this one. The count above compares
+  the relative order of the items common to both sides, so a membership change no
+  longer hides a reorder.
 
   Approved 2026-08-18 against the Ask-first boundary on sidebar order. An earlier
   revision of this AC recorded 11 buckets and cited two examples that do not change,
   because the measurement passed an empty baseline and so bypassed the highest-
   precedence layer; the numbers above are from the shipping chain.
+
+  Label and order cannot be varied independently in the current projector — it sorts
+  kind buckets by resolved label, so adopting a title necessarily reorders its bucket.
+  Registered as `[backlog].open` slug `guide-sidebar-label-order-coupling`.
 - [x] The built marketing and documentation sites enumerate all 125 affected
   pages and expose each reviewed title and summary wherever their current
   page-list, search, or description contracts consume guide metadata.

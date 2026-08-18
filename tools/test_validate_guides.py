@@ -512,3 +512,23 @@ def test_a_nested_guides_root_cannot_exempt_by_basename(tmp_path, capsys):
     assert "has no frontmatter" in captured.err, (
         f"a nested guides root exempted guides/guides/AGENTS.md; stderr={captured.err!r}"
     )
+
+
+def test_a_root_not_named_guides_cannot_exempt(tmp_path, capsys):
+    """Pins the BASENAME half of the guard, which nothing else covered.
+
+    Every other case here uses a root named `guides` or one sitting under a `guides`
+    ancestor, so deleting `root.name != "guides"` left the whole suite green while the
+    round-1 defect shape — an arbitrary root exempting its own top-level `AGENTS.md` —
+    went unpinned. The two clauses guard different shapes and each needs its own case.
+    """
+    root = tmp_path / "content"
+    _write_guide(root, "AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    code = validate_guides.main(
+        [str(root), "--guides-root", str(root), "--packs-root", str(PACKS_ROOT)]
+    )
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "has no frontmatter" in captured.err, (
+        f"a root not named 'guides' exempted AGENTS.md; stderr={captured.err!r}"
+    )

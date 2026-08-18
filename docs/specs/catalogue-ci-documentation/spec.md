@@ -48,7 +48,7 @@ how-to for creating an external catalogue, and fixes a deprecated command in the
   frontmatter (title, summary, pack: _shared, kind: how-to, status: stable); it covers the
   create → self-host → lint → verify → CI pipeline path in the correct order (self-host
   generates `marketplace.json`, which `lint` requires at CAT-L002); it explicitly references
-  `guides/_reference/catalogue-format.md` for the full `catalogue.toml` schema (not shown
+  `guides/_reference/catalogue-format.md` for the full `catalogue.toml` schema (not shown <!-- Moved 2026-08-18 by spec/guide-metadata-completion to `guides/_shared/reference/catalogue-format.md`; the public route is unchanged. -->
   inline, since the schema requires ~20 nested fields); it links to the Catalogue CI
   Contract for the publish phase.
 
