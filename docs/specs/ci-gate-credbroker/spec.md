@@ -1,6 +1,6 @@
 # Spec: ci-gate-credbroker
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0086
@@ -113,7 +113,7 @@ invariant, so no behavior is TDD-mode.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — `build-check.yml` declares a `gate-credbroker` job** with `name:` equal
+- [x] **AC1 — `build-check.yml` declares a `gate-credbroker` job** with `name:` equal
       to its id, `runs-on: ubuntu-latest`, a `timeout-minutes:`, and no job-level
       `if:`, `env:`, `needs:`, `permissions:`, `concurrency:`, or `container:`. Steps:
       an unnamed `actions/checkout` at the pinned SHA; `actions/setup-python` at the
@@ -121,20 +121,20 @@ invariant, so no behavior is TDD-mode.
       `./packages/credbroker[crypto]` plus `pytest`; and the
       `pytest credbroker (RFC-0023 Phase 1)` step carrying
       `working-directory: packages/credbroker`.
-- [ ] **AC1a — the checkout is shallow.** Its `with:` mapping is exactly
+- [x] **AC1a — the checkout is shallow.** Its `with:` mapping is exactly
       `{persist-credentials: false}`, mirroring the aggregator's carve-out at
       `build-check.yml:811`; `packages/credbroker` invokes git nowhere. Because
       `PINNED_CHECKOUT_WITH` is a set-equality pin this is decided here, and the
       reason travels in the workflow comment.
-- [ ] **AC2 — the step moved rather than being copied.** `gate-main` no longer
+- [x] **AC2 — the step moved rather than being copied.** `gate-main` no longer
       contains it, and `build-check.yml` contains exactly one step by that name —
       asserted as a count equality and independently enforced by `lint-ci-parity`'s
       cross-job `duplicates` check.
-- [ ] **AC3 — the aggregator gates the new job.** `needs:` lists `gate-credbroker`;
+- [x] **AC3 — the aggregator gates the new job.** `needs:` lists `gate-credbroker`;
       the guard step binds `GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}`;
       the guard body carries the line `_comparison_line("gate-credbroker")` derives,
       `::error::` annotation included.
-- [ ] **AC4 — the `[crypto]` extra is proven and the collection is proven not to have
+- [x] **AC4 — the `[crypto]` extra is proven and the collection is proven not to have
       shrunk.** Under `set -euo pipefail`, the step runs
       `python -c "import cryptography, argon2"`, then
       `python -m pytest -rs 2>&1 | tee "$RUNNER_TEMP/credbroker-out.txt"`, then
@@ -146,34 +146,34 @@ invariant, so no behavior is TDD-mode.
       `.agentbundle/bin/sso-broker.py` becoming untracked, and any new module-scope
       `importorskip` — so a cross-domain red is self-diagnosing rather than inviting
       the edit the Never-do forbids.
-- [ ] **AC5 — `python3 tools/test-build-check-workflow.py` exits 0**, which requires
+- [x] **AC5 — `python3 tools/test-build-check-workflow.py` exits 0**, which requires
       its `--self-test` to pass: baseline clean, every mutation caught, every
       evaluated family mutated, every differential guard body agreeing with bash.
-- [ ] **AC6 — the job-set input to the guard-body derivation is mutated.** A mutation
+- [x] **AC6 — the job-set input to the guard-body derivation is mutated.** A mutation
       splices a bare fifth work job into the fixture without adding its `needs:`,
       `env:` binding or comparison, and `--self-test` reports `guard-body-exact`
       catching it. It targets an existing assertion, so it adds no family.
-- [ ] **AC7 — the fixture stays shape-representative.** It carries a fourth work job
+- [x] **AC7 — the fixture stays shape-representative.** It carries a fourth work job
       mirroring the real shape, declared **fourth** so the placement-sensitive
       mutations keep their first matches, with guard-body comparisons in
       `REQUIRED_WORK_JOBS` order (what `_differential_failures()` splices against).
-- [ ] **AC8 — `tools/lint-ci-parity.py` and `tools/test-lint-ci-parity.py` exit 0**,
+- [x] **AC8 — `tools/lint-ci-parity.py` and `tools/test-lint-ci-parity.py` exit 0**,
       with a disposition per new step and no duplicate step name across jobs.
-- [ ] **AC9 — the workflow header's per-job local-reproduction block names
+- [x] **AC9 — the workflow header's per-job local-reproduction block names
       `gate-credbroker`** and its command, `make test` (which runs
       `pytest packages/credbroker/ -q` among others), preserving the one-to-many
       addressability model inherited from `spec/ci-gate-parallelization` AC16.
-- [ ] **AC10 — `SKIP_SAST=1 make build-check` and `python3 tools/lint-ruff.py` exit
+- [x] **AC10 — `SKIP_SAST=1 make build-check` and `python3 tools/lint-ruff.py` exit
       0**, each read from its own exit code rather than through a pipe.
-- [ ] **AC11 — every check on a real PR run concludes `success`**, read from
+- [x] **AC11 — every check on a real PR run concludes `success`**, read from
       `gh pr checks <n>` rather than inferred from local gates.
-- [ ] **AC12 — the move is confirmed on a real post-merge run.** On the push-to-main
-      run following the merge, `pytest credbroker (RFC-0023 Phase 1)` appears in
-      `gate-credbroker`'s step list and not in `gate-main`'s, and `gate-credbroker`
-      completes in ≤ 90 s. Both close on a single run.
-      *(deferred: ci-gate-credbroker-critical-path-measurement)*
-- [ ] **AC13 — `gate-credbroker` joins `main`'s required checks with its app pinning
-      intact**, applied by the owner after the post-merge run has reported the check,
+- [ ] **AC12 — the move is confirmed on a real post-merge run.** *(deferred: ci-gate-credbroker-critical-path-measurement)*
+      On the push-to-main run following the merge,
+      `pytest credbroker (RFC-0023 Phase 1)` appears in `gate-credbroker`'s step list
+      and not in `gate-main`'s, and `gate-credbroker` completes in ≤ 90 s. Both close
+      on a single run.
+- [ ] **AC13 — `gate-credbroker` joins `main`'s required checks with its app pinning intact.** *(deferred: ci-gate-credbroker-branch-protection-widening)*
+      Applied by the owner after the post-merge run has reported the check,
       via `PATCH /repos/{owner}/{repo}/branches/main/protection/required_status_checks`
       with `{"strict": true, "checks": [<the current set> + gate-credbroker]}`, where
       **the current set comes from a `GET` taken immediately before the write, not
@@ -185,7 +185,6 @@ invariant, so no behavior is TDD-mode.
       array, and any read-back checking only names. Closed by a `GET` asserting, order
       independently, `strict: true`, the exact five-name context set, and
       `app_id: 15368` on every entry.
-      *(deferred: ci-gate-credbroker-branch-protection-widening)*
 
 **Why `contexts` is forbidden.** GitHub documents it under a Closing down notice
 ("Use checks instead of contexts for more fine-grained control") and documents
