@@ -247,14 +247,6 @@ slug = "guides/frontend-engineering"
 label = "Overview"
 
 [[entry]]
-slug = "guides/frontend-engineering/tutorials/scaffold-a-component"
-label = "Scaffold a Component"
-
-[[entry]]
-slug = "guides/frontend-engineering/how-to/run-an-audit"
-label = "Run an Audit"
-
-[[entry]]
 slug = "guides/frontend-engineering/reference/frontend-engineering"
 label = "Frontend Engineering Pack"
 

@@ -7,12 +7,18 @@ actually deliver the feature, asserted against the real tree:
 - AC9  (slug, label) pair equality — a slug-only check is blind to the 90
        label regressions filename derivation would cause
 - AC10 determinism under a shuffled enumerator
+
+Also covers T1 of docs/specs/guide-title-clarity, in the second block below its
+banner comment. Bare `ACn` tokens are ambiguous across this file as a result:
+those above the banner cite guides-sidebar-generation, those below cite
+guide-title-clarity and say so explicitly.
 """
 from __future__ import annotations
 
 import importlib.util
 import json
 import random
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -220,3 +226,234 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
     p.write_text('[[entry]]\nslug = "guides/a"\n\n'
                  '[[entry]]\nslug = "guides/b"\nlabel = "Bee"\n', encoding="utf-8")
     assert build_site.load_guide_baseline(p) == {"guides/b": "Bee"}
+
+
+# --------------------------------------------------------------------------
+# spec/guide-title-clarity — the nine reviewed title decisions
+# --------------------------------------------------------------------------
+#
+# Exact, un-normalised comparison on purpose — casing and punctuation preserved.
+# `tools/lint-guide-titles.py` enforces only the RELATIONAL title↔H1 match through
+# a `normalise()` that casefolds and strips punctuation, so it passes just as
+# happily on `Run an Audit` / `# Run an Audit`. Three of the four decisions here
+# are substantially casing changes, so a normalised comparison would accept
+# `Run A Frontend Audit` and pin nothing.
+#
+# Un-normalised is NOT raw: `_frontmatter_title` parses the YAML rather than
+# taking the right-hand side verbatim, so requoting a title without changing a
+# character of it is not a failure. Wording is the subject; quoting is not.
+#
+# Without these, reverting any approved title, any of the five controls, the two
+# baseline deletions, or any of the three pack-index link labels fails nothing in
+# the suite: four of the five controls have no `guide-nav-baseline.toml` entry, so
+# the pair guard does not reach them, and nothing else in the repo compares
+# Markdown link text against anything.
+
+# The four approved strings, frozen by the brief's decision 7.
+APPROVED_TITLES = {
+    "guides/frontend-engineering/how-to/page-screen-contract.md":
+        "Write a page or screen contract",
+    "guides/frontend-engineering/how-to/run-an-audit.md":
+        "Run a frontend audit",
+    "guides/frontend-engineering/tutorials/scaffold-a-component.md":
+        "Scaffold a component from a screen brief",
+    "guides/iac-terraform/README.md":
+        "Terraform and OpenTofu guides",
+}
+# The five reviewed titles the same decision holds UNCHANGED.
+# Read from the tree, not from memory: an earlier draft of this dict guessed the
+# wording and the test caught it.
+CONTROL_TITLES = {
+    "guides/_shared/how-to/install-user-scope-pack-into-codex.md":
+        "How to install a user-scope pack into Codex",
+    "guides/_shared/how-to/install-user-scope-pack-into-kiro.md":
+        "How to install a user-scope pack into Kiro",
+    "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md":
+        "Authenticate Jira and Confluence with an SSO web session",
+    "guides/frontend-engineering/reference/frontend-engineering.md":
+        "Frontend Engineering Pack",
+    "guides/governance-extras/how-to/new-adr.md":
+        "How to record a decision with an ADR",
+}
+# guide-title-clarity AC5 (and AC6 for the de-baselined subset): every
+# retitled page's sidebar ITEM label, keyed slug -> source path so the
+# expected wording is looked up in APPROVED_TITLES rather than restated.
+# All FOUR, not just the two de-baselined ones: `page-screen-contract` and
+# `iac-terraform` never had a baseline entry, so nothing else in this module
+# reaches them — `test_no_baseline_pair_regressed` compares the baseline against
+# itself. Adding a baseline entry pinning a retired label to either page regresses
+# the emitted sidebar, and before this dict covered them, silently.
+SIDEBAR_ITEM_SLUGS = {
+    "guides/frontend-engineering/how-to/page-screen-contract":
+        "guides/frontend-engineering/how-to/page-screen-contract.md",
+    "guides/frontend-engineering/how-to/run-an-audit":
+        "guides/frontend-engineering/how-to/run-an-audit.md",
+    "guides/frontend-engineering/tutorials/scaffold-a-component":
+        "guides/frontend-engineering/tutorials/scaffold-a-component.md",
+    "guides/iac-terraform":
+        "guides/iac-terraform/README.md",
+}
+# The subset whose baseline entry was DELETED so the label resolves from
+# frontmatter. Deletion, not relabelling: relabelling passes a guard that loads
+# the same file it compares against.
+DEBASELINED_SLUGS = (
+    "guides/frontend-engineering/tutorials/scaffold-a-component",
+    "guides/frontend-engineering/how-to/run-an-audit",
+)
+# guide-title-clarity AC9: the pack index's link TEXT for the three retitled
+# guides. Distinct from the frontmatter pins above — a reader arrives through
+# this table, and nothing else in the repo compares Markdown link text against
+# anything.
+PACK_INDEX_LINKS = (
+    "how-to/page-screen-contract.md",
+    "how-to/run-an-audit.md",
+    "tutorials/scaffold-a-component.md",
+)
+PACK_INDEX = "guides/frontend-engineering/README.md"
+# The retired wording, which must not survive in the four sources.
+RETIRED_STRINGS = (
+    "Write a Page/Screen Contract",
+    "Run an Audit",
+    "Scaffold a Component",
+    "IaC (Terraform) guides",
+)
+
+
+def _frontmatter_title(rel: str) -> str:
+    """The parsed title, via the same parser the generator uses.
+
+    NOT the raw right-hand side: that pins YAML quoting as well as wording, so
+    requoting a title without changing a character of it would fail a test whose
+    subject is the wording. `guide-metadata-completion` rewrites 125 guide
+    frontmatter rows next, which is exactly when that would have misfired.
+    """
+    fm = build_site._parse_frontmatter(
+        (REPO_ROOT / rel).read_text(encoding="utf-8")
+    )
+    title = fm.get("title")
+    return title if isinstance(title, str) else ""
+
+
+def _body_h1(rel: str) -> str:
+    for line in (REPO_ROOT / rel).read_text(encoding="utf-8").splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return ""
+
+
+def test_approved_guide_titles_are_exact():
+    """The four decisions, exact and un-normalised.
+
+    Casing and punctuation preserved; YAML quoting deliberately NOT pinned —
+    see `_frontmatter_title`.
+    """
+    actual = {rel: _frontmatter_title(rel) for rel in APPROVED_TITLES}
+    assert actual == APPROVED_TITLES
+
+
+def test_approved_titles_match_their_body_h1():
+    """Frontmatter and H1 move together; a CI gate asserts it, so does this."""
+    mismatched = {rel: (_frontmatter_title(rel), _body_h1(rel))
+                  for rel in APPROVED_TITLES
+                  if _frontmatter_title(rel) != _body_h1(rel)}
+    assert not mismatched, f"title/H1 drift: {mismatched}"
+
+
+def test_reviewed_control_titles_are_unchanged():
+    """The five titles the same decision reviewed and chose to KEEP.
+
+    Four of these carry no baseline entry, so nothing else in the suite would
+    notice them being reworded alongside a future title sweep.
+    """
+    actual = {rel: _frontmatter_title(rel) for rel in CONTROL_TITLES}
+    assert actual == CONTROL_TITLES
+
+
+def test_retired_title_strings_absent_from_the_four_sources():
+    """Path-scoped: the retired wording legitimately survives as provenance in the
+    changelogs, the brief, `workspace.toml`, and the lint fixtures."""
+    offenders = []
+    for rel in APPROVED_TITLES:
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        offenders += [f"{rel}: {s}" for s in RETIRED_STRINGS if s in text]
+    assert not offenders, offenders
+
+
+def test_debaselined_slugs_resolve_their_label_from_frontmatter():
+    """The baseline entries were DELETED, not relabelled.
+
+    Relabelling would have been tautological — `test_no_baseline_pair_regressed`
+    loads the same file it compares against — so this asserts the emitted sidebar
+    label equals the frontmatter title with no baseline entry backing it.
+    """
+    baseline = build_site.load_guide_baseline(REPO_ROOT / "guide-nav-baseline.toml")
+    projected = dict(_pairs(_guides_group()))
+    for slug in DEBASELINED_SLUGS:
+        assert slug not in baseline, f"{slug} must have no baseline entry"
+    for slug, source in SIDEBAR_ITEM_SLUGS.items():
+        want = APPROVED_TITLES[source]
+        assert projected.get(slug) == want, (slug, projected.get(slug), want)
+
+
+def test_no_projected_sidebar_label_is_a_retired_string():
+    """Every item in the emitted Guides group, not just the four retitled pages.
+
+    Scope is exactly what `_pairs(_guides_group())` yields — the slug-bearing
+    items inside the `Guides` super-group. Group labels carry no slug and are not
+    covered here; `IaC (Terraform)` is a group label and is deliberately retained
+    (see `notes/render-review.md`).
+    """
+    offenders = {slug: label for slug, label in _pairs(_guides_group())
+                 if label in RETIRED_STRINGS}
+    assert not offenders, offenders
+
+
+def test_pack_index_link_text_names_the_approved_titles():
+    """AC9: the three link labels in the frontend-engineering pack index.
+
+    Separate from the frontmatter pins: a reader reaches these guides through
+    this table, and no other check in the repo compares Markdown link TEXT
+    against anything — `check-rendered-site-links.py` validates targets only.
+    The expected wording is looked up in APPROVED_TITLES so the label and the
+    page title cannot drift apart.
+    """
+    text = (REPO_ROOT / PACK_INDEX).read_text(encoding="utf-8")
+
+    # The load-bearing assertion, and deliberately NOT a link-syntax pattern.
+    # Three rounds of review widened a regex to cover `./`-prefixed, then
+    # fragment-anchored links; `../` traversal, title attributes, `<>`-wrapped
+    # destinations, reference-style links and raw HTML each still slipped a
+    # retired label past it. Enumerating spellings is a losing game — the actual
+    # contract is that no retired title appears on this page in any form.
+    # Whitespace-normalised, because a label broken across a source line —
+    # `[Run an\nAudit](...)` — defeats a byte-substring scan while the intact
+    # correct link keeps the secondary check below satisfied, so neither fires.
+    # Normalising closes every line-break variant at once rather than adding
+    # another spelling to enumerate.
+    #
+    # KNOWN OPEN, and only closable against emitted HTML: inline markup and
+    # entity spellings inside the label (`Run an *Audit*`, `Run an&nbsp;Audit`)
+    # are invisible to any source-level scan. Nothing in this repo asserts the
+    # emitted HTML of this page, so that residual is recorded, not covered.
+    flat = " ".join(text.split())
+    stale = [s for s in RETIRED_STRINGS if s in flat]
+    assert not stale, f"{PACK_INDEX} still carries retired title(s): {stale}"
+
+    for target in PACK_INDEX_LINKS:
+        want = APPROVED_TITLES[f"guides/frontend-engineering/{target}"]
+        # Secondary: an arbitrary WRONG label (not merely a retired one) in the
+        # ordinary inline spelling. This one does enumerate spellings, and that
+        # is acceptable only because the check above is spelling-agnostic. It
+        # fails CLOSED — an exotic-but-correct spelling makes `found` empty and
+        # fails loudly rather than passing silently.
+        found = re.findall(
+            rf"\[([^\]]*)\]\(\.?/?{re.escape(target)}(?:#[^)]*)?\)", text
+        )
+        assert found, (
+            f"{PACK_INDEX} must link to {target} in the ordinary inline form; "
+            f"if the spelling changed deliberately, update this test"
+        )
+        wrong = [label for label in found if label != want]
+        assert not wrong, (
+            f"{PACK_INDEX} links to {target} with text {wrong} — expected {want!r}"
+        )

@@ -10,10 +10,10 @@ Use this index when you have found the `frontend-engineering` pack and need the 
 |---|---|---|
 | Confirm what the pack is for | [Pack overview](../../../packs/frontend-engineering/) | The four jobs, expected outputs, install command, and route into this guide tree |
 | See the end-to-end workflow before starting | [Frontend engineering journey](../../../journeys/frontend-engineering/) | Mode choice, contract approval, implementation or audit path, gates, evidence manifest, and frontend review in order |
-| Decide whether a new or changed surface needs a contract | [Write a page/screen contract](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
+| Decide whether a new or changed surface needs a contract | [Write a page or screen contract](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
 | Set or verify performance policy | [Performance targets](reference/performance-targets.md) | Fixed CWV targets, prioritized asset-budget categories, and project-specific numeric-ceiling decisions |
-| Audit an existing page or component without writing code | [Run an audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
-| Learn the workflow from a small worked example | [Scaffold a component](tutorials/scaffold-a-component.md) | A gate-passing component and completed evidence manifest |
+| Audit an existing page or component without writing code | [Run a frontend audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
+| Learn the workflow from a small worked example | [Scaffold a component from a screen brief](tutorials/scaffold-a-component.md) | A gate-passing component and completed evidence manifest |
 | Look up every skill and the reviewer boundary | [Frontend Engineering Pack reference](reference/frontend-engineering.md) | The nine installed skills, their triggers, near misses, and the `frontend-reviewer` scope |
 
 ## What this pack holds you to

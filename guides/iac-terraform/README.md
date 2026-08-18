@@ -1,11 +1,11 @@
 ---
-title: IaC (Terraform) guides
+title: Terraform and OpenTofu guides
 summary: Find the governed Terraform and OpenTofu generation workflow, drift checks, and validated provider coverage.
 pack: iac-terraform
 kind: reference
 ---
 
-# IaC (Terraform) guides
+# Terraform and OpenTofu guides
 
 An opt-in accelerator for Terraform and OpenTofu IaC generation. Two skills —
 `generate-iac` (seven-stage governance-to-plan loop) and `reconcile-iac` (drift audit
