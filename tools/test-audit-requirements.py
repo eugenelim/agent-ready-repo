@@ -28,6 +28,16 @@ _SPEC.loader.exec_module(_MOD)
 
 FAILURES: list[str] = []
 
+# Pinned so a shrinking SCA input set is a named failure rather than a quieter
+# gate. Raise these in the same commit that adds a manifest.
+_EXPECTED_PACK_MANIFESTS = 8
+_EXPECTED_TOOLS_MANIFESTS = [
+    "requirements-ci-security-locked.txt",
+    "requirements-evals-locked.txt",
+    "requirements-sast.txt",
+    "requirements.txt",
+]
+
 
 def check(label: str, condition: bool, detail: str = "") -> None:
     if condition:
@@ -145,6 +155,117 @@ def main() -> int:
         else:
             missing_extra_refused = False
         check("missing optional dependency group fails closed", missing_extra_refused)
+
+    # 10. Dependency-bearing option lines count as content, so a manifest whose
+    #     only content is an include is audited rather than reported empty.
+    for line in ("-r nested.txt", "--requirement=nested.txt", "-c constraints.txt",
+                 "-e .", "--editable .", "-f ./wheels", "--find-links ./wheels"):
+        check(
+            f"dependency-bearing option is content: {line!r}",
+            _MOD._is_dependency_bearing(line),
+        )
+    for line in ("--index-url https://example.invalid/simple",
+                 "--extra-index-url https://example.invalid/simple",
+                 "--no-binary :all:"):
+        check(
+            f"resolution-only option is not content: {line!r}",
+            not _MOD._is_dependency_bearing(line),
+        )
+    # Asserted on the CONTENT PREDICATE rather than by calling audit(), which
+    # would spawn pip-audit against a nonexistent include — network I/O and a
+    # usage error inside a self-test. The predicate is the thing under test; the
+    # old bug was that `-r nested.txt` did not count as content.
+    include_only = ["# only an include", "", "-r nested.txt"]
+    audited_only, _ = _MOD.partition(include_only, first_party)
+    has_content = any(
+        stripped
+        and not stripped.startswith("#")
+        and (not stripped.startswith("-") or _MOD._is_dependency_bearing(stripped))
+        for stripped in (line.strip() for line in audited_only)
+    )
+    check(
+        "an include-only manifest counts as having content to audit",
+        has_content,
+        str(audited_only),
+    )
+
+    # 11. The environment scrub really removes the variables that can re-aim the
+    #     advisory feed or the index, and leaves everything else alone.
+    import os as _os
+    _os.environ["PIP_AUDIT_VULNERABILITY_SERVICE"] = "osv"
+    _os.environ["PIP_INDEX_URL"] = "https://example.invalid/simple"
+    _os.environ["AUDIT_SELFTEST_KEEP_ME"] = "kept"
+    try:
+        scrubbed = _MOD._scrubbed_env()
+        check("PIP_AUDIT_* is scrubbed",
+              "PIP_AUDIT_VULNERABILITY_SERVICE" not in scrubbed)
+        check("PIP_INDEX_URL is scrubbed", "PIP_INDEX_URL" not in scrubbed)
+        check("unrelated variables survive",
+              scrubbed.get("AUDIT_SELFTEST_KEEP_ME") == "kept")
+    finally:
+        for key in ("PIP_AUDIT_VULNERABILITY_SERVICE", "PIP_INDEX_URL",
+                    "AUDIT_SELFTEST_KEEP_ME"):
+            _os.environ.pop(key, None)
+
+    # 12. THE AUDITED SET HAS A FLOOR.
+    #     Makefile's `$(find packs -name requirements.txt | sort)` has its exit
+    #     status swallowed by the pipeline, so a renamed, moved or deleted manifest
+    #     shrinks the audited input silently at exit 0 and nothing notices the gate
+    #     covers less than it did. Pin the shape AND the count.
+    repo_root = _HERE.parent
+    makefile = (repo_root / "Makefile").read_text(encoding="utf-8")
+    # A recipe line, not the SAST_CONFIG assignment that also names the script:
+    # match on the invocation prefix so `SAST_CONFIG := … tools/audit-requirements.py …`
+    # cannot satisfy this case (it did, on the first attempt).
+    audit_invocation = next(
+        (
+            line for line in makefile.splitlines()
+            if line.lstrip("\t ").startswith("python3 tools/audit-requirements.py")
+            and "--build-system" not in line
+            and "--optional-group" not in line
+        ),
+        "",
+    )
+    check(
+        "the packs+tools audit invocation was located in the Makefile",
+        bool(audit_invocation),
+        "no `python3 tools/audit-requirements.py <manifests>` recipe line found",
+    )
+    check(
+        "the Makefile still enumerates packs manifests by find",
+        "find packs -name requirements.txt" in audit_invocation,
+        audit_invocation.strip(),
+    )
+    check(
+        "the Makefile still audits tools/requirements.txt explicitly",
+        "tools/requirements.txt" in audit_invocation,
+        audit_invocation.strip(),
+    )
+    pack_manifests = sorted(
+        path.relative_to(repo_root).as_posix()
+        for path in (repo_root / "packs").rglob("requirements.txt")
+    )
+    check(
+        f"packs manifest count is {_EXPECTED_PACK_MANIFESTS}",
+        len(pack_manifests) == _EXPECTED_PACK_MANIFESTS,
+        f"found {len(pack_manifests)}: {pack_manifests}. If a manifest was added, "
+        f"raise _EXPECTED_PACK_MANIFESTS in the same commit; if one vanished, the "
+        f"SCA input just shrank and that is the failure this case exists for.",
+    )
+    #     A NEW tools/requirements*.txt must not silently join the unaudited set.
+    #     The three below are unaudited today and tracked as
+    #     `sast-requirements-not-audited` in workspace.toml [backlog].open; this
+    #     case pins the roster so a fourth is a deliberate decision.
+    tools_manifests = sorted(
+        path.name for path in (repo_root / "tools").glob("requirements*.txt")
+    )
+    check(
+        "the tools/ manifest roster is unchanged",
+        tools_manifests == _EXPECTED_TOOLS_MANIFESTS,
+        f"found {tools_manifests}, expected {_EXPECTED_TOOLS_MANIFESTS}. A new "
+        f"tools/requirements*.txt is unaudited until it is added to the Makefile "
+        f"invocation or dispositioned under sast-requirements-not-audited.",
+    )
 
     if FAILURES:
         print(f"\naudit-requirements self-test: {len(FAILURES)} failure(s)")
