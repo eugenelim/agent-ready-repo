@@ -85,8 +85,9 @@ lead with the user's job.
   source files. They legitimately persist as provenance elsewhere and must not
   be scrubbed: `tools/test_build_site_sidebar.py`'s `RETIRED_STRINGS`, which is
   what enforces this criterion and therefore names all four;
-  `docs/product/briefs/tech-site-completion.md:147-151` (the approved change
-  list); this spec and its plan; `workspace.toml`;
+  `docs/product/briefs/tech-site-completion.md` § Approved decision log,
+  decision 7 (cited by heading, not line range: that brief is Status Ready and
+  its Spec map rolls up as specs ship); this spec and its plan; `workspace.toml`;
   `tools/test_lint_guide_titles.py` fixtures; and `docs/product/changelog.md`
   with its docs mirror, whose release note quotes three of the four old titles
   beside their new ones — `IaC (Terraform) guides` is not among them, because

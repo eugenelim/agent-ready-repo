@@ -31,7 +31,7 @@ search/title contexts against the precision-authority design goal.
 
 The source H1 is the canonical fallback title until metadata is present.
 Navigation labels match the approved title where the page participates in
-navigation. No route is derived from the new wording. Traces to: AC1-AC9.
+navigation. No route is derived from the new wording. Traces to: AC1-AC10.
 
 ### Component / module decomposition
 
@@ -54,15 +54,24 @@ Major design finding against the approved directions. Traces to: AC11.
 
 **Tests:**
 - TDD (`stub: true`): the four approved strings are the frontmatter `title:` of
-  their four source files, compared as RAW strings (AC1-AC4).
+  their four source files, compared EXACT and UN-NORMALISED — casing and
+  punctuation preserved, YAML quoting not pinned (AC1-AC4).
 - TDD (`stub: true`): each approved frontmatter title equals its body `# ` H1
   (AC5).
 - TDD (`stub: true`): the five enumerated control titles are unchanged (AC7).
 - TDD (`stub: true`): the four retired strings are absent from the four source
   files — and only those four files, since the strings legitimately persist as
   provenance elsewhere (AC8).
-- TDD (`stub: true`): the sidebar item label for the two de-baselined pages
-  resolves from the frontmatter title (AC6).
+- TDD (`stub: true`): the sidebar ITEM label for all FOUR retitled pages equals
+  the approved string, and the two de-baselined pages have no baseline entry
+  backing that (AC6). All four, not just the de-baselined two: the other two
+  never had a baseline entry, so nothing else in the module reaches them and a
+  baseline entry pinning a retired label to either would regress the emitted
+  sidebar silently.
+- TDD (`stub: true`): no projected sidebar label anywhere in the real guide tree
+  is one of the retired strings — tree-wide, not path-scoped, because a retired
+  label reaching any item is the regression whichever page it lands on (AC6,
+  AC8).
 - TDD (`stub: true`): the pack index's link TEXT for the three retitled guides
   names the approved string (AC9). Nothing else in the repo compares Markdown
   link text against anything — `check-rendered-site-links.py` validates targets
@@ -83,10 +92,17 @@ guessed the five strings from memory and the suite caught it, which is the
 behaviour these tests exist to provide.
 
 **Approach:**
-- Compare RAW strings, not through `tools/lint-guide-titles.py`'s `normalise()`:
-  that helper casefolds and strips punctuation, and three of the four decisions
-  are substantially casing changes, so a normalised comparison would accept
-  `Run A Frontend Audit`. `lint-guide-titles.py` keeps its existing job — the
+- Compare EXACT, UN-NORMALISED strings, not through
+  `tools/lint-guide-titles.py`'s `normalise()`: that helper casefolds and strips
+  punctuation, and three of the four decisions are substantially casing changes,
+  so a normalised comparison would accept `Run A Frontend Audit`.
+  Un-normalised is not the same as raw. Titles are read through
+  `build_site._parse_frontmatter`, the parser the generator itself uses, so
+  requoting `title: Run a frontend audit` as `title: "Run a frontend audit"`
+  passes: the wording is the subject, the YAML quoting is not. An earlier
+  revision took the raw right-hand side and would have failed on that requoting
+  — `guide-metadata-completion` rewrites 125 guide frontmatter rows next, which
+  is exactly when it would have misfired. `lint-guide-titles.py` keeps its existing job — the
   relational title↔H1 invariant — and gains no content registry, which would be a
   second unsynced source of truth against the frontmatter itself.
 - The nine pinned strings exist in two places on purpose: the spec's acceptance

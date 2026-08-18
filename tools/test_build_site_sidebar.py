@@ -226,15 +226,22 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
 # spec/guide-title-clarity — the nine reviewed title decisions
 # --------------------------------------------------------------------------
 #
-# Raw-string comparison on purpose. `tools/lint-guide-titles.py` enforces only the
-# RELATIONAL title↔H1 match through a `normalise()` that casefolds and strips
-# punctuation, so it passes just as happily on `Run an Audit` / `# Run an Audit`.
-# Three of the four decisions here are substantially casing changes, so a
-# normalised comparison would accept `Run A Frontend Audit` and pin nothing.
+# Exact, un-normalised comparison on purpose — casing and punctuation preserved.
+# `tools/lint-guide-titles.py` enforces only the RELATIONAL title↔H1 match through
+# a `normalise()` that casefolds and strips punctuation, so it passes just as
+# happily on `Run an Audit` / `# Run an Audit`. Three of the four decisions here
+# are substantially casing changes, so a normalised comparison would accept
+# `Run A Frontend Audit` and pin nothing.
 #
-# Without these, reverting any approved title, any of the five controls, or the
-# two baseline deletions fails nothing in the suite: four of the five controls
-# have no `guide-nav-baseline.toml` entry, so the pair guard does not reach them.
+# Un-normalised is NOT raw: `_frontmatter_title` parses the YAML rather than
+# taking the right-hand side verbatim, so requoting a title without changing a
+# character of it is not a failure. Wording is the subject; quoting is not.
+#
+# Without these, reverting any approved title, any of the five controls, the two
+# baseline deletions, or any of the three pack-index link labels fails nothing in
+# the suite: four of the five controls have no `guide-nav-baseline.toml` entry, so
+# the pair guard does not reach them, and nothing else in the repo compares
+# Markdown link text against anything.
 
 # The four approved strings, frozen by the brief's decision 7.
 APPROVED_TITLES = {
@@ -262,15 +269,30 @@ CONTROL_TITLES = {
     "guides/governance-extras/how-to/new-adr.md":
         "How to record a decision with an ADR",
 }
-# Slugs whose baseline entry was DELETED so the label resolves from frontmatter.
-# The expected label is looked up in APPROVED_TITLES rather than restated: two
-# copies of a string that must stay identical is one copy too many.
-DEBASELINED_SLUGS = {
-    "guides/frontend-engineering/tutorials/scaffold-a-component":
-        "guides/frontend-engineering/tutorials/scaffold-a-component.md",
+# AC6: every retitled page's sidebar ITEM label, keyed slug -> source path so the
+# expected wording is looked up in APPROVED_TITLES rather than restated.
+# All FOUR, not just the two de-baselined ones: `page-screen-contract` and
+# `iac-terraform` never had a baseline entry, so nothing else in this module
+# reaches them — `test_no_baseline_pair_regressed` compares the baseline against
+# itself. Adding a baseline entry pinning a retired label to either page regresses
+# the emitted sidebar, and before this dict covered them, silently.
+SIDEBAR_ITEM_SLUGS = {
+    "guides/frontend-engineering/how-to/page-screen-contract":
+        "guides/frontend-engineering/how-to/page-screen-contract.md",
     "guides/frontend-engineering/how-to/run-an-audit":
         "guides/frontend-engineering/how-to/run-an-audit.md",
+    "guides/frontend-engineering/tutorials/scaffold-a-component":
+        "guides/frontend-engineering/tutorials/scaffold-a-component.md",
+    "guides/iac-terraform":
+        "guides/iac-terraform/README.md",
 }
+# The subset whose baseline entry was DELETED so the label resolves from
+# frontmatter. Deletion, not relabelling: relabelling passes a guard that loads
+# the same file it compares against.
+DEBASELINED_SLUGS = (
+    "guides/frontend-engineering/tutorials/scaffold-a-component",
+    "guides/frontend-engineering/how-to/run-an-audit",
+)
 # AC9: the pack index's link TEXT for the three retitled guides. Distinct from
 # the frontmatter pins above — a reader arrives through this table, and nothing
 # else in the repo compares Markdown link text against anything.
@@ -312,7 +334,11 @@ def _body_h1(rel: str) -> str:
 
 
 def test_approved_guide_titles_are_exact():
-    """The four decisions, compared raw — casing and punctuation included."""
+    """The four decisions, exact and un-normalised.
+
+    Casing and punctuation preserved; YAML quoting deliberately NOT pinned —
+    see `_frontmatter_title`.
+    """
     actual = {rel: _frontmatter_title(rel) for rel in APPROVED_TITLES}
     assert actual == APPROVED_TITLES
 
@@ -354,10 +380,19 @@ def test_debaselined_slugs_resolve_their_label_from_frontmatter():
     """
     baseline = build_site.load_guide_baseline(REPO_ROOT / "guide-nav-baseline.toml")
     projected = dict(_pairs(_guides_group()))
-    for slug, source in DEBASELINED_SLUGS.items():
-        want = APPROVED_TITLES[source]
+    for slug in DEBASELINED_SLUGS:
         assert slug not in baseline, f"{slug} must have no baseline entry"
+    for slug, source in SIDEBAR_ITEM_SLUGS.items():
+        want = APPROVED_TITLES[source]
         assert projected.get(slug) == want, (slug, projected.get(slug), want)
+
+
+def test_no_projected_sidebar_label_is_a_retired_string():
+    """Tree-wide, not path-scoped: a retired label reaching ANY sidebar item is
+    the regression, whichever page it lands on and however it got there."""
+    offenders = {slug: label for slug, label in _pairs(_guides_group())
+                 if label in RETIRED_STRINGS}
+    assert not offenders, offenders
 
 
 def test_pack_index_link_text_names_the_approved_titles():
@@ -374,4 +409,9 @@ def test_pack_index_link_text_names_the_approved_titles():
         want = APPROVED_TITLES[f"guides/frontend-engineering/{target}"]
         assert f"[{want}]({target})" in text, (
             f"{PACK_INDEX} must link to {target} with the text {want!r}"
+        )
+        # Every link to the page carries the approved text, not just one of them:
+        # a stale cross-reference elsewhere in the index would otherwise pass.
+        assert text.count(f"]({target})") == text.count(f"[{want}]({target})"), (
+            f"{PACK_INDEX} has a link to {target} with text other than {want!r}"
         )
