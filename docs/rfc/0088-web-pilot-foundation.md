@@ -1541,6 +1541,46 @@ grants every root, and the partitioning silently does nothing. This was measured
 not anticipated — the first fixture had exactly that layout and reported the
 confinement failing when the grant had swallowed it.
 
+### D / item 6 becomes a per-destination accepted risk — 2026-08-18
+
+**Disposition.** The approver ruled on 2026-08-18 that service-worker suppression
+is **scoped per destination**, and that item 6 is therefore **an accepted risk on
+any destination where workers are permitted**, rather than a session-wide
+guarantee. Item 6 remains an accepted risk; what changes is its *scope*.
+
+**Why a session-wide guarantee is not available.** Measurement, not preference:
+real destinations have opposite needs. A collaboration-class surface **collapses**
+when workers are blocked, while a webmail-class surface renders byte-identically
+without one and a sign-in surface registers none at all. A single global control
+therefore forces a choice between losing a destination outright and disabling the
+control everywhere. Scoping is what makes both possible.
+
+**What is genuinely accepted, stated as exposure rather than implied by a policy
+table.** On a destination where workers are permitted, the exposure item 6 exists
+to close is present in full: a worker persisted in the profile survives restart,
+controls the first document of the next session, and is a realm the egress shim
+never reaches. Per-destination scoping **localises** that exposure; it does not
+reduce it. Destinations where workers are blocked remain fully covered by the
+purge-plus-block requirement.
+
+**Two dependencies this disposition carries, neither of them closed:**
+
+1. **The mechanism is not yet measured.** Whether worker policy can actually be
+   applied per destination within one session is round 12's first arm. If it
+   cannot be expressed, this disposition has no mechanism and must be revisited
+   rather than quietly reinterpreted as a global allow.
+2. **The blast radius may be larger than one destination.** Whether *post*-
+   authentication silent re-attach on a webmail-class destination needs a worker
+   is unmeasured and requires a credentialed arm. If it does, workers must be
+   permitted there too, and item 6 would cover very little of a real consumer.
+   Carried as `rfc0088-post-auth-sso-worker-dependency`.
+
+**What this does not change.** No other disposition, no blocker item, and not the
+status field. A destination-scoped policy also means the RFC now has one axis —
+the destination — carrying both egress constraint (decision C) and worker policy;
+whether that axis should absorb further per-destination policy is open question 4.
+
+
 The list maps onto the spikes as: S1 → item 1; S2 → items 1, 2 and 5; S3 → items
 1, 4 and 6; S5 → item 3. S4 and S6 contribute none, for the reasons stated
 below. Every residual named in a spike row above appears in this list, and every
