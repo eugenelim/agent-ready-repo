@@ -267,6 +267,12 @@ queue   = [
   # The critical path is set by one serial job, so the fix is job layout, not
   # making any gate faster; the export-boundary gate's own cost is deferred.
   {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
+  # Follow-on to the spec above, under the same ADR-0086 decision: move the 27s
+  # credbroker suite out of gate-main into its own job. Deliberately the CHEAPEST
+  # extraction that reaches the current ceiling (gate-sast, mean 160s) — extracting
+  # more buys nothing until that job shrinks. The RFC-0082 carve-out step is an
+  # explicit non-goal; its coupling graph defeated four revisions of the spec above.
+  {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -593,15 +599,109 @@ open = [
   # fixing the lock or calling the test flaky. Do not quarantine it first — a
   # quarantined concurrency test is a deleted one.
   {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
-  # AC2's apply step. The required set is ["make build-check"] with strict = true
-  # (API-verified 2026-08-17, once /protection recovered from an all-session 503). The
-  # three work jobs are added POST-MERGE, because a required check cannot precede the job
-  # that reports it — adding them first leaves every PR pending forever.
+  # AC2's apply step. DONE — the three work jobs were applied post-merge; the
+  # required set is now ["make build-check", "gate-main", "gate-sast",
+  # "gate-export-boundary"] with strict = true, each pinned to app_id 15368 (the
+  # GitHub Actions app). API-verified 2026-08-17 via
+  # `gh api …/branches/main/protection/required_status_checks`. The earlier text here
+  # described the widening as still pending, which had stopped being true.
   #
   # Confirmed while reading it: there are NO stale "Gate A — agentbundle tests (…)"
   # entries in the required set, so this spec's Gate A rename cannot orphan a required
   # check. That was an open worry; it is closed.
+  #
+  # The FIFTH check (gate-credbroker) is tracked separately as
+  # ci-gate-credbroker-branch-protection-widening — see that entry for the endpoint
+  # and body shape, which differ from what this entry originally prescribed.
+  # Kept open only until that fifth check lands; the three-job half is closed.
   {slug = "ci-gate-parallelization-branch-protection-widening", source = "spec/ci-gate-parallelization AC2"},
+  # AC12's open measurement. Whether gate-main's central tendency falls by ~27s and
+  # whether gate-sast thereby becomes the longest work job on SAST-relevant diffs.
+  #
+  # METHOD, and it is load-bearing: compare only runs of a MATCHED EVENT CLASS
+  # (build-check.yml is not event-neutral — the SAST detect step is pull_request-only),
+  # and compute every duration as `completed_at - started_at` from
+  # `gh api "repos/OWNER/REPO/actions/runs/<id>/jobs"`. Do NOT substitute the duration
+  # the web UI displays. Record whether gate-sast's scan RAN or SKIPPED on each run —
+  # the comparison is meaningless on a skipped-scan run (~31s).
+  #
+  # BASELINE — the raw five runs since the three-job split, recorded rather than a
+  # derived mean so a later reader re-derives from data:
+  #   run           event         gate-main  gate-sast          gate-export-boundary
+  #   32068790012   pull_request  180        163                134
+  #   32067545724   push          159        167                136
+  #   32067163259   pull_request  193        31 (scan skipped)  140
+  #   32065059820   pull_request  164        149                136
+  #   32063058843   push          184        160                123
+  # The moved step cost exactly 27s on all five (zero variance).
+  #
+  # STOP CONDITION: >=3 same-class post-merge runs. "INCONCLUSIVE at n=3" is a
+  # permitted and expected outcome and closes this entry honestly — gate-main's
+  # spread (159-193) exceeds the 27s effect, so the measurement may never resolve. A
+  # quiet pass does not close it. CONSEQUENCE if no shift is observed: open a
+  # follow-up questioning whether the extra runner earns its cost.
+  {slug = "ci-gate-credbroker-critical-path-measurement", source = "spec/ci-gate-credbroker AC12"},
+  # AC13's apply step, performed by the repo owner AFTER the post-merge push-to-main
+  # run has reported gate-credbroker — a required check cannot precede the job that
+  # reports it, and the Settings UI only offers checks seen on main recently.
+  #
+  # SEQUENCE — read, diff, write, verify. Do not transcribe the set below into the
+  # write; it is a 2026-08-17 read and checks[] is REPLACE-semantics.
+  #   1. GET  /repos/OWNER/REPO/branches/main/protection/required_status_checks
+  #   2. DIFF it against: strict = true; contexts {make build-check, gate-main,
+  #      gate-sast, gate-export-boundary}; app_id 15368 on every entry.
+  #      MISMATCH ON ANY -> STOP and return to the owner. Do not write.
+  #   3. PATCH the same endpoint with a JSON BODY (gh api --method PATCH … --input -),
+  #      never `-f key=value`: checks is an array of objects that -f cannot express.
+  #      Body: {"strict": true, "checks": [<what the GET returned> + gate-credbroker,
+  #      each with "app_id": 15368]}
+  #   4. GET again; assert order-independently: strict = true, the exact five-name
+  #      context set, and app_id 15368 on EVERY entry. Names matter — a typo in one
+  #      of the four EXISTING names yields five app-pinned entries and a clean
+  #      count-only read-back while silently dropping that gate from main.
+  #
+  # FORBIDDEN: PUT …/branches/main/protection (clears every field it omits); the
+  # deprecated `contexts` array (substitutes an auto-select recency heuristic for an
+  # explicit pin — GitHub documents app_id omission as "automatically select the App
+  # that has recently provided this check, or any app if it was not set by a GitHub
+  # App"); any read-back checking only names or only count.
+  #
+  # ACCEPTED RESIDUAL: the read-back cannot see a change made between the GET and the
+  # PATCH — its expectation equals the writer's intent. The diff shrinks that window
+  # from months to seconds; this endpoint is believed (not verified) to offer no
+  # If-Match/ETag conditional write, so it cannot be closed. Accepted because a single
+  # maintainer performs all four steps in one sitting.
+  #
+  # THEN: PRs #993 and #994 predate this and go permanently pending on the new check.
+  # They need a rebase. Check `gh pr list` for others opened before the apply.
+  {slug = "ci-gate-credbroker-branch-protection-widening", source = "spec/ci-gate-credbroker AC13"},
+  # The expiry condition of a HARD Never-do in spec/ci-gate-credbroker, which is why
+  # it is registered rather than left in prose that freezes at ship.
+  #
+  # gate-credbroker is the only work job in build-check.yml with no equality-pinned
+  # load-bearing statement (3/4 rather than 4/4). Consequence: AC4's two in-step
+  # controls — the `import cryptography, argon2` probe and the reason-agnostic
+  # `^SKIPPED` assertion — are enforced by NOTHING after merge. The posture test does
+  # not pin that step; branch protection anchors at job granularity (the job cannot
+  # vanish, but its body is free); and lint-ci-parity's roster is per-step, so it
+  # cannot see a gate REMOVED from inside a dispositioned step — that residual is
+  # asserted deliberately as roster-residual-hidden-gate-in-known-step. A Never-do is
+  # the current stopgap and a prose rule is weaker than a pin.
+  #
+  # SCOPE, stated once here: add PINNED_JOB_STATEMENTS = {job: (statements…)} to
+  # tools/test-build-check-workflow.py, emitting `job-statements-pinned[<job>]`, and
+  # pin each work job's load-bearing statements AND its `working-directory`. The
+  # parameterised label matters: _family() collapses ids ending in [...], so this
+  # costs +1 assertion family and +1 mutation and closes all four jobs at once —
+  # whereas two bare labels would cost +2 and +2 (self_test fails on any evaluated
+  # family with no mutation).
+  #
+  # Also closes a second gap: nothing pins `working-directory: packages/credbroker` on
+  # the moved step today. Its loss fails loudly only because the repo has no root
+  # pytest config, so a dropped value collects the monorepo and exits 2 at collection
+  # (measured: 6353 tests, 33 errors). Adding a root [tool.pytest.ini_options],
+  # pytest.ini, setup.cfg or conftest.py REMOVES that backing.
+  {slug = "ci-gate-credbroker-job-statements-pin", source = "spec/ci-gate-credbroker, review round 12"},
   # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
   # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
   # keys, an inferred base indent, positive-substring-over-a-block, and key spelling
