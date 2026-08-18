@@ -29,6 +29,12 @@ REPO_ROOT = Path(__file__).parent.parent.resolve()
 SITE_DOCS = REPO_ROOT / "docs-site" / "src" / "content" / "docs"
 GITHUB_BASE = "https://github.com/eugenelim/agent-ready-repo/blob/main"
 SITE_BASE = "/agent-ready-repo/docs"
+NOW_PROJECTION = (
+    REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
+)
+# Seven calendar days ending on launch day, inclusive (brief decision 19): the
+# launch date itself plus the six dates before it.
+NOW_WINDOW_DAYS = 7
 
 # Guide-specific frontmatter fields that are stripped before writing to the
 # docs-site. These are understood by validate_guides.py but not by Starlight.
@@ -1019,6 +1025,300 @@ def sync_pack_journeys(
     return count
 
 
+# ---------------------------------------------------------------------------
+# Released changelog Highlights → the public /now/ projection.
+#
+# `spec/site-now-surface`. The only content source is an optional `Highlights`
+# subsection of an existing `docs/product/changelog.md` release entry. Two rules
+# make an entry eligible, and both are structural rather than textual:
+#
+#   1. it carries a package/version identity AND a release date, and
+#   2. it is not beneath an `[Unreleased]` heading.
+#
+# Rule 2 is relative, not positional. `changelog.md` currently holds three
+# separate `## [Unreleased]` regions, and the newest release-shaped entries are
+# nested *inside* the first one as `###` children. A date beneath `Unreleased`
+# does not make an entry released — the spec is explicit that Unreleased content
+# never projects "even if they contain Highlights" — so eligibility has to be
+# decided by enclosing structure. An `Unreleased` heading at level N opens a
+# region that every following heading deeper than N belongs to; the region ends
+# at the next heading of level N or shallower.
+#
+# The projection is pure: same source bytes in, same JSON out, no clock, no
+# network, no model. `--now-date` supplies the launch day so a fixture can pin
+# the window instead of drifting with the calendar.
+# ---------------------------------------------------------------------------
+
+_CHANGELOG_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$")
+_UNRELEASED_RE = re.compile(r"^\[?unreleased\]?$", re.IGNORECASE)
+# `[core][2.7.4] and [architect][0.14.5] — 2026-08-17` — one entry may release
+# several packages at once, so identity is a list, not a scalar.
+_RELEASE_PKG_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
+_RELEASE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})\s*$")
+_HIGHLIGHTS_RE = re.compile(r"^highlights$", re.IGNORECASE)
+_BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
+_FENCE_RE_CHANGELOG = re.compile(r"^\s*(```|~~~)")
+
+
+def _slug_base(text: str) -> str:
+    """Reproduce `github-slugger`'s slug for one heading's text.
+
+    Starlight generates heading anchors with `github-slugger`, so the fragment a
+    Now source link must point at is decided by that algorithm — not by anything
+    this repository chooses. Reimplemented rather than guessed: the accompanying
+    construction test asserts this function reproduces every `<h2>` id in the
+    emitted changelog page, which is the only evidence that the two agree.
+    """
+    slug = text.strip().lower()
+    # github-slugger strips a fixed control/punctuation set and keeps word
+    # characters, spaces and hyphens. Notably `[`, `]`, `.` and the em dash all
+    # vanish, while the spaces around a removed em dash each survive as one
+    # hyphen — which is why the emitted ids carry a `--`.
+    slug = re.sub(r"[^\w\s-]", "", slug, flags=re.UNICODE)
+    return slug.replace(" ", "-")
+
+
+class _Slugger:
+    """github-slugger's duplicate handling: the Nth repeat gains a `-N` suffix.
+
+    Load-bearing for correctness, not tidiness. `changelog.md` repeats
+    `[core][2.3.0] — 2026-08-07`, so the second occurrence is emitted as
+    `core230--2026-08-07-1`. A slug derived from heading text alone would send a
+    Now source link to the wrong release.
+    """
+
+    def __init__(self) -> None:
+        self._seen: dict[str, int] = {}
+
+    def slug(self, text: str) -> str:
+        base = _slug_base(text)
+        count = self._seen.get(base, 0)
+        self._seen[base] = count + 1
+        return base if count == 0 else f"{base}-{count}"
+
+
+def _parse_release_identity(title: str) -> dict | None:
+    """Return package/version/date identity for a release heading, else None.
+
+    None means "not a release entry" — an `[Unreleased]` heading, a `### Added`
+    group, or prose. A heading that looks like a release but carries a malformed
+    date is a source defect and raises, because silently dropping it would
+    under-report the launch window.
+    """
+    packages = [
+        {"name": name, "version": version}
+        for name, version in _RELEASE_PKG_RE.findall(title)
+    ]
+    if not packages:
+        return None
+    if len(packages) == 1 and _UNRELEASED_RE.match(f"[{packages[0]['name']}]"):
+        return None
+    date_match = _RELEASE_DATE_RE.search(title)
+    if date_match is None:
+        return None
+    year, month, day = (int(g) for g in date_match.groups())
+    if not (1 <= month <= 12 and 1 <= day <= 31):
+        raise ValueError(
+            f"changelog release heading has an impossible date: {title!r}"
+        )
+    return {
+        "packages": packages,
+        "date": f"{year:04d}-{month:02d}-{day:02d}",
+    }
+
+
+def parse_changelog_releases(text: str) -> list[dict]:
+    """Extract every release entry and its optional Highlights bullets.
+
+    Returns source-order records carrying package identity, release date,
+    heading text, anchor slug, whether the entry sits beneath `Unreleased`, and
+    the Highlights bullets when the entry declares them.
+    """
+    lines = text.splitlines()
+    slugger = _Slugger()
+    releases: list[dict] = []
+
+    # (level, is_unreleased) for every heading currently enclosing this line.
+    stack: list[tuple[int, bool]] = []
+    current: dict | None = None
+    # Level of the Highlights heading whose bullets we are collecting, if any.
+    highlights_level: int | None = None
+    in_fence = False
+
+    for raw in lines:
+        if _FENCE_RE_CHANGELOG.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            # A `#` inside a fenced block is shell syntax, not a heading, and a
+            # `-` inside one is not a bullet.
+            continue
+
+        heading = _CHANGELOG_HEADING_RE.match(raw)
+        if heading is None:
+            if highlights_level is not None and current is not None:
+                bullet = _BULLET_RE.match(raw)
+                if bullet is not None:
+                    body = bullet.group(1).strip()
+                    if body:
+                        current["highlights"].append(body)
+                elif raw.strip() and current["highlights"]:
+                    # A continuation line of the previous bullet: changelog
+                    # bullets wrap, and dropping the tail would truncate copy
+                    # mid-sentence on the public page.
+                    current["highlights"][-1] += " " + raw.strip()
+            continue
+
+        level = len(heading.group(1))
+        title = heading.group(2).strip()
+        slug = slugger.slug(title)
+
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+        if highlights_level is not None and level <= highlights_level:
+            highlights_level = None
+
+        beneath_unreleased = any(is_unreleased for _, is_unreleased in stack)
+        is_unreleased_heading = bool(_UNRELEASED_RE.match(title))
+
+        if is_unreleased_heading:
+            stack.append((level, True))
+            current = None
+            continue
+
+        identity = _parse_release_identity(title)
+        if identity is not None:
+            current = {
+                "packages": identity["packages"],
+                "date": identity["date"],
+                "heading": title,
+                "anchor": slug,
+                "unreleased": beneath_unreleased,
+                "highlights": [],
+            }
+            releases.append(current)
+            stack.append((level, False))
+            continue
+
+        if _HIGHLIGHTS_RE.match(title) and current is not None:
+            highlights_level = level
+        stack.append((level, False))
+
+    return releases
+
+
+_INLINE_MD_RE = re.compile(r"\*\*(.+?)\*\*|`(.+?)`", re.DOTALL)
+
+
+def highlight_segments(bullet: str) -> list[dict]:
+    """Split one Highlights bullet into typed render segments.
+
+    Changelog bullets are Markdown, and the Now renderer must not receive raw
+    Markdown (it would print literal asterisks) nor a raw HTML string (it would
+    hand an authored file an injection seam into a public page). Segments keep
+    the emphasis the house style relies on — `**Lead.** Body` — while leaving
+    escaping to the template, which escapes text nodes by default.
+
+    Only the two inline forms the changelog actually uses are recognised. An
+    unsupported form stays literal rather than being silently dropped, so the
+    text on the page is never less than what the source says.
+    """
+    segments: list[dict] = []
+    cursor = 0
+    for match in _INLINE_MD_RE.finditer(bullet):
+        if match.start() > cursor:
+            segments.append({"type": "text", "value": bullet[cursor:match.start()]})
+        strong, code = match.group(1), match.group(2)
+        if strong is not None:
+            segments.append({"type": "strong", "value": strong})
+        else:
+            segments.append({"type": "code", "value": code})
+        cursor = match.end()
+    if cursor < len(bullet):
+        segments.append({"type": "text", "value": bullet[cursor:]})
+    return segments
+
+
+def launch_window(end_date: str, days: int = NOW_WINDOW_DAYS) -> tuple[str, str]:
+    """Inclusive [start, end] ISO dates for the `days`-long launch-seed window.
+
+    The window is an AUTHORING rule, not a render filter. It decides which
+    released entries should have gained a `Highlights` block by launch day; it
+    never limits what `/now/` publishes afterwards. Keeping it out of the
+    projection is what makes the projection deterministic — a date window
+    evaluated at build time would change the page every midnight from unchanged
+    source, which the spec forbids.
+    """
+    from datetime import date, timedelta
+
+    end = date.fromisoformat(end_date)
+    start = end - timedelta(days=days - 1)
+    return start.isoformat(), end.isoformat()
+
+
+def project_now_highlights(text: str) -> dict:
+    """Project the public `/now/` payload from changelog source.
+
+    Only released entries — versioned, dated, and outside every `Unreleased`
+    region — that declare Highlights reach the payload. Groups sort by release
+    date descending and preserve source order for equal dates.
+
+    Pure and clock-free: the same source bytes always produce the same payload.
+    """
+    releases = parse_changelog_releases(text)
+    eligible = [r for r in releases if not r["unreleased"] and r["highlights"]]
+
+    # `sorted` is stable, so equal dates keep source order without a tiebreak
+    # key. An index tiebreak would have to be reversed alongside the date and is
+    # easy to get backwards; leaning on stability cannot drift.
+    ordered = sorted(eligible, key=lambda r: r["date"], reverse=True)
+
+    return {
+        "schemaVersion": 1,
+        "groups": [
+            {
+                "packages": r["packages"],
+                "date": r["date"],
+                "heading": r["heading"],
+                "changelogAnchor": r["anchor"],
+                "highlights": [
+                    {"source": bullet, "segments": highlight_segments(bullet)}
+                    for bullet in r["highlights"]
+                ],
+            }
+            for r in ordered
+        ],
+    }
+
+
+def generate_now_projection(
+    out: Path,
+    changelog: Path,
+    dry_run: bool = False,
+) -> dict:
+    """Write the `/now/` projection JSON and return the payload."""
+    payload = project_now_highlights(changelog.read_text(encoding="utf-8"))
+    rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    if not dry_run:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(rendered, encoding="utf-8")
+    return payload
+
+
+def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
+    """Emit the `/now/` projection and print what reached the public page."""
+    if not changelog.exists():
+        print(f"  warn  {changelog.name} missing — /now/ projection skipped", file=sys.stderr)
+        return
+    payload = generate_now_projection(NOW_PROJECTION, changelog, dry_run=dry_run)
+    groups = payload["groups"]
+    bullets = sum(len(g["highlights"]) for g in groups)
+    print(
+        f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
+        + (" (dry run)" if dry_run else "")
+    )
+
+
 def load_guide_baseline(path: Path) -> dict:
     """Read the frozen pre-change ``(slug, label)`` navigation baseline.
 
@@ -1117,6 +1417,8 @@ def main() -> None:
 
     packs_dir = REPO_ROOT / "packs"
 
+    changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"
+
     if args.journeys_only:
         journey_dir = REPO_ROOT / "web" / "src" / "content" / "journeys"
         n = sync_pack_journeys(packs_dir, journey_dir, dry_run=args.dry_run)
@@ -1124,6 +1426,12 @@ def main() -> None:
             f"build-site: synced {n} pack journey(s)"
             + (" (dry run)" if args.dry_run else "")
         )
+        # Both marketing-renderer inputs are projected in this pre-build phase.
+        # Ordering is load-bearing: the workflow runs this pass BEFORE
+        # `npm run build --prefix web`, and the full pass only afterwards, so a
+        # projection emitted solely by the full pass would always be one build
+        # stale for the renderer that consumes it.
+        _report_now_projection(changelog_src, dry_run=args.dry_run)
         return
 
     packs_out = SITE_DOCS / "packs"
@@ -1181,8 +1489,10 @@ def main() -> None:
     n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
     print(f"  {n} files from guides/")
 
+    print("build-site: projecting released changelog highlights …")
+    _report_now_projection(changelog_src, dry_run=args.dry_run)
+
     print("build-site: copying changelog …")
-    changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"
     changelog_dst = SITE_DOCS / "changelog.md"
     if changelog_src.exists():
         copy_file(changelog_src, changelog_dst, rewriter=_rewrite_changelog, dry_run=args.dry_run)

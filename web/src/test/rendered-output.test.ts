@@ -36,6 +36,8 @@ const ASIDE_LEDGER = join(
 );
 const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
 const DOCS_HOME = join(DOCS_ROOT, 'index.html');
+const NOW_PAGE = join(BUILD_ROOT, 'now', 'index.html');
+const NOW_PROJECTION = join(REPO_ROOT, 'web/src/lib/now-highlights.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
 function walk(dir: string, match: (name: string) => boolean, out: string[] = []): string[] {
@@ -391,6 +393,115 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       expect(col.querySelector('h2')?.textContent?.trim()).toBeTruthy();
       expect(col.querySelectorAll('a').length).toBeGreaterThan(0);
     }
+  });
+
+  /**
+   * spec/site-now-surface — the emitted public Now surface.
+   *
+   * Asserted against built HTML, not the projection object: the projection being
+   * right proves the parser, not the page. Every check below would still pass
+   * with a broken parser and fail with a broken template, which is the half the
+   * Python suite cannot see.
+   */
+  it('now AC1: /now/ emits exactly one <h1> reading "Now"', () => {
+    const d = doc(NOW_PAGE);
+    const h1s = [...d.querySelectorAll('h1')].map((h) => h.textContent?.trim());
+    expect(h1s).toEqual(['Now']);
+  });
+
+  it('now AC1: no /work/ page, redirect, or navigation target survives', () => {
+    expect(existsSync(join(BUILD_ROOT, 'work', 'index.html'))).toBe(false);
+    for (const page of walk(BUILD_ROOT, (n) => n === 'index.html')) {
+      if (page.startsWith(DOCS_ROOT)) continue; // docs content quotes history
+      const html = readFileSync(page, 'utf8');
+      expect(html, `${relative(BUILD_ROOT, page)} still links /work/`).not.toMatch(
+        /href="[^"]*\/work\/"/
+      );
+    }
+  });
+
+  it('now AC10: primary navigation offers Now at /now/ in place of Work', () => {
+    const d = doc(homePage);
+    const navHrefs = [...d.querySelectorAll('.nav__links a, .nav__drawer a')].map((a) => ({
+      label: a.textContent?.replace(/\s+/g, ' ').trim(),
+      href: a.getAttribute('href'),
+    }));
+    const now = navHrefs.filter((l) => l.href?.endsWith('/now/'));
+    expect(now.length).toBeGreaterThanOrEqual(2); // desktop list + mobile drawer
+    for (const link of now) expect(link.label).toBe('Now');
+    expect(navHrefs.some((l) => l.href?.endsWith('/work/'))).toBe(false);
+  });
+
+  it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    const d = doc(NOW_PAGE);
+    const groups = [...d.querySelectorAll('.now-release')];
+    expect(groups.length).toBe(projection.groups.length);
+
+    // Descending by release date, which is the contract's order.
+    const dates = groups.map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
+    expect([...dates]).toEqual([...dates].sort().reverse());
+
+    groups.forEach((group, i) => {
+      const expected = projection.groups[i];
+      expect(group.querySelector('time')?.getAttribute('datetime')).toBe(expected.date);
+      const name = group.querySelector('.now-release__name')?.textContent ?? '';
+      for (const pkg of expected.packages) {
+        expect(name).toContain(pkg.name);
+        expect(name).toContain(pkg.version);
+      }
+      const source = group.querySelector('.now-release__source')?.getAttribute('href') ?? '';
+      expect(source).toContain('/docs/changelog/');
+      expect(source.endsWith(`#${expected.changelogAnchor}`)).toBe(true);
+      expect(group.querySelectorAll('.now-highlight').length).toBe(expected.highlights.length);
+
+      // Resolve the fragment against the EMITTED changelog, not against the
+      // projection that produced it. Comparing the page to its own input is
+      // self-ratifying: a wrong anchor written into the projection would appear
+      // on the page and match, and this assertion would agree with the mistake.
+      // Verified by seeding `does-not-exist-anchor`, which passes the
+      // projection-only comparison and fails this one.
+      const changelogPage = join(DOCS_ROOT, 'changelog', 'index.html');
+      if (existsSync(changelogPage)) {
+        const emitted = new JSDOM(readFileSync(changelogPage, 'utf8')).window.document;
+        expect(
+          emitted.getElementById(expected.changelogAnchor),
+          `Now links #${expected.changelogAnchor}, absent from the emitted changelog`
+        ).not.toBeNull();
+      }
+    });
+  });
+
+  it('now AC9: emitted Now text carries no Unreleased or development-state vocabulary', () => {
+    const d = doc(NOW_PAGE);
+    const text = (d.querySelector('main')?.textContent ?? '').toLowerCase();
+    expect(text.length).toBeGreaterThan(0);
+    for (const forbidden of ['unreleased', 'work index', 'backlog', 'queue', 'in progress']) {
+      expect(text, `Now leaks ${forbidden}`).not.toContain(forbidden);
+    }
+    // Markdown emphasis is rendered, never printed: a literal ** on a public
+    // page is the symptom of handing the template raw Markdown.
+    expect(text).not.toContain('**');
+  });
+
+  it('now AC8: the empty state and its changelog link are wired for a zero-group projection', () => {
+    // The live projection is non-empty, so the empty branch cannot be asserted
+    // from this build. Assert its two exact strings exist in the template rather
+    // than pretending the built page proves them — a silent skip here would read
+    // as coverage that isn't there.
+    const src = readFileSync(join(REPO_ROOT, 'web/src/pages/now/index.astro'), 'utf8');
+    expect(src).toContain('No released highlights yet.');
+    expect(src).toContain('Read the changelog');
+    expect(src).toContain('groups.length === 0');
+  });
+
+  it('now AC7: the built page is a pure function of the committed projection', () => {
+    // No clock, no window, no build date reaches the page. A date-derived filter
+    // would make the same source emit different HTML tomorrow.
+    const src = readFileSync(join(REPO_ROOT, 'web/src/pages/now/index.astro'), 'utf8');
+    expect(src).not.toMatch(/Date\.now|new Date\(\)/);
+    const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
+    expect(projection).not.toHaveProperty('launchDate');
   });
 });
 

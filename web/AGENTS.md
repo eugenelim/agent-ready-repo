@@ -70,11 +70,19 @@ Two controls, only one of them automated:
 - Build order relative to the docs site is load-bearing; the canonical
   build-order fact lives in [`docs-site/AGENTS.md`](../docs-site/AGENTS.md)
   § Build — read it before touching either build.
-- Some files in `web/src/content/journeys/` are generated from `packs/*/JOURNEY.md`
-  by `tools/build-site.py --journeys-only`. Running `npm run build --prefix web`
-  without first running `python tools/build-site.py --journeys-only` (or
-  `make site-build`) will fail if generated files are absent. The `pages.yml` CI
-  job runs the sync step before the Astro build automatically.
+- Two inputs to this build are generated, both by
+  `tools/build-site.py --journeys-only`:
+  `web/src/content/journeys/` from `packs/*/JOURNEY.md`, and
+  `web/src/lib/now-highlights.generated.json` from released `Highlights` in
+  `docs/product/changelog.md`. Running `npm run build --prefix web` without that
+  step will fail if either is absent. The `pages.yml` CI job runs it before the
+  Astro build automatically.
+- Both are committed, and both are checked for drift: a changelog edit that is
+  not re-projected fails
+  `tools/test_build_site_routing.py::test_the_committed_now_projection_matches_the_changelog_source`.
+  The projection runs in the `--journeys-only` pass rather than the full pass
+  because the full pass runs AFTER this build, so a projection emitted only
+  there would always be one build stale for the renderer reading it.
 
 ## Development
 

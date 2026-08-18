@@ -1,0 +1,245 @@
+---
+// The public "Now" surface: outcomes that have actually shipped.
+//
+// `spec/site-now-surface`. Content comes from one place only — optional
+// `Highlights` subsections of RELEASED entries in `docs/product/changelog.md`,
+// projected by `tools/build-site.py` into `now-highlights.generated.json`. This
+// page renders that projection and derives nothing itself, so a claim can reach
+// the public site only by being written into a released changelog entry and
+// passing ordinary PR review.
+//
+// Deliberately absent: anything describing work in progress. No queue, no plans,
+// no commits, no `[Unreleased]` content. The tech-site principle "put verifiable
+// evidence beside every meaningful claim" is why every group links back to the
+// changelog entry it came from.
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import Section from '../../components/layout/Section.astro';
+import { withBase } from '../../lib/paths';
+import projection from '../../lib/now-highlights.generated.json';
+
+interface HighlightSegment {
+  readonly type: 'text' | 'strong' | 'code';
+  readonly value: string;
+}
+
+interface NowGroup {
+  readonly packages: readonly { readonly name: string; readonly version: string }[];
+  readonly date: string;
+  readonly heading: string;
+  readonly changelogAnchor: string;
+  readonly highlights: readonly {
+    readonly source: string;
+    readonly segments: readonly HighlightSegment[];
+  }[];
+}
+
+const groups = projection.groups as readonly NowGroup[];
+
+const changelogHref = withBase('/docs/changelog/');
+
+// "governance-extras 0.9.7", or both names when one entry released two packages.
+const releaseLabel = (g: NowGroup) =>
+  g.packages.map((p) => `${p.name} ${p.version}`).join(' · ');
+
+// 2026-08-16 → "16 August 2026". Built from the ISO parts rather than
+// `new Date(...)`: parsing a bare date string is UTC while formatting is local,
+// so a timezone behind UTC renders the previous day.
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const readableDate = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+};
+---
+
+<SiteLayout
+  title="Now — agent-ready-repo"
+  description="What has actually shipped, taken from released changelog entries. Every outcome links to the release it came from."
+>
+  <!-- ── Hero ──────────────────────────────────────────────────────────── -->
+  <section class="now-hero" aria-labelledby="now-heading">
+    <div class="now-hero__inner">
+      <span class="now-hero__eyebrow">Shipped and released</span>
+      <h1 id="now-heading" class="now-hero__heading">Now</h1>
+      <p class="now-hero__body">
+        Outcomes that have shipped in a released version. Each one links to the
+        changelog entry that released it, so you can check it rather than take it
+        on trust.
+      </p>
+    </div>
+  </section>
+
+  <Section tone="surface" labelledby="now-releases-heading">
+    <h2 id="now-releases-heading" class="visually-hidden">Released highlights</h2>
+
+    {groups.length === 0 ? (
+      <div class="now-empty">
+        <p class="now-empty__text">No released highlights yet.</p>
+        <a class="now-empty__link" href={changelogHref}>Read the changelog</a>
+      </div>
+    ) : (
+      <ol class="now-list">
+        {groups.map((g) => (
+          <li class="now-release">
+            <div class="now-release__meta">
+              <span class="now-release__name">{releaseLabel(g)}</span>
+              <time class="now-release__date" datetime={g.date}>{readableDate(g.date)}</time>
+            </div>
+            <ul class="now-release__highlights">
+              {g.highlights.map((h) => (
+                <li class="now-highlight">
+                  {h.segments.map((s) => (
+                    s.type === 'strong' ? <strong>{s.value}</strong>
+                    : s.type === 'code' ? <code>{s.value}</code>
+                    : <Fragment>{s.value}</Fragment>
+                  ))}
+                </li>
+              ))}
+            </ul>
+            <a
+              class="now-release__source"
+              href={`${changelogHref}#${g.changelogAnchor}`}
+            >Release notes for {releaseLabel(g)}</a>
+          </li>
+        ))}
+      </ol>
+    )}
+  </Section>
+</SiteLayout>
+
+<style>
+  /* ── Hero ──────────────────────────────────────────────────────────── */
+  .now-hero {
+    background-color: var(--ds-hero-bg);
+    color: var(--ds-hero-fg);
+    padding: clamp(4rem, 10vw, 7rem) var(--ds-content-pad-x) clamp(3rem, 6vw, 5rem);
+  }
+
+  .now-hero__inner {
+    max-width: var(--ds-content-max);
+    margin-inline: auto;
+  }
+
+  .now-hero__eyebrow {
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-accent);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-hero__heading {
+    font-size: var(--ds-type-display);
+    font-weight: var(--ds-weight-heavy);
+    letter-spacing: var(--ds-track-display);
+    line-height: var(--ds-lead-display);
+    margin-bottom: var(--ds-space-5);
+    color: var(--ds-hero-fg);
+  }
+
+  .now-hero__body {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-hero-fg-2);
+    max-width: 62ch;
+    line-height: var(--ds-lead-body);
+  }
+
+  /* ── Accessibility ──────────────────────────────────────────────────── */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* ── Releases ──────────────────────────────────────────────────────── */
+  .now-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--ds-space-6);
+  }
+
+  .now-release {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  .now-release__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--ds-space-2) var(--ds-space-4);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-release__name {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-semibold);
+    color: var(--ds-on-surface);
+  }
+
+  .now-release__date {
+    font-size: var(--ds-type-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-on-surface-2);
+  }
+
+  .now-release__highlights {
+    margin: 0 0 var(--ds-space-5);
+    padding-left: var(--ds-space-5);
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .now-highlight {
+    font-size: var(--ds-type-body);
+    color: var(--ds-on-surface-2);
+    line-height: var(--ds-lead-body);
+  }
+
+  .now-highlight strong {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .now-release__source {
+    display: inline-block;
+    font-size: var(--ds-type-sm);
+    font-weight: var(--ds-weight-medium);
+  }
+
+  /* ── Empty state ───────────────────────────────────────────────────── */
+  .now-empty {
+    background-color: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-6);
+  }
+
+  .now-empty__text {
+    font-size: var(--ds-type-body-lg);
+    color: var(--ds-on-surface);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .now-empty__link {
+    font-size: var(--ds-type-body);
+    font-weight: var(--ds-weight-medium);
+  }
+</style>

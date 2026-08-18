@@ -14,9 +14,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > not a finished product. Rewrite for users, not contributors. See the
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
+>
+> **Highlights (optional, feeds the public `/now/` page).** A release entry may
+> carry one `Highlights` subsection, one heading level below that entry. Its
+> bullets are the outcome-led, user-facing sentences that publish at `/now/`;
+> everything else in the entry stays technical. Three rules govern them:
+>
+> - **Released only.** An entry beneath `[Unreleased]` never publishes, even
+>   when it has a date and a `Highlights` block. Move the entry out of
+>   `[Unreleased]` at release time and it publishes then — nothing else to do.
+> - **Reviewed like code.** Write them in the same PR as the implementation,
+>   grounded in that diff and its verification evidence. Ordinary PR review is
+>   the only approval gate; there is no separate editorial process. Drafting
+>   them with AI assistance is fine — the reviewer, not the drafter, is the
+>   authority, and no model runs in CI, release automation, or site generation.
+> - **Outcome, not activity.** Describe what someone can now do. Never plans,
+>   queue state, commits, pull requests, or what the team is working on.
+>
+> A released entry with no `Highlights` is perfectly normal — it stays in this
+> changelog and is simply absent from `/now/`.
 
 
 ## [Unreleased]
+
+### Added
+
+- **A new `/now/` page lists what has actually shipped.** It is built from the
+  optional `Highlights` block of released changelog entries, so an outcome
+  reaches the public site only by being written into a release and passing
+  ordinary review. Each entry links back to the release notes it came from.
+  Work still in progress never appears.
+
+### Removed
+
+- **The public `/work/` index is gone.** It exposed internal delivery state —
+  queues, blocked items, upstream context — to anyone visiting the site.
+  `/now/` replaces it with released outcomes. There is no redirect: the old
+  address returns a 404 rather than implying the surface moved. `Work` in the
+  site navigation is now `Now`.
 
 ### [agentbundle][0.38.0] — 2026-08-17
 
@@ -772,6 +807,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   would turn this catalogue's house style into someone else's build break.
 
 ## [governance-extras][0.9.7] — 2026-08-16
+
+### Highlights
+
+- **Writing an RFC or an ADR now files its reusable lessons for you, and only
+  once the decision is actually settled.** Supporting lessons are handed to
+  project knowledge at clean handoff and accepted-decision points, so a draft
+  you abandon leaves nothing behind. If project knowledge is not installed,
+  authoring proceeds unchanged and writes no stand-in file.
 
 ### Changed
 

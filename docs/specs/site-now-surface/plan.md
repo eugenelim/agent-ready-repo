@@ -1,7 +1,7 @@
 # Plan: Site Now surface
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -191,3 +191,20 @@ external system, dependency, or runtime service exists.
 - 2026-08-17: initial approved plan for released changelog Highlights at
   `/now/`, seven-day launch seeding, exact empty state, and complete retirement
   of the public `/work/` surface.
+- 2026-08-18: implementation clarified where the seven-day window lives. AC5
+  describes it as a property of the LAUNCH SEED, while AC7 requires repeated
+  builds from the same source to produce identical content. Evaluating the
+  window inside the projection makes those two contradict each other on any day
+  after launch — the same bytes would emit a different page at midnight. The
+  window therefore stays an authoring rule, asserted over the real changelog
+  with the launch date pinned as a historical fact
+  (`test_the_launch_seed_covers_exactly_the_released_entries_in_its_window`),
+  and `project_now_highlights` is clock-free. `launch_window()` remains, used by
+  that test rather than by the generator. No AC changed.
+- 2026-08-18: measured consequence of the eligibility rule, recorded because it
+  looks like an error and is not: on the launch date the seven-day window holds
+  exactly ONE eligible released entry, `governance-extras 0.9.7 — 2026-08-16`.
+  The 28 other entries dated inside the window are `###` children of an
+  `## [Unreleased]` heading, and `changelog.md` carries three such regions, so
+  eligibility is decided by enclosing structure rather than position in the
+  file. `/now/` therefore launches with one release group.
