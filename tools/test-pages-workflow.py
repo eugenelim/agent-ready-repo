@@ -55,12 +55,37 @@ BEFORE_STEP = "Upload Pages artifact"
 # Filters AC7 names. `docs-site/**` covers both the plugin and the docs package
 # manifest; the workflow's own path is what makes an edit disabling the gate
 # trigger a run.
-REQUIRED_PATHS = ("docs-site/**", ".github/workflows/pages.yml")
+REQUIRED_PATHS = (
+    "docs-site/**",
+    ".github/workflows/pages.yml",
+    # The browser gate's inputs (AC10). `web/**` covers its specs, its Playwright
+    # config and the marketing renderer; the rest are content and generation it
+    # exercises. Without these an edit that breaks a gated route triggers no run.
+    "web/**",
+    "guides/**",
+    "site.toml",
+    "tools/build-site.py",
+)
 # What `test:plugins` must actually BE. An explicit path fails closed when the suite
 # moves; a glob exits 0 with `tests 0`, and so does `true`.
 PLUGIN_SUITE = "docs-site/src/plugins/rehype-scrollable-tables.test.ts"
 EXPECTED_PLUGIN_SCRIPT = "node --test src/plugins/rehype-scrollable-tables.test.ts"
 PACKAGE_JSON = "docs-site/package.json"
+
+# ── spec/site-browser-quality-gate ──────────────────────────────────────────
+# The deterministic browser subset. Pinned here rather than in a sibling file
+# because this module already owns pages.yml posture AND already closed every
+# fail-open a containment check admits: a first attempt at a separate checker was
+# mutation-tested green against `|| true`, job-level `continue-on-error`, deleting
+# a path filter from one trigger, and flipping `paths:` to `paths-ignore:`.
+GATE_TEST_CMD = "npm run test:e2e:gate --prefix web"
+# It exercises the emitted artifact, so both builds must precede it.
+GATE_AFTER_STEP = "Build docs site"
+WEB_PACKAGE_JSON = "web/package.json"
+# What `test:e2e:gate` must BE. An explicit allowlist of read-only specs: the two
+# excluded specs write PNGs into tracked `docs/specs/**` paths, and a glob or an
+# exclusion flag would let a newly added writing spec join required CI silently.
+EXPECTED_GATE_SCRIPT = "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts"
 
 
 def script_is_pinned(script: str) -> bool:
@@ -79,17 +104,26 @@ def script_is_pinned(script: str) -> bool:
     return script == EXPECTED_PLUGIN_SCRIPT
 
 
-def _plugin_script() -> str:
-    """`scripts["test:plugins"]` from the docs package manifest, or ""."""
+def _script(manifest: str, name: str) -> str:
+    """One `scripts[name]` entry from a package manifest, or ""."""
     import json
-    p = REPO_ROOT / PACKAGE_JSON
+    p = REPO_ROOT / manifest
     if not p.is_file():
         return ""
     try:
-        return json.loads(p.read_text(encoding="utf-8")).get("scripts", {}).get(
-            "test:plugins", "")
+        return json.loads(p.read_text(encoding="utf-8")).get("scripts", {}).get(name, "")
     except (ValueError, OSError):
         return ""
+
+
+def _plugin_script() -> str:
+    """`scripts["test:plugins"]` from the docs package manifest, or ""."""
+    return _script(PACKAGE_JSON, "test:plugins")
+
+
+def _gate_script() -> str:
+    """`scripts["test:e2e:gate"]` from the web package manifest, or ""."""
+    return _script(WEB_PACKAGE_JSON, "test:e2e:gate")
 
 
 def _strip_comments(text: str) -> str:
@@ -270,6 +304,24 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("build-job-not-conditional",
           not re.search(r"^    ['\"]?if['\"]?\s*:", block, re.M))
 
+    # The browser gate, by STATEMENT EQUALITY for the same reasons as above. A
+    # containment check on this command accepted `… || true` and `… --shard=1/50`.
+    gate_owners = [i for i, s in enumerate(steps)
+                   if [ln.strip() for ln in _run_body(s).splitlines() if ln.strip()]
+                   == [GATE_TEST_CMD]]
+    check("browser-gate-present", len(gate_owners) == 1)
+    if gate_owners:
+        i = gate_owners[0]
+        step = steps[i]
+        check("browser-gate-no-continue-on-error", not _has_key(step, "continue-on-error"))
+        check("browser-gate-no-if", not _has_key(step, "if"))
+        check("browser-gate-no-cwd", not _has_key(step, "working-directory"))
+        check("browser-gate-no-shell", not _has_key(step, "shell"))
+        gate_after = names.index(GATE_AFTER_STEP) if GATE_AFTER_STEP in names else -1
+        before = names.index(BEFORE_STEP) if BEFORE_STEP in names else -1
+        check("browser-gate-after-docs-build", gate_after != -1 and i > gate_after)
+        check("browser-gate-before-upload", before != -1 and i < before)
+
     on_blk = _on_block(text)
     check("on-block-present", bool(on_blk))
     # Parsed PER TRIGGER, not counted. An occurrence count over the whole `on:` block
@@ -360,16 +412,79 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("      - 'docs-site/**'\n", "", 1)),
     ("drop-workflow-self-filter", "path-filter[.github/workflows/pages.yml]",
      lambda t: t.replace("      - '.github/workflows/pages.yml'\n", "", 1)),
+    # ── browser gate. Each is a form that leaves the command textually present
+    # while it gates nothing, and each was measured green against a containment
+    # check before this module took the assertions over.
+    ("drop-browser-gate-step", "browser-gate-present",
+     lambda t: re.sub(r"      - name: [^\n]*\n        run: " + re.escape(GATE_TEST_CMD) + r"\n",
+                      "", t, count=1)),
+    ("advisory-browser-gate", "browser-gate-no-continue-on-error",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}\n",
+                         f"        continue-on-error: true\n        run: {GATE_TEST_CMD}\n")),
+    ("conditional-browser-gate", "browser-gate-no-if",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}\n",
+                         f"        if: ${{{{ false }}}}\n        run: {GATE_TEST_CMD}\n")),
+    ("cwd-browser-gate", "browser-gate-no-cwd",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}\n",
+                         f"        working-directory: tools\n        run: {GATE_TEST_CMD}\n")),
+    ("shell-browser-gate", "browser-gate-no-shell",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}",
+                         f"        shell: cat {{0}}\n        run: {GATE_TEST_CMD}")),
+    ("swallow-browser-gate-exit", "browser-gate-present",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}",
+                         f"        run: {GATE_TEST_CMD} || true")),
+    ("shard-browser-gate", "browser-gate-present",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}",
+                         f"        run: {GATE_TEST_CMD} --shard=1/50")),
+    ("echo-browser-gate", "browser-gate-present",
+     lambda t: t.replace(f"        run: {GATE_TEST_CMD}",
+                         f"        run: echo '{GATE_TEST_CMD}'")),
+    ("browser-gate-before-docs-build", "browser-gate-after-docs-build",
+     lambda t: _relocate_named(t, GATE_TEST_CMD, "Aggregate content", after=False)),
+    ("browser-gate-after-upload", "browser-gate-before-upload",
+     lambda t: _relocate_named(t, GATE_TEST_CMD, BEFORE_STEP, after=True)),
+    ("drop-web-filter", "path-filter[web/**]",
+     lambda t: t.replace("      - 'web/**'\n", "", 1)),
+    ("drop-guides-filter", "path-filter[guides/**]",
+     lambda t: t.replace("      - 'guides/**'\n", "", 1)),
+    ("drop-site-toml-filter", "path-filter[site.toml]",
+     lambda t: t.replace("      - 'site.toml'\n", "", 1)),
+    ("drop-generator-filter", "path-filter[tools/build-site.py]",
+     lambda t: t.replace("      - 'tools/build-site.py'\n", "", 1)),
 ]
 
 
-def _extract_gate_step(text: str) -> tuple[str, str]:
-    """Pull the plugin-test step chunk out of `text`. Returns (chunk, remainder)."""
+def _extract_named_step(text: str, command: str) -> tuple[str, str]:
+    """Pull the step chunk carrying `command` out of `text`. Returns (chunk, rest)."""
     # Find the chunk that actually carries the command, not merely the first step.
     for m in re.finditer(r"^      - name: [^\n]*\n(?:        [^\n]*\n)*", text, re.M):
-        if PLUGIN_TEST_CMD in m.group(0):
+        if command in m.group(0):
             return m.group(0), text[:m.start()] + text[m.end():]
     return "", text
+
+
+def _extract_gate_step(text: str) -> tuple[str, str]:
+    """Backwards-compatible alias for the plugin-test step."""
+    return _extract_named_step(text, PLUGIN_TEST_CMD)
+
+
+def _relocate_named(text: str, command: str, anchor_name: str, *, after: bool) -> str:
+    """Move the step carrying `command` immediately before/after the named step."""
+    chunk, rest = _extract_named_step(text, command)
+    if not chunk:
+        return text
+    anchor = f"      - name: {anchor_name}\n"
+    if anchor not in rest:
+        return text
+    i = rest.index(anchor)
+    if after:
+        nxt = rest.find("      - ", i + len(anchor))
+        job_end = rest.find("\n  deploy:")
+        limit = job_end + 1 if job_end != -1 else len(rest)
+        at = nxt if nxt != -1 and nxt < limit else limit
+    else:
+        at = i
+    return rest[:at] + chunk + rest[at:]
 
 
 def _relocate_gate(text: str, anchor_name: str, *, after: bool) -> str:
@@ -459,6 +574,17 @@ def main(argv: list[str]) -> int:
             f"{EXPECTED_PLUGIN_SCRIPT!r}, got {_plugin_script()!r})")
     if not (REPO_ROOT / PLUGIN_SUITE).is_file():
         violations.append(f"plugin-suite-file-exists ({PLUGIN_SUITE} is missing)")
+    # The browser gate's script, pinned by EXACT equality for the same reason: the
+    # workflow-text matrix cannot flip a value read from `web/package.json`, and a
+    # containment check here accepted `… || true` and `… --shard=1/50`. The
+    # allowlist IS the AC11 contract, so its spelling is the gate.
+    if _gate_script() != EXPECTED_GATE_SCRIPT:
+        violations.append(
+            f"browser-gate-script-pinned ({WEB_PACKAGE_JSON} scripts['test:e2e:gate'] "
+            f"must be {EXPECTED_GATE_SCRIPT!r}, got {_gate_script()!r})")
+    for spec in EXPECTED_GATE_SCRIPT.split()[2:]:
+        if not (REPO_ROOT / "web" / "src" / "test" / "e2e" / spec).is_file():
+            violations.append(f"browser-gate-spec-exists ({spec} is missing)")
     if violations:
         print(f"✖ {len(violations)} posture violation(s):", file=sys.stderr)
         for v in violations:

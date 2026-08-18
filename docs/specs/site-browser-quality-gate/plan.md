@@ -1,7 +1,7 @@
 # Plan: Site browser quality gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -173,9 +173,10 @@ proof.
 **Touches:** docs/specs/site-browser-quality-gate/notes/print-audit.md
 
 **Tests:**
-- Visual/manual QA: print the six exact representative routes and record
-  navigation removal, text/headings/links, code, aside, table, clipping,
-  overlap, and page-break evidence (AC12).
+- Visual/manual QA: print the six exact representative routes and record the four
+  axes in [`notes/print-audit.md`](notes/print-audit.md) § Measured axes (AC12).
+  Vertical overlap and page-break quality are out of scope — `[backlog].open` slug
+  `print-audit-page-break-quality`.
 - Goal-based: reject any proposed print rule that lacks an exact observed route,
   failure, and smallest owning selector boundary (AC13).
 
@@ -249,3 +250,37 @@ tests and evidence; there is no production infrastructure change.
 - 2026-08-17: replaced `/work/` with `/now/`, fixed the measured tap-target and
   exemption contract, added print disposition evidence, and routed conditional
   remediation by owning behavior.
+- 2026-08-18: implemented. Measured outcomes, recorded here because several close
+  tasks by finding nothing:
+  - **T0 (tap-target audit): zero demonstrated failures.** Every distinct
+    undersized candidate conforms through SC 2.5.8's Inline or Spacing clause on
+    measured geometry; the audit's § Evidence availability is the single home for
+    the counts, so they are not restated here to drift against it. THREE
+    measurement traps were corrected first, not two — ancestor adjacency, unpainted
+    overlay targets settled by `elementFromPoint` rather than geometry, and
+    hover-revealed targets that an `opacity === 0` filter had dropped without a
+    recorded rule. The third also required the target set to be restated as one
+    definition rather than a filter chain, because trap 2 excludes
+    painted-but-unreachable while trap 3 admits unpainted-but-reachable.
+  - **T2 (60-case matrix): passes.** 0px document overflow and zero
+    serious/critical axe on all 60. One accepted moderate result,
+    `landmark-unique` ×8, traced to `@expressive-code/core`'s runtime module and
+    accepted on severity plus exact cause, not on ownership.
+  - **T3: no remediation.** Nothing was demonstrated, so nothing returned to an
+    owning spec and no conditional remediation spec was materialized. The docs
+    footer rows and the absent product-orientation band are flagged for
+    re-measurement when `site-shared-chrome` lands.
+  - **T4 (print): `close-stale`, with two axes not delivered.** Six routes, measured
+    on the four axes in [`notes/print-audit.md`](notes/print-audit.md) § Measured
+    axes; `close-stale` rests on axes 1 and 2. No print CSS added. AC12 ships
+    deferred: per-route navigation visibility is withdrawn
+    (`print-chrome-paint-inventory`) and page-break quality was never measured
+    (`print-audit-page-break-quality`).
+  - **T6: blocked, not passed.** No physical device is reachable; the release
+    checklist records the blocker and owner rather than a pass.
+- 2026-08-18: T1's scope grew by one file. `web/src/test/e2e/site-base.ts` derives
+  the deployment base from `web/astro.config.ts`, because the repository-name
+  literal was in seven places — `playwright.config.ts` twice, including the
+  `webServer.url` that starts the preview server, and five route constants across
+  three spec files. AC3 requires configuration-derived qualification; without this
+  a base change would have hung the preview poll with no test predicting it.

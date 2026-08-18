@@ -34,10 +34,25 @@ runtime impact.
 | [`@vitest/ui`](https://vitest.dev/guide/ui) | pinned `4.1.10` | Optional browser UI for vitest |
 | [`jsdom`](https://github.com/jsdom/jsdom) | pinned `30.0.0` | DOM environment for vitest tests of `.astro`-rendered HTML |
 | [`axe-core`](https://github.com/dequelabs/axe-core) | pinned `4.12.1` | Accessibility engine; used directly in tests via `import axe from 'axe-core'` |
-| [`@playwright/test`](https://playwright.dev) | pinned `1.62.0` | Browser automation for viewport screenshots and keyboard-navigation tests; config at `playwright.config.ts`; run with `npx playwright test` |
+| [`@playwright/test`](https://playwright.dev) | pinned `1.62.0` | Browser automation; config at `playwright.config.ts`. Run the deploy-blocking subset with `npm run test:e2e:gate` — see § Browser gate below. `npx playwright test` runs EVERYTHING, including two specs that write PNGs into tracked `docs/specs/**`. |
 
-Note: `@axe-core/vitest` does not exist on npm (verified 2026-07-28). `axe-core`
-is used directly. Test runner entry point: `npm test` (`vitest run`).
+Note: `@axe-core/vitest` does not exist on npm (verified 2026-07-28). `axe-core` is
+used directly. Test entry point: `npm test` (`vitest run`); browser gate below.
+
+## Browser gate
+
+`spec/site-browser-quality-gate`. Deploy-blocking subset: `npm run test:e2e:gate`.
+It is an explicit ALLOWLIST of read-only specs — **not** `npx playwright test`, which
+also runs the two specs that write PNGs into tracked `docs/specs/**` while required CI
+must leave the tree clean. Adding a spec to the gate means editing
+`scripts["test:e2e:gate"]` here AND `EXCLUDED` in
+`tools/test_browser_gate_subset.py`; that test asserts the allowlist both ways, and
+`tools/test-pages-workflow.py` pins the script and step posture with a mutation
+self-test. It reads the emitted artifact, so the combined build must run first in its
+mandated order — commands and the reason in
+[`docs/guides/how-to/verify-a-site-release.md`](../docs/guides/how-to/verify-a-site-release.md).
+Route strings come from `src/test/e2e/site-base.ts`; never write
+`/agent-ready-repo/` into a spec.
 
 ## Supply-chain posture
 
