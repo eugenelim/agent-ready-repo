@@ -85,6 +85,35 @@ Five arms, each deciding something:
 - **No credential, real profile, or live account.** Synthetic data and fresh
   synthetic profiles only; never print, log, compare, or archive a credential
   value, even a synthetic one.
+
+  **NAMED EXCEPTION — approver-authorised 2026-08-19, for the post-authentication
+  service-worker arm only.** The one remaining question in the item-6 chain —
+  whether *post*-authentication silent re-attach depends on a service worker —
+  cannot be measured without a real authenticated session. The approver authorised
+  a single attended arm against a live account, under conditions recorded here
+  rather than agreed verbally, because a precondition quietly crossed once stops
+  constraining anything:
+
+  1. **The approver performs the interactive sign-in.** No credential is seen,
+     typed, stored, or handled by the agent at any point.
+  2. **A fresh profile**, created for the run and removed at teardown. Never an
+     existing personal or automation profile.
+  3. **Strictly read-only.** Registration state and re-attach outcome only. No
+     mailbox or message content is read, no API call is issued, and nothing is
+     written, sent, moved, or deleted.
+  4. **Attended and time-boxed.** The approver is present for the whole run.
+  5. **Booleans and counts only** in the artifact. No URI, no content, no account,
+     tenant, or organisation identifier, and no credential value.
+  6. **Credentials rotated afterwards regardless of outcome.**
+  7. **Organisational policy confirmed** by the approver as permitting automated
+     browser access to the tenant. The agent cannot determine this and must not
+     assume it.
+
+  This exception is scoped to that single arm. It does not generalise to any other
+  arm, round, or destination, and it does not alter the standing precondition
+  above, which continues to govern everything else. The round-2 incident — whose
+  broader account-level exposure remains **accepted, not resolved** — is the reason
+  the conditions are enumerated rather than summarised.
 - **Never convert a characterisation fixture, inspection-only result, hard-coded
   literal, or failed security precondition into a Pass.**
 - **Never move RFC-0088 to Accepted, close a blocker item, or revise a recorded
