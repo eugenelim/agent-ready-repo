@@ -121,7 +121,15 @@ Outcome = "local"
 ''',
         encoding="utf-8",
     )
-    workspace.write_text("# workspace\n", encoding="utf-8")
+    workspace.write_text(
+        '''[authorization.refresh]
+contract_version = "refresh-authorization-policy.v1"
+draft_approver_roles = ["product"]
+accepted_approver_roles = ["product"]
+remote_mutation_approver_roles = ["product"]
+''',
+        encoding="utf-8",
+    )
     return refresh_mod.RemoteReceiptStore.open(
         repository_root=repo,
         artifact_path="docs/product/briefs/example.md",
@@ -207,7 +215,7 @@ def test_github_content_cannot_add_argv(
     assert result.code == "remote_action_succeeded"
     assert result.argv.count("--hostname") == 1
     assert calls[0]["shell"] is False
-    assert calls[0]["input"] == body
+    assert calls[0]["input"] == body.encode("utf-8")
 
 
 @pytest.mark.parametrize(
@@ -289,10 +297,10 @@ def test_github_actions_are_confirmed_target_pinned_and_receipted(
     assert calls == [
         {
             "argv": ["gh", "issue", *expected_argv_tail],
-            "input": expected_stdin,
+            "input": expected_stdin.encode("utf-8") if expected_stdin else None,
             "check": True,
             "capture_output": True,
-            "text": True,
+            "text": False,
             "shell": False,
             "timeout": 30,
         }
@@ -363,6 +371,7 @@ def test_durable_confirmation_ledger_is_required_across_processor_instances(
         confirmation=confirmation,
         expected_binding=confirmation.binding,
         policy=_policy(refresh_mod),
+        receipt_store=store,
         used_confirmation_ids=set(),
         now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
     )
@@ -572,6 +581,34 @@ def test_pending_receipt_failure_runs_no_command(
         now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
     )
     assert result.code == "fingerprint_mismatch"
+    assert result.command_calls == 0
+    assert calls == []
+
+
+def test_fabricated_remote_policy_is_refused_before_command(
+    github_mod: types.ModuleType, refresh_mod: types.ModuleType, tmp_path: Path
+) -> None:
+    calls: list[dict[str, object]] = []
+    processor = github_mod.GithubRefreshProcessor(
+        configured_host="github.com",
+        repository="example-org/example-repo",
+        refresh_runtime=refresh_mod,
+        receipt_store=_receipt_store(refresh_mod, tmp_path),
+        runner=lambda argv, **kwargs: calls.append({"argv": argv, **kwargs}),
+    )
+
+    result = processor.write(
+        action="comment",
+        target="101",
+        body="Looks good",
+        artifact_path="docs/product/briefs/example.md",
+        source_revision="remote-rev-2",
+        policy=types.SimpleNamespace(remote_mutation_approver_roles=("outsider",)),
+        confirmation=_confirmation(refresh_mod),
+        now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+
+    assert result.code == "invalid_refresh_policy"
     assert result.command_calls == 0
     assert calls == []
 

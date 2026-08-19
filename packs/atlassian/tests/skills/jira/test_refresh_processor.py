@@ -160,7 +160,15 @@ Outcome = "local"
 ''',
         encoding="utf-8",
     )
-    workspace.write_text("# workspace\n", encoding="utf-8")
+    workspace.write_text(
+        '''[authorization.refresh]
+contract_version = "refresh-authorization-policy.v1"
+draft_approver_roles = ["product-owner"]
+accepted_approver_roles = ["product-owner"]
+remote_mutation_approver_roles = ["product-owner"]
+''',
+        encoding="utf-8",
+    )
     return refresh.RemoteReceiptStore.open(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
@@ -443,14 +451,15 @@ def test_reused_or_unauthorized_confirmation_records_zero_requests(
     confirmation = _confirmation(
         refresh, action="comment", target="PROJ-1", payload=payload
     )
+    store = _receipt_store(refresh, tmp_path)
     receipt = refresh.consume_remote_confirmation(
         confirmation=confirmation,
         expected_binding=confirmation.binding,
         policy=_policy(refresh),
+        receipt_store=store,
         used_confirmation_ids=set(),
         now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
     )
-    store = _receipt_store(refresh, tmp_path)
     store.record(receipt)
     result = asyncio.run(
         processor.write_back(

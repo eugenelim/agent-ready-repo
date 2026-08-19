@@ -133,6 +133,21 @@ def _approver(refresh):
     )
 
 
+def _confirmation_store(refresh, tmp_path: Path):
+    repo = tmp_path / "confirmation-store"
+    artifact = repo / "docs/specs/example/spec.md"
+    workspace = repo / "workspace.toml"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(_authority_block(), encoding="utf-8")
+    workspace.write_text(_policy(), encoding="utf-8")
+    return refresh.RemoteReceiptStore.open(
+        repository_root=repo,
+        artifact_path="docs/specs/example/spec.md",
+        expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
+        expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+    )
+
+
 def _unreached_acquire(_locator: str, _revision: str) -> dict[str, object]:
     raise AssertionError("acquisition should not run in this test")
 
@@ -949,7 +964,7 @@ def test_front_door_redacts_system_exit_from_processor_dispatch() -> None:
     assert "raw processor failure" not in result.code
 
 
-def test_confirmation_is_exact_fresh_and_single_use() -> None:
+def test_confirmation_is_exact_fresh_and_single_use(tmp_path: Path) -> None:
     refresh = _load_refresh()
     now = datetime(2026, 8, 17, tzinfo=UTC)
     binding = refresh.ConfirmationBinding(
@@ -969,11 +984,13 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
         confirmed_at=now,
     )
     used: set[str] = set()
+    store = _confirmation_store(refresh, tmp_path)
 
     receipt = refresh.consume_remote_confirmation(
         confirmation=confirmation,
         expected_binding=binding,
         policy=refresh.parse_refresh_authorization_policy(_policy()),
+        receipt_store=store,
         used_confirmation_ids=used,
         now=now,
     )
@@ -990,6 +1007,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=confirmation,
             expected_binding=binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
             used_confirmation_ids=durable_confirmation_ids,
             now=now,
         )
@@ -1021,6 +1039,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
         confirmation=version_two,
         expected_binding=version_two_binding,
         policy=refresh.parse_refresh_authorization_policy(_policy()),
+        receipt_store=store,
         used_confirmation_ids=used,
         now=now,
     )
@@ -1038,6 +1057,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=mismatched_version,
             expected_binding=version_two_binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
             used_confirmation_ids=durable_confirmation_ids,
             now=now,
         )
@@ -1048,6 +1068,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=confirmation,
             expected_binding=binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
             used_confirmation_ids=durable_confirmation_ids,
             now=now,
         )
@@ -1064,6 +1085,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=stale,
             expected_binding=binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
             used_confirmation_ids=used,
             now=now,
         )
@@ -1119,8 +1141,9 @@ def test_remote_receipt_store_persists_pending_before_terminal_state(
         )
 
 
-def test_remote_payload_digest_is_canonical_and_action_allowlisted() -> None:
+def test_remote_payload_digest_is_canonical_and_action_allowlisted(tmp_path: Path) -> None:
     refresh = _load_refresh()
+    store = _confirmation_store(refresh, tmp_path)
     assert refresh.canonical_payload_digest({"b": 2, "a": 1}) == refresh.canonical_payload_digest(
         {"a": 1, "b": 2}
     )
@@ -1146,6 +1169,7 @@ def test_remote_payload_digest_is_canonical_and_action_allowlisted() -> None:
             confirmation=confirmation,
             expected_binding=binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
             used_confirmation_ids=set(),
             now=now,
         )

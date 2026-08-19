@@ -240,6 +240,7 @@ class GithubRefreshProcessor:
                 confirmation=confirmation,
                 expected_binding=binding,
                 policy=policy,
+                receipt_store=receipt_store,
                 used_confirmation_ids=receipt_store.confirmation_ids(),
                 now=now or datetime.now(UTC),
             )
@@ -249,16 +250,16 @@ class GithubRefreshProcessor:
                 return GithubWriteBackResult("pending_receipt_failed", action)
             self._runner(
                 list(argv),
-                input=stdin_data,
+                input=stdin_data.encode("utf-8") if stdin_data is not None else None,
                 check=True,
                 capture_output=True,
-                text=True,
+                text=False,
                 shell=False,
                 timeout=30,
             )
         except (GithubRefreshPolicyError, self._refresh.RefreshRefusal) as exc:
             return GithubWriteBackResult(str(exc), action, target=target)
-        except (subprocess.SubprocessError, OSError):
+        except (SystemExit, Exception):  # noqa: BLE001  # subprocess boundary
             failed = {}
             code = "remote_action_failed"
             if "receipt" in locals():

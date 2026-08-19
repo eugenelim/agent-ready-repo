@@ -157,7 +157,15 @@ Outcome = "local"
 ''',
         encoding="utf-8",
     )
-    workspace.write_text("# workspace\n", encoding="utf-8")
+    workspace.write_text(
+        '''[authorization.refresh]
+contract_version = "refresh-authorization-policy.v1"
+draft_approver_roles = ["product"]
+accepted_approver_roles = ["product"]
+remote_mutation_approver_roles = ["product"]
+''',
+        encoding="utf-8",
+    )
     return refresh_mod.RemoteReceiptStore.open(
         repository_root=repo,
         artifact_path="docs/product/briefs/example.md",
@@ -695,6 +703,7 @@ class TestLinearRefreshProcessor:
             confirmation=confirmation,
             expected_binding=binding,
             policy=_policy(refresh_mod),
+            receipt_store=store,
             used_confirmation_ids=set(),
             now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
         )

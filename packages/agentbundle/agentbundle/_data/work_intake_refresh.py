@@ -1076,11 +1076,28 @@ def consume_remote_confirmation(
     confirmation: RemoteConfirmation,
     expected_binding: ConfirmationBinding,
     policy: RefreshAuthorizationPolicy,
+    receipt_store: RemoteReceiptStore,
     used_confirmation_ids: set[str],
     now: datetime,
 ) -> RemoteActionReceipt:
     """Consume one fresh exact confirmation before one adapter mutation."""
 
+    if (
+        not isinstance(policy, RefreshAuthorizationPolicy)
+        or not is_remote_receipt_store(receipt_store)
+    ):
+        raise RefreshRefusal("invalid_refresh_policy")
+    try:
+        workspace = _confined_existing_file(
+            receipt_store.repository_root, "workspace.toml"
+        )
+        if digest_bytes(workspace.read_bytes()) != receipt_store.workspace_digest:
+            raise RefreshRefusal("invalid_refresh_policy")
+        durable_policy = parse_refresh_authorization_policy(workspace.read_text())
+    except (OSError, RefreshRefusal) as exc:
+        raise RefreshRefusal("invalid_refresh_policy") from exc
+    if durable_policy != policy:
+        raise RefreshRefusal("invalid_refresh_policy")
     _bounded_string(confirmation.confirmation_id, 200, "invalid_confirmation")
     _bounded_string(confirmation.approver.identity, 200, "invalid_confirmation")
     _bounded_string(confirmation.approver.role, 200, "invalid_confirmation")
@@ -1126,8 +1143,6 @@ def consume_remote_confirmation(
         "action": confirmation.binding.action,
         "target": confirmation.binding.target,
         "payload_digest": confirmation.binding.payload_digest,
-        "identity": confirmation.approver.identity,
-        "role": confirmation.approver.role,
     }
     mutation_digest = digest_bytes(
         json.dumps(mutation_record, sort_keys=True, separators=(",", ":")).encode()

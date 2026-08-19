@@ -720,6 +720,7 @@ class LinearRefreshProcessor:
                 confirmation=confirmation,
                 expected_binding=binding,
                 policy=policy,
+                receipt_store=receipt_store,
                 used_confirmation_ids=receipt_store.confirmation_ids(),
                 now=now or datetime.now(UTC),
             )
