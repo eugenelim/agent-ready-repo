@@ -5,6 +5,10 @@
 
 PYTHON ?= python3
 PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
+# Stale __pycache__ makes catalogue verify's fresh-output build (CAT-V-014)
+# fail mid-run, on a clean tree too. Overridable: PYTHONDONTWRITEBYTECODE= make ci
+PYTHONDONTWRITEBYTECODE ?= 1
+export PYTHONDONTWRITEBYTECODE
 PACKS_DIR ?= packs
 OUTPUT_DIR ?= dist
 PACK ?=

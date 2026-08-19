@@ -1,71 +1,40 @@
 # AGENTS.local.md
 
-Repo-local addendum for maintainers of this checkout. `AGENTS.md` is adopter-owned — edit it
-directly. To propagate changes to new adopters, also update `packs/core/seeds/AGENTS.md`.
+## This checkout
 
-- **Pack and skill development** (version bumps, projection, skill authoring, eval coverage, plugin format):
-  **Read [`packs/AGENTS.md`](packs/AGENTS.md) and [`packs/AGENTS.local.md`](packs/AGENTS.local.md) before acting** whenever any file under `packs/` is in scope.
-- **Python package development and release coupling** (install-test rules, Windows compatibility, test conventions, PyPI release requirements, version bump workflow):
-  **Read [`packages/AGENTS.md`](packages/AGENTS.md) and [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
-- **Sites and guides** (Astro/Starlight builds, deps, publication routing, frontmatter contract, link rules):
-  **Read [`guides/AGENTS.md`](guides/AGENTS.md) before acting** whenever any file under `guides/` is in scope;
-  [`web/AGENTS.md`](web/AGENTS.md) and [`docs-site/AGENTS.md`](docs-site/AGENTS.md) for the two sites themselves.
-- **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
-  [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
+`AGENTS.md` is this self-hosted repository's live instruction surface. The generic
+adopter source is `packs/core/seeds/AGENTS.md`; change it when new adopters need
+the rule, without making the two files mechanically identical.
+
+## Maintainer overlays
+
+Maintainer-only overlays exist at `packs/AGENTS.local.md`, `packages/AGENTS.local.md`,
+`packages/agentbundle/AGENTS.local.md`, and `packages/credbroker/AGENTS.local.md`.
+They are insider context and are not exported by catalogue initialization.
 
 ## Commands
 
 ```bash
-python -m agentbundle catalogue lint --root . --deep  # agentskills.io compliance for .apm/ changes
-python -m agentbundle catalogue verify --root .       # projected agent-artifact and adapter verification
+python -m agentbundle catalogue lint --root . --deep
+python -m agentbundle catalogue verify --root .
 ```
 
-## Maintainer hook guidance
+## Worktree bootstrap
 
-The repo-only hook implementation and wiring guide lives at
-[`tools/hooks/README.md`](tools/hooks/README.md). Keep this pointer out of
-shipped pack content because adopters do not receive the maintainer README.
+Never install this repo's own packages. The Makefile puts live worktree source on
+`PYTHONPATH`; an editable install adds nothing and can leave a deleted-worktree path.
+Once per machine, install `ruff`, `mypy`, `pytest`, and `-r tools/requirements.txt`;
+a `.venv` is optional for tool-version isolation. Once per worktree, run `npm ci
+--prefix docs-site`; `make test` reports that command when it is missing.
+For bare `python -m agentbundle` or `pytest packages/credbroker`, export
+`PYTHONPATH=packages/agentbundle:packages/credbroker` instead of installing.
 
-## Catalogue authoring scaffold — release-impact policy
+## Sources and projections
 
-The catalogue authoring scaffold is bundled into the `agentbundle` wheel as package data under
-`agentbundle/_data/catalogue-scaffold/`. Any change to the scaffold files listed below is
-an **agentbundle engine change** and requires:
+Edit sources, not generated catalogue-scaffold projections. For changes under
+`packs/` or `profiles/` that feed the scaffold, use
+`tools/catalogue/sync_authoring_scaffold.py` to synchronize and check projections.
 
-1. Bumping `packages/agentbundle/pyproject.toml` `version`.
-2. Including an `Engine-Change-RFC:` footer in the commit message.
-3. Running `python3 tools/catalogue/sync_authoring_scaffold.py --write` before committing.
-4. Verifying `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0.
+## Release coupling
 
-**Scaffold files (changes require bump + Engine-Change-RFC marker):**
-- `packs/README.md`, `packs/AGENTS.md`
-- `packs/_example/` (any file under it)
-- `profiles/README.md`, `profiles/AGENTS.md`
-- `profiles/_example/` (any file under it)
-
-`build-check` runs `sync_authoring_scaffold.py --check` and fails on drift.
-
-## No AC citation comments in .apm/ scripts
-
-`# AC14:`, `# AC36:` and similar prefixes in source files under `.apm/**` leak spec vocabulary to adopters. Strip the identifier; keep the invariant description. Write `# must not traverse symlinks` not `# AC14: must not traverse symlinks`.
-
-## House style for internal docs
-
-Applies to prose that stays in this repo and never ships: this file, `docs/architecture/`, `docs/specs/`,
-RFCs, ADRs, internal READMEs. The adopter-facing version ships in the `product-documentation` pack's
-`author-product-docs` skill (`references/clear-prose.md`).
-
-- **Write prose that reads like a person wrote it.** Cut hedges ("it's worth noting"), uniform sentence
-  rhythm, em-dash overuse, throat-clearing openers, inflated verbs ("leverage", "utilize", "delve").
-  Vary sentence length; one claim per sentence; concrete number or example over adjective.
-- **Catch structural tells.** Check each draft: does the argument advance paragraph to paragraph, or
-  restate? Does each list item earn its slot? Is there a position the text can be disagreed with?
-  Is any specific detail grounded (a name, a date, a count), or only performed? Watch for: treadmill
-  effect, symmetrical lists that pad a template, false precision, performative thoroughness, nice-nice
-  wrap (both sides hedged, no stance).
-- **State what is — don't leak rationale or identity.** Cut asides that justify mid-sentence;
-  give the "why" its own sentence or drop it. No self-narration ("internally we…", "our goal here is…").
-- **Soft-wrap guides.** Under `docs/guides/`, one line per paragraph, blank line between paragraphs,
-  list items one line each. Older docs (README, CONVENTIONS) are hard-wrapped near 72 columns; match
-  the file you're editing.
-
+See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md); per-package specifics live in `packages/AGENTS.local.md`.

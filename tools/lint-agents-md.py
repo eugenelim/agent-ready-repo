@@ -26,9 +26,67 @@ from pathlib import Path
 
 import lint_git_ignore  # tools/ is sys.path[0] for a script run
 
-MAX_ROOT_LINES = 250
-MAX_SUB_LINES = 150
+MAX_ROOT_LINES = 120
+MAX_ROOT_LOCAL_LINES = 60
+MAX_SEED_LINES = 100
+MAX_SCOPED_LINES = 80
+MAX_EXAMPLE_LINES = 35
 STALE_DAYS = 180  # warn-only threshold
+_EXCLUDED_SEGMENTS = frozenset({"node_modules", ".git", "dist", "build"})
+_EXCLUDED_SUBPATHS = ("_data/catalogue-scaffold", "tests/fixtures")
+_FROZEN_DOC_DIRS = ("docs/specs/", "docs/rfc/", "docs/adr/")
+# Portable-seed citations pending cleanup; keep this list visible and finite.
+_SEED_VENDOR_ROOT_BACKLOG = frozenset({
+    "packs/core/seeds/docs/architecture/overview.md",
+    "packs/core/seeds/docs/knowledge/README.md",
+    "packs/core/seeds/docs/specs/README.md",
+    "packs/governance-extras/seeds/docs/adr/README.md",
+    "packs/governance-extras/seeds/docs/rfc/README.md",
+})
+
+
+def _is_seed(path: Path) -> bool:
+    return (
+        path.name == "AGENTS.md"
+        and path.parent.name == "seeds"
+        and path.parent.parent.name == "core"
+    )
+
+
+def _is_fixture(path: Path) -> bool:
+    return "fixtures" in path.parts and "tests" in path.parts
+
+
+def _is_vendored(path: Path) -> bool:
+    value = path.as_posix()
+    return bool(_EXCLUDED_SEGMENTS.intersection(path.parts)) or any(
+        part in value for part in _EXCLUDED_SUBPATHS
+    )
+
+
+def _is_frozen_record(path: Path) -> bool:
+    return any(path.as_posix().startswith(prefix) for prefix in _FROZEN_DOC_DIRS)
+
+
+def _slug(heading: str) -> str:
+    """GitHub-compatible enough here: ``## Step 4. REVIEW`` -> step-4-review."""
+    text = heading.lower()
+    text = re.sub(r"[^a-z0-9 _-]", "", text)
+    return re.sub(r"\s+", "-", text).strip("-")
+
+
+def _claude_alias(path: Path, target: str, note) -> None:
+    if path.is_symlink() and str(path.readlink()) == target:
+        return
+    target_file = path.parent / target
+    accepted = {target}
+    if target_file.is_file():
+        accepted.add(target_file.read_text(encoding="utf-8"))
+    if path.is_file() and path.read_text(
+        encoding="utf-8", errors="replace"
+    ).strip() in accepted:
+        return
+    note(f"{path}: alias must point to {target}; generated aliases belong beside AGENTS.md.")
 
 
 def _repo_root() -> Path:
@@ -115,50 +173,113 @@ def main() -> int:
         else:
             ok(f"AGENTS.md is {lines} lines (≤ {MAX_ROOT_LINES}).")
 
-    # 4. Per-package AGENTS.md size
-    for f in sorted(Path().rglob("AGENTS.md")):
+    # 4. Every active instruction surface has its class cap.
+    active_agents = sorted(
+        set(Path().rglob("AGENTS.md")) | set(Path().rglob("AGENTS.local.md"))
+    )
+    for f in active_agents:
         # Match bash `find . -not -path './node_modules/*' -not -path './.git/*'`
         # — top-level exclusion only, not any-depth. A nested
         # packages/x/node_modules/y/AGENTS.md (if one ever appeared)
         # is still checked, matching bash semantics.
-        if f.parts[:1] in (("node_modules",), (".git",)):
+        if _is_vendored(f):
             continue
         if f == agents_md:
             continue
         lines = len(f.read_text(encoding="utf-8").splitlines())
-        limit = MAX_SUB_LINES
-        # The core pack's governance seed (AGENTS.md) is a root-class doc
-        # (250-line cap), not a nested package AGENTS.md — wherever it lands.
+        limit = MAX_ROOT_LOCAL_LINES if f == Path("AGENTS.local.md") else MAX_SCOPED_LINES
+        # The core pack's governance seed has its own cap wherever it lands.
         # That covers packs/core/seeds/AGENTS.md and its build-projected copies
         # under dist/<route>/core/seeds/AGENTS.md (issue #190 ships seeds inside
         # the APM and Claude-plugin artifacts).
-        if (
-            f.name == "AGENTS.md"
-            and f.parent.name == "seeds"
-            and f.parent.parent.name == "core"
-        ):
-            limit = MAX_ROOT_LINES
+        if _is_seed(f):
+            limit = MAX_SEED_LINES
+        elif f.parent.name == "_example":
+            limit = MAX_EXAMPLE_LINES
         if lines > limit:
-            note(f"./{f.as_posix()} is {lines} lines (max {limit}). Trim or split.")
+            note(
+                f"./{f.as_posix()} is {lines} lines (max {limit}). "
+                "Move detail to its owning skill, schema, or documentation."
+            )
         else:
             ok(f"./{f.as_posix()} is {lines} lines (≤ {limit}).")
 
-    # 5. Internal markdown links resolve
+    root_placeholders = (
+        "<project-name>", "<one-line description", "<install command>",
+        "<test command>", "<test all command>", "<lint command>",
+        "<build command>", "<deploy command>", "<smoke command>",
+        "<teardown command>", "<seed-test-data command>",
+    )
+    if agents_md.is_file():
+        root_text = agents_md.read_text(encoding="utf-8")
+        for marker in root_placeholders:
+            if marker in root_text:
+                note(
+                    f"AGENTS.md contains unresolved adaptation placeholder "
+                    f"{marker!r}; adapt it in the live root."
+                )
+
+    for f in active_agents:
+        if (
+            f in (agents_md, Path("AGENTS.local.md"))
+            or _is_seed(f)
+            or _is_fixture(f)
+            or _is_vendored(f)
+        ):
+            continue
+        text = f.read_text(encoding="utf-8")
+        first_content = next(
+            (
+                line
+                for line in text.splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            ),
+            "",
+        )
+        missing = [
+            token
+            for token in ("Applies to ", "Inherits the root")
+            if token not in first_content
+        ]
+        if missing:
+            note(
+                f"./{f.as_posix()} is missing {', '.join(missing)}; use "
+                "'Applies to <path>. Inherits the root AGENTS.md. "
+                "Scope-specific deltas only.'"
+            )
+
+    # 5. Internal markdown links and Markdown fragments resolve.
     link_re = re.compile(r"\]\(([^)]+)\)")
-    for f_str in ("AGENTS.md", "docs/CONVENTIONS.md"):
-        f = Path(f_str)
+    link_files = [
+        f for f in active_agents if not _is_vendored(f) and not _is_fixture(f)
+    ] + [Path("docs/CONVENTIONS.md")]
+    for f in link_files:
+        f_str = f.as_posix()
         if not f.is_file():
             continue
         for match in link_re.findall(f.read_text(encoding="utf-8")):
             # Skip external schemes (http:, mailto:, etc.)
             if re.match(r"^[a-z]+:", match):
                 continue
-            target = match.split("#", 1)[0]
-            if not target:
-                continue
-            resolved = f.parent / target
+            target, _, fragment = match.partition("#")
+            resolved = f if not target else f.parent / target
             if not resolved.exists():
                 note(f"{f_str}: broken link → {match}")
+                continue
+            if fragment and resolved.suffix == ".md":
+                headings = re.findall(
+                    r"^#{1,6}\s+(.+?)\s*$",
+                    resolved.read_text(encoding="utf-8"),
+                    re.M,
+                )
+                if headings and fragment not in {_slug(h) for h in headings}:
+                    note(
+                        f"{f_str}: broken heading fragment → {match}; "
+                        "link targets belong to their owning document."
+                    )
+
+    for alias in (Path("web/CLAUDE.md"), Path("docs-site/CLAUDE.md")):
+        _claude_alias(alias, "AGENTS.md", note)
 
     # 6. docs/CHARTER.md exists
     if not Path("docs/CHARTER.md").is_file():
@@ -383,18 +504,26 @@ def main() -> int:
     rt_start = "<!-- risk-triggers:start"
     rt_end = "risk-triggers:end -->"
     rt_canonical = ".claude/skills/work-loop/SKILL.md"
-    rt_files = (
-        rt_canonical,
-        "AGENTS.md",
-        "packs/core/seeds/AGENTS.md",
-        "docs/CONVENTIONS.md",
-    )
+    rt_source = "packs/core/.apm/skills/work-loop/SKILL.md"
+    rt_files = (rt_source, rt_canonical, ".agents/skills/work-loop/SKILL.md")
     rt_blocks = {}
+    source_marker_counts = (0, 0)
+    for f in Path().rglob("*.md"):
+        if _is_vendored(f) or _is_fixture(f) or _is_frozen_record(f):
+            continue
+        f_str = f.as_posix()
+        if f_str not in rt_files and rt_start in f.read_text(encoding="utf-8"):
+            note(
+                f"risk-trigger-block drift: {f_str} carries risk triggers; "
+                f"workflow detail belongs in {rt_source}."
+            )
     for f_str in rt_files:
         f = Path(f_str)
         if not f.is_file():
             continue
         text = f.read_text(encoding="utf-8")
+        if f_str == rt_source:
+            source_marker_counts = (text.count(rt_start), text.count(rt_end))
         i = text.find(rt_start)
         if i == -1:
             continue
@@ -408,8 +537,18 @@ def main() -> int:
             )
             continue
         rt_blocks[f_str] = text[i : j + len(rt_end)]
+    if rt_source not in rt_blocks:
+        note(
+            f"risk-trigger-block drift: {rt_source} must carry one complete "
+            "risk-trigger block; workflow detail belongs in the work-loop skill."
+        )
+    elif source_marker_counts != (1, 1):
+        note(
+            f"risk-trigger-block drift: {rt_source} must carry exactly one "
+            "complete risk-trigger block; workflow detail belongs in the work-loop skill."
+        )
     if len(rt_blocks) >= 2 and len(set(rt_blocks.values())) > 1:
-        ref = rt_blocks.get(rt_canonical)
+        ref = rt_blocks.get(rt_source)
         if ref is None:
             note(
                 "risk-trigger-block drift: copies carrying the "
@@ -420,11 +559,105 @@ def main() -> int:
                 if f_str != rt_canonical and block != ref:
                     note(
                         f"risk-trigger-block drift: {f_str} differs from the "
-                        f"canonical block in {rt_canonical}. The "
+                f"canonical block in {rt_source}. The "
                         f"`risk-triggers:start`..`:end` span must be "
                         f"byte-identical across all copies "
                         f"(work-loop-light-mode spec AC2)."
                     )
+
+    # 10h — scaffolded instruction sources must be byte-identical to projections.
+    for source, projection in (
+        (
+            "packs/AGENTS.md",
+            "packages/agentbundle/agentbundle/_data/catalogue-scaffold/packs/AGENTS.md",
+        ),
+        (
+            "profiles/AGENTS.md",
+            "packages/agentbundle/agentbundle/_data/catalogue-scaffold/profiles/AGENTS.md",
+        ),
+    ):
+        if (
+            Path(source).is_file()
+            and Path(projection).is_file()
+            and Path(source).read_bytes() != Path(projection).read_bytes()
+        ):
+            note(
+                f"scaffold drift: {projection} differs from {source}; run "
+                "python3 tools/catalogue/sync_authoring_scaffold.py --write."
+            )
+
+    # 10i — exact parent/child repeats belong only in the parent.
+    for child in active_agents:
+        if (
+            child in (agents_md, Path("AGENTS.local.md"))
+            or _is_seed(child)
+            or _is_fixture(child)
+            or _is_vendored(child)
+        ):
+            continue
+        parent = child.parent.parent
+        ancestor = None
+        while True:
+            probe = parent / "AGENTS.md"
+            if probe.is_file():
+                ancestor = probe
+                break
+            if parent == Path() or parent == parent.parent:
+                break
+            parent = parent.parent
+        if ancestor is None:
+            continue
+        child_lines = [
+            line.rstrip()
+            for line in child.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        parent_lines = [
+            line.rstrip()
+            for line in ancestor.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        for start in range(len(child_lines) - 2):
+            for end in range(start + 3, len(child_lines) + 1):
+                run = child_lines[start:end]
+                if sum(map(len, run)) >= 80 and any(
+                    parent_lines[i : i + len(run)] == run
+                    for i in range(len(parent_lines) - len(run) + 1)
+                ):
+                    note(
+                        "duplication: delete the child copy — the parent already "
+                        f"states it ({child} / {ancestor}): {run[0]}"
+                    )
+                    break
+            else:
+                continue
+            break
+
+    # 10j — shipped seeds name portable primitives, never one adapter's path.
+    adapter_roots: set[str] = set()
+    if contract_path.is_file():
+        contract = tomllib.loads(contract_path.read_text(encoding="utf-8"))
+        for adapter in contract.get("adapter", {}).values():
+            for projection in adapter.get("projection", []):
+                target_path = projection.get("target-path", "")
+                if target_path.startswith("."):
+                    adapter_roots.add(target_path.split("/", 1)[0])
+    vendor_path = re.compile(
+        rf"(?:{'|'.join(re.escape(root) for root in sorted(adapter_roots))})/"
+    )
+    for seed_file in Path("packs").glob("*/seeds/**/*"):
+        name = seed_file.as_posix()
+        if (
+            not seed_file.is_file()
+            or seed_file.name == ".gitignore"
+            or name in _SEED_VENDOR_ROOT_BACKLOG
+        ):
+            continue
+        if vendor_path.search(seed_file.read_text(encoding="utf-8", errors="replace")):
+            note(
+                f"seed vendor path: {name}; name the skill instead of its adapter path; "
+                "contracts/adapter.toml projects this primitive into seven different roots."
+            )
 
     if fail:
         print()

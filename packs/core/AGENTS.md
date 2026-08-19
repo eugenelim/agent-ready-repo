@@ -1,6 +1,10 @@
 # AGENTS.md — core pack
 
-Working inside the `core` pack. **Max 150 lines** (CI enforces it).
+Applies to `packs/core/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
+
+Working inside the `core` pack.
+
+Changes to this pack's `seeds/**` or `.apm/**` bump its version; see [Version bump rule](../AGENTS.md#version-bump-rule).
 
 ## Skill dependencies
 

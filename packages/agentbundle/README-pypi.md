@@ -14,6 +14,18 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.2
+
+The bundled catalogue authoring scaffold now has shorter, restructured
+`packs/AGENTS.md` and `profiles/AGENTS.md` files. Catalogues created with
+`agentbundle catalogue init` start with leaner instructions; no CLI verb, flag,
+or output format changed.
+
+`JOURNEY.md` can now optionally list ordered `contract.decisionGateIds` drawn
+from `humanGates[].id`. Gate labels still provide reader-facing wording, and
+`yourDecisions` remains required, so existing packs stay valid without changes.
+This engine change shipped after 0.38.1 and reaches PyPI for the first time here.
+
 ## What's new in 0.38.1
 
 `agentbundle catalogue self-host --check --windows` gained a stage that verifies

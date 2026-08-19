@@ -103,8 +103,8 @@ def test_core_version_and_okf_declaration_are_synchronized() -> None:
         (PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
 
-    assert pack["pack"]["version"] == "2.9.1"
-    assert plugin["version"] == "2.9.1"
+    assert pack["pack"]["version"] == "2.9.2"
+    assert plugin["version"] == "2.9.2"
     assert pack["pack"]["metadata"]["okf"]["profile"] == "agentbundle-okf/v1"
     bundle = pack["pack"]["metadata"]["okf"]["bundles"][0]
     assert bundle["id"] == "security-checklists"
