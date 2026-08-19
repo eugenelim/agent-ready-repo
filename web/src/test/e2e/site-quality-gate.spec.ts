@@ -27,7 +27,9 @@ import {
   expectLandmarkKeyboardReachable,
   expectNoHorizontalOverflow,
   expectNoSeriousAxeViolations,
+  expectOutlineContrast,
   expectSkipLinkFirst,
+  expectTextContrast,
   gotoSettled,
   label,
   tabToAndAssertFocus,
@@ -197,6 +199,83 @@ test.describe('journey decision gates resolve on a direct fragment load', () => 
         }
       });
     }
+  }
+});
+
+test.describe('decision chip and gate focus states meet contrast in the state they are in', () => {
+  // axe scans the resting DOM, so a `:hover`/`:focus-visible` declaration never
+  // applies during the scan. A chip whose focus style put white on amber measured
+  // 2.40:1 against a 4.5:1 requirement and passed a green accessibility gate for
+  // exactly that reason. These cases enter the state first, then measure.
+  const PRIORITY = [
+    '/journeys/core/',
+    '/journeys/product-engineering/',
+    '/journeys/release-engineering/',
+  ] as const;
+  for (const route of PRIORITY) {
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+      test(`${route} focus-state contrast @${width}`, async ({ page }) => {
+        const ctx = { route, width };
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withBase(route), ctx);
+
+        const first = page.locator('a[href^="#decision-"]').first();
+        const href = await first.getAttribute('href');
+        expect(href, `${label(ctx)}: no decision chip to measure`).toBeTruthy();
+        const selector = `a[href="${href}"]`;
+
+        // Reached by keyboard so `:focus-visible` genuinely applies.
+        await tabToAndAssertFocus(page, selector, ctx, 120);
+        await expectTextContrast(page, `${selector} span`, ctx, 'focused decision chip label');
+        await expectOutlineContrast(page, selector, ctx, 'focused decision chip ring');
+
+        // Activating moves focus off the chip and onto the gate heading, so the
+        // destination indicator is what a keyboard user now relies on.
+        await page.keyboard.press('Enter');
+        const id = decodeURIComponent((href ?? '').slice(1));
+        await expect(page.locator(`#${id}`), `${label(ctx)}: gate focus`).toBeFocused();
+        await expectOutlineContrast(page, `#${id}`, ctx, 'activated gate heading ring');
+      });
+    }
+  }
+});
+
+test.describe('journey transcripts render as a session, not escaped markdown', () => {
+  // `goodOutputDescription` is a light-Markdown block scalar. Interpolating it into
+  // a <p> shipped `**You:**` and backticks as visible characters and collapsed every
+  // turn into one paragraph. Source fidelity could not see this: the ledger control
+  // compares source to source and was green throughout.
+  const PRIORITY = [
+    '/journeys/core/',
+    '/journeys/product-engineering/',
+    '/journeys/release-engineering/',
+  ] as const;
+  for (const route of PRIORITY) {
+    test(`${route} transcript`, async ({ page }) => {
+      const ctx = { route, width: WIDTHS[WIDTHS.length - 1] };
+      await page.setViewportSize({ width: ctx.width, height: 900 });
+      await gotoSettled(page, withBase(route), ctx);
+
+      const transcript = page.locator('dl.transcript');
+      await expect(transcript, `${label(ctx)}: no transcript rendered`).toHaveCount(1);
+
+      const speakers = transcript.locator('dt.transcript__speaker');
+      const turns = await speakers.count();
+      expect(turns, `${label(ctx)}: transcript must have multiple labelled turns`)
+        .toBeGreaterThan(1);
+
+      // Every turn is attributed and every attribution is real text.
+      for (let i = 0; i < turns; i += 1) {
+        const who = (await speakers.nth(i).innerText()).trim();
+        expect(who, `${label(ctx)}: turn ${i} has no speaker`).not.toBe('');
+      }
+
+      // The defect that shipped: no Markdown character may reach the reader.
+      const rendered = await transcript.innerText();
+      expect(rendered, `${label(ctx)}: asterisk visible in transcript`).not.toContain('*');
+      expect(rendered, `${label(ctx)}: backtick visible in transcript`).not.toContain('`');
+      expect(rendered.length, `${label(ctx)}: transcript is empty`).toBeGreaterThan(80);
+    });
   }
 });
 

@@ -33,6 +33,17 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
   derived output.
 - Keep pack versions and Claude-plugin descriptions unchanged because this
   migration does not change installed functional behavior.
+- **Amendment, 2026-08-19, authorized (second).** Fix the three Major findings
+  from the recorded design review, and add the controls that would have caught
+  them. The decision chip's `:hover`/`:focus-visible` fill paired white
+  `--ds-hero-fg` with `--ds-accent` on a light surface at 2.40:1; both tokens are
+  documented "on dark". The gate heading's target/focus ring was amber at
+  2.29:1 on the page and 2.08:1 on the card, under the 3:1 non-text floor. And
+  `goodOutputDescription` was interpolated into a `<p>`, so Astro escaped it and
+  the approved transcript shipped with literal `**` and backticks while HTML
+  whitespace collapsing flattened every turn into one paragraph. The approved
+  transcript *text* is unchanged; only its presentation is. AC15 stays unticked
+  until the design review is re-run against the fixes.
 - **Amendment, 2026-08-19, authorized.** Accept `contract.decisionGateIds` in
   the published catalogue contract, additively. `#1025` landed a live contract
   test after this spec was approved; its validator treats `contract.*` as a

@@ -83,8 +83,15 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
   }
 
   .gate-card:has(.gate-card__label:target),
+  /* Near-black, matching `.decision-chip:focus-visible`. Amber on the light
+     card measured 2.29:1 on the page and 2.08:1 on the card, under the 3:1
+     non-text floor for a state indicator (WCAG 1.4.11) — and this is the
+     indicator a keyboard user relies on AFTER activating a chip, once focus has
+     left the chip and its own ring is gone. The chip already overrode the
+     global amber ring; carrying the same treatment here means one interaction
+     speaks one focus language. `--ds-on-surface` measures 16.74:1. */
   .gate-card:has(.gate-card__label:focus-visible) {
-    outline: 3px solid var(--ds-accent);
+    outline: 3px solid var(--ds-on-surface);
     outline-offset: 3px;
   }
 
@@ -100,7 +107,7 @@ const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
   }
 
   .gate-card__label:focus-visible {
-    outline: 3px solid var(--ds-accent);
+    outline: 3px solid var(--ds-on-surface);
     outline-offset: 3px;
   }
 

@@ -466,3 +466,137 @@ export async function expectLandmarkKeyboardReachable(
       'were reachable by Tab'
   ).toBe(expected);
 }
+
+/**
+ * WCAG contrast ratio between two opaque colours.
+ *
+ * Callers must pass an already-composited background. Compositing is not
+ * optional bookkeeping: `--ds-accent-subtle` is `#e8952b1a`, an 8-digit hex whose
+ * trailing `1a` is a 10% alpha channel. Treating that as an opaque fill reports
+ * 2.37:1 for the resting decision chip, which renders at 4.59:1 — a fabricated
+ * failure. `compositedBackground` below does the layering.
+ */
+function contrastRatio(fg: readonly number[], bg: readonly number[]): number {
+  const channel = (c: number): number => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (c: readonly number[]): number =>
+    0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2]);
+  const a = lum(fg);
+  const b = lum(bg);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** `rgb()` / `rgba()` to `[r, g, b, a]`. */
+function parseColor(value: string): number[] {
+  const parts = value.match(/[\d.]+/g);
+  if (!parts) throw new Error(`unparseable colour: ${value}`);
+  const [r, g, b] = parts.slice(0, 3).map(Number);
+  return [r, g, b, parts.length > 3 ? Number(parts[3]) : 1];
+}
+
+/** Flatten an element's background stack, alpha included, over white. */
+function compositedBackground(layers: readonly number[][]): number[] {
+  let out = [255, 255, 255];
+  for (let i = layers.length - 1; i >= 0; i -= 1) {
+    const [r, g, b, a] = layers[i];
+    out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+  }
+  return out;
+}
+
+/** Collect the background layers behind an element, optionally skipping itself. */
+async function backgroundLayers(
+  page: Page,
+  selector: string,
+  fromParent: boolean
+): Promise<number[][]> {
+  const raw = await page.evaluate(
+    ({ sel, skipSelf }) => {
+      let node: HTMLElement | null = document.querySelector(sel);
+      if (!node) throw new Error(`no element matches ${sel}`);
+      if (skipSelf) node = node.parentElement;
+      const out: string[] = [];
+      while (node) {
+        out.push(getComputedStyle(node).backgroundColor);
+        node = node.parentElement;
+      }
+      return out;
+    },
+    { sel: selector, skipSelf: fromParent }
+  );
+  const layers: number[][] = [];
+  for (const value of raw) {
+    const parsed = parseColor(value);
+    if (parsed[3] <= 0) continue;
+    layers.push(parsed);
+    if (parsed[3] >= 1) break;
+  }
+  return layers;
+}
+
+/**
+ * Assert an element's *current* text contrast, whatever state it is in.
+ *
+ * This exists because axe cannot reach it. axe scans the resting DOM, so a
+ * `:hover` or `:focus-visible` declaration never applies during the scan — which
+ * is how a chip whose focus style put white on amber at 2.40:1 passed a green
+ * accessibility gate. Tab to the element first, then call this.
+ */
+export async function expectTextContrast(
+  page: Page,
+  selector: string,
+  ctx: CaseContext,
+  what: string
+): Promise<void> {
+  const style = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`no element matches ${sel}`);
+    const cs = getComputedStyle(el);
+    return { color: cs.color, fontSize: cs.fontSize, fontWeight: cs.fontWeight };
+  }, selector);
+  const fg = parseColor(style.color);
+  const bg = compositedBackground(await backgroundLayers(page, selector, false));
+  const ratio = contrastRatio(fg, bg);
+  const px = parseFloat(style.fontSize);
+  const bold = Number.parseInt(style.fontWeight, 10) >= 700;
+  const large = px >= 24 || (px >= 18.66 && bold);
+  const floor = large ? 3 : 4.5;
+  expect(
+    ratio,
+    `${label(ctx)}: ${what} text contrast ${ratio.toFixed(2)}:1 at ${px}px ` +
+      `weight ${style.fontWeight} needs ${floor}:1`
+  ).toBeGreaterThanOrEqual(floor);
+}
+
+/**
+ * Assert a state indicator's contrast against what it sits on (WCAG 1.4.11, 3:1).
+ *
+ * The outline is measured against the *parent* background because
+ * `outline-offset` places the ring outside the element's own box.
+ */
+export async function expectOutlineContrast(
+  page: Page,
+  selector: string,
+  ctx: CaseContext,
+  what: string
+): Promise<void> {
+  const outline = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`no element matches ${sel}`);
+    const cs = getComputedStyle(el);
+    return { color: cs.outlineColor, width: cs.outlineWidth, style: cs.outlineStyle };
+  }, selector);
+  expect(
+    outline.style,
+    `${label(ctx)}: ${what} has no outline to measure`
+  ).not.toBe('none');
+  const bg = compositedBackground(await backgroundLayers(page, selector, true));
+  const ratio = contrastRatio(parseColor(outline.color), bg);
+  expect(
+    ratio,
+    `${label(ctx)}: ${what} indicator contrast ${ratio.toFixed(2)}:1 needs 3:1 ` +
+      `(WCAG 1.4.11 non-text)`
+  ).toBeGreaterThanOrEqual(3);
+}

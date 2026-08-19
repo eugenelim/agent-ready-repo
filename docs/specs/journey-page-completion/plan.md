@@ -336,3 +336,23 @@ no version, dependency, migration, or infrastructure change.
   still fails. The scaffold copy is a projection, so `manifest.json` was
   regenerated with `tools/catalogue/sync_authoring_scaffold.py --write` rather
   than hand-edited.
+- 2026-08-19: fixed the recorded design review's three Major findings. Two were
+  contrast failures invisible to the browser gate by construction: axe scans the
+  resting DOM, so a `:hover`/`:focus-visible` declaration never applies during the
+  scan, which is how a chip whose focus style measured 2.40:1 passed a green
+  accessibility gate. The chip's focused text is now the system's own
+  dark-on-amber CTA pairing (8.07:1) and the gate heading's ring is the same
+  near-black the chip already used (16.74:1), so one interaction stops speaking
+  two focus languages. The third was a presentation defect the ledger control
+  could not see: it compares source to source and was green throughout while the
+  rendered page showed markup characters. `parseTranscript` now returns speaker
+  turns and the template renders real elements in the page's mono register — no
+  Markdown dependency, no `set:html`, so no injection surface. Three new controls
+  close the gaps: `expectTextContrast` and `expectOutlineContrast` measure the
+  state the element is actually in and composite alpha rather than treating a
+  translucent token as an opaque fill, and a transcript case asserts multiple
+  attributed turns with no `*` or backtick reaching the reader. MP24-MP26 prove
+  each fails without its fix, reproducing 2.40:1, 2.08:1 and a missing transcript.
+  Also moved the spec's workspace entry from `queue` to the initiative's existing
+  empty `active` list, clearing the `impossible_transition` and `unapproved_spec`
+  findings that a merged-but-Implementing artifact produced in a queue.
