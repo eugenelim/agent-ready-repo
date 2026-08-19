@@ -1541,6 +1541,37 @@ grants every root, and the partitioning silently does nothing. This was measured
 not anticipated — the first fixture had exactly that layout and reported the
 confinement failing when the grant had swallowed it.
 
+### Provenance carries a numeric uid — examined and retained, 2026-08-19
+
+**Disposition.** An independent reviewer flagged `"uid"` in every artifact's
+provenance block as an account identifier, against the constraint forbidding
+identifiers in evidence. The approver ruled on 2026-08-19 that provenance **keeps
+the field**, and that the reasoning is recorded here so it is an examined
+convention rather than an unexamined default.
+
+**What the field discloses.** `runningAsRoot` is already derivable from `uid == 0`,
+so the numeric value's only marginal information is *which* numbered account — and
+the observed value is the standard first-user id for the platform. It identifies an
+operating-system convention, not a person.
+
+**Why it is not a spike defect.** 44 of the 46 promoted `*-results.json` members
+carry the field; it is the provenance convention of the entire corpus. The
+repository's privacy sweep decodes the archive payloads and scans them, and passes
+on it, so the control that owns this question already adjudicates it. Changing it
+in two files would have left the corpus internally inconsistent for no measured
+gain.
+
+**What "fix it everywhere" would actually cost, and why it is not available.**
+`s1/provenance.mjs` is a manifested member, so editing it changes a promoted digest.
+And existing artifacts cannot be regenerated to match: each carries a per-run nonce,
+which is the property round 10 recorded in R10-4 as making byte-identical
+regeneration impossible. So the real choice was retain-and-record, or change-forward
+and split the corpus. Retain was chosen.
+
+**When to revisit.** If these artifacts are ever published outside the organisation,
+or if a platform is added whose uid encodes something about the account holder, this
+disposition should be re-taken rather than inherited.
+
 ### D / item 6 becomes a per-destination accepted risk — 2026-08-18
 
 **Disposition.** The approver ruled on 2026-08-18 that service-worker suppression
