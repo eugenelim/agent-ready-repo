@@ -1541,6 +1541,110 @@ grants every root, and the partitioning silently does nothing. This was measured
 not anticipated — the first fixture had exactly that layout and reported the
 confinement failing when the grant had swallowed it.
 
+### D / item 6: the accepted risk is per-GROUP, not per-destination — 2026-08-19
+
+**Amendment.** The 2026-08-18 disposition scoped item 6's accepted risk to a
+*destination*. Measurement shows the smallest unit that can carry the requirement is
+a **group of destinations sharing one profile**, so the disposition is amended to
+per-group. Item 6 remains an accepted risk; only the unit changes.
+
+**Why the destination is the wrong unit — derived from the block clause alone.**
+Blocking is a per-**context** option, and it does scope: round 12's arm D held
+opposite policies in **one** browser by partitioning destinations across separate
+contexts, and the blocked roles recorded zero worker-script requests and zero
+registrations while the permitted roles completed. But contexts isolate cookies and
+storage, and the same arm records `sharedSessionDemonstrated: false` — it does not
+show per-destination policy inside one shared session. So destinations that must
+share a sign-in must share a context, and destinations sharing a context share one
+worker policy. The unit that can carry the block clause is therefore **the set of
+destinations sharing a session**, not the destination.
+
+**The purge clause is NOT settled, and this amendment does not rest on it.** An
+earlier reading held that purge acts on a single profile-level store and so cannot
+be scoped below the profile. That measurement has been **withdrawn by its author
+pending re-measurement** — its selective-purge figures did not come from a
+post-purge filesystem read. If re-measurement confirms it, the purge clause lands
+on the same group unit and reinforces this amendment; if it refutes it, purge may
+scope more finely than block, and only the block clause forces grouping. Either way
+the amendment stands, because the block clause alone forces it. **Open until
+re-measured.**
+
+**The consequence, stated because it is the decision-relevant part.** Within a
+group, **the weakest member sets the policy**. If any destination in a session group
+requires service workers, the whole group runs with workers permitted, because a
+context cannot both block and permit. A vendor that reuses shared session mechanisms
+across its digital properties therefore yields coarse groups: a mail surface that
+demonstrably does not need a worker still runs with workers permitted if a
+collaboration surface in the same group does. Item 6 then protects very little of
+that group — not because the control fails, but because grouping forces the union of
+its members' needs.
+
+**How groups should be drawn.** By which destinations genuinely must share a
+sign-in, not by product or vendor. Splitting a worker-dependent destination into its
+own group restores full item-6 protection for the rest. **Unmeasured:** whether a
+group can be split without costing an additional interactive sign-in. Round 12's
+spike A showed profile-bound re-attach works, and spike E showed a fresh profile does
+require a real sign-in, which suggests each additional group costs one. That figure
+decides whether splitting is cheap or expensive and is not yet measured.
+
+### D / item 6: post-authentication re-attach does NOT require a service worker — 2026-08-19
+
+The residual `rfc0088-post-auth-sso-worker-dependency` is **closed**. It asked
+whether *post*-authentication silent re-attach depends on a service worker; if it
+did, workers would have to be permitted on that destination and item 6 would cover
+almost nothing.
+
+It does not. Measured against a live account under the named exception recorded in
+the round-12 spec: a lived profile carried its session marker identically with
+workers allowed and with workers blocked, and both re-attach runs carried the session
+with **zero** worker registrations present. Two controls held — two independent
+never-signed-in profiles showed zero drift, and the attended phase required an
+observed transition rather than a state, so it could not pass had no sign-in
+occurred.
+
+Taken with the front-door probe (an identity provider's sign-in surface registers no
+worker) and round 11's taxonomy (a mail-class surface renders byte-identically
+without one), **suppression does not break the credential lifecycle**. The concern
+that blocking workers would break re-authentication on a 14-90 day cycle does not
+materialise.
+
+**Bounds.** One destination, one device, one point in time, one tenant. The arm is
+an exploratory spike and is **not promoted evidence**. A first attempt was discarded
+as INVALID rather than reported: it inferred authentication from the absence of a
+password field, which that destination does not show when signed out, so its control
+could not fail and its attended phase never waited for the operator.
+
+### Provenance carries a numeric uid — examined and retained, 2026-08-19
+
+**Disposition.** An independent reviewer flagged `"uid"` in every artifact's
+provenance block as an account identifier, against the constraint forbidding
+identifiers in evidence. The approver ruled on 2026-08-19 that provenance **keeps
+the field**, and that the reasoning is recorded here so it is an examined
+convention rather than an unexamined default.
+
+**What the field discloses.** `runningAsRoot` is already derivable from `uid == 0`,
+so the numeric value's only marginal information is *which* numbered account — and
+the observed value is the standard first-user id for the platform. It identifies an
+operating-system convention, not a person.
+
+**Why it is not a spike defect.** 44 of the 46 promoted `*-results.json` members
+carry the field; it is the provenance convention of the entire corpus. The
+repository's privacy sweep decodes the archive payloads and scans them, and passes
+on it, so the control that owns this question already adjudicates it. Changing it
+in two files would have left the corpus internally inconsistent for no measured
+gain.
+
+**What "fix it everywhere" would actually cost, and why it is not available.**
+`s1/provenance.mjs` is a manifested member, so editing it changes a promoted digest.
+And existing artifacts cannot be regenerated to match: each carries a per-run nonce,
+which is the property round 10 recorded in R10-4 as making byte-identical
+regeneration impossible. So the real choice was retain-and-record, or change-forward
+and split the corpus. Retain was chosen.
+
+**When to revisit.** If these artifacts are ever published outside the organisation,
+or if a platform is added whose uid encodes something about the account holder, this
+disposition should be re-taken rather than inherited.
+
 ### D / item 6 becomes a per-destination accepted risk — 2026-08-18
 
 **Disposition.** The approver ruled on 2026-08-18 that service-worker suppression

@@ -18,6 +18,8 @@
  * outside the required subset (AC11).
  */
 import { test, expect } from '@playwright/test';
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import {
   THEMES,
@@ -27,7 +29,9 @@ import {
   expectLandmarkKeyboardReachable,
   expectNoHorizontalOverflow,
   expectNoSeriousAxeViolations,
+  expectOutlineContrast,
   expectSkipLinkFirst,
+  expectTextContrast,
   gotoSettled,
   label,
   tabToAndAssertFocus,
@@ -197,6 +201,104 @@ test.describe('journey decision gates resolve on a direct fragment load', () => 
         }
       });
     }
+  }
+});
+
+test.describe('decision chip and gate focus states meet contrast in the state they are in', () => {
+  // axe scans the resting DOM, so a `:hover`/`:focus-visible` declaration never
+  // applies during the scan. A chip whose focus style put white on amber measured
+  // 2.40:1 against a 4.5:1 requirement and passed a green accessibility gate for
+  // exactly that reason. These cases enter the state first, then measure.
+  const PRIORITY = [
+    '/journeys/core/',
+    '/journeys/product-engineering/',
+    '/journeys/release-engineering/',
+  ] as const;
+  for (const route of PRIORITY) {
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+      test(`${route} focus-state contrast @${width}`, async ({ page }) => {
+        const ctx = { route, width };
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withBase(route), ctx);
+
+        const first = page.locator('a[href^="#decision-"]').first();
+        const href = await first.getAttribute('href');
+        expect(href, `${label(ctx)}: no decision chip to measure`).toBeTruthy();
+        const selector = `a[href="${href}"]`;
+
+        // Reached by keyboard so `:focus-visible` genuinely applies.
+        await tabToAndAssertFocus(page, selector, ctx, 120);
+        await expectTextContrast(page, `${selector} span`, ctx, 'focused decision chip label');
+        await expectOutlineContrast(page, selector, ctx, 'focused decision chip ring');
+
+        // Activating moves focus off the chip and onto the gate heading, so the
+        // destination indicator is what a keyboard user now relies on.
+        await page.keyboard.press('Enter');
+        const id = decodeURIComponent((href ?? '').slice(1));
+        await expect(page.locator(`#${id}`), `${label(ctx)}: gate focus`).toBeFocused();
+        await expectOutlineContrast(page, `#${id}`, ctx, 'activated gate heading ring');
+      });
+    }
+  }
+});
+
+test.describe('journey good-output renders in the register its content earns', () => {
+  // Enumerated from the BUILT site, not from a hand-written list. The first version
+  // of this suite looped only the three priority routes, so it could not see that
+  // the transcript fix had regressed `/journeys/atlassian/` — whose
+  // `goodOutputDescription` is spec-sanctioned prose, not a session, and which the
+  // shared template was wrapping in an empty speaker term and the mono register.
+  const BUILD_JOURNEYS = fileURLToPath(new URL('../../../../build/journeys', import.meta.url));
+  const ROUTES = existsSync(BUILD_JOURNEYS)
+    ? readdirSync(BUILD_JOURNEYS, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => `/journeys/${e.name}/`)
+        .sort()
+    : [];
+
+  test('the built site was enumerated', () => {
+    // Guards the guard: an empty list would make every case below vacuous.
+    expect(ROUTES.length, 'no journey routes found in build/').toBeGreaterThan(10);
+  });
+
+  for (const route of ROUTES) {
+    test(`${route} good output`, async ({ page }) => {
+      const ctx = { route, width: WIDTHS[WIDTHS.length - 1] };
+      await page.setViewportSize({ width: ctx.width, height: 900 });
+      await gotoSettled(page, withBase(route), ctx);
+
+      const session = page.locator('ol.transcript');
+      const prose = page.locator('p.good-output');
+      const sessions = await session.count();
+      const proses = await prose.count();
+
+      if (sessions === 0 && proses === 0) return; // route carries no good-output
+      expect(
+        sessions + proses,
+        `${label(ctx)}: good output must render in exactly one register`
+      ).toBe(1);
+
+      const block = sessions === 1 ? session : prose;
+      const rendered = await block.innerText();
+
+      // The defect that shipped: no Markdown character may reach the reader, in
+      // either register.
+      expect(rendered, `${label(ctx)}: asterisk visible in good output`).not.toContain('*');
+      expect(rendered, `${label(ctx)}: backtick visible in good output`).not.toContain('`');
+      expect(rendered.length, `${label(ctx)}: good output is empty`).toBeGreaterThan(80);
+
+      if (sessions === 1) {
+        const speakers = session.locator('.transcript__speaker');
+        const turns = await speakers.count();
+        expect(turns, `${label(ctx)}: a session needs multiple turns`).toBeGreaterThan(1);
+        for (let i = 0; i < turns; i += 1) {
+          const who = (await speakers.nth(i).innerText()).trim();
+          // An empty term is the atlassian regression: prose forced into the
+          // session register produces exactly one unattributed turn.
+          expect(who, `${label(ctx)}: turn ${i} has no speaker`).not.toBe('');
+        }
+      }
+    });
   }
 });
 

@@ -144,7 +144,15 @@ ready     = [
 draft     = []
 
 ["ini-002".work]
-active  = []
+active  = [
+  # Tech-site completion programme. Implementation merged in #1042; membership
+  # follows the artifact, which reads `Status: Implementing` because AC15's
+  # design-review clause is recorded manual verification and is not yet satisfied.
+  # Leaving this in `queue` made canonical reconciliation report
+  # `impossible_transition` and `unapproved_spec`, since a queue entry is expected
+  # to be Approved. It moves to `shipped` when AC15 is ticked.
+  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
+]
 shipped = [
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
@@ -279,7 +287,6 @@ queue   = [
   # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
   # These entries are independently shippable. `needs` records only hard delivery
   # ordering; the brief retains the broader wave and evidence sequence.
-  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
   {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-now-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
   # CI throughput. Independent of the project-knowledge chain above — it touches
   # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
@@ -1102,13 +1109,23 @@ open = [
   # worker. Round 12 bounds it further by enumerating which profile stores the
   # item-6 purge removes. Unblocks when: an approver authorises a credentialed arm,
   # or the pilot answers it for its own destination during rollout.
-  {slug = "rfc0088-post-auth-sso-worker-dependency", source = "rfc/0088 open question 4"},
   # Round 11 accepted, and no measured control closes, the exposure that any
   # same-uid process can attach to the browser's unconfined bind endpoint. Round 12
   # measures whether a second OS user closes it (the cheap alternative to
   # containerising, which round 10 showed costs the renderer sandbox without
   # SYS_ADMIN). Unblocks when: round 12 T4 runs, which needs a second local account.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
+  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP,
+  # derived from the BLOCK clause alone: blocking scopes only per context, contexts
+  # isolate sessions, so destinations sharing a sign-in share one worker policy and
+  # the weakest member sets it. The purge half is WITHDRAWN pending re-measurement
+  # and the amendment does not rest on it. What is NOT
+  # measured is whether a group can be split without costing an additional
+  # interactive sign-in -- spike A showed profile-bound re-attach works and spike E
+  # showed a fresh profile needs a real sign-in, which suggests one sign-in per
+  # group. That figure decides whether splitting is cheap or expensive.
+  # Unblocks when: a spike measures the per-group sign-in cost.
+  {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
   # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
   # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
   # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not

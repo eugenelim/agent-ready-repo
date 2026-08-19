@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The example session on a journey page now reads as a session.** Each turn is
+  attributed to whoever spoke it and sits on its own line in a terminal-style
+  register, instead of running together in one paragraph with stray asterisks and
+  backticks showing. The wording is unchanged.
+- **Keyboard focus on a journey decision is easier to see.** Focusing a decision
+  no longer makes its label harder to read than the ones beside it, and the
+  heading you land on after activating one now takes the same clearly visible
+  outline the decision itself uses.
 - **Every decision point on a journey page is now a link you can share.** Each
   place the agent pauses for you has a stable address, so you can send someone
   straight to the decision itself rather than to the top of the page. The links

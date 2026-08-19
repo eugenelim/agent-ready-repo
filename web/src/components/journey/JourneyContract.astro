@@ -152,7 +152,15 @@ const decisionCount = decisions?.length ?? 0;
   .decision-chip:hover,
   .decision-chip:focus-visible {
     background-color: var(--ds-accent);
-    color: var(--ds-hero-fg);
+    /* Dark on amber, not white. `--ds-hero-fg` is white "primary text on dark"
+       and `--ds-accent` is the "CTA fill on dark" — pairing them on a LIGHT
+       surface gave 2.40:1 against a 4.5:1 requirement for this 13px/12px
+       weight-400 text, so acquiring focus made the chip less legible than its
+       resting neighbours. `--ds-cta-primary-fg` is the system's own
+       dark-on-amber CTA pairing and measures 8.07:1. axe cannot see this: it
+       scans the resting DOM, so a :hover/:focus-visible rule never applies
+       during the scan. `assertStateContrast` in the browser gate covers it. */
+    color: var(--ds-cta-primary-fg);
   }
 
   .decision-chip:focus-visible {

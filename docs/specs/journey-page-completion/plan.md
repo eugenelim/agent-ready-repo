@@ -336,3 +336,50 @@ no version, dependency, migration, or infrastructure change.
   still fails. The scaffold copy is a projection, so `manifest.json` was
   regenerated with `tools/catalogue/sync_authoring_scaffold.py --write` rather
   than hand-edited.
+- 2026-08-19: fixed the recorded design review's three Major findings. Two were
+  contrast failures invisible to the browser gate by construction: axe scans the
+  resting DOM, so a `:hover`/`:focus-visible` declaration never applies during the
+  scan, which is how a chip whose focus style measured 2.40:1 passed a green
+  accessibility gate. The chip's focused text is now the system's own
+  dark-on-amber CTA pairing (8.07:1) and the gate heading's ring is the same
+  near-black the chip already used (16.74:1), so one interaction stops speaking
+  two focus languages. The third was a presentation defect the ledger control
+  could not see: it compares source to source and was green throughout while the
+  rendered page showed markup characters. `parseTranscript` now returns speaker
+  turns and the template renders real elements in the page's mono register — no
+  Markdown dependency, no `set:html`, so no injection surface. Three new controls
+  close the gaps: `expectTextContrast` and `expectOutlineContrast` measure the
+  state the element is actually in and composite alpha rather than treating a
+  translucent token as an opaque fill, and a transcript case asserts multiple
+  attributed turns with no `*` or backtick reaching the reader. MP24-MP26 prove
+  each fails without its fix, reproducing 2.40:1, 2.08:1 and a missing transcript.
+  Also moved the spec's workspace entry from `queue` to the initiative's existing
+  empty `active` list, clearing the `impossible_transition` and `unapproved_spec`
+  findings that a merged-but-Implementing artifact produced in a queue.
+- 2026-08-19: re-review of the three Major fixes confirmed all three resolved and
+  found two more. One was a regression this branch introduced: the transcript fix
+  changed a shared template, and `atlassian` ships a `goodOutputDescription` that
+  is prose rather than a session — the grandfathered field whose allowlist entry
+  this spec already carries. It was rendering as a single unattributed turn: an
+  empty `<dt>` around 127 words of author prose in the 13px mono session register,
+  asserting session evidence for a paraphrase. The template now branches on the
+  parse result and prose renders in the prose register. The control could not see
+  it because it looped only the three priority routes, so it is now enumerated
+  from the built site and covers all 18 journey routes; MP27 forces every route
+  into the session register and fails exactly one of eighteen. A guard case
+  asserts the enumeration is non-empty, because an empty route list would make
+  every case vacuous.
+  The second was a Minor this branch made conspicuous rather than caused: the gate
+  heading and its card both painted an identical 3px near-black ring at the same
+  offset, verified from computed styles on both elements. Invisible while both sat
+  at 2.08:1; obvious at 15:1. The heading now owns the indicator for both
+  `:focus-visible` and `:target`, so the cold-load path that needs its own
+  selector survives — programmatic focus on a `tabindex="-1"` heading matches
+  `:focus-visible` only by Chromium heuristic — and the card computes
+  `outline-style: none`.
+  Deferred to its own PR by owner decision: the review's M2, the global
+  `:focus-visible` amber ring in `web/src/styles/base.css`, which measures 2.29:1
+  on light surfaces against a 3:1 non-text floor and 8.07:1 on the dark hero where
+  it is correct. It is pre-existing, owned by the design-system layer, and lands on
+  every marketing route, so it warrants its own review rather than riding along in
+  a journey-pages fix. AC15 stays unticked until it is resolved and re-reviewed.
