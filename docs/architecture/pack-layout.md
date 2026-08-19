@@ -123,9 +123,8 @@ the pack targets. Three required tables:
   pipeline reads these and emits derived per-tool metadata into
   `dist/apm/<pack>/apm.yml` and
   `dist/claude-plugins/<pack>/.claude-plugin/plugin.json` — for user-capable
-  packs only; the Claude-plugin route installs at user scope. Since
-  **enriched-pack-manifest** (RFC-0031 / ADR-0021, contract v0.14),
-  `[pack]` also accepts optional rich metadata — `readme`, `display_name`,
+  packs only; the Claude-plugin route installs at user scope. `[pack]` also
+  accepts optional rich metadata — `readme`, `display_name`,
   `license`, `categories` (≤5, soft vocabulary), `keywords` (≤5),
   `catalogue`, an opaque `[pack.metadata.<tool>]` table, plus the
   `[[pack.maintainers]]` array and the `[pack.links]` table
@@ -137,15 +136,12 @@ the pack targets. Three required tables:
   route — see [`pack-manifest.md`](pack-manifest.md). Every enriched field
   is optional; a pack that omits them projects exactly as before.
 - **`[pack.adapter-contract]`** — `version`, must reference a
-  published contract version. The contract is at **v0.18** today
-  (Claude-plugin hook parity); a pack pins the *minimum* version whose
-  behaviour it needs, not necessarily the latest. When authoring a new
-  pack, copy the value from a sibling with the same scope shape rather
-  than the contract.
+  published contract version. A pack pins the minimum behavior it needs. The
+  current version lives in [`contracts/adapter.toml`](../../contracts/adapter.toml).
 - **`[pack.install]`** — `default-scope` ∈ `{repo, user}`,
-  `allowed-scopes`, optional `user-scope-hooks` (v0.3+, RFC-0005),
-  and optional `allowed-adapters` (v0.6+, RFC-0011 — array of
-  user-scope-capable adapter names like `["claude-code", "kiro-ide",
+  `allowed-scopes`, optional `user-scope-hooks`, and optional
+  `allowed-adapters` (an array of user-scope-capable adapter names like
+  `["claude-code", "kiro-ide",
   "codex"]`; declared order drives the greenfield fallback). The
   `default-scope ∈ allowed-scopes` invariant is enforced in
   [`_data/pack.schema.json`](../../packages/agentbundle/agentbundle/_data/pack.schema.json)'s
@@ -175,11 +171,8 @@ The pack-authored primitives declared in the adapter contract
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | Declarative binding of a body to an editor event. |
 | `command` | `.apm/commands/<name>.md` | Slash-command primitive (Claude Code today; other harnesses degrade per the contract). |
 
-One more pack-authored primitive — `kiro-ide-hook`, for native Kiro
-IDE-event hooks — was designed in
-[RFC-0005](../rfc/0005-user-scope-hook-support.md) and activated in
-`adapter.toml` at v0.9, when the `kiro` adapter split into `kiro-ide` and
-`kiro-cli`. Its source path is `.apm/kiro-ide-hooks/<name>.kiro.hook`; the
+One pack-authored primitive, `kiro-ide-hook`, provides native Kiro IDE-event
+hooks. Its source path is `.apm/kiro-ide-hooks/<name>.kiro.hook`; the
 `kiro-ide` adapter projects it; every other adapter either declares it
 `dropped` or omits it. The contract also declares `shared-libs`,
 `adapter-root-bins`, and `user-libs` — pack-authored source paths under

@@ -65,14 +65,20 @@ below assigns every kind of doc to exactly one bucket.
                                        └────────────────────────────┘
 ```
 
-Inside `architecture/`, the two docs play opposite roles. `overview.md` is
-**descriptive** — the map of how the code is organized today, read to find
-things. `reference.md` is **normative** — the golden path (stack, building
-blocks, component stereotypes, cross-cutting standards) that new work conforms
-to, the target a feature's low-level design steers by. The map tells you where
-things are; the golden path tells you how new things should be shaped. A thin
-repo has only the map; the golden path appears once there are real architecture
-decisions to hold work to.
+`/ARCHITECTURE.md`, when present, is the concise descriptive system model:
+responsibilities, allowed dependency edges, state ownership, flows, extension
+points, enforced invariants, and deeper current-state links. It is optional;
+add it when a repo has more than one subsystem or a boundary the directory
+tree cannot make clear.
+
+Architecture documents have three roles. `overview.md` is **descriptive** —
+the map of how the code is organized today, read to find things.
+`reference.md` is **normative** — the golden path (stack, building blocks,
+component stereotypes, cross-cutting standards) that new work conforms to, the
+target a feature's low-level design steers by. The system model explains the
+system, the map tells you where things are, and the golden path tells you how
+new things should be shaped. A thin repo has only the map; the golden path
+appears once there are real architecture decisions to hold work to.
 
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
@@ -99,7 +105,7 @@ maintenance rules differ:
 
 | Class | Files | Rule |
 | --- | --- | --- |
-| **Living** | `CHARTER.md`, `architecture/*`, `product/*`, `guides/*`, active `specs/*` | Must match current reality. Updated in the same PR as any change that affects them. Drift is a bug. |
+| **Living** | `CHARTER.md`, `ARCHITECTURE.md`, `architecture/*`, `product/*`, `guides/*`, active `specs/*` | Must match current reality. Updated in the same PR as any change that affects them. Drift is a bug. |
 | **Frozen** | `adr/*`, shipped `specs/*`, accepted/rejected `rfc/*` | Immutable history. Status fields can change (Accepted → Superseded), bodies cannot. |
 | **Governance** | open `rfc/*` | In flight. Updated through the RFC process, not direct edits. Closes to Frozen on acceptance/rejection. |
 
@@ -592,10 +598,17 @@ what was decided or what's proposed. Each serves a different audience:
 How the code is *currently* organized. Not why (ADRs); not what we want
 (RFCs); what is.
 
+- `ARCHITECTURE.md` — when present, the concise system model: responsibilities,
+  allowed dependency edges, state ownership, flows, extension points,
+  mechanically enforced invariants, and deeper current-state links.
 - `overview.md` — the map of the monorepo. What's in `apps/`, `packages/`,
   `tools/`, and how they relate.
 - `<subsystem>.md` — one file per non-trivial subsystem. Describes the
   structure, the entry points, and links to the ADRs that explain why.
+
+`architecture/` holds current state. A designed-but-unbuilt subtree is admitted
+only when its index carries a `STATUS: PLANNED` marker and links to its
+governing decision.
 
 **Why separate from ADRs:** ADRs accumulate; current state has to be
 reconstructed by reading them all in order. `architecture/` is the

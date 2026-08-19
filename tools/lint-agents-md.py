@@ -325,6 +325,7 @@ def main() -> int:
     # 9. Stale living-doc check (warn-only)
     living_docs = (
         "docs/CHARTER.md",
+        "ARCHITECTURE.md",
         "docs/architecture/overview.md",
         "docs/product/roadmap.md",
     )

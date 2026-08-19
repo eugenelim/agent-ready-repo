@@ -71,22 +71,8 @@ a versioned public contract whose validator hard-errors on unknown keys,
 
 ### What `[policy]` no longer contains
 
-D-A removed `[policy] profile` and D-B removed `[policy] shortcodes`. Neither is
-deprecated: both are **unknown keys**, and a recipe carrying either is exit 4 with
-the ordinary unknown-field message.
-
-That is deliberate rather than harsh. A deprecation warning implies the key once
-did something the author might still want; these two named a trust relaxation that
-no longer exists and a renderer behaviour that no longer exists. Warning would
-suggest a migration path where there is none — the honest message is "this key is
-not in the schema", plus the nearest-valid-key suggestion the validator already
-emits.
-
-**`[policy]` is now purely resolution semantics** — what to do about a missing
-required artifact, an ambiguous selector, an unknown status, a draft, a
-cross-section duplicate. Nothing in it reaches trust, and nothing in it reaches a
-path. That is what makes the substitution rule below simple enough to state in one
-line.
+`[policy] profile` and `[policy] shortcodes` are unknown keys and exit 4. `[policy]`
+contains resolution semantics only; it cannot change trust or path authority.
 
 ### Parameter substitution — a closed surface
 
