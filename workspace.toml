@@ -2221,20 +2221,6 @@ open = [
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
 
-  # spec/okf-authoring-projection AC27. Amended by RFC-0087 § Errata E1
-  # (signed off 2026-08-19) from a promotion gate to a report-only measurement:
-  # the relative "no lower than its hand-authored baseline" clause is withdrawn
-  # because the frozen file is an expected-path key, not a model run, and a key
-  # scores 1.0 by construction. The absolute >=80% top-1 rate and the
-  # fabricated-path count are published, not gated; security-critical attempts
-  # remain a hard gate. What is still missing is the measurement itself: no
-  # in-harness routing run has been recorded for either caller.
-  # Fix: run the frozen cases through the host harness's own subagents, one
-  #   fresh sub-context per attempt, and record mode/fidelity/provenance with
-  #   the result. No API key: the model is invoked inside the agent, per the
-  #   shipped pack-activation-evals in-harness precedent.
-  # Unblocks when: a maintainer runs the recorded exercise; nothing blocks it.
-  {slug = "okf-router-report-only-routing-measurement"},
 
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # guides/core/explanation/role-journeys.md covers headless AI execution
