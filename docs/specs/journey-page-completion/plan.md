@@ -383,3 +383,32 @@ no version, dependency, migration, or infrastructure change.
   it is correct. It is pre-existing, owned by the design-system layer, and lands on
   every marketing route, so it warrants its own review rather than riding along in
   a journey-pages fix. AC15 stays unticked until it is resolved and re-reviewed.
+- 2026-08-19: resolved the design review's M2, the last known blocker on AC15's
+  design-review clause. The global `:focus-visible` ring was `--ds-accent` at
+  2.29:1 on the light page and 2.08:1 on the card, under the 3:1 non-text floor,
+  while being correct at 8.07:1 on the dark hero — so a blanket swap would have
+  broken what worked. A `--ds-focus-ring` semantic token now carries
+  `--ds-on-surface` (16.49:1) by default and is re-declared to `--ds-accent` on
+  dark carriers, which works because the override lives in the global stylesheet
+  where it can match Astro's rendered classes and inherit into scoped descendants.
+  `--ds-on-surface` was chosen over `--ds-accent-deep` (5.43:1) so the whole site
+  speaks one focus language, matching the journey controls; a second focus colour
+  on the same page had itself been flagged.
+  The authored patch contained a defect no static reading caught. Its dark-carrier
+  list included `.journey-narrative pre`, which looks right — those syntax
+  highlighted blocks carry `--ds-hero-bg` and receive `tabindex` when they overflow.
+  But `outline-offset` draws a ring OUTSIDE the element's box, so those four
+  focusable blocks had an amber ring landing on the light page at rgb(250,250,249):
+  2.29:1, the exact defect being fixed, reintroduced. Measured in a browser, not
+  read. The rule is that the token must describe the surface behind the ring, so
+  dark *containers* belong in the list and focusable dark *elements* do not; the
+  entry was removed and the reasoning recorded in `tokens.css` so it is not re-added.
+  That is also why the control is not a list. `expectEveryFocusStopHasContrastingRing`
+  walks real Tab stops, measures each ring against its composited backdrop, and ends
+  on one full focus cycle — a fixed 160-press walk took 40s on `/journeys/` and blew
+  the case budget. It runs over AC1's matrix plus `/primitives-fixture`, which is not
+  added to `MARKETING_ROUTES` because that constant is the ratified AC1 set, but is
+  the only place five of the changed primitives render. MP28 restores the original
+  defect and fails 17 cases naming `a.skip-nav` 2.29:1 and `a.loop__link` 2.08:1;
+  MP29 restores the authored defect and fails on `pre.astro-code.github-dark` at
+  2.29:1. Both restorations byte-identical.

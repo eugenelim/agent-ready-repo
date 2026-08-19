@@ -93,6 +93,7 @@
   --ds-on-surface-muted: var(--prim-neutral-600); /* captions, metadata */
   --ds-border:           var(--prim-neutral-200); /* card, section border */
   --ds-border-subtle:    var(--prim-black-06);    /* hairline, lowest weight */
+  --ds-focus-ring:       var(--ds-on-surface);    /* UI-state indicator on light */
 
   /* ── Accent — amber-gold, single chromatic ──────────────────────── */
   --ds-accent:            var(--prim-amber-400);  /* icon, CTA fill on dark, stat */
@@ -217,4 +218,31 @@
   --ds-state-neutral-bg:     var(--prim-neutral-100);
   --ds-state-neutral-fg:     var(--prim-neutral-800);
   --ds-state-neutral-border: var(--prim-neutral-300);
+}
+
+/* Dark-zone roots override the inherited light focus token. This stylesheet is
+   global, so these selectors match Astro's rendered classes even though each
+   component's own styles are scoped.
+
+   These are dark *containers*, and the token is inherited by their focusable
+   descendants — whose rings land on the container's dark fill. A focusable element
+   that is itself dark must NOT appear here: `outline-offset` draws its ring OUTSIDE
+   its own box, onto whatever is behind it. The syntax-highlighted `<pre>` blocks are
+   the case in point — they carry `--ds-hero-bg` and receive `tabindex` when they
+   overflow, but their ring lands on the light page at rgb(250,250,249), so amber
+   would measure 2.29:1 there. They keep the light default. */
+:where(
+  .section--dark,
+  .nav,
+  .footer,
+  .hero,
+  .stats,
+  .terminal,
+  .cat-hero,
+  .notfound,
+  .journeys-hero,
+  .now-hero,
+  .install-block
+) {
+  --ds-focus-ring: var(--ds-accent);
 }
