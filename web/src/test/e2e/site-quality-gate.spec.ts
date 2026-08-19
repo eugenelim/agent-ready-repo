@@ -18,6 +18,8 @@
  * outside the required subset (AC11).
  */
 import { test, expect } from '@playwright/test';
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import {
   THEMES,
@@ -240,41 +242,62 @@ test.describe('decision chip and gate focus states meet contrast in the state th
   }
 });
 
-test.describe('journey transcripts render as a session, not escaped markdown', () => {
-  // `goodOutputDescription` is a light-Markdown block scalar. Interpolating it into
-  // a <p> shipped `**You:**` and backticks as visible characters and collapsed every
-  // turn into one paragraph. Source fidelity could not see this: the ledger control
-  // compares source to source and was green throughout.
-  const PRIORITY = [
-    '/journeys/core/',
-    '/journeys/product-engineering/',
-    '/journeys/release-engineering/',
-  ] as const;
-  for (const route of PRIORITY) {
-    test(`${route} transcript`, async ({ page }) => {
+test.describe('journey good-output renders in the register its content earns', () => {
+  // Enumerated from the BUILT site, not from a hand-written list. The first version
+  // of this suite looped only the three priority routes, so it could not see that
+  // the transcript fix had regressed `/journeys/atlassian/` — whose
+  // `goodOutputDescription` is spec-sanctioned prose, not a session, and which the
+  // shared template was wrapping in an empty speaker term and the mono register.
+  const BUILD_JOURNEYS = fileURLToPath(new URL('../../../../build/journeys', import.meta.url));
+  const ROUTES = existsSync(BUILD_JOURNEYS)
+    ? readdirSync(BUILD_JOURNEYS, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => `/journeys/${e.name}/`)
+        .sort()
+    : [];
+
+  test('the built site was enumerated', () => {
+    // Guards the guard: an empty list would make every case below vacuous.
+    expect(ROUTES.length, 'no journey routes found in build/').toBeGreaterThan(10);
+  });
+
+  for (const route of ROUTES) {
+    test(`${route} good output`, async ({ page }) => {
       const ctx = { route, width: WIDTHS[WIDTHS.length - 1] };
       await page.setViewportSize({ width: ctx.width, height: 900 });
       await gotoSettled(page, withBase(route), ctx);
 
-      const transcript = page.locator('dl.transcript');
-      await expect(transcript, `${label(ctx)}: no transcript rendered`).toHaveCount(1);
+      const session = page.locator('ol.transcript');
+      const prose = page.locator('p.good-output');
+      const sessions = await session.count();
+      const proses = await prose.count();
 
-      const speakers = transcript.locator('dt.transcript__speaker');
-      const turns = await speakers.count();
-      expect(turns, `${label(ctx)}: transcript must have multiple labelled turns`)
-        .toBeGreaterThan(1);
+      if (sessions === 0 && proses === 0) return; // route carries no good-output
+      expect(
+        sessions + proses,
+        `${label(ctx)}: good output must render in exactly one register`
+      ).toBe(1);
 
-      // Every turn is attributed and every attribution is real text.
-      for (let i = 0; i < turns; i += 1) {
-        const who = (await speakers.nth(i).innerText()).trim();
-        expect(who, `${label(ctx)}: turn ${i} has no speaker`).not.toBe('');
+      const block = sessions === 1 ? session : prose;
+      const rendered = await block.innerText();
+
+      // The defect that shipped: no Markdown character may reach the reader, in
+      // either register.
+      expect(rendered, `${label(ctx)}: asterisk visible in good output`).not.toContain('*');
+      expect(rendered, `${label(ctx)}: backtick visible in good output`).not.toContain('`');
+      expect(rendered.length, `${label(ctx)}: good output is empty`).toBeGreaterThan(80);
+
+      if (sessions === 1) {
+        const speakers = session.locator('.transcript__speaker');
+        const turns = await speakers.count();
+        expect(turns, `${label(ctx)}: a session needs multiple turns`).toBeGreaterThan(1);
+        for (let i = 0; i < turns; i += 1) {
+          const who = (await speakers.nth(i).innerText()).trim();
+          // An empty term is the atlassian regression: prose forced into the
+          // session register produces exactly one unattributed turn.
+          expect(who, `${label(ctx)}: turn ${i} has no speaker`).not.toBe('');
+        }
       }
-
-      // The defect that shipped: no Markdown character may reach the reader.
-      const rendered = await transcript.innerText();
-      expect(rendered, `${label(ctx)}: asterisk visible in transcript`).not.toContain('*');
-      expect(rendered, `${label(ctx)}: backtick visible in transcript`).not.toContain('`');
-      expect(rendered.length, `${label(ctx)}: transcript is empty`).toBeGreaterThan(80);
     });
   }
 });
