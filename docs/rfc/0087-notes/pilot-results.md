@@ -71,6 +71,61 @@ managed entry digest was byte-identical. Both `git diff --check` outputs were
 empty, both post-restore diffs were empty, and final `git status --short` was
 empty.
 
+## Report-only routing measurement (AC26 / AC27)
+
+Recorded 2026-08-19 under RFC-0087 § Errata E1: top-1 and fabricated-path counts
+are published, not gated; security-critical attempts remain a hard gate.
+
+**Method.** Each frozen case was routed by a Claude Code subagent given only the
+bundle path and the case prompt. The expected path, forbidden paths and every
+baseline file were withheld. Three runs per caller, each a fresh sub-context, so
+the three samples per case are independent rather than one sample and two
+recollections; cases are answered sequentially within a run. No API key and no
+model call outside the agent session. Scoring is deterministic and derives the
+valid answer space from the bundle on disk, so a fabricated path cannot score as
+real even if it matches some other case's key.
+
+Harness `okf-routing-in-harness-v1`: `mode: in-harness`, `fidelity: observed`,
+`provenance: agent-executed`. `temperature` and `top_p` are not settable in this
+environment and are recorded as null rather than as the pre-registered
+`okf-routing-baseline-v1` values, which do not apply here.
+
+| Caller | Attempts | Top-1 vs key | Fabricated | Forbidden hits | Security-critical |
+| --- | ---: | ---: | ---: | ---: | --- |
+| security-checklists | 60 | **1.000** (60/60) | 0 | 0 | **1.000** (18/18) — gate passed |
+| cost-engineering | 60 | **0.967** (58/60) | 0 | 0 | **1.000** (15/15) — gate passed |
+
+Both exceed the >=80% published floor. Zero fabricated paths and zero
+forbidden-path hits across all 120 attempts.
+
+**The only miss is CE-012, twice.** Runs 1 and 3 chose `concepts/anomaly-triage.md`
+where the key is `concepts/unit-economics.md`; run 2 matched the key. One routing
+agent flagged it unprompted as "the one genuine coin-flip", observing that the
+prompt's price-versus-volume framing matches `unit-economics`' inputs but matches
+`anomaly-triage`'s step 2 nearly verbatim. That is a concept-overlap signal in the
+corpus rather than a router defect, and it is the kind of finding a report-only
+measurement exists to surface.
+
+**Raw attempts and the scorer** are committed beside this note under
+`pilot-measurements/`, so the numbers are auditable rather than asserted. Each
+table row reproduces from its own committed record in one command:
+
+```
+python3 docs/rfc/0087-notes/pilot-measurements/score.py <caller> \
+  <bundle>/references/okf \
+  docs/rfc/0087-notes/pilot-measurements/<caller>-in-harness.json
+```
+
+The
+scorer was mutation-checked before use: an injected fabricated path is counted,
+and an injected security-critical miss fails the hard gate with a non-zero exit.
+
+**Limits, stated plainly.** The session model is not pinned, so this is not a
+model-version-comparable benchmark. Sampling parameters are uncontrolled. Runs
+are independent of each other but cases within a run are not. Treat these as
+published observations about the current corpus, not as a calibrated benchmark;
+the calibrated arm remains deferred.
+
 ## Pilot case and baseline inventory
 
 | Pilot | Frozen cases | Security-critical cases | Baseline evidence | Current status |
@@ -100,8 +155,8 @@ empty.
 | AC24 | The compile-okf Skill and authoring prerequisite are shipped in catalogue-curation. Fast build-check and the operator-supplied isolated-venv full SAST/SCA run passed. |
 | AC25 | Both pilots compile through the generic compiler path. No caller-name branch evidence is recorded in the focused compiler tests. |
 | AC25a | Cost-engineering remains a complete underscore-prefixed, non-published pack-shaped fixture; real-pilot discovery tests stage it under an ordinary temporary pack path. |
-| AC26 | Amended by § Errata E1: the frozen file is an expected-path key, not a model baseline, so no model-configuration parity is required of it. Cost-engineering has 20 frozen cases (5 security-critical) with its key; security-checklists has 20 frozen cases (6 security-critical) and no key recorded yet. |
-| AC27 | Amended by § Errata E1 to a report-only measurement with the relative-baseline clause withdrawn. Not yet run: no in-harness routing measurement has been recorded. Security-critical attempts remain a hard gate when it is run. |
+| AC26 | Satisfied as amended by § Errata E1. Both callers have 20 frozen cases (5 and 6 security-critical) and a frozen expected-path key; the key is not a model run and needs no model-configuration parity. |
+| AC27 | Satisfied as amended by § Errata E1. 3 runs x 20 cases x 2 callers = 120 attempts. Top-1 1.000 (security-checklists) and 0.967 (cost-engineering), both above the >=80% published floor; 0 fabricated paths; security-critical 1.000 on both callers, hard gate passed. Recorded under § Report-only routing measurement with raw attempts in pilot-measurements/. |
 | AC28 | Completed. The 2026-08-18 exercise regenerated both callers from one canonical-concept edit without hand-editing generated output, recorded 3-second and 1-second timings, explained all resulting diffs, and restored a clean worktree. |
 | AC29 | Fast repository build-check, direct compiler checks, the full AgentBundle package suite, full SAST/SCA, focused post-repair package and roster suites, and the exact real-sdist gate passed. Combined operator evidence covers every local `make ci` leg after the repair. Windows now runs the compiler check in required CI; site-link evidence remains external. |
 

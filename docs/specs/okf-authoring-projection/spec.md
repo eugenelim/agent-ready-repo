@@ -250,12 +250,12 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   catalogue's underscore-prefixed authoring asset remains absent from normal
   discovery and publishing; production `list-packs` and marketplace behavior
   stay unchanged.
-- [ ] **AC26:** Before generated pilot evaluation, each caller has at least 20
+- [x] **AC26:** Before generated pilot evaluation, each caller has at least 20
   frozen cases with expected and forbidden concept paths, at least five fixed
   security-critical cases, and a recorded frozen expected-path key. The key is
   hand-authored from the committed concepts and is not a model run, so no
   model-configuration parity is required of it (RFC-0087 § Errata E1).
-- [ ] **AC27:** Each generated router runs three times per frozen case. Top-1
+- [x] **AC27:** Each generated router runs three times per frozen case. Top-1
   expected-path success and fabricated-path count are recorded as a
   **report-only** measurement against the frozen expected-path key, labelled
   with `mode` / `fidelity` / `provenance`; the >=80% figure is published, not
