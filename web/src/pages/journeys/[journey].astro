@@ -6,6 +6,7 @@ import JourneyHero from '../../components/journey/JourneyHero.astro';
 import JourneyContract from '../../components/journey/JourneyContract.astro';
 import GateDetail from '../../components/journey/GateDetail.astro';
 import { withBase } from '../../lib/paths';
+import { parseTranscript } from '../../lib/journey-transcript';
 
 export async function getStaticPaths() {
   const journeys = await getCollection('journeys');
@@ -104,7 +105,34 @@ const installCommand =
     <Section tone="surface-alt">
       <div class="content-body">
         <h2 class="section-h2">What good output looks like</h2>
-        <p class="good-output">{data.goodOutputDescription}</p>
+        {(() => {
+          const turns = parseTranscript(data.goodOutputDescription);
+          // A `goodOutputDescription` need not be a transcript. The spec permits a
+          // prose summary — `atlassian` ships one — and dressing narrative prose in
+          // the mono session register would assert session evidence for a
+          // paraphrase, the inverse of principle 2's "name the evidence boundary".
+          // An unlabelled single turn is that case.
+          const isSession = turns.length > 1 || (turns[0] && turns[0].speaker !== '');
+          const parts = (turn: (typeof turns)[number]) =>
+            turn.parts.map((part) =>
+              part.kind === 'code' ? <code>{part.value}</code> : part.value
+            );
+          return isSession ? (
+            // An ordered list, not a `dl`: the HTML standard calls `dl`
+            // inappropriate for dialogue, so a screen reader would announce a
+            // term/definition list for a sequence of speaker turns.
+            <ol class="transcript">
+              {turns.map((turn) => (
+                <li class="transcript__turn">
+                  <span class="transcript__speaker">{turn.speaker}</span>
+                  <span class="transcript__utterance">{parts(turn)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p class="good-output">{turns.map((turn) => parts(turn))}</p>
+          );
+        })()}
       </div>
     </Section>
   )}
@@ -400,10 +428,58 @@ const installCommand =
   }
 
   /* What good output looks like (section 5) */
+  /* A captured session, not prose. The approved copy is a light-Markdown block
+     scalar; it used to be interpolated into a <p>, so Astro escaped it and the
+     asterisks and backticks shipped as visible characters while HTML whitespace
+     collapsing flattened every turn into one paragraph. `parseTranscript` returns
+     structure so these are real elements, and the mono register matches how the
+     rest of the page presents machine output. Turns stack rather than using a
+     two-column grid: this page carries no media query, and a speaker as long as
+     "Independent reviewer" squeezes the utterance at 360px. */
+  /* The prose register, for a `goodOutputDescription` that is a summary rather
+     than a captured session. */
   .good-output {
     font-size: var(--ds-type-body-lg);
     color: var(--ds-on-surface-2);
     line-height: var(--ds-lead-body);
+  }
+
+  .transcript {
+    display: grid;
+    gap: var(--ds-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-mono-sm);
+    line-height: var(--ds-lead-body);
+    color: var(--ds-on-surface-2);
+  }
+
+  .transcript__turn {
+    display: grid;
+    gap: var(--ds-space-2);
+  }
+
+  .transcript__speaker {
+    display: block;
+    color: var(--ds-on-surface);
+    font-weight: 600;
+  }
+
+  .transcript__utterance {
+    display: block;
+  }
+
+  /* The whole block is already mono, so an inline-code chip would nest a box
+     inside a box. Carry the emphasis with weight instead. */
+  .transcript code {
+    font-family: inherit;
+    font-size: inherit;
+    background: none;
+    padding: 0;
+    color: var(--ds-on-surface);
+    font-weight: 600;
   }
 
   /* Section 7 */
