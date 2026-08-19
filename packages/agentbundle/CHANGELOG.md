@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.2] — 2026-08-19
+
+### Added
+
+- **Optional journey decision-gate identifiers.** `JOURNEY.md` may list ordered
+  `contract.decisionGateIds` from `humanGates[].id`; labels remain reader-facing,
+  `yourDecisions` remains required, and existing packs stay valid unedited. This
+  shipped after the 0.38.1 tag and reaches PyPI here for the first time.
+
+### Changed
+
+- **Leaner bundled authoring scaffold.** `packs/AGENTS.md` and
+  `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
+  init` starts catalogues with leaner instructions. No CLI verb, flag, or output
+  format changed.
+
 ## [0.38.1] — 2026-08-18
 
 ### Fixed

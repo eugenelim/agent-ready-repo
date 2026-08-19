@@ -1,36 +1,25 @@
-# packages/credbroker — agent context
+# AGENTS.md — `packages/credbroker/`
 
-`credbroker` is a standalone, stdlib-only credential resolver. It reads secrets
-in-process, walks three tiers (env variable → OS keyring → dotfile/vault), and
-never lets cleartext cross a process boundary to the LLM.
+Applies to `packages/credbroker/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 
-## Package structure
+## Package boundary
 
-| Path | Purpose |
-|------|---------|
-| `credbroker/_core.py` | Three-tier resolution logic |
-| `credbroker/_keychain_macos.py` | macOS Keychain backend |
-| `credbroker/_credman_windows.py` | Windows Credential Manager backend |
-| `credbroker/_vault.py` | Encrypted-at-rest vault (requires `[crypto]` extra) |
-| `credbroker/_sso.py` | SSO web-session cookie resolver |
-| `tests/unit/` | Pure logic, no disk |
-| `tests/integration/` | Full-stack, disk writes, subprocess |
+`credbroker` is a stdlib-first credential resolver. It resolves env, OS-keyring,
+then dotfile/vault credentials in-process and never passes cleartext to an LLM.
 
-## Windows / cross-OS compatibility
+## Package-specific traps
 
-All new code must be Windows-clean:
+- Platform keyring calls require platform guards; unsupported systems continue to
+  the next resolver tier.
+- The optional `[crypto]` extra must be skipped gracefully when unavailable.
+- Vault tests must redirect their home and vault paths to test fixtures.
 
-- **Encoding:** `Path.read_text()` / `Path.write_text()` / `open()` must pass `encoding="utf-8"`.
-- **Paths:** use `pathlib.Path`. No hardcoded `/tmp` or `os.environ["HOME"]`.
-- **Subprocess:** list form only, never `shell=True`.
-- **Platform guards:** wrap keychain and credential-manager calls in `if sys.platform == ...` guards —
-  Linux has no keyring tier and skips straight to the dotfile floor.
-- **Symlinks:** wrap `os.symlink()` in `try/except OSError: pytest.skip(...)`.
+## Essential commands
 
-## Test conventions
+```bash
+python3 -m pytest packages/credbroker/tests/ -q
+```
 
-- Use `tmp_path` (pytest fixture), not `tempfile.mkdtemp()`.
-- Use `pytest.MonkeyPatch` for environment patching.
-- The `[crypto]` extra is optional; tests that require it should skip gracefully when
-  `cryptography` is absent.
-- Vault tests must not write to the real user home; always redirect via `tmp_path`.
+## Deeper pointers
+
+Resolver implementation and test fixtures own backend-specific behavior.

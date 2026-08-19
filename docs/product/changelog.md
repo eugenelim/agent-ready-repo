@@ -70,6 +70,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you can see the shape of the exchange, and where your decisions fall in it,
   before committing to the journey.
 
+### [core][2.9.2] — 2026-08-19
+
+#### Changed
+
+- **Leaner seeded instructions.** Core's seed `AGENTS.md` and seed
+  `docs/CONVENTIONS.md` now start repositories with a map and universal
+  invariants rather than a manual.
+- **Risk triggers have one home.** The enumerated set now lives only in the
+  `work-loop` skill, which the seed names instead of copying. Mode selection is
+  unchanged: the same triggers select the same light/full behaviour; only the
+  documentation home moved.
+- **Portable seed references.** Vendor-specific `.claude/...` projection paths
+  were removed from seed conventions, so guidance does not assume one adapter.
+- **Eval artifacts stay uncommitted.** The seed `.gitignore` now excludes
+  `.eval-workspace/` produced by `agentbundle pack evals run`.
+
+### [agentbundle][0.38.2] — 2026-08-19
+
+#### Added
+
+- **Optional journey decision-gate identifiers.** `JOURNEY.md` may list ordered
+  `contract.decisionGateIds` from `humanGates[].id`; labels remain reader-facing,
+  `yourDecisions` remains required, and existing packs stay valid unedited. This
+  shipped after the 0.38.1 tag and reaches PyPI here for the first time.
+
+#### Changed
+
+- **Leaner bundled authoring scaffold.** `packs/AGENTS.md` and
+  `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
+  init` starts catalogues with leaner instructions. No CLI verb, flag, or output
+  format changed.
+
 ### [core][2.9.1] — 2026-08-19
 
 #### Added

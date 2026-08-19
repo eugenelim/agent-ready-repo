@@ -697,10 +697,9 @@ seeds) lives under `packs/<pack>/`. The split is:
   consumed by composite recipes.
 
 *Projected* paths under `make build-check`'s gate:
-- Adapter-driven primitives: `.claude/skills/<name>/`,
-  `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
-  `tools/hooks/<name>.<ext>`, and the `hooks` key of
-  `.claude/settings.local.json`.
+- Adapter-driven primitives: the adapter's skills, agents, commands, and local
+  settings targets; the adapter contract owns their exact paths. `tools/hooks/<name>.<ext>`
+  and the `hooks` settings key are also adapter-driven.
 - Adapter-independent runtime primitives: `.agentbundle/bin/<name>.py` from
   `packs/<pack>/.apm/adapter-root-bins/`, and
   `.agentbundle/lib/<module>/` from the package source vendored through
@@ -843,7 +842,7 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — an unattended, fresh-session-per-iteration loop (see the
 work-loop skill).
 
-**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by `loop-cohort check --phase gates-failed` and `--phase review` respectively at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit one, the task is bigger than you thought — stop, re-plan, or split.
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — stop, re-plan, or split.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
@@ -855,31 +854,9 @@ kind of learning belongs.
 **Rigor scales with risk, not file count.** `work-loop` has two modes —
 **light mode**, the default for low-risk work, and **full mode**, with every
 gate, reviewer iteration, and the state machine. The `work-loop` skill is the
-single owner of what each mode trims and how it runs; this section keeps only
-the principle and the risk triggers, so the mechanics live in one place rather
-than two. Work escalates to full mode the moment it trips a risk trigger:
-
-<!-- risk-triggers:start — canonical wording lives here; copied verbatim
-     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
-     Keep all four byte-identical (grep-equality is an acceptance
-     criterion of the work-loop-light-mode spec). -->
-**Risk triggers — any one routes the work to full mode:**
-
-- **Unfamiliar** — territory you don't know well.
-- **Multi-person** — more than one person builds or reviews it.
-- **Multi-feature or dependent tasks** — it decomposes a multi-feature
-  brief, or its tasks depend on one another.
-- **Compliance, governance, or security boundary** — it touches a
-  compliance or governance surface, or a security boundary (auth,
-  secrets, user input, deserialization, file or network I/O).
-- **Structural or public-interface change** — it changes structure (a new
-  module, layer, or boundary) or a public or published interface.
-- **Destructive or irreversible operation** — it deletes data,
-  force-pushes, drops tables, or otherwise can't be cleanly undone.
-- **New dependency** — it adds a dependency.
-
-No trigger fires → **light mode**.
-<!-- risk-triggers:end -->
+single owner of what each mode trims and how it runs. Work escalates to full
+mode the moment it trips a risk trigger; the enumerated trigger set lives in
+the `work-loop` skill.
 
 **Why risk, not file count.** A familiar two-file change is cheap to get right
 and cheap to undo; a one-file change to an auth path or a published interface is
@@ -1048,7 +1025,7 @@ in the work-loop skill is the same pattern at a different layer —
 moving review left from after code is written to before it is.
 
 `session-start.py` is shipped pre-wired by the install pipeline: the
-SessionStart binding lands in `.claude/settings.local.json`
+SessionStart binding lands in the adapter's local settings file
 automatically, no manual paste. `pre-pr.py` stays consumer-wired,
 because Claude Code has no PR-open lifecycle event (`Stop` fires after
 every agent turn — wrong semantics). Wire `pre-pr.py` via
@@ -1067,7 +1044,8 @@ not the answer to most work; the work-loop skill covers when it fits.
 
 
 Skills are workflows agents invoke for repeating tasks: scaffolding a package,
-opening an ADR, running a release. They live in `.claude/skills/<name>/SKILL.md`.
+opening an ADR, running a release. They live in the adapter's skills directory as
+`<name>/SKILL.md`.
 
 Add a skill when you've done the same multi-step thing three times. Don't add
 one speculatively — speculative skills bloat context and degrade adherence.
@@ -1101,9 +1079,9 @@ something forces them to fill.
 | `docs/CONVENTIONS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
 | `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
 | `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
-| `docs/product/changelog.md` | `.claude/agents/adversarial-reviewer.md` (overhead at this size) |
+| `docs/product/changelog.md` | the `adversarial-reviewer` subagent (overhead at this size) |
 | `guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
-| `.claude/skills/work-loop/` | |
+| the `work-loop` skill | |
 
 **Rule of thumb:** if your README + an OpenAPI/schema file would have
 been enough, you're at this profile. The template gives you ADRs and
@@ -1123,7 +1101,7 @@ Most folders start carrying content.
 - `rfc/` may still be unused; PRs are enough for most decisions.
 - `adversarial-reviewer` subagent is worth using. `security-reviewer` and
   `quality-engineer` are worth reaching for when a PR warrants them — see
-  [`AGENTS.md § Specialist subagents`](../AGENTS.md#specialist-subagents).
+  the `work-loop` skill's REVIEW step.
 
 ### Profile C — Medium platform / engine (10-50 contributors)
 
@@ -1193,10 +1171,8 @@ of adopting them — not as a precaution.
 
 ## Common rationalizations
 
-Four lies an agent tells itself mid-loop, paired with the rebuttal that
-already lives in this repo. These are the in-loop counterparts to the
-[Excuses we don't accept](../AGENTS.md#excuses-we-dont-accept) table in
-`AGENTS.md`, which fires *before* the work-loop loads.
+These are rationalizations to refuse, whether they arise before the work-loop
+loads or while it is running.
 
 | The lie | The rebuttal |
 | --- | --- |
@@ -1204,6 +1180,10 @@ already lives in this repo. These are the in-loop counterparts to the
 | "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in the `work-loop` skill. |
 | "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
+| "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
+| "I don't need a spec, I understand the task." | Light mode still writes a lean inline spec; if any risk trigger fires, run full `new-spec` first. The spec exists to surface what you don't know you don't know. |
+| "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
+| "I'll match the surrounding code's pattern." | Check the [Source of truth](../AGENTS.md#source-of-truth) map first; local style may already conflict with the canonical convention. |
 
 ---
 

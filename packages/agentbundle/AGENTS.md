@@ -1,48 +1,27 @@
-# packages/agentbundle — agent context
+# AGENTS.md — `packages/agentbundle/`
 
-> Insider notes (PyPI publishing, Engine-Change-RFC requirement): `AGENTS.local.md`.
+Applies to `packages/agentbundle/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 
-## Windows portability — test isolation
+## Package boundary
 
-**User-scope root isolation.** Patching `HOME` alone doesn't work on Windows — `expanduser` reads `USERPROFILE`. Also patch `AGENTBUNDLE_USER_ROOT` (checked first, bypasses `expanduser`):
-```python
-patch.dict(os.environ, {"HOME": str(self.home), "AGENTBUNDLE_USER_ROOT": str(self.home)})
+`agentbundle` is the catalogue engine and public CLI. Edit source inputs, not its
+packaged scaffold or adapter projections. See `AGENTS.local.md` for release context.
+
+## Package-specific traps
+
+- Concurrent-install assertions may race on Windows; skip that focused test there.
+- Normalize CRLF before byte comparisons of checked-out text.
+- Use `Path.as_uri()` for `file://` URLs; string formatting makes broken Windows URLs.
+- Prefer library APIs over subprocess wrappers; a justified Semgrep suppression belongs
+  on the line the rule anchors.
+
+## Essential commands
+
+```bash
+python3 -m pytest packages/agentbundle/tests/ -q
 ```
 
-**Shell dispatch.** Don't call `sh -c <path>` in tests — Git Bash strips backslashes from Windows paths. Guard with `if sys.platform == "win32": return`.
+## Deeper pointers
 
-**Concurrent install race.** Thread-based concurrent-install tests that assert both adapter rows land can race on Windows (TOCTOU in inband-detection). Skip with `@unittest.skipIf(sys.platform == "win32", ...)`.
-
-**Subprocess encoding (cp1252).** Force UTF-8 in subprocess env to avoid `UnicodeEncodeError` on characters like `✓`:
-```python
-env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
-result = subprocess.run([sys.executable, str(script)], env=env,
-                        capture_output=True, text=True, encoding="utf-8")
-```
-
-**CRLF vs LF byte comparisons.** Git `autocrlf` converts line endings on Windows checkout. Normalize before byte-comparing:
-```python
-def _norm(p): return p.read_bytes().replace(b"\r\n", b"\n")
-```
-
-**Symlinks and execute bits.** `os.symlink()` and `os.chmod(..., 0o755)` require Developer Mode on Windows CI. Skip tests that rely on them:
-```python
-@unittest.skipIf(sys.platform == "win32", "symlinks require Developer Mode on Windows")
-```
-
-**Root-path detection.** `str(path) == "/"` is always `False` on Windows. Use `normalised == normalised.parent`.
-
-**`file://` URLs.** `f"file://{path.as_posix()}"` produces `file://C:/path` (broken on Windows). Use `path.as_uri()` → `file:///C:/path`.
-
-## Gate G — release impact
-
-Changes under `packages/agentbundle/agentbundle/` trigger Gate G. PR must have all three:
-1. Version bump in `version.py` and `pyproject.toml`.
-2. Changelog entry in `CHANGELOG.md`.
-3. `Engine-Change-RFC:` trailer.
-
-**Version collision on rebase.** If main bumped while your branch was open, resolve to `<main-version> + 0.0.1` (e.g. main at `0.21.0` → use `0.21.1`). In rebase conflicts `HEAD` = main — take its version, increment patch.
-
-## SAST (Semgrep) false-positives
-
-`dangerous-subprocess-use-tainted-env-args` fires on `subprocess.run` even with `shell=False`. Prefer the library API (`zipapp.create_archive` over `python -m zipapp`). If `# nosemgrep` is needed, place it on the line Semgrep anchors to — for multi-line calls that's the first argument-list line, not `subprocess.run(`.
+The adapter contract and catalogue schemas own format details; package tests own
+runtime and projection behavior.
