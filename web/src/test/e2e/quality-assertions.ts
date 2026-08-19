@@ -630,6 +630,7 @@ export async function expectEveryFocusStopHasContrastingRing(
     const stop = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body || el === document.documentElement) return null;
+      const cs = getComputedStyle(el);
 
       const parse = (value: string): number[] | null => {
         const m = value.match(/[\d.]+/g);
@@ -637,9 +638,20 @@ export async function expectEveryFocusStopHasContrastingRing(
         const [r, g, b] = m.slice(0, 3).map(Number);
         return [r, g, b, m.length > 3 ? Number(m[3]) : 1];
       };
-      // The ring sits outside the element's own box, so start from the parent.
+
+      // Which surface the ring lands on depends on the SIGN of `outline-offset`.
+      // Positive draws it outside the element, over the parent; negative draws it
+      // inside, over the element's own background. Always starting at the parent
+      // was only accidentally correct: all seven inset rules here
+      // (TaskSwitcher -2px, InstallTerminal -2px, StatusChip 5x -1px) sit on
+      // `background: none` elements, so parent and self resolve alike. Give any of
+      // them a fill and the old version reported a passing number for a surface the
+      // ring never touches.
+      const inset = parseFloat(cs.outlineOffset) < 0;
+      const from = inset ? el : el.parentElement;
+
       const behind = (): number[] => {
-        let node: HTMLElement | null = el.parentElement;
+        let node: HTMLElement | null = from;
         const layers: number[][] = [];
         while (node) {
           const c = parse(getComputedStyle(node).backgroundColor);
@@ -657,7 +669,20 @@ export async function expectEveryFocusStopHasContrastingRing(
         return out;
       };
 
-      const cs = getComputedStyle(el);
+      // `behind()` reads backgroundColor only. `.hero` layers an accent glow and
+      // two grid gradients over `--ds-hero-bg`, so where an image is present the
+      // measured backdrop is the solid colour beneath it and not the rendered
+      // pixel. Recorded rather than silently assumed, so the next decorative
+      // gradient cannot hide behind a passing number.
+      const approximated = (): boolean => {
+        let node: HTMLElement | null = from;
+        while (node) {
+          if (getComputedStyle(node).backgroundImage !== 'none') return true;
+          node = node.parentElement;
+        }
+        return false;
+      };
+
       const id =
         `${el.tagName.toLowerCase()}` +
         `${el.id ? `#${el.id}` : ''}` +
@@ -667,7 +692,9 @@ export async function expectEveryFocusStopHasContrastingRing(
         outlineStyle: cs.outlineStyle,
         outlineWidth: cs.outlineWidth,
         outlineColor: cs.outlineColor,
-        boxShadow: cs.boxShadow,
+        outlineOffset: cs.outlineOffset,
+        inset,
+        approximated: approximated(),
         behind: behind(),
       };
     });
@@ -690,7 +717,9 @@ export async function expectEveryFocusStopHasContrastingRing(
     if (ratio < 3) {
       failures.push(
         `${stop.id}: ring ${stop.outlineColor} on ` +
-          `rgb(${stop.behind.map((c) => Math.round(c)).join(',')}) = ${ratio.toFixed(2)}:1`
+          `rgb(${stop.behind.map((c) => Math.round(c)).join(',')}) = ${ratio.toFixed(2)}:1` +
+          `${stop.inset ? ' [inset ring, measured against its own background]' : ''}` +
+          `${stop.approximated ? ' [backdrop has a background-image; solid colour beneath measured]' : ''}`
       );
     }
   }

@@ -422,7 +422,16 @@ test.describe('every keyboard focus stop has a ring that clears the non-text flo
   // not an adopter-facing route. But five primitives (task-switcher, decision-band,
   // next-action, write-confirmation, page-hero) render ONLY there, so without it the
   // focus treatment on those components would be changed and never measured.
-  const FOCUS_RING_ROUTES = [...MARKETING_ROUTES, '/primitives-fixture/'] as const;
+  // `/404/` and `/packs/architect/` are here because both carry focus stops this
+  // change re-pointed at the token and neither is in AC1's matrix: `.notfound` is a
+  // dark carrier, and `.install-copy-btn` renders only when `pluginInstallable` is
+  // true — which the matrix's only pack route, `core`, is not.
+  const FOCUS_RING_ROUTES = [
+    ...MARKETING_ROUTES,
+    '/primitives-fixture/',
+    '/404/',
+    '/packs/architect/',
+  ] as const;
   for (const route of FOCUS_RING_ROUTES) {
     for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
       test(`${route} focus rings @${width}`, async ({ page }) => {

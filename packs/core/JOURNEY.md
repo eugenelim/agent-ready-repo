@@ -234,4 +234,4 @@ For control-harness use — sessions driven programmatically without a human wat
 
 The work-loop runs the same gates; the harness is what answers them instead of a person at a keyboard.
 
-→ [Run a headless session](../../docs/guides/core/how-to/run-headless-session/)
+→ [Run a headless session with workspace-mcp](../../docs/guides/core/how-to/run-headless-session/)
