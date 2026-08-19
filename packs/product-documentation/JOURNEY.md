@@ -10,18 +10,18 @@ contract:
   useItWhen: "You need to write, improve, or audit any catalogue-facing guide, pack README, or journey — whether you're starting from scratch, reworking legacy docs, or checking that existing pages hold up to their Diátaxis page contract."
   youProvide: "A description of what you want to document, improve, or check, and optionally the mode (create / revise / retrofit / audit / verify)."
   youReceive: "A draft, revision, retrofit plan, audit report, or verification result — whichever fits the request — with the Diátaxis page kind confirmed and the write destination resolved."
-  yourDecisions:
-    - "Confirm the Diátaxis page kind (tutorial / how-to / reference / explanation)"
-    - "Review the drafted or revised output before it is merged"
+  decisionGateIds:
+    - confirm-documentation-page-kind
+    - review-product-documentation
 whatChanges: "After installing product-documentation, your project has the `author-product-docs` skill — one entry point for five documentation modes. The skill infers the mode from your request, resolves the correct destination (`guides/` for catalogue-facing content, `docs/guides/` for maintainer docs), and follows Diátaxis as a page contract rather than a mandatory directory structure. Pack READMEs are treated as first-class artifacts alongside guide pages."
 skills:
   - name: author-product-docs
     description: "Creates, revises, retrofits, audits, or verifies documentation using Diátaxis as a page contract — one skill, five modes, no forced directory skeleton."
     humanTouches: 2
 humanGates:
-  - id: G-kind
+  - id: confirm-documentation-page-kind
     globalGate: null
-    label: "Confirm the Diátaxis page kind"
+    label: "Confirm the documentation page kind"
     trigger: "Before author-product-docs begins drafting — to confirm the page kind inferred from your request"
     duration: "2–4 minutes"
     whatToCheck:
@@ -31,9 +31,9 @@ humanGates:
     whatGoodLooksLike: "A confirmed page kind that you could justify in one sentence — 'This is a how-to because the reader already knows they want to install X and just needs the steps.'"
     whatBadLooksLike: "An explanation that buries the reader in background before revealing what they can do, or a how-to that opens with three paragraphs about why the tool exists."
     consequence: "A doc written against the wrong page contract misleads the reader from the first sentence. The classification gate catches this before the first paragraph is drafted — cheap here, expensive after it's live."
-  - id: G-review
+  - id: review-product-documentation
     globalGate: "G4"
-    label: "Review the drafted or revised output"
+    label: "Review the product documentation"
     trigger: "After author-product-docs produces an output — before it is committed or merged"
     duration: "10–20 minutes"
     whatToCheck:

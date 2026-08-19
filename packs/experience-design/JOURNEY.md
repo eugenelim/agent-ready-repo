@@ -10,10 +10,10 @@ contract:
   useItWhen: "A product team needs a full design thread — from outcome to independently-reviewed screens — before build begins."
   youProvide: "The feature, user, and intended outcome, plus any existing brand or design-system constraints."
   youReceive: "A complete, independently-reviewed design set — journey map, screen inventory, interaction specs, and accessibility-clean designs."
-  yourDecisions:
-    - "Approve the customer journey and derived screen list"
-    - "Approve the aesthetic direction and token set"
-    - "Review the designs after the independent experience-reviewer pass"
+  decisionGateIds:
+    - approve-journey
+    - approve-aesthetic-direction
+    - review-experience-designs
 whatChanges: "After installing experience-design, every design task runs a fixed thread: journey-mapping to anchor user outcomes, user-flow to derive the screen inventory, a craft sequence (creative-direction → design-system → information-architecture → interaction-design) to design each screen, and an independent experience-reviewer pass that reads design artifacts cold. The quality floor — handle-all-states, WCAG 2.2 AA, reduced-motion — is non-negotiable at every step. You decide at three gates: the journey and screen list, the aesthetic direction, and the post-review pass before design feeds the build loop. experience-status orients to the thread at the start of any session."
 skills:
   - name: journey-mapping
@@ -77,22 +77,22 @@ skills:
     description: "Orients to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next."
     humanTouches: 0
 humanGates:
-  - id: G-journey
+  - id: approve-journey
     globalGate: null
-    label: "Approve the customer journey and derived screen list"
+    label: "Approve the journey"
     trigger: "After journey-mapping and user-flow complete"
     duration: "10–15 minutes"
     whatToCheck:
       - "Does the journey capture the outcome the user is trying to achieve — not just the tasks they perform in the current product?"
-      - "Is the screen list derived from the journey, not from the existing implementation or a wish list?"
+      - "Does the journey provide a clear basis for the derived screen list, rather than the existing implementation or a wish list?"
       - "Are the key failure modes named — the moments the current journey breaks down, and why?"
       - "Is every screen in the list implied by the journey? (Remove screens that aren't.)"
     whatGoodLooksLike: "A journey map that names the outcome, the failure modes, and a screen list with a clear derivation — each screen traceable to a moment in the journey."
     whatBadLooksLike: "A screen list that maps to the current implementation screen-by-screen. This means the agent documented the status quo instead of designing for the outcome."
     consequence: "The screen list is the contract for all design work that follows. A screen list derived from the wrong model means the design thread designs the wrong product — faithfully."
-  - id: G-aesthetic
+  - id: approve-aesthetic-direction
     globalGate: null
-    label: "Approve the aesthetic direction and token set"
+    label: "Approve the aesthetic direction"
     trigger: "After creative-direction and optionally design-system complete"
     duration: "5–10 minutes"
     whatToCheck:
@@ -103,9 +103,9 @@ humanGates:
     whatGoodLooksLike: "A named aesthetic reference with a token set that derives directly from it, passes the contrast floor, and could be handed to a developer without ambiguity."
     whatBadLooksLike: "An aesthetic direction that could apply to any product, or a token set that introduces hardcoded values outside the semantic token system."
     consequence: "The aesthetic direction is the constraint every subsequent screen must satisfy. Approving a vague direction means screens drift with no shared reference to hold them together — and the experience-reviewer will flag every screen for the same missing constraint."
-  - id: G-experience-review
+  - id: review-experience-designs
     globalGate: null
-    label: "Review the designs after the independent experience-reviewer pass"
+    label: "Review the experience designs"
     trigger: "After the experience-reviewer subagent returns findings on the completed screen designs"
     duration: "15–25 minutes"
     whatToCheck:

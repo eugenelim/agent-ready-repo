@@ -12,8 +12,8 @@ contract:
   useItWhen: "A build-loop PR is adversarial-review-clean and ready to go to production."
   youProvide: "A merged, adversarial-review-clean inner build-loop output."
   youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and a convergence-verified prod ship."
-  yourDecisions:
-    - "Approve the prod ship"
+  decisionGateIds:
+    - approve-production-release
 whatChanges: "After installing release-engineering, completed build-loop output goes through release-loop before reaching production. The release-lead agent deploys to an ephemeral environment, runs e2e tests, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. You review at one gate: the prod ship."
 skills:
   - name: release-loop
@@ -23,9 +23,9 @@ skills:
     description: "Authors an OpenSLO v1 YAML document for a service. Produces the SLO artifact the release-loop PRR gate reads to populate the error-budget status field."
     humanTouches: 0
 humanGates:
-  - id: G5
+  - id: approve-production-release
     globalGate: "G5"
-    label: "Approve the prod ship"
+    label: "Approve the production release"
     trigger: "After the deployed whole converges — e2e clean, telemetry stable, security review done"
     duration: "15–30 minutes"
     whatToCheck:
@@ -35,7 +35,7 @@ humanGates:
       - "Is the rollback path documented and tested?"
     whatGoodLooksLike: "A release readiness record showing convergence — e2e clean, telemetry stable, security reviewer clean, no borderline gates."
     whatBadLooksLike: "A record that notes borderline gates you wave through. Or a record that omits the security diff review."
-    consequence: "G5 gates the prod ship. The agent cannot ship to production without your ratification. After this gate, the change reaches real users or real data — irreversible."
+    consequence: "This gates the production release. The agent cannot ship to production without your ratification. After this gate, the change reaches real users or real data — irreversible."
 typicalSession:
   agentTurns: "varies"
   humanTouches: 1
@@ -44,6 +44,24 @@ docsUrl: /docs/guides/release-engineering/
 packUrl: /packs/release-engineering/
 relatedJourneys:
   - core
+eyebrow: "From a clean build to a verified production release"
+goodOutputDescription: |-
+  **You:** Use `release-loop` for the merged export-filter change. Deploy it to
+  an isolated ephemeral environment, converge on end-to-end results and
+  telemetry, then prepare the release-readiness record. Do not deploy to
+  production without my approval.
+  **Agent:** The target is the merged, independently reviewed change. The
+  environment is isolated from production data and traffic, and teardown is
+  available. Starting the ephemeral deployment.
+  **Agent:** First iteration: the empty-result export flow failed end to end.
+  Other checks and telemetry remained stable. I returned the defect to the
+  inner loop, verified the reviewed fix, and redeployed.
+  **Agent:** Second iteration: all release end-to-end checks pass; latency and
+  errors remain within the recorded service objectives; the deployed-diff
+  security review is clean; and the rollback rehearsal passes. The
+  release-readiness record links the evidence. Borderline gates: none.
+  Production remains unchanged.
+  **You:** Approve the production release.
 ---
 
 ### 1. Trigger and confirm the deploy

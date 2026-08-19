@@ -250,6 +250,9 @@ jobs:
       - name: pytest make-free gate chains (windows-build-gate-chain)
         run: python -m pytest tools/test_build_gate_chain.py
 
+      - name: pytest journey editorial decisions
+        run: python -m pytest tools/test_journey_editorial_decisions.py
+
       # The generated guides sidebar: sidebar-config.json is gitignored, so
       # these set-equality, label-parity and determinism guards are the only
       # thing standing between a generator regression and a broken published

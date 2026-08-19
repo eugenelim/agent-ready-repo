@@ -116,9 +116,7 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
     '/journeys/release-engineering/',
   ] as const;
   for (const route of PRIORITY) {
-    // Narrowest and widest of the approved set rather than literals, so a change to
-    // WIDTHS carries here too.
-    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+    for (const width of WIDTHS) {
       test(`${route} @${width}`, async ({ page }) => {
         const ctx = { route, width };
         await page.setViewportSize({ width, height: 900 });
@@ -126,12 +124,7 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
 
         const chips = page.locator('a[href^="#decision-"]');
         const count = await chips.count();
-        if (count === 0) {
-          // Semantic gate IDs are `journey-page-completion`'s contract and may
-          // not have landed yet. Skip loudly rather than assert a shape this
-          // spec does not own.
-          test.skip(true, `${label(ctx)}: no #decision- chips emitted yet`);
-        }
+        expect(count, `${label(ctx)}: decision chips must be emitted`).toBeGreaterThan(0);
         for (let i = 0; i < count; i += 1) {
           const chip = chips.nth(i);
           const href = await chip.getAttribute('href');
@@ -144,10 +137,63 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
           await tabToAndAssertFocus(page, `a[href="${href}"]`, ctx, 120);
           await page.keyboard.press('Enter');
           await expect(
-            page.locator(`#${CSS.escape(id)}`),
+            page.locator(`#${id}`),
             `${label(ctx)}: #${id} did not become visible`
           ).toBeVisible();
           expect(new URL(page.url()).hash, `${label(ctx)}: URL fragment`).toBe(`#${id}`);
+          await expect(page.locator(`#${id}`), `${label(ctx)}: gate focus`)
+            .toBeFocused();
+        }
+      });
+    }
+  }
+});
+
+test.describe('journey decision gates resolve on a direct fragment load', () => {
+  // `journey-page-completion` AC7 and its evidence contract require that a direct
+  // fragment load target the same gate, without consulting label text. Keyboard
+  // activation above fires `hashchange`; a cold load takes the other branch, so it
+  // was the one path the gate never exercised. Narrowest and widest only — focus
+  // transfer is not width-sensitive, matching the docs search/theme case below.
+  const PRIORITY = [
+    '/journeys/core/',
+    '/journeys/product-engineering/',
+    '/journeys/release-engineering/',
+  ] as const;
+  for (const route of PRIORITY) {
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+      test(`${route} direct fragment @${width}`, async ({ page }) => {
+        const ctx = { route, width };
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withBase(route), ctx);
+
+        const hrefs = await page.locator('a[href^="#decision-"]').evaluateAll(
+          (nodes) => nodes.map((node) => node.getAttribute('href') ?? '')
+        );
+        expect(hrefs.length, `${label(ctx)}: decision chips must be emitted`)
+          .toBeGreaterThan(0);
+
+        for (const href of hrefs) {
+          const id = decodeURIComponent(href.slice(1));
+          // A fresh page, because the fragment must be present on the FIRST
+          // navigation. Re-using `page` makes it a same-document hash change:
+          // `goto` issues no request, returns null, and `gotoSettled` fails on
+          // its own precondition without ever testing the cold-load path.
+          const cold = await page.context().newPage();
+          try {
+            await cold.setViewportSize({ width, height: 900 });
+            await gotoSettled(cold, `${withBase(route)}${href}`, ctx);
+            await expect(
+              cold.locator(`#${id}`),
+              `${label(ctx)}: #${id} not visible on direct load`
+            ).toBeVisible();
+            await expect(
+              cold.locator(`#${id}`),
+              `${label(ctx)}: #${id} did not receive focus on direct load`
+            ).toBeFocused();
+          } finally {
+            await cold.close();
+          }
         }
       });
     }

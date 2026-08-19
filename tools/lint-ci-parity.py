@@ -362,8 +362,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test"),
-    "pytest guides sidebar generation":
-        LOCAL("test"),
+        "pytest guides sidebar generation":
+            LOCAL("test"),
+        "pytest journey editorial decisions":
+            LOCAL("test"),
     # Both wired by docs/specs/build-check-coverage-gaps. The seven files these
     # two steps run were on `make test`'s Makefile line and in no workflow's
     # run: steps — locally gated, remotely not.

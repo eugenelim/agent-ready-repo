@@ -12,23 +12,23 @@ contract:
   useItWhen: "You're authoring or reconciling governed Terraform infrastructure — from intent to a digest-pinned, policy-clean plan."
   youProvide: "A plain-language infrastructure intent with target cloud, engine, environments, isolation model, and CI system."
   youReceive: "A digest-pinned Terraform plan with policy-pass evidence, security review, reversibility hints, and a release readiness record."
-  yourDecisions:
-    - "Approve the governance gate"
-    - "Approve the inner-loop plan"
-    - "Approve the G4 handoff — merge the PR"
-    - "Approve the prod ship"
-whatChanges: "After installing iac-terraform, a plain-language infrastructure intent moves through a governed authoring loop: a mandatory Stage-0 ADR gate → a vocabulary-firewalled spec → schema-grounded Terraform generation → policy-as-code and security preflight → G4 handoff to release-loop. The pack ships two skills: generate-iac authors the Terraform and stops at a digest-pinnable plan; reconcile-iac audits plan-visible drift and proposes a per-resource disposition without applying autonomously. The agent never runs terraform apply — it produces and pins the plan; release-loop (or the generated human-gated pipeline) routes it to the real account."
+  decisionGateIds:
+    - approve-infrastructure-governance
+    - approve-infrastructure-plan
+    - merge-infrastructure-change
+    - approve-production-infrastructure-release
+whatChanges: "After installing iac-terraform, a plain-language infrastructure intent moves through a governed authoring loop: a mandatory Stage-0 ADR gate → a vocabulary-firewalled spec → schema-grounded Terraform generation → policy-as-code and security preflight → a reviewed handoff to release-loop. The pack ships two skills: generate-iac authors the Terraform and stops at a digest-pinnable plan; reconcile-iac audits plan-visible drift and proposes a per-resource disposition without applying autonomously. The agent never runs terraform apply — it produces and pins the plan; release-loop (or the generated human-gated pipeline) routes it to the real account."
 skills:
   - name: generate-iac
-    description: "Turns a plain-language intent into governed, schema-grounded Terraform — ADR-gated, vocabulary-firewalled, and stopping at a digest-pinnable plan for G4 handoff."
+    description: "Turns a plain-language intent into governed, schema-grounded Terraform — ADR-gated, vocabulary-firewalled, and stopping at a digest-pinnable plan for a reviewed handoff."
     humanTouches: 3
   - name: reconcile-iac
     description: "Audits plan-visible drift between Terraform state and the live control plane, proposes a disposition per drifted resource, and routes remediation for human approval — never autonomously applies."
     humanTouches: 1
 humanGates:
-  - id: G-governance
+  - id: approve-infrastructure-governance
     globalGate: null
-    label: "Approve the governance gate"
+    label: "Approve the infrastructure governance"
     trigger: "Before any Terraform is authored — after the agent loads the governance index and identifies which ADRs bind the intent"
     duration: "5–15 minutes"
     whatToCheck:
@@ -39,9 +39,9 @@ humanGates:
     whatGoodLooksLike: "A governance index loaded, the right ADRs cited, no uncovered decision domain, and a vocabulary-firewalled spec."
     whatBadLooksLike: "The agent cited an ADR that doesn't cover the decision domain, skipped the governance index load, or wrote RDS/S3/GCS into the spec before PLAN."
     consequence: "If you skip or rubber-stamp the governance gate, the generated Terraform will be ungoverned — no decision records binding the choices, no constraint on which cloud services are used, and no way to review the decision retrospectively."
-  - id: G-plan
+  - id: approve-infrastructure-plan
     globalGate: null
-    label: "Approve the inner-loop plan"
+    label: "Approve the infrastructure plan"
     trigger: "After ADR gate passes and inputs are confirmed — before Terraform authoring begins"
     duration: "5–10 minutes"
     whatToCheck:
@@ -52,9 +52,9 @@ humanGates:
     whatGoodLooksLike: "A tier-ordered task list with ADR citations, explicit isolation model, and parallel annotations only where safe."
     whatBadLooksLike: "Tasks in arbitrary order, missing ADR citations, or the account isolation model left undocumented."
     consequence: "A mis-ordered task plan produces apply-time dependency conflicts — the most expensive class of apply-time failure, invisible to plan."
-  - id: G4
+  - id: merge-infrastructure-change
     globalGate: "G4"
-    label: "Approve the G4 handoff — merge the PR"
+    label: "Merge the infrastructure change"
     trigger: "After plan is digest-pinned: fmt clean, validate clean, plan clean, policy-as-code clean, security reviewer clean"
     duration: "15–30 minutes"
     whatToCheck:
@@ -62,13 +62,13 @@ humanGates:
       - "Did policy-as-code (OPA/Conftest) pass against the plan JSON — no unapproved resource types, required tags present?"
       - "Did the security reviewer find no new misconfigurations (Trivy/Checkov clean)?"
       - "Are reversibility hints correct? (Stateful data stores must be one-way-door, not reversible.)"
-      - "If Infracost produced a cost delta, is the projected spend acceptable — or does it require a spend gate at G5?"
+      - "If Infracost produced a cost delta, is the projected spend acceptable — or does it require a production spend gate?"
     whatGoodLooksLike: "A digest-pinned plan with policy-pass evidence, security review clean, correct reversibility hints, and an acceptable cost delta."
     whatBadLooksLike: "A plan without a pinned digest — the deploy step could apply a later, unreviewed plan. Or a reversibility hint of reversible on a DynamoDB table or RDS instance."
-    consequence: "G4 is the last gate before deploy. An unpinned plan or missing policy-pass lets an unreviewed change reach a real account. A wrong reversibility hint silences the G5 spend or data gate."
-  - id: G5
+    consequence: "This is the last gate before deploy. An unpinned plan or missing policy-pass lets an unreviewed change reach a real account. A wrong reversibility hint silences the production spend or data gate."
+  - id: approve-production-infrastructure-release
     globalGate: "G5"
-    label: "Approve the prod ship"
+    label: "Approve the production infrastructure release"
     trigger: "After the deployed whole converges on the ephemeral environment — e2e clean, telemetry stable, security review done"
     duration: "15–30 minutes"
     whatToCheck:
@@ -78,7 +78,7 @@ humanGates:
       - "Is the rollback path tested on the ephemeral environment — and do you trust it for prod?"
     whatGoodLooksLike: "A complete release readiness record, no open borderline gates, and a rollback path that was actually run on the ephemeral environment."
     whatBadLooksLike: "A record with missing sections, borderline gates waved through, or a rollback path that was described but never exercised."
-    consequence: "G5 gates the prod ship. After this gate the change reaches real infrastructure — partially applied states require targeted destroy/re-apply paths, not clean undo."
+    consequence: "This gates the production infrastructure release. After this gate the change reaches real infrastructure — partially applied states require targeted destroy/re-apply paths, not clean undo."
 typicalSession:
   agentTurns: "12–20"
   humanTouches: 3
@@ -121,13 +121,13 @@ relatedJourneys:
 
 ---
 
-### 3. Run static preflight and hand off to G4
+### 3. Run static preflight and prepare the reviewed handoff
 
-- **Agent does:** runs policy-as-code (OPA/Conftest against the plan JSON — approved resource types, required tags, encryption at rest, no hard-coded credentials); runs Infracost for an optional cost delta; pins the plan digest; assembles the G4 handoff artifact with all evidence.
+- **Agent does:** runs policy-as-code (OPA/Conftest against the plan JSON — approved resource types, required tags, encryption at rest, no hard-coded credentials); runs Infracost for an optional cost delta; pins the plan digest; assembles the reviewed handoff artifact with all evidence.
 - **Reviewer does:** security-reviewer scans the generated configurations (Trivy/Checkov); adversarial-reviewer reads the spec, plan, and diff cold with no context from the authoring session.
-- **You do:** read the policy-pass evidence and security review summary; check reversibility hints on stateful resources — a wrong hint silences the G5 spend or data gate; decide whether the cost delta requires a spend gate at G5.
-- **You decide:** approve the G4 handoff — merge the PR.
-- **Output:** a digest-pinned G4 handoff — deploy-ready Terraform, policy-pass evidence, security review summary, reversibility hints on stateful resources, and cost delta if present.
+- **You do:** read the policy-pass evidence and security review summary; check reversibility hints on stateful resources — a wrong hint silences the production spend or data gate; decide whether the cost delta requires a production spend gate.
+- **You decide:** merge the infrastructure change.
+- **Output:** a digest-pinned reviewed handoff — deploy-ready Terraform, policy-pass evidence, security review summary, reversibility hints on stateful resources, and cost delta if present.
 - **State:** confirmed-write
 
 ---

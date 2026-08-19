@@ -10,10 +10,11 @@ contract:
   useItWhen: "You need to create, retrofit, audit, or verify an HTML/CSS/JS surface with a page/screen contract, accessible states, Core Web Vitals targets, and completion evidence."
   youProvide: "A surface brief, existing page, or completed implementation, plus any product constraints, routes, viewports, design references, and available performance data."
   youReceive: "A proportional page/screen contract, implementation or audit path, gate results, evidence manifest, and independent frontend review focused on regressions that ordinary tests miss."
-  yourDecisions:
-    - "Choose create, retrofit, audit, or verify"
-    - "Approve the page/screen contract before significant UI code"
-    - "Accept or fix known exceptions before completion"
+  decisionGateIds:
+    - choose-frontend-operating-mode
+    - approve-frontend-surface-contract
+    - accept-frontend-evidence
+    - review-frontend-implementation
 whatChanges: "After installing frontend-engineering, the main skill gives one operating path for web surfaces: create starts from a contract, retrofit starts from brownfield inspection, audit reports findings without code changes, and verify runs gates against a completed surface. Supporting skills cover tokens, accessibility, performance, rendering, component contracts, responsive layout, CSS architecture, and status. The frontend-reviewer agent provides an independent diff read for token drift, ARIA mutation completeness, state coverage, WCAG 2.2 manual checks, and Core Web Vitals regression signals."
 skills:
   - name: frontend-engineering
@@ -44,9 +45,9 @@ skills:
     description: "Reads the evidence manifest and reports current frontend quality state."
     humanTouches: 0
 humanGates:
-  - id: G-mode
+  - id: choose-frontend-operating-mode
     globalGate: null
-    label: "Choose the operating mode"
+    label: "Choose the frontend operating mode"
     trigger: "Before planning starts, after you describe the surface or review target"
     duration: "2-5 minutes"
     whatToCheck:
@@ -57,9 +58,9 @@ humanGates:
     whatGoodLooksLike: "The mode matches the job and the expected output is named before work begins."
     whatBadLooksLike: "A small component tweak gets treated like a full new route, or a review-only request silently turns into code edits."
     consequence: "The wrong mode either overburdens a small change or skips evidence a larger surface needs."
-  - id: G-contract
+  - id: approve-frontend-surface-contract
     globalGate: null
-    label: "Approve the page/screen contract"
+    label: "Approve the frontend surface contract"
     trigger: "Before significant UI code in create mode, or before a retrofit becomes a substantial rebuild"
     duration: "10-15 minutes"
     whatToCheck:
@@ -69,9 +70,9 @@ humanGates:
     whatGoodLooksLike: "A reader can tell what the first screen must accomplish and what evidence will prove it."
     whatBadLooksLike: "The contract repeats vague product goals or omits error, empty, keyboard-only, high-zoom, or reduced-motion states that apply."
     consequence: "A weak contract lets the implementation drift into a polished happy path with missing states."
-  - id: G-evidence
+  - id: accept-frontend-evidence
     globalGate: null
-    label: "Accept the evidence manifest"
+    label: "Accept the frontend implementation evidence"
     trigger: "After implementation, audit, or verify mode produces gate results"
     duration: "10-20 minutes"
     whatToCheck:
@@ -81,9 +82,9 @@ humanGates:
     whatGoodLooksLike: "The manifest names what was tested, what passed, what could not be tested, and what remains accepted risk."
     whatBadLooksLike: "Completion is claimed from source inspection alone, or field performance, manual WCAG 2.2 checks, and screenshots are left implicit."
     consequence: "Without evidence, the surface may look complete while still failing in browser, accessibility, or performance review."
-  - id: G-review
+  - id: review-frontend-implementation
     globalGate: null
-    label: "Run independent frontend review"
+    label: "Review the frontend implementation"
     trigger: "After gates and manifest are ready, before merge or handoff"
     duration: "10-20 minutes"
     whatToCheck:

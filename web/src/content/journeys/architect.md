@@ -11,9 +11,9 @@ contract:
   useItWhen: "You need a technical design doc, architecture diagram, or design critique for your codebase."
   youProvide: "The design problem, real constraints, and the repo's reference architecture."
   youReceive: "An approved Stage 1 design document with alternatives and an independent severity-tagged critique."
-  yourDecisions:
-    - "Approve the Stage 0 concept"
-    - "Review the design and independent critique"
+  decisionGateIds:
+    - approve-architecture-concept
+    - review-architecture-design
 whatChanges: "After installing architect, every design decision gets a method: `architect-design` shapes a Stage 0 concept before any full write-up begins, writes the complete Google-style doc, and converges it against review; `architect-diagram` draws any system in Mermaid (C4, sequence, state, ER, or flowchart); `architect-review` critiques any design artifact with severity-tagged findings and may consult one bounded untrusted project-knowledge envelope after fixing its scope and rubric. The `design-reviewer` subagent reads finished artifacts cold — no authoring context — so the review cannot mark its own homework. Retrieved knowledge remains candidate evidence, and you decide at two gates: the Stage 0 concept before the full doc is written, and the independently grounded review findings before the doc is shared or acted on."
 skills:
   - name: architect-design
@@ -26,9 +26,9 @@ skills:
     description: "Critiques an existing design doc, diagram, RFC, or ADR with a rubric-routed severity-tagged review; an optional CQ-REVIEW enquiry supplies untrusted candidate checks without changing independent judgment."
     humanTouches: 1
 humanGates:
-  - id: G-concept
+  - id: approve-architecture-concept
     globalGate: null
-    label: "Approve the Stage 0 concept"
+    label: "Approve the architecture concept"
     trigger: "After architect-design emits the initial Stage 0 concept framing"
     duration: "5–10 minutes"
     whatToCheck:
@@ -39,9 +39,9 @@ humanGates:
     whatGoodLooksLike: "A half-page concept that names the problem, real constraints, and a candidate approach — specific enough to commit to a full design doc or redirect before one is written."
     whatBadLooksLike: "A concept that describes an approach without stating what problem it solves, or one that lists constraints the team would actually trade away if asked."
     consequence: "The concept approval gates the full write-up. A wrong concept means the agent writes a polished doc for the wrong problem — the cost is a full write-up cycle, not a concept cycle."
-  - id: G-review
+  - id: review-architecture-design
     globalGate: null
-    label: "Review the design and independent critique"
+    label: "Review the architecture design"
     trigger: "After architect-review or the design-reviewer subagent returns its findings"
     duration: "15–25 minutes"
     whatToCheck:

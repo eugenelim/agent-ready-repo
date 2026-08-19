@@ -37,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Every decision point on a journey page is now a link you can share.** Each
+  place the agent pauses for you has a stable address, so you can send someone
+  straight to the decision itself rather than to the top of the page. The links
+  survive rewording and reordering: if a decision is renamed or moved, an address
+  you shared earlier still lands on the same decision. They also work from the
+  keyboard — tab to a decision, press Enter, and the page moves focus to it.
+- **Decision labels read as plain language.** They describe what you are being
+  asked to do — "Approve the plan", "Confirm the backlog scope" — instead of
+  exposing internal codes. No page shows an internal identifier as visible text.
+- **The core, product engineering, and release engineering journeys open with a
+  one-line summary and a worked example.** Each shows an abbreviated session so
+  you can see the shape of the exchange, and where your decisions fall in it,
+  before committing to the journey.
+
 ### [core][2.9.1] — 2026-08-19
 
 #### Added

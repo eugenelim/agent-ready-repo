@@ -505,6 +505,10 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The six hand-authored journey pages retain legacy display copy but have no
+  # approved semantic-ID/label mappings. Their fragments are intentionally not
+  # emitted; closing this requires an approved editorial ledger extension.
+  {slug = "legacy-hand-authored-journey-gate-mappings", source = "spec/journey-page-completion AC5", summary = "Approve semantic ID and label mappings for the six hand-authored journey pages before migrating their visible legacy gate-code prose"},
   # === spec/guide-typed-asides-test-gate deferrals ===
   # tools/test_guide_typed_asides.py pins a frozen 165-row blockquote ledger across
   # 193 guides/** files (docs/specs/guide-typed-asides-conversion/notes/*.jsonl).
@@ -2515,15 +2519,6 @@ open = [
   # asserted by test_the_archival_conversion_record_stays_unwired.
   # Closing this file as a sanctioned case reduces the leak count again; the numeral
   # in the summary drifts with every instance closed, so trust the enumeration, not it.
-  # spec/site-browser-quality-gate shipped its decision-to-gate keyboard cases in a
-  # state where they SKIP: semantic `#decision-<id>` chips are
-  # spec/journey-page-completion's contract and are not emitted yet, so six cases in
-  # web/src/test/e2e/site-quality-gate.spec.ts assert nothing today. They begin
-  # gating the moment that slice lands, and nobody is presently prompted to confirm
-  # they did. Fix: after journey-page-completion merges, run the gate and confirm the
-  # six cases RUN rather than skip; if they still skip, the chip contract and the
-  # gate's selector disagree.
-  {slug = "browser-gate-journey-chip-cases-inert", source = "spec/site-browser-quality-gate AC6", summary = "Confirm the six decision-chip browser cases stop skipping once journey-page-completion emits semantic gate IDs"},
   # The tap-target audit's docs-footer rows measure a footer that
   # spec/site-shared-chrome replaces with the approved three-group taxonomy, and its
   # product-orientation band does not exist yet so has no rows at all. The audit says
