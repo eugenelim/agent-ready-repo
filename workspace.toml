@@ -57,6 +57,18 @@ backlog = [
   # because real surfaces have opposite needs. Should destination become the one
   # place a session's per-destination policy lives (egress + worker + more)?
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape"},
+  # Round 13 is NOT commissioned. Round 11 shipped; round 12 is in flight and owned
+  # by a separate session. This item is the commissioning decision itself -- which
+  # arms, in what order, and whether the RFC moves off Experimental -- not the work.
+  # Candidate arms, each traceable to a residual that already exists:
+  #   1. group split cost (rfc0088-destination-group-split-cost) -- FIRST, it alone
+  #      decides whether the per-group policy model is affordable
+  #   2. native addon confinement bypass (rfc0088-native-addon-confinement-bypass)
+  #      -- BLOCKED on round 12 closing its confinedRemove intermediate-symlink
+  #      defect; this arm feeds that helper the exact input shape that trips it
+  #   3. same-uid attach exposure (rfc0088-same-uid-attach-exposure)
+  # Also decide here: whether the five round-12 spike artifacts get promoted.
+  {slug = "rfc0088-round13-commissioning", type = "shape"},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
   # Research items — any user with the desk-research pack can pick these up
@@ -1126,6 +1138,15 @@ open = [
   # group. That figure decides whether splitting is cheap or expensive.
   # Unblocks when: a spike measures the per-group sign-in cost.
   {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
+  # A fact asserted about PROMOTED artifacts is derived by GLOBBING s?/*results.json
+  # rather than by iterating MEMBERS, in at least two tools -- one verifier
+  # (verify-note-figures-r7.py) and one manifested writer (r9-claim-accounting.py).
+  # The selector does not match the set the claim is about, so an unpromoted file a
+  # colleague leaves on disk can fail a gate about promoted state, and in the writer's
+  # case can move the promoted archive digest. Found when two sessions shared an
+  # evidence tree; it was latent and passing for eleven rounds because nobody had.
+  # Generalises: audit anything deriving "promoted" state from the filesystem.
+  {slug = "rfc0088-promoted-set-derived-by-glob", source = "round 12 cross-session finding"},
   # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
   # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
   # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
