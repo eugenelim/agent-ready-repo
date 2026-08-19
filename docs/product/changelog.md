@@ -37,6 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.9.1] — 2026-08-19
+
+#### Added
+
+- **`docs/CONVENTIONS.md` now states the managed-generated-output rules.** A
+  compiler that owns a directory end to end has constraints a reader could
+  previously only discover by tripping them: author the source rather than the
+  output, keep hand-authored files out of a managed directory, treat check mode
+  as the gate and write mode as the authoring step, and treat retargeting as a
+  rename rather than a deletion. Each rule is one the OKF pilot learned the hard
+  way.
+
 ### [core][2.9.0] — 2026-08-18
 
 #### Fixed

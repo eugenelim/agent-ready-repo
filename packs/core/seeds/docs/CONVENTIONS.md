@@ -731,6 +731,36 @@ upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
 commit, push. The gate is the contract; the source-of-truth split is
 the convention.
 
+### Managed generated output
+
+A *managed* tree is one a compiler owns end to end: it writes every file in it,
+records each one in a manifest beside the pack, and refuses to proceed if the
+tree holds anything the manifest does not list. `compile-okf` is the current
+example — it owns `.apm/skills/<router>/` and records it in
+`.okf-generated.json`.
+
+The rules:
+
+- **Author the source, never the output.** Edit the canonical input (for OKF,
+  `packs/<pack>/okf/<bundle>/`) and recompile. A hand edit to managed output is
+  detected as drift, not accepted as a change.
+- **A managed directory may not hold unmanaged files.** The compiler refuses a
+  directory containing files its manifest does not own, because it cannot tell
+  your file from a stale one it should delete. Keep hand-authored content in a
+  sibling directory the compiler does not own.
+- **Check mode is the gate; write mode is the authoring step.** Check re-renders
+  and compares against the committed bytes, so it verifies without needing to
+  write. That matters on platforms where the confined write path is
+  unavailable — check mode still proves the committed output is what that
+  platform produces.
+- **Retargeting output is a rename, not a deletion.** Pointing a bundle at a new
+  output directory hands the old one back to its author only when the source is
+  still declared and its target actually changed. Removing a source is a
+  removal, and its former output stays managed until cleaned up.
+
+Managed output is projected like any other pack content, so the muscle memory
+above still applies: edit the source, run `make build-self`, commit both.
+
 ### Install scope is per-pack
 
 Each pack declares its install **scope** — `repo` (project-local), `user`

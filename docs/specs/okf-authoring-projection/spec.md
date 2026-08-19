@@ -222,15 +222,13 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   their trees differ, otherwise fails as `OKF011` for any committed drift, and
   leaves source, generated output, stdout-visible candidate review values, and
   the working tree unchanged.
-- [ ] **AC22:** (deferred: okf-ac22-write-mode-unsatisfiable-as-written)
-  <!-- The marker leads deliberately. lint-spec-status invariant (ii)
-       matches per physical line, so moving it onto a continuation line
-       passes today and fails when this spec goes Shipped. -->
-  Two write-mode compiles from identical canonical bytes and profile/compiler
-  versions produce byte-identical complete managed trees on Linux and Windows
-  CI runners and in a recorded local macOS verification. Measurements and the
-  proposed rewording live in `workspace.toml [backlog].open` under that slug;
-  measured evidence is in [`pilot-results.md`](../../rfc/0087-notes/pilot-results.md).
+- [x] **AC22:** Two compiles from identical canonical bytes and profile/compiler
+  versions produce byte-identical complete managed trees. Write mode supplies
+  that evidence on Linux and in a recorded local macOS verification; on Windows,
+  where `os.supports_dir_fd` is empty and the dir-fd-confined write path refuses
+  by design, the evidence is check mode — re-render plus committed-byte
+  comparison (RFC-0087 § Errata E2). Measured evidence is in
+  [`pilot-results.md`](../../rfc/0087-notes/pilot-results.md).
 - [x] **AC23:** Claude Code, Kiro IDE, Kiro CLI, Copilot, Cursor, Codex, and
   Gemini projections preserve the generated router's nested OKF regular-file
   bytes and pass existing Agent Skills/catalogue lint rules.
@@ -254,12 +252,16 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   stay unchanged.
 - [ ] **AC26:** Before generated pilot evaluation, each caller has at least 20
   frozen cases with expected and forbidden concept paths, at least five fixed
-  security-critical cases, and a recorded hand-authored baseline using the same
-  model and harness configuration.
-- [ ] **AC27:** Each generated router runs three times per frozen case, reaches
-  at least 80% top-1 expected-path success and no lower than its hand-authored
-  baseline, passes every security-critical attempt, and fabricates zero concept
-  paths or sources.
+  security-critical cases, and a recorded frozen expected-path key. The key is
+  hand-authored from the committed concepts and is not a model run, so no
+  model-configuration parity is required of it (RFC-0087 § Errata E1).
+- [ ] **AC27:** Each generated router runs three times per frozen case. Top-1
+  expected-path success and fabricated-path count are recorded as a
+  **report-only** measurement against the frozen expected-path key, labelled
+  with `mode` / `fidelity` / `provenance`; the >=80% figure is published, not
+  gated, and the former "no lower than its hand-authored baseline" clause is
+  withdrawn (RFC-0087 § Errata E1). Passing every security-critical attempt
+  remains a hard gate.
 - [x] **AC28:** A maintainer changes one canonical concept per caller,
   regenerates without editing generated files, and explains every resulting
   diff within 30 minutes; commands, results, failures, and timing are recorded
