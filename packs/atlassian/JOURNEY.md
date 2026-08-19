@@ -10,6 +10,11 @@ contract:
   useItWhen: "You want to see what the team can work on, improve stories that are not actionable, apply approved Jira updates, or share a team summary — without writing JQL or selecting skills manually."
   youProvide: "Your team name, project keys, or a description of the scope you want reviewed. For writes: explicit confirmation of the exact fields to change."
   youReceive: "A grouped, annotated backlog — ready to pull, needs story work, blocked, in progress — with scope and completeness disclosed. Draft story improvements where requested. Exact write previews before any Jira change. A stand-up summary and optional Confluence draft on request."
+  yourDecisions:
+    - "Confirm or correct the resolved team scope before reading backlog results"
+    - "Select which story drafts to approve for writing"
+    - "Confirm the exact issue keys and fields before any Jira write"
+    - "Approve the Confluence draft before publishing"
   decisionGateIds:
     - confirm-backlog-scope
     - review-story-drafts

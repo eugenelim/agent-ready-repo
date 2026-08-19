@@ -13,6 +13,11 @@ contract:
   useItWhen: "You're authoring or reconciling governed Terraform infrastructure — from intent to a digest-pinned, policy-clean plan."
   youProvide: "A plain-language infrastructure intent with target cloud, engine, environments, isolation model, and CI system."
   youReceive: "A digest-pinned Terraform plan with policy-pass evidence, security review, reversibility hints, and a release readiness record."
+  yourDecisions:
+    - "Approve the governance gate"
+    - "Approve the inner-loop plan"
+    - "Approve the G4 handoff — merge the PR"
+    - "Approve the prod ship"
   decisionGateIds:
     - approve-infrastructure-governance
     - approve-infrastructure-plan

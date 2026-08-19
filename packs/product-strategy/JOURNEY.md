@@ -10,6 +10,10 @@ contract:
   useItWhen: "You're building the committed strategy layer — market analysis, altitude-0 direction, and OKR-derived gap routing — upstream of any product initiative."
   youProvide: "Company OKRs, any prior desk-research outputs, and the scope of the initiative or strategic question to address."
   youReceive: "Committed SWOT, PRFAQ, OKR-derived gap entries in workspace.toml, ux-strategy.md, and content-strategy.md."
+  yourDecisions:
+    - "Approve the market situation picture"
+    - "Approve the PRFAQ"
+    - "Approve the OKR cascade and gap routing"
   decisionGateIds:
     - approve-strategy-situation
     - approve-prfaq

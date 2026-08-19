@@ -33,6 +33,17 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
   derived output.
 - Keep pack versions and Claude-plugin descriptions unchanged because this
   migration does not change installed functional behavior.
+- **Amendment, 2026-08-19, authorized.** Accept `contract.decisionGateIds` in
+  the published catalogue contract, additively. `#1025` landed a live contract
+  test after this spec was approved; its validator treats `contract.*` as a
+  closed set and so rejected the ratified field on all 12 canonical packs. The
+  extension is additive only: `decisionGateIds` is optional, `yourDecisions`
+  stays required and is restored to every canonical journey, and no pack
+  authored against the previous contract needs an edit. `yourDecisions` and
+  `decisionGateIds` therefore coexist — the IDs drive fragments and ordering,
+  the strings remain adopter-facing prose, and the renderer prefers the IDs so
+  nothing is shown twice. No version was bumped: `docs/product/changelog.md` is
+  itself a Gate G release indicator.
 
 ### Ask first
 

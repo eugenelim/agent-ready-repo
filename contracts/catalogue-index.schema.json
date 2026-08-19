@@ -115,7 +115,8 @@
                     "useItWhen": {"type": "string"},
                     "youProvide": {"type": "string"},
                     "youReceive": {"type": "string"},
-                    "yourDecisions": {"type": "array", "items": {"type": "string"}}
+                    "yourDecisions": {"type": "array", "items": {"type": "string"}},
+                    "decisionGateIds": {"type": "array", "items": {"type": "string"}}
                   }
                 }
               }

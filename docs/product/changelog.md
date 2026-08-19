@@ -37,6 +37,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Journey authors can record which decisions a reader meets, and in what
+  order.** A pack's `JOURNEY.md` may now carry an optional
+  `contract.decisionGateIds` — an ordered list of `humanGates[].id` values. It
+  holds identifiers only; the wording readers see still comes from each gate's
+  label. The field is optional and `yourDecisions` remains required, so every
+  pack authored before this stays valid with no edit.
+
 ### Changed
 
 - **Every decision point on a journey page is now a link you can share.** Each

@@ -11,6 +11,8 @@ contract:
   useItWhen: "A build-loop PR is adversarial-review-clean and ready to go to production."
   youProvide: "A merged, adversarial-review-clean inner build-loop output."
   youReceive: "A release readiness record — e2e results, telemetry snapshot, security review — and a convergence-verified prod ship."
+  yourDecisions:
+    - "Approve the prod ship"
   decisionGateIds:
     - approve-production-release
 whatChanges: "After installing release-engineering, completed build-loop output goes through release-loop before reaching production. The release-lead agent deploys to an ephemeral environment, runs e2e tests, observes telemetry, and feeds deployed findings back to the inner loop — no human relay. You review at one gate: the prod ship."

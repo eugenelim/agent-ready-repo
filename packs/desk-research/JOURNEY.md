@@ -10,6 +10,9 @@ contract:
   useItWhen: "You have a question that needs evidence grounded in primary sources — single-session query or a sustained multi-week investigation."
   youProvide: "A research question, a chosen depth mode, and any known sources or prior corpus."
   youReceive: "A confidence-graded synthesis brief citing primary sources, with an explicit gap map."
+  yourDecisions:
+    - "Set scope and depth"
+    - "Review the synthesized brief"
   decisionGateIds:
     - set-research-scope-and-depth
     - review-research-synthesis

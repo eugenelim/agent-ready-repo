@@ -19,7 +19,11 @@ REQUIRED_KEYS = (
     "tagline",
     "contract",
 )
-CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive", "yourDecisions")
+REQUIRED_CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive", "yourDecisions")
+# Additive: a journey may also carry an ordered list of internal gate IDs. It is
+# optional, so every pack authored against the previous contract stays valid.
+OPTIONAL_CONTRACT_KEYS = ("decisionGateIds",)
+CONTRACT_KEYS = REQUIRED_CONTRACT_KEYS
 STATE_VALUES = {"read-only", "proposed-write", "confirmed-write"}
 SCOPE_VALUES = {"repo", "user"}
 EFFECT_KINDS = {
@@ -62,10 +66,11 @@ def _validate_required(data: dict[str, Any], location: str) -> list[str]:
     contract = data["contract"]
     if not isinstance(contract, dict):
         return [f"{location}: contract must be an object"]
-    unknown = sorted(set(contract) - set(CONTRACT_KEYS))
+    known = set(REQUIRED_CONTRACT_KEYS) | set(OPTIONAL_CONTRACT_KEYS)
+    unknown = sorted(set(contract) - known)
     if unknown:
         return [f"{location}: unknown contract field: {unknown[0]}"]
-    for key in CONTRACT_KEYS:
+    for key in REQUIRED_CONTRACT_KEYS:
         if key not in contract:
             return [f"{location}: missing required contract key: {key}"]
     for key in ("useItWhen", "youProvide", "youReceive"):
@@ -76,6 +81,12 @@ def _validate_required(data: dict[str, Any], location: str) -> list[str]:
         isinstance(item, str) for item in decisions
     ):
         return [f"{location}: contract.yourDecisions must be an array of strings"]
+    gate_ids = contract.get("decisionGateIds")
+    if gate_ids is not None and (
+        not isinstance(gate_ids, list)
+        or not all(isinstance(item, str) for item in gate_ids)
+    ):
+        return [f"{location}: contract.decisionGateIds must be an array of strings"]
 
     effects = data.get("effects", [])
     if not isinstance(effects, list):

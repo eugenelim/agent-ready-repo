@@ -67,13 +67,10 @@ export const journeySchema = z.object({
     });
     return;
   }
-  if (journey.generated && journey.contract.yourDecisions) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['contract', 'yourDecisions'],
-      message: 'generated journeys use decision gate IDs, not display decision strings',
-    });
-  }
+  // `yourDecisions` deliberately coexists with `decisionGateIds`. The published
+  // catalogue contract still requires it, so a generated journey carries both:
+  // the IDs drive fragments and ordering, the strings stay the adopter-facing
+  // prose. The renderer prefers the IDs, so nothing is displayed twice.
   if (!decisionGateIds) return;
 
   const gateIds = new Set(journey.humanGates.map((gate) => gate.id));

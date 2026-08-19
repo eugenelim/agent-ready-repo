@@ -10,6 +10,9 @@ contract:
   useItWhen: "You're implementing a feature, fixing a bug, or changing an existing repo."
   youProvide: "The task and its important constraints."
   youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
+  yourDecisions:
+    - "Approve the plan"
+    - "Merge the PR"
   decisionGateIds:
     - approve-plan
     - merge-reviewed-change

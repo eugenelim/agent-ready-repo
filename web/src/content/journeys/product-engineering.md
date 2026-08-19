@@ -11,6 +11,11 @@ contract:
   useItWhen: "You have a raw product idea or problem and need to converge on a build-ready decision brief before anyone writes code."
   youProvide: "A product idea or problem description, with any scope constraints or prior discovery context."
   youReceive: "A build-ready decision brief — intent, validated candidate, assumption-test, and decomposition into delivery briefs."
+  yourDecisions:
+    - "Shape intent"
+    - "Mid-discovery check"
+    - "Reconcile"
+    - "Commit to build"
   decisionGateIds:
     - approve-intent
     - select-candidate

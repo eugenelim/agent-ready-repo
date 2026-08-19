@@ -103,8 +103,12 @@ def _check_contract(fm: str) -> list[str]:
         block.append(line)
 
     is_generated = any(re.match(r"generated:\s*true\s*$", line) for line in lines)
-    decision_key = GENERATED_DECISION_KEY if is_generated else HAND_AUTHORED_DECISION_KEY
-    required_keys = (*COMMON_CONTRACT_KEYS, decision_key)
+    # A generated journey carries both: `decisionGateIds` drives fragments and
+    # ordering, and `yourDecisions` is still required by the published catalogue
+    # contract. Hand-authored journeys carry only the display strings.
+    required_keys = (*COMMON_CONTRACT_KEYS, HAND_AUTHORED_DECISION_KEY)
+    if is_generated:
+        required_keys = (*required_keys, GENERATED_DECISION_KEY)
     missing = [
         key for key in required_keys
         if not any(re.match(rf"\s+{key}:", b) for b in block)

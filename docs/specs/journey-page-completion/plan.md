@@ -316,3 +316,23 @@ no version, dependency, migration, or infrastructure change.
   normalised rather than compared. Proved by MP16 (hard break 2 -> 1 space now
   fails, previously passed) and MP17 (2 -> 3 spaces still passes, since three
   spaces is still a hard break).
+- 2026-08-19: extended the published catalogue contract additively, under
+  explicit authorization, after CI surfaced a conflict local gates could not see.
+  `tests/roster/test_catalogue_wave4_live_contracts.py` arrived in #1025 — one of
+  the eleven commits this branch rebased onto — and is wired only in
+  `build-check.yml`, never the Makefile, so `make build-check` passed locally
+  while `gate-main` failed. Its validator treats `contract.*` as a closed set and
+  also requires `yourDecisions`, so the ratified `contract.decisionGateIds` was
+  rejected on all 12 canonical packs. Because the approved ledger fixes the field
+  inside `contract`, relocating it was not available, even though unknown
+  top-level keys are accepted today. AC13 routes a discovered installed-output
+  change to a spec amendment rather than a silent version bump, so the work
+  stopped and asked. The authorized resolution is additive: `decisionGateIds`
+  optional in `journey_validator`, both byte-identical schema copies, and both
+  authoring-standard copies; `yourDecisions` remains required and was restored
+  byte-for-byte from the merge-base into all 12 packs. Adopter impact is nil.
+  MP18-MP20 prove the change did not open the gate: removing `yourDecisions`
+  still fails, a non-array `decisionGateIds` fails, and an unknown contract field
+  still fails. The scaffold copy is a projection, so `manifest.json` was
+  regenerated with `tools/catalogue/sync_authoring_scaffold.py --write` rather
+  than hand-edited.

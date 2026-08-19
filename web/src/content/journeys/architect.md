@@ -11,6 +11,9 @@ contract:
   useItWhen: "You need a technical design doc, architecture diagram, or design critique for your codebase."
   youProvide: "The design problem, real constraints, and the repo's reference architecture."
   youReceive: "An approved Stage 1 design document with alternatives and an independent severity-tagged critique."
+  yourDecisions:
+    - "Approve the Stage 0 concept"
+    - "Review the design and independent critique"
   decisionGateIds:
     - approve-architecture-concept
     - review-architecture-design
