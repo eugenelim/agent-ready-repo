@@ -1,5 +1,6 @@
 adapter.schema.json
 adapter.toml
+catalogue-index.schema.json
 catalogue.schema.json
 guide.schema.json
 knowledge-captured-observation.schema.json

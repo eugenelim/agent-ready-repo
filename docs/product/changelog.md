@@ -100,6 +100,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Skill activation metadata, and declared OKF 0.2 knowledge bundles. Installed
   state continues to return inventory-only data, and human-readable output is
   unchanged.
+- **Catalogues can publish a deterministic neutral discovery index.** The new
+  `agentbundle catalogue index` command validates catalogue, pack, profile, and
+  optional journey metadata against a bundled closed schema before writing. It
+  supports dry runs, reproducible timestamps, structured JSON command results,
+  and content-addressable pack digests.
+- **Journey authoring is now a published catalogue convention.** The adopter
+  reference defines the required frontmatter contract, optional discovery
+  fields, declared external effects, reader-facing body sections, migration
+  guidance, and verification commands. Older packs without `JOURNEY.md` remain
+  valid.
+
+#### Changed
+
+- **The `agentbundle` package version is now 0.38.0.** Its bundled public
+  contract inventory includes `catalogue-index.schema.json`, and new catalogue
+  scaffolds carry the completed journey-authoring reference.
 
 ### [core][2.8.0] — 2026-08-17
 

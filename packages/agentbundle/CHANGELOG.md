@@ -29,6 +29,22 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   live Skill activation metadata, and `knowledge` for declared OKF 0.2 bundles.
   Installed-state fallback preserves the existing inventory-only behavior and
   emits those three fields as `null` because install state cannot prove them.
+- **`agentbundle catalogue index` publishes a deterministic, neutral catalogue
+  index.** It reads confined catalogue, pack, profile, and optional journey
+  metadata; validates the assembled document against the bundled public schema;
+  and writes through the package's no-follow atomic writer. Dry-run and
+  structured JSON result modes are available for automation.
+- **`catalogue-index.schema.json` is now a bundled public contract.** The closed
+  schema covers catalogue identity, pack content and execution inventory,
+  journeys, declared effects, forward and inverse integrations, profiles, and
+  content-addressable pack digests.
+
+### Changed
+
+- **Catalogue journey authoring now has a published convention.** The bundled
+  authoring reference defines required and optional frontmatter, external-effect
+  declarations, reader-facing body sections, migration guidance, and index
+  verification commands. Existing packs without a journey remain valid.
 
 ### Unchanged
 

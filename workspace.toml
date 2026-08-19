@@ -3063,22 +3063,16 @@ shipped = [
   {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
   {path = "docs/specs/okf-catalogue-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bounded live OKF metadata through AgentBundle catalogue inspection", needs = []},
+
+  # Wave 4 — Semantic contracts and neutral index. 0.38.0 — JOURNEY.md
+  # conventions, derived content/execution inventory, deterministic neutral
+  # catalogue indexes, and integration views over Wave 2 declarations.
+  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
   # RFC-0087 authoring pilot. Catalogue discovery has shipped; the authoring
   # experiment remains active pending its model and maintainer exercise gates.
   {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
-  # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
-  # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
-  # the next AgentBundle minor; concurrent merges would claim the same release number.
-  # Shape gate (catalogue-semantics-release-shape) satisfied — Wave 4 spec is Approved.
-  # Deliver: JOURNEY.md convention (author-declared effects via frontmatter effects field);
-  # structural content/execution inventory derived from pack source (distinct from effects);
-  # deterministic catalogue-index.json (catalogue-index.schema.json new contract); integration
-  # views from pack.toml [[pack.integrations]] (Wave 2 data); representative
-  # first-party JOURNEY.md fixtures to prove the contract. First-party all-pack
-  # migration is Wave 9 scope — not included here.
-  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 
   # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
   # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and

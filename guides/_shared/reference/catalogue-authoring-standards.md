@@ -453,7 +453,112 @@ contracts used for validation by this agentbundle version.
 
 ## Journey format
 
-:::caution
-**Not yet available.** Wave 4 of the catalogue-contracts initiative will define the
-journey format and its contract. This section will be filled in when that wave ships.
-:::
+A `JOURNEY.md` describes the outcome a pack helps someone reach. Put it beside
+`pack.toml` at `packs/<pack-name>/JOURNEY.md`. The file is optional: catalogues and
+packs created before this convention remain valid, and their generated index contains
+an empty `journeys` array.
+
+The YAML frontmatter is the machine-readable contract. The Markdown body is for
+readers; the index command does not extract structured data from it.
+
+### Required frontmatter
+
+```yaml
+---
+journey_id: catalogue-authoring
+pack: example-pack
+start_state: read-only
+end_state: confirmed-write
+scope: repo
+tagline: Build a catalogue pack that passes its published contracts.
+contract:
+  useItWhen: You need to add or revise a catalogue pack.
+  youProvide: The intended outcome, scope, and pack contents.
+  youReceive: A validated pack with clear author and adopter documentation.
+  yourDecisions:
+    - Which adapters and installation scopes the pack supports.
+---
+```
+
+Use these fields:
+
+- `journey_id`: a string that is unique within the catalogue.
+- `pack`: the exact pack name from `pack.toml`.
+- `start_state` and `end_state`: one of `read-only`, `proposed-write`, or
+  `confirmed-write`.
+- `scope`: `repo` or `user`.
+- `tagline`: a plain-language summary of at most 120 characters.
+- `contract`: a closed object. `useItWhen`, `youProvide`, and `youReceive` are
+  strings; `yourDecisions` is an array of strings.
+
+Malformed YAML, a missing required field, or a field with the wrong type stops index
+generation before any output is replaced.
+
+### Optional frontmatter
+
+The following fields add richer discovery information without changing the required
+contract:
+
+- `prerequisitePacks`: pack-name strings.
+- `whatChanges`: a reader-facing description.
+- `skills`: objects with `name`, `description`, and `humanTouches`.
+- `humanGates`: gate objects with `id`, `label`, `trigger`, `duration`,
+  `whatToCheck`, `whatGoodLooksLike`, `whatBadLooksLike`, and `consequence`;
+  `globalGate` is optional.
+- `typicalSession`: an object with `agentTurns`, `humanTouches`, and
+  `wallClockMinutes`.
+- `docsUrl` and `packUrl`: documentation links.
+- `relatedJourneys`: other journey identifiers.
+- `effects`: external effects declared by the author.
+
+Each `effects` entry is a closed object with string fields `kind` and `description`:
+
+```yaml
+effects:
+  - kind: file-write
+    description: Writes generated files after the user confirms the destination.
+```
+
+Effects describe externally observable outcomes such as writing files, using a
+network service, or publishing an artifact. Do not infer them from pack structure,
+and do not list internal computation as an effect.
+
+### Reader-facing body
+
+The first body element after frontmatter must be an **Arrival trigger** quick-reference
+table that maps activation phrases to outcomes. Follow it with these sections:
+
+1. `Orient`: explain how the user establishes the starting context for a session.
+2. `Primary workflow`: use numbered steps. Every step names what the user says or does,
+   what the agent produces, any human decision required, and the resulting state.
+3. `Persist and collaborate`: explain how state is carried between sessions or handed
+   off; a brief statement is enough when the pack has no multi-session state.
+4. `Next steps`: suggest follow-on journeys named by `relatedJourneys` frontmatter.
+
+Explain the outcome and choices in product language. Avoid repository-maintainer
+commands, publication machinery, or internal decision records; adopters should not
+need the catalogue's own development environment to understand a journey.
+
+The generated journey data conforms to the machine contract at
+`contracts/catalogue-index.schema.json`.
+
+### Generate the neutral index
+
+Run this from a catalogue checkout:
+
+```console
+agentbundle catalogue index . --dry-run
+agentbundle catalogue index . --output catalogue-index.json
+```
+
+The dry run parses every present `JOURNEY.md`, builds the index in memory, validates it,
+and writes nothing. The second command publishes the validated JSON atomically. Add
+`--format json` when another tool needs the command result as one JSON document.
+
+### Migrating an existing pack
+
+You do not need to add placeholder journeys to old packs. Add `JOURNEY.md` when the pack
+has a real end-to-end outcome to describe, then start with the required frontmatter and
+the arrival table and body sections above. Keep `pack` equal to the manifest name and
+choose states from the documented enums. Verify the complete catalogue with a dry run
+before publishing its index.

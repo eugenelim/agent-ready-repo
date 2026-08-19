@@ -440,6 +440,13 @@ jobs:
           ../../tests/roster/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py
 
+      # catalogue-wave4-semantic-contracts-index: live catalogue, public/bundled
+      # schema parity, and shipped-guide projection are repository-owned claims.
+      # They cannot live in the engine sdist, and CI does not auto-discover
+      # roster tests, so keep their relocated acceptance suite explicit here.
+      - name: pytest catalogue Wave 4 live contracts (roster-owned)
+        run: python -m pytest tests/roster/test_catalogue_wave4_live_contracts.py
+
       # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
       # construction tests (never-create / never-overwrite / injection-safe emit
       # incl. the table header / re-emit type-validation / per-scope write-jail /
