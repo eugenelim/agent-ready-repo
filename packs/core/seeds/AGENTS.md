@@ -7,7 +7,7 @@
 
 This is <project-name> — a <one-line description of what it does and for whom>.
 
-Read `docs/architecture/overview.md` before exploring unfamiliar areas, if it exists.
+Read [the architecture overview](docs/architecture/overview.md) before exploring unfamiliar areas, if it exists.
 
 ## Keeping changes minimal
 
@@ -35,7 +35,8 @@ Read `docs/architecture/overview.md` before exploring unfamiliar areas, if it ex
 Use the `work-loop` skill for repository changes as its instructions require.
 It owns mode selection, required artifacts, planning, verification, review,
 recovery, and completion. Keep repository-specific process detail in its owning
-workflow or reference documentation.
+workflow or reference documentation; commit and pull-request conventions live in
+[docs/CONVENTIONS.md](docs/CONVENTIONS.md).
 
 ## Commands you'll need
 
