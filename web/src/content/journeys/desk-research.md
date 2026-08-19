@@ -14,6 +14,9 @@ contract:
   yourDecisions:
     - "Set scope and depth"
     - "Review the synthesized brief"
+  decisionGateIds:
+    - set-research-scope-and-depth
+    - review-research-synthesis
 whatChanges: "After installing desk-research, every question your agent takes on is evidence-grounded before it answers. `desk-research` runs scoping, source curation, and synthesis in one session across four depth modes. For sustained investigations, the four `desk-research-project-*` skills run a lifecycle that accumulates a corpus and ends in a confidence-graded brief. Gaps are named explicitly — honest gaps are better than false confidence."
 skills:
   - name: desk-research
@@ -53,9 +56,9 @@ skills:
     description: "Synthesizes the corpus digest into a brief graded by confidence, ready to hand to a decision."
     humanTouches: 1
 humanGates:
-  - id: G-scope
+  - id: set-research-scope-and-depth
     globalGate: null
-    label: "Set scope and depth"
+    label: "Set the research scope and depth"
     trigger: "Before /research or desk-research-project-start runs"
     duration: "3–5 minutes"
     whatToCheck:
@@ -66,9 +69,9 @@ humanGates:
     whatGoodLooksLike: "A specific, answerable question with a chosen depth mode and a clear success criterion — something a colleague could pick up and continue."
     whatBadLooksLike: "A question that can't be falsified or finished — 'what is the best approach to X?' with no scope boundary or success criterion."
     consequence: "The scope gate sets the direction for everything that follows. A bad scope means the agent searches the wrong space and returns a synthesis that looks complete but answers the wrong question."
-  - id: G-synthesis
+  - id: review-research-synthesis
     globalGate: null
-    label: "Review the synthesized brief"
+    label: "Review the research synthesis"
     trigger: "After the synthesis step completes"
     duration: "10–20 minutes"
     whatToCheck:

@@ -1,7 +1,7 @@
 # Plan: Journey page completion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Executing
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -236,3 +236,103 @@ no version, dependency, migration, or infrastructure change.
 - 2026-08-17: fixed the 34-ID mapping, label ownership, invisible-ID behavior,
   exact priority copy, invocation convention, unchanged-version consequence,
   deterministic migration order, and exhaustive evidence contract.
+- 2026-08-18: applied the approved 34 semantic IDs and labels. Reconciled the
+  three affected gate bodies minimally: `decide-rfc` now uses the RFC outcomes
+  accepted or rejected (the RFC vocabulary in `docs/CONVENTIONS.md` contains no
+  Deferred status); `approve-journey` now matches the derived-screen review;
+  and `approve-okr-cascade` now matches its gap-ranking and routing work.
+- 2026-08-18: rewrote canonical rendered legacy-code prose by mechanical
+  substitution. The six hand-authored journeys remain deferred as
+  `legacy-hand-authored-journey-gate-mappings` because the approved ledger has
+  no semantic ID or label mappings for them.
+- 2026-08-18: made decision fragments conditional on `decisionGateIds`.
+  Canonical journeys emit stable semantic fragments and keyboard/focus behavior;
+  hand-authored `yourDecisions` journeys remain display-only, preventing new
+  durable links from legacy codes.
+- 2026-08-18: discharged `browser-gate-journey-chip-cases-inert`. The six
+  decision-chip cases in `web/src/test/e2e/site-quality-gate.spec.ts`, which
+  `spec/site-browser-quality-gate` registered because semantic chips were absent
+  and the cases skipped, now run and pass: 112 passed, 0 skipped, for core,
+  product-engineering, and release-engineering at 360 and 1440. This spec
+  withdrew the entry from `[backlog].open`.
+- 2026-08-18: expanded priority decision-chip interaction coverage to all five
+  approved marketing widths. Themes are deliberately not mutated for journey
+  routes: `docs/specs/site-browser-quality-gate/spec.md:78` requires marketing
+  routes to run without theme mutation; the marketing matrix already supplies
+  their all-width overflow, axe, and fragment coverage.
+- 2026-08-18: reconciled three shortened labels with their gate bodies only:
+  `decide-rfc` removes the stale Deferred vocabulary (RFC statuses are defined
+  in `docs/CONVENTIONS.md`), `approve-journey` narrows the screen-list check to
+  its derivation from the journey, and `approve-okr-cascade` names the cascade
+  rather than its downstream gap routing.
+- 2026-08-18: decision fragments, chip hrefs, and focus behavior are conditional
+  on `decisionGateIds`; this avoids minting public fragments from legacy codes on
+  hand-authored journeys. Their unresolved display-copy migration is deferred as
+  `legacy-hand-authored-journey-gate-mappings` pending approved ledger mappings.
+- 2026-08-19: closed two evidence gaps found after the gates were green. The
+  independent reviewer showed the priority eyebrow and transcript copy had no
+  automated control, though the evidence contract requires the three priority
+  pages to emit it exactly; `tools/test_journey_editorial_decisions.py` now
+  compares the ledger against canonical frontmatter byte-for-byte and confines
+  eyebrows to the priority set. A sweep of the evidence contract against the
+  suite then showed direct fragment loading was equally unverified, so the
+  browser gate gained six cold-load cases. Both are mutation-proved: a one-word
+  eyebrow or transcript drift fails, an eyebrow added to a non-priority journey
+  fails, and removing the gate heading's `tabindex="-1"` fails every cold-load
+  case. Transcript absence is deliberately not asserted for non-priority
+  journeys — `atlassian` carried a `goodOutputDescription` before this spec.
+- 2026-08-19: recorded that cold-load focus is provided by the HTML
+  fragment-navigation algorithm focusing a focusable target, not by the inline
+  script, which serves the same-document `hashchange` path. The two mechanisms
+  are complementary, and the new cases pin both.
+- 2026-08-19: amended AC15 to drop "in both approved themes". Journey routes are
+  marketing routes, which `site-browser-quality-gate` AC1 exercises without
+  theme mutation, and their emitted pages carry no `data-theme`; that spec's AC2
+  owns dual-theme coverage for the two `/docs/` routes. No approved theme,
+  width, overflow tolerance, or axe threshold changed — the clause named a
+  condition these routes cannot express.
+- 2026-08-19: hardened the editorial control after independent review showed the
+  first version could not support AC8's word "verbatim": both sides trimmed
+  whitespace and dropped blank lines, so an inserted blank paragraph or a
+  re-indented line compared equal. Each side now strips only the presentation its
+  own format forces — the ledger's blockquote marker and hard-break spaces — and
+  the canonical side is compared byte-for-byte with no trailing-space
+  normalisation, so stray whitespace in a pack fails. Both sides mirror YAML
+  `|-` chomping so a layout-only blank line before the closing fence is not a
+  false failure. AC8 now names the three tolerated presentation differences
+  instead of claiming an unqualified "verbatim". Transcript confinement uses
+  subset rather than set equality: the ledger's claim is that no journey *gains*
+  a transcript, and equality would have pinned `atlassian`'s pre-existing copy in
+  place forever. Proved by MP11–MP15 — mid-transcript blank line, extra
+  indentation, a stray trailing space, and a transcript added to a non-priority
+  journey all fail; a trailing blank line before the fence correctly does not.
+- 2026-08-19: narrowed the ledger-side normalisation after review showed it was
+  broader than AC8 claimed. `rstrip(" ")` removed any number of trailing spaces,
+  but a Markdown hard break is two or more; a one-space edit therefore changed
+  the ledger's rendering while still comparing equal. The parser now strips
+  trailing spaces only when there are at least two, and preserves a lone
+  trailing space so it fails. AC8 also dropped the phrase "byte-for-byte", which
+  overclaimed: both sources are decoded and split, so line endings are
+  normalised rather than compared. Proved by MP16 (hard break 2 -> 1 space now
+  fails, previously passed) and MP17 (2 -> 3 spaces still passes, since three
+  spaces is still a hard break).
+- 2026-08-19: extended the published catalogue contract additively, under
+  explicit authorization, after CI surfaced a conflict local gates could not see.
+  `tests/roster/test_catalogue_wave4_live_contracts.py` arrived in #1025 — one of
+  the eleven commits this branch rebased onto — and is wired only in
+  `build-check.yml`, never the Makefile, so `make build-check` passed locally
+  while `gate-main` failed. Its validator treats `contract.*` as a closed set and
+  also requires `yourDecisions`, so the ratified `contract.decisionGateIds` was
+  rejected on all 12 canonical packs. Because the approved ledger fixes the field
+  inside `contract`, relocating it was not available, even though unknown
+  top-level keys are accepted today. AC13 routes a discovered installed-output
+  change to a spec amendment rather than a silent version bump, so the work
+  stopped and asked. The authorized resolution is additive: `decisionGateIds`
+  optional in `journey_validator`, both byte-identical schema copies, and both
+  authoring-standard copies; `yourDecisions` remains required and was restored
+  byte-for-byte from the merge-base into all 12 packs. Adopter impact is nil.
+  MP18-MP20 prove the change did not open the gate: removing `yourDecisions`
+  still fails, a non-array `decisionGateIds` fails, and an unknown contract field
+  still fails. The scaffold copy is a projection, so `manifest.json` was
+  regenerated with `tools/catalogue/sync_authoring_scaffold.py --write` rather
+  than hand-edited.

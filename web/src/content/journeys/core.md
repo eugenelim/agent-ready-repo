@@ -14,6 +14,9 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
+  decisionGateIds:
+    - approve-plan
+    - merge-reviewed-change
 whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
 skills:
   - name: work-intake
@@ -62,7 +65,7 @@ skills:
     description: "Provides a read-only reference view of the security checklist library. Normal security reviews use security-checklists."
     humanTouches: 0
 humanGates:
-  - id: G-plan
+  - id: approve-plan
     globalGate: null
     label: "Approve the plan"
     trigger: "Before work-loop begins execution — after the agent writes the trio and risk-trigger assessment"
@@ -75,9 +78,9 @@ humanGates:
     whatGoodLooksLike: "A bounded plan with a clear trio, no scope creep, correct risk-trigger assessment, and plausible assumptions."
     whatBadLooksLike: "A plan that extends the scope of the request, missing risk triggers that should have fired, or a trio that doesn't name a specific user."
     consequence: "If you approve a bad plan, the agent executes it faithfully. The cost of a bad plan is the cost of a full loop iteration — plan approval is the cheapest gate."
-  - id: G-pr
+  - id: merge-reviewed-change
     globalGate: "G4"
-    label: "Merge the PR"
+    label: "Merge the reviewed change"
     trigger: "After all mechanical gates pass and adversarial review is clean"
     duration: "10–20 minutes"
     whatToCheck:
@@ -87,7 +90,7 @@ humanGates:
       - "Is there anything in the diff that wasn't in the plan?"
     whatGoodLooksLike: "Green gates, clean adversarial review, spec and implementation aligned, no unexplained diff."
     whatBadLooksLike: "Adversarial reviewer flagged a Blocker and you merged anyway. Or the spec drifted from the implementation without an update."
-    consequence: "G4 is the last line of defense before the build loop output goes to release. A bad merge is harder to undo than a bad plan."
+    consequence: "This is the last line of defense before the build loop output goes to release. A bad merge is harder to undo than a bad plan."
 typicalSession:
   agentTurns: "8–12"
   humanTouches: 2
@@ -96,6 +99,18 @@ docsUrl: /docs/guides/core/
 packUrl: /packs/core/
 relatedJourneys:
   - release-engineering
+eyebrow: "From scoped work to a reviewed merge"
+goodOutputDescription: |-
+  **You:** Start work on adding export filters without changing the existing
+  API route.
+  **Agent:** I routed this to the approved spec. The plan changes the query
+  contract, handler, and emitted API tests. It adds no dependency or
+  migration.
+  **You:** Approve the plan.
+  **Agent:** Implemented. Focused tests, type checking, lint, and the full suite
+  pass. The emitted contract exposes filters and preserves existing defaults.
+  **Independent reviewer:** Clean — ready to commit.
+  **Agent:** The reviewed change is ready for your merge decision.
 ---
 
 | Say this | What happens |

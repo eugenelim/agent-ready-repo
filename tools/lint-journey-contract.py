@@ -3,8 +3,9 @@
 
 Each file in web/src/content/journeys/ must carry:
 
-  1. a `contract:` frontmatter object with all four keys — useItWhen,
-     youProvide, youReceive, yourDecisions;
+  1. a `contract:` frontmatter object with useItWhen, youProvide, and
+     youReceive, plus decisionGateIds for generated journey copies or
+     yourDecisions for hand-authored journeys;
   2. a staged narrative whose stages use ONLY the fixed label set, in the
      fixed order, with `Output` always present:
        You provide  <  <Actor> does  <  You do  <  You decide  <  Output
@@ -30,7 +31,11 @@ import re
 import subprocess
 import sys
 
-CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive", "yourDecisions")
+COMMON_CONTRACT_KEYS = ("useItWhen", "youProvide", "youReceive")
+# Generated copies carry approved semantic identities; hand-authored pages retain
+# display-only decisions until their mappings are editorially approved.
+GENERATED_DECISION_KEY = "decisionGateIds"
+HAND_AUTHORED_DECISION_KEY = "yourDecisions"
 
 ACTORS = ("Agent", "Reviewer", "Loop")
 
@@ -80,7 +85,7 @@ def _split_frontmatter(text: str) -> tuple[str, str]:
 
 
 def _check_contract(fm: str) -> list[str]:
-    """The frontmatter must carry a contract: block with all four keys."""
+    """Validate shared keys plus the generated or hand-authored decision key."""
     lines = fm.splitlines()
     start = None
     for i, line in enumerate(lines):
@@ -97,8 +102,15 @@ def _check_contract(fm: str) -> list[str]:
             break
         block.append(line)
 
+    is_generated = any(re.match(r"generated:\s*true\s*$", line) for line in lines)
+    # A generated journey carries both: `decisionGateIds` drives fragments and
+    # ordering, and `yourDecisions` is still required by the published catalogue
+    # contract. Hand-authored journeys carry only the display strings.
+    required_keys = (*COMMON_CONTRACT_KEYS, HAND_AUTHORED_DECISION_KEY)
+    if is_generated:
+        required_keys = (*required_keys, GENERATED_DECISION_KEY)
     missing = [
-        key for key in CONTRACT_KEYS
+        key for key in required_keys
         if not any(re.match(rf"\s+{key}:", b) for b in block)
     ]
     return [f"contract missing key `{k}`" for k in missing]

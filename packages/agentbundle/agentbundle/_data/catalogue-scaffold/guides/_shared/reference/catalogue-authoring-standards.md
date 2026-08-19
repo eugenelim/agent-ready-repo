@@ -488,8 +488,12 @@ Use these fields:
   `confirmed-write`.
 - `scope`: `repo` or `user`.
 - `tagline`: a plain-language summary of at most 120 characters.
-- `contract`: a closed object. `useItWhen`, `youProvide`, and `youReceive` are
-  strings; `yourDecisions` is an array of strings.
+- `contract`: a closed object with one optional member. `useItWhen`,
+  `youProvide`, and `youReceive` are strings; `yourDecisions` is an array of
+  strings. `decisionGateIds` is optional and, when present, is an array of
+  `humanGates[].id` strings in the order a reader meets those decisions; it
+  carries identifiers only, never adopter-facing wording. Packs authored before
+  it existed stay valid, because `yourDecisions` remains required.
 
 Malformed YAML, a missing required field, or a field with the wrong type stops index
 generation before any output is replaced.

@@ -8,14 +8,24 @@ interface Contract {
   useItWhen: string;
   youProvide: string;
   youReceive: string;
-  yourDecisions: string[];
+  decisionGateIds?: string[];
+  yourDecisions?: string[];
+}
+
+interface Gate {
+  id: string;
+  label: string;
 }
 
 interface Props {
   contract: Contract;
+  humanGates: Gate[];
 }
 
-const { contract } = Astro.props;
+const { contract, humanGates } = Astro.props;
+const gatesById = new Map(humanGates.map((gate) => [gate.id, gate]));
+const decisions = contract.decisionGateIds?.map((id) => gatesById.get(id));
+const decisionCount = decisions?.length ?? 0;
 ---
 
 <div class="contract-card">
@@ -32,16 +42,40 @@ const { contract } = Astro.props;
       <dt>You receive</dt>
       <dd>{contract.youReceive}</dd>
     </div>
-    <div class="contract-row">
-      <dt>Your decisions</dt>
-      <dd class="contract-decisions">
-        {contract.yourDecisions.map((decision) => (
-          <span class="decision-chip">{decision}</span>
-        ))}
-      </dd>
-    </div>
   </dl>
+
+  <section class="contract-decisions" aria-labelledby="where-you-decide">
+    <h3 id="where-you-decide">Where you decide</h3>
+    <p>The agent pauses at these points. You choose whether to continue, redirect, or stop.</p>
+    <div class="decision-chip-list">
+      {decisions?.map((gate, index) => gate && (
+        <a class="decision-chip" href={`#decision-${gate.id}`}>
+          <span>{gate.label}</span>
+          <span class="decision-chip__ordinal">Decision {index + 1} of {decisionCount}</span>
+        </a>
+      ))}
+      {!decisions && contract.yourDecisions?.map((decision) => (
+        <span class="decision-chip">{decision}</span>
+      ))}
+    </div>
+  </section>
 </div>
+
+{decisions && (
+  <script is:inline>
+    const focusDecisionTarget = () => {
+      if (!window.location.hash.startsWith('#decision-')) return;
+      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      if (target instanceof HTMLElement) {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'start' });
+      }
+    };
+
+    window.addEventListener('hashchange', focusDecisionTarget);
+    focusDecisionTarget();
+  </script>
+)}
 
 <style>
   .contract-card {
@@ -81,18 +115,53 @@ const { contract } = Astro.props;
   }
 
   .contract-decisions {
+    margin-top: var(--ds-space-5);
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .contract-decisions h3 {
+    color: var(--ds-on-surface);
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .contract-decisions p {
+    color: var(--ds-on-surface-2);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .decision-chip-list {
     display: flex;
     flex-wrap: wrap;
     gap: var(--ds-space-3);
   }
 
   .decision-chip {
+    display: grid;
+    gap: var(--ds-space-1);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
     background-color: var(--ds-accent-subtle);
     color: var(--ds-accent-deep);
     padding: 0.25rem 0.6rem;
     border-radius: var(--ds-radius-sm);
+    text-decoration: none;
+  }
+
+  .decision-chip:hover,
+  .decision-chip:focus-visible {
+    background-color: var(--ds-accent);
+    color: var(--ds-hero-fg);
+  }
+
+  .decision-chip:focus-visible {
+    outline: 3px solid var(--ds-on-surface);
+    outline-offset: 3px;
+  }
+
+  .decision-chip__ordinal {
+    font-size: var(--ds-type-xs);
   }
 
   /* Stack labels above values on narrow viewports. */

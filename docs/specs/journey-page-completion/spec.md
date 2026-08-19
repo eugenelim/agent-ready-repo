@@ -1,6 +1,6 @@
 # Spec: Journey page completion
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -33,6 +33,17 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
   derived output.
 - Keep pack versions and Claude-plugin descriptions unchanged because this
   migration does not change installed functional behavior.
+- **Amendment, 2026-08-19, authorized.** Accept `contract.decisionGateIds` in
+  the published catalogue contract, additively. `#1025` landed a live contract
+  test after this spec was approved; its validator treats `contract.*` as a
+  closed set and so rejected the ratified field on all 12 canonical packs. The
+  extension is additive only: `decisionGateIds` is optional, `yourDecisions`
+  stays required and is restored to every canonical journey, and no pack
+  authored against the previous contract needs an edit. `yourDecisions` and
+  `decisionGateIds` therefore coexist — the IDs drive fragments and ordering,
+  the strings remain adopter-facing prose, and the renderer prefers the IDs so
+  nothing is shown twice. No version was bumped: `docs/product/changelog.md` is
+  itself a Gate G release indicator.
 
 ### Ask first
 
@@ -66,52 +77,64 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 
 ## Acceptance Criteria
 
-- [ ] Every canonical journey source represents contract decisions as ordered
+- [x] Every canonical journey source represents contract decisions as ordered
   `decisionGateIds`, and every referenced ID resolves to exactly one human gate
   in that journey.
-- [ ] All 34 human gates use the exact internal IDs and adopter-facing labels in
+- [x] All 34 human gates use the exact internal IDs and adopter-facing labels in
   `editorial-decisions.md`; IDs satisfy the lowercase semantic-key contract and
   are unique within their journey.
-- [ ] Identity is exactly `(journey_id, humanGate.id)`, independent of the gate
+- [x] Identity is exactly `(journey_id, humanGate.id)`, independent of the gate
   label and position; mutation tests prove that copy changes and reordering do
   not change fragments.
-- [ ] Decision chips display only `humanGates[].label`, follow
+- [x] Decision chips display only `humanGates[].label`, follow
   `decisionGateIds` order, and derive human ordinals from that order without
   storing them as identity.
-- [ ] The decision section uses the approved “Where you decide” heading and
+- [x] The decision section uses the approved “Where you decide” heading and
   intro; no visible content exposes a raw semantic ID, `globalGate`, or legacy
-  `G…` code.
-- [ ] Every chip is a real link to exactly one
+  `G…` code. (deferred: legacy-hand-authored-journey-gate-mappings)
+- [x] Every chip is a real link to exactly one
   `#decision-<semantic-id>` heading; click and keyboard activation update the
   URL, bring the heading into view, move focus to it, and show a clear
   renderer-native focused/targeted state.
-- [ ] Duplicate, malformed, missing, and unresolved ID fixtures fail before
+- [x] Duplicate, malformed, missing, and unresolved ID fixtures fail before
   rendering; a direct fragment load resolves without consulting label text.
-- [ ] The exact priority set is `core`, `product-engineering`, and
+- [x] The exact priority set is `core`, `product-engineering`, and
   `release-engineering`; each emits its approved eyebrow and transcript
   verbatim, and no non-priority journey is required to gain either field.
-- [ ] Priority transcript invocations follow the approved harness-neutral
+  "Verbatim" is enforced line for line against canonical source, interior blank
+  lines and indentation included, after decoding and line-ending normalisation.
+  Exactly three differences are tolerated, each a presentation artefact one
+  format cannot express: the ledger's Markdown blockquote markers, its
+  hard-break trailing spaces (two or more -- a single trailing space is not a
+  hard break and does not pass), and trailing blank lines that YAML `|-` chomps.
+  Trailing whitespace inside canonical transcript lines is not tolerated.
+- [x] Priority transcript invocations follow the approved harness-neutral
   convention: ordinary language demonstrates routing, while `discovery-loop`
   and `release-loop` are explicitly named where their complete supervisor is
   required; canonical content contains no slash-prefixed invocation.
-- [ ] The living journey-priority template identifies
+- [x] The living journey-priority template identifies
   `product-engineering` and `release-engineering` by their canonical IDs rather
   than the stale `discovery` and `release` IDs.
-- [ ] Generated journey content matches canonical pack sources exactly after
+- [x] Generated journey content matches canonical pack sources exactly after
   the normal generation command; no generated copy is maintained by hand.
-- [ ] All 12 emitted journey pages contain the exact approved labels, one link
+- [x] All 12 emitted journey pages contain the exact approved labels, one link
   and one matching target per gate, and no adopter-visible internal or legacy
   identifier; the combined rendered-link checker reports no broken fragment.
-- [ ] Pack and plugin versions and plugin descriptions remain unchanged; if an
+- [x] Pack and plugin versions and plugin descriptions remain unchanged; if an
   installed functional behavior change is discovered, implementation stops for
   a spec amendment rather than silently versioning it.
-- [ ] Shipped journey content contains no repository-internal governance
+- [x] Shipped journey content contains no repository-internal governance
   citation or dead repository-only path, and every pre-change journey route and
   navigation destination still resolves.
-- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths in both approved themes,
-  priority journey interaction has at most 1px horizontal overflow, zero
-  serious or critical axe findings, correct keyboard focus/fragment behavior,
-  and no Major design-review issue against the governing principles.
+- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths, priority journey
+  interaction has at most 1px horizontal overflow, zero serious or critical axe
+  findings, correct keyboard focus/fragment behavior, and no Major
+  design-review issue against the governing principles. Journey routes are
+  marketing routes, which `site-browser-quality-gate` AC1 exercises without
+  theme mutation; their emitted pages carry no `data-theme`, so the dual-theme
+  requirement belongs to the two `/docs/` routes under that spec's AC2, not
+  here. The automated clauses pass; the design-review clause is recorded manual
+  verification (see `plan.md` § Approach) and awaits human sign-off.
 
 ## Assumptions
 

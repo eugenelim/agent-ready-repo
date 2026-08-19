@@ -3,9 +3,10 @@
 // border (task instruction: "amber-bordered gate cards on #fafaf9 background").
 // Uses <details>/<summary> for expandable what-to-check content — zero JS.
 
+import { decisionTargetId } from '../../lib/journey-decisions';
+
 interface Gate {
   id: string;
-  globalGate: string | null;
   label: string;
   trigger: string;
   duration: string;
@@ -17,18 +18,20 @@ interface Gate {
 
 interface Props {
   gate: Gate;
+  decisionGateIds?: string[];
 }
 
-const { gate } = Astro.props;
+const { gate, decisionGateIds } = Astro.props;
+const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
 ---
 
 <div class="gate-card">
   <div class="gate-card__header">
-    <div class="gate-card__id-row">
-      <span class="gate-id">{gate.id}</span>
-      {gate.globalGate && <span class="global-gate">{gate.globalGate}</span>}
-    </div>
-    <h3 class="gate-card__label">{gate.label}</h3>
+    <h3
+      id={decisionTarget}
+      class="gate-card__label"
+      tabindex={decisionTarget ? '-1' : undefined}
+    >{gate.label}</h3>
     <dl class="gate-card__meta">
       <dt>Trigger</dt>
       <dd>{gate.trigger}</dd>
@@ -79,40 +82,26 @@ const { gate } = Astro.props;
     border-radius: var(--ds-radius-md);
   }
 
+  .gate-card:has(.gate-card__label:target),
+  .gate-card:has(.gate-card__label:focus-visible) {
+    outline: 3px solid var(--ds-accent);
+    outline-offset: 3px;
+  }
+
   .gate-card__header {
     padding: var(--ds-space-6);
     padding-bottom: var(--ds-space-4);
-  }
-
-  .gate-card__id-row {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-space-3);
-    margin-bottom: var(--ds-space-3);
-  }
-
-  .gate-id {
-    font-family: var(--ds-font-mono);
-    font-weight: var(--ds-weight-heavy);
-    font-size: var(--ds-type-body-lg);
-    color: var(--ds-accent-deep);
-  }
-
-  .global-gate {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
   }
 
   .gate-card__label {
     font-size: var(--ds-type-h3);
     margin-bottom: var(--ds-space-4);
     color: var(--ds-on-surface);
+  }
+
+  .gate-card__label:focus-visible {
+    outline: 3px solid var(--ds-accent);
+    outline-offset: 3px;
   }
 
   .gate-card__meta {
