@@ -819,9 +819,42 @@ A PR description should answer four questions in this order:
 4. **What did you not change that you considered?** (The dog that didn't bark.
    This catches more bugs than any other section.)
 
-Aim for under ~100 lines of diff. PRs that grow beyond ~400 lines should be
-split unless the change is genuinely atomic (e.g. a generated file, a single
-rename across many call-sites).
+Size a PR as a reviewable semantic change, not as an agent session or a whole
+specification. One specification may deliver one PR or a dependency-ordered
+stack; each layer must be independently reviewable and leave the repository
+working. Keep behavior with its related tests, separate refactoring from
+behavior changes, and keep each curated commit independently testable.
+
+Use 2,000 reviewable behavior and test lines only as a tail-triage trigger,
+not as an automatic split rule. Classify by operational role, never file
+extension: agent instruction files and executed content count as behavior.
+Non-executable documentation prose is sized by coherence, not line count.
+Report raw diff lines for triage, material volume after content-hash
+deduplication, and reviewable behavior and test lines for size judgement.
+Raw diff lines and changed-file count only prompt examination. Classify tail
+shape by the median reviewable lines per changed, deduplicated file with at
+least one such line; exclude prose, generated output, and duplicate copies.
+WIDE is 60 or fewer, MIXED is above 60 and below 200, and DEEP is 200 or more.
+If classification is ambiguous or contested, treat it as DEEP and decompose.
+
+For mechanically uniform WIDE work, do not split: give the source artifact,
+exact command, transformation invariant, zero diff on re-run, targeted tests,
+sampled review, and rollback evidence.
+For MIXED or DEEP work, split into dependency-ordered working layers. A single
+coherent artifact is a floor: when it alone exceeds the trigger, nothing else
+rides with it. The author names the single unit it serves and states why no
+split preserves working layers. The same evidence is required for a regular
+test suite serving one unit; otherwise decompose. An atomic correctness window
+needs prior approver acceptance, a named invariant, volume classification,
+validation evidence, and a rollback path; a breaking interface change is not
+grounds and uses expand/migrate/contract.
+
+Bundled fixes must be listed under `Bundled fixes:` and fail closed on design
+calls or behavior changes. Tier 1 is reproducible: state the command and show
+a zero diff on re-run; it may span the repository. Tier 2 is provably inert:
+show no remaining references and green tests for bounded dead-code or
+unused-import removal. Tier 3 is hand-made: same-area, same-concern, visibly
+smaller mechanical work. Tier 1 and Tier 2 require their command or evidence.
 
 CI must be green. Specs must match implementation. Public-interface changes
 must be noted in `CHANGELOG.md`.

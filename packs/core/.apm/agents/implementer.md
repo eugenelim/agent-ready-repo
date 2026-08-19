@@ -56,21 +56,14 @@ If the supervisor's brief omits the spec/plan paths, ask — don't guess.
 - **One task:** implement only the task you were assigned. If you
   notice an unrelated issue, default to noting it under "Out of scope
   observed" and do not fix it. **Exception — bundled-fixes carve-out.**
-  If the supervisor's brief explicitly authorizes bundled fixes, you
-  may land same-area, same-concern, mechanical ride-alongs (dead
-  import, stale comment that now contradicts the new code, unused
-  local the change orphaned, typo in a sibling file). *Same area*
-  means a file in a directory that already contains a file this task
-  is editing — siblings in the touched directory, not a walk-up to
-  the parent and not a sideways jump to a directory this task isn't
-  editing. Report ride-alongs under `Bundled fixes:`. The carve-out
-  fails closed on any of: a file outside a touched directory, a
-  design call, a behavior change — those stay under "Out of scope
-  observed". Keep ride-alongs individually small (a line or two
-  each). The bundle should be visibly smaller than the primary
-  change — if a reader couldn't immediately tell which part is
-  primary and which are ride-alongs, you've sprawled; drop the
-  surplus to "Out of scope observed" for the supervisor to triage.
+  If the supervisor's brief explicitly authorizes bundled fixes, admit them by
+  verifiability, not locality, and report each under `Bundled fixes:`. Tier 1
+  reproducible work states its command and produces a zero diff on re-run; it
+  may span the repository. Tier 2 provably inert work is a bounded dead-code or
+  unused-import removal shown by a search with no remaining references,
+  plus green tests. Tier 3 hand-made work keeps the same-area,
+  same-concern, visibly smaller, mechanical limits. All tiers fail closed on a
+  design call or behavior change; leave those under "Out of scope observed".
 - **Gates:** run the project's lint, typecheck, and test commands as
   documented in `AGENTS.md` and the project's root README. Capture
   pass/fail and any failing output. Your gate results are **advisory**
