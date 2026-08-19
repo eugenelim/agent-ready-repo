@@ -222,6 +222,39 @@ def test_self_host_repairs_packaged_runtime_drift(tmp_path):
     assert bundled.read_bytes() == source.read_bytes()
 
 
+def test_self_host_dry_run_names_packaged_runtime_exclusion(tmp_path, capsys):
+    """Dry-run names its packaged-runtime exclusion without mutating the target."""
+    import agentbundle.build.self_host as self_host_mod
+    from agentbundle.build.contract import load as load_contract
+
+    packs_shadow = tmp_path / "packs-source"
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    source = workspace / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    bundled = workspace / "packages/agentbundle/agentbundle/_data/work_intake_refresh.py"
+    source.parent.mkdir(parents=True)
+    bundled.parent.mkdir(parents=True)
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    bundled.write_text("CANONICAL = False\n", encoding="utf-8")
+    (workspace / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
+    )
+    contract = load_contract(PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml")
+    rc = self_host_mod.run_self_host(
+        workspace,
+        packs_shadow,
+        dry_run=True,
+        force=True,
+        contract=contract,
+        preferred_adapter="kiro-ide",
+    )
+
+    assert rc == 1
+    assert "does not compare packaged runtime pairs" in capsys.readouterr().err
+    assert bundled.read_text(encoding="utf-8") == "CANONICAL = False\n"
+
+
 def test_make_build_check_refuses_packaged_runtime_drift(tmp_path, monkeypatch, capsys):
     """The check path detects, rather than repairs, a bundled runtime drift."""
     import agentbundle.build.self_host as self_host_mod
@@ -260,7 +293,7 @@ def test_make_build_check_skips_absent_packaged_runtime_pair(tmp_path, monkeypat
 
 
 # ---------------------------------------------------------------------------
-# Gate 3: Vendored _emit_basic_string parity
+# Gate 4: Vendored _emit_basic_string parity
 # ---------------------------------------------------------------------------
 
 
@@ -338,12 +371,12 @@ def test_make_build_check_passes_emit_basic_string_parity_on_clean(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Gate 2: Source-shape plugin.json (gate 2)
+# Gate 3: Source-shape plugin.json
 # ---------------------------------------------------------------------------
 
 
 def test_make_build_check_fails_on_source_hooks_block(tmp_path):
-    """Gate 2: gate exits non-zero when a source plugin.json carries a hooks block.
+    """Gate 3: gate exits non-zero when a source plugin.json carries a hooks block.
 
     Creates a tmp packs dir with a single pack whose plugin.json contains
     ``"hooks": {}``, calls ``run_build_check_drift_gates`` in-process, and asserts:
@@ -387,7 +420,7 @@ def test_make_build_check_fails_on_source_hooks_block(tmp_path):
 
 
 def test_make_build_check_passes_on_clean_source_packs(tmp_path):
-    """Gate 2: exits zero on a clean source + populated dist tree.
+    """Gate 3: exits zero on a clean source + populated dist tree.
 
     Shadow-copies the build-pipeline fixture packs, builds into a shadow
     ``dist/`` (so the writer-template gate has projections to hash), and

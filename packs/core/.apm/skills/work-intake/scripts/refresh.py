@@ -1636,15 +1636,20 @@ def _workspace_entry_parser() -> Callable[[object], tuple[object, list[object]]]
 
 def _artifact_sections(
     markdown: str,
-) -> tuple[str, tuple[str, ...], Mapping[str, tuple[str, str]]]:
+) -> tuple[
+    str,
+    tuple[tuple[str, int], ...],
+    Mapping[tuple[str, int], tuple[str, str]],
+]:
     """Split canonical level-two fields after removing validated metadata blocks."""
 
     body = _AUTHORITY_FENCE.sub("", markdown, count=1)
     body = _COORDINATION_FENCE.sub("", body)
     preamble: list[str] = []
-    order: list[str] = []
-    sections: dict[str, tuple[str, str]] = {}
+    order: list[tuple[str, int]] = []
+    sections: dict[tuple[str, int], tuple[str, str]] = {}
     current_name: str | None = None
+    current_ordinal = 0
     current_heading = ""
     current_body: list[str] = []
     fence_character: str | None = None
@@ -1652,7 +1657,10 @@ def _artifact_sections(
 
     def flush() -> None:
         if current_name is not None:
-            sections[current_name] = (current_heading, "".join(current_body))
+            sections[(current_name, current_ordinal)] = (
+                current_heading,
+                "".join(current_body),
+            )
 
     for line in body.splitlines(keepends=True):
         fence = _FENCE_LINE.match(line)
@@ -1668,9 +1676,8 @@ def _artifact_sections(
         if heading is not None:
             flush()
             name = heading.group("name")
-            if name in sections or name in order:
-                raise RefreshRefusal("invalid_local_update")
-            order.append(name)
+            current_ordinal = sum(existing_name == name for existing_name, _ in order)
+            order.append((name, current_ordinal))
             current_name = name
             current_heading = line
             current_body = []
@@ -1739,19 +1746,26 @@ def _validate_artifact_field_update(
     if current_preamble != proposed_preamble or current_order != proposed_order:
         raise RefreshRefusal("invalid_local_update")
     changes = {change.name: change for change in comparison.changed_fields}
-    if not set(changes).issubset(current_sections):
+    section_keys = {
+        name: tuple(key for key in current_order if key[0] == name)
+        for name in changes
+    }
+    if any(len(keys) != 1 for keys in section_keys.values()):
         raise RefreshRefusal("invalid_local_update")
-    for name in current_order:
-        current_heading, current_body = current_sections[name]
-        proposed_heading, proposed_body = proposed_sections[name]
+    changes_by_key = {
+        section_keys[name][0]: change for name, change in changes.items()
+    }
+    for key in current_order:
+        current_heading, current_body = current_sections[key]
+        proposed_heading, proposed_body = proposed_sections[key]
         if current_heading != proposed_heading:
             raise RefreshRefusal("invalid_local_update")
-        change = changes.get(name)
+        change = changes_by_key.get(key)
         if change is None:
             if current_body != proposed_body:
                 raise RefreshRefusal("invalid_local_update")
             continue
-        expected = result.field_updates.get(name, change.local_value)
+        expected = result.field_updates.get(key[0], change.local_value)
         if (
             current_body.strip() != change.local_value
             or proposed_body.strip() != expected

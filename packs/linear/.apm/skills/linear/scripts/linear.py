@@ -232,7 +232,7 @@ def _trusted_https_url(value: str | None) -> bool:
         and parsed.username is None
         and parsed.password is None
         and parsed.hostname is not None
-        and port is None
+        and (port is None or port > 0)
         and parsed.path.startswith("/")
     )
 
@@ -455,7 +455,9 @@ def _resolved_proxy_addresses(host: str, port: int) -> frozenset[str]:
         # A proxy may legitimately be private, loopback, or multicast on a
         # corporate network. The IPv6 metadata endpoint is unique-local, so
         # rejecting its category would over-reject legitimate proxy hops.
-        or str(address) in {"169.254.169.254", "fd00:ec2::254"}
+        # GCP and Azure use the IPv4 IMDS address below; Alibaba uses its own
+        # explicit IPv4 address. The shared 100.64.0.0/10 range stays allowed.
+        or str(address) in {"169.254.169.254", "100.100.100.200", "fd00:ec2::254"}
         for address in parsed
     ):
         raise httpx.TransportError("HTTPS proxy resolution failed")

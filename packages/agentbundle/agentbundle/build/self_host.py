@@ -1354,6 +1354,11 @@ def run_self_host(
             if agents_path is not None:
                 extra_marker_paths.append(Path("AGENTS.md"))
             resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
+            print(
+                "self-host: dry-run does not compare packaged runtime pairs; "
+                "run: make build-check",
+                file=sys.stderr,
+            )
             source_map = _build_projected_to_source_map(packs_dir, contract, preferred_adapter)
             projected_paths = {
                 rendered.relative_to(shadow)

@@ -27,7 +27,7 @@ Supported write-back is limited to fixed-host `gh` commands:
 
 - `comment` uses `gh issue comment` with the body passed on stdin.
 - `trace-link` uses `gh issue comment` with a generated trace-link note passed
-  on stdin.
+  on stdin; its HTTPS link must target the configured same repository.
 - `pull-request-link` uses `gh issue comment` with a generated pull-request
   note passed on stdin.
 - `display-status` uses `gh issue edit --add-label`.

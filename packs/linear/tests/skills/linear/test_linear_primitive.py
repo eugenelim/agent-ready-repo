@@ -406,7 +406,7 @@ class TestIntakeAcquisitionContract:
 
     @pytest.mark.parametrize(
         "address",
-        ["0.0.0.0", "169.254.169.254", "fe80::1", "fd00:ec2::254"],
+        ["0.0.0.0", "169.254.169.254", "100.100.100.200", "fe80::1", "fd00:ec2::254"],
     )
     def test_proxy_metadata_or_unspecified_address_is_refused_redacted(
         self,
@@ -554,6 +554,13 @@ class TestLinearRefreshProcessor:
         assert result.code == "invalid_remote_payload"
         assert result.transport_calls == 0
         assert calls == []
+
+    def test_linear_accepts_https_trace_link_with_explicit_port(
+        self, linear_mod: types.ModuleType
+    ) -> None:
+        assert linear_mod._trusted_https_url(
+            "https://git.example.test:8443/org/repo/-/merge_requests/1"
+        )
 
     def test_linear_shipped_write_is_allowlisted(
         self,

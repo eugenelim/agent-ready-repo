@@ -1422,6 +1422,34 @@ stable
     assert result.local_mutation == "committed"
 
 
+def test_coordinator_allows_unchanged_duplicate_headings(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path, decision="accept-source")
+    duplicate_notes = """
+## Notes
+
+first
+
+## Notes
+
+second
+"""
+    before = fixture["before_artifact"] + duplicate_notes.encode()
+    proposed = fixture["proposed_artifact"] + duplicate_notes.encode()
+    fixture["artifact"].write_bytes(before)
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"], comparison=fixture["comparison"],
+        authority=refresh.parse_source_authority(before.decode()),
+        policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
+        decisions={"Outcome": "accept-source"},
+        expected_artifact_digest=refresh.digest_bytes(before),
+        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed,
+        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.local_mutation == "committed"
+
+
 def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path: Path) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
