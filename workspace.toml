@@ -2886,6 +2886,33 @@ open = [
   # marketing catalogue and pack cards, so aligning it is a naming decision
   # across surfaces that spec does not own.
   { slug = "iac-terraform-group-label-alignment", source = "spec/guide-title-clarity", summary = "Align the iac-terraform sidebar GROUP label with its retitled index page" },
+  # tools/test-pages-workflow.py deliberately does not assert concurrency: its
+  # charter is deploy-blocking gates, their ordering, and paths: filters, and
+  # every assertion family requires mutation coverage. Required CI therefore
+  # would not catch restoration of unkeyed group: "pages" with cancellation,
+  # which cancelled 18 of 40 runs, including a PR run cancelling a main deploy.
+  # Closing this needs a dedicated mutation-tested concurrency check and a
+  # tools/lint-ci-parity.py registration, not a patch; avoid the unwired
+  # tools/test-ci-security-workflow.py anti-precedent. Unblocks when: ready now.
+  { slug = "pages-concurrency-has-no-regression-gate", source = "spec/pages-concurrency-isolation (review concern)", summary = "pages.yml concurrency has no required-CI assertion, so restoring unkeyed group: \"pages\" would silently reintroduce cross-branch run cancellation" },
+  # Surfaced by a peer session while coordinating the pages-concurrency-isolation
+  # merge. The deploy lane serializes Pages deployments but does NOT order them:
+  # builds now run in distinct workflow groups, so two Pages-relevant merges to main
+  # build concurrently and their deploy jobs enter the shared "pages" lane in
+  # build-completion order, which need not match merge order. The older commit can
+  # therefore publish last. Self-heals on the next Pages-relevant merge and loses no
+  # data, but it is a real trade: the previous unkeyed group made inversion impossible
+  # by cancelling the older run outright. A "deploy only if still the tip of main"
+  # guard would close it and was declined as unrequested hardening with its own skip
+  # path. Decide whether the burst rate on main justifies it — and note the two
+  # arguments point OPPOSITE ways: a high burst rate makes inversion more likely but
+  # the stale window shorter, while a quiet period makes inversion rarer and the
+  # window unbounded. "Self-heals on the next Pages-relevant merge" is load-bearing on
+  # there BEING a next merge: an inverted pair that is the last Pages-relevant activity
+  # before a weekend or freeze leaves the site on the older commit for the whole gap,
+  # with nothing signalling it. Weigh both cases, not just the burst one.
+  # Unblocks when: ready now.
+  { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives

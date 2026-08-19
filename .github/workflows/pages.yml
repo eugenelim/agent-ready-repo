@@ -56,10 +56,14 @@ on:
 permissions:
   contents: read
 
-# Allow only one concurrent deployment; cancel in-flight runs on new push.
+# AC12's ratified shape: PR runs key on server-assigned github.ref
+# (refs/pull/<n>/merge), so only the same PR supersedes itself and forks cannot
+# influence the key. Non-PR runs key on github.run_id and cannot be cancelled.
+# The former unkeyed "pages" group let every Pages run cancel another (18 of 40,
+# including a PR cancelling a main deploy); see deploy below for the production lane.
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: pages-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -214,6 +218,15 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
+    # Production writers must not be terminated mid-write; environments do not
+    # serialize deployments. GitHub permits one running and one pending entry, so
+    # a third queued deployment can displace the pending entry. This group must be
+    # bare "pages" for rollout ordering; the workflow group must retain its keyed
+    # "pages-" prefix and never become bare "pages", or matching job/workflow
+    # groups deadlock and GitHub skips this job.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages
