@@ -148,4 +148,4 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 - **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.
 - **Go deeper:** the `core` guides in `guides/core/`.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
-- **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
+- **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

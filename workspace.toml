@@ -144,15 +144,7 @@ ready     = [
 draft     = []
 
 ["ini-002".work]
-active  = [
-  # Tech-site completion programme. Implementation merged in #1042; membership
-  # follows the artifact, which reads `Status: Implementing` because AC15's
-  # design-review clause is recorded manual verification and is not yet satisfied.
-  # Leaving this in `queue` made canonical reconciliation report
-  # `impossible_transition` and `unapproved_spec`, since a queue entry is expected
-  # to be Approved. It moves to `shipped` when AC15 is ticked.
-  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
-]
+active  = []
 shipped = [
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
@@ -236,6 +228,10 @@ shipped = [
   {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
   {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
   {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
+
+  # Shipped 2026-08-19. All 15 acceptance criteria met; AC15's design-review
+  # clause closed by a third recorded review returning no Major or worse.
+  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
 ]
 queue   = [
   # RFC-0088 round 12 — measures open questions 4, 5 and 6 plus two residuals that

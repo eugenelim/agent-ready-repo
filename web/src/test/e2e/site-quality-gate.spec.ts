@@ -25,6 +25,7 @@ import {
   THEMES,
   WIDTHS,
   collectPageErrors,
+  expectEveryFocusStopHasContrastingRing,
   expectFragmentsResolve,
   expectLandmarkKeyboardReachable,
   expectNoHorizontalOverflow,
@@ -405,6 +406,40 @@ test.describe('docs routes at every approved width in both themes', () => {
           expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
         });
       }
+    }
+  }
+});
+
+test.describe('every keyboard focus stop has a ring that clears the non-text floor', () => {
+  // Deliberately not driven by a list of "dark surfaces". The light-zone focus fix
+  // was authored against such a list and the list was wrong: a dark `<pre>` that
+  // gains `tabindex` on overflow looks like a dark surface, but `outline-offset`
+  // puts its ring on the light page behind it. Walking real Tab stops and measuring
+  // what is behind each ring is the only version of this check that cannot be
+  // fooled by that.
+  // AC1's matrix plus `/primitives-fixture`. The fixture is deliberately NOT added
+  // to `MARKETING_ROUTES` — that constant is the ratified AC1 route set and this is
+  // not an adopter-facing route. But five primitives (task-switcher, decision-band,
+  // next-action, write-confirmation, page-hero) render ONLY there, so without it the
+  // focus treatment on those components would be changed and never measured.
+  // `/404/` and `/packs/architect/` are here because both carry focus stops this
+  // change re-pointed at the token and neither is in AC1's matrix: `.notfound` is a
+  // dark carrier, and `.install-copy-btn` renders only when `pluginInstallable` is
+  // true — which the matrix's only pack route, `core`, is not.
+  const FOCUS_RING_ROUTES = [
+    ...MARKETING_ROUTES,
+    '/primitives-fixture/',
+    '/404/',
+    '/packs/architect/',
+  ] as const;
+  for (const route of FOCUS_RING_ROUTES) {
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+      test(`${route} focus rings @${width}`, async ({ page }) => {
+        const ctx = { route, width };
+        await page.setViewportSize({ width, height: 900 });
+        await gotoSettled(page, withBase(route), ctx);
+        await expectEveryFocusStopHasContrastingRing(page, ctx);
+      });
     }
   }
 });

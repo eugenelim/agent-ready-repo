@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Keyboard focus is visible everywhere on the marketing site, not just in the
+  dark bands.** The focus outline used a gold that was too faint against light
+  backgrounds, so on most pages the ring around the control you had tabbed to was
+  hard to make out. Light areas now use a near-black outline; the dark bands keep
+  the gold, which was already clearly visible there.
 - **The example session on a journey page now reads as a session.** Each turn is
   attributed to whoever spoke it and sits on its own line in a terminal-style
   register, instead of running together in one paragraph with stray asterisks and

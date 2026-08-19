@@ -600,3 +600,132 @@ export async function expectOutlineContrast(
       `(WCAG 1.4.11 non-text)`
   ).toBeGreaterThanOrEqual(3);
 }
+
+/**
+ * Every keyboard focus stop must have a ring that clears 3:1 against what is
+ * *behind* it (WCAG 1.4.11 non-text contrast).
+ *
+ * This exists because an enumerated list of "dark surfaces" cannot be trusted. The
+ * light-zone focus fix was authored against such a list and it was wrong in a way no
+ * static reading caught: the syntax-highlighted `<pre>` blocks carry a dark fill and
+ * receive `tabindex` when they overflow, so they looked like dark surfaces and were
+ * given the amber ring — but `outline-offset` draws a ring OUTSIDE the element's box,
+ * so theirs lands on the light page and measured 2.29:1, reinstating the very defect
+ * being fixed. The surface that matters is the one behind the ring, never the
+ * element's own fill.
+ *
+ * So this walks real Tab stops and measures what is actually there.
+ */
+export async function expectEveryFocusStopHasContrastingRing(
+  page: Page,
+  ctx: CaseContext,
+  maxStops = 160
+): Promise<void> {
+  const failures: string[] = [];
+  const seen = new Set<string>();
+  let first: string | null = null;
+
+  for (let i = 0; i < maxStops; i += 1) {
+    await page.keyboard.press('Tab');
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const cs = getComputedStyle(el);
+
+      const parse = (value: string): number[] | null => {
+        const m = value.match(/[\d.]+/g);
+        if (!m) return null;
+        const [r, g, b] = m.slice(0, 3).map(Number);
+        return [r, g, b, m.length > 3 ? Number(m[3]) : 1];
+      };
+
+      // Which surface the ring lands on depends on the SIGN of `outline-offset`.
+      // Positive draws it outside the element, over the parent; negative draws it
+      // inside, over the element's own background. Always starting at the parent
+      // was only accidentally correct: all seven inset rules here
+      // (TaskSwitcher -2px, InstallTerminal -2px, StatusChip 5x -1px) sit on
+      // `background: none` elements, so parent and self resolve alike. Give any of
+      // them a fill and the old version reported a passing number for a surface the
+      // ring never touches.
+      const inset = parseFloat(cs.outlineOffset) < 0;
+      const from = inset ? el : el.parentElement;
+
+      const behind = (): number[] => {
+        let node: HTMLElement | null = from;
+        const layers: number[][] = [];
+        while (node) {
+          const c = parse(getComputedStyle(node).backgroundColor);
+          if (c && c[3] > 0) {
+            layers.push(c);
+            if (c[3] >= 1) break;
+          }
+          node = node.parentElement;
+        }
+        let out = [255, 255, 255];
+        for (let j = layers.length - 1; j >= 0; j -= 1) {
+          const [r, g, b, a] = layers[j];
+          out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+        }
+        return out;
+      };
+
+      // `behind()` reads backgroundColor only. `.hero` layers an accent glow and
+      // two grid gradients over `--ds-hero-bg`, so where an image is present the
+      // measured backdrop is the solid colour beneath it and not the rendered
+      // pixel. Recorded rather than silently assumed, so the next decorative
+      // gradient cannot hide behind a passing number.
+      const approximated = (): boolean => {
+        let node: HTMLElement | null = from;
+        while (node) {
+          if (getComputedStyle(node).backgroundImage !== 'none') return true;
+          node = node.parentElement;
+        }
+        return false;
+      };
+
+      const id =
+        `${el.tagName.toLowerCase()}` +
+        `${el.id ? `#${el.id}` : ''}` +
+        `${el.className ? `.${String(el.className).trim().split(/\s+/).slice(0, 2).join('.')}` : ''}`;
+      return {
+        id,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineColor: cs.outlineColor,
+        outlineOffset: cs.outlineOffset,
+        inset,
+        approximated: approximated(),
+        behind: behind(),
+      };
+    });
+
+    if (!stop) break;
+    // One full cycle is the coverage unit. Tabbing a fixed 160 times took 40s on
+    // `/journeys/` and blew the 30s case budget while re-measuring stops already
+    // seen; wrapping back to the first stop means every stop has been visited.
+    if (first === null) first = stop.id;
+    else if (stop.id === first) break;
+    if (seen.has(stop.id)) continue;
+    seen.add(stop.id);
+
+    // A ring drawn some other way (box-shadow) is out of this assertion's reach;
+    // `expectVisibleFocusIndicator` owns "is there an indicator at all".
+    if (stop.outlineStyle === 'none' || parseFloat(stop.outlineWidth) === 0) continue;
+
+    const ring = parseColor(stop.outlineColor);
+    const ratio = contrastRatio(ring, stop.behind);
+    if (ratio < 3) {
+      failures.push(
+        `${stop.id}: ring ${stop.outlineColor} on ` +
+          `rgb(${stop.behind.map((c) => Math.round(c)).join(',')}) = ${ratio.toFixed(2)}:1` +
+          `${stop.inset ? ' [inset ring, measured against its own background]' : ''}` +
+          `${stop.approximated ? ' [backdrop has a background-image; solid colour beneath measured]' : ''}`
+      );
+    }
+  }
+
+  expect(
+    failures,
+    `${label(ctx)}: focus rings below the 3:1 non-text floor:\n  ${failures.join('\n  ')}`
+  ).toEqual([]);
+}

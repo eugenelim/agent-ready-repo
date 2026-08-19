@@ -1,7 +1,7 @@
 # Plan: Journey page completion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -383,3 +383,61 @@ no version, dependency, migration, or infrastructure change.
   it is correct. It is pre-existing, owned by the design-system layer, and lands on
   every marketing route, so it warrants its own review rather than riding along in
   a journey-pages fix. AC15 stays unticked until it is resolved and re-reviewed.
+- 2026-08-19: resolved the design review's M2, the last known blocker on AC15's
+  design-review clause. The global `:focus-visible` ring was `--ds-accent` at
+  2.29:1 on the light page and 2.08:1 on the card, under the 3:1 non-text floor,
+  while being correct at 8.07:1 on the dark hero — so a blanket swap would have
+  broken what worked. A `--ds-focus-ring` semantic token now carries
+  `--ds-on-surface` (16.49:1) by default and is re-declared to `--ds-accent` on
+  dark carriers, which works because the override lives in the global stylesheet
+  where it can match Astro's rendered classes and inherit into scoped descendants.
+  `--ds-on-surface` was chosen over `--ds-accent-deep` (5.43:1) so the whole site
+  speaks one focus language, matching the journey controls; a second focus colour
+  on the same page had itself been flagged.
+  The authored patch contained a defect no static reading caught. Its dark-carrier
+  list included `.journey-narrative pre`, which looks right — those syntax
+  highlighted blocks carry `--ds-hero-bg` and receive `tabindex` when they overflow.
+  But `outline-offset` draws a ring OUTSIDE the element's box, so those four
+  focusable blocks had an amber ring landing on the light page at rgb(250,250,249):
+  2.29:1, the exact defect being fixed, reintroduced. Measured in a browser, not
+  read. The rule is that the token must describe the surface behind the ring, so
+  dark *containers* belong in the list and focusable dark *elements* do not; the
+  entry was removed and the reasoning recorded in `tokens.css` so it is not re-added.
+  That is also why the control is not a list. `expectEveryFocusStopHasContrastingRing`
+  walks real Tab stops, measures each ring against its composited backdrop, and ends
+  on one full focus cycle — a fixed 160-press walk took 40s on `/journeys/` and blew
+  the case budget. It runs over AC1's matrix plus `/primitives-fixture`, which is not
+  added to `MARKETING_ROUTES` because that constant is the ratified AC1 set, but is
+  the only place five of the changed primitives render. MP28 restores the original
+  defect and fails 17 cases naming `a.skip-nav` 2.29:1 and `a.loop__link` 2.08:1;
+  MP29 restores the authored defect and fails on `pre.astro-code.github-dark` at
+  2.29:1. Both restorations byte-identical.
+- 2026-08-19: restyled the transcript on owner feedback from browsing the built
+  site, and fixed a link name the owner spotted there. Neither was found by any
+  review round: three passes endorsed the transcript's presentation and none noticed
+  it stood 730px tall with a 13px mono block under 18px prose. The register stays
+  mono — it is what makes the section read as captured evidence rather than more
+  marketing copy, which was the third consequence of the original Major — but the
+  size rises to `--ds-type-body`, the gaps drop from 16px/8px to 8px/2px, the measure
+  becomes a mono-specific 66ch instead of inheriting a sans-calibrated 72ch that
+  yielded ~84 monospace characters, and the block gains a bordered card. A coloured
+  fill was rejected on measurement: this section is `tone="surface-alt"` and
+  `--ds-surface` lifted off it is 1.10:1, so the border is what differentiates. A
+  dark terminal slab was rejected too — it would put ~500px of dark on an
+  explanatory page and a focusable dark block reintroduces the `outline-offset`
+  defect this branch just fixed. Literals now use `--ds-accent-deep` (5.43:1) so
+  `discovery-loop` no longer looks like a speaker label.
+  Recorded honestly: the first attempt made the block WORSE at 924px, because a
+  larger font against a narrower measure wraps more. Inlining the speaker recovered
+  229px to 695px. That is only 35px under the original, and the real change is that
+  the space is content rather than air; nine turns of dialogue at a legible size is
+  inherently tall. Inline also sidesteps the earlier objection to a two-column
+  layout, which was specifically that a fixed label column crushes "Independent
+  reviewer" at 360px — inline text flows instead, confirmed at 360.
+  The link fix: `/journeys/core/` offered "Run a headless session" for a guide
+  titled "Run a headless session with workspace-mcp", so the label hid that the
+  destination is workspace-mcp specific. Corrected at the canonical pack source and
+  re-projected. No control could have caught it — `lint-guide-titles` compares
+  frontmatter to body H1, and the rendered-link checker verifies existence only.
+  Nothing compares link text to destination title. Four other references still use
+  the short form and are left for a follow-up.

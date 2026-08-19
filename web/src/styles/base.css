@@ -109,9 +109,9 @@ button {
   cursor: pointer;
 }
 
-/* Global focus ring — amber-gold, legible on both dark and light surfaces. */
+/* Global focus ring — semantic token is neutral on light and amber on dark. */
 :focus-visible {
-  outline: 2px solid var(--ds-accent);
+  outline: 2px solid var(--ds-focus-ring);
   outline-offset: 3px;
 }
 

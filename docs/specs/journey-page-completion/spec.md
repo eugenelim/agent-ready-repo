@@ -1,6 +1,6 @@
 # Spec: Journey page completion
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -146,15 +146,19 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 - [x] Shipped journey content contains no repository-internal governance
   citation or dead repository-only path, and every pre-change journey route and
   navigation destination still resolves.
-- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths, priority journey
+- [x] At 360, 375, 390, 414, and 1440 CSS-pixel widths, priority journey
   interaction has at most 1px horizontal overflow, zero serious or critical axe
   findings, correct keyboard focus/fragment behavior, and no Major
   design-review issue against the governing principles. Journey routes are
   marketing routes, which `site-browser-quality-gate` AC1 exercises without
   theme mutation; their emitted pages carry no `data-theme`, so the dual-theme
   requirement belongs to the two `/docs/` routes under that spec's AC2, not
-  here. The automated clauses pass; the design-review clause is recorded manual
-  verification (see `plan.md` § Approach) and awaits human sign-off.
+  here. Recorded design review, third pass: "no Major or worse exists" — the two
+  contrast Majors and the transcript Major are resolved, the regression the second
+  fix introduced on `/journeys/atlassian/` is resolved, and the site-wide light-zone
+  focus ring now measures 16.49:1 where it measured 2.29:1. Five Minors and one Nit
+  from that pass are also resolved; `install-block__code--light` is deferred as a
+  naming-only concern.
 
 ## Assumptions
 

@@ -444,41 +444,68 @@ const installCommand =
     line-height: var(--ds-lead-body);
   }
 
+  /* A bordered card, not a coloured fill. This section is `tone="surface-alt"`,
+     and `--ds-surface` lifted off it measures 1.10:1 — a fill alone would be
+     invisible, so the border does the differentiating. A dark terminal slab was
+     the other option and was rejected: it would put ~480px of dark on an
+     explanatory page, and a focusable dark block re-introduces the
+     `outline-offset` problem where the ring lands on the light page behind it. */
   .transcript {
     display: grid;
-    gap: var(--ds-space-4);
+    gap: var(--ds-space-2);
     margin: 0;
-    padding: 0;
+    /* Mono-specific measure. Inheriting `.content-body`'s 72ch is calibrated for
+       the sans face and yields ~84 monospace characters at 1440 — wider than a
+       multi-turn read wants. */
+    max-width: 66ch;
+    padding: var(--ds-space-5);
     list-style: none;
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
     font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-mono-sm);
+    /* Not `--ds-type-mono-sm` (13px): that step is for inline code and skill
+       names, and against the 18px prose above it the cliff read as a different
+       component rather than a different register. */
+    font-size: var(--ds-type-body);
     line-height: var(--ds-lead-body);
     color: var(--ds-on-surface-2);
   }
 
+  /* The speaker runs inline with its utterance rather than stacked above it. A
+     stacked label costs one line per turn, which at nine turns was the dominant
+     term in this block's height. Inline is not the two-column grid that was
+     rejected earlier — there is no fixed label column to crush the utterance at
+     360px, the text simply flows. */
   .transcript__turn {
-    display: grid;
-    gap: var(--ds-space-2);
+    display: block;
   }
 
   .transcript__speaker {
-    display: block;
     color: var(--ds-on-surface);
     font-weight: 600;
   }
 
+  .transcript__speaker::after {
+    content: ': ';
+  }
+
   .transcript__utterance {
-    display: block;
+    display: inline;
   }
 
   /* The whole block is already mono, so an inline-code chip would nest a box
      inside a box. Carry the emphasis with weight instead. */
+  /* A literal is not an attribution. Both were `--ds-on-surface` at weight 600,
+     so `release-loop` inside an utterance was indistinguishable from the "You" /
+     "Agent" label above it. The page's established literal colour separates them
+     and measures 5.43:1 on `--ds-surface`. */
   .transcript code {
     font-family: inherit;
     font-size: inherit;
     background: none;
     padding: 0;
-    color: var(--ds-on-surface);
+    color: var(--ds-accent-deep);
     font-weight: 600;
   }
 
