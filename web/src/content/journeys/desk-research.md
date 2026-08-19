@@ -107,6 +107,24 @@ relatedJourneys:
 
 ---
 
+### Optional knowledge boundary
+
+Project knowledge is not part of the research pipeline. Research retains
+authority over its source corpus and every survey, citation, claim, confidence
+assessment, counterpoint, verdict, and governance brief. Quick and non-survey
+session work, project scaffolding, digest, check, status, and any incomplete or
+abandoned path perform no knowledge handoff.
+
+Only a completed repository-contained standard, applied, or deep survey, or a
+completed project synthesis, may optionally hand independently reusable
+practice or sanitized evidence residue to `project-knowledge`. Personal and
+external output roots remain capture-ineligible. A `devils-advocate` review may
+instead ask one bounded `CQ-REVIEW` question for candidate counter-checks, but
+must verify every research claim from independent direct sources and never
+capture or distil the retrieved result.
+
+---
+
 ### 1. Scope the question
 
 Type `desk-research` and describe what you want to find out — the agent maps the source space and surfaces its scoping assumptions before retrieving anything.

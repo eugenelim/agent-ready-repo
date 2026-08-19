@@ -152,6 +152,7 @@ shipped = [
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
   {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
   {path = "docs/specs/project-knowledge-review-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate bounded project knowledge enquiry with review workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-authoring-integrations/spec.md"}]},
+  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-integrations/spec.md"}]},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
@@ -253,18 +254,10 @@ queue   = [
   # retire later entries through normal review when their assumed shape has changed;
   # queue comments are a roadmap, while each approved spec is the implementation truth.
 
-  # Slices 1 through 3 are shipped in the work list above. Their measured behavior is
+  # Slices 1 through 4 are shipped in the work list above. Their measured behavior is
   # the adaptive starting point for every remaining slice; do not preserve an
   # assumed integration shape when evidence supports splitting, combining,
   # reordering, or retiring it.
-
-  # Slice 4 — research integrations. Shape research separately because its cited products,
-  # raw corpora, intermediate phases, source-verification duty, and repo-relative versus
-  # personal output roots do not share review's non-writing stable-gate contract. Decide its
-  # exact terminal product gates and whether capture, enquiry, or no integration is justified;
-  # test every selected quick/standard/applied/deep and project-lifecycle workflow; never
-  # persist raw corpora or make retrieved knowledge a citation or self-validating evidence.
-  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-integrations/spec.md"}]},
 
   # Slice 5 — engineering and operational integrations. Introduce explicit enquiry and
   # semantic-gate capture where demonstrated useful in work-loop execution, diagnosis,

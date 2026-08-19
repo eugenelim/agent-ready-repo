@@ -87,6 +87,11 @@ Surface the status in this format:
 
 If `phase` contains an unrecognised value, surface it as-is with a note: "Unrecognised phase — expected one of: capture, digest, synthesize, feedback."
 
+## Project-knowledge non-gate
+
+Project status is a status-only, read-only knowledge non-gate. Reading the
+configured project and rendering its current frontmatter perform no capture, distillation, or enquiry. This skill does not discover the project-knowledge provider, does not create fallback storage, and does not persist its rendering context.
+
 ## What this skill is not
 
 - Not `desk-research-project-digest` — it reads the current state; it does not build the synthesis matrix.

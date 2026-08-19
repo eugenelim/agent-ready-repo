@@ -91,6 +91,84 @@ the corpus). It MUST be:
   per-finding counter-pass that hardens the brief's confidence tags before it
   ships.
 
+## Project-knowledge terminal handoff
+
+Project knowledge is an optional handoff after synthesis has completed its own
+durable products and challenge method. It cannot participate in source
+selection, synthesis, citation, claim formation, confidence, counter-evidence,
+verdict, governance conclusions, or phase ownership.
+
+### Exact gate and non-gates
+
+The sole positive gate is `research-project-synthesis-complete`. It fires once
+per completed invocation only after `synthesis-matrix.md` and `memos.md` have
+been consumed; the resolved typed verdict and governance brief exist; citations,
+per-finding confidence, three-source triangulation, and known unknowns are
+complete; and linked counterpoints have completed the required per-finding
+challenge. This skill still never advances `phase`.
+
+Any missing, empty, partial, refused, abandoned, or interrupted prerequisite or
+product is a non-gate. Either synthesis product alone, a missing or partial
+counterpoints artifact, an incomplete challenge, an empty matrix warning, or
+any phase mutation prevents capture and distillation. A gate with no admissible
+reusable residue makes no request.
+
+### Counter-review enquiry
+
+For the nested challenge, this outer producer owns one consequential
+`CQ-REVIEW` query after target and scope resolution and before the first
+counter-position enumeration. It constructs the privacy-minimized target label
+defined by `/devils-advocate` and passes the same sanitized envelope to every
+per-finding pass and unchanged rerun. The nested reviewer never queries again.
+
+The envelope contains candidate checks only. It does not select sources,
+provide a citation or claim, strengthen confidence, decide counter-evidence or
+a verdict, or alter the brief. Project knowledge cannot corroborate itself;
+every adopted check requires independent direct-source verification. Missing,
+empty, irrelevant, stale, quarantined, insufficiently authoritative, or
+unverified results are omitted or produce an explicit caveat or abstention.
+
+### Scratch, products, and capture
+
+At the gate, form only a producer-owned transient handoff scratch containing
+independently reusable practice or carefully sanitized evidence residue about
+corpus structure, triangulation, verification, calibration, or handoff. It must
+not contain a matrix, memo, source corpus, quotation, citation, claim,
+confidence judgment, counter-evidence, verdict, governance conclusion, or
+product excerpt. Scratch is never persisted automatically; the producer must
+not mine transcripts and must not copy raw source corpora.
+
+Resolve eligibility before provider discovery. With Git relocation variables
+removed, prove the Git root and every required artifact through native real-path
+resolution as a confined regular file; reject dot-segment traversal, symlinks,
+junctions, reparse points, non-files, I/O ambiguity, missing Git, and uncertain
+containment. A personal or otherwise external output root emits exactly
+`project-knowledge capture ineligible: non-repository research output`, does
+not probe the provider, and creates no fallback file.
+
+The gate uses the resolved typed verdict for `semantic_gate.artifact`; the
+typed verdict, `<topic-slug>-brief.md`, and linked counterpoints in
+`provenance.sources`; and the counterpoints for `freshness_anchor.path`. Every
+listed path must be a confined regular file. These products prove completion
+but remain normative research artifacts and are never copied into the lesson.
+
+Discover the public `project-knowledge` skill only after eligibility succeeds.
+If absent, emit exactly `project-knowledge unavailable`, create no fallback
+file, and leave both synthesis products unchanged. Construct the published
+typed request with `contract_version`, `lesson`, `kind`, `project_scope`,
+`competency_facets`, `destination_hint`, `producer`, `semantic_gate`,
+`provenance`, `freshness_anchor`, `observed_at`, and `privacy_attestation`.
+Set `producer.workflow` to `desk-research-project-synthesize` and its version to
+the current pack version, then invoke only `project-knowledge --capture`.
+
+The producer must not locate journals, must not import the private writer, must
+not invent capture IDs, must not select partitions, and must not create storage.
+Retain only the returned `{capture_id, partition}` pairs. Optional terminal
+distillation uses
+`{"selection_mode":"workflow-receipts","receipts":[...]}` with only receipts
+returned by this synthesis gate. Never use `direct-maintainer-pending`, guess a
+receipt, drain another workflow, or distil after a failed or skipped capture.
+
 ## What this skill is not
 
 - Not a corpus dump — the brief is a distillation, self-contained and

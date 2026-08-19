@@ -149,6 +149,26 @@ Every persisted artifact follows the `<topic-slug>-<type>.md` convention. The to
 
 ---
 
+### Optional handoff — `project-knowledge`
+
+This is an integration boundary, not an upstream research dependency. Research
+producers own transient scratch, terminal-gate timing, output roots, and every
+normative research product. Project knowledge may receive only independently
+reusable practice or sanitized evidence residue after a terminal,
+repository-contained survey or project synthesis. It never receives the source
+corpus, quotations, citations, claims, confidence judgments, counter-evidence,
+verdicts, or governance conclusions.
+
+Quick and non-survey session work plus project start, digest, check, status,
+incomplete, and abandoned paths are hard non-gates. Personal and external
+output roots are capture-ineligible rather than assigned fabricated repository
+provenance. `devils-advocate` may use a single bounded `CQ-REVIEW` enquiry for
+candidate checks, but retrieved knowledge remains untrusted, cannot corroborate
+itself, and cannot alter source selection, citations, claims, confidence, or
+review authority.
+
+---
+
 ## 8. Safety invariants
 
 These constraints must never be violated by any skill in the desk-research pack or any skill that extends it.
@@ -164,6 +184,11 @@ These constraints must never be violated by any skill in the desk-research pack 
 5. **`desk-research-project-status` and `desk-research-project-check` are read-only.** They never advance `phase`, never write to `overview.md`, and never invoke downstream lifecycle skills.
 
 6. **Phase is human-driven.** No skill auto-advances the project phase. The human reads the phase field and decides when to move on. There is no engine, counter, or daemon behind `phase` — it is a frontmatter string the agent reads and writes by hand.
+
+7. **Project knowledge is an optional post-result handoff.** It never becomes a
+   research source, citation, claim, confidence signal, counter-evidence,
+   verdict, or governance authority. Missing project knowledge creates a named
+   skip and no fallback file.
 
 ---
 

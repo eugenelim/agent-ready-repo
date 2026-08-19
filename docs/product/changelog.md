@@ -79,6 +79,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address returns a 404 rather than implying the surface moved. `Work` in the
   site navigation is now `Now`.
 
+### [desk-research][1.1.5] — 2026-08-18
+
+#### Changed
+
+- **Completed research can optionally hand reusable practice to project
+  knowledge without merging the two systems.** Repository-contained standard,
+  applied, and deep surveys and complete project synthesis expose exact
+  terminal handoffs for typed capture and same-gate receipt distillation. Quick
+  answers, non-survey artifacts, project start, digest, check, status,
+  incomplete work, and personal or external output roots remain no-integration.
+- **Counter-evidence review may consult bounded, untrusted candidate checks.**
+  `devils-advocate` may declare one `CQ-REVIEW` enquiry, but direct sources still
+  own verification. Retrieved knowledge cannot become a citation or claim,
+  change scope or source selection, strengthen confidence, suppress
+  counter-evidence, alter a verdict, or create fallback persistence.
+
 ### [agentbundle][0.38.1] — 2026-08-18
 
 #### Fixed

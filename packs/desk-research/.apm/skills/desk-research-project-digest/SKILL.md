@@ -81,6 +81,18 @@ matrix and memos. They **inform** the analysis — the claim-level rail stays
 - `/identify-perspectives` supplies **perspective columns** for a contested
   topic (each camp a lens the matrix can carry).
 
+## Project-knowledge non-gate
+
+Digest is an intermediate research phase. `synthesis-matrix.md`, `memos.md`,
+their coding and clustering scratch, and their source mappings perform no capture, distillation, or enquiry in partial, complete, stale, skipped, or
+interrupted form. Their extracted claims, quotations, source relationships, and
+interim judgments remain solely in those artifacts.
+
+This skill does not locate journals, import a private writer, invent capture
+IDs, or select partitions. It does not create fallback storage. It never mines transcripts
+or copies raw source corpora into project knowledge. Only the later synthesis
+workflow owns a possible terminal handoff.
+
 ## What this skill is not
 
 - Not a fixed-schema scorecard — columns are emergent, never pre-set.

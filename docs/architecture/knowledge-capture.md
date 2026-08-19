@@ -257,9 +257,21 @@ fallback storage or weakens the review.
 
 Research remains a separate authority surface. Its cited products and raw source
 corpora, multi-phase workflow, independent source-verification duty, and possible
-configured personal output roots require their own stable-gate and provenance
-contract. No review integration persists a research corpus or pre-decides which
-research products may capture reusable residue.
+configured personal output roots are governed by the research producer, not by
+project knowledge. Quick and non-survey session work plus project start, digest,
+check, status, incomplete, and abandoned paths are no-integration. Only complete
+repository-contained standard, applied, and deep surveys and complete project
+synthesis may offer independently reusable practice or sanitized evidence
+residue at their exact terminal gates. Personal and external roots are
+capture-ineligible rather than assigned fabricated repository provenance.
+
+Research products, corpora, quotations, citations, claims, confidence judgments,
+counter-evidence, verdicts, and governance conclusions remain solely in their
+owning artifacts. Counter-evidence review may consume one bounded `CQ-REVIEW`
+enquiry as candidate checks, with independent direct-source verification and no
+reviewer capture or distillation. Retrieved knowledge cannot choose sources,
+substantiate a claim, become a citation, strengthen confidence, suppress
+counter-evidence, change a verdict, or corroborate itself.
 
 ### CapturedObservation
 
@@ -745,9 +757,17 @@ cannot protect the new corpus.
 3. **Review integrations (shipped):** bounded `CQ-REVIEW` enquiry for selected
    reviewers, with independent grounding and no reviewer capture or
    distillation.
-4. **Research integrations:** separately shape terminal research-product gates,
-   source verification, output-root eligibility, raw-corpus exclusion, and the
-   justified mode for each workflow.
+4. **Research integrations (shipped):** the
+   [`project-knowledge-research-integrations`](../specs/project-knowledge-research-integrations/spec.md)
+   slice keeps one spec with three ordered tasks. Quick, non-survey
+   typed, scaffold, digest, check, and status paths remain no-integration;
+   complete episodic surveys and project synthesis may capture only reusable
+   practice or sanitized residue at exact terminal gates. Counter-evidence
+   review alone may consume one sanitized, outer-target-bounded `CQ-REVIEW`
+   envelope while retaining independent direct-source verification. Research
+   products and direct-source authority remain in research, and personal or
+   external output roots remain capture-ineligible rather than acquiring
+   fabricated repository provenance.
 5. **Engineering and operational integrations:** separately shape explicit
    enquiry or producer-owned capture at demonstrated stable gates.
 6. **Portable-lifecycle adoption closeout:** audit coverage, precision,
