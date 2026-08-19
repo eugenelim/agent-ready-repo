@@ -1115,9 +1115,11 @@ open = [
   # containerising, which round 10 showed costs the renderer sandbox without
   # SYS_ADMIN). Unblocks when: round 12 T4 runs, which needs a second local account.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
-  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP: the
-  # purge clause operates on a profile-level store, so destinations sharing a
-  # profile share worker policy and the weakest member sets it. What is NOT
+  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP,
+  # derived from the BLOCK clause alone: blocking scopes only per context, contexts
+  # isolate sessions, so destinations sharing a sign-in share one worker policy and
+  # the weakest member sets it. The purge half is WITHDRAWN pending re-measurement
+  # and the amendment does not rest on it. What is NOT
   # measured is whether a group can be split without costing an additional
   # interactive sign-in -- spike A showed profile-bound re-attach works and spike E
   # showed a fresh profile needs a real sign-in, which suggests one sign-in per
