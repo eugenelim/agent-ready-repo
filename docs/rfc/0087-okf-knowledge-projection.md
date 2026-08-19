@@ -964,3 +964,78 @@ disagrees with the body, this section is authoritative.
   security/determinism gates, the architecture update, and the ADR remain
   release prerequisites. Failed evidence requires correction or supersession;
   it may not be hidden by a caller-specific branch.
+
+### E1 — The pilot baselines are not model runs, so AC26's "same model" and AC27's relative floor cannot be satisfied (2026-08-19) · ✅ signed off: eugenelim (RFC-0087 Approver), 2026-08-19
+
+**§ Experiment / validation states: "Using the same recorded model and harness
+configuration for baseline and generated variants ... The generated router's
+top-1 expected-path pass rate is at least 80% **and at least the baseline
+rate**."** Neither clause is satisfiable against the committed baselines.
+
+`pilot-baselines/cost-engineering-hand-authored.json` records
+`"model": "manual-hand-authored-baseline"`, `"baseline_kind":
+"hand-authored-router"`, and an `invocation_record` stating "no model, network,
+or external content used". It is an expected-answer key derived from the
+committed OKF concepts, not a model run, so no model run can be "the same
+model" as it.
+
+The same file records `top_1_expected_path_success: 1.0`. A hand-authored key is
+correct by construction, so "at least the baseline rate" sets the real bar at
+100% across 60 attempts rather than the 80% the same sentence states. The two
+thresholds disagree, and the stricter one is an artefact of the baseline's
+provenance rather than a quality decision anyone made.
+
+`security-checklists-pending-model-e2e.json` is a placeholder: `status:
+"pending"`, summary fields `null`.
+
+**Narrowed boundary:**
+
+1. The hand-authored file is a frozen **expected-answer key**. AC26's parity
+   clause is restated as "the generated router is compared against the frozen
+   expected-path key".
+2. AC27 becomes a **report-only measurement**: the absolute >=80% top-1 rate and
+   the zero-fabricated-paths figure are recorded and published; the relative
+   "at least the baseline rate" clause is withdrawn.
+3. **Security-critical attempts remain a hard gate.** D4's authority boundary is
+   not relaxed; a failed security-critical attempt still stops release.
+4. The measurement carries an explicit fidelity label, per the shipped
+   `pack-activation-evals` convention (`mode` / `fidelity` / `provenance`).
+5. The calibrated model-graded arm is deferred by name in
+   `workspace.toml [backlog].open` with its unblock condition.
+
+**Precedent.** `spec/pack-activation-evals` (RFC-0037 / ADR-0028, Shipped) already
+makes evals report-only and never a merge gate, keeps `make build-check` free of
+any live-model step, labels fidelity rather than assuming it, and defers what
+cannot be measured by name. RFC-0037 narrowed its own criteria three times
+through errata. This follows that precedent rather than creating an exemption.
+
+**What this erratum does not do.** It does not relax D4's authority boundary,
+waive D5's structural or security criteria, reduce the two-corpus pilot scope,
+or authorise release.
+
+### E2 — AC22's write-mode arm is unavailable on Windows by design; check mode is the evidence there (2026-08-19) · ✅ signed off: eugenelim (RFC-0087 Approver), 2026-08-19
+
+**AC22 requires "two write-mode compiles ... produce byte-identical complete
+managed trees on Linux and Windows CI runners and in a recorded local macOS
+verification."**
+
+`_apply_outputs_transactionally` refuses when `os.supports_dir_fd` is empty,
+returning `OKF010 "safe managed output writes are unavailable on this
+platform"`. That set is empty on Windows. The dir-fd confinement is a deliberate
+security control, so a Windows write path cannot exist without weakening it.
+
+**Narrowed boundary:** where managed writes are unavailable, the determinism
+evidence is **check mode** — re-render plus committed-byte comparison. Write
+mode remains the evidence on Linux and macOS.
+
+Evidence satisfying AC22 as narrowed:
+
+- Windows CI, run 32221115655 on `main` d652cff9 (2026-08-19T05:54Z):
+  `okf-check: OK _okf-pilot-cost-engineering` and `okf-check: OK core`.
+- Linux CI: the same gate runs in `gate-main` through the catalogue pre-PR
+  aggregator.
+- macOS local, 25.5.0 arm64 / CPython 3.13.13: two write-mode compiles of both
+  managed packs leave the tree byte-identical.
+
+A second cause originally recorded against AC22 — `core`'s ownership conflict —
+was repaired and is not part of this erratum.
