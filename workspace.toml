@@ -2904,7 +2904,14 @@ open = [
   # data, but it is a real trade: the previous unkeyed group made inversion impossible
   # by cancelling the older run outright. A "deploy only if still the tip of main"
   # guard would close it and was declined as unrequested hardening with its own skip
-  # path. Decide whether the burst rate on main justifies it. Unblocks when: ready now.
+  # path. Decide whether the burst rate on main justifies it — and note the two
+  # arguments point OPPOSITE ways: a high burst rate makes inversion more likely but
+  # the stale window shorter, while a quiet period makes inversion rarer and the
+  # window unbounded. "Self-heals on the next Pages-relevant merge" is load-bearing on
+  # there BEING a next merge: an inverted pair that is the last Pages-relevant activity
+  # before a weekend or freeze leaves the site on the older commit for the whole gap,
+  # with nothing signalling it. Weigh both cases, not just the burst one.
+  # Unblocks when: ready now.
   { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
 ]
 
