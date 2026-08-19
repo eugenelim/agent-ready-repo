@@ -14,6 +14,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[5]
 PROCESSOR = ROOT / "packs/atlassian/.apm/skills/jira-refresh/scripts/processor.py"
+JIRA_ALIGN_PROCESSOR = (
+    ROOT / "packs/atlassian/.apm/skills/jira-align-refresh/scripts/processor.py"
+)
 REFRESH = ROOT / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
 
 
@@ -38,6 +41,37 @@ def refresh():
 @pytest.fixture()
 def processor():
     return _load(PROCESSOR, "jira_refresh_processor")
+
+
+def test_processors_share_path_keyed_runtime_without_hijacking_receipt_store(
+    processor, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Installed Jira processors resolve one runtime module for their shared path."""
+
+    jira_align = _load(JIRA_ALIGN_PROCESSOR, "jira_align_refresh_processor")
+    skills = tmp_path / "skills"
+    runtime_path = skills / "work-intake/scripts/refresh.py"
+    runtime_path.parent.mkdir(parents=True)
+    runtime_path.write_text(REFRESH.read_text(encoding="utf-8"), encoding="utf-8")
+    jira_script = skills / "jira-refresh/scripts/processor.py"
+    jira_align_script = skills / "jira-align-refresh/scripts/processor.py"
+    jira_script.parent.mkdir(parents=True)
+    jira_align_script.parent.mkdir(parents=True)
+    jira_script.touch()
+    jira_align_script.touch()
+    monkeypatch.setattr(processor, "__file__", str(jira_script))
+    monkeypatch.setattr(jira_align, "__file__", str(jira_align_script))
+    monkeypatch.setattr(processor, "_REFRESH_RUNTIME", None)
+    monkeypatch.setattr(jira_align, "_REFRESH_RUNTIME", None)
+
+    jira_runtime = processor._load_refresh_runtime()
+    jira_align_runtime = jira_align._load_refresh_runtime()
+    jira_store = object.__new__(jira_runtime.RemoteReceiptStore)
+    jira_align_store = object.__new__(jira_align_runtime.RemoteReceiptStore)
+
+    assert jira_runtime is jira_align_runtime
+    assert jira_runtime.is_remote_receipt_store(jira_store)
+    assert jira_align_runtime.is_remote_receipt_store(jira_align_store)
 
 
 def _policy(refresh):
@@ -146,7 +180,6 @@ class FakeJiraClient:
         self._auth_mode = auth_mode
         if guarded:
             self._intake_policy = SimpleNamespace(
-                allow_write=True,
                 origin="https://tracker.example.test",
             )
         self.fail = fail
@@ -438,6 +471,28 @@ def test_reused_or_unauthorized_confirmation_records_zero_requests(
     )
     assert result.code == "confirmation_reused"
     assert client.calls == []
+
+
+def test_unknown_auth_mode_is_refused_before_receipt_or_transport(processor, refresh) -> None:
+    client = SimpleNamespace(_auth_mode="unexpected")
+
+    result = asyncio.run(
+        processor.write_back(
+            client=client,
+            action="comment",
+            target="PROJ-1",
+            payload={"body": "Reviewed trace."},
+            confirmation=object(),
+            policy=_policy(refresh),
+            receipt_store=object(),
+            artifact_path="docs/specs/example/spec.md",
+            source_revision="JIRA-1@7",
+            destination="https://tracker.example.test",
+            refresh_runtime=refresh,
+        )
+    )
+
+    assert result.code == "unsupported_auth_mode"
 
 
 def test_token_write_requires_matching_guarded_client_policy(processor, refresh) -> None:

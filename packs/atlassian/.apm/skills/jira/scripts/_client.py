@@ -78,7 +78,6 @@ class IntakeRequestPolicy:
     resolver: Callable[..., Iterable[tuple[Any, ...]]] = dataclass_field(
         repr=False, compare=False
     )
-    allow_write: bool = False
 
     @classmethod
     def from_profile(
@@ -87,7 +86,6 @@ class IntakeRequestPolicy:
         destination: str,
         *,
         resolver: Callable[..., Iterable[tuple[Any, ...]]] = socket.getaddrinfo,
-        allow_write: bool = False,
     ) -> IntakeRequestPolicy:
         """Load a strict profile and validate its destination before auth."""
         try:
@@ -133,7 +131,6 @@ class IntakeRequestPolicy:
                 max_attempts=max_retries + 1,
                 max_bytes=int(budget["max_bytes"]),
                 backoff_s=backoff,
-                allow_write=allow_write,
                 resolver=resolver,
             )
             origin, addresses = policy._validate_destination(
@@ -146,7 +143,6 @@ class IntakeRequestPolicy:
                 max_attempts=policy.max_attempts,
                 max_bytes=policy.max_bytes,
                 backoff_s=policy.backoff_s,
-                allow_write=allow_write,
                 resolver=resolver,
             )
         except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
@@ -721,7 +717,6 @@ class JiraClient:
         )
         if (
             self._intake_policy is not None
-            and not self._intake_policy.allow_write
             and not is_idempotent
             and not guarded_write
         ):

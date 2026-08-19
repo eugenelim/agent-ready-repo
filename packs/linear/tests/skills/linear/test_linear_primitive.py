@@ -516,6 +516,45 @@ class TestIntakeAcquisitionContract:
 class TestLinearRefreshProcessor:
     """Linear refresh write-back stays inside the shared refresh contract."""
 
+    @pytest.mark.parametrize(
+        "url",
+        (
+            "https://user:secret@example.test/trace",
+            "http://example.test/trace",
+            "https://example.test/trace link",
+        ),
+    )
+    def test_linear_refuses_untrusted_coordination_urls_before_transport(
+        self,
+        linear_mod: types.ModuleType,
+        refresh_mod: types.ModuleType,
+        tmp_path: Path,
+        url: str,
+    ) -> None:
+        calls: list[dict[str, object]] = []
+        processor = linear_mod.LinearRefreshProcessor(
+            refresh_runtime=refresh_mod,
+            receipt_store=_receipt_store(refresh_mod, tmp_path),
+            api_key_loader=lambda: "opaque-key",
+            graphql_transport=lambda **kwargs: calls.append(kwargs) or {},
+            resolver=lambda _host: ("93.184.216.34",),
+        )
+
+        result = processor.write(
+            action="trace-link",
+            target="lin-1",
+            url=url,
+            artifact_path="docs/product/briefs/example.md",
+            source_revision="remote-rev-2",
+            policy=_policy(refresh_mod),
+            confirmation=_confirmation(refresh_mod, action="trace-link"),
+            now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+        )
+
+        assert result.code == "invalid_remote_payload"
+        assert result.transport_calls == 0
+        assert calls == []
+
     def test_linear_shipped_write_is_allowlisted(
         self,
         linear_mod: types.ModuleType,

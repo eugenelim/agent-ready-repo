@@ -183,7 +183,14 @@ def invoke_refresh(
             "refresh-unavailable",
             "configure-compatible-refresh-processor",
         )
-    invocation = processor.acquire_map_compare(request)
+    try:
+        invocation = processor.acquire_map_compare(request)
+    except (SystemExit, Exception):  # noqa: BLE001  # configured processor boundary
+        return RefreshFrontDoorResult(
+            route,
+            "dispatch_failed",
+            "retry-or-repair-configured-refresh-processor",
+        )
     if invocation.code != "completed":
         return RefreshFrontDoorResult(
             route,

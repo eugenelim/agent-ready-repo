@@ -1750,7 +1750,7 @@ open = [
   {slug = "tracker-refresh-writeback-reanchor", type = "spec", source = "spec/tracker-refresh-writeback", summary = "Reanchor the refresh/write-back spec/plan on shipped lifecycle and authority rules"},
   # Deferred: refresh has no trusted representation of which brief fields were
   # materialized into children; adding one requires new trusted inputs.
-  {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback C14", summary = "Close the per-processor write-back result code vocabularies"},
+  {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
   # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
   # refresh-result.schema.json enum), but each processor returns its own
   # WriteBackResult codes with no closed set, so a typo ships silently. A single
@@ -1758,7 +1758,7 @@ open = [
   # closing it properly means one vocabulary per result type plus a deliberate
   # shared base, which is a multi-file public-result-contract change. Deferred to
   # avoid widening the reviewed surface after adversarial review round 2.
-  {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
+  {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
   # Deferred: projection repair needs its own confirmation contract; adding one
   # requires a new trusted input rather than inferring authority from tracker data.
   {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},

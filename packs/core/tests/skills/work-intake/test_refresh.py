@@ -76,6 +76,21 @@ def test_remote_receipt_store_rejects_spoofed_subclass() -> None:
     assert not refresh.is_remote_receipt_store(Evil.__new__(Evil))
 
 
+def test_remote_receipt_store_accepts_an_independently_loaded_runtime_copy() -> None:
+    refresh = _load_refresh()
+    spec = importlib.util.spec_from_file_location(
+        "independent_work_intake_refresh", _REFRESH_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    independent = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = independent
+    spec.loader.exec_module(independent)
+
+    assert refresh.is_remote_receipt_store(
+        object.__new__(independent.RemoteReceiptStore)
+    )
+
+
 def _authority_block(*, extra: str = "", duplicate: bool = False) -> str:
     block = f'''```toml source-authority
 contract_version = "source-authority.v1"
@@ -145,6 +160,18 @@ def test_authority_block_is_unique_closed_and_structured() -> None:
         refresh.parse_source_authority(_authority_block(extra='unknown = "value"'))
 
 
+def test_adopter_guide_source_authority_fence_is_parseable() -> None:
+    refresh = _load_refresh()
+    guide = (_ROOT / "guides/_shared/how-to/use-work-intake.md").read_text(
+        encoding="utf-8"
+    )
+    authority_block = "```toml source-authority\n" + guide.split(
+        "```toml source-authority\n", 1
+    )[1].split("```", 1)[0] + "```\n"
+
+    assert refresh.parse_source_authority(authority_block).mode == "tracker-origin"
+
+
 def test_draft_authority_can_omit_acceptance_and_accepted_revision() -> None:
     refresh = _load_refresh()
     markdown = _authority_block().replace('accepted_revision = "rev-1"\n', "").replace(
@@ -159,13 +186,42 @@ def test_draft_authority_can_omit_acceptance_and_accepted_revision() -> None:
     assert authority.accepted_revision is None
 
 
+def test_changed_field_missing_from_ownership_map_is_named_refusal() -> None:
+    refresh = _load_refresh()
+    authority = refresh.parse_source_authority(
+        _authority_block().replace('Constraint = "source"\n', "")
+    )
+    comparison = refresh.RefreshComparison(
+        artifact_path="docs/specs/example/spec.md",
+        artifact_kind="spec",
+        lifecycle="Approved",
+        authority_mode="tracker-origin",
+        current_revision="rev-1",
+        compared_revision="rev-2",
+        profile_id="example-service",
+        profile_version="1.0",
+        changed_fields=(refresh.ChangedField("Constraint", "local", "source"),),
+    )
+
+    result = refresh.evaluate_refresh(
+        comparison=comparison,
+        authority=authority,
+        policy=refresh.parse_refresh_authorization_policy(_policy()),
+        approver=_approver(refresh),
+        decisions={"Constraint": "accept-source"},
+        now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.code == "ownership_map_missing"
+
+
 def test_authority_nested_records_validate_closed_schema_types() -> None:
     refresh = _load_refresh()
     malformed = _authority_block(
         extra='''
 [[remote_actions]]
 confirmation_id = "confirm-1"
-binding_digest = "not-a-digest"
+mutation_digest = "not-a-digest"
 profile_version = "1.0"
 payload_digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 identity = "Example Approver"
@@ -187,7 +243,7 @@ def test_durable_remote_receipt_requires_profile_version() -> None:
         extra=f'''
 [[remote_actions]]
 confirmation_id = "confirm-1"
-binding_digest = "{'a' * 64}"
+mutation_digest = "{'a' * 64}"
 payload_digest = "{'b' * 64}"
 identity = "Example Approver"
 role = "maintainer"
@@ -252,7 +308,7 @@ recorded_at = "2026-08-17T00:00:01Z"
         f'''
 [[remote_actions]]
 confirmation_id = "confirm-1"
-binding_digest = "{'a' * 64}"
+mutation_digest = "{'a' * 64}"
 profile_version = "1.0"
 payload_digest = "{'b' * 64}"
 identity = "Example Approver"
@@ -264,7 +320,7 @@ target = "ITEM-1"
 status = "pending"
 [[remote_actions]]
 confirmation_id = "confirm-1"
-binding_digest = "{'c' * 64}"
+mutation_digest = "{'c' * 64}"
 profile_version = "1.0"
 payload_digest = "{'d' * 64}"
 identity = "Example Approver"
@@ -272,32 +328,6 @@ role = "maintainer"
 confirmed_at = "2026-08-17T00:00:01Z"
 authorization_source = "current-human-session"
 action = "closure"
-target = "ITEM-1"
-status = "failed"
-''',
-        f'''
-[[remote_actions]]
-confirmation_id = "confirm-1"
-binding_digest = "{'a' * 64}"
-profile_version = "1.0"
-payload_digest = "{'b' * 64}"
-identity = "Example Approver"
-role = "maintainer"
-confirmed_at = "2026-08-17T00:00:00Z"
-authorization_source = "current-human-session"
-action = "comment"
-target = "ITEM-1"
-status = "pending"
-[[remote_actions]]
-confirmation_id = "confirm-2"
-binding_digest = "{'a' * 64}"
-profile_version = "1.0"
-payload_digest = "{'c' * 64}"
-identity = "Example Approver"
-role = "maintainer"
-confirmed_at = "2026-08-17T00:00:01Z"
-authorization_source = "current-human-session"
-action = "comment"
 target = "ITEM-1"
 status = "failed"
 ''',
@@ -833,6 +863,92 @@ def test_front_door_refuses_mismatched_acquisition_without_raw_output() -> None:
     assert result.invocation.normalized_record is None
 
 
+def test_front_door_redacts_system_exit_from_acquisition() -> None:
+    refresh = _load_refresh()
+    router = _load_router()
+    registry = refresh.RefreshProcessorRegistry()
+    registry.register(
+        refresh.ProcessorRegistration(
+            name="example-refresh",
+            profile_id="example-service",
+            profile_version="1.0",
+            capabilities=frozenset({"acquire"}),
+            acquire=lambda _locator, _revision: (_ for _ in ()).throw(
+                SystemExit("raw tracker failure")
+            ),
+            revision_field="updatedAt",
+            field_mapping=(("Outcome", "title"),),
+        )
+    )
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact="docs/specs/example/spec.md",
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+        profile_id="example-service",
+        profile_version="1.0",
+    )
+    request = refresh.RefreshAcquisitionRequest(
+        artifact_path=signals.artifact,
+        artifact_kind=signals.artifact_kind,
+        lifecycle="Approved",
+        authority_mode=signals.authority_mode,
+        source_ref="example-service://work/ITEM-1",
+        current_revision="rev-1",
+        compared_revision="rev-2",
+        profile_id="example-service",
+        profile_version="1.0",
+        local_fields={"Outcome": "local"},
+    )
+
+    result = router.invoke_refresh(signals, registry, request)
+
+    assert result.code == "acquisition_failed"
+    assert "raw tracker failure" not in result.code
+
+
+def test_front_door_redacts_system_exit_from_processor_dispatch() -> None:
+    refresh = _load_refresh()
+    router = _load_router()
+
+    class ExplodingProcessor:
+        name = "example-refresh"
+        capabilities = frozenset({"acquire"})
+
+        def acquire_map_compare(self, _request: object) -> object:
+            raise SystemExit("raw processor failure")
+
+    class Resolver:
+        def resolve(self, *_args: object) -> ExplodingProcessor:
+            return ExplodingProcessor()
+
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact="docs/specs/example/spec.md",
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+        profile_id="example-service",
+        profile_version="1.0",
+    )
+    request = refresh.RefreshAcquisitionRequest(
+        artifact_path=signals.artifact,
+        artifact_kind=signals.artifact_kind,
+        lifecycle="Approved",
+        authority_mode=signals.authority_mode,
+        source_ref="example-service://work/ITEM-1",
+        current_revision="rev-1",
+        compared_revision="rev-2",
+        profile_id="example-service",
+        profile_version="1.0",
+        local_fields={"Outcome": "local"},
+    )
+
+    result = router.invoke_refresh(signals, Resolver(), request)
+
+    assert result.code == "dispatch_failed"
+    assert "raw processor failure" not in result.code
+
+
 def test_confirmation_is_exact_fresh_and_single_use() -> None:
     refresh = _load_refresh()
     now = datetime(2026, 8, 17, tzinfo=UTC)
@@ -866,7 +982,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
     assert receipt.profile_version == "1.0"
     assert receipt.payload_digest == "a" * 64
     assert receipt.authorization_source == "current-human-session"
-    assert len(receipt.binding_digest) == 64
+    assert len(receipt.mutation_digest) == 64
     assert used == set()
     durable_confirmation_ids = {receipt.confirmation_id}
     with pytest.raises(refresh.RefreshRefusal, match="confirmation_reused"):
@@ -908,7 +1024,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
         used_confirmation_ids=used,
         now=now,
     )
-    assert version_two_receipt.binding_digest != receipt.binding_digest
+    assert version_two_receipt.mutation_digest != receipt.mutation_digest
     assert version_two_receipt.profile_version == "2.0"
 
     mismatched_version = refresh.RemoteConfirmation.issue(
@@ -973,7 +1089,7 @@ def test_remote_receipt_store_persists_pending_before_terminal_state(
     )
     receipt = refresh.RemoteActionReceipt(
         confirmation_id="confirm-durable",
-        binding_digest="a" * 64,
+        mutation_digest="a" * 64,
         profile_version="1.0",
         payload_digest="b" * 64,
         identity="Example Approver",
@@ -1227,19 +1343,30 @@ def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
     assert 'revision = "rev-2"' in workspace_text
 
 
-def test_coordinator_accepts_authority_after_changed_section(tmp_path: Path) -> None:
+def test_coordinator_accepts_length_change_when_authority_trails_changed_section(
+    tmp_path: Path,
+) -> None:
     refresh = _load_refresh()
-    fixture = _semantic_refresh_pair(refresh, tmp_path, decision="accept-source")
-    authority = _authority_block()
-    before = fixture["before_artifact"].decode().replace(authority, "") + authority
-    proposed = fixture["proposed_artifact"].decode().replace(authority, "") + authority
-    proposed = proposed.replace("source\n", "a longer source outcome\n", 1)
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    authority = _authority_block().removeprefix("# Artifact\n\n").replace(
+        'Constraint = "source"', 'Constraint = "local"'
+    )
+    sections = """## Outcome
+
+local
+
+## Constraint
+
+stable
+"""
+    before = sections + authority
+    proposed = before.replace("stable\n", "a longer source constraint\n", 1)
     fixture["comparison"] = refresh.RefreshComparison(
         artifact_path="docs/specs/example/spec.md", artifact_kind="spec",
         lifecycle="Approved", authority_mode="tracker-origin", current_revision="rev-1",
         compared_revision="rev-2", profile_id="example-service", profile_version="1.0",
         changed_fields=(
-            refresh.ChangedField("Outcome", "local", "a longer source outcome"),
+            refresh.ChangedField("Constraint", "stable", "a longer source constraint"),
         ),
     )
     fixture["artifact"].write_text(before, encoding="utf-8")
@@ -1247,7 +1374,47 @@ def test_coordinator_accepts_authority_after_changed_section(tmp_path: Path) -> 
         repository_root=fixture["repo"], comparison=fixture["comparison"],
         authority=refresh.parse_source_authority(before),
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
-        decisions={"Outcome": "accept-source"},
+        decisions={"Constraint": "accept-source"},
+        expected_artifact_digest=refresh.digest_bytes(before.encode()),
+        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
+        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.local_mutation == "committed"
+
+
+def test_coordinator_accepts_length_change_when_authority_is_in_other_section(
+    tmp_path: Path,
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    authority = _authority_block().removeprefix("# Artifact\n\n").replace(
+        'Constraint = "source"', 'Constraint = "local"'
+    )
+    before = """## Outcome
+
+local
+
+""" + authority + """
+## Constraint
+
+stable
+"""
+    proposed = before.replace("stable\n", "a longer source constraint\n", 1)
+    fixture["comparison"] = refresh.RefreshComparison(
+        artifact_path="docs/specs/example/spec.md", artifact_kind="spec",
+        lifecycle="Approved", authority_mode="tracker-origin", current_revision="rev-1",
+        compared_revision="rev-2", profile_id="example-service", profile_version="1.0",
+        changed_fields=(
+            refresh.ChangedField("Constraint", "stable", "a longer source constraint"),
+        ),
+    )
+    fixture["artifact"].write_text(before, encoding="utf-8")
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"], comparison=fixture["comparison"],
+        authority=refresh.parse_source_authority(before),
+        policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
+        decisions={"Constraint": "accept-source"},
         expected_artifact_digest=refresh.digest_bytes(before.encode()),
         expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
         workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
@@ -1258,9 +1425,10 @@ def test_coordinator_accepts_authority_after_changed_section(tmp_path: Path) -> 
 def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path: Path) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    authority = _authority_block()
+    authority = _authority_block().removeprefix("# Artifact\n\n")
     before = fixture["before_artifact"].decode().replace(authority, "") + authority
-    relocated = authority + fixture["proposed_artifact"].decode().replace(authority, "")
+    relocated = fixture["proposed_artifact"].decode().replace(authority, "")
+    relocated = relocated.replace("## Constraint", authority + "## Constraint", 1)
     fixture["artifact"].write_text(before, encoding="utf-8")
     result = refresh.coordinate_local_refresh(
         repository_root=fixture["repo"], comparison=fixture["comparison"],
@@ -1347,7 +1515,7 @@ recorded_at = "2026-08-17T00:00:00Z"
         f'''
 [[remote_actions]]
 confirmation_id = "confirm-extra"
-binding_digest = "{'a' * 64}"
+mutation_digest = "{'a' * 64}"
 profile_version = "1.0"
 payload_digest = "{'b' * 64}"
 identity = "Example Approver"

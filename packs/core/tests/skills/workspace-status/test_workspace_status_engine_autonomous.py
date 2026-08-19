@@ -2993,7 +2993,7 @@ unexpected = "not-allowed"
             "remote_actions",
             f"""[[remote_actions]]
 confirmation_id = "confirmation-1"
-binding_digest = "{'a' * 64}"
+mutation_digest = "{'a' * 64}"
 profile_version = "1.0"
 payload_digest = "{'b' * 64}"
 identity = "example-approver"

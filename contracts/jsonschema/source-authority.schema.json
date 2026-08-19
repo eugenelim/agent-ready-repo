@@ -120,7 +120,7 @@
       "additionalProperties": false,
       "required": [
         "confirmation_id",
-        "binding_digest",
+        "mutation_digest",
         "profile_version",
         "payload_digest",
         "identity",
@@ -133,7 +133,7 @@
       ],
       "properties": {
         "confirmation_id": {"$ref": "#/$defs/shortString"},
-        "binding_digest": {"$ref": "#/$defs/digest"},
+        "mutation_digest": {"$ref": "#/$defs/digest"},
         "profile_version": {"type": "string", "minLength": 1, "maxLength": 100},
         "payload_digest": {"$ref": "#/$defs/digest"},
         "identity": {"$ref": "#/$defs/shortString"},

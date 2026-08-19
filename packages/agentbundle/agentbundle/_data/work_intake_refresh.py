@@ -18,7 +18,8 @@ from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Callable, Collection, Mapping
+from types import ModuleType
+from typing import Callable, ClassVar, Collection, Mapping
 from urllib.parse import urlsplit
 
 
@@ -304,7 +305,7 @@ class ProcessorRegistration:
             )
         except RefreshRefusal as exc:
             return RefreshInvocationResult(str(exc), self.name)
-        except Exception:  # noqa: BLE001  # configured adapter boundary
+        except (SystemExit, Exception):  # noqa: BLE001  # configured adapter boundary
             return RefreshInvocationResult("acquisition_failed", self.name)
 
 
@@ -387,7 +388,7 @@ class RemoteActionReceipt:
     """Local pending record created before any adapter performs a write."""
 
     confirmation_id: str
-    binding_digest: str
+    mutation_digest: str
     profile_version: str
     payload_digest: str
     identity: str
@@ -439,6 +440,9 @@ class GuardedWriteResult:
 _AUTHORITY_FENCE = re.compile(
     r"^```toml source-authority\s*$\n(?P<body>.*?)^```\s*$",
     re.MULTILINE | re.DOTALL,
+)
+_AUTHORITY_FENCE_OPENING = re.compile(
+    r"^```toml source-authority[ \t]*(?:\r?\n)?$"
 )
 _COORDINATION_FENCE = re.compile(
     r"^```toml coordination-receipts\s*$\n(?P<body>.*?)^```\s*$",
@@ -665,7 +669,7 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
             "remote_actions",
             {
                 "confirmation_id",
-                "binding_digest",
+                "mutation_digest",
                 "profile_version",
                 "payload_digest",
                 "identity",
@@ -678,7 +682,7 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
             },
             {
                 "confirmation_id",
-                "binding_digest",
+                "mutation_digest",
                 "profile_version",
                 "payload_digest",
                 "identity",
@@ -692,7 +696,7 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
         )
         for item in remote_actions:
             _bounded_string(item["confirmation_id"], 200, "invalid_source_authority")
-            _digest(item["binding_digest"], "invalid_source_authority")
+            _digest(item["mutation_digest"], "invalid_source_authority")
             _bounded_string(item["profile_version"], 100, "invalid_source_authority")
             _digest(item["payload_digest"], "invalid_source_authority")
             _bounded_string(item["identity"], 200, "invalid_source_authority")
@@ -709,11 +713,7 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 raise RefreshRefusal("invalid_source_authority")
             _bounded_string(item["target"], 1000, "invalid_source_authority")
         confirmation_ids = [str(item["confirmation_id"]) for item in remote_actions]
-        binding_digests = [str(item["binding_digest"]) for item in remote_actions]
-        if (
-            len(set(confirmation_ids)) != len(confirmation_ids)
-            or len(set(binding_digests)) != len(binding_digests)
-        ):
+        if len(set(confirmation_ids)) != len(confirmation_ids):
             raise RefreshRefusal("invalid_source_authority")
         approval = None
         if acceptance is not None:
@@ -826,7 +826,7 @@ def render_source_authority(authority: SourceAuthority) -> str:
             authority.remote_actions,
             (
                 "confirmation_id",
-                "binding_digest",
+                "mutation_digest",
                 "profile_version",
                 "payload_digest",
                 "identity",
@@ -1117,8 +1117,7 @@ def consume_remote_confirmation(
     age = now.astimezone(UTC) - confirmation.confirmed_at
     if age < timedelta(0) or age > timedelta(minutes=5):
         raise RefreshRefusal("confirmation_stale")
-    binding_record = {
-        "confirmation_id": confirmation.confirmation_id,
+    mutation_record = {
         "artifact_path": confirmation.binding.artifact_path,
         "source_revision": confirmation.binding.source_revision,
         "profile_id": confirmation.binding.profile_id,
@@ -1130,12 +1129,12 @@ def consume_remote_confirmation(
         "identity": confirmation.approver.identity,
         "role": confirmation.approver.role,
     }
-    binding_digest = digest_bytes(
-        json.dumps(binding_record, sort_keys=True, separators=(",", ":")).encode()
+    mutation_digest = digest_bytes(
+        json.dumps(mutation_record, sort_keys=True, separators=(",", ":")).encode()
     )
     return RemoteActionReceipt(
         confirmation.confirmation_id,
-        binding_digest,
+        mutation_digest,
         confirmation.binding.profile_version,
         confirmation.binding.payload_digest,
         confirmation.approver.identity,
@@ -1408,7 +1407,7 @@ def _remote_receipt_record(receipt: RemoteActionReceipt) -> dict[str, object]:
 
     return {
         "confirmation_id": receipt.confirmation_id,
-        "binding_digest": receipt.binding_digest,
+        "mutation_digest": receipt.mutation_digest,
         "profile_version": receipt.profile_version,
         "payload_digest": receipt.payload_digest,
         "identity": receipt.identity,
@@ -1450,7 +1449,10 @@ def write_remote_action_receipt(
         if receipt.status == "pending":
             if any(
                 existing.get("confirmation_id") == receipt.confirmation_id
-                or existing.get("binding_digest") == receipt.binding_digest
+                or (
+                    existing.get("mutation_digest") == receipt.mutation_digest
+                    and existing.get("status") != "failed"
+                )
                 for existing in authority.remote_actions
             ):
                 raise RefreshRefusal("confirmation_reused")
@@ -1501,6 +1503,7 @@ def write_remote_action_receipt(
 class RemoteReceiptStore:
     """Concrete guarded artifact store required by every write-back processor."""
 
+    _runtime_module: ClassVar[ModuleType]
     repository_root: Path
     artifact_path: str
     artifact_digest: str
@@ -1564,11 +1567,15 @@ class RemoteReceiptStore:
         self.artifact_digest = result.artifact_digest
 
 
+_REMOTE_RECEIPT_STORE_MODULE = sys.modules[__name__]
+RemoteReceiptStore._runtime_module = _REMOTE_RECEIPT_STORE_MODULE
+
+
 def is_remote_receipt_store(value: object) -> bool:
     """Accept only the exact store implementation from this runtime file."""
 
     store_type = type(value)
-    module = sys.modules.get(store_type.__module__)
+    module = getattr(store_type, "_runtime_module", None)
     module_path = getattr(module, "__file__", None)
     try:
         return (
@@ -1675,14 +1682,31 @@ def _artifact_sections(
     return "".join(preamble), tuple(order), sections
 
 
-def _authority_location(markdown: str, match: re.Match[str]) -> tuple[str, int]:
-    """Return the authority fence's stable containing section and local offset."""
+def _authority_location(markdown: str, _match: re.Match[str]) -> tuple[str, int]:
+    """Return the authority fence's containing section and fenced-block ordinal."""
 
-    preamble, order, sections = _artifact_sections(markdown[: match.start()])
-    if not order:
-        return ("<preamble>", len(preamble))
-    section = order[-1]
-    return (section, len(sections[section][1]))
+    section = "<preamble>"
+    fenced_blocks = 0
+    opening_fence: str | None = None
+    for line in markdown.splitlines(keepends=True):
+        fence = _FENCE_LINE.match(line)
+        if fence is not None:
+            marker = fence.group("fence")
+            if opening_fence is None:
+                if _AUTHORITY_FENCE_OPENING.fullmatch(line) is not None:
+                    return (section, fenced_blocks)
+                fenced_blocks += 1
+                opening_fence = marker
+                continue
+            if marker.startswith(opening_fence):
+                opening_fence = None
+                continue
+        if opening_fence is None:
+            heading = _SECTION_HEADING.fullmatch(line)
+            if heading is not None:
+                section = heading.group("name")
+                fenced_blocks = 0
+    raise RefreshRefusal("invalid_local_update")
 
 
 def _validate_artifact_field_update(

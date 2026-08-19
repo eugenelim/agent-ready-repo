@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -48,7 +49,14 @@ def _load_refresh_runtime() -> Any:
         raise RuntimeError("work-intake refresh runtime is unavailable") from exc
     if not runtime.is_file():
         raise RuntimeError("work-intake refresh runtime is unavailable")
-    spec = importlib.util.spec_from_file_location("work_intake_refresh_runtime", runtime)
+    module_name = "_work_intake_refresh_runtime_" + hashlib.sha256(
+        str(runtime).encode("utf-8")
+    ).hexdigest()
+    module = sys.modules.get(module_name)
+    if module is not None:
+        _REFRESH_RUNTIME = module
+        return _REFRESH_RUNTIME
+    spec = importlib.util.spec_from_file_location(module_name, runtime)
     if spec is None or spec.loader is None:
         raise RuntimeError("work-intake refresh runtime is unavailable")
     module = importlib.util.module_from_spec(spec)

@@ -123,7 +123,6 @@ def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
         PROFILE,
         "https://tracker.example.test",
         resolver=_public_resolver,
-        allow_write=True,
     )
     credentials = client_module.Credentials(
         base_url="https://tracker.example.test",
@@ -254,12 +253,6 @@ def test_existing_token_write_retries_transient_failure(monkeypatch) -> None:
         return None
 
     monkeypatch.setattr(asyncio, "sleep", no_sleep)
-    policy = client_module.IntakeRequestPolicy.from_profile(
-        PROFILE,
-        "https://tracker.example.test",
-        resolver=_public_resolver,
-        allow_write=True,
-    )
     credentials = client_module.Credentials(
         base_url="https://tracker.example.test",
         token="fixture",
@@ -268,7 +261,7 @@ def test_existing_token_write_retries_transient_failure(monkeypatch) -> None:
     )
 
     async def exercise() -> None:
-        async with client_module.JiraClient(credentials, intake_policy=policy) as client:
+        async with client_module.JiraClient(credentials) as client:
             await client.add_comment("EX-1", "Reviewed")
 
     asyncio.run(exercise())

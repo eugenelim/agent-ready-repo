@@ -462,7 +462,9 @@ def test_pending_receipt_precedes_gh_and_failed_command_is_retry_safe(
         ).remote_actions
         events.append(("receipt", durable[-1]["status"]))
         events.append(("gh", argv, kwargs["input"]))
-        raise subprocess.CalledProcessError(1, argv)
+        if len([event for event in events if event[0] == "gh"]) == 1:
+            raise subprocess.CalledProcessError(1, argv)
+        return subprocess.CompletedProcess(argv, 0)
 
     processor = github_mod.GithubRefreshProcessor(
         configured_host="github.com",
@@ -504,8 +506,44 @@ def test_pending_receipt_precedes_gh_and_failed_command_is_retry_safe(
         now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
     )
 
-    assert retry.code == "remote_action_failed"
+    assert retry.code == "remote_action_succeeded"
     assert retry.command_calls == 1
+
+
+def test_succeeded_mutation_refuses_fresh_confirmation_without_command(
+    github_mod: types.ModuleType, refresh_mod: types.ModuleType, tmp_path: Path
+) -> None:
+    calls: list[dict[str, object]] = []
+    store = _receipt_store(refresh_mod, tmp_path)
+    processor = github_mod.GithubRefreshProcessor(
+        configured_host="github.com",
+        repository="example-org/example-repo",
+        refresh_runtime=refresh_mod,
+        receipt_store=store,
+        runner=lambda argv, **kwargs: calls.append({"argv": argv, **kwargs})
+        or subprocess.CompletedProcess(argv, 0),
+    )
+    kwargs = {
+        "action": "comment",
+        "target": "101",
+        "body": "Looks good",
+        "artifact_path": "docs/product/briefs/example.md",
+        "source_revision": "remote-rev-2",
+        "policy": _policy(refresh_mod),
+        "now": datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    }
+
+    succeeded = processor.write(
+        **kwargs, confirmation=_confirmation(refresh_mod, confirmation_id="confirm-1")
+    )
+    replay = processor.write(
+        **kwargs, confirmation=_confirmation(refresh_mod, confirmation_id="confirm-2")
+    )
+
+    assert succeeded.code == "remote_action_succeeded"
+    assert replay.code == "pending_receipt_failed"
+    assert replay.command_calls == 0
+    assert len(calls) == 1
 
 
 def test_pending_receipt_failure_runs_no_command(
