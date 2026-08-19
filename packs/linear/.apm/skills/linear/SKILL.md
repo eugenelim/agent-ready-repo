@@ -11,6 +11,7 @@ metadata:
   boundaries:
     - network_fetch
     - filesystem_read_untrusted
+    - filesystem_write
 ---
 
 # Linear Client

@@ -15,6 +15,9 @@ _ENGINE_PATH = (
     _PACK_ROOT / ".apm" / "skills" / "workspace-status" / "scripts"
     / "workspace_status_engine.py"
 )
+_STATUS_PATH = (
+    _PACK_ROOT / ".apm" / "skills" / "workspace-status" / "scripts" / "workspace_status.py"
+)
 _CONTRACT_FIXTURES = (
     _PACK_ROOT / "tests" / "pack" / "fixtures" / "work-intake-contracts"
 )
@@ -27,6 +30,83 @@ def _load_engine():
     sys.modules["workspace_status_engine"] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def _load_status():
+    spec = importlib.util.spec_from_file_location("workspace_status", _STATUS_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["workspace_status"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_canonical_evaluation_refuses_authority_status_key_collision() -> None:
+    mod = _load_status()
+    evaluation = SimpleNamespace(
+        ini_slug="ini-001",
+        collection="work.queue",
+        entry=SimpleNamespace(path="docs/specs/example/spec.md", kind="spec"),
+        dispatchable=False,
+        findings=(),
+        authority_status={"path": "untrusted"},
+    )
+
+    with pytest.raises(ValueError, match="authority status overlaps"):
+        mod._canonical_evaluation_dict(evaluation)
+
+
+def test_source_authority_rejects_installed_refresh_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mod = _load_engine()
+    engine = tmp_path / "skills/workspace-status/scripts/workspace_status_engine.py"
+    outside = tmp_path / "outside.py"
+    target = tmp_path / "skills/work-intake/scripts/refresh.py"
+    engine.parent.mkdir(parents=True)
+    target.parent.mkdir(parents=True)
+    engine.write_text("# engine\n", encoding="utf-8")
+    outside.write_text("# outside\n", encoding="utf-8")
+    try:
+        target.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    monkeypatch.setattr(mod, "__file__", str(engine))
+    assert mod._source_authority_module_path() is None
+
+
+def test_source_authority_rejects_packaged_refresh_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mod = _load_engine()
+    engine = tmp_path / "skills/workspace-status/scripts/workspace_status_engine.py"
+    outside = tmp_path / "outside.py"
+    packaged = engine.parent / "work_intake_refresh.py"
+    engine.parent.mkdir(parents=True)
+    engine.write_text("# engine\n", encoding="utf-8")
+    outside.write_text("# outside\n", encoding="utf-8")
+    try:
+        packaged.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks unavailable")
+    monkeypatch.setattr(mod, "__file__", str(engine))
+    assert mod._source_authority_module_path() is None
+
+
+def test_source_authority_development_fallback_requires_explicit_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mod = _load_engine()
+    engine = (
+        tmp_path / "repo/packages/agentbundle/agentbundle/_data/workspace_status_engine.py"
+    )
+    source = tmp_path / "repo/packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    engine.parent.mkdir(parents=True)
+    source.parent.mkdir(parents=True)
+    engine.write_text("# engine\n", encoding="utf-8")
+    source.write_text("# source\n", encoding="utf-8")
+    monkeypatch.setattr(mod, "__file__", str(engine))
+    monkeypatch.delenv("AGENTBUNDLE_ALLOW_DEV_SOURCE_AUTHORITY", raising=False)
+    assert mod._source_authority_module_path() is None
 
 
 def test_t1_group2_pack_contract_surface() -> None:
@@ -2821,7 +2901,7 @@ def test_status_refuses_prose_or_plain_toml_as_source_authority(tmp_path: Path) 
 
 accepted_revision = "prose-should-not-win"
 
-```toml
+```toml source-authority
 accepted_revision = "plain-toml-should-not-win"
 ```
 """,

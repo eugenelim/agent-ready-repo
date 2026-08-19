@@ -165,7 +165,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   validates against `contracts/jsonschema/normalized-intake.schema.json`, and
   every workspace mirror written by refresh validates against
   `contracts/jsonschema/workspace-entry.schema.json`.
-- [ ] **AC3 — Repo-origin isolation.** A repo-origin requirement delta changes
+- [ ] **AC3 — Repo-origin isolation.** (deferred: tracker-refresh-projection-repair-confirmation) A repo-origin requirement delta changes
   no local requirement or source authority; the result reports projection
   drift or offers separate Draft intake, while coordination-only projection
   repair still requires confirmation.
@@ -201,7 +201,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [ ] **AC9 — Executing lock.** An Implementing spec or Executing brief refuses
   requirement refresh before any local or remote mutation and names the
   lifecycle state that must change before retry.
-- [ ] **AC10 — Deferred brief scope.** A Ready brief returning from execution
+- [ ] **AC10 — Deferred brief scope.** (deferred: tracker-refresh-materialized-child-scope) A Ready brief returning from execution
   may refresh only not-yet-materialized scope after conflict resolution;
   Shipped children remain byte-stable and queued Approved children use their
   own Approved-state gate.
@@ -275,6 +275,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `SSL_CERT_FILE`, and `SSL_CERT_DIR` without weakening AC21-AC22 destination,
   redirect, or DNS-rebinding controls; an unsafe or unusable proxy/trust
   configuration fails closed with redacted output.
+  A configured proxy is an explicit corporate-network hop, not a destination
+  exemption: its resolved address is pinned and rejects unspecified,
+  link-local, and cloud-metadata ranges before connection.
 - [ ] **AC24 — Closed authority and policy encoding.** A tracker-origin
   artifact contains exactly one fenced `toml source-authority` block whose
   parsed object validates against `source-authority.schema.json`; the block is

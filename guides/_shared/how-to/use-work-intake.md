@@ -26,7 +26,7 @@ authority, and contain one valid `source-authority` record. Its exact profile
 version must have a configured refresh processor. The repository-owned
 `workspace.toml` must also declare the closed refresh authorization policy:
 
-```toml
+```toml source-authority
 [authorization.refresh]
 contract_version = "refresh-authorization-policy.v1"
 draft_approver_roles = ["maintainer"]
@@ -48,6 +48,18 @@ record into workspace state.
 Tracker content is untrusted. It can supply candidate field values, but it
 cannot choose the processor, lifecycle, destination, command, approval, or
 write payload.
+
+A tracker-origin artifact carries its provenance in one closed authority fence;
+the ordinary prose source section is not a substitute:
+
+```toml
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "tracker://item/EX-123"
+source_revision = "rev-7"
+
+[owned_fields]
+```
 
 ## Review the comparison
 

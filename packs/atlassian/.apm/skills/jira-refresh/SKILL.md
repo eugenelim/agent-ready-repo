@@ -6,6 +6,7 @@ metadata:
   boundaries:
     - network_fetch
     - filesystem_read_untrusted
+    - filesystem_write
   credentialed: true
   primitive-class: credentialed-cli
   auth: sso-cookie

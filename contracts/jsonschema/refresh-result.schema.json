@@ -5,6 +5,7 @@
   "description": "Safe structured result returned by a configured refresh processor.",
   "type": "object",
   "contract_version": "refresh-result.v1",
+  "x-spec": ["docs/specs/tracker-refresh-writeback/"],
   "additionalProperties": false,
   "required": [
     "contract_version",
@@ -17,7 +18,30 @@
   ],
   "properties": {
     "contract_version": {"const": "refresh-result.v1"},
-    "code": {"type": "string", "minLength": 1, "maxLength": 100},
+    "code": {
+      "enum": [
+        "accepted_field_not_local",
+        "authority_revision_mismatch",
+        "comparison_failed",
+        "decision_required",
+        "executing_requirements_locked",
+        "fingerprint_mismatch",
+        "implementing_requirements_locked",
+        "invalid_authority",
+        "invalid_local_update",
+        "invalid_refresh_policy",
+        "invalid_target",
+        "local_field_locked",
+        "local_write_failed",
+        "lock_busy",
+        "projection_drift",
+        "ready",
+        "shipped_requirements_locked",
+        "unauthorized_approver",
+        "unsupported_artifact_kind",
+        "unsupported_lifecycle"
+      ]
+    },
     "comparison_status": {"enum": ["not-started", "failed", "completed"]},
     "local_mutation": {"enum": ["none", "refused", "pending", "committed"]},
     "conflict_state": {"enum": ["none", "unresolved", "resolved"]},

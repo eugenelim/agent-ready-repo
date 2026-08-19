@@ -5,6 +5,7 @@
   "description": "Closed tracker-origin authority record embedded in one canonical artifact.",
   "type": "object",
   "contract_version": "source-authority.v1",
+  "x-spec": ["docs/specs/tracker-refresh-writeback/"],
   "additionalProperties": false,
   "required": [
     "contract_version",

@@ -36,6 +36,7 @@ _HOST_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$")
 _REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _ISSUE_PATTERN = re.compile(r"^[1-9][0-9]{0,11}$")
 _LABEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:/ -]{0,99}$")
+_REFRESH_RUNTIME: ModuleType | None = None
 
 
 class GithubRefreshPolicyError(ValueError):
@@ -61,8 +62,6 @@ class GithubWriteBackResult:
         self.target = target
         self.payload_digest = payload_digest
         self.argv = argv or []
-        self.stdin: None = None
-        self.payload: dict[str, object] = {}
         self.command_calls = command_calls
         self.receipt = receipt or {}
 
@@ -205,7 +204,7 @@ class GithubRefreshProcessor:
             if action not in _REMOTE_ACTIONS:
                 return GithubWriteBackResult("unsupported_capability", action, target=target)
             receipt_store = self._receipt_store
-            if not isinstance(receipt_store, self._refresh.RemoteReceiptStore):
+            if type(receipt_store) is not self._refresh.RemoteReceiptStore:
                 return GithubWriteBackResult(
                     "receipt_store_required", action, target=target
                 )
@@ -407,6 +406,9 @@ def _trusted_https_url(
 def _load_refresh_runtime() -> ModuleType:
     """Load the shared work-intake refresh runtime from an installed skill tree."""
 
+    global _REFRESH_RUNTIME
+    if _REFRESH_RUNTIME is not None:
+        return _REFRESH_RUNTIME
     here = Path(__file__).resolve()
     skills_root = here.parents[2]
     candidate = skills_root / "work-intake" / "scripts" / "refresh.py"
@@ -422,9 +424,10 @@ def _load_refresh_runtime() -> ModuleType:
     if spec is None or spec.loader is None:
         raise RuntimeError("work-intake refresh runtime unavailable")
     module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault(spec.name, module)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)  # type: ignore[union-attr]
-    return module
+    _REFRESH_RUNTIME = module
+    return _REFRESH_RUNTIME
 
 
 def _reject_constant(value: str) -> None:

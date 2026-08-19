@@ -26,6 +26,32 @@ class RefreshRefusal(ValueError):
     """A stable, redacted refusal safe to return to the caller."""
 
 
+RESULT_CODES = frozenset(
+    {
+        "accepted_field_not_local",
+        "authority_revision_mismatch",
+        "comparison_failed",
+        "decision_required",
+        "executing_requirements_locked",
+        "fingerprint_mismatch",
+        "implementing_requirements_locked",
+        "invalid_authority",
+        "invalid_local_update",
+        "invalid_refresh_policy",
+        "invalid_target",
+        "local_field_locked",
+        "local_write_failed",
+        "lock_busy",
+        "projection_drift",
+        "ready",
+        "shipped_requirements_locked",
+        "unauthorized_approver",
+        "unsupported_artifact_kind",
+        "unsupported_lifecycle",
+    }
+)
+
+
 @dataclass(frozen=True)
 class Approval:
     """Recorded approval evidence embedded in the local artifact."""
@@ -108,6 +134,12 @@ class RefreshResult:
     field_updates: Mapping[str, str] = field(default_factory=dict)
     decision_records: tuple[Mapping[str, str], ...] = ()
     remote_action: object | None = None
+
+    def __post_init__(self) -> None:
+        """Reject a coordinator result outside the closed public vocabulary."""
+
+        if self.code not in RESULT_CODES:
+            raise ValueError("unknown refresh result code")
 
     def as_record(self) -> dict[str, object]:
         """Return the closed JSON-compatible coordinator result contract."""
@@ -443,7 +475,6 @@ _REMOTE_ACTIONS = {
 }
 _DRAFT_LIFECYCLES = {"Draft"}
 _ACCEPTED_LIFECYCLES = {"Accepted", "Ready", "Approved"}
-_LOCKED_LIFECYCLES = {"Implementing", "Executing"}
 
 
 def _require_exact_keys(
@@ -922,8 +953,14 @@ def evaluate_refresh(
         return RefreshResult(
             "shipped_requirements_locked", "completed", local_mutation="refused"
         )
-    if comparison.lifecycle in _LOCKED_LIFECYCLES:
-        return RefreshResult("requirements_locked", "completed", local_mutation="refused")
+    if comparison.lifecycle == "Implementing":
+        return RefreshResult(
+            "implementing_requirements_locked", "completed", local_mutation="refused"
+        )
+    if comparison.lifecycle == "Executing":
+        return RefreshResult(
+            "executing_requirements_locked", "completed", local_mutation="refused"
+        )
     if comparison.lifecycle in _DRAFT_LIFECYCLES | _ACCEPTED_LIFECYCLES:
         lifecycle_code = "ready"
     else:
@@ -1091,7 +1128,6 @@ def consume_remote_confirmation(
     binding_digest = digest_bytes(
         json.dumps(binding_record, sort_keys=True, separators=(",", ":")).encode()
     )
-    used_confirmation_ids.add(confirmation.confirmation_id)
     return RemoteActionReceipt(
         confirmation.confirmation_id,
         binding_digest,
@@ -1257,7 +1293,6 @@ def guarded_write_pair(
     expected_workspace_digest: str,
     artifact_bytes: bytes,
     workspace_bytes: bytes,
-    fail_at: str | None = None,
 ) -> GuardedWriteResult:
     """Replace an artifact and workspace file under the shared workspace lock."""
 
@@ -1300,9 +1335,7 @@ def guarded_write_pair(
         ):
             return GuardedWriteResult("fingerprint_mismatch")
 
-        def stage(path: Path, value: bytes, marker: str) -> Path:
-            if fail_at == marker:
-                raise OSError("injected")
+        def stage(path: Path, value: bytes) -> Path:
             descriptor, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
             staged = Path(name)
             temp_paths.append(staged)
@@ -1313,8 +1346,8 @@ def guarded_write_pair(
                 os.fsync(handle.fileno())
             return staged
 
-        staged_artifact = stage(artifact, artifact_bytes, "artifact_stage")
-        staged_workspace = stage(workspace, workspace_bytes, "workspace_stage")
+        staged_artifact = stage(artifact, artifact_bytes)
+        staged_workspace = stage(workspace, workspace_bytes)
 
         # Authenticate both exact targets again after staging, immediately
         # before the first replacement. Cooperative writers are serialized by
@@ -1331,26 +1364,27 @@ def guarded_write_pair(
             or digest_bytes(current_workspace) != expected_workspace_digest
         ):
             return GuardedWriteResult("fingerprint_mismatch")
-        if fail_at == "artifact_replace":
-            raise OSError("injected")
         staged_artifact.replace(artifact)
         artifact_replaced = True
         temp_paths.remove(staged_artifact)
-        if fail_at == "workspace_replace":
-            raise OSError("injected")
         staged_workspace.replace(workspace)
         workspace_replaced = True
         temp_paths.remove(staged_workspace)
-        if fail_at == "after_workspace_replace":
-            raise OSError("injected")
         return GuardedWriteResult("written")
     except RefreshRefusal:
         return GuardedWriteResult("invalid_target")
     except OSError:
-        if artifact is not None and artifact_replaced:
-            artifact.write_bytes(before_artifact)
-        if workspace is not None and workspace_replaced:
-            workspace.write_bytes(before_workspace)
+        try:
+            if artifact is not None and artifact_replaced:
+                staged_artifact = stage(artifact, before_artifact)
+                staged_artifact.replace(artifact)
+                temp_paths.remove(staged_artifact)
+            if workspace is not None and workspace_replaced:
+                staged_workspace = stage(workspace, before_workspace)
+                staged_workspace.replace(workspace)
+                temp_paths.remove(staged_workspace)
+        except OSError:
+            pass
         return GuardedWriteResult("local_write_failed")
     finally:
         for path in temp_paths:
@@ -1620,6 +1654,17 @@ def _artifact_sections(
     return "".join(preamble), tuple(order), sections
 
 
+def _authority_location(markdown: str, match: re.Match[str]) -> tuple[str, int]:
+    """Return the authority fence's stable containing section and local offset."""
+
+    prefix = markdown[: match.start()]
+    headings = list(_SECTION_HEADING.finditer(prefix))
+    if not headings:
+        return ("<preamble>", len(prefix))
+    heading = headings[-1]
+    return (heading.group("name"), match.start() - heading.end())
+
+
 def _validate_artifact_field_update(
     *,
     current_markdown: str,
@@ -1635,7 +1680,10 @@ def _validate_artifact_field_update(
         len(current_authority) != 1
         or len(proposed_authority) != 1
         or current_authority[0].group(0) != proposed_authority[0].group(0)
-        or current_authority[0].span() != proposed_authority[0].span()
+    ):
+        raise RefreshRefusal("invalid_local_update")
+    if _authority_location(current_markdown, current_authority[0]) != _authority_location(
+        proposed_markdown, proposed_authority[0]
     ):
         raise RefreshRefusal("invalid_local_update")
     current_preamble, current_order, current_sections = _artifact_sections(
@@ -1680,7 +1728,6 @@ def coordinate_local_refresh(
     artifact_bytes: bytes,
     workspace_bytes: bytes,
     now: datetime | None = None,
-    fail_at: str | None = None,
 ) -> RefreshResult:
     """Evaluate and durably commit one semantic local refresh transaction."""
 
@@ -1911,7 +1958,6 @@ def coordinate_local_refresh(
         expected_workspace_digest=expected_workspace_digest,
         artifact_bytes=committed_artifact_bytes,
         workspace_bytes=workspace_bytes,
-        fail_at=fail_at,
     )
     if write_result.code != "written":
         return replace(result, code=write_result.code, local_mutation="refused")

@@ -40,6 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
 
+- **Previously materialized tracker-origin artifacts require an authority
+  migration before refresh.** Artifacts created by earlier tracker-intake
+  adapters without a closed source-authority record remain readable but report
+  a named migration requirement instead of being dispatched for refresh.
+
+- **Jira Cloud searches retain their configured retry budget.** Read-only JQL
+  searches use an idempotency declaration rather than their POST method when
+  deciding whether a transient failure may be retried.
+
 - **Workspace status now shows refresh facts without becoming an authority
   store.** It reports origin mode, profile, compared and accepted revisions,
   unresolved conflict state, and known availability while omitting ownership,

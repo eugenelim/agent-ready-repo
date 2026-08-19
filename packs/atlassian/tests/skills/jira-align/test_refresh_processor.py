@@ -145,6 +145,32 @@ def test_destination_guard_runs_before_request(processor, refresh) -> None:
         )
 
 
+def test_destination_comes_only_from_resolved_profile(processor, refresh, tmp_path: Path) -> None:
+    """An adopter profile may select its host; tracker data may not."""
+    profile = json.loads(
+        (PROCESSOR.parents[1] / "references" / "refresh-profile.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    profile["destination"]["host"] = "configured.example.test"
+    profile_path = tmp_path / "resolved-profile.json"
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+
+    assert processor.validate_destination(
+        "https://configured.example.test",
+        refresh_runtime=refresh,
+        resolver=lambda _host: ("93.184.216.34",),
+        profile_path=profile_path,
+    ).host == "configured.example.test"
+    with pytest.raises(refresh.RefreshRefusal, match="destination_not_allowed"):
+        processor.validate_destination(
+            "https://tracker-supplied.example.test",
+            refresh_runtime=refresh,
+            resolver=lambda _host: ("93.184.216.34",),
+            profile_path=profile_path,
+        )
+
+
 def test_skill_metadata_preserves_credential_contract() -> None:
     body = (
         ROOT / "packs/atlassian/.apm/skills/jira-align-refresh/SKILL.md"
@@ -152,20 +178,23 @@ def test_skill_metadata_preserves_credential_contract() -> None:
     assert "allowed-tools: Read Bash" in body
     assert "- network_fetch" in body
     assert "- filesystem_read_untrusted" in body
+    assert "- filesystem_write" in body
     assert "credentialed: true" in body
     assert "namespace: jiraalign" in body
 
 
-def test_refresh_profile_matches_intake_identity_and_is_read_only() -> None:
+def test_refresh_profile_matches_production_registration(processor, refresh) -> None:
     profile = json.loads(
         (
             ROOT
             / "packs/atlassian/.apm/skills/jira-align-refresh/references/refresh-profile.json"
         ).read_text(encoding="utf-8")
     )
-    assert profile["id"] == "jira-align-default"
-    assert profile["version"] == "1.0"
-    assert profile["revision_field"] == "modifiedDate"
-    assert profile["capabilities"] == ["acquire"]
+    registry = refresh.RefreshProcessorRegistry()
+    processor.register(registry, refresh, acquire=_unreached_acquire)
+    registration = registry.resolve(profile["id"], profile["version"], "acquire")
+    assert profile["revision_field"] == registration.revision_field
+    assert tuple(profile["field_mapping"].items()) == registration.field_mapping
+    assert frozenset(profile["capabilities"]) == registration.capabilities
     assert profile["destination"]["redirects"] is False
     assert profile["destination"]["dns_policy"] == "pinned-address"

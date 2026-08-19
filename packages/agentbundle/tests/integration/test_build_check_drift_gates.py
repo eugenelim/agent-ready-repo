@@ -1,15 +1,14 @@
 """Integration tests for the mechanical drift gates in ``make build-check`` (T9).
 
-The three gates are wired into ``run_build_check_drift_gates`` in
+The four gates are wired into ``run_build_check_drift_gates`` in
 ``agentbundle.build.self_host`` and called from ``cmd_check``.
 
   1. **Writer-template drift:** every derived
      ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
      must be byte-identical to the canonical template.
 
-  2. **Packaged runtime drift:** package-data workspace-status runtimes must be
-     byte-identical to their core pack sources. Source parity is covered by the
-     workspace-status projection suite.
+  2. **Packaged runtime drift:** package-data workspace-status and work-intake
+     runtimes must be byte-identical to their core pack sources.
 
   3. **Source-shape plugin.json (gate 2, in-Python defence-in-depth):**
      every ``packs/<pack>/.claude-plugin/plugin.json`` must not carry a
@@ -179,6 +178,70 @@ def test_make_build_check_passes_on_clean_tree(tmp_path):
         f"run_build_check_drift_gates should have returned 0 on a clean tree "
         f"but returned {rc}."
     )
+
+
+# ---------------------------------------------------------------------------
+# Gate 2: Packaged runtime drift
+# ---------------------------------------------------------------------------
+
+
+def test_self_host_repairs_packaged_runtime_drift(tmp_path, monkeypatch):
+    """The real-write self-host path restores a drifted bundled runtime.
+
+    The runtime-pair constant is rooted at the real repository, so rebind it
+    to a temporary pair.  This drives the production ``run_self_host`` write
+    path while ensuring the test cannot modify package source in this tree.
+    """
+    import agentbundle.build.self_host as self_host_mod
+    from agentbundle.build.contract import load as load_contract
+
+    source = tmp_path / "canonical-runtime.py"
+    bundled = tmp_path / "bundled-runtime.py"
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    bundled.write_text("CANONICAL = False\n", encoding="utf-8")
+    monkeypatch.setattr(self_host_mod, "_RUNTIME_PROJECTIONS", ((source, bundled),))
+
+    packs_shadow = tmp_path / "packs"
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
+    )
+
+    contract = load_contract(PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml")
+    rc = self_host_mod.run_self_host(
+        workspace,
+        packs_shadow,
+        dry_run=False,
+        force=True,
+        contract=contract,
+        preferred_adapter="kiro-ide",
+    )
+
+    assert rc == 0
+    assert bundled.read_bytes() == source.read_bytes()
+
+
+def test_make_build_check_refuses_packaged_runtime_drift(tmp_path, monkeypatch, capsys):
+    """The check path detects, rather than repairs, a bundled runtime drift."""
+    import agentbundle.build.self_host as self_host_mod
+
+    source = tmp_path / "canonical-runtime.py"
+    bundled = tmp_path / "bundled-runtime.py"
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    bundled.write_text("CANONICAL = False\n", encoding="utf-8")
+    monkeypatch.setattr(self_host_mod, "_RUNTIME_PROJECTIONS", ((source, bundled),))
+
+    packs_dir = tmp_path / "packs"
+    packs_dir.mkdir()
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    rc = self_host_mod.run_build_check_drift_gates(workspace, packs_dir)
+
+    assert rc != 0
+    assert "packaged runtime drift" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

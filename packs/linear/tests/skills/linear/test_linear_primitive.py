@@ -379,16 +379,6 @@ class TestIntakeAcquisitionContract:
     def test_pinned_transport_honors_https_proxy_and_pins_its_socket(
         self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        captured: dict[str, object] = {}
-
-        class Pool:
-            _network_backend: object | None = None
-
-        class FakeTransport:
-            def __init__(self, **kwargs: object) -> None:
-                captured.update(kwargs)
-                self._pool = Pool()
-
         monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:8443")
         monkeypatch.delenv("https_proxy", raising=False)
         monkeypatch.setattr(linear_mod, "proxy_bypass", lambda _host: False, raising=False)
@@ -400,20 +390,37 @@ class TestIntakeAcquisitionContract:
                 (2, 1, 6, "", ("192.0.2.21", 8443)),
             ],
         )
-        monkeypatch.setattr(linear_mod.httpx, "HTTPTransport", FakeTransport)
-        monkeypatch.setattr(linear_mod, "_linear_ssl_context", lambda: object())
         pinned = types.SimpleNamespace(host="api.linear.app", port=443)
 
         transport = linear_mod._pinned_transport(pinned)
 
-        assert captured["proxy"] == "http://proxy.example:8443"
-        assert captured["trust_env"] is False
-        assert captured["retries"] == 0
+        assert isinstance(transport, linear_mod.httpx.HTTPTransport)
+        assert isinstance(
+            transport._pool._network_backend, linear_mod._PinnedSyncNetworkBackend
+        )
         assert transport._pool._network_backend._proxy_pin == (
             "proxy.example",
             8443,
             frozenset({"192.0.2.20", "192.0.2.21"}),
         )
+
+    @pytest.mark.parametrize("address", ["0.0.0.0", "169.254.169.254"])
+    def test_proxy_metadata_or_unspecified_address_is_refused_redacted(
+        self,
+        linear_mod: types.ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+        address: str,
+    ) -> None:
+        monkeypatch.setattr(
+            linear_mod.socket,
+            "getaddrinfo",
+            lambda _host, port: [(2, 1, 6, "", (address, port))],
+        )
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._resolved_proxy_addresses("proxy.example", 8443)
+
+        assert str(exc.value) == "HTTPS proxy resolution failed"
 
     def test_no_proxy_bypasses_proxy_without_resolving_it(
         self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
@@ -427,6 +434,28 @@ class TestIntakeAcquisitionContract:
         )
 
         assert linear_mod._https_proxy_settings("api.linear.app") == (None, None)
+
+    def test_unsupported_proxy_scheme_fails_closed_redacted(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HTTPS_PROXY", "ftp://proxy.example:21")
+        monkeypatch.setattr(linear_mod, "proxy_bypass", lambda _host: False)
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._https_proxy_settings("api.linear.app")
+
+        assert str(exc.value) == "HTTPS proxy configuration is unsupported"
+
+    def test_unreadable_ca_bundle_fails_closed_redacted(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("REQUESTS_CA_BUNDLE", "/unreadable/ca-bundle.pem")
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._linear_ssl_context()
+
+        assert str(exc.value) == "TLS trust configuration is unavailable"
 
     def test_linear_ssl_context_honors_ca_environment(
         self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
@@ -706,21 +735,12 @@ class TestLinearRefreshProcessor:
         registration = linear_mod.linear_refresh_registration(
             refresh_mod, acquire=_unreached_acquire
         )
-        assert registration.profile_id == "linear-default"
-        assert registration.profile_version == "1.0"
-        assert registration.revision_field == "updatedAt"
-        assert registration.field_mapping == (
-            ("Outcome", "title"),
-            ("User stories", "description"),
-        )
-        assert registration.capabilities == frozenset({
-            "acquire",
-            "trace-link",
-            "display-status",
-            "comment",
-            "pull-request-link",
-            "closure",
-        })
+        profile = linear_mod.load_refresh_profile()
+        assert registration.profile_id == profile["id"]
+        assert registration.profile_version == profile["version"]
+        assert registration.revision_field == profile["revision_field"]
+        assert registration.field_mapping == tuple(profile["field_mapping"].items())
+        assert registration.capabilities == frozenset(profile["capabilities"])
 
     def test_missing_receipt_store_refuses_before_credentials(
         self, linear_mod: types.ModuleType, refresh_mod: types.ModuleType

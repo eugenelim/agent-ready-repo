@@ -375,7 +375,10 @@ def _canonical_evaluation_dict(e) -> dict:
         "findings": [_canonical_finding_dict(f) for f in e.findings],
     }
     if getattr(e, "authority_status", None) is not None:
-        result.update(e.authority_status)
+        authority_status = dict(e.authority_status)
+        if set(result).intersection(authority_status):
+            raise ValueError("authority status overlaps canonical evaluation fields")
+        result.update(authority_status)
     return result
 
 

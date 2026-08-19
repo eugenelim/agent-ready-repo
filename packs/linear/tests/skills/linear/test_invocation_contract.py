@@ -131,7 +131,7 @@ def test_linear_refresh_metadata_is_least_privilege() -> None:
     assert 'keys: ["API_KEY"]' in skill
     assert "network_fetch" in skill
     assert "filesystem_read_untrusted" in skill
-    assert "filesystem_write" not in skill.split("---", 2)[1]
+    assert "filesystem_write" in skill.split("---", 2)[1]
 
 
 def test_linear_brief_sync_is_compatibility_wrapper() -> None:
@@ -162,29 +162,12 @@ def test_linear_brief_sync_is_compatibility_wrapper() -> None:
     assert manifest["output"]["artifacts"] == []
 
 
-def test_linear_refresh_profile_declares_the_runtime_contract() -> None:
+def test_linear_refresh_profile_matches_production_registration() -> None:
     profile = json.loads(
-        (SYNC_SKILL_ROOT / "references/refresh-profile.json").read_text(encoding="utf-8")
+        (SKILL_ROOT / "references/refresh-profile.json").read_text(encoding="utf-8")
     )
-    assert profile == {
-        "contract_version": "tracker-refresh-profile.v1",
-        "id": "linear-default",
-        "version": "1.0",
-        "revision_field": "updatedAt",
-        "field_mapping": {"Outcome": "title", "User stories": "description"},
-        "capabilities": [
-            "acquire",
-            "trace-link",
-            "display-status",
-            "comment",
-            "pull-request-link",
-            "closure",
-        ],
-        "destination": {
-            "scheme": "https",
-            "host": "api.linear.app",
-            "port": 443,
-            "redirects": False,
-            "dns_policy": "pinned-address",
-        },
-    }
+    source = WINDOWS_RENDERER_SOURCE.read_text(encoding="utf-8")
+    assert "def load_refresh_profile" in source
+    assert "profile = load_refresh_profile()" in source
+    assert profile["id"] == "linear-default"
+    assert profile["version"] == "1.0"

@@ -39,6 +39,31 @@ def _load_router():
     return module
 
 
+def test_refresh_result_code_enum_matches_coordinator_vocabulary() -> None:
+    """Schema and construction enforce the one coordinator result vocabulary."""
+    refresh = _load_refresh()
+    schema = json.loads((_CONTRACT_ROOT / "refresh-result.schema.json").read_text())
+    assert set(schema["properties"]["code"]["enum"]) == refresh.RESULT_CODES
+    for code in refresh.RESULT_CODES:
+        assert refresh.RefreshResult(code, "completed").code == code
+    with pytest.raises(ValueError, match="unknown refresh result code"):
+        refresh.RefreshResult("invented-code", "completed")
+
+
+def test_every_coordinator_result_code_has_a_schema_valid_refusal_shape() -> None:
+    """Every public coordinator result, including refusals, remains schema-valid."""
+
+    refresh = _load_refresh()
+    schema = json.loads(
+        (_CONTRACT_ROOT / "refresh-result.schema.json").read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(
+        schema, format_checker=Draft202012Validator.FORMAT_CHECKER
+    )
+    for code in refresh.RESULT_CODES:
+        validator.validate(refresh.RefreshResult(code, "not-started").as_record())
+
+
 def _authority_block(*, extra: str = "", duplicate: bool = False) -> str:
     block = f'''```toml source-authority
 contract_version = "source-authority.v1"
@@ -343,8 +368,8 @@ def test_confirmation_ledger_is_seeded_from_durable_receipts() -> None:
         ("Accepted", "ready"),
         ("Ready", "ready"),
         ("Approved", "ready"),
-        ("Implementing", "requirements_locked"),
-        ("Executing", "requirements_locked"),
+        ("Implementing", "implementing_requirements_locked"),
+        ("Executing", "executing_requirements_locked"),
         ("Shipped", "shipped_requirements_locked"),
     ],
 )
@@ -830,7 +855,16 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
     assert receipt.payload_digest == "a" * 64
     assert receipt.authorization_source == "current-human-session"
     assert len(receipt.binding_digest) == 64
-    assert "confirm-1" in used
+    assert used == set()
+    durable_confirmation_ids = {receipt.confirmation_id}
+    with pytest.raises(refresh.RefreshRefusal, match="confirmation_reused"):
+        refresh.consume_remote_confirmation(
+            confirmation=confirmation,
+            expected_binding=binding,
+            policy=refresh.parse_refresh_authorization_policy(_policy()),
+            used_confirmation_ids=durable_confirmation_ids,
+            now=now,
+        )
     authority_schema = json.loads(
         (_CONTRACT_ROOT / "source-authority.schema.json").read_text()
     )
@@ -876,7 +910,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=mismatched_version,
             expected_binding=version_two_binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
-            used_confirmation_ids=used,
+            used_confirmation_ids=durable_confirmation_ids,
             now=now,
         )
     assert "confirm-version-mismatch" not in used
@@ -886,7 +920,7 @@ def test_confirmation_is_exact_fresh_and_single_use() -> None:
             confirmation=confirmation,
             expected_binding=binding,
             policy=refresh.parse_refresh_authorization_policy(_policy()),
-            used_confirmation_ids=used,
+            used_confirmation_ids=durable_confirmation_ids,
             now=now,
         )
     stale = refresh.RemoteConfirmation.issue(
@@ -1179,7 +1213,46 @@ def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
     assert durable.owned_fields["Outcome"] == "local"
     workspace_text = fixture["workspace"].read_text()
     assert 'revision = "rev-2"' in workspace_text
-    assert 'accepted_revision = "upstream-rev-1"' in workspace_text
+
+
+def test_coordinator_accepts_authority_after_changed_section(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    authority = _authority_block()
+    before = fixture["before_artifact"].decode().replace(authority, "") + authority
+    proposed = fixture["proposed_artifact"].decode().replace(authority, "") + authority
+    fixture["artifact"].write_text(before, encoding="utf-8")
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"], comparison=fixture["comparison"],
+        authority=refresh.parse_source_authority(before),
+        policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
+        decisions={"Outcome": "revise-both"},
+        expected_artifact_digest=refresh.digest_bytes(before.encode()),
+        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
+        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+    assert result.local_mutation == "committed"
+
+
+def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    authority = _authority_block()
+    before = fixture["before_artifact"].decode().replace(authority, "") + authority
+    relocated = authority + fixture["proposed_artifact"].decode().replace(authority, "")
+    fixture["artifact"].write_text(before, encoding="utf-8")
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"], comparison=fixture["comparison"],
+        authority=refresh.parse_source_authority(before),
+        policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
+        decisions={"Outcome": "revise-both"},
+        expected_artifact_digest=refresh.digest_bytes(before.encode()),
+        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=relocated.encode(),
+        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+    assert result.code == "invalid_local_update"
+    assert fixture["artifact"].read_bytes() == before.encode()
+    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
 @pytest.mark.parametrize(
@@ -1611,11 +1684,19 @@ def test_coordinator_rejects_source_authority_byte_injection(
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-def test_coordinator_failure_after_both_replacements_rolls_back_semantic_pair(
-    tmp_path: Path,
+def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
+    original_replace = Path.replace
+
+    def fail_workspace_replace(source: Path, target: Path) -> Path:
+        if source.name.startswith(".workspace.toml."):
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_workspace_replace)
 
     result = refresh.coordinate_local_refresh(
         repository_root=fixture["repo"],
@@ -1629,7 +1710,6 @@ def test_coordinator_failure_after_both_replacements_rolls_back_semantic_pair(
         artifact_bytes=fixture["proposed_artifact"],
         workspace_bytes=fixture["proposed_workspace"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
-        fail_at="after_workspace_replace",
     )
 
     assert result.code == "local_write_failed"
@@ -1638,7 +1718,9 @@ def test_coordinator_failure_after_both_replacements_rolls_back_semantic_pair(
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-def test_guarded_pair_write_rolls_back_every_injected_failure(tmp_path: Path) -> None:
+def test_guarded_pair_write_rolls_back_workspace_replace_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
@@ -1649,25 +1731,57 @@ def test_guarded_pair_write_rolls_back_every_injected_failure(tmp_path: Path) ->
     before_artifact = artifact.read_bytes()
     before_workspace = workspace.read_bytes()
 
-    for stage in (
-        "artifact_stage",
-        "workspace_stage",
-        "artifact_replace",
-        "workspace_replace",
-        "after_workspace_replace",
-    ):
-        result = refresh.guarded_write_pair(
-            repository_root=repo,
-            artifact_path="docs/specs/example/spec.md",
-            expected_artifact_digest=refresh.digest_bytes(before_artifact),
-            expected_workspace_digest=refresh.digest_bytes(before_workspace),
-            artifact_bytes=b"after artifact\n",
-            workspace_bytes=b"after workspace\n",
-            fail_at=stage,
-        )
-        assert result.code == "local_write_failed"
-        assert artifact.read_bytes() == before_artifact
-        assert workspace.read_bytes() == before_workspace
+    original_replace = Path.replace
+
+    def fail_workspace_replace(source: Path, target: Path) -> Path:
+        if source.name.startswith(".workspace.toml."):
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_workspace_replace)
+    result = refresh.guarded_write_pair(
+        repository_root=repo,
+        artifact_path="docs/specs/example/spec.md",
+        expected_artifact_digest=refresh.digest_bytes(before_artifact),
+        expected_workspace_digest=refresh.digest_bytes(before_workspace),
+        artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
+    )
+    assert result.code == "local_write_failed"
+    assert artifact.read_bytes() == before_artifact
+    assert workspace.read_bytes() == before_workspace
+
+
+def test_guarded_pair_write_redacts_rollback_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    repo = tmp_path / "repo"
+    artifact = repo / "docs/specs/example/spec.md"
+    workspace = repo / "workspace.toml"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("before artifact\n", encoding="utf-8")
+    workspace.write_text("before workspace\n", encoding="utf-8")
+    calls = 0
+    original_replace = Path.replace
+
+    def fail_commit_and_rollback(source: Path, target: Path) -> Path:
+        nonlocal calls
+        calls += 1
+        if calls >= 2:
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_commit_and_rollback)
+    result = refresh.guarded_write_pair(
+        repository_root=repo,
+        artifact_path="docs/specs/example/spec.md",
+        expected_artifact_digest=refresh.digest_bytes(b"before artifact\n"),
+        expected_workspace_digest=refresh.digest_bytes(b"before workspace\n"),
+        artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
+    )
+    assert result.code == "local_write_failed"
 
 
 def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> None:

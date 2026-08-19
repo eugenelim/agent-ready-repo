@@ -60,6 +60,21 @@ Outcome = "local"
     assert status == {"compared_revision": "remote-rev-2", "conflict": False}
 
 
+def test_canonical_evaluation_refuses_authority_status_key_collision() -> None:
+    mod = _load_module()
+    evaluation = SimpleNamespace(
+        ini_slug="ini-001",
+        collection="work.queue",
+        entry=SimpleNamespace(path="docs/specs/example/spec.md", kind="spec"),
+        dispatchable=False,
+        findings=(),
+        authority_status={"path": "untrusted"},
+    )
+
+    with pytest.raises(ValueError, match="authority status overlaps"):
+        mod._canonical_eval_dict(evaluation)
+
+
 class _FakeBridge:
     def get_fsm_state(self):  # noqa: ANN201
         return {}

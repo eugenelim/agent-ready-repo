@@ -157,7 +157,7 @@ For a minimal intent, copy `assets/minimal-intent.md` and fill only:
 - `Outcome`
 - `Opportunity`
 - `Assumptions`
-- `Source`
+- `Source` (use exactly one `toml source-authority` fence for tracker-origin work)
 
 Render those fields through `scripts/intake_guard.py`. Keep its redacted source
 locator and revision. Omit raw payloads, secret-like fields, personal data, and
@@ -200,8 +200,10 @@ Apply the shared lifecycle matrix:
   requirement decision.
 - Accepted, Ready, and Approved require a configured accepted-requirements
   approver for every changed field.
-- Implementing and Executing lock requirements; record comparison state without
-  rewriting them.
+- Implementing returns `implementing_requirements_locked`; complete or return
+  the spec to its Approved lifecycle before retrying.
+- Executing returns `executing_requirements_locked`; complete or return the
+  brief to its Ready lifecycle before retrying.
 - Shipped locks requirements permanently; use a new artifact for later work.
 
 Each changed field requires one explicit `keep-local`, `accept-source`, or

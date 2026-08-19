@@ -206,8 +206,6 @@ def test_github_content_cannot_add_argv(
 
     assert result.code == "remote_action_succeeded"
     assert result.argv.count("--hostname") == 1
-    assert result.stdin is None
-    assert result.payload == {}
     assert calls[0]["shell"] is False
     assert calls[0]["input"] == body
 
@@ -287,8 +285,6 @@ def test_github_actions_are_confirmed_target_pinned_and_receipted(
 
     assert result.code == "remote_action_succeeded"
     assert result.argv == ["gh", "issue", *expected_argv_tail]
-    assert result.stdin is None
-    assert result.payload == {}
     assert result.payload_digest == refresh_mod.canonical_payload_digest(payload)
     assert calls == [
         {
@@ -620,7 +616,7 @@ def test_github_metadata_is_least_privilege() -> None:
     assert "allowed-tools: Read Bash" in body
     assert "network_fetch" in body
     assert "filesystem_read_untrusted" in body
-    assert "filesystem_write" not in body
+    assert "filesystem_write" in body
     assert "credentialed: true" in body
     assert "primitive-class: credentialed-cli" in body
     assert "auth: cli" in body

@@ -109,6 +109,28 @@ def test_minimal_intent_outputs_use_canonical_preamble() -> None:
     assert "- Revision: rev-local-001" in rendered
 
 
+def test_tracker_origin_minimal_intent_materializes_closed_authority_fence() -> None:
+    engine = _load_engine()
+    guard = _load_guard()
+    raw = json.loads(
+        (_INTAKE_FIXTURES / "valid" / "start-tracker-origin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    intake, findings = engine.validate_normalized_intake(raw)
+    assert intake is not None
+    assert findings == []
+
+    rendered = guard.render_minimal_intent(
+        intake=intake, title="Tracker intent", level="feature"
+    )
+
+    assert rendered.count("```toml source-authority") == 1
+    assert 'mode = "tracker-origin"' in rendered
+    assert f"source_ref = {json.dumps(intake.source.locator)}" in rendered
+    assert f"source_revision = {json.dumps(intake.source.revision)}" in rendered
+
+
 def test_workspace_registration_maps_normalized_source_to_target_contract() -> None:
     engine = _load_engine()
     guard = _load_guard()

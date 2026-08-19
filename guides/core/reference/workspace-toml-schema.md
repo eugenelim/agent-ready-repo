@@ -269,6 +269,7 @@ Every refusal is visible as a stable code with a safe next action.
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
+| `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |

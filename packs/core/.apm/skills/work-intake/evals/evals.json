@@ -35,12 +35,11 @@
     {
       "id": 4,
       "prompt": "Refresh requirements for docs/specs/example/spec.md.",
-      "expected_output": "The agent resolves the existing artifact, exact tracker profile and configured processor, compares the new revision as untrusted data, and presents a field-level decision before any guarded local change.",
+      "expected_output": "The core-only agent reports refresh unavailable and leaves the artifact and workspace unchanged because no configured tracker processor is installed.",
       "assertions": [
         "Confines and resolves an existing registered target",
-        "Uses only the exact configured profile processor",
-        "Treats tracker content as candidate data",
-        "Requires authorized field decisions before local mutation"
+        "Reports refresh unavailable without a configured processor",
+        "Does not mutate the artifact or workspace"
       ]
     },
     {
@@ -102,6 +101,17 @@
         "Allows Ready with zero specs",
         "Creates no speculative specs",
         "Stops before invoking new-spec"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "With the GitHub refresh processor installed, refresh requirements for docs/specs/example/spec.md.",
+      "expected_output": "The agent resolves the exact configured processor, compares the new revision as untrusted data, and presents a field-level decision before any guarded local change.",
+      "assertions": [
+        "Scopes processor-backed behavior to an installed tracker pack",
+        "Uses only the exact configured profile processor",
+        "Treats tracker content as candidate data",
+        "Requires authorized field decisions before local mutation"
       ]
     }
   ]

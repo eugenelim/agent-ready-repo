@@ -696,6 +696,7 @@ class JiraClient:
         json_body: Any | None = None,
         files: Mapping[str, Any] | None = None,
         extra_headers: Mapping[str, str] | None = None,
+        idempotent: bool | None = None,
     ) -> httpx.Response:
         if files is not None and json_body is not None:
             # Caller bug: httpx would silently drop the JSON body in favor
@@ -712,17 +713,22 @@ class JiraClient:
                 "writes over SSO-cookie auth are not supported yet; "
                 "use a personal access token, or wait for the XSRF follow-on"
             )
+        # Cloud JQL is a documented read endpoint that uses POST.  Only our
+        # call sites may set ``idempotent=True``; other POSTs remain refused.
+        is_idempotent = (
+            method.upper() in ("GET", "HEAD") if idempotent is None else idempotent
+        )
         if (
             self._intake_policy is not None
             and not self._intake_policy.allow_write
-            and method.upper() not in ("GET", "HEAD")
+            and not is_idempotent
         ):
             raise JiraError("tracker intake is read-only; request refused")
 
         async with self._sem:
             last_exc: Exception | None = None
             last_status: int | None = None
-            attempts = 1 if method.upper() not in ("GET", "HEAD") else (
+            attempts = 1 if not is_idempotent else (
                 self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES
@@ -1107,7 +1113,7 @@ class JiraClient:
                     body["nextPageToken"] = next_token
 
                 resp = await self._request(
-                    "POST", f"{self._api}/search/jql", json_body=body
+                    "POST", f"{self._api}/search/jql", json_body=body, idempotent=True
                 )
                 data = self._json(resp)
                 issues = data.get("issues", []) if isinstance(data, dict) else []

@@ -97,6 +97,9 @@ _FINDING_NEXT_ACTIONS = {
     "invalid_source_authority": (
         "Correct the closed source-authority block, then rerun reconciliation."
     ),
+    "source_authority_migration_required": (
+        "Add the reviewed source-authority block before using refresh."
+    ),
 }
 
 
@@ -1440,18 +1443,32 @@ def _parse_generic_status(text: str, kind: str) -> str | None:
 
 def _source_authority_module_path() -> Path | None:
     engine_path = Path(__file__).resolve()
+    skill_root = engine_path.parents[2]
     installed_path = (
-        engine_path.parents[2] / "work-intake" / "scripts" / "refresh.py"
+        skill_root / "work-intake" / "scripts" / "refresh.py"
     )
-    if installed_path.is_file():
+    try:
+        installed_path = installed_path.resolve(strict=True)
+        installed_path.relative_to(skill_root.resolve(strict=True))
+    except (OSError, ValueError):
+        installed_path = None
+    if installed_path is not None and installed_path.is_file():
         return installed_path
     packaged_path = engine_path.parent / "work_intake_refresh.py"
-    if packaged_path.is_file():
+    try:
+        packaged_path = packaged_path.resolve(strict=True)
+        packaged_path.relative_to(engine_path.parent.resolve(strict=True))
+    except (OSError, ValueError):
+        packaged_path = None
+    if packaged_path is not None and packaged_path.is_file():
         return packaged_path
     # The package-data engine is exercised directly in development before the
     # installed skill projection exists. Resolve that checkout without relying
     # on the caller's working directory.
-    if len(engine_path.parents) > 4:
+    if (
+        os.environ.get("AGENTBUNDLE_ALLOW_DEV_SOURCE_AUTHORITY") == "1"
+        and len(engine_path.parents) > 4
+    ):
         source_path = (
             engine_path.parents[4]
             / "packs"
@@ -1504,6 +1521,8 @@ def _load_source_authority_parser() -> Any:
 def _parse_source_authority_status(
     text: str,
 ) -> tuple[dict[str, object] | None, str | None, str | None, str | None]:
+    if "```toml source-authority" not in text:
+        return None, "source_authority_migration_required", None, None
     try:
         parser = _load_source_authority_parser()
         authority = parser(text)
@@ -1572,8 +1591,9 @@ def _metadata_from_root(root: Path, entry: WorkspaceEntry) -> ArtifactMetadata |
         authority_status, authority_error, authority_ref, authority_revision = (
             _parse_source_authority_status(text)
         )
-        ref = authority_ref
-        revision = authority_revision
+        if authority_status is not None:
+            ref = authority_ref
+            revision = authority_revision
         refresh_conflict = bool(
             authority_status is not None and authority_status.get("conflict")
         )

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Collection, Mapping
+from typing import Any, Callable, Collection, Mapping, cast
 
 with suppress(AttributeError, ValueError):
     sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -17,7 +18,8 @@ with suppress(AttributeError, ValueError):
 
 PROFILE_ID = "jira-default"
 PROFILE_VERSION = "1.0"
-SUPPORTED_REMOTE_ACTIONS = frozenset({"comment", "display-status", "closure"})
+PROFILE_PATH = Path(__file__).resolve().parents[1] / "references" / "refresh-profile.json"
+_REFRESH_RUNTIME: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -29,10 +31,12 @@ class WriteBackResult:
     target: str
     payload_digest: str | None = None
     receipt: object | None = None
-    transport_calls: int = 0
 
 
 def _load_refresh_runtime() -> Any:
+    global _REFRESH_RUNTIME
+    if _REFRESH_RUNTIME is not None:
+        return _REFRESH_RUNTIME
     skills_root = Path(__file__).resolve().parents[2]
     try:
         resolved_root = skills_root.resolve(strict=True)
@@ -50,7 +54,8 @@ def _load_refresh_runtime() -> Any:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    return module
+    _REFRESH_RUNTIME = module
+    return _REFRESH_RUNTIME
 
 
 def register(
@@ -62,15 +67,16 @@ def register(
     """Register the exact Jira profile capability with work-intake."""
 
     refresh = refresh_runtime or _load_refresh_runtime()
+    profile = _load_profile(PROFILE_PATH)
     registry.register(
         refresh.ProcessorRegistration(
             name="jira-refresh",
-            profile_id=PROFILE_ID,
-            profile_version=PROFILE_VERSION,
-            capabilities=frozenset({"acquire", *SUPPORTED_REMOTE_ACTIONS}),
+            profile_id=profile["id"],
+            profile_version=profile["version"],
+            capabilities=frozenset(profile["capabilities"]),
             acquire=acquire,
-            revision_field="updated",
-            field_mapping=(("Outcome", "summary"), ("User stories", "description")),
+            revision_field=profile["revision_field"],
+            field_mapping=tuple(profile["field_mapping"].items()),
         )
     )
 
@@ -80,20 +86,59 @@ def validate_destination(
     *,
     refresh_runtime: object | None = None,
     resolver: Callable[[str], Collection[str]] | None = None,
+    profile_path: Path = PROFILE_PATH,
 ) -> object:
     """Validate the configured Jira destination before credentials or transport."""
 
     refresh = refresh_runtime or _load_refresh_runtime()
+    profile = _load_profile(profile_path)
+    destination = profile["destination"]
     policy = refresh.DestinationPolicy(
-        schemes=frozenset({"https"}),
-        hosts=frozenset({"tracker.example.test"}),
-        ports=frozenset({443}),
+        schemes=frozenset({destination["scheme"]}),
+        hosts=frozenset({destination["host"]}),
+        ports=frozenset({destination["port"]}),
         credentials_attached=True,
     )
     kwargs = {"policy": policy}
     if resolver is not None:
         kwargs["resolver"] = resolver
     return refresh.validate_destination(url, **kwargs)
+
+
+def _load_profile(path: Path) -> dict[str, Any]:
+    """Load the resolved adopter profile that owns the Jira destination."""
+
+    try:
+        profile = json.loads(path.read_text(encoding="utf-8"))
+        destination = profile["destination"]
+        if (
+            not isinstance(profile, dict)
+            or profile.get("id") != PROFILE_ID
+            or profile.get("version") != PROFILE_VERSION
+            or set(profile) != {
+                "contract_version", "id", "version", "revision_field", "field_mapping",
+                "capabilities", "destination",
+            }
+            or profile.get("contract_version") != "tracker-refresh-profile.v1"
+            or not isinstance(profile.get("revision_field"), str)
+            or not isinstance(profile.get("field_mapping"), dict)
+            or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in profile["field_mapping"].items()
+            )
+            or not isinstance(profile.get("capabilities"), list)
+            or any(not isinstance(value, str) for value in profile["capabilities"])
+            or len(profile["capabilities"]) != len(set(profile["capabilities"]))
+            or "acquire" not in profile["capabilities"]
+            or not isinstance(destination, dict)
+            or destination.get("scheme") != "https"
+            or not isinstance(destination.get("host"), str)
+            or not isinstance(destination.get("port"), int)
+        ):
+            raise ValueError
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("invalid_refresh_profile") from exc
+    return cast(dict[str, Any], profile)
 
 
 async def write_back(
@@ -115,14 +160,18 @@ async def write_back(
     """Perform one confirmed allowlisted Jira remote mutation."""
 
     refresh = refresh_runtime or _load_refresh_runtime()
-    if action not in SUPPORTED_REMOTE_ACTIONS:
+    try:
+        profile = _load_profile(PROFILE_PATH)
+    except RuntimeError:
         return WriteBackResult("unsupported_capability", action, target)
-    if getattr(client, "_auth_mode", "creds") == "sso-cookie":
+    if action not in set(profile["capabilities"]) - {"acquire"}:
+        return WriteBackResult("unsupported_capability", action, target)
+    if getattr(client, "_auth_mode", None) != "creds":
         return WriteBackResult("sso_cookie_write_refused", action, target)
     client_policy = getattr(client, "_intake_policy", None)
     if client_policy is None or not getattr(client_policy, "allow_write", False):
         return WriteBackResult("guarded_write_client_required", action, target)
-    if not isinstance(receipt_store, refresh.RemoteReceiptStore):
+    if type(receipt_store) is not refresh.RemoteReceiptStore:
         return WriteBackResult("receipt_store_required", action, target)
     if receipt_store.artifact_path != artifact_path:
         return WriteBackResult("receipt_store_mismatch", action, target)
@@ -191,7 +240,6 @@ async def write_back(
             target,
             payload_digest=digest,
             receipt=durable_receipt,
-            transport_calls=_transport_calls(client),
         )
     succeeded_receipt = replace(receipt, status="succeeded")
     try:
@@ -203,7 +251,6 @@ async def write_back(
             target,
             payload_digest=digest,
             receipt=receipt,
-            transport_calls=_transport_calls(client),
         )
     return WriteBackResult(
         "succeeded",
@@ -211,7 +258,6 @@ async def write_back(
         target,
         payload_digest=digest,
         receipt=succeeded_receipt,
-        transport_calls=_transport_calls(client),
     )
 
 
@@ -229,11 +275,3 @@ def _payload_for_action(
     if not isinstance(transition, str) or not transition:
         raise ValueError("invalid_remote_payload")
     return {"issue_key": target, "transition": transition}
-
-
-def _transport_calls(client: object) -> int:
-    calls = getattr(client, "calls", ())
-    try:
-        return len(calls)
-    except TypeError:
-        return 0

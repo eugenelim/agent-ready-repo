@@ -34,7 +34,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping, cast
 from urllib.parse import urlparse
 from urllib.request import proxy_bypass
 
@@ -68,10 +68,11 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
+PROFILE_PATH = Path(__file__).resolve().parents[1] / "references" / "refresh-profile.json"
 GRAPHQL_URL = "https://api.linear.app/graphql"
-LINEAR_DESTINATION = "https://api.linear.app:443"
 LINEAR_PROFILE_ID = "linear-default"
 LINEAR_PROFILE_VERSION = "1.0"
+_REFRESH_RUNTIME: ModuleType | None = None
 PAGE_SIZE = 50
 MAX_PAGES = 5  # hard bound: ≤250 issues (PAGE_SIZE × MAX_PAGES)
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -92,15 +93,6 @@ TOKEN_CLI_FLAGS = frozenset({
     "--auth-token",
 })
 
-LINEAR_REFRESH_CAPABILITIES = frozenset({
-    "acquire",
-    "trace-link",
-    "display-status",
-    "comment",
-    "pull-request-link",
-    "closure",
-})
-_LINEAR_REMOTE_ACTIONS = LINEAR_REFRESH_CAPABILITIES - {"acquire"}
 _COMMENT_CREATE_MUTATION = """
 mutation CommentCreate($input: CommentCreateInput!) {
   commentCreate(input: $input) { success comment { id } }
@@ -191,6 +183,9 @@ def _reject_token_on_cli(argv: list[str]) -> None:
 def _load_refresh_runtime() -> ModuleType:
     """Load the shared work-intake refresh runtime from an installed skill tree."""
 
+    global _REFRESH_RUNTIME
+    if _REFRESH_RUNTIME is not None:
+        return _REFRESH_RUNTIME
     here = Path(__file__).resolve()
     skills_root = here.parents[2]
     candidate = skills_root / "work-intake" / "scripts" / "refresh.py"
@@ -206,9 +201,50 @@ def _load_refresh_runtime() -> ModuleType:
     if spec is None or spec.loader is None:
         raise RuntimeError("work-intake refresh runtime unavailable")
     module = importlib.util.module_from_spec(spec)
-    sys.modules.setdefault(spec.name, module)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)  # type: ignore[union-attr]
-    return module
+    _REFRESH_RUNTIME = module
+    return _REFRESH_RUNTIME
+
+
+def load_refresh_profile(path: Path = PROFILE_PATH) -> dict[str, Any]:
+    """Load the strict Linear processor profile from its installed skill."""
+
+    try:
+        profile = json.loads(path.read_text(encoding="utf-8"))
+        destination = profile["destination"]
+        capabilities = profile["capabilities"]
+        mapping = profile["field_mapping"]
+        if (
+            not isinstance(profile, dict)
+            or set(profile) != {
+                "contract_version", "id", "version", "revision_field", "field_mapping",
+                "capabilities", "destination",
+            }
+            or profile.get("contract_version") != "tracker-refresh-profile.v1"
+            or profile.get("id") != LINEAR_PROFILE_ID
+            or profile.get("version") != LINEAR_PROFILE_VERSION
+            or not isinstance(profile.get("revision_field"), str)
+            or not isinstance(mapping, dict)
+            or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in mapping.items()
+            )
+            or not isinstance(capabilities, list)
+            or any(not isinstance(value, str) for value in capabilities)
+            or len(capabilities) != len(set(capabilities))
+            or "acquire" not in capabilities
+            or not isinstance(destination, dict)
+            or destination.get("scheme") != "https"
+            or not isinstance(destination.get("host"), str)
+            or not isinstance(destination.get("port"), int)
+            or destination.get("redirects") is not False
+            or destination.get("dns_policy") != "pinned-address"
+        ):
+            raise ValueError
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("invalid_refresh_profile") from exc
+    return cast(dict[str, Any], profile)
 
 
 def linear_refresh_registration(
@@ -219,14 +255,15 @@ def linear_refresh_registration(
     """Return the configured Linear refresh processor registration."""
 
     runtime = refresh_runtime or _load_refresh_runtime()
+    profile = load_refresh_profile()
     return runtime.ProcessorRegistration(
         name="linear-refresh",
-        profile_id=LINEAR_PROFILE_ID,
-        profile_version=LINEAR_PROFILE_VERSION,
-        capabilities=LINEAR_REFRESH_CAPABILITIES,
+        profile_id=profile["id"],
+        profile_version=profile["version"],
+        capabilities=frozenset(profile["capabilities"]),
         acquire=acquire,
-        revision_field="updatedAt",
-        field_mapping=(("Outcome", "title"), ("User stories", "description")),
+        revision_field=profile["revision_field"],
+        field_mapping=tuple(profile["field_mapping"].items()),
     )
 
 
@@ -378,15 +415,18 @@ def _resolved_proxy_addresses(host: str, port: int) -> frozenset[str]:
     """Resolve a configured proxy to one stable, non-empty address set."""
 
     try:
-        addresses = frozenset(
-            str(ipaddress.ip_address(item[4][0]))
-            for item in socket.getaddrinfo(host, port)
-        )
+        resolved = socket.getaddrinfo(host, port)
+        parsed = frozenset(ipaddress.ip_address(item[4][0]) for item in resolved)
     except (IndexError, OSError, TypeError, ValueError) as exc:
         raise httpx.TransportError("HTTPS proxy resolution failed") from exc
-    if not addresses:
+    if not parsed or any(
+        address.is_unspecified
+        or address.is_link_local
+        or str(address) == "169.254.169.254"
+        for address in parsed
+    ):
         raise httpx.TransportError("HTTPS proxy resolution failed")
-    return addresses
+    return frozenset(str(address) for address in parsed)
 
 
 def _https_proxy_settings(
@@ -401,8 +441,11 @@ def _https_proxy_settings(
         return None, None
     parsed = urlparse(proxy_url)
     default_ports = {"http": 80, "https": 443, "socks5": 1080, "socks5h": 1080}
+    scheme = parsed.scheme.lower()
+    if scheme not in default_ports:
+        raise httpx.TransportError("HTTPS proxy configuration is unsupported")
     try:
-        port = parsed.port or default_ports[parsed.scheme.lower()]
+        port = parsed.port or default_ports[scheme]
     except (KeyError, ValueError) as exc:
         raise httpx.TransportError("HTTPS proxy configuration is unsupported") from exc
     if (
@@ -585,6 +628,7 @@ class LinearRefreshProcessor:
         receipt_store: object | None = None,
     ) -> None:
         self._refresh = refresh_runtime or _load_refresh_runtime()
+        self._profile = load_refresh_profile()
         self._api_key_loader = api_key_loader
         self._graphql_transport = graphql_transport or self._default_transport
         self._resolver = resolver
@@ -606,10 +650,10 @@ class LinearRefreshProcessor:
     ) -> LinearWriteBackResult:
         """Execute one confirmed Linear mutation with fakeable transport."""
 
-        if action not in _LINEAR_REMOTE_ACTIONS:
+        if action not in set(self._profile["capabilities"]) - {"acquire"}:
             return LinearWriteBackResult("unsupported_capability", action, target=target)
         receipt_store = self._receipt_store
-        if not isinstance(receipt_store, self._refresh.RemoteReceiptStore):
+        if type(receipt_store) is not self._refresh.RemoteReceiptStore:
             return LinearWriteBackResult("receipt_store_required", action, target=target)
         if receipt_store.artifact_path != artifact_path:
             return LinearWriteBackResult("receipt_store_mismatch", action, target=target)
@@ -628,8 +672,8 @@ class LinearRefreshProcessor:
             binding = self._refresh.ConfirmationBinding(
                 artifact_path=artifact_path,
                 source_revision=source_revision,
-                profile_id=LINEAR_PROFILE_ID,
-                profile_version=LINEAR_PROFILE_VERSION,
+                profile_id=self._profile["id"],
+                profile_version=self._profile["version"],
                 destination=f"{pinned.scheme}://{pinned.host}:{pinned.port}",
                 action=action,
                 target=target,
@@ -711,17 +755,20 @@ class LinearRefreshProcessor:
         )
 
     def _validate_destination(self) -> object:
+        destination = self._profile["destination"]
         policy = self._refresh.DestinationPolicy(
-            schemes=frozenset({"https"}),
-            hosts=frozenset({"api.linear.app"}),
-            ports=frozenset({443}),
-            allow_redirects=False,
+            schemes=frozenset({destination["scheme"]}),
+            hosts=frozenset({destination["host"]}),
+            ports=frozenset({destination["port"]}),
+            allow_redirects=destination["redirects"],
             credentials_attached=True,
         )
         kwargs: dict[str, object] = {"policy": policy}
         if self._resolver is not None:
             kwargs["resolver"] = self._resolver
-        return self._refresh.validate_destination(GRAPHQL_URL, **kwargs)
+        return self._refresh.validate_destination(
+            f"{destination['scheme']}://{destination['host']}:{destination['port']}", **kwargs
+        )
 
     @staticmethod
     def _payload_for_action(
