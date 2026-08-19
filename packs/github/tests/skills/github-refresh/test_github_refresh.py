@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 import types
@@ -701,11 +702,16 @@ def test_github_refresh_registration_and_common_lifecycle_matrix(
 
 def test_github_metadata_is_least_privilege() -> None:
     body = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    frontmatter = body.split("---", 2)[1]
+    allowed_tools = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
 
-    assert "allowed-tools: Read Bash" in body
-    assert "network_fetch" in body
-    assert "filesystem_read_untrusted" in body
-    assert "filesystem_write" in body
+    assert allowed_tools is not None
+    assert allowed_tools.group(1) == "Read Bash"
+    assert set(re.findall(r"^    - (.+)$", frontmatter, re.MULTILINE)) == {
+        "network_fetch",
+        "filesystem_read_untrusted",
+        "filesystem_write",
+    }
     assert "credentialed: true" in body
     assert "primitive-class: credentialed-cli" in body
     assert "auth: cli" in body

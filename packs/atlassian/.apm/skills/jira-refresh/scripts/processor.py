@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 from contextlib import suppress
 from dataclasses import dataclass, replace
@@ -232,13 +233,13 @@ async def write_back(
     try:
         if action == "comment":
             await client.add_comment(
-                target, str(canonical_payload["body"]), guarded_write=True
+                target, str(canonical_payload["body"]), guarded_write=receipt
             )
         else:
             await client.transition_issue(
                 target,
                 transition_name=str(canonical_payload["transition"]),
-                guarded_write=True,
+                guarded_write=receipt,
             )
     except Exception:
         failed_receipt = replace(receipt, status="failed")
@@ -281,6 +282,8 @@ def _payload_for_action(
     target: str,
     payload: Mapping[str, object],
 ) -> Mapping[str, object]:
+    if re.fullmatch(r"[A-Z][A-Z0-9]{0,9}-[1-9][0-9]{0,11}", target) is None:
+        raise ValueError("invalid_remote_payload")
     if action == "comment":
         body = payload.get("body")
         if not isinstance(body, str) or not body:

@@ -2269,11 +2269,11 @@ def _authority_status_for_entry(
     profile = entry.source.tracker_profile
     refresh_available: bool | str = "unknown"
     write_back_available: bool | str = "unknown"
-    if profile is None:
+    if profile is None or entry.source.mode == "repo-origin":
+        # No resolved profile, or a repo-origin entry that is definitionally
+        # write-back incapable. Neither can report availability as True.
         refresh_available = False
         write_back_available = False
-    elif entry.source.mode == "repo-origin":
-        refresh_available = False
     elif metadata is not None and metadata.status in {
         "Implementing",
         "Executing",

@@ -43,6 +43,7 @@ import httpx
 
 if TYPE_CHECKING:
     from _sso_config import SsoConfig
+    from agentbundle._data.work_intake_refresh import RemoteActionReceipt
 
 log = logging.getLogger("jira.client")
 
@@ -681,6 +682,26 @@ class JiraClient:
     def api_prefix(self) -> str:
         return self._api
 
+    def _guarded_write_matches(
+        self,
+        receipt: RemoteActionReceipt | None,
+        method: str,
+        path: str,
+    ) -> bool:
+        """Accept only the durable pending receipt for this exact endpoint."""
+
+        if receipt is None or receipt.status != "pending" or method.upper() != "POST":
+            return False
+        target = receipt.target
+        if not isinstance(target, str) or not target:
+            return False
+        if receipt.action == "comment":
+            return path == f"{self._api}/issue/{target}/comment"
+        return (
+            receipt.action in {"display-status", "closure"}
+            and path == f"{self._api}/issue/{target}/transitions"
+        )
+
     # --- low-level request -------------------------------------------------
 
     async def _request(
@@ -693,7 +714,7 @@ class JiraClient:
         files: Mapping[str, Any] | None = None,
         extra_headers: Mapping[str, str] | None = None,
         idempotent: bool | None = None,
-        guarded_write: bool = False,
+        guarded_write: RemoteActionReceipt | None = None,
     ) -> httpx.Response:
         if files is not None and json_body is not None:
             # Caller bug: httpx would silently drop the JSON body in favor
@@ -718,14 +739,14 @@ class JiraClient:
         if (
             self._intake_policy is not None
             and not is_idempotent
-            and not guarded_write
+            and not self._guarded_write_matches(guarded_write, method, path)
         ):
             raise JiraError("tracker intake is read-only; request refused")
 
         async with self._sem:
             last_exc: Exception | None = None
             last_status: int | None = None
-            attempts = 1 if guarded_write else (
+            attempts = 1 if guarded_write is not None else (
                 self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES
@@ -1008,7 +1029,7 @@ class JiraClient:
         transition_id: str | None = None,
         transition_name: str | None = None,
         fields: Mapping[str, Any] | None = None,
-        guarded_write: bool = False,
+        guarded_write: RemoteActionReceipt | None = None,
     ) -> None:
         if not transition_id and not transition_name:
             raise ValueError("transition_id or transition_name is required")
@@ -1039,7 +1060,11 @@ class JiraClient:
         )
 
     async def add_comment(
-        self, issue_key: str, body_text: str, *, guarded_write: bool = False
+        self,
+        issue_key: str,
+        body_text: str,
+        *,
+        guarded_write: RemoteActionReceipt | None = None,
     ) -> dict:
         if self._flavor == FLAVOR_CLOUD:
             payload = {"body": _adf_paragraph(body_text)}

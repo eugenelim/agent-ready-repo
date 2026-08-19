@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import json
+import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -398,9 +399,12 @@ def test_durable_receipt_store_preserves_confirmed_comment_payload(
     )
 
     assert result.code == "succeeded"
-    assert client.calls == [
-        ("add_comment", (target, "Reviewed trace."), {"guarded_write": True})
-    ]
+    assert len(client.calls) == 1
+    method, args, kwargs = client.calls[0]
+    receipt = kwargs["guarded_write"]
+    assert (method, args) == ("add_comment", (target, "Reviewed trace."))
+    assert receipt.status == "pending"
+    assert (receipt.action, receipt.target) == ("comment", target)
 
 
 def test_subclassed_receipt_store_is_refused_before_adapter_call(
@@ -607,9 +611,15 @@ def test_skill_metadata_is_least_privilege() -> None:
     body = (ROOT / "packs/atlassian/.apm/skills/jira-refresh/SKILL.md").read_text(
         encoding="utf-8"
     )
-    assert "allowed-tools: Read Bash" in body
-    assert "- network_fetch" in body
-    assert "- filesystem_read_untrusted" in body
+    frontmatter = body.split("---", 2)[1]
+    allowed_tools = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
+    assert allowed_tools is not None
+    assert allowed_tools.group(1) == "Read Bash"
+    assert set(re.findall(r"^    - (.+)$", frontmatter, re.MULTILINE)) == {
+        "network_fetch",
+        "filesystem_read_untrusted",
+        "filesystem_write",
+    }
     assert "credentialed: true" in body
     assert "auth: sso-cookie" in body
     assert "auth-fallback: creds" in body

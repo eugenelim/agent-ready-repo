@@ -33,6 +33,7 @@
         "invalid_target",
         "local_field_locked",
         "local_write_failed",
+        "local_write_inconsistent",
         "lock_busy",
         "ownership_map_missing",
         "projection_drift",

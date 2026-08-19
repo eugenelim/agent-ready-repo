@@ -42,6 +42,7 @@ RESULT_CODES = frozenset(
         "invalid_target",
         "local_field_locked",
         "local_write_failed",
+        "local_write_inconsistent",
         "lock_busy",
         "ownership_map_missing",
         "projection_drift",
@@ -766,7 +767,11 @@ def _toml_string(value: object) -> str:
 
     if not isinstance(value, str):
         raise RefreshRefusal("invalid_source_authority")
-    return json.dumps(value, ensure_ascii=False)
+    if "\r" in value or "\n" in value:
+        raise RefreshRefusal("invalid_source_authority")
+    # TOML basic strings reject raw DEL; ASCII escapes preserve every Unicode
+    # value while keeping the rendered authority record parseable.
+    return json.dumps(value, ensure_ascii=True)
 
 
 def _toml_key(value: str) -> str:
@@ -1208,6 +1213,26 @@ def _address_is_forbidden(address: str) -> bool:
     networks = _FORBIDDEN_V4 if parsed.version == 4 else _FORBIDDEN_V6
     if isinstance(parsed, ipaddress.IPv6Address) and parsed.ipv4_mapped is not None:
         return any(parsed.ipv4_mapped in network for network in _FORBIDDEN_V4)
+    if isinstance(parsed, ipaddress.IPv6Address):
+        numeric = int(parsed)
+        embedded_v4: list[ipaddress.IPv4Address] = []
+        if parsed in ipaddress.ip_network("64:ff9b::/96"):
+            embedded_v4.append(ipaddress.IPv4Address(numeric & 0xFFFFFFFF))
+        if parsed in ipaddress.ip_network("2002::/16"):
+            embedded_v4.append(ipaddress.IPv4Address((numeric >> 80) & 0xFFFFFFFF))
+        if parsed in ipaddress.ip_network("2001::/32"):
+            embedded_v4.extend(
+                (
+                    ipaddress.IPv4Address((numeric >> 64) & 0xFFFFFFFF),
+                    ipaddress.IPv4Address((~numeric) & 0xFFFFFFFF),
+                )
+            )
+        if any(
+            candidate in network
+            for candidate in embedded_v4
+            for network in _FORBIDDEN_V4
+        ):
+            return True
     return any(parsed in network for network in networks)
 
 
@@ -1337,6 +1362,9 @@ def guarded_write_pair(
         try:
             lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
+            # Do not remove a stale-looking lock: its owner may still be
+            # committing the paired files. Recovery requires an operator.
+            print(f"work-intake refresh lock busy: {lock_path}", file=sys.stderr)
             return GuardedWriteResult("lock_busy")
         lock_acquired = True
         with suppress(OSError):
@@ -1403,7 +1431,9 @@ def guarded_write_pair(
                 staged_workspace.replace(workspace)
                 temp_paths.remove(staged_workspace)
         except OSError:
-            pass
+            # A failed rollback leaves the reviewed pair inconsistent.  Do
+            # not report this as the recoverable, clean-rollback outcome.
+            return GuardedWriteResult("local_write_inconsistent")
         return GuardedWriteResult("local_write_failed")
     finally:
         for path in temp_paths:

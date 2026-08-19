@@ -149,7 +149,13 @@ def _render_tracker_source_authority(source: NormalizedSourceLike) -> str:
 def _inline(value: str) -> str:
     """Make one untrusted value structurally inert inside Markdown."""
 
-    return _redact(re.sub(r"\s+", " ", value).strip())
+    rendered = _redact(re.sub(r"\s+", " ", value).strip())
+    # A tracker value occupies a whole Markdown line in the template. Escape
+    # a leading fence run so it cannot open a block before the trusted
+    # authority fence. A later run is prose, not a line-start Markdown fence.
+    if re.match(r"(?:`|~){3,}", rendered):
+        return "\\" + rendered
+    return rendered
 
 
 def _redact(value: str) -> str:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import json
+import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -176,10 +177,15 @@ def test_skill_metadata_preserves_credential_contract() -> None:
     body = (
         ROOT / "packs/atlassian/.apm/skills/jira-align-refresh/SKILL.md"
     ).read_text(encoding="utf-8")
-    assert "allowed-tools: Read Bash" in body
-    assert "- network_fetch" in body
-    assert "- filesystem_read_untrusted" in body
-    assert "- filesystem_write" in body
+    frontmatter = body.split("---", 2)[1]
+    allowed_tools = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
+    assert allowed_tools is not None
+    assert allowed_tools.group(1) == "Read Bash"
+    assert set(re.findall(r"^    - (.+)$", frontmatter, re.MULTILINE)) == {
+        "network_fetch",
+        "filesystem_read_untrusted",
+        "filesystem_write",
+    }
     assert "credentialed: true" in body
     assert "namespace: jiraalign" in body
 

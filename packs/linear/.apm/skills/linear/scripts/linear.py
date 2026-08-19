@@ -128,7 +128,6 @@ class LinearWriteBackResult:
         self.action = action
         self.target = target
         self.payload_digest = payload_digest
-        self.payload: dict[str, object] = {}
         self.transport_calls = transport_calls
         self.receipt = receipt or {}
 

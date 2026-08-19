@@ -197,6 +197,10 @@ class GithubRefreshProcessor:
     ) -> GithubWriteBackResult:
         """Execute one confirmed GitHub mutation with a fakeable command runner."""
 
+        receipt = None
+        argv = None
+        payload_digest = None
+        command_called = False
         try:
             if tracker_host is not None:
                 raise GithubRefreshPolicyError("untrusted_github_host")
@@ -248,21 +252,26 @@ class GithubRefreshProcessor:
                 receipt_store.record(receipt)
             except Exception:
                 return GithubWriteBackResult("pending_receipt_failed", action)
-            self._runner(
-                list(argv),
-                input=stdin_data.encode("utf-8") if stdin_data is not None else None,
-                check=True,
-                capture_output=True,
-                text=False,
-                shell=False,
-                timeout=30,
-            )
+            try:
+                self._runner(
+                    list(argv),
+                    input=stdin_data.encode("utf-8") if stdin_data is not None else None,
+                    check=True,
+                    capture_output=True,
+                    text=False,
+                    shell=False,
+                    timeout=30,
+                )
+                command_called = True
+            except subprocess.SubprocessError:
+                command_called = True
+                raise
         except (GithubRefreshPolicyError, self._refresh.RefreshRefusal) as exc:
             return GithubWriteBackResult(str(exc), action, target=target)
         except (SystemExit, Exception):  # noqa: BLE001  # subprocess boundary
             failed = {}
             code = "remote_action_failed"
-            if "receipt" in locals():
+            if receipt is not None:
                 failed_receipt = replace(receipt, status="failed")
                 try:
                     receipt_store.record(failed_receipt)
@@ -274,9 +283,9 @@ class GithubRefreshProcessor:
                 code,
                 action,
                 target=target,
-                payload_digest=payload_digest if "payload_digest" in locals() else None,
-                argv=argv if "argv" in locals() else [],
-                command_calls=1 if "receipt" in locals() else 0,
+                payload_digest=payload_digest,
+                argv=argv or [],
+                command_calls=1 if command_called else 0,
                 receipt=failed,
             )
         succeeded_receipt = replace(receipt, status="succeeded")

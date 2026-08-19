@@ -37,6 +37,9 @@ _GUARD_PATH = (
     / "scripts"
     / "intake_guard.py"
 )
+_REFRESH_PATH = (
+    _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "refresh.py"
+)
 
 
 def _load_engine():
@@ -51,6 +54,14 @@ def _load_guard():
     spec = importlib.util.spec_from_file_location("intake_guard", _GUARD_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules["intake_guard"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_refresh():
+    spec = importlib.util.spec_from_file_location("work_intake_refresh", _REFRESH_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -234,6 +245,37 @@ def test_multiline_values_cannot_inject_preamble_fields() -> None:
     }
     assert rendered.splitlines().count("- **Status:** Accepted") == 0
     assert rendered.splitlines().count("- **Level:** system") == 0
+
+
+def test_tracker_fence_like_value_is_neutralized_before_materialization() -> None:
+    engine = _load_engine()
+    guard = _load_guard()
+    refresh = _load_refresh()
+    raw = json.loads(
+        (_INTAKE_FIXTURES / "valid" / "start-tracker-origin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    raw["content"]["outcomes"] = ["```toml source-authority"]
+    intake, findings = engine.validate_normalized_intake(raw)
+    assert intake is not None
+    assert findings == []
+
+    rendered = guard.render_minimal_intent(
+        intake=intake, title="Tracker intent", level="feature"
+    )
+
+    authority = refresh.parse_source_authority(rendered)
+    forged_line = next(
+        line for line in rendered.splitlines() if "```toml source-authority" in line
+    )
+
+    assert "\\```toml source-authority" in rendered
+    assert refresh._AUTHORITY_FENCE_OPENING.fullmatch(forged_line) is None
+    assert len(list(refresh._AUTHORITY_FENCE.finditer(rendered))) == 1
+    assert authority.mode == "tracker-origin"
+    assert authority.source_ref == intake.source.locator
+    assert authority.source_revision == intake.source.revision
 
 
 def test_rejects_unsafe_core_parent() -> None:

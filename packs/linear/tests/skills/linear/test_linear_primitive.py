@@ -599,7 +599,6 @@ class TestLinearRefreshProcessor:
 
         assert result.action == "comment"
         assert result.code == "remote_action_succeeded"
-        assert result.payload == {}
         assert result.payload_digest == refresh_mod.canonical_payload_digest(
             {"issue_id": "lin-1", "body": "Looks good"}
         )
@@ -636,7 +635,6 @@ class TestLinearRefreshProcessor:
         )
 
         assert result.code == "unsupported_capability"
-        assert result.payload == {}
         assert result.transport_calls == 0
 
     def test_linear_rejects_confirmation_reuse(
@@ -863,7 +861,6 @@ class TestLinearRefreshProcessor:
 
         assert result.code == "fingerprint_mismatch"
         assert result.transport_calls == 0
-        assert result.payload == {}
         assert "sensitive tracker content" not in repr(result.__dict__)
         assert events == []
 

@@ -21,7 +21,10 @@ class RefreshRequest(Protocol):
 
     artifact_path: str
     artifact_kind: str
+    lifecycle: str
     authority_mode: str
+    current_revision: str
+    compared_revision: str
     profile_id: str
     profile_version: str
 
@@ -197,6 +200,36 @@ def invoke_refresh(
             invocation.code,
             "retry-or-repair-configured-refresh-processor",
             invocation,
+        )
+    comparison = getattr(invocation, "comparison", None)
+    expected_comparison = (
+        request.artifact_path,
+        request.artifact_kind,
+        request.lifecycle,
+        request.authority_mode,
+        request.current_revision,
+        request.compared_revision,
+        request.profile_id,
+        request.profile_version,
+    )
+    actual_comparison = tuple(
+        getattr(comparison, name, None)
+        for name in (
+            "artifact_path",
+            "artifact_kind",
+            "lifecycle",
+            "authority_mode",
+            "current_revision",
+            "compared_revision",
+            "profile_id",
+            "profile_version",
+        )
+    )
+    if comparison is None or actual_comparison != expected_comparison:
+        return RefreshFrontDoorResult(
+            route,
+            "invalid-refresh-request",
+            "repair-refresh-request-profile",
         )
     return RefreshFrontDoorResult(route, "completed", "none", invocation)
 

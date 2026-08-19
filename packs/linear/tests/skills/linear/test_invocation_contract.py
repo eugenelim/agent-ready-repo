@@ -124,14 +124,19 @@ def test_runtime_help_uses_the_resolved_entry() -> None:
 
 def test_linear_refresh_metadata_is_least_privilege() -> None:
     skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    assert "allowed-tools: Read Bash" in skill
+    frontmatter = skill.split("---", 2)[1]
+    allowed_tools = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
+    assert allowed_tools is not None
+    assert allowed_tools.group(1) == "Read Bash"
+    assert set(re.findall(r"^    - (.+)$", frontmatter, re.MULTILINE)) == {
+        "network_fetch",
+        "filesystem_read_untrusted",
+        "filesystem_write",
+    }
     assert "credentialed: true" in skill
     assert "auth: creds" in skill
     assert "namespace: linear" in skill
     assert 'keys: ["API_KEY"]' in skill
-    assert "network_fetch" in skill
-    assert "filesystem_read_untrusted" in skill
-    assert "filesystem_write" in skill.split("---", 2)[1]
 
 
 def test_linear_brief_sync_is_compatibility_wrapper() -> None:
@@ -144,7 +149,6 @@ def test_linear_brief_sync_is_compatibility_wrapper() -> None:
     assert "delegates refresh authority" in compact
     assert "configured `work-intake` Linear refresh processor" in compact
     assert "does not own a separate lifecycle or authority model" in compact
-    assert "allowed-tools: Read Bash" in skill
     assert "Invoke `work-intake` by its skill name" in skill
     for private_sync_instruction in (
         "linear: get-issue",

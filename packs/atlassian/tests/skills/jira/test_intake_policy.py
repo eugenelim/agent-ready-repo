@@ -56,6 +56,7 @@ def test_policy_rejects_scheme_host_and_credential_mismatch() -> None:
         flavor="server",
         email=None,
     )
+
     with pytest.raises(client_module.AuthError):
         client_module.JiraClient(credentials, intake_policy=policy)
 
@@ -104,6 +105,20 @@ def test_policy_disables_redirects_and_refuses_writes(monkeypatch) -> None:
 
 def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
     client_module = _load_client()
+    from agentbundle._data.work_intake_refresh import RemoteActionReceipt
+
+    pending_receipt = RemoteActionReceipt(
+        "confirmation-1",
+        "a" * 64,
+        "1.0",
+        "b" * 64,
+        "approver@example.com",
+        "maintainer",
+        "2026-08-17T12:00:00Z",
+        "current-human-session",
+        "comment",
+        "EX-1",
+    )
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -138,7 +153,9 @@ def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
         ) as client:
             with pytest.raises(client_module.JiraError, match="Exhausted 1 attempts"):
                 await client._request(
-                    "POST", "/rest/api/2/issue/EX-1/comment", guarded_write=True
+                    "POST",
+                    "/rest/api/2/issue/EX-1/comment",
+                    guarded_write=pending_receipt,
                 )
 
     asyncio.run(exercise())
