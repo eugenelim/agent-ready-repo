@@ -166,8 +166,11 @@ async def write_back(
         return WriteBackResult("unsupported_capability", action, target)
     if action not in set(profile["capabilities"]) - {"acquire"}:
         return WriteBackResult("unsupported_capability", action, target)
-    if getattr(client, "_auth_mode", None) != "creds":
+    auth_mode = getattr(client, "_auth_mode", None)
+    if auth_mode == "sso-cookie":
         return WriteBackResult("sso_cookie_write_refused", action, target)
+    if auth_mode != "creds":
+        return WriteBackResult("unsupported_auth_mode", action, target)
     client_policy = getattr(client, "_intake_policy", None)
     if client_policy is None:
         return WriteBackResult("guarded_write_client_required", action, target)

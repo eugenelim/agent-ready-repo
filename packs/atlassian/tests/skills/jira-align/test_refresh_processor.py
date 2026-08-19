@@ -40,7 +40,8 @@ def processor():
 
 
 class FakeJiraAlignClient:
-    calls: list[object] = []
+    def __init__(self) -> None:
+        self.calls: list[object] = []
 
 
 def test_registers_read_refresh_profile_and_no_write_capabilities(processor, refresh) -> None:
@@ -117,7 +118,7 @@ def test_jira_align_undeclared_action_is_refused(processor) -> None:
     )
     assert result.code == "unsupported_capability"
     assert result.payload is None
-    assert result.transport_calls == 0
+    assert client.calls == []
 
 
 def test_destination_guard_runs_before_request(processor, refresh) -> None:

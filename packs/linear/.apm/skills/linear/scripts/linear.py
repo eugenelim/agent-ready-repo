@@ -35,7 +35,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, Iterable, Mapping, cast
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 from urllib.request import proxy_bypass
 
 if __package__ in (None, "") and __spec__ is None:
@@ -205,6 +205,28 @@ def _load_refresh_runtime() -> ModuleType:
     spec.loader.exec_module(module)  # type: ignore[union-attr]
     _REFRESH_RUNTIME = module
     return _REFRESH_RUNTIME
+
+
+def _trusted_https_url(value: str | None) -> bool:
+    """Accept a bounded, credential-free HTTPS URL for a coordination link."""
+
+    if not value or any(
+        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in value
+    ):
+        return False
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return bool(
+        parsed.scheme == "https"
+        and parsed.username is None
+        and parsed.password is None
+        and parsed.hostname is not None
+        and port is None
+        and parsed.path.startswith("/")
+    )
 
 
 def load_refresh_profile(path: Path = PROFILE_PATH) -> dict[str, Any]:
@@ -422,7 +444,10 @@ def _resolved_proxy_addresses(host: str, port: int) -> frozenset[str]:
     if not parsed or any(
         address.is_unspecified
         or address.is_link_local
-        or str(address) == "169.254.169.254"
+        # A proxy may legitimately be private, loopback, or multicast on a
+        # corporate network. The IPv6 metadata endpoint is unique-local, so
+        # rejecting its category would over-reject legitimate proxy hops.
+        or str(address) in {"169.254.169.254", "fd00:ec2::254"}
         for address in parsed
     ):
         raise httpx.TransportError("HTTPS proxy resolution failed")
@@ -783,7 +808,10 @@ class LinearRefreshProcessor:
             return None
         if action == "comment" and body:
             return {"issue_id": target, "body": body}
-        if action in {"trace-link", "pull-request-link"} and url:
+        if (
+            action in {"trace-link", "pull-request-link"}
+            and _trusted_https_url(url)
+        ):
             title = "Pull request" if action == "pull-request-link" else "Trace link"
             return {"issue_id": target, "url": url, "title": title}
         if action == "display-status" and status:

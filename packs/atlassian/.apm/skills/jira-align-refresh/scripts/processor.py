@@ -29,7 +29,6 @@ class WriteBackResult:
     action: str
     target: str
     payload: object | None = None
-    transport_calls: int = 0
 
 
 def _load_refresh_runtime() -> Any:
@@ -149,17 +148,4 @@ async def write_back(
 ) -> WriteBackResult:
     """Fail closed until Jira Align has narrow write-back commands."""
 
-    return WriteBackResult(
-        "unsupported_capability",
-        action,
-        target,
-        transport_calls=_transport_calls(client),
-    )
-
-
-def _transport_calls(client: object) -> int:
-    calls = getattr(client, "calls", ())
-    try:
-        return len(calls)
-    except TypeError:
-        return 0
+    return WriteBackResult("unsupported_capability", action, target)

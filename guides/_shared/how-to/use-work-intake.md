@@ -61,6 +61,14 @@ source_revision = "rev-7"
 [owned_fields]
 ```
 
+Before the first refresh, populate `owned_fields` with every profile-mapped
+field and whether it is `source` or `local`; an empty map refuses with
+`ownership_map_missing` rather than guessing ownership.
+
+For Jira and Jira Align, set the installed refresh profile's destination to
+the same approved host as the local client before refresh. Profiles are trusted
+adopter configuration; tracker content cannot supply or alter them.
+
 ## Review the comparison
 
 Ask for the delta without a write:

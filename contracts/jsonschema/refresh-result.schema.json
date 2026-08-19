@@ -34,6 +34,7 @@
         "local_field_locked",
         "local_write_failed",
         "lock_busy",
+        "ownership_map_missing",
         "projection_drift",
         "ready",
         "shipped_requirements_locked",

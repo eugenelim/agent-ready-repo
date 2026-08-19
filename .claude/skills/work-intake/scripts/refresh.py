@@ -42,6 +42,7 @@ RESULT_CODES = frozenset(
         "local_field_locked",
         "local_write_failed",
         "lock_busy",
+        "ownership_map_missing",
         "projection_drift",
         "ready",
         "shipped_requirements_locked",
@@ -1002,9 +1003,12 @@ def evaluate_refresh(
         )
 
     changed_names = {change.name for change in comparison.changed_fields}
+    if any(name not in authority.owned_fields for name in changed_names):
+        return RefreshResult(
+            "ownership_map_missing", "completed", local_mutation="refused"
+        )
     if (
         len(changed_names) != len(comparison.changed_fields)
-        or any(name not in authority.owned_fields for name in changed_names)
         or set(decisions) != changed_names
         or any(
         value not in _DECISIONS for value in decisions.values()

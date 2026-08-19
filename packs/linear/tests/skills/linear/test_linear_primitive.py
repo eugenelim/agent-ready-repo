@@ -404,7 +404,10 @@ class TestIntakeAcquisitionContract:
             frozenset({"192.0.2.20", "192.0.2.21"}),
         )
 
-    @pytest.mark.parametrize("address", ["0.0.0.0", "169.254.169.254"])
+    @pytest.mark.parametrize(
+        "address",
+        ["0.0.0.0", "169.254.169.254", "fe80::1", "fd00:ec2::254"],
+    )
     def test_proxy_metadata_or_unspecified_address_is_refused_redacted(
         self,
         linear_mod: types.ModuleType,

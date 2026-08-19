@@ -92,10 +92,23 @@ def _recording_acquirer(
 )
 def test_all_tracker_profiles_share_the_same_lifecycle_matrix(
     refresh,
+    router,
     lifecycle: str,
     expected_local_mutation: str,
 ) -> None:
-    registry = _registered_profiles(refresh)
+    calls: list[tuple[str, str]] = []
+    raw: dict[str, object] = {
+        "locator": "tracker:item-1",
+        "type": "work-item",
+        "updatedAt": "remote-rev-2",
+        "updated": "remote-rev-2",
+        "modifiedDate": "remote-rev-2",
+        "title": "source Outcome",
+        "summary": "source Outcome",
+        "description": "local User stories",
+        "body": "local User stories",
+    }
+    registry = _registered_profiles(refresh, _recording_acquirer(raw, calls))
     policy = refresh.RefreshAuthorizationPolicy(
         draft_approver_roles=("product",),
         accepted_approver_roles=("product",),
@@ -123,20 +136,39 @@ def test_all_tracker_profiles_share_the_same_lifecycle_matrix(
             ),
         )
         registration = registry.resolve(profile_id, "1.0", "acquire")
-        result = refresh.evaluate_refresh(
-            comparison=refresh.RefreshComparison(
-                artifact_path="docs/product/briefs/example.md",
-                artifact_kind="brief",
+        local_fields = {
+            canonical_field: f"local {canonical_field}"
+            for canonical_field, _source_field in registration.field_mapping
+        }
+        signals = router.RoutingSignals(
+            action="refresh",
+            artifact="docs/product/briefs/example.md",
+            artifact_kind="brief",
+            authority_mode="tracker-origin",
+            profile_id=profile_id,
+            profile_version="1.0",
+        )
+        invocation = router.invoke_refresh(
+            signals,
+            registry,
+            refresh.RefreshAcquisitionRequest(
+                artifact_path=signals.artifact,
+                artifact_kind=signals.artifact_kind,
                 lifecycle=lifecycle,
-                authority_mode="tracker-origin",
+                authority_mode=signals.authority_mode,
+                source_ref="tracker:item-1",
                 current_revision="remote-rev-1",
                 compared_revision="remote-rev-2",
-                profile_id=registration.profile_id,
-                profile_version=registration.profile_version,
-                changed_fields=(
-                    refresh.ChangedField("Outcome", "local outcome", "source outcome"),
-                ),
+                profile_id=profile_id,
+                profile_version="1.0",
+                local_fields=local_fields,
             ),
+        )
+        assert invocation.code == "completed", profile_id
+        assert calls == [("tracker:item-1", "remote-rev-2")], profile_id
+        calls.clear()
+        result = refresh.evaluate_refresh(
+            comparison=invocation.invocation.comparison,
             authority=authority,
             policy=policy,
             approver=approver,

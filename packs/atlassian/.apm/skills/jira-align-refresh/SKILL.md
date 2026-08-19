@@ -22,4 +22,8 @@ refresh support is read acquisition only; write-back actions remain
 unsupported because the Jira Align client exposes generic record updates rather
 than narrow trace, pull-request, status, comment, or closure commands.
 
+The installed `references/refresh-profile.json` is adopter configuration for
+the trusted Jira Align destination. Set it to the approved local client host;
+tracker data cannot change it.
+
 Unsupported actions refuse before payload construction or transport use.

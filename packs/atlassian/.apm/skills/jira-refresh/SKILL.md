@@ -22,6 +22,11 @@ runtime has resolved the artifact, lifecycle, authority record, approver, and
 confirmation. It does not create artifacts, classify tracker content, or select
 processors.
 
+The installed `references/refresh-profile.json` is adopter configuration for
+the trusted Jira destination. Set its destination to the same approved host
+used by the local Jira client before enabling refresh; tracker data cannot
+change it.
+
 Supported write-back is limited to existing Jira client commands:
 
 - `comment` uses `add_comment`.
