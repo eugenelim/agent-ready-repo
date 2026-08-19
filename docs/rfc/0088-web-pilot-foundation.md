@@ -1541,6 +1541,67 @@ grants every root, and the partitioning silently does nothing. This was measured
 not anticipated — the first fixture had exactly that layout and reported the
 confinement failing when the grant had swallowed it.
 
+### D / item 6: the accepted risk is per-GROUP, not per-destination — 2026-08-19
+
+**Amendment.** The 2026-08-18 disposition scoped item 6's accepted risk to a
+*destination*. Measurement shows the smallest unit that can carry the requirement is
+a **group of destinations sharing one profile**, so the disposition is amended to
+per-group. Item 6 remains an accepted risk; only the unit changes.
+
+**Why the destination is the wrong unit.** The requirement's two clauses live at
+different layers. **Block** is a per-context option and does scope per destination —
+by partitioning destinations across separate browser contexts, which is what round
+12's arm D measured, recording `sharedSessionDemonstrated: false` because contexts
+also isolate cookies and storage. **Purge** operates on `Default/Service Worker`, a
+single profile-level directory: destinations register into one shared store, and
+purging for one removes it for all. Contexts partition the block; they do not
+partition an on-disk store. So one policy cannot decide both halves at destination
+granularity.
+
+**The consequence, stated because it is the decision-relevant part.** Within a
+group, **the weakest member sets the policy**. If any destination in a session group
+requires service workers, the whole group runs with workers permitted, because purge
+cannot exempt one member. A vendor that reuses shared session mechanisms across its
+digital properties therefore yields coarse groups: a mail surface that demonstrably
+does not need a worker still runs with workers permitted if a collaboration surface
+in the same group does. Item 6 then protects very little of that group — not because
+the control fails, but because grouping forces the union of its members' needs.
+
+**How groups should be drawn.** By which destinations genuinely must share a
+sign-in, not by product or vendor. Splitting a worker-dependent destination into its
+own group restores full item-6 protection for the rest. **Unmeasured:** whether a
+group can be split without costing an additional interactive sign-in. Round 12's
+spike A showed profile-bound re-attach works, and spike E showed a fresh profile does
+require a real sign-in, which suggests each additional group costs one. That figure
+decides whether splitting is cheap or expensive and is not yet measured.
+
+### D / item 6: post-authentication re-attach does NOT require a service worker — 2026-08-19
+
+The residual `rfc0088-post-auth-sso-worker-dependency` is **closed**. It asked
+whether *post*-authentication silent re-attach depends on a service worker; if it
+did, workers would have to be permitted on that destination and item 6 would cover
+almost nothing.
+
+It does not. Measured against a live account under the named exception recorded in
+the round-12 spec: a lived profile carried its session marker identically with
+workers allowed and with workers blocked, and both re-attach runs carried the session
+with **zero** worker registrations present. Two controls held — two independent
+never-signed-in profiles showed zero drift, and the attended phase required an
+observed transition rather than a state, so it could not pass had no sign-in
+occurred.
+
+Taken with the front-door probe (an identity provider's sign-in surface registers no
+worker) and round 11's taxonomy (a mail-class surface renders byte-identically
+without one), **suppression does not break the credential lifecycle**. The concern
+that blocking workers would break re-authentication on a 14-90 day cycle does not
+materialise.
+
+**Bounds.** One destination, one device, one point in time, one tenant. The arm is
+an exploratory spike and is **not promoted evidence**. A first attempt was discarded
+as INVALID rather than reported: it inferred authentication from the absence of a
+password field, which that destination does not show when signed out, so its control
+could not fail and its attended phase never waited for the operator.
+
 ### Provenance carries a numeric uid — examined and retained, 2026-08-19
 
 **Disposition.** An independent reviewer flagged `"uid"` in every artifact's

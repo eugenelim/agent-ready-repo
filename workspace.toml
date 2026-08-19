@@ -1109,13 +1109,21 @@ open = [
   # worker. Round 12 bounds it further by enumerating which profile stores the
   # item-6 purge removes. Unblocks when: an approver authorises a credentialed arm,
   # or the pilot answers it for its own destination during rollout.
-  {slug = "rfc0088-post-auth-sso-worker-dependency", source = "rfc/0088 open question 4"},
   # Round 11 accepted, and no measured control closes, the exposure that any
   # same-uid process can attach to the browser's unconfined bind endpoint. Round 12
   # measures whether a second OS user closes it (the cheap alternative to
   # containerising, which round 10 showed costs the renderer sandbox without
   # SYS_ADMIN). Unblocks when: round 12 T4 runs, which needs a second local account.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
+  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP: the
+  # purge clause operates on a profile-level store, so destinations sharing a
+  # profile share worker policy and the weakest member sets it. What is NOT
+  # measured is whether a group can be split without costing an additional
+  # interactive sign-in -- spike A showed profile-bound re-attach works and spike E
+  # showed a fresh profile needs a real sign-in, which suggests one sign-in per
+  # group. That figure decides whether splitting is cheap or expensive.
+  # Unblocks when: a spike measures the per-group sign-in cost.
+  {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
   # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
   # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
   # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
