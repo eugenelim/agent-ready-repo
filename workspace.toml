@@ -2226,19 +2226,15 @@ open = [
 
   # spec/okf-authoring-projection AC22. The AC asks for two WRITE-mode compiles
   # producing byte-identical managed trees on Linux and Windows CI plus a local
-  # macOS run. Two measured facts make that unsatisfiable as written:
-  #   1. Windows cannot write at all. _apply_outputs_transactionally refuses with
-  #      OKF010 "safe managed output writes are unavailable on this platform"
-  #      because os.supports_dir_fd is empty there; the dir-fd confinement is a
-  #      deliberate security control, not a portability bug.
-  #   2. `core` cannot write on ANY platform. Its managed directory
-  #      packs/core/.apm/skills/security-checklists/ also holds 11 hand-authored
-  #      references/*.md that RFC-0087 deliberately retains for current
-  #      orchestrator loading, and the ownership guard refuses to take over a
-  #      directory holding files it does not manage (OKF010 ownership conflict).
+  # macOS run. Windows cannot write at all: _apply_outputs_transactionally
+  # refuses with OKF010 "safe managed output writes are unavailable on this
+  # platform" because os.supports_dir_fd is empty there. The dir-fd confinement
+  # is a deliberate security control, not a portability bug. Core's former
+  # ownership conflict was repaired; it now succeeds and is idempotent in write
+  # mode on macOS alongside _okf-pilot-cost-engineering.
   # Measured 2026-08-18 on macOS 25.5.0 arm64 / CPython 3.13.13: two write-mode
-  # compiles of _okf-pilot-cost-engineering are byte-identical; `core` write mode
-  # refuses both times; check mode is clean for both packs.
+  # compiles of both callers are byte-identical; check mode is clean for both
+  # packs.
   # Fix: amend AC22 to state that check mode (re-render + committed-byte
   #   comparison) is the evidence wherever write mode is unavailable, and say
   #   which packs and platforms that covers — alongside the AC26/AC27 amendment,
@@ -3012,6 +3008,7 @@ backlog = []
 
 ["ini-007".work]
 active  = [
+  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
 ]
 shipped = [
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
@@ -3070,9 +3067,6 @@ shipped = [
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
-  # RFC-0087 authoring pilot. Catalogue discovery has shipped; the authoring
-  # experiment remains active pending its model and maintainer exercise gates.
-  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
 
   # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
   # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and
