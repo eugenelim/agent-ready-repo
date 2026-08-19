@@ -88,6 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SSO-cookie writes remain zero-wire refusals. Jira Align supports local
   reviewed refresh and truthfully declares remote write-back unavailable.
 
+#### Changed
+
+- **Existing token-authenticated Jira writes retain their configured transient
+  failure retry budget.** The reviewed refresh path temporarily enables the
+  guarded write policy only after its pending receipt is durable, then restores
+  the read-only policy; SSO-cookie writes remain refused before transport.
+
 ### [core][2.7.1] — 2026-08-17
 
 #### Added

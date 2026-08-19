@@ -204,7 +204,7 @@ class GithubRefreshProcessor:
             if action not in _REMOTE_ACTIONS:
                 return GithubWriteBackResult("unsupported_capability", action, target=target)
             receipt_store = self._receipt_store
-            if type(receipt_store) is not self._refresh.RemoteReceiptStore:
+            if not self._refresh.is_remote_receipt_store(receipt_store):
                 return GithubWriteBackResult(
                     "receipt_store_required", action, target=target
                 )

@@ -138,7 +138,9 @@ def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
             intake_policy=policy,
         ) as client:
             with pytest.raises(client_module.JiraError, match="Exhausted 1 attempts"):
-                await client._request("POST", "/rest/api/2/issue/EX-1/comment")
+                await client._request(
+                    "POST", "/rest/api/2/issue/EX-1/comment", guarded_write=True
+                )
 
     asyncio.run(exercise())
     assert len(seen) == 1
@@ -228,6 +230,50 @@ def test_read_only_policy_permits_explicit_read_intent(
 
     asyncio.run(exercise())
     assert [request.method for request in seen] == [method]
+
+
+def test_existing_token_write_retries_transient_failure(monkeypatch) -> None:
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"}, request=request)
+        return httpx.Response(201, json={"id": "1"}, request=request)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(*args, **{**kwargs, "transport": transport}),
+    )
+
+    async def no_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE,
+        "https://tracker.example.test",
+        resolver=_public_resolver,
+        allow_write=True,
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="cloud",
+        email="user@example.test",
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(credentials, intake_policy=policy) as client:
+            await client.add_comment("EX-1", "Reviewed")
+
+    asyncio.run(exercise())
+    assert len(seen) == 2
+    assert all(request.method == "POST" for request in seen)
 
 
 def test_read_only_policy_refuses_non_idempotent_post(monkeypatch) -> None:

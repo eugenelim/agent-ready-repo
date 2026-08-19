@@ -493,6 +493,20 @@ def test_pending_receipt_precedes_gh_and_failed_command_is_retry_safe(
     ).remote_actions
     assert durable[-1]["status"] == "failed"
 
+    retry = processor.write(
+        action="comment",
+        target="101",
+        body="Looks good",
+        artifact_path="docs/product/briefs/example.md",
+        source_revision="remote-rev-2",
+        policy=_policy(refresh_mod),
+        confirmation=_confirmation(refresh_mod, confirmation_id="confirm-2"),
+        now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+
+    assert retry.code == "remote_action_failed"
+    assert retry.command_calls == 1
+
 
 def test_pending_receipt_failure_runs_no_command(
     github_mod: types.ModuleType, refresh_mod: types.ModuleType, tmp_path: Path

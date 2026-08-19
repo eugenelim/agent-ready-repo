@@ -64,6 +64,18 @@ def test_every_coordinator_result_code_has_a_schema_valid_refusal_shape() -> Non
         validator.validate(refresh.RefreshResult(code, "not-started").as_record())
 
 
+def test_remote_receipt_store_rejects_spoofed_subclass() -> None:
+    refresh = _load_refresh()
+
+    class Evil(refresh.RemoteReceiptStore):
+        pass
+
+    Evil.__name__ = "RemoteReceiptStore"
+    Evil.__qualname__ = "RemoteReceiptStore"
+    Evil.__module__ = refresh.__name__
+    assert not refresh.is_remote_receipt_store(Evil.__new__(Evil))
+
+
 def _authority_block(*, extra: str = "", duplicate: bool = False) -> str:
     block = f'''```toml source-authority
 contract_version = "source-authority.v1"
@@ -1217,16 +1229,25 @@ def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
 
 def test_coordinator_accepts_authority_after_changed_section(tmp_path: Path) -> None:
     refresh = _load_refresh()
-    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    fixture = _semantic_refresh_pair(refresh, tmp_path, decision="accept-source")
     authority = _authority_block()
     before = fixture["before_artifact"].decode().replace(authority, "") + authority
     proposed = fixture["proposed_artifact"].decode().replace(authority, "") + authority
+    proposed = proposed.replace("source\n", "a longer source outcome\n", 1)
+    fixture["comparison"] = refresh.RefreshComparison(
+        artifact_path="docs/specs/example/spec.md", artifact_kind="spec",
+        lifecycle="Approved", authority_mode="tracker-origin", current_revision="rev-1",
+        compared_revision="rev-2", profile_id="example-service", profile_version="1.0",
+        changed_fields=(
+            refresh.ChangedField("Outcome", "local", "a longer source outcome"),
+        ),
+    )
     fixture["artifact"].write_text(before, encoding="utf-8")
     result = refresh.coordinate_local_refresh(
         repository_root=fixture["repo"], comparison=fixture["comparison"],
         authority=refresh.parse_source_authority(before),
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
-        decisions={"Outcome": "revise-both"},
+        decisions={"Outcome": "accept-source"},
         expected_artifact_digest=refresh.digest_bytes(before.encode()),
         expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
         workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),

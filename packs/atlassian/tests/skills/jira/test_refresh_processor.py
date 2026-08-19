@@ -357,7 +357,9 @@ def test_durable_receipt_store_preserves_confirmed_comment_payload(
     )
 
     assert result.code == "succeeded"
-    assert client.calls == [("add_comment", (target, "Reviewed trace."), {})]
+    assert client.calls == [
+        ("add_comment", (target, "Reviewed trace."), {"guarded_write": True})
+    ]
 
 
 def test_subclassed_receipt_store_is_refused_before_adapter_call(

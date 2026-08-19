@@ -185,26 +185,25 @@ def test_make_build_check_passes_on_clean_tree(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_self_host_repairs_packaged_runtime_drift(tmp_path, monkeypatch):
+def test_self_host_repairs_packaged_runtime_drift(tmp_path):
     """The real-write self-host path restores a drifted bundled runtime.
 
-    The runtime-pair constant is rooted at the real repository, so rebind it
-    to a temporary pair.  This drives the production ``run_self_host`` write
-    path while ensuring the test cannot modify package source in this tree.
+    A temporary target tree exercises the production root-derived runtime
+    paths without allowing this test to modify package source in this tree.
     """
     import agentbundle.build.self_host as self_host_mod
     from agentbundle.build.contract import load as load_contract
-
-    source = tmp_path / "canonical-runtime.py"
-    bundled = tmp_path / "bundled-runtime.py"
-    source.write_text("CANONICAL = True\n", encoding="utf-8")
-    bundled.write_text("CANONICAL = False\n", encoding="utf-8")
-    monkeypatch.setattr(self_host_mod, "_RUNTIME_PROJECTIONS", ((source, bundled),))
 
     packs_shadow = tmp_path / "packs"
     shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
     workspace = tmp_path / "workspace"
     workspace.mkdir()
+    source = workspace / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    bundled = workspace / "packages/agentbundle/agentbundle/_data/work_intake_refresh.py"
+    source.parent.mkdir(parents=True)
+    bundled.parent.mkdir(parents=True)
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    bundled.write_text("CANONICAL = False\n", encoding="utf-8")
     (workspace / ".adapt-discovery.toml").write_text(
         'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
     )
@@ -227,14 +226,15 @@ def test_make_build_check_refuses_packaged_runtime_drift(tmp_path, monkeypatch, 
     """The check path detects, rather than repairs, a bundled runtime drift."""
     import agentbundle.build.self_host as self_host_mod
 
-    source = tmp_path / "canonical-runtime.py"
-    bundled = tmp_path / "bundled-runtime.py"
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    source = tmp_path / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    bundled = tmp_path / "packages/agentbundle/agentbundle/_data/work_intake_refresh.py"
+    source.parent.mkdir(parents=True)
+    bundled.parent.mkdir(parents=True)
     source.write_text("CANONICAL = True\n", encoding="utf-8")
     bundled.write_text("CANONICAL = False\n", encoding="utf-8")
-    monkeypatch.setattr(self_host_mod, "_RUNTIME_PROJECTIONS", ((source, bundled),))
 
     packs_dir = tmp_path / "packs"
-    packs_dir.mkdir()
     workspace = tmp_path / "workspace"
     workspace.mkdir()
 
@@ -242,6 +242,21 @@ def test_make_build_check_refuses_packaged_runtime_drift(tmp_path, monkeypatch, 
 
     assert rc != 0
     assert "packaged runtime drift" in capsys.readouterr().err
+
+
+def test_make_build_check_skips_absent_packaged_runtime_pair(tmp_path, monkeypatch, capsys):
+    """A partial non-monorepo tree does not turn an absent pair into drift."""
+
+    import agentbundle.build.self_host as self_host_mod
+
+    monkeypatch.setattr(self_host_mod, "REPO_ROOT", tmp_path)
+    source = tmp_path / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("CANONICAL = True\n", encoding="utf-8")
+    packs_dir = tmp_path / "packs"
+
+    assert self_host_mod.run_build_check_drift_gates(tmp_path, packs_dir) == 0
+    assert "packaged runtime drift" not in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

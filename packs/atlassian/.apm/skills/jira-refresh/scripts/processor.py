@@ -169,9 +169,9 @@ async def write_back(
     if getattr(client, "_auth_mode", None) != "creds":
         return WriteBackResult("sso_cookie_write_refused", action, target)
     client_policy = getattr(client, "_intake_policy", None)
-    if client_policy is None or not getattr(client_policy, "allow_write", False):
+    if client_policy is None:
         return WriteBackResult("guarded_write_client_required", action, target)
-    if type(receipt_store) is not refresh.RemoteReceiptStore:
+    if not refresh.is_remote_receipt_store(receipt_store):
         return WriteBackResult("receipt_store_required", action, target)
     if receipt_store.artifact_path != artifact_path:
         return WriteBackResult("receipt_store_mismatch", action, target)
@@ -219,11 +219,14 @@ async def write_back(
 
     try:
         if action == "comment":
-            await client.add_comment(target, str(canonical_payload["body"]))
+            await client.add_comment(
+                target, str(canonical_payload["body"]), guarded_write=True
+            )
         else:
             await client.transition_issue(
                 target,
                 transition_name=str(canonical_payload["transition"]),
+                guarded_write=True,
             )
     except Exception:
         failed_receipt = replace(receipt, status="failed")

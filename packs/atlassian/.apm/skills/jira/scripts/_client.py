@@ -697,6 +697,7 @@ class JiraClient:
         files: Mapping[str, Any] | None = None,
         extra_headers: Mapping[str, str] | None = None,
         idempotent: bool | None = None,
+        guarded_write: bool = False,
     ) -> httpx.Response:
         if files is not None and json_body is not None:
             # Caller bug: httpx would silently drop the JSON body in favor
@@ -722,13 +723,14 @@ class JiraClient:
             self._intake_policy is not None
             and not self._intake_policy.allow_write
             and not is_idempotent
+            and not guarded_write
         ):
             raise JiraError("tracker intake is read-only; request refused")
 
         async with self._sem:
             last_exc: Exception | None = None
             last_status: int | None = None
-            attempts = 1 if not is_idempotent else (
+            attempts = 1 if guarded_write else (
                 self._intake_policy.max_attempts
                 if self._intake_policy is not None
                 else MAX_RETRIES
@@ -1011,6 +1013,7 @@ class JiraClient:
         transition_id: str | None = None,
         transition_name: str | None = None,
         fields: Mapping[str, Any] | None = None,
+        guarded_write: bool = False,
     ) -> None:
         if not transition_id and not transition_name:
             raise ValueError("transition_id or transition_name is required")
@@ -1037,9 +1040,12 @@ class JiraClient:
             "POST",
             f"{self._api}/issue/{issue_key}/transitions",
             json_body=payload,
+            guarded_write=guarded_write,
         )
 
-    async def add_comment(self, issue_key: str, body_text: str) -> dict:
+    async def add_comment(
+        self, issue_key: str, body_text: str, *, guarded_write: bool = False
+    ) -> dict:
         if self._flavor == FLAVOR_CLOUD:
             payload = {"body": _adf_paragraph(body_text)}
         else:
@@ -1048,6 +1054,7 @@ class JiraClient:
             "POST",
             f"{self._api}/issue/{issue_key}/comment",
             json_body=payload,
+            guarded_write=guarded_write,
         )
         return self._json(resp) if resp.content else {}
 

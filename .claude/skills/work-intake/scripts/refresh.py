@@ -1114,6 +1114,7 @@ def consume_remote_confirmation(
     if age < timedelta(0) or age > timedelta(minutes=5):
         raise RefreshRefusal("confirmation_stale")
     binding_record = {
+        "confirmation_id": confirmation.confirmation_id,
         "artifact_path": confirmation.binding.artifact_path,
         "source_revision": confirmation.binding.source_revision,
         "profile_id": confirmation.binding.profile_id,
@@ -1559,6 +1560,22 @@ class RemoteReceiptStore:
         self.artifact_digest = result.artifact_digest
 
 
+def is_remote_receipt_store(value: object) -> bool:
+    """Accept only the exact store implementation from this runtime file."""
+
+    store_type = type(value)
+    module = sys.modules.get(store_type.__module__)
+    module_path = getattr(module, "__file__", None)
+    try:
+        return (
+            isinstance(module_path, str)
+            and Path(module_path).resolve(strict=True) == Path(__file__).resolve(strict=True)
+            and store_type is getattr(module, "RemoteReceiptStore", None)
+        )
+    except OSError:
+        return False
+
+
 def _workspace_status_callable(name: str) -> Callable[..., tuple[object, list[object]]]:
     """Load one canonical contract callable from the installed core runtime."""
 
@@ -1657,12 +1674,11 @@ def _artifact_sections(
 def _authority_location(markdown: str, match: re.Match[str]) -> tuple[str, int]:
     """Return the authority fence's stable containing section and local offset."""
 
-    prefix = markdown[: match.start()]
-    headings = list(_SECTION_HEADING.finditer(prefix))
-    if not headings:
-        return ("<preamble>", len(prefix))
-    heading = headings[-1]
-    return (heading.group("name"), match.start() - heading.end())
+    preamble, order, sections = _artifact_sections(markdown[: match.start()])
+    if not order:
+        return ("<preamble>", len(preamble))
+    section = order[-1]
+    return (section, len(sections[section][1]))
 
 
 def _validate_artifact_field_update(

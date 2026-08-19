@@ -82,20 +82,26 @@ from agentbundle.build.user_libs import (
 
 # Package-data runtimes back core-pack entry points. They are source files, not
 # ordinary self-host projections, so only the real-write path synchronizes them.
-_RUNTIME_PROJECTIONS = (
-    (
-        REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "workspace-status"
-        / "scripts" / "workspace_status_engine.py",
-        REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
-        / "workspace_status_engine.py",
-    ),
-    (
-        REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-intake"
-        / "scripts" / "refresh.py",
-        REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
-        / "work_intake_refresh.py",
-    ),
-)
+
+
+def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
+    """Return package-runtime sync pairs confined to one target tree."""
+
+    return (
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
+            / "scripts" / "workspace_status_engine.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "workspace_status_engine.py",
+        ),
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "work-intake"
+            / "scripts" / "refresh.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "work_intake_refresh.py",
+        ),
+    )
+
 
 # Canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
@@ -1419,7 +1425,9 @@ def run_self_host(
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)
-    for source_path, bundled_path in _RUNTIME_PROJECTIONS:
+    for source_path, bundled_path in _runtime_projections(working_tree):
+        if not source_path.is_file() or not bundled_path.parent.is_dir():
+            continue
         bundled_path.write_bytes(source_path.read_bytes())
         print(f"self-host: synced packaged runtime {bundled_path.name}")
     return 0
@@ -1653,11 +1661,11 @@ def run_build_check_drift_gates(
     # workspace-status can run from package data when no installed core skill
     # tree is present. Keep both bundled runtimes byte-identical to their pack
     # sources so that path never drifts into a weaker contract.
-    for source_path, bundled_path in _RUNTIME_PROJECTIONS:
+    for source_path, bundled_path in _runtime_projections(REPO_ROOT):
+        if not source_path.is_file() or not bundled_path.is_file():
+            continue
         if (
-            not source_path.is_file()
-            or not bundled_path.is_file()
-            or source_path.read_bytes() != bundled_path.read_bytes()
+            source_path.read_bytes() != bundled_path.read_bytes()
         ):
             failures.append(
                 "build-check: packaged runtime drift — "

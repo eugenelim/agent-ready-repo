@@ -653,7 +653,7 @@ class LinearRefreshProcessor:
         if action not in set(self._profile["capabilities"]) - {"acquire"}:
             return LinearWriteBackResult("unsupported_capability", action, target=target)
         receipt_store = self._receipt_store
-        if type(receipt_store) is not self._refresh.RemoteReceiptStore:
+        if not self._refresh.is_remote_receipt_store(receipt_store):
             return LinearWriteBackResult("receipt_store_required", action, target=target)
         if receipt_store.artifact_path != artifact_path:
             return LinearWriteBackResult("receipt_store_mismatch", action, target=target)
