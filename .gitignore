@@ -74,6 +74,12 @@ build/
 # build/** override so it applies inside the exception too).
 __pycache__/
 .pytest_cache/
+# Type- and lint-checker caches. Unignored, these are staged by `git add -A`
+# (~62MB of .mypy_cache across worktrees), and tools/repo/worktree_hygiene.py
+# only ever deletes ignored paths, so its --test-artifacts category is inert
+# without them.
+.mypy_cache/
+.ruff_cache/
 
 # Build pipeline output.
 dist/
