@@ -91,6 +91,7 @@
 | [0087](0087-okf-knowledge-projection.md) | OKF knowledge projection | Accepted | 2026-08-15 | 2026-08-15 |
 | [0088](0088-web-pilot-foundation.md) | Web-pilot foundation — opt-in authenticated-browser runtime, immutable website adapters, per-consumer grants, and six pre-acceptance validation spikes | Experimental | 2026-08-14 | |
 | [0089](0089-starlight-docs-boundary.md) | Starlight docs boundary — ratifies the sibling technical-docs project, renderer-local palette and framework contracts, and ordered single-artifact deployment | Accepted | 2026-08-17 | 2026-08-17 |
+| [0090](0090-change-sizing-and-decomposition.md) | Change sizing and decomposition | Accepted | 2026-08-19 | 2026-08-19 |
 
 ## Adding a new RFC
 
