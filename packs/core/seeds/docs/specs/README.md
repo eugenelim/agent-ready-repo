@@ -4,7 +4,7 @@
 > [`../CONVENTIONS.md`](../CONVENTIONS.md#4-specs-and-plans--docsspecsfeature)
 > for the spec / plan distinction and lifecycle.
 
-Each feature gets a directory:
+Work that needs a durable delivery contract gets a directory:
 
 ```
 docs/specs/<feature>/
@@ -31,6 +31,10 @@ docs/specs/<feature>/
 <!-- no shipped specs yet -->
 
 ## Adding a new spec
+
+Use `new-spec` when the work needs a durable behavior contract and an
+implementation and verification strategy. An eligible direct-light request is
+session-local and does not create a `docs/specs/` entry.
 
 ```bash
 mkdir -p docs/specs/<feature-name>

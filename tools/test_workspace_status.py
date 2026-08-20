@@ -1500,10 +1500,10 @@ _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "98952b12f942d880ba40beb8ed928d197f2e884da66542b7200f595388164d22"
+    "69cc128c879bfb7c3eef2fb01da727f9a452b512ea9c578e3b8d16b554f52bee"
 )
 _WORK_LOOP_FINISH_HASH = (
-    "87dd027827ef2bf9fbb72616f3eff5902f69d870e309ddff78a7555e7b28185a"
+    "7cf1a0fa1cf50e1ec7fb3d7ebb4088a8080634185f5f3f09ddd5407ffc52380f"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

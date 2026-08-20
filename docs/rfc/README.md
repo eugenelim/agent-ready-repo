@@ -93,6 +93,7 @@
 | [0089](0089-starlight-docs-boundary.md) | Starlight docs boundary — ratifies the sibling technical-docs project, renderer-local palette and framework contracts, and ordered single-artifact deployment | Accepted | 2026-08-17 | 2026-08-17 |
 | [0090](0090-change-sizing-and-decomposition.md) | Change sizing and decomposition | Accepted | 2026-08-19 | 2026-08-19 |
 | [0091](0091-right-size-rfc-governance.md) | Right-size RFC governance | Accepted | 2026-08-19 | 2026-08-19 |
+| [0094](0094-direct-light-execution-without-durable-planning-artifacts.md) | Direct-light execution without durable planning artifacts | Accepted | 2026-08-20 | 2026-08-20 |
 | [0092](0092-first-class-distribution-routes.md) | First-class distribution routes — portable Agent Plugins, native Claude/Codex packages, and Kiro Powers from one pack model | Accepted | 2026-08-19 | 2026-08-20 |
 | [0093](0093-intent-scoped-completion.md) | Intent-scoped completion | Accepted | 2026-08-19 | 2026-08-20 |
 

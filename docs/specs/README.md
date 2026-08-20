@@ -4,7 +4,7 @@
 > [`../CONVENTIONS.md`](../CONVENTIONS.md#4-specs-and-plans--docsspecsfeature)
 > for the spec / plan distinction and lifecycle.
 
-Each feature gets a directory:
+Work that needs a durable delivery contract gets a directory:
 
 ```
 docs/specs/<feature>/
@@ -195,6 +195,10 @@ docs/specs/<feature>/
 | [`tdd-stub-generation/`](tdd-stub-generation/spec.md) | Shipped | RFC-0028 | **RFC-0028 implementation.** Weaves TDD-stub generation into the core loop via a load-on-demand, projected reference `packs/core/.apm/skills/work-loop/references/tdd-stubs.md`: PLAN's *Design tests up front* step turns each TDD-mode AC into a compilable, validated **red stub** in `plan.md`'s per-task `Tests:` subsections (one file per task; `// STUB:` comment + `stub: true` field), consumed unchanged by EXECUTE; `new-spec` Testing Strategy gains a testability self-check pointer; `CONVENTIONS.md` § 4 + `quality-engineer` get the handoff/timing note. Docs-only (no code) — verified goal-based (`make build-self`/`make build-check` zero-drift, `lint-skill-spec.py`) + a manual spike (stubs from a Shipped spec compile against the AC surface, red against an absent impl). **No new skill, no new gate, no `coverage-matrix.md`.** Reference ships a Python/pytest worked example + generic stack-detection. 10 ACs / 7 tasks. Depends on RFC-0028. |
 
 ## Adding a new spec
+
+Use `new-spec` when the work needs a durable behavior contract and an
+implementation and verification strategy. An eligible direct-light request is
+session-local and does not create a `docs/specs/` entry.
 
 ```bash
 mkdir -p docs/specs/<feature-name>

@@ -12,6 +12,26 @@
         "Missing project-knowledge creates no fallback",
         "work-loop owns the spec-approved and plan-locked gates"
       ]
+    },
+    {
+      "id": "durable-contract-is-warranted",
+      "prompt": "We need to queue the export retention capability for next sprint so another engineer can pick it up.",
+      "expected_output": "The agent authors a durable spec and plan: queueing for a later session and handoff to another person both warrant a durable contract, and a new user-facing capability is a published behavior contract.",
+      "assertions": [
+        "Treats queueing and handoff as warranting a durable contract",
+        "Authors both spec.md and plan.md",
+        "Does not route the work to direct-light execution"
+      ]
+    },
+    {
+      "id": "no-warranted-condition-authors-no-spec",
+      "prompt": "Rename a misleading log message in one file and ship it now.",
+      "expected_output": "The agent does not author a spec. No warranted condition applies: the user asked to do it now, and the change is bounded, low-risk, independently verifiable, session-completable, and needs no durable contract, queueing, resumption, approval persistence, or external orchestration.",
+      "assertions": [
+        "Declines to author a spec when no warranted condition applies",
+        "Names the absence of a durability need",
+        "Creates no docs/specs directory"
+      ]
     }
   ]
 }

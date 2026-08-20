@@ -58,6 +58,7 @@ class RoutingSignals:
     authority_mode: str
     named_gaps: bool = False
     ready_brief: bool = False
+    direct_light: bool = False
     alias: str | None = None
     profile_id: str | None = None
     profile_version: str | None = None
@@ -98,6 +99,18 @@ def route_intake(
     refresh_processors: RefreshProcessorResolver | None = None,
 ) -> Route:
     """Map validated semantic signals to one deterministic intake route."""
+
+    if signals.direct_light and (
+        signals.action != "start"
+        or signals.artifact != ""
+        or signals.artifact_kind != ""
+        or signals.named_gaps
+        or signals.ready_brief
+    ):
+        raise ValueError("direct-light signals must not select a durable route")
+
+    if signals.direct_light:
+        return _route(signals, "none", "work-loop", "none")
 
     if signals.action == "status":
         return _route(signals, "passthrough", "workspace-status", "none")

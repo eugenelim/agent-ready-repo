@@ -2,9 +2,10 @@
 
 ## 1. Purpose and boundary
 
-`work-intake` turns local or tracker-supplied work into a canonical repository
-artifact and lifecycle entry. It classifies content by its delivery role rather
-than by a tracker label.
+`work-intake` classifies local or tracker-supplied work by its delivery role
+rather than by a tracker label. It routes an eligible explicit direct-light
+request to session-local execution; other routes create a canonical repository
+artifact and lifecycle entry.
 
 It does not replace a tracker or provide tracker refresh. Refresh remains
 adapter-owned and does not write repository state until a compatible adapter
@@ -12,8 +13,8 @@ implements its contract.
 
 ## 2. Entrypoints
 
-- `work-intake` accepts standalone work and routes it to an intent, brief,
-  spec, defect, or non-dispatchable capture.
+- `work-intake` accepts standalone work and routes it to direct-light
+  execution, an intent, brief, spec, defect, or non-dispatchable capture.
 - `workspace-status` reads artifact and lifecycle state to report next work,
   blocking references, and reconciliation findings.
 - Tracker adapters acquire and normalize source data before routing it through
@@ -26,6 +27,7 @@ implements its contract.
 | Canonical work artifacts | `docs/product/` and `docs/specs/` | The workflow that creates the artifact | Workflows, contributors, reviewers |
 | Lifecycle index | `workspace.toml` | `work-intake` and its selected workflow | `workspace-status`, execution, review |
 | Tracker provenance | Canonical artifact and its index entry | The accepting intake workflow | Refresh and reconciliation workflows |
+| Direct-light decision record | Active session only | `work-loop` | Requester and current session |
 
 `workspace.toml` indexes artifacts and lifecycle facts. It is not a
 requirements store.
@@ -33,9 +35,9 @@ requirements store.
 ## 4. Dependencies and allowed edges
 
 Tracker adapters may acquire and normalize external input. Only the local intake
-route classifies it and writes canonical artifacts. Processors consume an
-existing artifact and workspace entry; they do not reconstruct a contract from
-index comments.
+route classifies it and writes canonical artifacts where the route needs one.
+Processors consume an explicit direct-light request or an existing artifact and
+workspace entry; they do not reconstruct a contract from index comments.
 
 The repository artifact is authoritative for repo-origin work. Imported
 tracker fields remain source-owned until local acceptance. This ownership rule is
@@ -43,12 +45,28 @@ documented; this page does not claim a command enforces it.
 
 ## 5. Primary flows
 
-1. `work-intake` acquires supplied material, normalizes it, classifies its
-   delivery role, writes the canonical artifact, and registers lifecycle state.
+1. `work-intake` acquires supplied material, normalizes it, and classifies its
+   delivery role. Artifact-creating routes write the canonical artifact and
+   register lifecycle state; direct-light remains session-local.
 2. `workspace-status` resolves indexed artifacts and reports ready, blocked,
    active, and reconciliation states.
-3. A dispatchable spec has an existing `spec.md` and `plan.md`; execution
-   receives those files rather than tracker payloads or index comments.
+3. Every workspace-dispatchable, queued, or resumable build item resolves to an
+   existing durable `spec.md` and sibling `plan.md`; execution receives those
+   files rather than tracker payloads or index comments. An explicit
+   direct-light request is session-local, creates no workspace entry, and is
+   ineligible for argless dispatch or fresh-session resumption.
+
+```text
+explicit start
+    |
+validate and classify
+    |
+    +-- direct light --> work-loop from current request
+    |
+    +-- durable single slice --> spec + plan --> workspace --> work-loop
+    |
+    +-- multi-slice outcome --> brief --> confirmed specs + plans
+```
 
 ## 6. Failure and recovery behavior
 
@@ -56,7 +74,9 @@ A missing artifact, malformed lifecycle entry, or inconsistent reference is a
 reconciliation finding. `workspace-status` reports it instead of guessing.
 
 Unavailable tracker refresh leaves repository state unchanged. A capture without
-a dispatchable artifact remains visible but cannot enter execution.
+a dispatchable artifact remains visible but cannot enter execution. A
+direct-light request creates no repository state and therefore cannot be
+dispatched without arguments or resumed in a fresh session.
 
 ## 7. Observability and evidence
 
@@ -83,7 +103,11 @@ arbitrary adopter repository.
 - [ADR-0033 — Intent-level open recognized set decoupled from scale](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
 - [ADR-0077 — Feature projection and tracker authority](../adr/0077-feature-projection-and-tracker-authority.md)
 - [ADR-0078 — Standalone intake and deterministic workspace index](../adr/0078-standalone-intake-and-deterministic-workspace-index.md)
+- [ADR-0092 — Direct-light execution is session-local outside workspace dispatch](../adr/0092-direct-light-execution-session-local-boundary.md)
+  — the decision this page's §5 invariant records; it refines ADR-0078's
+  start-route materialization rule for captured and indexed items while leaving
+  its workspace-entry dispatchability rule unchanged.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`7b488428c46430cf73ab5d727ece9ffbefc5199d`

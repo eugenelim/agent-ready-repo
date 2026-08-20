@@ -46,6 +46,9 @@ _FIXTURE_PATHS = {
     "evals/files/routing/start-minimal-intent.json": (
         _WORK_INTAKE / "evals" / "files" / "routing" / "start-minimal-intent.json"
     ),
+    "evals/files/routing/start-direct-light.json": (
+        _WORK_INTAKE / "evals" / "files" / "routing" / "start-direct-light.json"
+    ),
     "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
         _CONTRACT_FIXTURES
         / "normalized-intake"
@@ -142,6 +145,7 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
     cases = matrix["cases"]
     assert matrix["contract_version"] == "work-intake-routing-evals.v1"
     assert {case["id"] for case in cases} == {
+        "direct-light",
         "start-minimal-intent",
         "remember-draft",
         "status-passthrough",
@@ -188,7 +192,12 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
 
 def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
     cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())["cases"]}
-    for case_id in ("status-passthrough", "refresh-unavailable", "ready-brief-zero-specs"):
+    for case_id in (
+        "direct-light",
+        "status-passthrough",
+        "refresh-unavailable",
+        "ready-brief-zero-specs",
+    ):
         assert cases[case_id]["mutation"] == "none"
 
     alias = cases["alias-equivalence"]
