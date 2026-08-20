@@ -644,10 +644,9 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
         page.querySelectorAll('starlight-theme-select').length,
         `${routeName}: Starlight owns the theme control`
       ).toBeGreaterThan(0);
-      expect(
-        page.querySelectorAll('starlight-theme-select:not([data-astro-cid-7pllvep4])').length,
-        `${routeName}: no docs-local replacement of the theme control`
-      ).toBe(page.querySelectorAll('starlight-theme-select').length);
+      // Ownership is proved at the override seam below, not by a generated Astro
+      // scope hash: a hash is brittle, and a docs-local replacement emitted by any
+      // other component would carry a different one and pass.
       only('starlight-menu-button');        // Docs menu trigger
       only('#starlight__sidebar');          // sidebar
       only('nav.sidebar');
@@ -664,6 +663,21 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
         `${routeName}: skip link first`
       ).toBe(true);
     }
+    // AC9's actual ownership contract: docs may override only the approved seams.
+    // Read from the config, because that is where a replacement of a
+    // Starlight-native control has to be declared — adding `ThemeSelect`,
+    // `Search`, `Header`, `Sidebar` or `Pagination` here is what AC9 forbids.
+    const docsConfig = readFileSync(join(REPO_ROOT, 'docs-site/astro.config.ts'), 'utf8');
+    const componentsBlock = docsConfig.slice(
+      docsConfig.indexOf('components: {'),
+      docsConfig.indexOf('}', docsConfig.indexOf('components: {'))
+    );
+    const overrides = [...componentsBlock.matchAll(/(\w+):\s*'\.\//g)].map((m) => m[1]);
+    expect(overrides.length, 'docs component overrides were not parsed').toBeGreaterThan(0);
+    expect(new Set(overrides), 'docs may override only the approved Starlight seams').toEqual(
+      new Set(['Footer', 'PageFrame', 'PageTitle'])
+    );
+
     // Edit control and pagination are Starlight-owned and singular on the nested
     // guide route, which is where they render.
     expect(nested.querySelectorAll('a[href*="/edit/"]').length).toBe(1);
@@ -680,34 +694,10 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       const links = [...group.querySelectorAll<HTMLAnchorElement>('a')];
       expect(labels(links)).toEqual(expectedGroup.destinations.map((link: { label: string }) => link.label));
       for (const [linkIndex, link] of links.entries()) {
-        const expectedLink = expectedGroup.destinations[linkIndex];
-        expect(link.getAttribute('href')).toBe(
-          expectedLink.kind === 'internal' ? `${base}${expectedLink.target}` : expectedLink.target
+        expectSharedChromeLinkContract(
+          link, expectedGroup.destinations[linkIndex], base,
+          `docs footer ${expectedGroup.destinations[linkIndex].id}`
         );
-        expect(link.hasAttribute('rel')).toBe(false);
-        expect(link.getAttribute('target')).toBeNull();
-        // AC7 is renderer-agnostic: docs owes the same external treatment as
-        // marketing. Without this the docs footer could drop the glyph or the
-        // visually hidden word and still pass.
-        // Asserted SEMANTICALLY, not by class name. Marketing hides the word with
-        // its own `.visually-hidden`; docs uses a docs-local class. Requiring one
-        // shared class here would mandate exactly the shared CSS AC10 forbids, so
-        // the contract is the accessible name and the aria-hidden glyph.
-        const glyph = link.querySelector('[aria-hidden="true"]');
-        const accessibleName = [...link.childNodes]
-          .filter((node) => !(node as Element).getAttribute?.('aria-hidden'))
-          .map((node) => node.textContent)
-          .join('')
-          .replace(/\s+/g, ' ')
-          .trim();
-        if (expectedLink.kind === 'external') {
-          expect(glyph?.textContent?.trim()).toBe('↗');
-          expect(accessibleName).toBe(`${expectedLink.label} external`);
-        } else {
-          expect(link.textContent?.includes('↗')).toBe(false);
-          expect(glyph).toBeNull();
-          expect(accessibleName).toBe(expectedLink.label);
-        }
       }
     }
     // AC8 in the docs footer, stated exactly rather than as "something is current".

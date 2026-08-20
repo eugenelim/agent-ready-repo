@@ -627,6 +627,70 @@ async function expectDocsChromeIsWellPlaced(
   );
   expect(measured.productNavs, `${where}: Product navigation landmark must be singular`).toBe(1);
 
+  // AC7's "visually hidden" half, which a DOM-only test cannot see: the word
+  // "external" must stay in the accessible name while being invisible on screen.
+  // Each renderer hides it with its own CSS, so this is measured rather than
+  // asserted against a shared class name.
+  //
+  // Targeted by EXACT destination, and required rather than skipped. Selecting
+  // `footer a[href^="https://"]` picked Starlight's own "Edit page" link — the
+  // first https link in the docs footer — so the check silently measured nothing
+  // and stayed green when the text was made visible.
+  const externals = await page.evaluate(() => {
+    const targets = [
+      'https://github.com/eugenelim/agent-ready-repo',
+      'https://pypi.org/project/agentbundle/',
+    ];
+    return targets.map((href) => {
+      const link = document.querySelector(`footer a[href="${href}"]`);
+      if (!link) return { href, found: false as const };
+      const hidden = [...link.querySelectorAll('span')].find(
+        (span) => span.getAttribute('aria-hidden') !== 'true'
+      );
+      if (!hidden) return { href, found: true as const, hiddenSpan: false as const };
+      const style = getComputedStyle(hidden);
+      const rect = hidden.getBoundingClientRect();
+      return {
+        href,
+        found: true as const,
+        hiddenSpan: true as const,
+        text: (hidden.textContent ?? '').trim(),
+        width: rect.width,
+        height: rect.height,
+        clip: style.clip,
+        clipPath: style.clipPath,
+        display: style.display,
+        visibility: style.visibility,
+      };
+    });
+  });
+
+  for (const external of externals) {
+    expect(external.found, `${where}: ${external.href} must be in the docs footer`).toBe(true);
+    expect(
+      external.hiddenSpan,
+      `${where}: ${external.href} must carry a visually hidden "external"`
+    ).toBe(true);
+    if (!external.hiddenSpan) continue;
+    expect(external.text, `${where}: ${external.href} hidden text`).toBe('external');
+    // Still exposed to assistive technology — `display:none` or
+    // `visibility:hidden` would drop it from the accessible name entirely.
+    expect(external.display, `${where}: ${external.href} stays in the a11y tree`).not.toBe('none');
+    expect(external.visibility, `${where}: ${external.href} stays in the a11y tree`).not.toBe(
+      'hidden'
+    );
+    // …but clipped away visually.
+    const clipped =
+      external.clip !== 'auto' ||
+      external.clipPath !== 'none' ||
+      (external.width <= 1 && external.height <= 1);
+    expect(
+      clipped,
+      `${where}: ${external.href} "external" must be visually hidden, measured ` +
+        `${external.width}x${external.height} clip=${external.clip} clip-path=${external.clipPath}`
+    ).toBe(true);
+  }
+
   if (measured.tocBottom !== null && measured.contentTop !== null) {
     expect(
       measured.contentTop,
