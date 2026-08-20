@@ -75,6 +75,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you can see the shape of the exchange, and where your decisions fall in it,
   before committing to the journey.
 
+### [core][2.9.5] — 2026-08-19
+
+#### Changed
+
+- **PR size guidance no longer asks you to split ordinary changes.** The old
+  target of roughly 100 changed lines, with a split above roughly 400, is
+  replaced by a single tail trigger: a change is examined once it exceeds 2,000
+  reviewable behavior and test lines. Below that, size the change by whether it
+  is one reviewable idea, not by a line count. Documentation prose is sized by
+  coherence and is never split on length.
+- **A large change is now routed by its shape rather than sliced by length.** A
+  broad mechanical sweep is proved with the command that produced it and a
+  zero-diff re-run, not broken into arbitrary parts. Concentrated authored work
+  is decomposed into dependency-ordered layers that each leave the repository
+  working.
+- **Mechanical ride-alongs are admitted by verifiability, not by locality.**
+  Work reproducible from a stated command, or provably inert, may now land with
+  the change that occasions it even when it spans the repository, so routine
+  cleanup stops accumulating as deferred backlog. Hand-made ride-alongs keep
+  their existing same-area and size limits, and every tier still fails closed on
+  a design call or a behavior change.
+
 ### [core][2.9.4] — 2026-08-19
 
 #### Changed
@@ -84,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   direct root guidance to the canonical privacy policy.
 - **Risk-trigger documentation is explicitly single-sourced.** ADR-0088 records
   the `work-loop` skill as the sole block home without changing mode selection.
+
 
 ### [core][2.9.2] — 2026-08-19
 
@@ -116,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
   init` starts catalogues with leaner instructions. No CLI verb, flag, or output
   format changed.
+
 
 ### [core][2.9.1] — 2026-08-19
 
