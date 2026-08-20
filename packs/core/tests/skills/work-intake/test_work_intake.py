@@ -69,9 +69,13 @@ def _load_guard():
 
 
 def _load_router():
-    spec = importlib.util.spec_from_file_location("intake_router", _ROUTER_PATH)
+    # Unique name including pack and skill, per packs/AGENTS.md § Writing pack
+    # tests: a bare `intake_router` would bind whichever skill's script reached
+    # sys.path first and cache it for every later importer.
+    name = "core_work_intake_intake_router"
+    spec = importlib.util.spec_from_file_location(name, _ROUTER_PATH)
     module = importlib.util.module_from_spec(spec)
-    sys.modules["intake_router"] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 

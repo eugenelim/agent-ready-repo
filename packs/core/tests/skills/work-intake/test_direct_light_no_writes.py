@@ -96,8 +96,8 @@ def test_direct_light_decision_seam_leaves_fixture_unchanged_and_skips_transacti
     fixture_repository: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    router = _load_module("intake_router_direct_light", _ROUTER_PATH)
-    transaction = _load_module("intake_transaction_direct_light", _TRANSACTION_PATH)
+    router = _load_module("core_work_intake_intake_router_direct_light", _ROUTER_PATH)
+    transaction = _load_module("core_work_intake_intake_transaction_direct_light", _TRANSACTION_PATH)
     before = _snapshot_files(fixture_repository)
 
     def fail_if_called() -> None:
