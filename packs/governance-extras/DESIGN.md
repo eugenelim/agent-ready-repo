@@ -154,7 +154,7 @@ These constraints must never be violated by any skill in this pack or any skill 
 
 3. **RFC and ADR must not be conflated.** No skill may use an RFC as an ADR or vice versa. An RFC that gets accepted generates an ADR; the two are separate files with separate purposes.
 
-4. **CONVENTIONS.md changes go through RFC.** `update-conventions` routes conventions edits through `new-rfc`, not through a direct PR. Trivial fixes (typos, broken links) are the only exception.
+4. **Conventions and charter changes route semantically.** Maintenance and clarification are PRs; a changed obligation uses the unresolved-direction test; authority, mission, scope, and foundational principles are reserved. No skill routes on a pathname.
 
 5. **Adversarial critique track is not optional.** Every ADR produced by `new-adr` includes the adversarial critique — the strongest case against the decision. An ADR that omits the adversarial track is not complete.
 

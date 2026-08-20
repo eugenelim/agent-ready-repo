@@ -52,7 +52,6 @@ When core's `project-knowledge` skill is installed, `new-rfc` may capture reusab
 | `rfc-status`           | Orient — RFC landscape by status and findings count     |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC |
 | `new-adr`              | Record an architectural decision with critique tracks   |
-| `update-conventions`   | Evolve CONVENTIONS.md through tracked RFC review        |
 
 ---
 

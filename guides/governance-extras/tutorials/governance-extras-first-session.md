@@ -29,9 +29,9 @@ Open your agent (Claude Code or equivalent) in the repo you'll work in, then run
 agentbundle install --pack governance-extras --scope repo
 ```
 
-The pack lands in `.claude/skills/` with four skills: `new-adr`, `new-rfc`, `update-conventions`, and `rfc-status`.
+The pack lands in your agent's skills directory with three skills: `new-adr`, `new-rfc`, and `rfc-status`.
 
-You should see a confirmation that four skills installed. A `docs/adr/README.md` and `docs/rfc/README.md` are seeded if they were absent.
+You should see a confirmation that three skills installed. A `docs/adr/README.md` and `docs/rfc/README.md` are seeded if they were absent.
 
 ## Step 2 — Verify the install
 
@@ -126,7 +126,7 @@ git commit -m "docs(adr): record decision to use TOML for workspace coordination
 
 ## Recovery
 
-**Verification fails in Step 2.** Confirm `governance-extras` is installed at repo scope (`ls .claude/skills/rfc-status/`). If the directory is absent, re-run the install. Also confirm `docs/rfc/` exists — the skill expects it; the seed creates it on install, but if the install was partial you may need to re-run.
+**Verification fails in Step 2.** Confirm `governance-extras` is installed at repo scope (confirm the `rfc-status` skill is present in your agent's skills directory). If the directory is absent, re-run the install. Also confirm `docs/rfc/` exists — the skill expects it; the seed creates it on install, but if the install was partial you may need to re-run.
 
 **Wrong path shown in Step 6.** Say "cancel" before confirming. The skill stops. Re-run with a corrected prompt if needed.
 
@@ -145,7 +145,7 @@ Then start a new session with a revised prompt.
 
 You installed `governance-extras`, verified it, invoked `new-adr` with the starter prompt, read the decision frame, reviewed the full ADR content and target path, and confirmed the write. You now know where the file lands, what it contains, and how to stop the write at any point before confirming.
 
-The pack ships three more skills — `new-rfc` (for proposals still under debate), `update-conventions` (for editing `docs/CONVENTIONS.md`), and `rfc-status` (for scanning the RFC registry).
+The pack ships two more skills — `new-rfc` (for proposals whose direction is still open) and `rfc-status` (for scanning the RFC registry).
 
 ## See also
 

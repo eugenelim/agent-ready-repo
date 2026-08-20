@@ -40,8 +40,6 @@ _SEED_VENDOR_ROOT_BACKLOG = frozenset({
     "packs/core/seeds/docs/architecture/overview.md",
     "packs/core/seeds/docs/knowledge/README.md",
     "packs/core/seeds/docs/specs/README.md",
-    "packs/governance-extras/seeds/docs/adr/README.md",
-    "packs/governance-extras/seeds/docs/rfc/README.md",
 })
 
 

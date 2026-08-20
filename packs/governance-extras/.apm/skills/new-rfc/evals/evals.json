@@ -4,13 +4,13 @@
     {
       "id": 1,
       "prompt": "Draft the RFC the user asked for, answer-first.",
-      "expected_output": "An answer-first RFC that leads with a '## Reviewer brief' orientation grid and then 'The ask' — a recommendation (BLUF) plus the decision the reviewer must make, SCQA framing, and the decisions rendered as a table (one row per decision, each carrying a recommended option + decide-by + reviewer action). The header carries a 'Decision weight' field (light | standard | heavy) sized to the change's stakes. Each decision/subpoint is independently backed by research (repo precedent + external prior art), and its option space is MECE along a stated axis, grounded in prior art, and includes do-nothing — not a small round number of invented categories. Problem & goals has real Non-goals (could-have-been-goals deliberately dropped). Risks is a genuine pre-mortem with falsifiable assumptions and honest drawbacks (not 'no drawbacks'). Evidence & prior art is non-empty and every citation is verifiable — fetched and confirmed to contain the claim, or it explicitly states web search was unavailable rather than fabricating sources. Open questions are capped (~3), each with a recommended default + owner + decide-by; no item is simultaneously a decided default and an open question; all internal cross-references resolve.",
+      "expected_output": "An answer-first RFC that leads with a '## Reviewer brief' orientation grid and then 'The ask' — a recommendation (BLUF) plus the decision the reviewer must make, SCQA framing, and the decisions rendered as a table (one row per decision, each carrying a recommended option + decide-by + reviewer action). The header carries a 'Decision weight' field (light | standard | heavy) sized to the change's stakes. Each decision/subpoint is independently backed by research (repo precedent + external prior art), and its option space is MECE along a stated axis, grounded in prior art, and includes do-nothing — not a small round number of invented categories. Problem & goals has real Non-goals (could-have-been-goals deliberately dropped). Risks is a genuine pre-mortem with falsifiable assumptions and honest drawbacks (not 'no drawbacks'). `Options considered`, `Evidence & prior art`, `Experiment / validation` and `Open questions` are explicitly OPTIONAL in the template: a proposal that deletes one it does not need is correct, not deficient. Evidence is present when the proposal actually relies on it, and any citation that IS present is verifiable — fetched and confirmed to contain the claim it supports — never fabricated. Open questions are capped (~3), each with a recommended default + owner + decide-by; no item is simultaneously a decided default and an open question; all internal cross-references resolve.",
       "assertions": [
         "Leads answer-first with 'The ask' — recommendation/BLUF plus the decision the reviewer must make",
-        "Each decision's option space is MECE along a stated axis, grounded in prior art, and includes do-nothing (not invented round-number categories)",
+        "Where options are genuinely contested, the option space is MECE along a stated axis, grounded in prior art, and includes do-nothing; where one choice is clearly dominant, recording why in one line is correct rather than a full taxonomy",
         "Every decision/subpoint carries a recommendation; open questions are ~3 or fewer, each with a recommended default + owner + decide-by",
         "Risks is a real pre-mortem with falsifiable assumptions and honest drawbacks, not 'no drawbacks'",
-        "Evidence & prior art is non-empty with verifiable citations (or explicitly notes web search was unavailable) — no fabricated references",
+        "Optional sections (Options considered, Evidence & prior art, Experiment / validation, Open questions) are kept only when the proposal relies on them; deleting an unused one is correct, and any citation that is present is fetched-and-confirmed rather than fabricated",
         "No item is both a decided default and an open question, and internal cross-references resolve",
         "Carries a 'Decision weight' header field (light | standard | heavy) sized to the change's stakes",
         "Opens with a '## Reviewer brief' orientation section, above 'The ask', that orients rather than restating the BLUF",
@@ -21,13 +21,14 @@
     {
       "id": 2,
       "prompt": "Research and de-risk this proposal, then present the decisions for me to decide — don't draft the RFC body yet.",
-      "expected_output": "A chat-emitted 'RESEARCH FINDINGS' handoff (not an RFC body) whose '## Decisions / subpoints' section is self-contained — a reader can decide from the block alone, without opening a file. Each decision states the question in plain language; lists its options MECE along a stated axis (including do-nothing), each option carrying its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it; and gives a recommendation with one or two sentences of reasoning plus owner + decide-by. Prior art (in repo) and (external) and a De-risk section (riskiest assumption + spike result or why none needed) follow. No RFC body section is written.",
+      "expected_output": "A chat-emitted 'RESEARCH FINDINGS' handoff (not an RFC body) whose '## Decisions / subpoints' section is self-contained — a reader can decide from the block alone, without opening a file. Each decision states the question in plain language; lists its options MECE along a stated axis (including do-nothing), each option carrying its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it; and gives a recommendation with one or two sentences of reasoning plus owner + decide-by. Prior art (in repo) and (external) and a De-risk section (riskiest assumption + spike result or why none needed) follow. No RFC body section is written. Research depth is conditioned on the RFC's `Decision weight`: a `light` proposal is not required to produce an external sweep, and is not required to run a spike when no assumption is genuinely at risk.",
       "assertions": [
         "Emits a chat 'RESEARCH FINDINGS' handoff and does NOT write any RFC body section yet",
         "Each decision is self-contained/decidable from the block alone — states the question in plain language",
         "Each decision lists options with their real trade-offs (buys vs. costs) and the concrete consequence of accepting each, not a bare list of option names",
         "Options are MECE along a stated axis and include do-nothing",
-        "Each decision carries a recommendation with one-to-two-sentence reasoning plus owner + decide-by"
+        "Each decision carries a recommendation with one-to-two-sentence reasoning plus owner + decide-by",
+        "Scales research depth to the Decision weight — a light proposal is not faulted for omitting an external sweep or a spike when no assumption is at risk"
       ]
     },
     {
@@ -74,6 +75,54 @@
         "Refuses non-file, I/O, and containment uncertainty",
         "Creates no capture, fallback, or quarantine and keeps the refusal redacted",
         "Allows only a safely rooted committed Git blob as the read-free alternative"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Decide what artifact this change needs, and explain the route.",
+      "expected_output": "The response first establishes the two facts that decide the route — whether the direction is already settled, and who has to agree — and only then names the artifact: a PR for routine, behaviour-preserving work or for implementing a decision already accepted; an issue or a spec for a bounded feature whose direction is settled; an ADR for a settled durable architectural choice, and a superseding ADR when it replaces a prior one; an RFC only for an unresolved consequential direction needing more than one owner's agreement, or an explicit request to circulate; and normal implementation review for a reversible, time-bounded trial with stated exit criteria. The route is explained in one or two sentences, not by reciting the policy. Package count, file count, public visibility, top-level location and the pathname of a governed document are treated as review-depth evidence only and are never offered as the reason an RFC is needed.",
+      "assertions": [
+        "Establishes whether the direction is settled and who must agree before naming an artifact",
+        "Never justifies an RFC by package count, file count, public visibility, top-level location, or a document pathname",
+        "Routes a settled durable architectural choice to an ADR, and a settled replacement for a prior ADR to a superseding ADR",
+        "Routes routine, behaviour-preserving work and accepted-decision implementation to a PR",
+        "Explains the chosen route in one or two sentences rather than quoting a policy block"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "The repository has a single maintainer. Change the charter's mission, and change who is allowed to approve work.",
+      "expected_output": "Both changes fall in the reserved categories and take the strongest route the repository has, even though only one owner exists — the 'more than one owner must agree' test does not excuse them. The reserved set is charter mission, scope or foundational principles; maintainer authority, approval process or governance model; a security trust model, as distinct from a security implementation; and withdrawal of, or a breaking change to, a stable published compatibility promise. The response recognises the category semantically and does not restate it as a list of paths or filenames, and does not treat a single-maintainer repository as a licence to skip the route.",
+      "assertions": [
+        "Recognises both changes as reserved categories and does not let a single owner bypass the route",
+        "Does not treat the multi-owner test as an exemption for a reserved category",
+        "Distinguishes a security trust model from a security implementation",
+        "Does not expand the reserved list into a list of paths or filenames"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Pick the Decision weight for a narrow, reversible proposal and state exactly what it obliges.",
+      "expected_output": "The weight is one of exactly `light`, `standard` or `heavy`. A `light` proposal is not mechanically required to produce external research, is not required to run a spike when no assumption is at risk, and is not required to run two separate subagent reviews — it gets the completeness checklist and one adversarial pass, with no automatic fresh-reader readability review. `standard` runs one independent critical review, re-run until clean. `heavy` adds the stronger controls: applicable reversal, compatibility or trust-model analysis, a security review whenever a security boundary or trust model is involved, and validation planning where the uncertainty is empirical rather than deliberative. Citation integrity and verify-before-you-assert apply at every weight, scoped to the citations and checkable claims the proposal actually makes. Choosing a weight does not itself decide whether an RFC is needed — that is the routing question, answered separately.",
+      "assertions": [
+        "Light does not mechanically require external research",
+        "Light does not mechanically require a spike when no assumption is at risk",
+        "Light does not mechanically require two separate subagent reviews, and runs no automatic fresh-reader readability review",
+        "Standard performs an independent critical review re-run until clean, and heavy adds applicable reversal/compatibility/trust-model analysis, a security review on a security boundary or trust model, and validation planning for empirical uncertainty",
+        "Citation integrity and verify-before-you-assert still apply at every weight, scoped to claims and citations actually made",
+        "Weight selection does not itself decide whether an RFC is needed",
+        "Uses the weight vocabulary light | standard | heavy and no other value"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Draft an RFC in a repository that has no RFC process at all; then in one that declares a stricter local governance rule than the pack default.",
+      "expected_output": "With no RFC process present, the portable default still yields a usable route: reserved categories and unresolved multi-owner decisions require the owners to reach and retain an explicit recorded decision before implementation, using whatever decision mechanism the repository already has. The workflow explains the route, creates no required configuration artifact, and does not scaffold a governance hierarchy or directory tree on its own initiative. Where the repository declares a stricter local policy, that policy is honoured and the override is surfaced to the user, never silently replaced by the catalogue default. An optional research or design provider that is not installed is reported as unavailable and the RFC proceeds normally; absence is never treated as a failure and never produces a stand-in fallback file.",
+      "assertions": [
+        "Produces a usable route when no RFC process exists — an explicit recorded owner decision before implementation, using the repository's existing mechanism",
+        "Creates no required configuration file, pack dependency, or governance scaffold",
+        "Honours a stricter declared local policy and surfaces the override rather than substituting the pack default",
+        "Reports an unavailable optional provider and proceeds, without inventing a fallback artifact"
       ]
     }
   ]
