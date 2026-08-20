@@ -3017,7 +3017,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (105 manifested files, round-7 archive SHA-256 `8b5c8338…d570`), reconstructed
+  (128 manifested files, round-7 archive SHA-256 `4178e5fe…caa2`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
@@ -3172,3 +3172,30 @@ that mechanism rather than record the channel as inherently uncontrollable.
 
   No third-party candidate artifact was executed. RFC-0088 remains `Experimental`.
   No implementation or follow-on artifact is authorized.
+
+- **2026-08-19 — twelfth Experimental run.** The consumer-shaped residuals remain
+  measurements for the approver; no disposition changes here. The
+  [round-12 note](0088-notes/spikes/2026-08-19-experimental-round12.md) records a split
+  result for amended D/item 6: registration blocking is destination-scopable only by
+  partitioning destinations into separate contexts, which does not preserve one shared
+  session (`sharedSessionDemonstrated: false`). Two distinct origins both registered and
+  still shared one worker store, so the persisted worker-store purge is not destination-scopable. This
+  contradicts open question 4's recommended candidate.
+
+  The page-resident replay candidate holds only when the issuing response is marked
+  `no-store`. The otherwise identical default-cache control finds the live token at rest
+  in browser user-data, making that header a construction requirement for open question 5
+  rather than an optional implementation detail; browser-written buffers without a
+  recovered planted decoy remain absence-unverifiable rather than clean. The signing-identity measurement has a
+  requirement-attributable discriminator at the observed depth: an OS-signed control's requirement failure follows strict
+  verification success; the bundled comparison is not the discriminator because resource
+  sealing fails before requirement evaluation. Update survival remains deferred.
+
+  The approver-authorised attended post-authentication arm observed re-attach surviving
+  worker suppression with zero registrations under both policies. It is bounded to one
+  destination, one device, and one point in time, and closes the deleted post-auth register text.
+
+  Round 12 also repaired an inherited organisation-identifier archive gate that had never
+  been able to fail, while retaining the separate privacy sweep that had continued to run.
+  Its results are controls and findings, not decisions. RFC-0088 remains `Experimental`.
+  No candidate artifact was executed.

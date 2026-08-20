@@ -2103,6 +2103,28 @@ def test_check_artifact_status_branches(g, spec) -> None:
     assert not r.ok and "no **Status:** line" in r.reason
 
 
+@pytest.mark.parametrize(
+    "status, expected_ok",
+    [
+        ("Implementing", True),
+        ("Draft", False),
+        ("Approved", False),
+        ("Archived", False),
+        ("Shipped", False),
+    ],
+)
+def test_check_artifact_status_expect_implementing_is_exact(g, spec, status, expected_ok) -> None:
+    """The existing API can enforce an intermediate review unit without widening it.
+
+    Mutation proof: making ``check_artifact_status`` return success for a status
+    mismatch flips each non-Implementing assertion.
+    """
+    result = g.check_artifact_status(
+        spec(spec_status=status), filename="spec.md", expect="Implementing"
+    )
+    assert result.ok is expected_ok
+
+
 def test_check_artifact_status_filename_is_one_component(g, spec) -> None:
     """AC9. A single component is what makes the confinement honest.
 

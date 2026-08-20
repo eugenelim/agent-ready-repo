@@ -94,6 +94,7 @@
 | [0090](0090-change-sizing-and-decomposition.md) | Change sizing and decomposition | Accepted | 2026-08-19 | 2026-08-19 |
 | [0091](0091-right-size-rfc-governance.md) | Right-size RFC governance | Accepted | 2026-08-19 | 2026-08-19 |
 | [0092](0092-first-class-distribution-routes.md) | First-class distribution routes — portable Agent Plugins, native Claude/Codex packages, and Kiro Powers from one pack model | Accepted | 2026-08-19 | 2026-08-20 |
+| [0093](0093-intent-scoped-completion.md) | Intent-scoped completion | Accepted | 2026-08-19 | 2026-08-20 |
 
 ## Adding a new RFC
 
