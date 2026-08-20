@@ -1,6 +1,6 @@
 # Spec: work-loop-light-mode
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by ADR-0088 — the risk-trigger block's documentation homes; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0014, RFC-0025

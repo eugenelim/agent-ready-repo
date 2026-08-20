@@ -1356,6 +1356,27 @@ must respect:
 
 ---
 
+## Privacy
+
+**Never commit personal information to any file in this repo.** This includes:
+
+- Real names, email addresses, usernames, or account identifiers.
+- Org-specific domains, subdomains, or employer hostnames.
+- AAD/UUID identifiers tied to real people.
+- Device names, profile paths, or user-specific filesystem paths.
+- Names of personal service providers or platforms that identify account relationships.
+
+Use generic placeholders everywhere: `user@example.com`, `colleague@example.com`, `Example User`,
+`https://mail.yourorg.com/`, `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`, `example-service`,
+and `[service type]`.
+
+**This rule covers all git artifacts** — code, comments, docs, specs, commit messages,
+PR titles, PR bodies, and PR comments are permanent record. Never use real service or
+vendor names as examples; use `example-service` or `[service type]` instead. When
+authoring governance docs (ADRs, RFCs, specs), GitHub handles used for author/decider
+fields are not PII — they are public project identifiers.
+Do not infer them from session context.
+
 ## When this file is wrong
 
 If a convention here is causing friction, **say so in an RFC**. Don't quietly

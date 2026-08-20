@@ -75,6 +75,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you can see the shape of the exchange, and where your decisions fall in it,
   before committing to the journey.
 
+### [core][2.9.4] — 2026-08-19
+
+#### Changed
+
+- **Privacy obligations restored.** Seed conventions again prohibit personal
+  identifiers in all git artifacts, preserve the public-handle carve-out, and
+  direct root guidance to the canonical privacy policy.
+- **Risk-trigger documentation is explicitly single-sourced.** ADR-0088 records
+  the `work-loop` skill as the sole block home without changing mode selection.
+
 ### [core][2.9.2] — 2026-08-19
 
 #### Changed

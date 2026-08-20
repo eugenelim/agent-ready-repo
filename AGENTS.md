@@ -58,6 +58,7 @@ make ci
 
 Never commit personal information or credentials. Use generic placeholders in all
 repository artifacts. Follow the security workflow for security-boundary changes.
+See [Privacy in CONVENTIONS](docs/CONVENTIONS.md#privacy) for the complete policy.
 
 **Blessed security tools/helpers:**
 
