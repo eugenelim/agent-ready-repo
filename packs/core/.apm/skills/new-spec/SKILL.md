@@ -21,9 +21,15 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## When to invoke
 
-The spec is the contract; the plan is the strategy. Even a one-day feature
-benefits from a one-paragraph spec — it forces the question "what does done
-look like?" before any code.
+The spec is the contract; the plan is the strategy. Invoke this skill when at
+least one of these conditions warrants a durable contract:
+
+- The user explicitly requests a spec.
+- Full mode or durable coordination requires one.
+- A confirmed brief slice is selected for delivery.
+- The work needs queueing, resumption, approval persistence, or external
+  orchestration.
+- A durable published behavior contract is warranted.
 
 ## Procedure
 
