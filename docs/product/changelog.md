@@ -91,6 +91,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   internals, and — for a sensitive package — to list the change categories that
   require an architecture decision record.
 
+### [agentbundle][0.38.5] — 2026-08-20
+
+#### Changed
+
+- **The bundled authoring scaffold says how to write pack tests.** A skill's
+  modules load under a name that includes their pack and skill rather than by
+  putting `scripts/` on `sys.path` — independent skills may each ship a
+  `render.py`, and a bare `import render` binds whichever directory was reached
+  first. The standard also asks that a suite spend its time asserting rather
+  than spawning processes.
+
+#### Fixed
+
+- **A repository-only test no longer ships to self-hosted catalogues.**
+  `catalogue init --preset self-hosted` and both archive flavours copied
+  `tests/conformance/` wholesale, which carried a test that resolves paths only
+  this repository has; it failed on an adopter's first run. The shipped
+  conformance set is now derived from the directory in one place, so plain
+  init's manifest and self-hosted init's copy cannot describe different sets.
+
 ### [agentbundle][0.38.4] — 2026-08-20
 
 #### Changed
