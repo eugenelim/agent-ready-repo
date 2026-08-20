@@ -412,7 +412,13 @@ normalization sentence → the AC21 containment test fails.
 `guides/_shared/reference/output-rendering.md:83`.
 
 **Projections regenerated, never edited:** root `docs/CONVENTIONS.md`,
-`.claude/**`, `.agents/**`, `docs-site/src/content/docs/getting-started/three-loops.md`.
+`.claude/**`, `.agents/**`, and `docs-site/src/content/docs/guides/**`.
+
+**Correction:** `docs-site/src/content/docs/getting-started/three-loops.md` is
+**not** a projection — `tools/build-site.py` aggregates `guides/**` into
+`docs-site/src/content/docs/guides/**` only, so `getting-started/**` is a
+hand-authored, tracked source and must be edited directly. `make site-sync`
+leaves it untouched.
 
 **Done when:** the AC26 sweep returns only frozen records
 (`docs/rfc/**`, `docs/adr/**`, Shipped/Archived `docs/specs/**`) and this spec
@@ -531,3 +537,9 @@ plus `make build-self`.
   `FORCE=1 make build-self && rm -rf dist && make build && make build-check`.
   The round-1 discovery sweep missed the hash pin because it searched only
   `packs/core/tests/**` and not `tools/`.
+- 2026-08-20 — Corrected a projection misattribution found during T5. The plan
+  listed `docs-site/src/content/docs/getting-started/three-loops.md` as a
+  regenerated projection; `tools/build-site.py` maps `guides/**` to
+  `docs-site/src/content/docs/guides/**` only, so that page is a hand-authored
+  tracked source. `make site-sync` ran clean without touching it, which is what
+  exposed the error. The stale lean-spec claim there was edited directly.

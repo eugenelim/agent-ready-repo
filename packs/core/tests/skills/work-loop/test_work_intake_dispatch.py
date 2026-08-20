@@ -9,6 +9,7 @@ _WORK_LOOP = (
     / "work-loop"
     / "SKILL.md"
 )
+_REPO_ROOT = Path(__file__).resolve().parents[5]
 
 
 def test_missing_contract_fails_closed() -> None:
@@ -76,3 +77,51 @@ def test_persisted_light_specs_remain_spec_driven() -> None:
     table = table.split("\n## ", 1)[0]
     for status in ("`Draft`", "`Approved`", "`Implementing`"):
         assert status in table, status
+
+
+def test_workspace_dispatch_and_direct_light_have_distinct_durability() -> None:
+    """Pin the architecture boundary without coupling it to line wrapping."""
+    architecture = _normalized(
+        (_REPO_ROOT / "docs/architecture/work-intake-and-artifact-routing.md").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    for required in (
+        "Every workspace-dispatchable, queued, or resumable build item resolves "
+        "to an existing durable `spec.md` and sibling `plan.md`",
+        "An explicit direct-light request is session-local, creates no workspace "
+        "entry, and is ineligible for argless dispatch or fresh-session resumption.",
+        "+-- direct light --> work-loop from current request",
+        "+-- durable single slice --> spec + plan --> workspace --> work-loop",
+        "+-- multi-slice outcome --> brief --> confirmed specs + plans",
+    ):
+        assert _normalized(required) in architecture, required
+
+
+def test_living_guidance_no_longer_describes_persisted_light_specs() -> None:
+    """Pin the swept direct-light terminology on its living documentation homes."""
+    living_sources = (
+        "packs/core/seeds/docs/CONVENTIONS.md",
+        "packs/core/DESIGN.md",
+        "guides/_shared/explanation/the-three-loops.md",
+        "guides/core/explanation/token-economy.md",
+        "guides/core/explanation/why-a-brief-layer.md",
+        "packs/core/.apm/skills/new-spec/assets/spec.md",
+        "packs/core/.apm/skills/new-spec/assets/plan.md",
+    )
+    retired_claims = (
+        "lean inline spec",
+        "the spec stays the *how*",
+        "engineering *how* — including any low-level design — stays in the spec",
+        "Light-mode lean fill",
+    )
+
+    for relative_path in living_sources:
+        text = (_REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        normalized = _normalized(text).lower()
+        for claim in retired_claims:
+            assert _normalized(claim).lower() not in normalized, (
+                relative_path,
+                claim,
+            )

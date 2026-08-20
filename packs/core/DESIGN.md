@@ -110,7 +110,7 @@ No trigger fires → light mode.
 
 | Aspect | Light mode | Full mode |
 |--------|-----------|-----------|
-| Spec | Lean inline (trio + short task list) | Full `new-spec` document |
+| Spec | Eligible direct-light work keeps its plan in the active session; a supplied or persisted spec remains governing | Durable `new-spec` document |
 | `adversarial-reviewer` passes | Single bounded pass; one re-review of the fix, then escalates | Iterated to clean (max 5 iterations) |
 | `quality-engineer` | Not run by default | Runs at end-of-session checklist |
 | `loop-cohort` state machine | Not used | Used |
@@ -421,7 +421,9 @@ mode: light | full
 Approve? ›
 ```
 
-Light mode stops after the trio + assumptions + task list. Full mode additionally includes acceptance criteria and a risk-trigger assessment.
+Direct-light keeps the trio, assumptions, and task list in the active session.
+Full mode additionally records acceptance criteria and a risk-trigger assessment
+in its durable spec and plan.
 
 ### Finding severity labels
 

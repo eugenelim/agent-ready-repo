@@ -915,12 +915,10 @@ kind of learning belongs.
 
 ### Light and full modes
 
-**Rigor scales with risk, not file count.** `work-loop` has two modes —
-**light mode**, the default for low-risk work, and **full mode**, with every
-gate, reviewer iteration, and the state machine. The `work-loop` skill is the
-single owner of what each mode trims and how it runs. Work escalates to full
-mode the moment it trips a risk trigger; the enumerated trigger set lives in
-the `work-loop` skill.
+**Rigor scales with risk, not file count.** An eligible light request runs
+directly from the current session without a persisted spec; durable or
+risk-triggering work uses the spec-and-plan path. The `work-loop` skill is the
+single owner of mode mechanics and the enumerated trigger set.
 
 **Why risk, not file count.** A familiar two-file change is cheap to get right
 and cheap to undo; a one-file change to an auth path or a published interface is
@@ -1245,7 +1243,7 @@ loads or while it is running.
 | "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
 | "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
-| "I don't need a spec, I understand the task." | Light mode still writes a lean inline spec; if any risk trigger fires, run full `new-spec` first. The spec exists to surface what you don't know you don't know. |
+| "I don't need a spec, I understand the task." | An eligible direct-light request keeps its plan in the active session; it does not persist a spec. If the work needs durability or any risk trigger fires, use `new-spec` for the durable spec and plan. |
 | "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
 | "I'll match the surrounding code's pattern." | Check the [Source of truth](../AGENTS.md#source-of-truth) map first; local style may already conflict with the canonical convention. |
 
