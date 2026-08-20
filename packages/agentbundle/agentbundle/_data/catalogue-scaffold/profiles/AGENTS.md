@@ -10,9 +10,9 @@ is its identifier. Reserved `_` children are authoring assets, not active profil
 
 ## Validation and ownership
 
-[`contracts/profile.schema.json`](../contracts/profile.schema.json) owns fields and
-semantic validation. Profile TOML is the source; profiles are scaffold sources but
-are not projected by `catalogue self-host`.
+`profile.schema.json` owns fields and semantic validation. Read it with
+`agentbundle catalogue contracts show profile.schema.json`. Profile TOML is the
+source; profiles are scaffold sources but are not projected by `catalogue self-host`.
 
 - A pack name appears at most once in a profile.
 - Packs with a declared `conflicts` relationship do not share a profile.
@@ -27,5 +27,4 @@ agentbundle list-profiles <catalogue>
 
 ## Deeper pointers
 
-Start from `profiles/_example/profile.toml`. Synchronize scaffold projections after
-profile-source changes with `tools/catalogue/sync_authoring_scaffold.py`.
+Start from `profiles/_example/profile.toml`.

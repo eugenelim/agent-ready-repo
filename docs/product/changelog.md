@@ -124,6 +124,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   internals, and — for a sensitive package — to list the change categories that
   require an architecture decision record.
 
+### [agentbundle][0.38.6] — 2026-08-20
+
+#### Fixed
+
+- **Profile authors can now reach the schema their instructions name.** New
+  catalogues direct them to the bundled profile contract through the installed
+  CLI, rather than a path that exists only in this repository.
+
 ### [agentbundle][0.38.5] — 2026-08-20
 
 #### Changed

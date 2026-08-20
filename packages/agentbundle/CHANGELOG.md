@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.6] — 2026-08-20
+
+### Fixed
+
+- The bundled profile-authoring instructions now direct catalogue authors to
+  the packaged profile schema through a command available in initialized
+  catalogues, rather than a repository-only path.
+
 ## [0.38.5] — 2026-08-20
 
 ### Changed
