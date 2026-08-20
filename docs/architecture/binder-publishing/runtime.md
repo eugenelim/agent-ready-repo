@@ -298,8 +298,8 @@ publication root). There is no `--toolchain`: D-B removed the cache it swept.
 
 ## Compatibility and migration
 
-Nothing to migrate. No existing artifact changes; no pack changes; no source file
-changes. A repository adopts the pack by adding one `binder.toml`.
+Nothing migrates: existing artifacts, packs, and sources remain unchanged. Adopt
+the pack by adding one `binder.toml`.
 
 | Change | Impact |
 |---|---|
@@ -308,10 +308,9 @@ changes. A repository adopts the pack by adding one `binder.toml`.
 | `tools/build-site.py`, `site.toml`, `docs-site/` | None. Not read, not written, not imported. |
 | `.gitignore` | Offered, on consent: `.binder-work/`, and the publication dir if inside the repository. |
 | `agentbundle-layout.toml` | An adopter adds a `[binder]` section by hand; the installer's append does not create it (see the current-state correction). |
-| `contracts/` | **None.** The schemas ship in the skill's `assets/` and are published from there; see *Canonical schema publication* for why mirroring them into `contracts/` would invert RFC-0076 D1's authority model and pull a binder schema into the CLI's bundled `_data/`. |
+| `contracts/` | **None.** Schemas ship and are published from skill `assets/`; mirroring them into `contracts/` would invert RFC-0076 D1's authority model and add a binder schema to the CLI's bundled `_data/`. |
 
-A pack that later wants to participate does so by shipping a recipe template
-under its own `assets/`, or documenting its frontmatter — both additive, neither
-requiring a change to this pack.
+A participating pack ships a recipe template in its assets or documents its
+frontmatter; neither changes this pack.
 
 ---

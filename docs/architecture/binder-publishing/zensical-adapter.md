@@ -25,20 +25,12 @@ writes no field of the index (invariant 22); anything it must invent goes in
 > Stated that way deliberately. "It is given no source root" would be the stronger
 > claim and it would be false — staging must read caller-owned sources, and the
 > index does carry the root. The mechanical guarantee is the accessor, not a
-> withheld variable. See [`overview.md`](overview.md#proposed-component-architecture).
+> withheld variable. See [`overview.md`](overview.md#component-architecture).
 
-## Why this adapter is small
+## Adapter staging boundary
 
-The Quarto adapter was large because Quarto needed working around. Three of its
-areas do not exist here:
-
-| Quarto needed | Zensical |
-|---|---|
-| ` ```mermaid ` → `` ```{mermaid} `` transformation, label injection, caption binding, `line-map` | **Reads the portable fence directly.** The fence *body* is never rewritten and the opening delimiter gains attributes on its own line (step 5, D46) — so no line-count change, so no line map |
-| Shortcode neutralization (Q11) | **Does not interpret `{{< … >}}`.** Passes it through as text |
-| A reader-toggle layer that broke diagrams (Q26) | Not applicable |
-
-What remains is genuinely a *staging* step: copy, rewrite links, write config.
+The adapter stages sources, rewrites links, emits configuration, reads portable
+Mermaid fences without rewriting their bodies, and treats `{{< … >}}` as text.
 
 ## Staging
 
@@ -305,24 +297,10 @@ rather than of a patch version, so this is not fragile, but **the pack vendors a
 pinned version with a recorded digest**, for the same reason `zensical` itself is
 pinned exactly.
 
-### The accessible name — Z6 falsified the specified mechanism
+### Accessible diagram naming
 
-**Attributes on the `<pre>` do not survive rendering.** The bundle mounts a
-diagram with `e.replaceWith(r)` where `r = A("div",{class:"mermaid"})` — **a fresh
-`div` carrying only `class`** — and puts the SVG in `attachShadow({mode:"closed"})`.
-Measured live: `div attrs: {"class":"mermaid"}` for every diagram, and
-`div.shadowRoot === null` from page script (Z6d). So an `aria-label` emitted onto
-the fence through `attr_list` is discarded before the reader ever sees the
-diagram.
-
-> **Of the specified controls the Z-gates found wrong, this is the only one that was
-> wrong about a *runtime*.** Z1c and Z4a both came from reading a key's shape; this
-> one came from reasoning about the HTML the compiler emits and never asking what
-> the client-side bundle does to it. Worse, it fails *inverted*: Z6e found the name
-> is present in the accessibility tree **only when the diagram fails to render**,
-> because the `<pre>` is still there. A named diagram and a rendered diagram were
-> mutually exclusive, and a static assertion over the built HTML would have read
-> green forever.
+The theme replaces the staged `<pre>`. Accessibility metadata must therefore reach
+Mermaid before mounting and be asserted on the rendered SVG, not on the `<pre>`.
 
 **The mechanism is two halves that meet in the browser, and it is verified (D46).**
 The compiler emits the name and description as `attr_list` attributes on the
@@ -543,10 +521,7 @@ ERROR  Mermaid diagram failed to parse
 
 ## The dependency contract
 
-The whole of it. **This file used to have a 211-line sibling** describing an
-install ladder, consent tokens, digest verification, PEP 668 handling, a toolchain
-cache with its own lock, and a platform gate — all of it machinery for managing a
-236 MB external CLI. ADR-0073 deleted the CLI, so it deleted the machinery.
+The runtime dependency contract is:
 
 ```toml
 [[pack.runtime-dependencies]]
@@ -618,9 +593,8 @@ Z-gates — the same discipline that caught Q26 and Q27, and that caught three
 errors in this file — and the fact that swapping renderers touches this file and
 nothing else.
 
-## What a future Quarto adapter would need
+## Future Quarto adapter (not v1)
 
-Retained deliberately: [`verified-findings.md`](verified-findings.md) carries
-Q1–Q28, all of it hard-won by direct execution. A PDF or EPUB path would go
-through Quarto, and Q5, Q10a, Q17, Q18, Q26, and Q28 are exactly what that adapter
-would be built against. The findings are evidence, not history.
+Not v1 work. A PDF or EPUB adapter using Quarto must implement the constraints in
+[`verified-findings.md`](verified-findings.md), including fence transformation,
+shortcode neutralization, reader-toggle behavior, numbering, and label handling.

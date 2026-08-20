@@ -160,7 +160,7 @@ def _conventions_added_block() -> str:
     added — the lines the adopter-clean grep must be scoped to (the document at
     large legitimately names RFC/ADR/docs paths elsewhere)."""
     body = CONVENTIONS_SEED.read_text(encoding="utf-8")
-    start_marker = "Inside `architecture/`, the two docs play opposite roles"
+    start_marker = "`/ARCHITECTURE.md`, when present, is the concise descriptive system model"
     end_marker = "The bottom layers cite the upper layers"
     assert start_marker in body, (
         f"CONVENTIONS gloss {start_marker!r} moved — update this slice"

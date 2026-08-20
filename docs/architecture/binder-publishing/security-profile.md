@@ -60,18 +60,8 @@ one designed against a hypothetical.**
 
 ## Why this file leads with a corpus
 
-The previous draft's strict profile was a denylist written from the renderer's
-threat surface and validated against nothing. Three separate review rounds found
-it rejecting legitimate, widespread constructs:
-
-- `<br/>` in Mermaid node labels — **45 occurrences in the design document
-  itself**, and `architect-diagram`'s own reference tells authors to use it.
-- `<|--` and `<-->` in Mermaid class and architecture diagrams — standard syntax.
-- `{{<` anywhere — which rejects any document *about* Quarto, including this one.
-
-A rule that rejects the first real corpus it meets has the rule wrong, not the
-corpus. So the profile now carries a **corpus gate**, and every rule is stated in
-a form that can actually be implemented without a parser the pack refuses to build.
+Scanner rules are constrained by the corpus gate below. They must admit valid
+Mermaid labels such as `<br/>`, `<|--`, and `<-->`, and prose containing `{{<`.
 
 ### The corpus gate
 

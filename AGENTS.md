@@ -7,7 +7,7 @@
 
 This monorepo publishes a curated catalogue of portable agent-context packs — skills, subagents, commands, hooks, and seed documents — plus the `agentbundle` Python CLI that builds, installs, and verifies them across Claude Code, Codex, Cursor, Copilot, and Gemini CLI; it self-hosts those packs.
 
-Read [the architecture overview](docs/architecture/overview.md) before exploring unfamiliar areas.
+Read [the system model](ARCHITECTURE.md) and [the directory map](docs/architecture/overview.md) before exploring unfamiliar areas.
 
 ## Keeping changes minimal
 
