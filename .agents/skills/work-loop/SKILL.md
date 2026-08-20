@@ -534,7 +534,11 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
 
-**When ALL warranted reviewers are clean (or are named skips)** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one reviewer produced a clean report, record it (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
+**When ALL warranted reviewers are clean (or are named skips)** — normally write
+`Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one
+reviewer produced a clean report, record it (transition first; record is
+non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit
+count already moved; the default guard requires Status: Shipped):
 ```
 python scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
 # If at least one reviewer produced a clean report:
@@ -544,7 +548,22 @@ python scripts/loop-cohort.py review record docs/specs/<feature> \
 python scripts/loop-cohort.py review record docs/specs/<feature> \
     --all-skipped --expect-run-id <run_id>
 ```
-Engine is now in `CODE-HUMAN-GATE`. **Before waiting: complete the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human response:
+For an intermediate review unit under an accepted intent that remains incomplete,
+leave `spec.md` at `Status: Implementing` and declare that boundary explicitly:
+```
+python scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean \
+    --intent-incomplete
+```
+This opt-in accepts `Implementing` only; it does not disable the status guard or
+permit another status. The next in-intent unit still returns through
+`blocker-applied` and receives GATES, REVIEW, and a human gate of its own. This
+intermediate human gate is not a finish: do not mark the spec `Shipped`, run
+`done` (which refuses until the spec is `Shipped`), or apply the Finish
+checklist's intent-completion item. After the human
+gate, fire `blocker-applied` to begin the next unit.
+Engine is now in `CODE-HUMAN-GATE`. For a final unit, **before waiting: complete
+the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human
+response:
 - **Approved (merge confirmed):** fire `done`.
   ```
   python scripts/loop-engine.py transition docs/specs/<feature> done

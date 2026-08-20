@@ -1658,12 +1658,78 @@ def test_legal_reviewers_clean_code_to_human_gate(tmp: Path) -> None:
         ok(name)
 
 
+@pytest.mark.parametrize(
+    ("status", "expected_rc"),
+    [
+        ("Implementing", 0),
+        ("Draft", 1),
+        ("Approved", 1),
+        ("Archived", 1),
+        ("Shipped", 1),
+    ],
+)
+def test_reviewers_clean_intent_incomplete_requires_implementing(
+    tmp: Path, status: str, expected_rc: int
+) -> None:
+    """The intermediate-unit declaration narrows, rather than bypasses, the guard.
+
+    Mutation proof: changing the engine's opt-in expectation from ``Implementing``
+    to ``Shipped`` makes the Implementing case refuse and the Shipped case admit,
+    flipping both assertions below.
+    """
+    name = f"reviewers-clean-intent-incomplete-{status.lower()}"
+    spec_dir, _ = make_code_review_run(tmp, name)
+    write_spec(spec_dir, status=status)
+
+    rc, _, err = run_engine(
+        "transition", str(spec_dir), "reviewers-clean", "--intent-incomplete"
+    )
+    if rc != expected_rc:
+        fail(name, f"expected exit {expected_rc}; got {rc}: {err.strip()}")
+        return
+
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    expected_state = "CODE-HUMAN-GATE" if expected_rc == 0 else "CODE-REVIEW"
+    if state.get("state") != expected_state:
+        fail(name, f"expected {expected_state}; got {state.get('state')!r}")
+    else:
+        ok(name)
+
+
+@pytest.mark.parametrize("status", ["Draft", "Approved", "Implementing", "Archived"])
+def test_done_refuses_non_shipped_spec(tmp: Path, status: str) -> None:
+    """done must not make an incomplete accepted intent terminal.
+
+    Mutation proof: removing the ``("code", "done")`` guard entry admits this
+    transition, so the assertion that engine state remains CODE-HUMAN-GATE flips.
+    """
+    name = f"done-refuses-{status.lower()}"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status=status)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "code", "CODE-HUMAN-GATE")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
+
+    rc, _, err = run_engine("transition", str(spec_dir), "done")
+    if rc == 0:
+        fail(name, "expected done to refuse a non-Shipped spec")
+        return
+    state = json.loads((spec_dir / "engine-state.json").read_text())
+    if state.get("state") != "CODE-HUMAN-GATE":
+        fail(name, f"expected CODE-HUMAN-GATE; got {state.get('state')!r}: {err.strip()}")
+    else:
+        ok(name)
+
+
 def test_legal_done_from_code_human_gate(tmp: Path) -> None:
-    """CODE-HUMAN-GATE → done → DONE. No pre-guard (done is exempt)."""
+    """CODE-HUMAN-GATE → done → DONE when spec.md Status is Shipped."""
     name = "legal-done-code"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    # done is exempt from schedule pre-guard, and no specific guard for "done"
+    # done skips the schedule pre-guard but fires its Shipped-status guard.
+    write_spec(spec_dir, status="Shipped")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-HUMAN-GATE"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
     rc, _, err = run_engine("transition", str(spec_dir), "done")
@@ -1830,7 +1896,10 @@ def test_done_exempt_from_schedule_precheck(tmp: Path) -> None:
     name = "done-exempt-from-schedule-precheck"
     run_id = str(uuid.uuid4())
     spec_dir = make_spec_dir(tmp, name)
-    # No plan.md, no schedule — done must still succeed
+    # No plan.md, no schedule — done must still succeed. spec.md is present and
+    # Shipped only to satisfy done's status guard; this case is about the
+    # schedule exemption, which the missing plan.md still exercises.
+    write_spec(spec_dir, status="Shipped")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-HUMAN-GATE"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name))
     rc, _, err = run_engine("transition", str(spec_dir), "done")

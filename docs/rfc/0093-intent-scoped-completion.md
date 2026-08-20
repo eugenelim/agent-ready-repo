@@ -123,7 +123,7 @@ existing human-gate return edge for a further independently reviewed unit:
 ([`packs/core/.apm/skills/work-loop/scripts/loop-engine.py:552`](../../packs/core/.apm/skills/work-loop/scripts/loop-engine.py)),
 after which the unit runs GATES, REVIEW, and the human gate again. The
 work-loop currently documents that edge only as “Changes requested”
-([`packs/core/.apm/skills/work-loop/SKILL.md:553`](../../packs/core/.apm/skills/work-loop/SKILL.md)); it must also instruct its use for either kind of further in-intent review unit. Intent-scoped completion therefore needs no new engine state, transition, or guard.
+([`packs/core/.apm/skills/work-loop/SKILL.md:553`](../../packs/core/.apm/skills/work-loop/SKILL.md)); it must also instruct its use for either kind of further in-intent review unit. Intent-scoped completion therefore needs no new engine state, transition, or guard: the existing human-gate return edge carries the doctrine. The owner additionally chose to make the existing status guard intent-aware; see Q1's resolution.
 
 The implementation uses existing plan and session surfaces for included work,
 and the PR or final summary's "What did you not change?" answer for excluded
@@ -241,9 +241,15 @@ optional rather than automatic.
   Thus a later planned or post-review unit begins after an earlier unit has
   already marked the spec `Shipped`, even when the accepted intent remains
   incomplete. This pre-existing tension is surfaced, not created, here.
-  **Recommended default:** retain the guard's current behavior and carry the
-  doctrine instructionally; any change to the guard is a separate decision.
-  **Owner:** eugenelim. **Decide by:** the follow-on work-loop implementation.
+  **Resolution (owner decision):** the owner reversed this RFC's recommended
+  default. The code-review guard is intent-aware through an explicit
+  intermediate-unit declaration: absent that declaration it still requires
+  `Shipped`; when declared it requires `Implementing` and no other status. This
+  makes the human-gate transition honest for a review unit whose accepted intent
+  remains incomplete while failing closed for every existing caller. The final
+  `done` transition independently requires `Shipped`, so only a completed
+  accepted intent can reach `DONE`.
+  **Owner:** eugenelim. **Decided:** 2026-08-20.
 
 ## Follow-on artifacts
 
