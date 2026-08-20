@@ -31,7 +31,24 @@ def _configure_stream(stream: object, errors: str) -> None:
 _configure_stream(sys.stdout, "strict")
 _configure_stream(sys.stderr, "backslashreplace")
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+IMPORT_SENTINEL = "__AGENTBUNDLE_IMPORT_RESOLUTION__="
+IMPORT_TIMEOUT_SECONDS = 10
+IMPORT_PROBE = (
+    "import json\n"
+    "try:\n"
+    "    import agentbundle\n"
+    "except ModuleNotFoundError as error:\n"
+    "    if error.name != 'agentbundle':\n"
+    "        raise\n"
+    "    result = {'state': 'absent'}\n"
+    "else:\n"
+    "    path = getattr(agentbundle, '__file__', None)\n"
+    "    if not isinstance(path, str):\n"
+    "        raise RuntimeError('agentbundle has no import path')\n"
+    "    result = {'state': 'resolved', 'path': path}\n"
+    f"print({IMPORT_SENTINEL!r} + json.dumps(result, sort_keys=True))\n"
+)
 CATEGORIES = ("dependencies", "generated", "test_artifacts")
 CLEANABLE_CATEGORIES = frozenset(CATEGORIES)
 EXPENSIVE = {"dependencies"}
@@ -132,6 +149,156 @@ def _call(
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return runner(argv, input=input, env=env)
+
+
+def _run_import_probe(
+    argv: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    """Run the isolated import measurement without writing worktree bytecode."""
+    return subprocess.run(  # nosec B603  # fixed interpreter and inline probe
+        argv,
+        cwd=str(cwd),
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=IMPORT_TIMEOUT_SECONDS,
+    )
+
+
+def _import_provenance(worktree: Path) -> dict[str, object]:
+    """Describe the process context used for the isolated import probe."""
+    return {
+        "interpreter": sys.executable,
+        "cwd": str(worktree.resolve()),
+        "removed_environment_inputs": [
+            "PYTHONPATH",
+            "cwd sys.path entry (-P)",
+        ],
+    }
+
+
+def _agentbundle_import_resolution(
+    worktree: Path,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
+) -> dict[str, object]:
+    """Measure where agentbundle resolves without this worktree's PYTHONPATH."""
+    provenance = _import_provenance(worktree)
+    environment = os.environ.copy()
+    environment.pop("PYTHONPATH", None)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    try:
+        result = import_runner(
+            [sys.executable, "-P", "-c", IMPORT_PROBE],
+            cwd=worktree,
+            env=environment,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe timed out",
+        }
+    except OSError as error:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": f"isolated import probe could not run: {error}",
+        }
+    if result.returncode:
+        detail = result.stderr.strip() or f"exit {result.returncode}"
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": f"isolated import probe failed: {detail}",
+        }
+    records = [
+        line.removeprefix(IMPORT_SENTINEL)
+        for line in result.stdout.splitlines()
+        if line.startswith(IMPORT_SENTINEL)
+    ]
+    if len(records) != 1:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced no unambiguous result",
+        }
+    try:
+        record = json.loads(records[0])
+    except json.JSONDecodeError:
+        record = None
+    if not isinstance(record, dict):
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced an invalid result",
+        }
+    if record.get("state") == "absent":
+        return {**provenance, "status": "absent"}
+    path = record.get("path")
+    if record.get("state") != "resolved" or not isinstance(path, str):
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced an invalid result",
+        }
+    resolved = Path(path).resolve()
+    return {
+        **provenance,
+        "status": "inside" if _under(resolved, worktree) else "outside",
+        "path": str(resolved),
+    }
+
+
+def _unregistered_worktree_resolution(repository: Path) -> dict[str, object]:
+    """State why an import probe cannot use a registered worktree."""
+    return {
+        **_import_provenance(repository),
+        "status": "inconclusive",
+        "detail": "no registered worktree contains the invocation directory",
+    }
+
+
+def _import_resolution_warning(resolution: dict[str, object]) -> str | None:
+    """Render only the measured import-resolution fact for scan warnings."""
+    context = (
+        f"interpreter: {resolution['interpreter']}; "
+        f"cwd: {resolution['cwd']}; removed environment inputs: "
+        f"{', '.join(resolution['removed_environment_inputs'])}"
+    )
+    status = resolution["status"]
+    if status == "outside":
+        return (
+            "agentbundle resolves outside this worktree, at "
+            f"{resolution['path']} ({context})"
+        )
+    if status == "absent":
+        return f"agentbundle is absent in isolated import measurement ({context})"
+    if status == "inconclusive":
+        return (
+            "agentbundle isolated import measurement is inconclusive: "
+            f"{resolution['detail']} ({context})"
+        )
+    return None
+
+
+def _import_resolution_human_line(resolution: dict[str, object]) -> str:
+    """Render the measured import-resolution fact for the human report."""
+    warning = _import_resolution_warning(resolution)
+    if warning:
+        return warning
+    context = (
+        f"interpreter: {resolution['interpreter']}; "
+        f"cwd: {resolution['cwd']}; removed environment inputs: "
+        f"{', '.join(resolution['removed_environment_inputs'])}"
+    )
+    return (
+        "agentbundle resolves inside this worktree, at "
+        f"{resolution['path']} ({context})"
+    )
 
 
 def _parse_porcelain(text: str) -> list[Worktree]:
@@ -341,6 +508,19 @@ def _under(path: Path, root: Path) -> bool:
     except (OSError, ValueError):
         return False
     return True
+
+
+def _containing_worktree(
+    directory: Path, worktrees: list[Worktree]
+) -> Path | None:
+    """Return the most-specific registered worktree containing a directory."""
+    current = directory.resolve()
+    matches = [
+        worktree.path
+        for worktree in worktrees
+        if _under(current, worktree.path)
+    ]
+    return max(matches, key=lambda path: len(path.parts), default=None)
 
 
 def _protected_paths(values: Iterable[str]) -> set[Path]:
@@ -625,8 +805,22 @@ def scan(
     runner: Runner = _run,
     *,
     include_ignore_status: bool = True,
+    include_import_resolution: bool = True,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
 ) -> dict[str, Any]:
     repo, common, worktrees, warnings = discover_worktrees(repository, runner)
+    worktree_root = _containing_worktree(repo, worktrees)
+    if include_import_resolution:
+        import_resolution = (
+            _agentbundle_import_resolution(worktree_root, import_runner)
+            if worktree_root is not None
+            else _unregistered_worktree_resolution(repo)
+        )
+        import_warning = _import_resolution_warning(import_resolution)
+        if import_warning:
+            warnings.append(import_warning)
+    else:
+        import_resolution = _import_provenance(worktree_root or repo)
     selected_roots = {path.resolve() for path in selected or []}
     if selected_roots:
         registered = {worktree.path for worktree in worktrees}
@@ -695,6 +889,7 @@ def scan(
         "repository": str(repo),
         "git_common_dir": str(common) if common is not None else None,
         "measurement": _measurement_name(),
+        "agentbundle_import": import_resolution,
         "worktrees": worktree_data,
         "shared_caches": shared,
         "warnings": sorted(set(warnings)),
@@ -707,6 +902,14 @@ def _human(report: dict[str, Any]) -> str:
         f"measurement: {report['measurement']} bytes",
         "worktree  dependencies  generated  tests  protected  total local",
     ]
+    import_resolution = report["agentbundle_import"]
+    import_warning: str | None = None
+    if "status" in import_resolution:
+        import_warning = _import_resolution_warning(import_resolution)
+        lines.append(
+            "import resolution: "
+            + _import_resolution_human_line(import_resolution)
+        )
     for worktree_data in report["worktrees"]:
         categories = worktree_data["categories"]
         values = (
@@ -755,7 +958,11 @@ def _human(report: dict[str, Any]) -> str:
         else:
             description += "; cleanup: report only"
         lines.append(description)
-    lines.extend(f"warning: {warning}" for warning in report["warnings"])
+    lines.extend(
+        f"warning: {warning}"
+        for warning in report["warnings"]
+        if warning != import_warning
+    )
     return "\n".join(lines)
 
 
@@ -899,14 +1106,8 @@ def _candidate_safety_reason(
 
 def _current_worktree(repository: Path, runner: Runner) -> Path:
     """Resolve the registered worktree containing the invocation directory."""
-    current = repository.resolve()
     _, _, worktrees, _ = discover_worktrees(repository, runner)
-    matches = [
-        worktree.path
-        for worktree in worktrees
-        if _under(current, worktree.path)
-    ]
-    return max(matches, key=lambda path: len(path.parts), default=current)
+    return _containing_worktree(repository, worktrees) or repository.resolve()
 
 
 def _append_receipt_summary(
@@ -982,6 +1183,7 @@ def clean(
         clean_selection,
         runner,
         include_ignore_status=False,
+        include_import_resolution=False,
     )
     lines.extend(f"warning: {warning}" for warning in report["warnings"])
     common_value = report["git_common_dir"]

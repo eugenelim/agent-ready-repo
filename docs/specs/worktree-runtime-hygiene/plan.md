@@ -15,12 +15,34 @@
 4. Append a dedicated pytest invocation for the new tool test; do not merge it into
    the existing basename-collision-prone invocation.
 
-## Task 2 — concurrency runtime controls (not started by this task)
+## Task 2 — concurrency runtime controls (partially shipped)
 
-1. Add a preview-port override and gate wrapper with a port lease.
-2. Add browser-cache path resolution and selective bootstrap profiles.
-3. Add a cooperative worktree lease shared by cleanup and mutating build/test entry
-   points to close the remaining check-to-delete concurrency window.
+1. Shipped: preview-port override and gate wrapper with a port lease.
+2. Shipped: browser-cache path resolution and selective bootstrap profiles.
+3. Open: add a cooperative worktree lease shared by cleanup and mutating build/test
+   entry points to close the remaining check-to-delete concurrency window.
 
-Task 2 implements AC6–AC7. It has no code change in this task and must be scheduled
-as its own implementation work rather than smuggled into scan/clean.
+AC7 is shipped. AC6 remains open: its shared cleanup/build-test lease is not
+implemented, even though the preview-port lease is present.
+
+## Task 3 — isolated agentbundle import-resolution check (this layer)
+
+Tests: focused `tools/test_worktree_import_resolution.py` cases for in-tree,
+outside-tree, absent, non-zero/unparseable, polluted stdout, environment isolation,
+and schema shape; register a separate Makefile invocation to avoid basename collisions.
+
+1. Resolve `agentbundle` once in an isolated child with `PYTHONPATH` removed and
+   bytecode writes disabled.
+2. Add the result and its provenance to scan's JSON and human report without a
+   version comparison, remediation advice, or exit-code change.
+3. Fail closed into stated absent or inconclusive findings.
+
+## Task 4 — bounded test-evidence lifecycle (planned)
+
+Plan and implement bounded retention and cleanup of test evidence without broadening
+the worktree doctor's deletion authority.
+
+## Task 5 — worktree lifecycle hooks (planned)
+
+Plan and implement lifecycle hooks that coordinate worktree creation and removal with
+the existing safety model.

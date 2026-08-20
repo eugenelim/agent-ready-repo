@@ -17,27 +17,28 @@ state, and silently skipped tests unrelated to the actual space problem.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — scan has one authoritative worktree model.** `scan` discovers only
+- [x] **AC1 — scan has one authoritative worktree model.** `scan` discovers only
   `git worktree list --porcelain -z` records, including bare, detached, and prunable
   records, and emits deterministic human and JSON (`schema_version`, repository,
-  git_common_dir, measurement, worktrees, shared_caches, warnings, totals) output.
+  git_common_dir, measurement, agentbundle_import, worktrees, shared_caches, warnings,
+  totals) output.
   Paths with spaces and non-ASCII text are preserved. It performs one bounded,
   non-link-following traversal per present worktree, classifying candidates as it
   walks rather than rewalking per category.
 
-- [ ] **AC2 — byte output is honest.** Candidate byte counts use allocated blocks
+- [x] **AC2 — byte output is honest.** Candidate byte counts use allocated blocks
   when `st_blocks` exists and logical size otherwise; the selected measurement is
   labelled. Sparse files and clones therefore do not become an unqualified
   "reclaimable" claim. Human output is a compact per-worktree category table,
   followed by shared storage and only the largest candidates.
 
-- [ ] **AC3 — scan diagnoses, but does not mutate, shared state.** It reports
+- [x] **AC3 — scan diagnoses, but does not mutate, shared state.** It reports
   Playwright browser-path mode, local `.local-browsers`, duplicate browser revisions,
   npm cache placement, and worktree-local shared-cache resolution. It reports
   registered prunable records; it never removes worktrees, branches, browser caches,
   or arbitrary temporary-looking roots.
 
-- [ ] **AC4 — clean defaults to a receipt-only dry run.** `clean` deletes nothing
+- [x] **AC4 — clean defaults to a receipt-only dry run.** `clean` deletes nothing
   unless both `--apply` and one or more category switches are supplied. Expensive
   dependency cleanup additionally requires `--include-dependencies`. There is no
   all/force option. Unlike repository-wide `scan`, `clean` defaults to the current
@@ -46,7 +47,7 @@ state, and silently skipped tests unrelated to the actual space problem.
   selected and skipped candidates, reasons, measurable bytes, failures, and remaining
   largest candidates.
 
-- [ ] **AC5 — every deletion has a bounded safety proof.** Before deletion the tool
+- [x] **AC5 — every deletion has a bounded safety proof.** Before deletion the tool
   proves a known-model candidate is inside a selected registered worktree without a
   resolving link escape; rejects common-dir and `.git` administration paths, tracked
   files, non-ignored paths, `.loop-run`, `.context`, locks/leases, caller-protected
@@ -69,10 +70,21 @@ state, and silently skipped tests unrelated to the actual space problem.
   worktree lease shared by cleanup and mutating build/test entry points; only that
   shared lease can close the remaining check-to-delete concurrency window completely.
 
-- [ ] **AC7 — round 2: bootstrap and browser cache choices remain explicit.** The
+- [x] **AC7 — round 2: bootstrap and browser cache choices remain explicit.** The
   second implementation task adds a browser-cache resolver and selective bootstrap
   profiles without shared mutable dependencies, symlinked virtualenvs, or automatic
   background work.
+
+- [x] **AC8 — scan measures agentbundle import resolution.** `scan` runs exactly
+  one isolated child process with the worktree `PYTHONPATH` stripped, the cwd
+  `sys.path` entry removed (`-P`), and bytecode writes disabled, never comparing
+  versions. It reports the resolved `__file__` and provenance (interpreter, cwd, and
+  removed environment inputs) in both JSON and human output, with status invariant
+  across invocation directories. If discovery fails or no registered worktree
+  contains the invocation directory, it reports that fact as inconclusive without
+  running the child. A path outside the current worktree is reported only as that
+  fact; an absent, failed, timed-out, or unparseable probe is explicitly reported as
+  absent or inconclusive rather than silently passing.
 
 ## Limitations
 
