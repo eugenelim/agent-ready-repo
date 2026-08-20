@@ -1716,9 +1716,10 @@ open = [
   # reverted it.
   #
   # The gap is real: neither packs/AGENTS.md nor packs/README.md names
-  # contracts/pack.schema.json, while profiles/AGENTS.md:18 names
-  # contracts/profile.schema.json. Independently recorded at
-  # docs/product/research/catalogue-audience-discovery.md:276.
+  # contracts/pack.schema.json. Independently recorded at
+  # docs/product/research/catalogue-audience-discovery.md:276. profiles/AGENTS.md
+  # used to name contracts/profile.schema.json and no longer does — see the
+  # SECOND INSTANCE note below.
   #
   # WHY THE OBVIOUS FIX FAILS. packs/AGENTS.md and packs/README.md are both
   # projected into the authoring scaffold
@@ -1734,10 +1735,15 @@ open = [
   # packs/README.md has NO equivalent assertion, so a pointer added there lands
   # green — and is just as false for the adopter. Do not take the green as licence.
   #
-  # SECOND INSTANCE, found the same way: profiles/AGENTS.md already carries the
-  # dangling form, and no test covers profiles/AGENTS.md (test_scaffold_projection
-  # asserts only that it exists and is non-empty). So the file this entry called the
-  # precedent to mirror is a second occurrence of the same defect, not the pattern.
+  # SECOND INSTANCE — RESOLVED 2026-08-20 by
+  # spec/profiles-agents-adopter-resolvable-citations. profiles/AGENTS.md carried the
+  # dangling form and no test covered it. That file now names profile.schema.json
+  # without a path and routes the reader to
+  # `agentbundle catalogue contracts show profile.schema.json`, which resolves in
+  # both trees; test_profiles_agents_md_cites_only_paths_it_ships now holds it
+  # there. Option (b) below, taken for profiles/ only. packs/README.md is still open,
+  # and the decision for packs/ is still (a)-vs-(b) — profiles/ setting a precedent
+  # does not settle it, because pack.toml offline validation is a different question.
   #
   # Fix requires a decision, which is why this is not mechanical:
   #   (a) ship contracts/pack.schema.json (and profile.schema.json) in the scaffold,
@@ -1749,11 +1755,13 @@ open = [
   #       No such mechanism exists in _SYNC_PAIRS (it is byte-identity), so this is
   #       the most expensive option.
   # Recommend (a) if an adopter is ever expected to validate pack.toml offline,
-  # otherwise (b). Either way, extend the cites-only-paths-it-ships assertion to
-  # profiles/AGENTS.md in the same change, or the second instance survives.
+  # otherwise (b). The cites-only-paths-it-ships assertion now covers
+  # profiles/AGENTS.md, so a regression there fails; a packs/README.md fix still
+  # needs its own assertion, because no test reads that file.
   #
-  # Also still true, and unchanged: packs/AGENTS.md is at exactly 150 lines against
-  # the 150-line subdirectory cap, so any wording change must be net-zero.
+  # The line-budget note this entry used to carry is stale: lint-agents-md.py caps a
+  # scoped AGENTS.md at 80 lines and packs/AGENTS.md is 50, so a wording change no
+  # longer has to be net-zero.
   {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
 
   # docs-site-design-refresh deferral (spec Assumptions). The SCA half

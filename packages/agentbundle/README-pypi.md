@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.6
+
+Catalogue authors can now read the profile schema from initialized catalogues
+with `agentbundle catalogue contracts show profile.schema.json`. The bundled
+profile-authoring instructions no longer direct them to a repository-only path.
+
 ## What's new in 0.38.5
 
 The bundled authoring scaffold now says how to write pack tests that survive a
