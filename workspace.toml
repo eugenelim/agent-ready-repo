@@ -2981,6 +2981,47 @@ open = [
   # Unblocks when: someone applies RFC-0090's tail-triage lane to it -- that is
   # the likely lens for the decomposition, given the design's size.
   { slug = "binder-publishing-build-spec", source = "docs/architecture/binder-publishing/ (STATUS: PLANNED)", summary = "The planned binder-publishing design has no build spec; the only existing spec covers gate propagation only" },
+  # pytest temp trees carry no worktree attribution: the path is
+  # $TMPDIR/pytest-of-<user>/pytest-<N> where N is a global counter, so a tree
+  # cannot be traced to the worktree that produced it and a dead worktree's
+  # trees cannot be targeted. Measured 2026-08-20: 4.52 GB across 56 run dirs on
+  # one host; cleanup had to fall back to liveness-plus-age as a proxy.
+  # Do NOT reach for --basetemp: pytest removes that directory if it exists, so
+  # a shared per-worktree basetemp makes two concurrent runs in one worktree
+  # wipe each other, and it discards pytest's numbered retention.
+  # TMPDIR is the working lever -- verified it preserves both the numbering and
+  # the 3-run retention while making attribution structural.
+  # Detection needs no config and no Orca: local_exclude.derive_worktree_id()
+  # returns the sentinel "primary" for a primary checkout and the worktree name
+  # for a linked one, so a single-checkout CLI user is left untouched. Treat its
+  # RuntimeError as "primary" or a bare clone breaks bootstrap. Two traps: a
+  # non-existent TMPDIR makes tempfile.gettempdir() fall back to /tmp silently
+  # rather than erroring, so bootstrap must mkdir -p and doctor must assert it
+  # exists; and TMPDIR affects everything using tempfile, so it must not resolve
+  # inside the worktree unless gitignored.
+  # Declined by the worktree-runtime-hygiene lane on 2026-08-20 as a disk
+  # concern outside its concurrency scope -- this is unowned, not assigned.
+  { slug = "pytest-tmpdir-worktree-attribution", source = "spec/pytest-resource-optimization (measurement, unowned)", summary = "Give pytest temp trees per-worktree attribution via TMPDIR so a dead worktree's trees can be reclaimed; detect workspace vs single-checkout users from git topology, leaving single-checkout behaviour unchanged" },
+  # Adopters receive catalogue test FILES but no canonical command to run them.
+  # A fresh `catalogue init` creates tests/conformance/ and its next steps name
+  # authoring standards, contracts list and `catalogue verify` -- never a test
+  # command. Bare `pytest tests/conformance` does work (7 passed, 2 skipped from
+  # the published 0.38.5 wheel), so the gap is that nothing names it, nothing
+  # discovers pack tests, and nothing reports a missing framework.
+  # `pytest packs/` is NOT the answer and must not become it: it exits 2 with 37
+  # collection errors here, because independent skills ship colliding test
+  # basenames and colliding subject modules. One process per skill is a
+  # published adopter promise (catalogue-authoring-standards.md s4), so any
+  # runner has to preserve it rather than route around it.
+  # Discovery needs no new metadata artifact: ADR-0071 already mandates the
+  # layout (tests/skills/<skill>/, tests/hooks/, tests/pack/). Keep test
+  # dependencies development-only -- the wheel's runtime dependency set is
+  # empty and an optional extra is the precedent (pyproject [project.optional-
+  # dependencies] lint). `catalogue verify` must stay non-executing.
+  # Governance: additive, so no RFC under docs/CONVENTIONS.md 336-347, which
+  # names public visibility as evidence only. An ADR after experimentation is
+  # the right record for the execution boundary.
+  { slug = "agentbundle-catalogue-test-command", source = "spec/pytest-resource-optimization (adopter gap)", summary = "Give catalogue adopters a canonical way to execute the tests they receive, discovering pack and conformance suites from the ADR-0071 layout while preserving one process per skill and keeping test dependencies development-only" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
