@@ -396,6 +396,8 @@ test:
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
+	$(PYTHON) -m pytest tools/test_bootstrap.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
 	$(PYTHON) -m pytest \
 		tools/test_lint_agents_md_diataxis_block.py \
@@ -457,3 +459,20 @@ site-link-check: site-build  ## Build both sites, then audit emitted internal li
 
 site-serve: site-sync  ## Start Starlight dev server at http://localhost:4321
 	npm run dev --prefix docs-site
+
+.PHONY: worktree-doctor bootstrap-web bootstrap-docs-site bootstrap-sites web-browser-gate
+
+worktree-doctor:  ## Inspect worktree-local generated and runtime artifacts
+	$(PYTHON) tools/repo/worktree_hygiene.py scan
+
+bootstrap-web:  ## Install only web npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py web
+
+bootstrap-docs-site:  ## Install only docs-site npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py docs-site
+
+bootstrap-sites:  ## Install web and docs-site npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py sites
+
+web-browser-gate:  ## Run the browser gate on a leased preview port
+	$(PYTHON) tools/repo/frontend_runtime.py gate

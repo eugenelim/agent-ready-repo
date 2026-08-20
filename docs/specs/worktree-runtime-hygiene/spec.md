@@ -112,3 +112,11 @@ and focused pytest gates are run by the supervisor only.
    report-only records.
 3. The environment protection variable is path-separator-delimited and is additive
    to repeated command-line protection roots.
+
+## Known residual: preview-port probe TOCTOU
+
+Alongside task 1's deferred cleanup TOCTOU, port selection retains one bounded race.
+Participating gate wrappers are coordinated by the shared lease, but the availability
+probe closes before Astro binds. An unrelated machine-local listener can therefore
+take the selected port during that interval. The wrapper does not claim an absolute
+reservation guarantee, and handing a bound socket to Astro is outside this scope.
