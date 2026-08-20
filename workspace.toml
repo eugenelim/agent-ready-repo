@@ -141,7 +141,9 @@ executing = ""
 ready     = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
 ]
-draft     = []
+draft     = [
+  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
+]
 
 ["ini-002".work]
 active  = []
@@ -508,6 +510,10 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # RFC-0092 D7 deferred direction. The canonical MCP primitive stays transport-first so
+  # a typed acquisition descriptor stays possible; fetch-on-run launchers are already
+  # refused at the build boundary, so this is a permit-something RFC, not a restrict one.
+  {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
   # The six hand-authored journey pages retain legacy display copy but have no
   # approved semantic-ID/label mappings. Their fragments are intentionally not
   # emitted; closing this requires an approved editorial ledger extension.
