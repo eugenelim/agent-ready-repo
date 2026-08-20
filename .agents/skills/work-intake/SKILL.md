@@ -216,7 +216,9 @@ Before a local update, resolve both the artifact and `workspace.toml` by
 realpath, reject lexical or symlink escape, and revalidate exact SHA-256
 fingerprints immediately before the guarded pair replace. Use
 `guarded_write_pair`; on any staging or replacement failure, restore
-byte-identical pre-state and return only its redacted stable code.
+byte-identical pre-state and return only its redacted stable code. If the
+rollback replacement itself fails, return `local_write_inconsistent`: the pair
+may be torn and requires operator repair.
 
 Remote write-back is a separate post-local operation. For every individual
 mutation, show the exact artifact, source revision, profile, destination,

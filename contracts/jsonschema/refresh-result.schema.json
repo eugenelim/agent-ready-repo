@@ -45,7 +45,7 @@
       ]
     },
     "comparison_status": {"enum": ["not-started", "failed", "completed"]},
-    "local_mutation": {"enum": ["none", "refused", "pending", "committed"]},
+    "local_mutation": {"enum": ["none", "refused", "pending", "committed", "inconsistent"]},
     "conflict_state": {"enum": ["none", "unresolved", "resolved"]},
     "compared_revision": {"type": "string", "minLength": 1, "maxLength": 200},
     "accepted_revision": {"type": "string", "minLength": 1, "maxLength": 200},

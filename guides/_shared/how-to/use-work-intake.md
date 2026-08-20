@@ -99,8 +99,10 @@ difference as revise-both.
 
 The artifact authority record and the small `workspace.toml` revision mirror
 advance through one guarded local operation. A stale fingerprint, missing
-processor, profile-version mismatch, unresolved ambiguity, or write failure
-leaves both files at their pre-refresh values.
+processor, profile-version mismatch, or unresolved ambiguity leaves both files
+at their pre-refresh values. A staging or replacement failure restores the
+pair; if the rollback replacement itself fails, `local_write_inconsistent`
+reports a possibly torn pair that requires operator repair.
 
 ## Confirm coordination write-back separately
 

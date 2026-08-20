@@ -1079,6 +1079,93 @@ def test_acquisition_refuses_schema_invalid_normalized_intake(
     assert result.comparison is None
 
 
+def test_acquisition_redacts_sensitive_tracker_values_before_commit(
+    tmp_path: Path,
+) -> None:
+    refresh = _load_refresh()
+    router = _load_router()
+    sensitive = "contact colleague@example.com api_key=AKIAIOSFODNN7EXAMPLE"
+    registration = refresh.ProcessorRegistration(
+        name="example-refresh",
+        profile_id="example-service",
+        profile_version="1.0",
+        capabilities=frozenset({"acquire"}),
+        acquire=lambda locator, revision: {
+            "locator": locator,
+            "type": "issue",
+            "updatedAt": revision,
+            "title": sensitive,
+        },
+        revision_field="updatedAt",
+        field_mapping=(("Outcome", "title"),),
+    )
+    request = refresh.RefreshAcquisitionRequest(
+        artifact_path="docs/specs/example/spec.md",
+        artifact_kind="spec",
+        lifecycle="Approved",
+        authority_mode="tracker-origin",
+        source_ref="example-service://work/ITEM-1",
+        current_revision="rev-1",
+        compared_revision="rev-2",
+        profile_id="example-service",
+        profile_version="1.0",
+        local_fields={"Outcome": "local"},
+    )
+
+    registry = refresh.RefreshProcessorRegistry()
+    registry.register(registration)
+    front_door = router.invoke_refresh(
+        router.RoutingSignals(
+            action="refresh",
+            artifact="docs/specs/example/spec.md",
+            artifact_kind="spec",
+            authority_mode="tracker-origin",
+            profile_id="example-service",
+            profile_version="1.0",
+        ),
+        registry,
+        request,
+    )
+
+    assert front_door.code == "completed"
+    invocation = front_door.invocation
+    assert invocation is not None
+    assert invocation.code == "completed"
+    assert invocation.comparison is not None
+    assert invocation.normalized_record is not None
+    redacted = invocation.comparison.changed_fields[0].source_value
+    for forbidden in ("colleague@example.com", "AKIAIOSFODNN7EXAMPLE"):
+        assert forbidden not in repr(invocation.normalized_record)
+        assert forbidden not in repr(invocation.comparison.changed_fields)
+        assert forbidden not in redacted
+
+    fixture = _semantic_refresh_pair(refresh, tmp_path, decision="accept-source")
+    proposed = fixture["proposed_artifact"].replace(
+        b"## Outcome\n\nsource\n",
+        f"## Outcome\n\n{redacted}\n".encode(),
+    )
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"],
+        comparison=invocation.comparison,
+        authority=fixture["authority"],
+        policy=refresh.parse_refresh_authorization_policy(_policy()),
+        approver=_approver(refresh),
+        decisions={"Outcome": "accept-source"},
+        expected_artifact_digest=fixture["artifact_digest"],
+        expected_workspace_digest=fixture["workspace_digest"],
+        artifact_bytes=proposed,
+        workspace_bytes=fixture["proposed_workspace"],
+        now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.code == "ready"
+    assert result.local_mutation == "committed"
+    committed = fixture["artifact"].read_bytes()
+    for forbidden in (b"colleague@example.com", b"AKIAIOSFODNN7EXAMPLE"):
+        assert forbidden not in committed
+    assert redacted.encode("utf-8") in committed
+
+
 def test_confirmation_is_exact_fresh_and_single_use(tmp_path: Path) -> None:
     refresh = _load_refresh()
     now = datetime(2026, 8, 17, tzinfo=UTC)
@@ -2116,6 +2203,43 @@ def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
     assert result.code == "local_write_failed"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
+    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+
+
+def test_coordinator_reports_inconsistent_pair_when_rollback_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    calls = 0
+    original_replace = Path.replace
+
+    def fail_commit_and_rollback(source: Path, target: Path) -> Path:
+        nonlocal calls
+        calls += 1
+        if calls >= 2:
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_commit_and_rollback)
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"],
+        comparison=fixture["comparison"],
+        authority=fixture["authority"],
+        policy=refresh.parse_refresh_authorization_policy(_policy()),
+        approver=_approver(refresh),
+        decisions={"Outcome": "revise-both"},
+        expected_artifact_digest=fixture["artifact_digest"],
+        expected_workspace_digest=fixture["workspace_digest"],
+        artifact_bytes=fixture["proposed_artifact"],
+        workspace_bytes=fixture["proposed_workspace"],
+        now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.code == "local_write_inconsistent"
+    assert result.local_mutation == "inconsistent"
+    assert result.as_record()["local_mutation"] != "refused"
+    assert fixture["artifact"].read_bytes() != fixture["before_artifact"]
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 

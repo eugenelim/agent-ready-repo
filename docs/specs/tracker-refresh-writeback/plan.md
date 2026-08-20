@@ -209,14 +209,15 @@ def test_remote_confirmation_is_bound_and_single_use(refresh_contract):
   separate `keep-local`, rejection, and unresolved-conflict fixtures asserting
   accepted revision/value, coordination receipts, and dependency pins remain
   unchanged while only AC6's compared revision advances. Verifies AC6-AC7.
-- Add guarded-write failure injection at every local stage and assert
-  byte-identical pre-state after failure. Verifies AC8.
+- Add guarded-write failure injection at every local stage; assert
+  byte-identical pre-state after clean rollback and a distinct inconsistent
+  result when rollback itself fails. Verifies AC8.
 - Add stale-fingerprint, profile-version mismatch, missing processor, and
   unsupported-capability cases. Verifies AC1, AC13, AC18.
 - Add lexical traversal and symlink-escape fixtures for both artifact and
-  workspace targets; assert resolved-path confinement before reads or
-  acquisition and exact confined-target fingerprint revalidation immediately
-  before guarded replace. Verifies AC1, AC8.
+  workspace targets; assert resolved-path confinement and exact confined-target
+  fingerprint revalidation immediately before guarded replace. Verifies AC1,
+  AC8.
 - Add authorized, missing, ambiguous, stale, and unauthorized approver cases;
   assert identity/role/timestamp/source recording and zero effects on rejection.
   For Accepted/Ready/Approved artifacts, assert value-changing decisions retain
@@ -413,8 +414,8 @@ def test_jira_align_undeclared_action_is_refused(jira_align_processor, confirmat
   partial-failure results are fail-closed and retry-safe. Verifies AC12, AC16,
   AC18.
 - Assert both clients validate configured schemes, profile hosts, resolved
-  address ranges, redirect hops, and rebound DNS before credential loading or
-  fake transport use. Verifies AC21-AC22.
+  address ranges, and rebound DNS before credential loading or fake transport
+  use; profiles requesting redirects are refused. Verifies AC21-AC22.
 - Assert Jira and Jira Align refresh/write-back actions declare minimal
   `allowed-tools` and `metadata.boundaries` and preserve each client's accurate
   credentialed/auth/fallback/namespace/key metadata. Verifies AC23.

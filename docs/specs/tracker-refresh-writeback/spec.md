@@ -222,8 +222,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   adapter effect. A missing, stale, ambiguous, or unauthorized confirmation
   rejects before the request. A failed remote call leaves local authority
   intact, reports a retry-safe failed/pending outcome, and is not silently
-  retried. The processor boundary does not itself establish correspondence to a
-  preceding local authority decision.
+  retried. A terminal receipt-update failure reports `receipt_update_failed`;
+  because the prior adapter effect is then unknown, it requires operator repair
+  and is not retry-safe. The processor boundary does not itself establish
+  correspondence to a preceding local authority decision.
 - [x] **AC13 — Profile parity.** The same lifecycle fixture matrix passes for
   registration-dependent acquisition, mapping, and common local authority
   outcome across the supported Jira, Jira Align, Linear, and GitHub

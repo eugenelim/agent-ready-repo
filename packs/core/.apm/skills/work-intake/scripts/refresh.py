@@ -249,6 +249,7 @@ class ProcessorRegistration:
             }
             slots = {"Outcome": "outcomes", "User stories": "behaviors"}
             source_values: dict[str, str] = {}
+            redact = _intake_guard_callable("_redact")
             for canonical_field, source_field in self.field_mapping:
                 slot = slots.get(canonical_field)
                 value = acquired.get(source_field)
@@ -260,6 +261,9 @@ class ProcessorRegistration:
                     or not value
                     or len(value) > 2000
                 ):
+                    raise RefreshRefusal("invalid_acquired_record")
+                value = redact(value)
+                if not isinstance(value, str):
                     raise RefreshRefusal("invalid_acquired_record")
                 content[slot].append(value)
                 source_values[canonical_field] = value
@@ -1095,10 +1099,13 @@ def consume_remote_confirmation(
         workspace = _confined_existing_file(
             receipt_store.repository_root, "workspace.toml"
         )
-        if digest_bytes(workspace.read_bytes()) != receipt_store.workspace_digest:
+        workspace_bytes = workspace.read_bytes()
+        if digest_bytes(workspace_bytes) != receipt_store.workspace_digest:
             raise RefreshRefusal("invalid_refresh_policy")
-        durable_policy = parse_refresh_authorization_policy(workspace.read_text())
-    except (OSError, RefreshRefusal) as exc:
+        durable_policy = parse_refresh_authorization_policy(
+            workspace_bytes.decode("utf-8")
+        )
+    except (OSError, UnicodeDecodeError, RefreshRefusal) as exc:
         raise RefreshRefusal("invalid_refresh_policy") from exc
     if durable_policy != policy:
         raise RefreshRefusal("invalid_refresh_policy")
@@ -1659,6 +1666,31 @@ def _workspace_status_callable(name: str) -> Callable[..., tuple[object, list[ob
     return parser
 
 
+def _intake_guard_callable(name: str) -> Callable[[str], str]:
+    """Load the intake renderer's canonical redactor from this skill tree."""
+
+    candidate = Path(__file__).resolve().with_name("intake_guard.py")
+    try:
+        candidate.resolve(strict=True).relative_to(Path(__file__).resolve().parent)
+    except (OSError, ValueError) as exc:
+        raise RefreshRefusal("invalid_local_update") from exc
+    spec = importlib.util.spec_from_file_location(
+        "_work_intake_guard_runtime", candidate
+    )
+    if spec is None or spec.loader is None:
+        raise RefreshRefusal("invalid_local_update")
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = loaded
+    try:
+        spec.loader.exec_module(loaded)
+    except Exception as exc:  # noqa: BLE001  # trusted bundled runtime boundary
+        raise RefreshRefusal("invalid_local_update") from exc
+    redactor = getattr(loaded, name, None)
+    if not callable(redactor):
+        raise RefreshRefusal("invalid_local_update")
+    return redactor
+
+
 def _workspace_entry_parser() -> Callable[[object], tuple[object, list[object]]]:
     """Load the canonical Group 3 workspace-entry parser."""
 
@@ -2049,5 +2081,14 @@ def coordinate_local_refresh(
         workspace_bytes=workspace_bytes,
     )
     if write_result.code != "written":
-        return replace(result, code=write_result.code, local_mutation="refused")
+        local_mutation = (
+            "inconsistent"
+            if write_result.code == "local_write_inconsistent"
+            else "refused"
+        )
+        return replace(
+            result,
+            code=write_result.code,
+            local_mutation=local_mutation,
+        )
     return replace(result, local_mutation="committed")

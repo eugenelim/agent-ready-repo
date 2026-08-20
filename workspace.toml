@@ -1751,13 +1751,6 @@ open = [
   # Deferred: refresh has no trusted representation of which brief fields were
   # materialized into children; adding one requires new trusted inputs.
   {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
-  # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
-  # refresh-result.schema.json enum), but each processor returns its own
-  # WriteBackResult codes with no closed set, so a typo ships silently. A single
-  # shared frozenset would falsely authorize codes an adapter cannot return;
-  # closing it properly means one vocabulary per result type plus a deliberate
-  # shared base, which is a multi-file public-result-contract change. Deferred to
-  # avoid widening the reviewed surface after adversarial review round 2.
   # Deferred: workspace-status receives only a profile id and version, not
   # resolved capabilities, and the processor write path receives no trusted
   # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
@@ -1770,6 +1763,13 @@ open = [
   # present a receipt-shaped object. Making it exact needs a shared receipt
   # runtime identity, the same design the cross-loaded store required.
   {slug = "tracker-refresh-receipt-runtime-identity", type = "spec", source = "spec/tracker-refresh-writeback AC25", summary = "Verify the guarded-write receipt by runtime identity, not structurally"},
+  # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
+  # refresh-result.schema.json enum), but each processor returns its own
+  # WriteBackResult codes with no closed set, so a typo ships silently. A single
+  # shared frozenset would falsely authorize codes an adapter cannot return;
+  # closing it properly means one vocabulary per result type plus a deliberate
+  # shared base, which is a multi-file public-result-contract change. Deferred to
+  # avoid widening the reviewed surface after adversarial review round 2.
   {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
   # Deferred: projection repair needs its own confirmation contract; adding one
   # requires a new trusted input rather than inferring authority from tracker data.
