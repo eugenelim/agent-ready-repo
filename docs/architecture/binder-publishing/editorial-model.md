@@ -74,7 +74,7 @@ circular. D13's earlier "two named consumers" framing invented one of them.
 
 1. `explain` — the index is readable JSON and `explain` is a presentation layer
    over `selection.reason` and `selection.rule`, which are recorded regardless.
-   The brief's explainability requirement is met by those fields with or without
+   This tree's explainability requirement is met by those fields with or without
    the verb; cutting it costs ergonomics, not a contract.
 2. `outline` — `templates` covers the "I don't want to start from nothing" case
    for the shapes the pack ships, and a hand-written Level-0 recipe is four lines.
@@ -281,10 +281,11 @@ annotate unresolved questions.
 > **A note on the word "mechanical."** This document defines it as *implemented and
 > unit-tested in `binder.py`*. A subagent's tool set is prose in `SKILL.md`
 > interpreted by an orchestrating model — a good convention, not a mechanism, and
-> labelling it mechanical would be the exact category error the brief warns about
-> ("do not assume skill scanning provides runtime sandboxing"). So the dispatch
-> restriction is named as a convention, and the load-bearing guarantee is moved
-> into the script, where it holds regardless of how the editor is run.
+> labelling it mechanical would be the exact category error this tree's trust
+> model rules out ("do not assume skill scanning provides runtime sandboxing").
+> So the dispatch restriction is named as a convention, and the load-bearing
+> guarantee is moved into the script, where it holds regardless of how the
+> editor is run.
 
 ### Three classes of content, distinguished everywhere
 
@@ -337,7 +338,7 @@ sequenceDiagram
   S->>U: summary + gap; proceed?
   U->>S: yes
   S->>B: binder build binders/payments-review.binder.toml
-  Note over B: re-resolves; invariant 21 makes the<br/>index byte-identical to the approved one
+  Note over B: re-resolves; invariant 15 makes the<br/>index byte-identical to the approved one
   B->>W: stage docs/*.md + zensical.toml + theme
   B->>B: assert every nav target exists (Z2g)
   B->>Z: python -m zensical build -f stage/zensical.toml --strict
@@ -349,7 +350,7 @@ sequenceDiagram
 
 **The `--from-index` step is gone and the diagram is honest about what replaced
 it.** D-A cut the flag; the resolve → review → "proceed?" → build interaction it
-served is preserved by invariant 21 instead, because identical inputs give a
+served is preserved by invariant 15 instead, because identical inputs give a
 byte-identical index. The user still approves the thing that gets built — the
 guarantee just comes from reproducibility rather than from a flag that had to
 re-resolve and compare anyway.
@@ -382,7 +383,7 @@ sequenceDiagram
 ```
 
 The two sequences converge at `binder build` and are byte-identical from there.
-That convergence is the brief's "one compilation path" requirement, and it is
+That convergence is this tree's "one compilation path" requirement, and it is
 visible in the diagram rather than asserted in prose.
 
 ---

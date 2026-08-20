@@ -59,7 +59,7 @@ chapter and an appendix never differ in width, where `<slug>` derives from the c
 (lowercased, non-alphanumerics to `-`, truncated to 48 characters,
 `-<6-hex-of-sha256(content-id)>` appended on collision). Deterministic,
 human-readable in a diagnostic, stable across runs with the same inputs. It lives
-in `renderer-plan.json`, not the index (invariant 22).
+in `renderer-plan.json`, not the index (invariant 16).
 
 `NNN` — an **adapter-owned** number recorded in `renderer-plan.json`, unrelated to `node-id` — numbers **every staged file in final reading order**, not just resolved
 nodes — part pages and generated appendices are interleaved at the position they
@@ -134,7 +134,7 @@ truncation"). Hence: warn on every skip, and give the author a key to override.
 
 ### Text encoding, line endings, and hashing
 
-Four normative guarantees — invariant 21's byte-reproducible index, byte-identical
+Four normative guarantees — invariant 15's byte-reproducible index, byte-identical
 staged files, `line-offset` accuracy, and `check --published`'s staleness contract —
 all change answer on a CRLF source, a BOM, or a non-UTF-8 file. So the rules are
 stated rather than inherited:
@@ -228,7 +228,7 @@ docs/rfc/0091-payments-migration.md
   order          base index 0; weight 0; no constraints; final position 1
   staged as      docs/008-docs-rfc-0091-payments-migration.md   (chapter 8)
                  (shown only when a renderer-plan.json for this index-sha256 is in
-                  the workspace; the index carries no staged path — invariant 22)
+                  the workspace; the index carries no staged path — invariant 16)
   not selected instead:
     docs/rfc/0088-payments-migration-draft.md
       excluded by [[exclude]] path rule (recipe:104) — "superseded by RFC-0091"
