@@ -285,6 +285,58 @@ An invocation that spans two skill test directories is safe only while their
 basenames happen not to collide — which is a property of today's contents, not
 of the layout. Keep the invocations separate and the question never arises.
 
+### Write suites that do not depend on isolation
+
+Process isolation is the guarantee above. It is not a licence to write suites
+that only work because they run alone — a suite that depends on being the sole
+occupant of an interpreter is fragile even when isolated, because collection
+order inside its own directory can still decide a binding.
+
+Two collisions matter, and they are not the same:
+
+- **Test module basenames.** Two `test_render.py` files in one run make pytest
+  refuse the second with `import file mismatch`. This is a pytest-level naming
+  rule.
+- **Subject modules.** Two skills that each ship `scripts/render.py`, imported
+  by putting each `scripts/` directory on `sys.path`, resolve `import render`
+  to whichever directory landed first. `sys.modules` then caches that one
+  object for every later importer. No pytest setting changes this, because the
+  collision is in the interpreter's module namespace rather than in pytest's
+  collection.
+
+Load a subject module under a name that includes its pack and skill:
+
+```python
+spec = importlib.util.spec_from_file_location(
+    "<pack>_<skill>_render", SKILL / "scripts" / "render.py"
+)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+```
+
+This leaves the runtime payload untouched — the script stays a standalone
+module that an agent can still invoke directly — while making the test's
+binding explicit rather than positional. Apply the same rule to shared test
+helpers, which collide across packs for exactly the same reason.
+
+### Keep a suite's cost in assertions, not in processes
+
+A test that spawns a process pays for an interpreter start, imports, and
+teardown to assert something a function call would settle. Spread across a
+suite, that is most of its running time, and it is spent waiting rather than
+asserting — so it grows worse on a loaded machine, not better.
+
+- Call the function under test directly wherever the assertion allows it.
+- Put a seam in front of an external binary so a test can substitute a fake.
+  Code that builds its command inline can only ever be tested by running it.
+- Reserve real subprocesses for the tests whose subject *is* the integration,
+  and say so in the test's name.
+- Never install packages, create a virtual environment, or invoke a package
+  manager from a test.
+- Give an expensive fixture the widest scope its assertions allow. A
+  function-scoped fixture that copies a tree copies it once per test.
+
 ### Normative summary
 
 - A pack **MUST** be the ownership boundary for its tests.

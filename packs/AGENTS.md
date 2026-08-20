@@ -24,6 +24,35 @@ agentbundle catalogue verify --root .
 agentbundle catalogue self-host --root . --write
 ```
 
+## Writing pack tests
+
+Load a skill's modules under a unique name. Do not put a skill's `scripts/` on
+`sys.path` and import by bare name: skills are independent, so several may ship
+a `render.py`, and a bare `import render` binds whichever directory reached the
+path first — a binding that depends on collection order, not on the test.
+
+```python
+spec = importlib.util.spec_from_file_location(
+    "<pack>_<skill>_render", SKILL / "scripts" / "render.py"
+)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+```
+
+Name shared test helpers for their pack and skill too; two packs that both ship
+a `test_support.py` collide the same way.
+
+Keep tests process-cheap. Prefer calling a function over spawning an
+interpreter, and put a seam in front of any external binary so a test can
+substitute it. A test that shells out pays a real process on every run, and a
+suite that does it throughout spends most of its time waiting rather than
+asserting. Reserve real subprocesses for the tests that assert the integration
+itself, and never install packages or invoke a package manager from a test.
+
+Give an expensive fixture the widest scope its assertions allow; a
+function-scoped fixture that builds a tree rebuilds it for every test.
+
 ## Version bump rule
 
 Every non-cosmetic pack-content change, including `seeds/**` and `.apm/**`, bumps matching versions in `pack.toml` and
