@@ -706,6 +706,124 @@ def test_help_smoke() -> None:
     print("✓ --help works.")
 
 
+class RecordingProjectionDetector:
+    adapter = "claude-code"
+
+    def __init__(self) -> None:
+        self.projection_roots: list[pathlib.Path] = []
+        self.run_cwds: list[pathlib.Path] = []
+        self.project_calls = 0
+
+    def project(self, pack_path, output_root, catalogue_root=None) -> None:
+        self.project_calls += 1
+        projection_root = pathlib.Path(output_root)
+        projection_root.mkdir(parents=True, exist_ok=True)
+        self.projection_roots.append(projection_root)
+
+    def run_and_parse(self, query, cwd, timeout):
+        self.run_cwds.append(pathlib.Path(cwd))
+        return M.ActivationResult(skills_fired=[], result="")
+
+
+def test_projection_runs_outside_the_repository() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_fake_pack(repo_root)
+        detector = RecordingProjectionDetector()
+
+        M.run_eval("testpack", runs=1, detector=detector, repo_root=repo_root)
+
+        recorded_cwd = detector.run_cwds[0]
+        check(
+            "projection-outside",
+            recorded_cwd.resolve() != repo_root.resolve(),
+            "projection cwd is the repository root",
+        )
+        check(
+            "projection-outside",
+            not recorded_cwd.resolve().is_relative_to(repo_root.resolve()),
+            "projection cwd is inside the repository",
+        )
+        print(
+            "✓ run_eval: the projection cwd is outside the repository, preventing cwd- "
+            "and ancestor-based discovery of the host repository root."
+        )
+
+
+def test_projection_is_cleaned_up() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_fake_pack(repo_root)
+        detector = RecordingProjectionDetector()
+
+        M.run_eval("testpack", runs=1, detector=detector, repo_root=repo_root)
+
+        check(
+            "projection-cleanup",
+            not detector.projection_roots[0].exists(),
+            "temporary projection directory was not removed",
+        )
+        print("✓ run_eval: the temporary projection is removed when the run ends.")
+
+
+def test_projection_refuses_a_temp_parent_inside_the_repository() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = pathlib.Path(tmp)
+        _build_fake_pack(repo_root)
+        temp_parent = repo_root / "tmp"
+        temp_parent.mkdir()
+        detector = RecordingProjectionDetector()
+        original_tmpdir = os.environ.get("TMPDIR")
+        original_tempdir = tempfile.tempdir
+        os.environ["TMPDIR"] = str(temp_parent)
+        tempfile.tempdir = None
+        try:
+            try:
+                M.run_eval("testpack", runs=1, detector=detector, repo_root=repo_root)
+            except RuntimeError as exc:
+                check(
+                    "projection-refusal",
+                    "TMPDIR" in str(exc),
+                    "refusal error does not identify TMPDIR",
+                )
+            else:
+                raise AssertionError("run_eval accepted a projection inside the repository")
+            check(
+                "projection-refusal",
+                detector.project_calls == 0,
+                "detector.project() was called after confinement refusal",
+            )
+        finally:
+            tempfile.tempdir = original_tempdir
+            if original_tmpdir is None:
+                os.environ.pop("TMPDIR", None)
+            else:
+                os.environ["TMPDIR"] = original_tmpdir
+        print("✓ run_eval: a TMPDIR inside the repository is refused before projection.")
+
+
+def test_run_and_parse_passes_devnull_stdin() -> None:
+    recorded_kwargs: dict = {}
+    original_run = M.subprocess.run
+
+    def fake_run(*args, **kwargs):
+        recorded_kwargs.update(kwargs)
+        return type("Process", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+    M.subprocess.run = fake_run
+    try:
+        M.ClaudeCodeDetector().run_and_parse("test query", pathlib.Path(), 1)
+    finally:
+        M.subprocess.run = original_run
+
+    check(
+        "devnull-stdin",
+        recorded_kwargs["stdin"] is subprocess.DEVNULL,
+        "run_and_parse() did not pass subprocess.DEVNULL as stdin",
+    )
+    print("✓ run_and_parse: stdin is DEVNULL, so invocations do not wait for input.")
+
+
 def main() -> int:
     test_parse_activation()
     test_trigger_rate_and_grade()
@@ -723,6 +841,10 @@ def main() -> int:
     test_grade_judge()
     test_gitignored_control()
     test_help_smoke()
+    test_projection_runs_outside_the_repository()
+    test_projection_is_cleaned_up()
+    test_projection_refuses_a_temp_parent_inside_the_repository()
+    test_run_and_parse_passes_devnull_stdin()
     print()
     print("Self-test: passed.")
     return 0

@@ -37,6 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Running the activation evals no longer writes into the repository you are
+  measuring.** `agentbundle pack evals run` projected the pack into a directory
+  inside your repository and ran each probe from there, so a skill that resolves
+  the repository root could create files in your tree — one *negative* eval query
+  fired a spec-authoring skill and left a spec at the worktree root, which then
+  read as workspace drift with no author. The projection now lives in a temporary
+  directory outside the repository and is removed when the run ends, and the run
+  refuses outright if `TMPDIR` points inside the repository rather than silently
+  losing the confinement. Eval outputs still land in `.eval-workspace/`,
+  unchanged. Probes also no longer pause three seconds each waiting on standard
+  input.
+
 ### Added
 
 - **Journey authors can record which decisions a reader meets, and in what
