@@ -1,6 +1,6 @@
 # ADR-0004: Per-IDE direct writes are the repo-scope install default; dist-tree is opt-in
 
-- **Status:** Accepted
+- **Status:** Accepted — rejected alternative (2) partially superseded by [ADR-0091](0091-kiro-power-route-supersedes-rejection.md); the decision itself stands
 - **Date:** 2026-05-26
 - **Deciders:** eugenelim
 - **Supersedes:** none
