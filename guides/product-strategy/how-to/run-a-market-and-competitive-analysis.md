@@ -1,3 +1,10 @@
+---
+title: Run a market and competitive analysis
+summary: Produce the specific internal, competitive, macro, or portfolio analysis needed for a strategic decision.
+pack: product-strategy
+kind: how-to
+---
+
 # Run a market and competitive analysis
 
 **Use this when:** you need a defensible, committed read on internal position, competitive structure, macro forces, or portfolio mix — one artifact per question.

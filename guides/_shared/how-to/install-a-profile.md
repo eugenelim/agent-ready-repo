@@ -1,3 +1,10 @@
+---
+title: How to install a curated set of packs in one command
+summary: Install a role or governance profile at the correct scope without invoking each constituent pack separately.
+pack: _shared
+kind: how-to
+---
+
 # How to install a curated set of packs in one command
 
 **Use this when:** You want to install a role's whole toolkit or a repo's full governance setup in one command instead of running `agentbundle install --pack` multiple times.

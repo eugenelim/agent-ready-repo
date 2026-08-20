@@ -96,7 +96,7 @@ The cold-start orientation and gate-surface behaviour described above become mac
 
 The harness reads the queue, dispatches an item, monitors for gates, routes gate questions to a human channel, and resumes the session with the answer — all without a human watching each turn. The work-loop runs the same gates; the harness answers them instead of a person at a keyboard.
 
-→ [Run a headless session](../how-to/run-headless-session.md) — the end-to-end recipe.
+→ [Run a headless session with workspace-mcp](../how-to/run-headless-session.md) — the end-to-end recipe.
 
 The swarm extension of this journey — coordinated pipelines where a supervisor agent allocates specs to executor agents in parallel — is not yet covered here. (deferred: role-journey-agent-swarm-section)
 

@@ -5,21 +5,11 @@
 
 ## Pack and skill shape
 
-### The constraint that decides it
+### Skill boundary
 
-Skills are strictly self-contained: no cross-skill reads or imports, including
-between siblings in the same pack, and `.apm/shared-libs/` is not available for
-skill code. Therefore **any design with two skills sharing the resolver is
-impossible without either duplicating it or introducing a new pip package.**
-
-The brief offered four shapes. Evaluated against that constraint:
-
-| Shape | Verdict |
-|---|---|
-| One workflow skill | **Selected.** |
-| `assemble-binder` + `publish-binder` | Rejected — forces duplicated core or a new pip package, and buys nothing that script verbs of one skill do not already provide. |
-| Deterministic skill + chief-editor subagent | **Partially adopted** — see below. |
-| Other repository-native composition | A `binderkit` pip package alongside a thin skill (the `credbroker` pattern). Rejected for v1 — it adds a PyPI release channel, a version-skew surface, and an install step, to solve a code-sharing problem that only exists if there are two skills. Recorded as the escape hatch if a second skill is ever genuinely required. |
+`publish-binder` is the sole workflow skill. Skills do not share resolver code
+across skill boundaries. A future second skill requires a separately governed
+shared package or duplicated implementation.
 
 ```
 packs/binder-publishing/
@@ -53,26 +43,11 @@ packs/binder-publishing/
      repository's shipped guide tree, per the two-tree convention)
 ```
 
-### Sizing `binder.py`, and where the v1 cut-line is
+### V1 boundary
 
-"One stdlib-only file" understates what is being asked for, and the comparison
-table already scores this option ○ on both maintenance burden and new machinery
-without ever putting a number on it. The v1 surface is: a hand-written TOML
-validator with edit-distance suggestions, a JSON-Schema parity harness, the
-resolver with Kahn ordering and cycle detection, the source scanner, the
-Markdown transformer and its line offset, link rewriting, the Zensical adapter and
-its TOML emitter, two lock protocols, near-atomic publication, and nine verbs.
-
-**D-A and D-B took real code out of that list, not just prose.** Gone: the trust
-lattice and its grant matching, the eight-step transformer's four Quarto-specific
-steps and the breakpoint `line-map` they required, the digest-verified downloader
-with tar and zip extraction, the toolchain lock, and the consent-token machinery.
-Added: nothing. This is the clearest available measure of what the two decisions
-bought.
-
-So the decomposition is stated up front rather than discovered. `scripts/` holds
-sibling modules at one level — permitted, since the depth rule is about *nesting*,
-not file count, and none of them is a cross-skill import:
+V1 includes validation, resolution, strict scanning, transformation, link
+rewriting, the Zensical adapter, two locks, near-atomic publication, and all
+declared verbs. `scripts/` holds sibling modules at one level:
 
 ```
 scripts/binder.py            # argv, verb dispatch, exit codes
@@ -84,21 +59,12 @@ scripts/render_zensical.py   # staging, transformation, zensical.toml, invocatio
 scripts/fsutil.py            # confinement, locks, near-atomic publish
 ```
 
-`scripts/toolchain.py` — detection, version range, and the install ladder — is
-gone. What survives of it is two lines inside `render_zensical.py`:
-`importlib.util.find_spec("zensical")` and
-`importlib.metadata.version("zensical")` (Z1c).
+`render_zensical.py` detects the renderer with `importlib.util.find_spec` and
+checks its pin with `importlib.metadata.version` (Z1c).
 
-**Two things move out of v1 outright**, because the earlier draft protected every
-optional mechanism while scoring itself ○ on new machinery — which is not a
-trade-off, just a preference:
-
-- **`[[sections.items.figures]]` and caption binding → Phase 2.** Captions are the
-  only reason `fence-sha256`, the ordinal-plus-hash protocol, and the drift
-  warning exist. Level-0 diagrams render uncaptioned and unnumbered, which is a
-  complete v1 story; captions arrive with the rest of the metadata layer.
-- **`--if-stale` → Phase 2.** Incremental rebuild is an optimisation for a build
-  nobody has yet found slow.
+V1 excludes `[[sections.items.figures]]`, caption binding, `fence-sha256`, and
+`--if-stale`. Level-0 diagrams render without captions. `check --published`
+remains the source-hash consumer.
 
 That leaves `check --published` as the **single** consumer of source hashes — and
 it is the CI contract, so the hashes stay and their justification is no longer
@@ -153,32 +119,12 @@ catalogue-level interface, promoting them into `contracts/` with a README row an
 a governing RFC is an additive move — but that is an RFC decision, not a
 directory choice this design gets to make.
 
-### The editorial model: why the editor is not an agent in v1
+### Editorial procedure
 
-Six properties decide agent-versus-skill:
-
-| Property | Skill | Agent | This case |
-|---|---|---|---|
-| Who invokes it | user | orchestrator dispatches | "build a binder for the review board" is a user utterance → **skill** |
-| Can it reach other capabilities? | can invoke skills and scripts | a subagent has no Skill tool | the editorial pass must end in resolve+build → **skill** |
-| Context economics | input ≈ output | reads many, returns little | reads N candidates, returns one recipe → **agent** |
-| Independence from the author | — | must not mark its own homework | authoring, not reviewing → neutral |
-| Tool restriction as a control | — | tool set is declarable | **usable here** — see below |
-| Charter pressure | — | *"Not a marketplace of specialized agents"* | → **skill** |
-
-Skill wins four of six. The one the agent wins — context economics — is real at
-scale, and the repository already has the resolution for exactly this split. The
-`work-loop` orchestrator inlines `security-checklists` modules into the
-`security-reviewer` brief precisely because *"subagent has no Skill tool."*
-
-**Decision.** The editorial pass is a *procedure*, owned by the skill, living in
-`references/editorial-pass.md`. The skill runs it inline by default. When the
-candidate set is large, the skill dispatches a subagent **restricted to `Read`,
-`Grep`, and `Glob`** — no `Bash`, no `Write`, no `Edit` — with that reference
-inlined into the brief, and receives a recipe as its return value. One source of
-truth; no duplication; the seam for a named `binder-editor` agent stays open at
-zero cost, because the procedure already lives in a file that is inlined either
-way.
+The editorial pass is a procedure in `references/editorial-pass.md`. The skill
+runs it inline by default. For a large candidate set, it may dispatch a subagent
+restricted to `Read`, `Grep`, and `Glob`, with no `Bash`, `Write`, or `Edit`. The
+subagent returns a recipe and editorial prose; it does not render a binder.
 
 **Withholding `Bash` matters, but it is a convention, not a mechanism.** Lacking a
 Skill tool alone would not stop a subagent shelling out to

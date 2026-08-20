@@ -1,0 +1,24 @@
+[pack]
+name = "cost-engineering"
+version = "0.0.0"
+description = "Reserved OKF pilot fixture for cost-engineering knowledge routing evidence."
+readme = "README.md"
+display_name = "Cost Engineering OKF Pilot"
+license = "Apache-2.0 OR MIT"
+categories = ["tooling"]
+keywords = ["okf", "pilot", "cost-engineering"]
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+
+[pack.metadata.okf]
+profile = "agentbundle-okf/v1"
+
+[[pack.metadata.okf.bundles]]
+id = "cost-engineering"
+path = "okf/cost-engineering"
+"router-skill" = "cost-engineering"

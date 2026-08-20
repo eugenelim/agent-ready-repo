@@ -90,6 +90,11 @@
 | 0082 | [Project-knowledge modes separate capture, distillation, and enquiry authority](0082-project-knowledge-modes-separate-authority.md) | Accepted |
 | 0083 | [Extend the SAST/SCA gate to npm with audit and allowlist](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) | Accepted |
 | 0084 | [Bandit suppression reasons move behind a second `#`, and its stderr becomes a gate](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) | Accepted |
+| 0085 | [Docs rendering is site-local](0085-docs-rendering-is-site-local.md) | Accepted |
+| 0086 | [The SAST/SCA leg becomes its own CI job, and provenance is command-line origin](0086-split-the-sast-gate-into-its-own-ci-job.md) | Accepted |
+| 0087 | [Lints resolve Git-ignore status in one batched call over stdin](0087-batch-git-check-ignore-over-stdin.md) | Accepted |
+| 0088 | [Risk triggers have a single documented home](0088-risk-triggers-have-a-single-documented-home.md) | Accepted |
+| 0089 | [Decision weight trims the RFC pre-handoff gate: RFC-0054 D1 over its implementing spec](0089-decision-weight-trims-the-rfc-gate.md) | Accepted |
 
 ## Adding a new ADR
 

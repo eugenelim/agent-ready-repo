@@ -1,3 +1,10 @@
+---
+title: Reference — intent fields, modes, and projection profiles
+summary: Look up intent fields, level-specific additions, risk modes, output locations, contract maturity, and tracker projections.
+pack: product-engineering
+kind: reference
+---
+
 # Reference — intent fields, modes, and projection profiles
 
 :::note

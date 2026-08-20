@@ -1,5 +1,7 @@
 # AGENTS.md — frontend-engineering pack
 
+Applies to `packs/frontend-engineering/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
+
 The `frontend-engineering` pack installs 9 skills and a `frontend-reviewer` agent
 for HTML/CSS/JS work. The guide tree for all skills lives in
 [`guides/frontend-engineering/`](../../guides/frontend-engineering/) —

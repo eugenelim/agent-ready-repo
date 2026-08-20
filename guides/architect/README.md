@@ -1,3 +1,10 @@
+---
+title: "`architect` — guides"
+summary: Choose the architecture workflow for shaping a concept, drawing a system, reviewing an artifact, or establishing a repository reference architecture.
+pack: architect
+kind: explanation
+---
+
 # `architect` — guides
 
 Solution architecture as three skills plus one review subagent. `architect-design` frames a problem, weighs a technical choice, or designs a system without a diagram as the headline. `architect-diagram` draws the system, flow, state, data model, or deployment topology. `architect-review` critiques an existing design doc, diagram, RFC, or ADR **inline**, and its read-only sibling subagent `design-reviewer` runs the same critique in a **forked context** that hasn't seen the authoring — the independent pass you reach for after writing a design yourself. They lean on a repo's `reference.md` — the golden path that says how this codebase is built — when one is present.

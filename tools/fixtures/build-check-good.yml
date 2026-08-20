@@ -1,0 +1,193 @@
+# Clean baseline for tools/test-build-check-workflow.py --self-test.
+#
+# NOT a workflow GitHub runs — it is the fixture every proof in that file is
+# measured against, so it must be SHAPE-REPRESENTATIVE of the real
+# .github/workflows/build-check.yml, not merely valid YAML. An earlier fixture had
+# four single-line steps per job and omitted the `push: branches: [main]` trigger.
+# That hid two defects: a job-block/step-block confusion (the audit inspected only
+# the first `run:` per job and passed by accident of step ordering), and the
+# unasserted push-to-main run that AC12 names as the belt-and-braces for the
+# head-commit self-certification residual. So this fixture carries: the real trigger
+# set, `runs-on` per job, multiple block-scalar `run:` bodies in gate-main, and the
+# guards in the shapes AC14 requires.
+name: build-check
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: build-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  gate-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    name: gate-main
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          # A comment inside `with:` — every shipped checkout has one, and
+          # _strip_comments turns it into a blank line that _sub_mapping must skip.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Install tools dependencies
+        run: |
+          pip install -r tools/requirements.txt
+          python -m pip install -e packages/agentbundle/ pytest
+      - name: Install bandit unconditionally (lint-nosec-form's ID registry)
+        run: |
+          pin="$(grep -E '^bandit([^A-Za-z0-9._-]|$)' tools/requirements-sast.txt)"
+          pip install "$pin"
+          python - <<'PROBE'
+          from bandit.core import extension_loader as loader
+          PROBE
+      - name: Run make build-check
+        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
+      - name: ruff lint
+        working-directory: .
+        run: >-
+          python3 tools/lint-ruff.py
+      - name: pytest guides + catalogue navigation
+        run: >-
+          python -m pytest
+          tools/test_validate_guides.py
+          tools/test_check_guide_index.py
+          tools/test_catalogue_navigation.py
+          tools/test_documentation_entry_links.py
+      - name: pytest site build + link rewriting
+        run: >-
+          python -m pytest
+          tools/test_build_site_link_rewrites.py
+          tools/test_check_rendered_site_links.py
+          tools/test_build_site_routing.py
+          tools/test_browser_gate_subset.py
+      - name: docs palette contrast gate
+        run: |
+          python3 tools/check-docs-contrast.py
+          python -m pytest tools/test_check_docs_contrast.py -q
+  gate-sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    name: gate-sast
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Detect whether SAST-relevant files changed
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "skip_sast=false" >> "$GITHUB_OUTPUT"
+      - name: Install SAST/SCA tools
+        run: pip install -r tools/requirements-sast.txt
+      - name: Run make sast
+        if: steps.changes.outputs.skip_sast != 'true'
+        run: make sast
+  gate-export-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: gate-export-boundary
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Install tools dependencies
+        run: |
+          pip install -r tools/requirements.txt
+          python -m pip install -e packages/agentbundle/ pytest
+          python -m pip install -e './packages/credbroker[crypto]'
+      - name: pytest export-boundary gate
+        run: |
+          set -euo pipefail
+          test -d packages/agentbundle
+          python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 | tee "$RUNNER_TEMP/out.txt"
+          ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"
+  # Declared FOURTH, and the position is load-bearing. Several mutations rewrite the
+  # first (or first two) occurrences of a literal file-wide, so a job supplying an
+  # earlier match retargets them. Two are placement-sensitive at count=1 and both are
+  # satisfied by this position: drop-strict-shell (first `set -euo pipefail` must stay
+  # with gate-export-boundary) and architecture-on-setup-python (first
+  # `python-version: "3.11"` must stay with gate-main). The shallow checkout and the
+  # credbroker-out.txt tee target keep four more out of the class entirely.
+  gate-credbroker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: gate-credbroker
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Install credbroker (editable, with crypto extra) + pytest
+        run: python -m pip install -e './packages/credbroker[crypto]' pytest
+      - name: pytest credbroker (RFC-0023 Phase 1)
+        working-directory: packages/credbroker
+        # `-rs`, NOT `-q -rs`: collect-only replaces the literal "-q -rs" with no
+        # count argument, so the export-boundary spelling would pull this step into
+        # that mutation's blast radius. Tee target is job-distinct for the same class
+        # of reason.
+        run: |
+          set -euo pipefail
+          python -c "import cryptography, argon2"
+          python -m pytest -rs 2>&1 | tee "$RUNNER_TEMP/credbroker-out.txt"
+          ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/credbroker-out.txt"
+  build-check:
+    name: make build-check
+    needs:
+      - gate-main
+      - gate-sast
+      - gate-export-boundary
+      - gate-credbroker
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      # TWO run steps, as the real aggregator has. An earlier fixture folded the posture
+      # invocation into the guard step, which let `guard-runs-in-aggregator` and
+      # `guard-straight-line` be satisfied by the same body and left the real workflow's
+      # two-step shape — chosen so each step carries an honest lint-ci-parity
+      # disposition — unrepresented in every proof.
+      - name: Run the build-check.yml posture test
+        run: |
+          set -euo pipefail
+          python3 tools/test-build-check-workflow.py
+      - name: Require every gate
+        env:
+          GATE_MAIN_RESULT: ${{ needs.gate-main.result }}
+          GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
+          GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
+          GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}
+        # Comparison order must equal REQUIRED_WORK_JOBS order: _differential_failures
+        # builds _GUARD_BASE from that tuple and splices it in by exact text match,
+        # reporting "harness is blind" rather than failing usefully if it is absent.
+        run: |
+          set -euo pipefail
+          [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
+          [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
+          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
+          [ "$GATE_CREDBROKER_RESULT" != "success" ] && echo "::error::gate-credbroker reported $GATE_CREDBROKER_RESULT" && exit 1
+          echo "every gate passed"

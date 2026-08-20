@@ -12,7 +12,7 @@ so they live in the root roster rather than either component's local suite.
 
 Sandbox construction mirrors the working tree (tracked + untracked-not-ignored),
 then `git init` so any git-aware probe resolves. Runs on Linux, macOS, and
-Windows (Gate A runs it on all three).
+Windows (Gate A-tests runs it on all three).
 """
 
 from __future__ import annotations

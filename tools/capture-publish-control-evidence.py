@@ -5,6 +5,13 @@ Reads the live ruleset, environment, and App installation through `gh api` and
 emits the shape `tools/lint-claude-plugin-publish-control.py` compares against
 `.github/claude-plugin-publish-control.json`.
 
+The document names the repository it describes (`repo`). That field is the
+*subject* of every observation below rather than an observation itself — the
+value `--repo` was given, which every API read is made against. The lint refuses
+an artifact whose `repo` differs from the one the desired-state file declares;
+without it the artifact bound to nothing, and a capture against any other
+well-configured repository was byte-indistinguishable from one against this.
+
 The artifact carries NO identifiers — no App ID, installation ID, ruleset ID, or
 account ID. Those are internal settings and do not belong in the repository. The
 three-way identity agreement they used to evidence is computed here against live
@@ -350,6 +357,11 @@ def build_evidence(
     repo: str, target: str, canary: dict, key_path: Path
 ) -> dict:
     """Assemble the full sanitized evidence document."""
+    # Validate here, not only at the CLI boundary: `repo` is now recorded in the
+    # output, so the value written must be the value checked. main() also calls
+    # this — it is idempotent — but a direct caller of build_evidence would
+    # otherwise stamp an unchecked subject into the artifact.
+    repo = _validate_repo(repo)
     # Environment first: its App ID variable is what selects the installation.
     environment, environment_app_id = observe_environment(repo)
     branch, bypass_actor_id = observe_branch(repo, target)
@@ -375,7 +387,11 @@ def build_evidence(
             "the mismatch in settings before capturing evidence"
         )
     return {
-        "version": 1,
+        "version": 2,
+        # The subject, not an observation. Every `repos/{repo}/…` read above was
+        # made against this value, so recording it states what the rest of this
+        # document describes. Version 2 is exactly this field's addition.
+        "repo": repo,
         "branch": branch,
         "app": app,
         "environment": environment,

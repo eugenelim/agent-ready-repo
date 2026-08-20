@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [0.37.2] — 2026-08-17
+## [0.38.3] — 2026-08-17
 
 ### Changed
 
@@ -15,6 +15,93 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   and accepted revisions, unresolved conflict state, and explicit or unknown
   refresh/write-back availability. The response does not expose field
   ownership, decisions, receipts, or approver identities.
+## [0.38.2] — 2026-08-19
+
+### Added
+
+- **Optional journey decision-gate identifiers.** `JOURNEY.md` may list ordered
+  `contract.decisionGateIds` from `humanGates[].id`; labels remain reader-facing,
+  `yourDecisions` remains required, and existing packs stay valid unedited. This
+  shipped after the 0.38.1 tag and reaches PyPI here for the first time.
+
+### Changed
+
+- **Leaner bundled authoring scaffold.** `packs/AGENTS.md` and
+  `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
+  init` starts catalogues with leaner instructions. No CLI verb, flag, or output
+  format changed.
+
+## [0.38.1] — 2026-08-18
+
+### Fixed
+
+- **The Windows compatibility suite now verifies declared knowledge bundles.**
+  It ran the adopter-facing pre-PR hook, which carries no knowledge-bundle gate,
+  so no Windows runner invoked the compiler. The suite now re-renders every
+  declared bundle and compares the result against the committed tree, so a
+  Windows-only encoding, path, or ordering difference fails there rather than
+  reaching main. Managed *writes* remain unavailable on Windows by design — they
+  require directory-descriptor-confined operations the platform does not offer —
+  so the Windows stage verifies committed output rather than producing it.
+
+## [0.38.0] — 2026-08-17
+
+### Added
+
+- **`agentbundle show <pack> --format json` now carries pre-release rich
+  catalogue discovery metadata.** Live catalogue responses include three
+  additive fields: `pack_metadata` for the pack allowlist, `skill_metadata` for
+  live Skill activation metadata, and `knowledge` for declared OKF 0.2 bundles.
+  Installed-state fallback preserves the existing inventory-only behavior and
+  emits those three fields as `null` because install state cannot prove them.
+- **`agentbundle catalogue index` publishes a deterministic, neutral catalogue
+  index.** It reads confined catalogue, pack, profile, and optional journey
+  metadata; validates the assembled document against the bundled public schema;
+  and writes through the package's no-follow atomic writer. Dry-run and
+  structured JSON result modes are available for automation.
+- **`catalogue-index.schema.json` is now a bundled public contract.** The closed
+  schema covers catalogue identity, pack content and execution inventory,
+  journeys, declared effects, forward and inverse integrations, profiles, and
+  content-addressable pack digests.
+
+### Changed
+
+- **Catalogue journey authoring now has a published convention.** The bundled
+  authoring reference defines required and optional frontmatter, external-effect
+  declarations, reader-facing body sections, migration guidance, and index
+  verification commands. Existing packs without a journey remain valid.
+
+### Unchanged
+
+- The discovery experiment does not add OKF metadata to `list-packs`,
+  marketplace output, `catalogue-index.json`, or installed state. Human-readable
+  `show` output keeps its existing table contract.
+- Release commits for this feature must carry the trailer
+  `Engine-Change-RFC: RFC-0087`.
+
+## [0.37.2] — 2026-08-17
+
+### Added
+
+- **`catalogue verify` now performs all 19 advertised checks.** It validates
+  profile schemas and references, dependency ranges and cycles, adapter
+  compatibility, generated-output drift, pack metadata, and skill evaluation
+  manifests. Generated-output comparison is confined to the `claude-plugins/`
+  and `apm/` projection roots, and linked inputs are refused before reading.
+
+### Changed
+
+- **Dependency ranges now use one npm-compatible grammar across verify, lint,
+  and install.** Caret, tilde, comparator, compound, and prerelease forms agree;
+  below `1.0.0`, caret ranges retain normal semver compatibility.
+- **Repository-specific leak checks moved out of the portable verifier** and
+  into the repository-local build gate.
+
+### Fixed
+
+- **Malformed catalogue configuration now returns a bounded, redacted
+  diagnostic.** Verifier help and adopter documentation also consistently
+  describe the 19-step pipeline.
 
 ## [0.37.1] — 2026-08-16
 
@@ -106,7 +193,6 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   The build's `.apm` and `seeds` copytrees still pass `symlinks=True`, and that
   stays: preserving a link there is *safe* precisely because nothing reads the
   target at that layer. The defect was the composition, not either layer.
-
 ## [0.36.0] — 2026-08-16
 
 ### Fixed

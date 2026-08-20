@@ -51,6 +51,30 @@ in the same commit.
 - The repository's `owner/name` — used as `--repo` below.
 - Roughly 30 minutes. Step 1 is browser-only; the rest is scriptable.
 
+**Standing this up in a different repository? Do this first, before Step 1.**
+A copied or forked tree inherits *both* halves of the publication control — the
+desired-state contract and the previous repository's evidence — and they still
+compare equal, so `make build-check` is green while attesting to controls that
+were never observed here. The publish job refuses on its first run to `main`
+(`--subject "$GITHUB_REPOSITORY"`), which is several steps before you reach the
+capture in Step 4. So, in one commit, up front:
+
+1. Set `repo` in `.github/claude-plugin-publish-control.json` to **this**
+   repository's `owner/name`.
+2. Delete the inherited
+   `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`, and set
+   `control_status: decommissioned` in **`.github/claude-plugin-publish-control.json`**
+   (the desired-state file, not the evidence file you just deleted) until Step 4's
+   capture replaces it.
+3. Revert `.github/workflows/publish-claude-plugins.yml` to the **interim
+   identity** — the mirror of Step 5, which restores the App-token shape at the
+   end. Without this the lint refuses regardless: the shipped workflow mints an
+   App token, and `validate_sequencing` fails closed when it finds that shape
+   with no provisioning evidence. `control_status: decommissioned` licenses
+   running with no evidence; it does not license the App-token shape.
+
+All three in the same commit, or `make build-check` stays red until Step 5.
+
 ---
 
 ## Step 1 — Create and install the App *(browser only)*
@@ -273,6 +297,15 @@ ID, installation ID, ruleset ID, or account ID — only structural booleans and
 the asserted `identities_agree` verdict (AC36 clause 6). The two canary outcomes
 are passed explicitly rather than inferred, so the evidence cannot confirm
 itself from a settings read.
+
+It does record one thing that is not a structural boolean: `repo`, the
+`owner/name` you passed above. That is the **subject** of every observation in
+the file rather than an observation itself, and the lint refuses an artifact
+whose `repo` differs from the `repo` in `.github/claude-plugin-publish-control.json`.
+If you are standing this control up in another repository you will already have
+set that field — see § *Before you start*; this capture is what replaces the
+placeholder evidence you decommissioned there. A repository name is a public path, not one of the
+internal identifiers the paragraph above keeps out.
 
 The key is needed because the installation read is App-authenticated. There is no
 user-token route to it: `gh`'s OAuth token is refused by `/user/installations`

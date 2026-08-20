@@ -1,3 +1,10 @@
+---
+title: Shape an architecture concept
+summary: Agree a bounded Stage 0 concept, alternatives, provider, constraints, and key tradeoff before committing to a full design document.
+pack: architect
+kind: how-to
+---
+
 # Shape an architecture concept
 
 **Use this when:** You have a product feature or strategy and a real technical choice to make, and you want the architecture shape agreed cheaply before committing to a full design doc.

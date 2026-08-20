@@ -1,0 +1,18 @@
+[pack]
+name = "pack-with-journey"
+version = "1.0.0"
+description = "Pack with a journey."
+categories = ["testing"]
+
+[pack.adapter-contract]
+version = "1.0"
+
+[pack.install]
+default-scope = "repo"
+allowed-adapters = ["claude-code"]
+
+[[pack.integrations]]
+id = "fixture-companion"
+pack = "pack-without-journey"
+kind = "augment"
+role = "provider"

@@ -2694,6 +2694,70 @@ class SelfHostAdapterRoutingTests(unittest.TestCase):
                     else:
                         projector.assert_not_called()
 
+    def test_okf_skill_reference_bytes_survive_every_shipped_adapter(self) -> None:
+        from agentbundle.scope import shipped_adapters_from_contract
+
+        contract = load_contract(CONTRACT_PATH)
+        shipped = shipped_adapters_from_contract()
+        target_by_adapter = {
+            "claude-code": Path(".claude/skills/okf-skill/references/okf/concepts/topic.md"),
+            "kiro": Path(".kiro/skills/okf-skill/references/okf/concepts/topic.md"),
+            "kiro-ide": Path(".kiro/skills/okf-skill/references/okf/concepts/topic.md"),
+            "kiro-cli": Path(".kiro/skills/okf-skill/references/okf/concepts/topic.md"),
+            "copilot": Path(".agents/skills/okf-skill/references/okf/concepts/topic.md"),
+            "codex": Path(".agents/skills/okf-skill/references/okf/concepts/topic.md"),
+            "cursor": Path(".agents/skills/okf-skill/references/okf/concepts/topic.md"),
+            "gemini": Path(".agents/skills/okf-skill/references/okf/concepts/topic.md"),
+        }
+        self.assertEqual(set(shipped), set(target_by_adapter))
+
+        okf_bytes = (
+            b"---\n"
+            b'title: "Topic"\n'
+            b'kind: "Reference"\n'
+            b"---\n"
+            b"# Topic\n"
+            b"\n"
+            b"Canonical OKF bytes.\n"
+        )
+
+        for preferred_adapter in shipped:
+            with self.subTest(adapter=preferred_adapter), tempfile.TemporaryDirectory() as tmp:
+                tmp_path = Path(tmp)
+                packs_dir = tmp_path / "packs"
+                pack = _seed_pack_with_skill(
+                    packs_dir, "core", "okf-skill", "OKF adapter fixture"
+                )
+                source = (
+                    pack
+                    / ".apm"
+                    / "skills"
+                    / "okf-skill"
+                    / "references"
+                    / "okf"
+                    / "concepts"
+                    / "topic.md"
+                )
+                source.parent.mkdir(parents=True)
+                source.write_bytes(okf_bytes)
+
+                working = tmp_path / "tree"
+                working.mkdir()
+                _seed_discovery(working)
+                rc = run_self_host(
+                    working_tree=working,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=contract,
+                    no_symlink=True,
+                    preferred_adapter=preferred_adapter,
+                )
+
+                self.assertEqual(rc, 0)
+                projected = working / target_by_adapter[preferred_adapter]
+                self.assertEqual(projected.read_bytes(), okf_bytes)
+
 
 if __name__ == "__main__":
     unittest.main()

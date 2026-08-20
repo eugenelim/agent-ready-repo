@@ -1,3 +1,10 @@
+---
+title: "`catalogue-curation` — guides"
+summary: Choose the operator workflow for authoring, surveying, assimilating, governing, or redistributing catalogue primitives.
+pack: catalogue-curation
+kind: explanation
+---
+
 # `catalogue-curation` — guides
 
 The operator's toolkit for **growing and maintaining** an agent-skill catalogue:

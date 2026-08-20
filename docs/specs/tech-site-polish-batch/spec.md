@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0061 (`web/` top-level directory), platform-site spec, [`docs-site-design-refresh`](../docs-site-design-refresh/spec.md) (docs palette divergence)
-- **Brief:** in-session design review (2026-08-14) of both site surfaces rendered at 1440×900 and 360/375/390/414 phone widths, light and dark, benchmarked against an external reference docs site (supplied in-session; deliberately not named in-tree). The review produced 2 blockers, 7 majors, 8 minors; this spec takes the mechanical subset — the items that need no new IA, no new convention, and no design direction.
+- **Brief:** none
 - **Contract:** none
 - **Shape:** build
 

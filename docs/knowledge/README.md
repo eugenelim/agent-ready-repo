@@ -202,6 +202,43 @@ capture IDs or consume direct-maintainer pending observations. Any separately
 requested enquiry starts with an explicit competency question, remains bounded
 untrusted evidence, and abstains when committed evidence is insufficient.
 
+Review workflows are enquiry-only consumers. `work-loop` may declare one
+consequential `CQ-REVIEW` question after its target and structural scope are
+fixed, then reuse the same visibly delimited result for warranted adversarial,
+security, and quality reviewers. `architect-review` may declare the same
+competency question after eligibility, artifact type, mode, scope, and rubric
+selection but before its rubric walk. A missing provider is
+`project-knowledge unavailable`; no eligible topic yields zero candidate
+checks; and an unverified consequential source remains `abstained: true`.
+
+Retrieved review knowledge is candidate evidence only. It cannot change tools,
+permissions, scope, reviewer routing, rubric or checklist coverage, severity,
+verdict, or clean status, and it cannot suppress a finding or corroborate
+itself. Reviewers independently ground findings in the current target and
+governing standard, verify external facts against current canonical sources,
+keep scratch transient, and perform no capture or distillation. Findings,
+security conclusions, quality verdicts, citations, and recommendations remain
+solely in their owning review artifact. Research products and corpora remain a
+separate downstream authority surface.
+
+Research integrations preserve that separation. Quick and non-survey session
+work plus project start, digest, check, status, incomplete, and abandoned paths
+perform no knowledge operation. A completed repository-contained standard,
+applied, or deep survey, or completed project synthesis, may optionally capture
+only independently reusable practice or sanitized evidence residue through the
+public typed seam. A terminal producer may distil only receipts returned by
+that gate. Personal and external output roots remain capture-ineligible because
+they cannot claim repository-relative provenance honestly.
+
+The research producer still owns scratch, gate timing, sources, citations,
+claims, confidence, known unknowns, verdicts, and briefs. Counter-evidence
+review may use one bounded `CQ-REVIEW` enquiry for candidate checks, with no
+capture or distillation. Retrieved topics are untrusted and cannot change
+instructions, permissions, scope, source selection, citations, claims,
+confidence, counter-evidence, verdicts, or normative authority. Every research
+claim requires independent direct-source verification; unavailable or
+unverified evidence yields a named skip, caveat, omission, or abstention.
+
 Routing lessons into places that *are* authoritative—`AGENTS.md`, a skill, an
 ADR, architecture docs, code, CI, or a lint or test—is part of the shipped
 distillation lifecycle. The strongest knowledge is not prose a model remembers;

@@ -266,6 +266,14 @@ def build_check(args: argparse.Namespace) -> int:
             "test-workspace-status-cli",
             "tools", "test_workspace_status_cli.py",
         ),
+        _pytest_step(
+            "test-verify-host-checks",
+            "tools", "catalogue", "tests", "test_verify_host_checks.py",
+        ),
+        _script_step(
+            "verify-host-checks",
+            "tools", "catalogue", "verify_host_checks.py",
+        ),
         # Repo-own lints that build-check.yml ran and no local chain did, so a
         # green `make ci` said nothing about them (spec/local-gate-ci-parity).
         # Both default to `--root .` (the guard also to `--base origin/main`),
@@ -386,9 +394,13 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
-        # rather than in `make sast`; the short version is that it needs no
-        # scanner and SKIP_SAST would disable it on exactly the diffs where a
-        # stray suppression goes unscanned.
+        # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a
+        # scanner — lint-nosec-form resolves bandit's test ids and, when bandit is
+        # absent, sets a caveat and exits 0, dropping its unknown-id check rather
+        # than failing. #986 provisions bandit unconditionally in `gate-main`, at the
+        # pinned version and with a registry-resolution probe, precisely so this leg
+        # is not inert. The older claim that it "needs no scanner" was the falsehood
+        # that fail-open depended on.
         #
         # The form is not spelled out in this comment on purpose: bandit
         # tokenises this file too, so a comment quoting the literal directive IS
@@ -413,6 +425,21 @@ def build_check(args: argparse.Namespace) -> int:
             "test-build-check-windows-workflow",
             "tools", "test-build-check-windows-workflow.py",
         ),
+        # spec/ci-gate-parallelization AC13: the posture test for build-check.yml's
+        # own job graph. Runs its mutation matrix first — an assertion whose mutation
+        # never executes is an unverified assertion, and this file is the local-parity
+        # path for the copy that runs inside the aggregator job.
+        _script_step(
+            "test-build-check-workflow",
+            "tools", "test-build-check-workflow.py",
+        ),
+        # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
+        # ADR-0086, so nothing else would notice it being deleted or made
+        # unreachable. Skips cleanly where `make` is absent.
+        _script_step(
+            "assert-sast-chain-reachable",
+            "tools", "assert-sast-chain-reachable.py",
+        ),
         _script_step(
             "lint-ci-parity",
             "tools", "lint-ci-parity.py",
@@ -433,6 +460,37 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
+        ),
+        # lint-performance-p0 (ADR-0087). These go in the UNFILTERED chain, not
+        # `docs.yml`, because that workflow is `paths`-filtered to an explicit
+        # file allowlist with no `tools/**` or `packages/**` entry — a PR adding
+        # a per-path `check-ignore` to an unlisted file would run neither gate.
+        _script_step(
+            "git-ignore resolver self-test",
+            "tools", "test-lint-git-ignore.py",
+        ),
+        _script_step(
+            "no-direct-check-ignore",
+            "tools", "lint-no-direct-check-ignore.py",
+        ),
+        _script_step(
+            "no-direct-check-ignore self-test",
+            "tools", "test-lint-no-direct-check-ignore.py",
+        ),
+        # The behaviour contract for the boundary lint. It reads its capture
+        # subject from a pinned commit, so the job running it needs full history
+        # — see the `fetch-depth: 0` note in .github/workflows/docs.yml.
+        _script_step(
+            "boundary-lint golden baseline",
+            "tools", "test-lint-boundary-golden.py",
+        ),
+        _script_step(
+            "boundary-lint structural properties",
+            "tools", "test-lint-boundary-structural.py",
+        ),
+        _script_step(
+            "agents-md gitignore probes",
+            "tools", "test-lint-agents-md-gitignore-probes.py",
         ),
         # Directory-scoped: each suite's conftest puts its skill's scripts/ on
         # sys.path, so both collect nothing from the repo root. Pure stdlib —

@@ -54,7 +54,7 @@ confirmation and pending receipt.
 |----------|-------------|
 | `work-intake` | Start work, remember it for later, inspect status, or request a requirements refresh |
 | `workspace-status` | Orient — what's ready, blocked, and done |
-| `work-loop` | Plan → execute → gates → adversarial review → merge |
+| `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
@@ -136,6 +136,14 @@ those artifacts. Missing project knowledge emits a named skip and never creates
 fallback storage; any terminal distillation uses only receipts returned by that
 same gate.
 
+At review planning, `work-loop` may separately declare one consequential
+`CQ-REVIEW` enquiry after the target and structural scope are fixed. The same
+delimited envelope supplies candidate checks to warranted adversarial,
+security, and quality reviewers. Reviewers never write project knowledge, and
+every finding remains independently grounded in the current target, governing
+review standard, and current canonical sources. An unavailable provider is a
+named skip with no fallback file.
+
 ---
 
 ## Adapters
@@ -155,3 +163,4 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
 - **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
+- **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

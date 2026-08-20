@@ -1,0 +1,17 @@
+[pack]
+name = "beta"
+version = "1.1.0"
+description = "Second fixture pack"
+
+[pack.adapter-contract]
+version = "0.8"
+
+[[pack.dependencies.required]]
+catalogue = "example-catalogue"
+pack = "alpha"
+version = "^1.0"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+allowed-adapters = ["claude-code", "codex"]

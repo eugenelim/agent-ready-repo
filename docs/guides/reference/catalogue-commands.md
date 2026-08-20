@@ -20,7 +20,7 @@ Exits 0 when all checks pass; non-zero on any failure. Runs as step 2 of `catalo
 
 ## `agentbundle catalogue verify`
 
-Runs the full 18-step source pipeline: lint, schema validation, contract checks, build (into a temp
+Runs the full 19-step source pipeline: lint, schema validation, contract checks, build (into a temp
 directory), self-host drift check, and more.
 
 ```

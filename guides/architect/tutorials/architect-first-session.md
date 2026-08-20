@@ -1,3 +1,10 @@
+---
+title: Your first architecture session
+summary: Produce a first plain-language architecture snapshot of an existing codebase in a guided session.
+pack: architect
+kind: tutorial
+---
+
 # Your first architecture session
 
 **What you'll build:** A `docs/architecture/reference.md` plain-language snapshot of your codebase's main components and structural decisions.

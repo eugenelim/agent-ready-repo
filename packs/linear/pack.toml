@@ -1,7 +1,7 @@
 [pack]
 name = "linear"
-version = "0.2.4"
-description = "Read Linear work into repository intake, then review later source changes and confirm narrow coordination write-back."
+version = "0.3.0"
+description = "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs."
 readme = "README.md"
 display_name = "Linear"
 license = "Apache-2.0 OR MIT"
@@ -19,7 +19,7 @@ version = "0.8"
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "credential-brokers"
-version = "^0.2"
+version = "^0.3"
 
 [pack.install]
 default-scope = "user"

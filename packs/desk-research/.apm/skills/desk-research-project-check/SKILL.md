@@ -64,6 +64,18 @@ It **NEVER advances `phase`** — it does not move the project from `digest` to
 only recommends. Writing anything other than `verdict_status` into `overview.md`
 is an *Ask-first* deviation.
 
+## Project-knowledge non-gate
+
+Project check is a check-only knowledge non-gate. Its qualitative saturation
+judgment, recommendation, incomplete checks, and current optional
+`verdict_status` write perform no capture, distillation, or enquiry. The marker
+is a desk-research-owned convenience state, not a knowledge observation or
+terminal research product.
+
+This skill never advances `phase`; the human owns the decision to gather more
+or synthesize. It does not discover a knowledge provider, locate journals,
+or select receipts. It does not create fallback storage.
+
 ## What this skill is not
 
 - Not a phase-advancer — it recommends; the human moves the project.

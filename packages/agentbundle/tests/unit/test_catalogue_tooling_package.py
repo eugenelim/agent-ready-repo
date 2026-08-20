@@ -65,7 +65,12 @@ def _make_catalogue(
     pack_dir = root / "packs" / "core"
     pack_dir.mkdir(parents=True)
     (pack_dir / "pack.toml").write_text(
-        '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+        '[pack]\nname = "core"\nversion = "0.1.0"\n'
+        'description = "Package test fixture."\n'
+        '[pack.adapter-contract]\nversion = "0.2"\n'
+        '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo"]\n',
+        encoding="utf-8",
+        newline="\n",
     )
     (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
     (pack_dir / "tests").mkdir()
@@ -525,8 +530,10 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
     separate question — see `test_transient_dirs_pruned_inside_included_roots`.
     """
     root = _make_catalogue(tmp_path)
-    # Add stub files at denied paths
-    for denied in [".git", "tools", "packages", "dist", "__pycache__"]:
+    # Add stub files at denied paths. ``dist/`` is intentionally omitted: the
+    # verifier now treats an existing generated-output tree as a drift contract,
+    # so an arbitrary dist/stub.txt must be refused before packaging begins.
+    for denied in [".git", "tools", "packages", "__pycache__"]:
         d = root / denied
         d.mkdir()
         (d / "stub.txt").write_text("should be excluded\n", encoding="utf-8", newline="\n")
@@ -537,13 +544,13 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
             root=root, bundle="b", release="0.1.0", channel="c", output=output
         )
 
-    assert result.ok
+    assert result.ok, [diagnostic.message for diagnostic in result.diagnostics]
 
     archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
     with tarfile.open(fileobj=io.BytesIO(archive.read_bytes()), mode="r:gz") as tf:
         names = tf.getnames()
 
-    for denied in [".git/", "tools/", "packages/", "dist/", "__pycache__/"]:
+    for denied in [".git/", "tools/", "packages/", "__pycache__/"]:
         for name in names:
             assert not name.startswith(denied), f"denied path found in archive: {name}"
 

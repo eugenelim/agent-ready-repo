@@ -151,8 +151,8 @@ def _web_routes() -> set[str]:
         f"{SITE_BASE}/",
         f"{SITE_BASE}/catalogue",
         f"{SITE_BASE}/catalogue/",
-        f"{SITE_BASE}/work",
-        f"{SITE_BASE}/work/",
+        f"{SITE_BASE}/now",
+        f"{SITE_BASE}/now/",
     }
     for source in (REPO_ROOT / "packs").glob("*/pack.toml"):
         slug = source.parent.name

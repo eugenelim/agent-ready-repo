@@ -11,6 +11,29 @@ phase. Two tools own this in Phase 1:
 - **`scripts/loop-cohort.py`** — sole writer of `state.json`; owns all cohort
   counters, hashes, and scheduling state.
 
+A third module reads this state but never writes it:
+
+- **`scripts/_loop_guards.py`** — the shared read-only guard API. Every guard
+  decision the FSM needs lives here once and is called by three surfaces:
+
+      loop-engine transition
+          -> in-process read-only guard API
+              -> safe state/artifact reads and validation
+                    `- lint-spec-status.py (the one canonical status parser)
+
+      loop-cohort / check-spec-status CLI
+          -> the same read-only guard API
+              -> CLI-specific printing and exit codes
+
+  It is deliberately absent from the writers above: it mutates nothing, creates no
+  file, and never takes a lock. `loop-engine.py` used to reach these decisions by
+  spawning `loop-cohort.py` and `check-spec-status.py` as child interpreters — up to
+  three per transition — so one transition is now one Python process. Reads are
+  bounded (8 MiB cap, `O_NOFOLLOW`, `O_NONBLOCK`, regular-file and dev/ino checks)
+  because the child process's subprocess timeout used to supply that bound, and an
+  unbounded read inside the engine's critical section can outlast the lock's
+  stale-after threshold.
+
 State mutation is owned exclusively by these tools. Do not edit either JSON
 file by hand or bypass the `--expect-run-id` guard — the tools guarantee
 atomic writes, fingerprint algorithm consistency, and hash-first /

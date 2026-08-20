@@ -1,11 +1,11 @@
 ---
-title: Run an Audit
+title: Run a frontend audit
 summary: How to run the full frontend-engineering audit on an existing surface — what to run, in what order, what each gate catches, how to read the output, and what to record in the evidence manifest.
 pack: frontend-engineering
 kind: how-to
 ---
 
-# Run an Audit
+# Run a frontend audit
 
 Use this guide when you need to audit an **existing surface** — a component,
 a page, or a set of pages you did not build. The output is an audit report and,

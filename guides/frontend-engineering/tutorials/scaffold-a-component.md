@@ -1,11 +1,11 @@
 ---
-title: Scaffold a Component
+title: Scaffold a component from a screen brief
 summary: A worked tutorial — receive a screen brief, run the pre-flight, write the HTML/CSS, implement all states, run the gates, and produce an evidence manifest.
 pack: frontend-engineering
 kind: tutorial
 ---
 
-# Scaffold a Component
+# Scaffold a component from a screen brief
 
 This tutorial walks the full `frontend-engineering` create-mode workflow on a
 concrete example: a **notification card** component with loading, empty,

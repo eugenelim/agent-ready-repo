@@ -137,31 +137,16 @@ which left the ecosystem seam asserted rather than specified.
 
 ### The design this replaces, and why it could not ship
 
-The previous version had `binder.py` **walk the installed skill roots for the
-active adapter**, globbing `*/assets/binders/*.binder.toml` across every pack the
-adopter had installed, and identifying each hit as `<pack>/<name>`.
-
-**That violates `author-a-skill.md` § *Three rules to get right the first time*,
-third bullet**, which is unambiguous:
+Template discovery must not cross a skill boundary. `author-a-skill.md` § *Three
+rules to get right the first time*, third bullet, states:
 
 > *"Each skill is self-contained. Never read from, import from, or **assume the
 > presence of files in another skill's directory** — including sibling skills in
 > the same pack. Skills are projected independently to each adapter; cross-skill
 > paths that look valid in the source tree do not survive projection."*
 
-This is not a technicality, and it is not a rule the design can weigh against
-convenience — it is the **same rule [`editorial-model.md`](editorial-model.md)
-cites, from the same paragraph, to justify the one-skill pack shape.** A design
-that invokes self-containment to reject the two-skill option and then walks other
-skills' directories for templates is applying one rule in two directions.
-
-The rule's own stated reason is also the operational one. Skills are projected
-independently, per adapter, at whichever scope the adopter chose. A walk over
-"installed skill roots" would have to know seven adapters × three scopes of layout
-— exactly the knowledge `references/invocation.md` exists to keep out of the skill
-body — and would still miss a producing pack installed at a different scope, find
-nothing on a fresh machine, and silently return a different list per adapter. **A
-discovery mechanism whose results depend on the adapter is not a seam.**
+Skills project independently per adapter and scope, so another skill's directory
+is not a portable template-discovery seam.
 
 ### Discovery, restricted
 
@@ -228,15 +213,10 @@ adopter looks for what a pack offers anyway.
 
 ### Why not a manifest key
 
-`[pack.integrations]` exists and could declare a binder-template seam. It is still
-not used, and the reason survives the redesign: **a producing pack must be able to
-participate with `tomllib` and nothing else.** A manifest key would mean a pack
-shipping a template must know *this* pack's schema for declaring it — and it would
-reintroduce the discovery step, since something would then have to read those
-manifests.
-
-Writing a file to `recipes_dir` requires knowing one path and one format, both of
-which the producing pack must know anyway to author the template at all.
+**A producing pack must be able to participate with `tomllib` and nothing else.**
+Writing to `recipes_dir` requires one path and one format it already needs to know.
+`[pack.integrations]` is not used because it would add this pack's manifest schema
+and reintroduce discovery.
 
 ### What a template may and may not contain
 

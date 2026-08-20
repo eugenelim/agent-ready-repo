@@ -12,10 +12,12 @@ import { visit } from 'unist-util-visit';
  * overflow: auto`, so the paired CSS in `starlight.css` hands the scroll to
  * this wrapper and returns the table to `display: table`.
  *
- * Extracted from `astro.config.ts` to keep the config declarative; the config
- * file has no test runner, so the behavioural coverage is the built-output
- * assertion in `web/src/test/rendered-output.test.ts`, which checks every table
- * on all 216 generated pages rather than a hast fixture.
+ * Extracted from `astro.config.ts` to keep the config declarative. Two layers of
+ * coverage, both load-bearing: the focused hast-fixture suite beside this file
+ * (`npm run test:plugins --prefix docs-site`) pins the edge cases and makes each
+ * accessibility attribute mutation-sensitive, and the built-output assertion in
+ * `web/src/test/rendered-output.test.ts` checks every table on every generated
+ * page — which a fixture cannot. Neither replaces the other.
  */
 
 interface HastNode {

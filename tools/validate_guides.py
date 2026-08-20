@@ -39,6 +39,59 @@ VALID_KINDS = {"tutorial", "how-to", "reference", "explanation"}
 # Frontmatter parsing
 # ---------------------------------------------------------------------------
 
+# Structural, non-content files under the guides root: navigation indexes and the
+# agent-context file. Guides-root-relative POSIX paths, matched EXACTLY.
+#
+# Exact paths rather than a basename or folder rule, because either would hide future
+# public content: `core/AGENTS.md` and `core/how-to/README.md` are content and must
+# still be required to carry metadata. The set is a reviewable constant, and
+# tools/test_validate_guides.py asserts both its contents and that same-basename
+# files elsewhere still warn.
+#
+# Traces to: spec/guide-metadata-completion AC2, AC3.
+STRUCTURAL_NON_CONTENT = frozenset(
+    {
+        "AGENTS.md",
+        "_shared/tutorials/README.md",
+        "_shared/how-to/README.md",
+        "_shared/reference/README.md",
+        "_shared/explanation/README.md",
+    }
+)
+
+
+def is_structural_non_content(path: Path, guides_root: Path) -> bool:
+    """True when `path` is one of the five approved structural files.
+
+    `guides_root` must be the DECLARED root, not a per-file fallback: the match is on
+    the full guides-root-relative path, so passing a file's own parent would reduce
+    this to a basename comparison.
+    """
+    root = guides_root.resolve()
+    # The allowlist is only meaningful relative to a real guides root. `--guides-root`
+    # is caller-supplied, and pointing it at a SUBDIRECTORY collapses the comparison
+    # to a basename: `--guides-root guides/core` makes `guides/core/AGENTS.md` relative
+    # path `AGENTS.md`, which would match the approved top-level entry. Requiring the
+    # root to be named `guides` closes that without constraining where the tree lives.
+    # Trade-off, stated because a test pins the behaviour: callers skip allowlisted
+    # files BEFORE _validate_file, which is where canonical slugs and aliases are
+    # registered. Today none of the five carries frontmatter so nothing is lost, and
+    # on the pre-allowlist validator they returned early at the `fm is None` branch
+    # without registering either — so this is not a regression. But the day one of the
+    # five gains a `slug:` or `aliases:`, the duplicate-slug and alias-collision
+    # guards go blind for it while
+    # test_approved_file_with_frontmatter_is_still_silent keeps passing.
+    if root.name != "guides" or any(p.name == "guides" for p in root.parents):
+        # `guides/guides` and `docs/guides` both satisfy a bare basename check, and
+        # the first re-enables exactly the collapse this guard exists to stop.
+        return False
+    try:
+        rel = path.resolve().relative_to(root)
+    except ValueError:
+        return False
+    return rel.as_posix() in STRUCTURAL_NON_CONTENT
+
+
 def parse_frontmatter(text: str) -> dict | None:
     """Return the YAML frontmatter dict, or None if the file has none.
 
@@ -218,6 +271,7 @@ def validate_paths(
     paths: list[str],
     *,
     guides_root: str | None = None,
+    stats: dict | None = None,
     packs_root: str | None = None,
     schema_path: str | None = None,
     exclude_paths: list[str] | None = None,
@@ -250,6 +304,8 @@ def validate_paths(
 
     errors: list[str] = []
     warnings: list[str] = []
+    checked = 0
+    exempt = 0
     canonical_slugs: dict[str, Path] = {}
     all_aliases: dict[str, Path] = {}
 
@@ -267,6 +323,19 @@ def validate_paths(
         if skip:
             continue
 
+        # Allowlist check against the DECLARED guides root, never the per-file
+        # fallback below. Matching on the fallback would compare only the basename,
+        # so `core/AGENTS.md` would read as the approved `AGENTS.md` — the exact
+        # fail-open the exception set exists to prevent. A file outside the declared
+        # root cannot be one of the five, so it stays content.
+        #
+        # Checked before the file is read: an allowlisted path is non-content whether
+        # or not it happens to carry frontmatter, so it is never schema-validated
+        # into an error either.
+        if is_structural_non_content(resolved, gr):
+            exempt += 1
+            continue
+
         # Use the guides root for slug derivation; fall back to the file's parent if outside.
         # Always pass the resolved (absolute) path so relative_to() works correctly.
         effective_root = gr.resolve()
@@ -275,6 +344,7 @@ def validate_paths(
         except ValueError:
             effective_root = resolved.parent
 
+        checked += 1
         _validate_file(
             resolved,
             effective_root,
@@ -285,6 +355,14 @@ def validate_paths(
             canonical_slugs,
             all_aliases,
         )
+
+    if stats is not None:
+        # Coverage, not just absence of complaints. Without this the CLI prints
+        # "0 errors, 0 warnings" for an EMPTY or MISSING tree, so a gate grepping that
+        # string asserts nothing — the same blindness as counting a linter's walk size
+        # or a link checker that skips the scheme the broken links ended up using.
+        stats["checked"] = checked
+        stats["exempt"] = exempt
 
     _check_alias_canonical_collisions(canonical_slugs, all_aliases, errors)
     _check_dangling_aliases(canonical_slugs, all_aliases, warnings)
@@ -323,11 +401,13 @@ def main(argv: list[str] | None = None) -> int:
     # This guards against accidentally passing docs/ or docs/guides/ as a scan target.
     exclude = [str(REPO_ROOT / "docs" / "guides")]
 
+    stats: dict = {}
     code, errors, warnings = validate_paths(
         args.paths,
         guides_root=args.guides_root,
         packs_root=args.packs_root,
         exclude_paths=exclude,
+        stats=stats,
     )
 
     for w in warnings:
@@ -337,10 +417,16 @@ def main(argv: list[str] | None = None) -> int:
 
     total = len(errors)
     if code == 0:
-        print(f"validate-guides: OK (0 errors, {len(warnings)} warnings)")
+        print(
+            f"validate-guides: OK (0 errors, {len(warnings)} warnings, "
+            f"{stats['checked']} checked, {stats['exempt']} exempt)"
+        )
     else:
         suffix = "s" if total != 1 else ""
-        print(f"validate-guides: FAIL ({total} error{suffix}, {len(warnings)} warnings)")
+        print(
+            f"validate-guides: FAIL ({total} error{suffix}, {len(warnings)} warnings, "
+            f"{stats['checked']} checked, {stats['exempt']} exempt)"
+        )
 
     return code
 

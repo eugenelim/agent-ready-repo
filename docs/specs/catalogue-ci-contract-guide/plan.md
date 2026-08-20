@@ -174,7 +174,7 @@ all sections from AC1–AC10.
 
 ---
 
-### T4: Update `guides/_reference/catalogue-format.md` — Validation cross-reference
+### T4: Update `guides/_reference/catalogue-format.md` — Validation cross-reference <!-- Moved 2026-08-18 by spec/guide-metadata-completion to `guides/_shared/reference/catalogue-format.md`; the public route is unchanged. -->
 
 **Depends on:** T1
 

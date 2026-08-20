@@ -1,3 +1,10 @@
+---
+title: Output rendering directives
+summary: Select and declare the canonical rendering shape, columns, status vocabulary, and omission rules for structured skill output.
+pack: _shared
+kind: reference
+---
+
 # Output rendering directives
 
 When a skill produces structured output, it declares which rendering shape

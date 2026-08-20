@@ -1,3 +1,10 @@
+---
+title: "`monorepo-extras` — guides"
+summary: Understand the repository-scoped package scaffolding workflow and the conventions carried by its shared-library template.
+pack: monorepo-extras
+kind: explanation
+---
+
 # `monorepo-extras` — guides
 
 Monorepo scaffolding on top of `core`. One skill, `new-package`, and the `packages/` layout it scaffolds into — including a template package that ships its own conventions, so every new library matches the rest from the first commit. It's repo-scope and requires `core`.

@@ -8,7 +8,7 @@ Without a formal decision record, teams capture choices in Slack threads, PR des
 
 ## What it is
 
-**Skills (4):** `new-rfc` (draft and shepherd a proposal through the RFC lifecycle, including generating follow-on specs for an Accepted RFC), `new-adr` (capture a decision, its context, and the alternatives considered), `update-conventions` (propose changes to CONVENTIONS.md or CHARTER.md through an RFC review gate rather than a direct PR), `rfc-status` (read-only overview of the RFC landscape — what is open, accepted, or rejected).
+**Skills (3):** `new-rfc` (draft and shepherd a proposal through the RFC lifecycle, including generating follow-on specs for an Accepted RFC), `new-adr` (capture a decision, its context, and the alternatives considered), `rfc-status` (read-only overview of the RFC landscape — what is open, accepted, or rejected).
 
 No subagents. Installs RFC and ADR file templates plus seed READMEs for `docs/rfc/` and `docs/adr/`.
 

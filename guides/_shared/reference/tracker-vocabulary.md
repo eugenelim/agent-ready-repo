@@ -1,3 +1,10 @@
+---
+title: Tracker intake vocabulary
+summary: Distinguish tracker objects and profile hints from the repository artifacts and lifecycle routes selected by `work-intake`.
+pack: _shared
+kind: reference
+---
+
 # Tracker intake vocabulary
 
 Use this reference to separate tracker terms from repository routing concepts.

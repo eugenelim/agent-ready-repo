@@ -1,3 +1,10 @@
+---
+title: Set UX and content strategy
+summary: Commit the experience vision and content-governance system before journeys and screens are designed.
+pack: product-strategy
+kind: how-to
+---
+
 # Set UX and content strategy
 
 **Use this when:** design is about to start and you want the experience vision and content governance system fixed before journey maps and screen briefs are authored.

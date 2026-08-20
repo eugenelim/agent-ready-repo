@@ -4,7 +4,7 @@ title: Migrate docs site from MkDocs Material to Starlight
 status: Shipped
 ---
 
-- **Status:** Shipped <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
+- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md) — the assertions that the docs palette derives from `web/src/styles/tokens.css`: AC5, the token-import description at lines 63-66, and the § Boundaries Never-do entry at line 116; the docs palette is now self-contained and site-local, so nothing forks that file. Everything else in this spec stands.) <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 

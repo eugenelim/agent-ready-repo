@@ -19,7 +19,6 @@ GUIDE_INDEX = REPO_ROOT / "guides" / "README.md"
 
 # Packs excluded from the guide index — internal or compatibility-only
 EXCLUDED_PACKS = {
-    "_example",          # internal example only
     "user-guide-diataxis",  # deprecated compatibility pack; not a current recommendation
 }
 
@@ -29,10 +28,10 @@ GUIDE_OPTIONAL_PACKS: set[str] = set()
 
 
 def discover_active_packs() -> list[str]:
-    """Return pack IDs for all packs with a pack.toml, excluding EXCLUDED_PACKS."""
+    """Return public pack IDs with a pack.toml, excluding compatibility packs."""
     packs = []
     for pack_dir in sorted(PACKS_DIR.iterdir()):
-        if not pack_dir.is_dir():
+        if not pack_dir.is_dir() or pack_dir.name.startswith("_"):
             continue
         if (pack_dir / "pack.toml").exists() and pack_dir.name not in EXCLUDED_PACKS:
             packs.append(pack_dir.name)

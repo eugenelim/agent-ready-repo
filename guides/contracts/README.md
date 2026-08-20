@@ -1,3 +1,10 @@
+---
+title: "`contracts` — guides"
+summary: Choose the contract-first workflow for synchronous APIs, asynchronous events, and pluggable organizational standards.
+pack: contracts
+kind: explanation
+---
+
 # `contracts` — guides
 
 `contracts` is the pack for contract-first design: write the agreement before the code. It ships two skills — `api-contract` for synchronous REST (OpenAPI 3.1) and `event-contract` for asynchronous streams (AsyncAPI) — each applying a design *method* over a pluggable house standard. The bundled default is the Zalando guidelines; swap in your own as a base + delta bundle without forking the skill.

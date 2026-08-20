@@ -1,3 +1,10 @@
+---
+title: Run your first SWOT
+summary: Produce a grounded four-quadrant strategic position from a guided first analysis.
+pack: product-strategy
+kind: tutorial
+---
+
 # Run your first SWOT
 
 **What you'll build:** a committed `docs/product/shaping/swot-analysis.md` — a four-quadrant read of one product's position in the shaping surface.

@@ -24,6 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity, VerifyResult
 from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.catalogue_tooling.verify import (
@@ -164,6 +165,74 @@ def test_verify_bad_pack_lint_fails_step2(tmp_path, monkeypatch):
 
     assert not result.ok
     assert any("CAT-V-002" in d.code for d in result.diagnostics)
+
+
+def test_verify_refuses_linked_pack_manifest_before_parsing(tmp_path):
+    """The full pipeline refuses a linked pack.toml before lint parses it."""
+    config = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test Catalogue",
+        description="A catalogue fixture with an unsafe pack manifest.",
+        minimum_agentbundle_version="0.33.0",
+        owner_name="Example Maintainer",
+        preferred_adapter="kiro-ide",
+    )
+    (tmp_path / "catalogue.toml").write_text(config, encoding="utf-8", newline="\n")
+    pack_dir = tmp_path / "packs" / "example-pack"
+    pack_dir.mkdir(parents=True)
+    outside = tmp_path / "outside.toml"
+    outside.write_text(
+        '[pack]\nname = "example-pack"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    try:
+        (pack_dir / "pack.toml").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = verify_catalogue(tmp_path)
+
+    assert result.ok is False
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["CAT-V-002"]
+    assert "not a regular file" in result.diagnostics[0].message
+    assert result.diagnostics[0].path == "packs/example-pack/pack.toml"
+
+
+def test_verify_refuses_linked_skill_before_lint_reads_it(tmp_path):
+    """Step 2 rejects a linked SKILL.md before parsing its frontmatter."""
+    config = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test Catalogue",
+        description="A catalogue fixture with an unsafe skill file.",
+        minimum_agentbundle_version="0.33.0",
+        owner_name="Example Maintainer",
+        preferred_adapter="kiro-ide",
+    )
+    (tmp_path / "catalogue.toml").write_text(config, encoding="utf-8", newline="\n")
+    pack_dir = tmp_path / "packs" / "example-pack"
+    pack_dir.mkdir(parents=True)
+    pack_dir.joinpath("pack.toml").write_text(
+        '[pack]\nname = "example-pack"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    outside = tmp_path / "outside-skill.md"
+    outside.write_text("---\nname: outside\ndescription: Outside\n---\n", encoding="utf-8")
+    skill_file = pack_dir / ".apm" / "skills" / "example-skill" / "SKILL.md"
+    skill_file.parent.mkdir(parents=True)
+    try:
+        skill_file.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = verify_catalogue(tmp_path)
+
+    assert result.ok is False
+    assert any(
+        diagnostic.code == "CAT-V-002" and "link-like entry" in diagnostic.message
+        for diagnostic in result.diagnostics
+    )
 
 
 # ---------------------------------------------------------------------------

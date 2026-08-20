@@ -21,6 +21,7 @@ Monkeypatching strategy:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import agentbundle.build.lint_packs as _lp_module
@@ -290,6 +291,168 @@ def test_pack_filter(tmp_path, monkeypatch):
     result = lint_catalogue(tmp_path, pack="pack-a")
     packs_with_diags = {d.pack for d in result.diagnostics if d.pack is not None}
     assert "pack-b" not in packs_with_diags
+
+
+def test_pack_filter_suppresses_unrelated_unsafe_pack_with_relative_path(
+    tmp_path, monkeypatch
+):
+    """Safety discovery is global, but scoped diagnostics remain pack-local."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
+    unsafe = _add_pack(
+        tmp_path,
+        "pack-b",
+        pack_toml='[pack]\nname = "pack-b"\nversion = "0.1.0"\n',
+    )
+    outside = tmp_path / "outside.md"
+    outside.write_text("outside\n", encoding="utf-8")
+    linked = unsafe / ".apm" / "skills" / "linked" / "SKILL.md"
+    linked.parent.mkdir(parents=True)
+    try:
+        linked.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    scoped = lint_catalogue(tmp_path, pack="pack-a")
+    unscoped = lint_catalogue(tmp_path)
+
+    assert not any(diagnostic.pack == "pack-b" for diagnostic in scoped.diagnostics)
+    unsafe_diagnostic = next(
+        diagnostic
+        for diagnostic in unscoped.diagnostics
+        if diagnostic.pack == "pack-b" and diagnostic.code == "CAT-L005"
+    )
+    assert unsafe_diagnostic.path == "packs/pack-b/.apm/skills/linked/SKILL.md"
+
+
+def test_deep_lint_skips_manifestless_pack_with_linked_skill(tmp_path, monkeypatch):
+    """Deep lint cannot bypass preflight through a pack without pack.toml."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML, plugin_json=_PACK_A_JSON)
+    unsafe = _add_pack(tmp_path, "pack-b")
+    outside = tmp_path / "outside-skill.md"
+    outside.write_text("outside\n", encoding="utf-8")
+    linked = unsafe / ".apm" / "skills" / "linked" / "SKILL.md"
+    linked.parent.mkdir(parents=True)
+    try:
+        linked.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    calls: list[tuple[Path, str | None]] = []
+
+    def record_deep_lint(root: Path, pack: str | None = None) -> list[Diagnostic]:
+        calls.append((root, pack))
+        return []
+
+    monkeypatch.setattr(
+        "agentbundle.catalogue_tooling.skill_spec_lint.lint_skill_spec",
+        record_deep_lint,
+    )
+
+    result = lint_catalogue(tmp_path, deep=True)
+
+    assert calls == [(tmp_path, "pack-a")]
+    assert any(
+        diagnostic.code == "CAT-L005" and diagnostic.pack == "pack-b"
+        for diagnostic in result.diagnostics
+    )
+
+
+def test_deep_lint_prunes_transient_symlink_tree(tmp_path, monkeypatch):
+    """Packager-pruned dependency trees do not fail authored-content preflight."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(
+        tmp_path,
+        "pack-a",
+        pack_toml=_PACK_A_TOML,
+        plugin_json=_PACK_A_JSON,
+    )
+    dependency_bin = (
+        pack_dir / ".apm" / "skills" / "example" / "node_modules" / ".bin"
+    )
+    dependency_bin.mkdir(parents=True)
+    (dependency_bin.parents[1] / "SKILL.md").write_text(
+        "---\nname: example\ndescription: Use when exercising a lint fixture.\n---\n\nBody.\n",
+        encoding="utf-8",
+    )
+    outside = tmp_path / "outside-tool"
+    outside.write_text("outside\n", encoding="utf-8")
+    try:
+        (dependency_bin / "example-tool").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+    calls: list[tuple[Path, str | None]] = []
+
+    def record_deep_lint(root: Path, pack: str | None = None) -> list[Diagnostic]:
+        calls.append((root, pack))
+        return []
+
+    monkeypatch.setattr(
+        "agentbundle.catalogue_tooling.skill_spec_lint.lint_skill_spec",
+        record_deep_lint,
+    )
+
+    result = lint_catalogue(tmp_path, deep=True)
+
+    assert result.ok is True
+    assert calls == [(tmp_path, None)]
+    assert not any(diagnostic.code == "CAT-L005" for diagnostic in result.diagnostics)
+
+
+def test_authored_tree_walk_error_is_unsafe(tmp_path, monkeypatch):
+    """Preflight fails closed when a non-transient directory cannot be listed."""
+    pack_dir = tmp_path / "pack-a"
+    authored_root = pack_dir / ".apm"
+    authored_root.mkdir(parents=True)
+    blocked = authored_root / "skills" / "private"
+
+    def refuse_walk(path, *, topdown, onerror, followlinks):
+        assert path == authored_root
+        assert topdown is True
+        assert followlinks is False
+        onerror(PermissionError(13, "permission denied", str(blocked)))
+        return []
+
+    monkeypatch.setattr(_lint_module.os, "walk", refuse_walk)
+
+    assert _lint_module._first_unsafe_pack_entry(pack_dir) == (
+        blocked,
+        "uninspectable directory",
+    )
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="FIFOs unavailable")
+def test_deep_lint_skips_pack_with_fifo_manifest(tmp_path, monkeypatch):
+    """A FIFO pack.toml is diagnosed without being opened by deep lint."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    _setup_markers(tmp_path)
+    pack_dir = tmp_path / "packs" / "pack-a"
+    pack_dir.mkdir()
+    os.mkfifo(pack_dir / "pack.toml")
+    calls: list[tuple[Path, str | None]] = []
+
+    def record_deep_lint(root: Path, pack: str | None = None) -> list[Diagnostic]:
+        calls.append((root, pack))
+        return []
+
+    monkeypatch.setattr(
+        "agentbundle.catalogue_tooling.skill_spec_lint.lint_skill_spec",
+        record_deep_lint,
+    )
+
+    result = lint_catalogue(tmp_path, deep=True)
+
+    assert calls == []
+    diagnostic = next(d for d in result.diagnostics if d.code == "CAT-L005")
+    assert diagnostic.path == "packs/pack-a/pack.toml"
+    assert "not a regular file" in diagnostic.message
 
 
 # ---------------------------------------------------------------------------
@@ -622,10 +785,18 @@ def _add_pack_full(
         install_section = f'\n[pack.install]\nallowed-scopes = [{scopes_str}]'
     deps_section = ""
     if required_deps:
-        deps_lines = "\n".join(
-            f'  {{ pack = "{d["pack"]}", version = "{d["version"]}" }}'
-            for d in required_deps
-        )
+        entries = []
+        for dependency in required_deps:
+            catalogue = (
+                f'catalogue = "{dependency["catalogue"]}", '
+                if "catalogue" in dependency
+                else ""
+            )
+            entries.append(
+                f'  {{ {catalogue}pack = "{dependency["pack"]}", '
+                f'version = "{dependency["version"]}" }}'
+            )
+        deps_lines = "\n".join(entries)
         deps_section = f"\n[pack.dependencies]\nrequired = [\n{deps_lines},\n]"
     (pack_dir / "pack.toml").write_text(
         f'[pack]\nname = "{name}"\nversion = "{version}"\n'
@@ -707,7 +878,9 @@ def test_check_profiles_dependency_incomplete(tmp_path, monkeypatch):
     _setup_markers(tmp_path)
     _add_pack_full(
         tmp_path, "pack-a", allowed_scopes=["repo"],
-        required_deps=[{"pack": "pack-b", "version": "^0.1"}],
+        required_deps=[
+            {"catalogue": "test-catalogue", "pack": "pack-b", "version": "^0.1"}
+        ],
     )
     _setup_profile(
         tmp_path, "missing-dep",
@@ -727,7 +900,13 @@ def test_check_profiles_order_invalid(tmp_path, monkeypatch):
     _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
     _add_pack_full(
         tmp_path, "pack-ext", allowed_scopes=["repo"],
-        required_deps=[{"pack": "pack-base", "version": "^0.1"}],
+        required_deps=[
+            {
+                "catalogue": "test-catalogue",
+                "pack": "pack-base",
+                "version": "^0.1",
+            }
+        ],
     )
     # pack-ext before pack-base (wrong order)
     _setup_profile(
@@ -748,7 +927,13 @@ def test_check_profiles_unsupported_range_grammar(tmp_path, monkeypatch):
     _add_pack_full(tmp_path, "pack-base", allowed_scopes=["repo"])
     _add_pack_full(
         tmp_path, "pack-ext", allowed_scopes=["repo"],
-        required_deps=[{"pack": "pack-base", "version": "~=0.1"}],
+        required_deps=[
+            {
+                "catalogue": "test-catalogue",
+                "pack": "pack-base",
+                "version": "~=0.1",
+            }
+        ],
     )
     _setup_profile(
         tmp_path, "bad-range",
@@ -758,6 +943,225 @@ def test_check_profiles_unsupported_range_grammar(tmp_path, monkeypatch):
     l028 = [d for d in result.diagnostics if d.code == "CAT-L028"]
     assert l028, "expected CAT-L028 for unsupported range grammar"
     assert any("unsupported version range" in d.message for d in l028)
+
+
+@pytest.mark.parametrize(
+    "version_range",
+    ["^0.1", "~0.1", ">=0.1", ">=0.1 <1.0", ">=0.1.0-alpha.1"],
+)
+def test_check_profiles_accepts_rfc_version_range_forms(
+    tmp_path, monkeypatch, version_range
+):
+    """Profile lint accepts every dependency range form accepted by verify."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(tmp_path, "pack-base", version="0.1.0", allowed_scopes=["repo"])
+    _add_pack_full(
+        tmp_path,
+        "pack-ext",
+        allowed_scopes=["repo"],
+        required_deps=[
+            {
+                "catalogue": "test-catalogue",
+                "pack": "pack-base",
+                "version": version_range,
+            }
+        ],
+    )
+    _setup_profile(
+        tmp_path,
+        "valid-range",
+        'scope = "repo"\n[[packs]]\npack = "pack-base"\n'
+        '[[packs]]\npack = "pack-ext"\n',
+    )
+
+    result = lint_catalogue(tmp_path)
+
+    assert not any(
+        diagnostic.code == "CAT-L028"
+        and "unsupported version range" in diagnostic.message
+        for diagnostic in result.diagnostics
+    )
+
+
+def test_check_profiles_zero_minor_caret_rejects_next_minor(tmp_path, monkeypatch):
+    """Profile lint applies npm's 0.x caret upper bound."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(
+        tmp_path, "pack-base", version="0.2.0", allowed_scopes=["repo"]
+    )
+    _add_pack_full(
+        tmp_path,
+        "pack-ext",
+        allowed_scopes=["repo"],
+        required_deps=[
+            {
+                "catalogue": "test-catalogue",
+                "pack": "pack-base",
+                "version": "^0.1",
+            }
+        ],
+    )
+    _setup_profile(
+        tmp_path,
+        "zero-minor-caret",
+        'scope = "repo"\n[[packs]]\npack = "pack-base"\n'
+        '[[packs]]\npack = "pack-ext"\n',
+    )
+
+    result = lint_catalogue(tmp_path)
+
+    assert any(
+        diagnostic.code == "CAT-L028"
+        and "does not satisfy" in diagnostic.message
+        for diagnostic in result.diagnostics
+    )
+
+
+def test_canonical_shim_comparison_refuses_linked_sibling_source(tmp_path):
+    """Cross-pack shim comparison never follows the sibling source link."""
+    current_pack = tmp_path / "packs" / "consumer"
+    current = current_pack / ".apm" / "skills" / "example" / "scripts" / "credentials_shim.py"
+    current.parent.mkdir(parents=True)
+    current.write_text("VALUE = 1\n", encoding="utf-8")
+    shim_pack = tmp_path / "packs" / "credential-brokers"
+    source = shim_pack / ".apm" / "shared-libs" / "credentials_shim.py"
+    source.parent.mkdir(parents=True)
+    outside = tmp_path / "outside.py"
+    outside.write_text("VALUE = 1\n", encoding="utf-8")
+    try:
+        source.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    assert not _lint_module._cs_is_canonical_shim(
+        current,
+        source.parent,
+        pack_dir=current_pack,
+        shim_pack_dir=shim_pack,
+    )
+
+
+def test_check_profiles_skips_cross_catalogue_dependency_closure(tmp_path, monkeypatch):
+    """An external dependency is not required in a local catalogue profile."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(
+        tmp_path,
+        "pack-ext",
+        allowed_scopes=["repo"],
+        required_deps=[
+            {
+                "catalogue": "external-catalogue",
+                "pack": "external-pack",
+                "version": "^1.0",
+            }
+        ],
+    )
+    _setup_profile(
+        tmp_path,
+        "external-dependency",
+        'scope = "repo"\n[[packs]]\npack = "pack-ext"\n',
+    )
+
+    result = lint_catalogue(tmp_path)
+
+    assert not any(
+        diagnostic.code == "CAT-L028"
+        and "dependency-incomplete" in diagnostic.message
+        for diagnostic in result.diagnostics
+    )
+
+
+def test_check_profiles_rejects_malformed_cross_catalogue_dependency_range(
+    tmp_path, monkeypatch
+):
+    """External dependencies skip closure, not shared range validation."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_full(
+        tmp_path,
+        "pack-ext",
+        allowed_scopes=["repo"],
+        required_deps=[
+            {
+                "catalogue": "external-catalogue",
+                "pack": "external-pack",
+                "version": "not-a-version",
+            }
+        ],
+    )
+    _setup_profile(
+        tmp_path,
+        "external-dependency",
+        'scope = "repo"\n[[packs]]\npack = "pack-ext"\n',
+    )
+
+    result = lint_catalogue(tmp_path)
+
+    assert any(
+        diagnostic.code == "CAT-L028"
+        and "unsupported version range" in diagnostic.message
+        for diagnostic in result.diagnostics
+    )
+
+
+def test_profile_closure_is_skipped_without_catalogue_identity():
+    pack = {
+        "pack": {
+            "name": "pack-ext",
+            "version": "1.0.0",
+            "dependencies": {
+                "required": [
+                    {
+                        "catalogue": "unknown-without-config",
+                        "pack": "external-pack",
+                        "version": "^1.0",
+                    }
+                ]
+            },
+        }
+    }
+    violations = _lint_module._profile_lint_one(
+        "configless",
+        {"scope": "repo", "packs": [{"pack": "pack-ext"}]},
+        {"pack-ext": pack},
+        None,
+    )
+
+    assert not any("dependency-incomplete" in violation for violation in violations)
+
+
+def test_profile_lint_rejects_unparseable_local_dependency_version():
+    owner = {
+        "pack": {
+            "name": "owner",
+            "version": "1.0.0",
+            "dependencies": {
+                "required": [
+                    {
+                        "catalogue": "example",
+                        "pack": "base",
+                        "version": "^1.0",
+                    }
+                ]
+            },
+        }
+    }
+    base = {"pack": {"name": "base", "version": "not-a-version"}}
+    violations = _lint_module._profile_lint_one(
+        "invalid-provider-version",
+        {"scope": "repo", "packs": [{"pack": "base"}, {"pack": "owner"}]},
+        {"base": base, "owner": owner},
+        "example",
+    )
+
+    assert any("does not satisfy" in violation for violation in violations)
 
 
 def test_check_profiles_parse_failure(tmp_path, monkeypatch):
@@ -842,8 +1246,8 @@ def test_check_seeds_unknown_seed(tmp_path, monkeypatch):
     assert any("declare its expected" in d.message for d in l029)
 
 
-def test_check_seeds_blocklist_hit(tmp_path, monkeypatch):
-    """Seed contains 'agent-ready-repo' → CAT-L029."""
+def test_portable_seed_lint_ignores_repository_specific_names(tmp_path, monkeypatch):
+    """Portable lint leaves repository-specific governance to local tooling."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
     monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
     _setup_markers(tmp_path)
@@ -852,8 +1256,7 @@ def test_check_seeds_blocklist_hit(tmp_path, monkeypatch):
         seeds={"AGENTS.md": "This is for agent-ready-repo\n<project-name>"},
     )
     result = lint_catalogue(tmp_path)
-    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
-    assert l029, "expected CAT-L029 for blocklist hit"
+    assert not any(diagnostic.code == "CAT-L029" for diagnostic in result.diagnostics)
 
 
 def test_check_seeds_missing_placeholder(tmp_path, monkeypatch):

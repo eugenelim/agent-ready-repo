@@ -1,3 +1,10 @@
+---
+title: "How to: identify opportunities"
+summary: Identify and rank functional, emotional, and social jobs before committing to a solution direction.
+pack: product-engineering
+kind: how-to
+---
+
 # How to: identify opportunities
 
 **Use this when:** You have a confirmed problem area and want to understand what users are actually trying to get done — across functional, emotional, and social dimensions — before committing to any solution direction.

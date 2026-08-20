@@ -1,3 +1,10 @@
+---
+title: Measure flow and DORA metrics
+summary: Produce scoped delivery-flow and DORA measurements from tracker history, with cohort comparison when requested.
+pack: atlassian
+kind: how-to
+---
+
 # Measure flow and DORA metrics
 
 **Use this when:** You need cycle time, lead time, throughput, WIP, or other Flow Framework / DORA metrics for a Jira project, program, or portfolio — or an AI-adoption comparison report pairing two runs.

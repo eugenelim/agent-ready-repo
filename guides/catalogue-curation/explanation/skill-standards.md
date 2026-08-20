@@ -1,3 +1,10 @@
+---
+title: Skill standards
+summary: Understand the safety, portability, and craft standards applied to every authored or assimilated skill.
+pack: catalogue-curation
+kind: explanation
+---
+
 # Skill standards
 
 Every skill in this catalogue — whether you write it from scratch or bring it in from outside — is measured against the same three standards.

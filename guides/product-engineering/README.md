@@ -1,3 +1,10 @@
+---
+title: "`product-engineering` — guides"
+summary: Shape a raw product signal through intent, risk, alternatives, capability decomposition, and delivery-ready briefs.
+pack: product-engineering
+kind: explanation
+---
+
 # `product-engineering` — guides
 
 Shape product intent into work your delivery loop can build. The pack turns an idea, a request, or a strategy into a level-tagged `intent` — an outcome with a parent and children — and walks it down the tree: `frame-intent` to shape it, `de-risk-intent` to test the bet, `decompose-intent` to break it into the next level or a shippable slice, and `align-value-stream` to coordinate the work across many component repos. At the leaf, an intent becomes a brief or a spec and rejoins the normal build loop. Once the feature is being built, `ux-writing` shapes the actual words users read — the product's voice and its error, empty, button, and label copy.

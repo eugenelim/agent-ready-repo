@@ -1,3 +1,10 @@
+---
+title: Report AI adoption as a delivery lead
+summary: Turn consistent cohort or before-and-after flow measurements into a caveated stakeholder-ready adoption report.
+pack: atlassian
+kind: how-to
+---
+
 # Report AI adoption as a delivery lead
 
 **Use this when:** You lead two to eight teams and need to report AI adoption impact to program or value stream leadership using cohort-split or before/after flow metrics from Jira.

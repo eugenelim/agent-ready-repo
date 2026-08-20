@@ -194,6 +194,7 @@ class ClaudeCodeDetector:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                stdin=subprocess.DEVNULL,
             )
         except (subprocess.TimeoutExpired, OSError) as exc:
             # A timeout / spawn failure is a harness error, not a clean
@@ -556,15 +557,31 @@ def run_eval(
     iteration = _next_iteration(pack_workspace)
     iter_dir = pack_workspace / f"iteration-{iteration}"
 
-    # Project the pack into an isolated dir so only its skills are discoverable.
+    projection_dir: pathlib.Path | None = None
+
+    # Project into an isolated temporary dir so only this pack's skills are discoverable.
+    # This confines cwd- and ancestor-based repository discovery; it is not OS-level
+    # write confinement for a subprocess that can find the repository by other means.
     if project_root is None:
-        proj = iter_dir / ".projection"
-        detector.project(pack_dir, proj, catalogue_root=repo_root)
-        run_cwd = proj
+        projection_dir = pathlib.Path(tempfile.mkdtemp()).resolve()
+        resolved_repo_root = repo_root.resolve()
+        if projection_dir == resolved_repo_root or projection_dir.is_relative_to(
+            resolved_repo_root
+        ):
+            shutil.rmtree(projection_dir, ignore_errors=True)
+            raise RuntimeError(
+                "eval projection would land inside the repository under test "
+                f"({projection_dir}); set TMPDIR to a directory outside "
+                f"{resolved_repo_root} so a dispatched skill cannot resolve the host "
+                "repository root."
+            )
+        detector.project(pack_dir, projection_dir, catalogue_root=repo_root)
+        run_cwd = projection_dir
     else:
         run_cwd = project_root
 
-    summary: dict = {
+    try:
+        summary: dict = {
         "pack": pack_name,
         "adapter": getattr(detector, "adapter", "claude-code"),
         "mode": "headless",
@@ -573,66 +590,75 @@ def run_eval(
         "runs": runs,
         "iteration": iteration,
         "skills": {},
-    }
-
-    for skill in covered:
-        queries = read_eval_queries(pack_dir, skill)
-        skill_summary: dict = {
-            "queries": [], "pass_count": 0, "total": len(queries), "error_count": 0,
         }
-        if not queries:
-            print(
+
+        for skill in covered:
+            queries = read_eval_queries(pack_dir, skill)
+            skill_summary: dict = {
+            "queries": [], "pass_count": 0, "total": len(queries), "error_count": 0,
+            }
+            if not queries:
+                print(
                 f"run-pack-evals: warning: {skill}: eval_queries.json is empty "
                 f"— 0 queries measured.",
-                file=sys.stderr,
-            )
-        for q_index, entry in enumerate(queries):
-            query = entry.get("query", "")
-            should_trigger = bool(entry.get("should_trigger", False))
-            query_id = f"q{q_index:02d}"
-            if not query:
-                # The lint rejects this at source; guard the runner too rather
-                # than measuring an empty prompt.
-                print(
-                    f"run-pack-evals: warning: {skill} {query_id}: empty query "
-                    f"— skipped.",
                     file=sys.stderr,
                 )
-                continue
-            target_fired: list[bool] = []
-            exclusivity: set[str] = set()
-            errored = 0
-            for r in range(1, runs + 1):
-                result = detector.run_and_parse(query, run_cwd, timeout)
-                target_fired.append(skill in result.skills_fired)
-                if result.error:
-                    errored += 1
-                # Intra-pack exclusivity: a *different* in-pack skill fired.
-                for other in result.skills_fired:
-                    if other != skill and other in pack_skills:
-                        exclusivity.add(other)
-                # Capture only the parsed .result field (the model's text),
-                # never the raw stdout stream, stderr, env, or key.
-                out_dir = (
+            for q_index, entry in enumerate(queries):
+                query = entry.get("query", "")
+                should_trigger = bool(entry.get("should_trigger", False))
+                query_id = f"q{q_index:02d}"
+                if not query:
+                    # The lint rejects this at source; guard the runner too rather
+                    # than measuring an empty prompt.
+                    print(
+                    f"run-pack-evals: warning: {skill} {query_id}: empty query "
+                    f"— skipped.",
+                        file=sys.stderr,
+                    )
+                    continue
+                target_fired: list[bool] = []
+                exclusivity: set[str] = set()
+                errored = 0
+                for r in range(1, runs + 1):
+                    result = detector.run_and_parse(query, run_cwd, timeout)
+                    target_fired.append(skill in result.skills_fired)
+                    if result.error:
+                        errored += 1
+                    # Intra-pack exclusivity: a *different* in-pack skill fired.
+                    for other in result.skills_fired:
+                        if other != skill and other in pack_skills:
+                            exclusivity.add(other)
+                    # Capture only the parsed .result field (the model's text),
+                    # never the raw stdout stream, stderr, env, or key.
+                    out_dir = (
                     iter_dir / skill / query_id / "with_skill" / f"run-{r}" / "outputs"
-                )
-                out_dir.mkdir(parents=True, exist_ok=True)
-                (out_dir / "result.txt").write_text(
+                    )
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    (out_dir / "result.txt").write_text(
                     result.result or "", encoding="utf-8", newline="\n"
-                )
-            record, passed = _query_summary(
+                    )
+                record, passed = _query_summary(
                 query_id, query, should_trigger, target_fired, exclusivity, errored
-            )
-            if passed:
-                skill_summary["pass_count"] += 1
-            skill_summary["error_count"] += errored
-            skill_summary["queries"].append(record)
-        summary["skills"][skill] = skill_summary
+                )
+                if passed:
+                    skill_summary["pass_count"] += 1
+                skill_summary["error_count"] += errored
+                skill_summary["queries"].append(record)
+            summary["skills"][skill] = skill_summary
 
-    iter_dir.mkdir(parents=True, exist_ok=True)
-    (iter_dir / "summary.json").write_text(
+        iter_dir.mkdir(parents=True, exist_ok=True)
+        (iter_dir / "summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n"
-    )
+        )
+    finally:
+        if projection_dir is not None:
+            shutil.rmtree(projection_dir, ignore_errors=True)
+            if projection_dir.exists():
+                print(
+                    f"run-pack-evals: warning: temporary projection was not removed: "
+                    f"{projection_dir}",
+                    file=sys.stderr,
+                )
     return summary
 
 

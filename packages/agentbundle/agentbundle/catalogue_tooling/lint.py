@@ -17,6 +17,7 @@ import ast
 import json
 import os
 import re
+import stat
 import tomllib
 from pathlib import Path
 
@@ -27,8 +28,18 @@ from agentbundle.catalogue_tooling.config import (
     load_catalogue_config,
 )
 from agentbundle.catalogue_tooling.diagnostics import DiagnosticCode
+from agentbundle.catalogue_tooling.file_safety import (
+    UnsafeContentError,
+    read_confined_regular_file,
+    sha256_confined_regular_file,
+)
 from agentbundle.catalogue_tooling.manifest import plugin_json_path
+from agentbundle.catalogue_tooling.package import _TRANSIENT_DIRS
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
+from agentbundle.catalogue_tooling.version_ranges import (
+    parse_version_range,
+    version_satisfies,
+)
 
 # Frontmatter regex: matches the YAML front-matter block at the top of a file
 _FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -53,6 +64,75 @@ _MAX_DESC_LEN = 1024
 _PRIM_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 _AGENTBUNDLE_VERSION: str | None = None
+
+
+def _path_is_junction(path: Path) -> bool:
+    """Return whether *path* is a Windows junction when supported."""
+    checker = getattr(path, "is_junction", None)
+    return bool(checker and checker())
+
+
+def _diagnostic_path(root: Path, path: Path) -> str:
+    """Return a catalogue-relative path without exposing an outside target."""
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return "<outside-root>"
+
+
+def _first_unsafe_pack_entry(pack_dir: Path) -> tuple[Path, str] | None:
+    """Return the first unsafe entry in an authored tree lint will read."""
+    for authored_root in (pack_dir / ".apm", pack_dir / "seeds"):
+        try:
+            root_metadata = authored_root.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return authored_root, "uninspectable entry"
+        if (
+            stat.S_ISLNK(root_metadata.st_mode)
+            or _path_is_junction(authored_root)
+        ):
+            return authored_root, "link-like entry"
+        if not stat.S_ISDIR(root_metadata.st_mode):
+            return authored_root, "non-directory authored root"
+        walk_errors: list[Path] = []
+
+        def _record_walk_error(
+            exc: OSError,
+            errors: list[Path] = walk_errors,
+            fallback: Path = authored_root,
+        ) -> None:
+            """Capture the first directory that os.walk could not enumerate."""
+            errors.append(Path(exc.filename) if exc.filename is not None else fallback)
+
+        for current_text, dirnames, filenames in os.walk(
+            authored_root,
+            topdown=True,
+            onerror=_record_walk_error,
+            followlinks=False,
+        ):
+            if walk_errors:
+                return walk_errors[0], "uninspectable directory"
+            current = Path(current_text)
+            dirnames[:] = [name for name in dirnames if name not in _TRANSIENT_DIRS]
+            for name in sorted([*dirnames, *filenames]):
+                candidate = current / name
+                if candidate.is_symlink() or _path_is_junction(candidate):
+                    return candidate, "link-like entry"
+                if name not in filenames:
+                    continue
+                try:
+                    metadata = candidate.lstat()
+                except OSError:
+                    return candidate, "uninspectable entry"
+                if not stat.S_ISREG(metadata.st_mode):
+                    return candidate, "non-regular entry"
+                if metadata.st_nlink > 1:
+                    return candidate, "hard-linked entry"
+        if walk_errors:
+            return walk_errors[0], "uninspectable directory"
+    return None
 
 
 def _get_agentbundle_version() -> str:
@@ -139,9 +219,6 @@ def _parse_frontmatter(text: str) -> dict[str, str] | None:
 # Profile lint helpers
 # ---------------------------------------------------------------------------
 
-_PROFILE_CARET_RE = re.compile(r"^\^([0-9]+)\.([0-9]+)$")
-
-
 def _profile_allowed_scopes(pack_toml: dict) -> list[str]:
     install = pack_toml.get("pack", {}).get("install")
     if isinstance(install, dict):
@@ -154,30 +231,26 @@ def _profile_allowed_scopes(pack_toml: dict) -> list[str]:
     return ["repo"]
 
 
-def _profile_required_deps(pack_toml: dict) -> list[tuple[str, str]]:
+def _profile_required_deps(pack_toml: dict) -> list[tuple[str, str, str]]:
+    """Return required dependencies as catalogue, pack, and range triples."""
     deps = pack_toml.get("pack", {}).get("dependencies", {})
-    out: list[tuple[str, str]] = []
+    out: list[tuple[str, str, str]] = []
     if isinstance(deps, dict):
         for entry in deps.get("required") or []:
             if isinstance(entry, dict):
-                out.append((entry.get("pack", ""), entry.get("version", "")))
+                out.append(
+                    (
+                        entry.get("catalogue", ""),
+                        entry.get("pack", ""),
+                        entry.get("version", ""),
+                    )
+                )
     return out
 
 
 def _profile_satisfies(installed_version: str, dep_range: str) -> bool | None:
-    """``^X.Y`` caret-minor satisfaction check. None = unsupported range grammar."""
-    m = _PROFILE_CARET_RE.match(dep_range)
-    if m is None:
-        return None
-    req_major, req_minor = int(m.group(1)), int(m.group(2))
-    parts = installed_version.split(".")
-    try:
-        ima = int(parts[0]) if len(parts) > 0 else 0
-        imi = int(parts[1]) if len(parts) > 1 else 0
-        ipa = int(parts[2]) if len(parts) > 2 else 0
-    except (ValueError, IndexError):
-        return False
-    return ima == req_major and (imi > req_minor or (imi == req_minor and ipa >= 0))
+    """Return dependency-range satisfaction using the shared grammar."""
+    return version_satisfies(installed_version, dep_range)
 
 
 def _profile_load_packs(packs_dir: Path) -> dict[str, dict]:
@@ -187,19 +260,28 @@ def _profile_load_packs(packs_dir: Path) -> dict[str, dict]:
     for pack_dir in sorted(packs_dir.iterdir()):
         if pack_dir.name.startswith("_"):
             continue  # reserved authoring asset
+        if pack_dir.is_symlink() or _path_is_junction(pack_dir):
+            continue
         toml_path = pack_dir / "pack.toml"
-        if not toml_path.exists():
+        if not (toml_path.exists() or toml_path.is_symlink() or _path_is_junction(toml_path)):
             continue
         try:
-            data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-        except (tomllib.TOMLDecodeError, OSError):
+            content = read_confined_regular_file(pack_dir, toml_path).decode("utf-8")
+            data = tomllib.loads(content)
+        except (UnsafeContentError, UnicodeDecodeError, tomllib.TOMLDecodeError):
             continue
         name = data.get("pack", {}).get("name") or pack_dir.name
         out[name] = data
     return out
 
 
-def _profile_lint_one(profile_id: str, raw: dict, packs: dict[str, dict]) -> list[str]:
+def _profile_lint_one(
+    profile_id: str,
+    raw: dict,
+    packs: dict[str, dict],
+    catalogue_name: str | None,
+) -> list[str]:
+    """Validate one profile against local pack and dependency contracts."""
     violations: list[str] = []
     scope = raw.get("scope")
     if scope not in ("user", "repo"):
@@ -226,7 +308,16 @@ def _profile_lint_one(profile_id: str, raw: dict, packs: dict[str, dict]) -> lis
                     f"profile {profile_id!r}: pack {name!r} does not allow scope "
                     f"{scope!r} (allowed-scopes: {allowed})"
                 )
-        for dep_name, dep_range in _profile_required_deps(pack_toml):
+        for dep_catalogue, dep_name, dep_range in _profile_required_deps(pack_toml):
+            if not parse_version_range(dep_range):
+                violations.append(
+                    f"profile {profile_id!r}: pack {name!r} declares an "
+                    f"unsupported version range {dep_range!r} for {dep_name!r} "
+                    "(unsupported dependency range grammar)"
+                )
+                continue
+            if catalogue_name is None or dep_catalogue != catalogue_name:
+                continue
             if dep_name not in index:
                 violations.append(
                     f"profile {profile_id!r}: pack {name!r} requires {dep_name!r} "
@@ -243,13 +334,7 @@ def _profile_lint_one(profile_id: str, raw: dict, packs: dict[str, dict]) -> lis
             if dep_toml is not None:
                 dep_version = dep_toml.get("pack", {}).get("version", "")
                 sat = _profile_satisfies(dep_version, dep_range)
-                if sat is None:
-                    violations.append(
-                        f"profile {profile_id!r}: pack {name!r} declares an "
-                        f"unsupported version range {dep_range!r} for {dep_name!r} "
-                        f"(only ^X.Y is supported)"
-                    )
-                elif sat is False:
+                if sat is not True:
                     violations.append(
                         f"profile {profile_id!r}: pack {name!r} requires "
                         f"{dep_name!r} {dep_range}, but the catalogue ships "
@@ -263,21 +348,7 @@ def _profile_lint_one(profile_id: str, raw: dict, packs: dict[str, dict]) -> lis
 # Seeds lint helpers
 # ---------------------------------------------------------------------------
 
-_SEEDS_BLOCKLIST_PATTERNS: tuple[tuple[str, str], ...] = (
-    (r"agent-ready-repo", "catalogue name 'agent-ready-repo'"),
-    (r"RFC-00\d\d", "catalogue RFC reference (RFC-NNNN)"),
-    (r"K-00\d\d", "catalogue knowledge entry (K-NNNN)"),
-    (
-        r"\b("
-        r"distribution-adapters|self-hosting|agent-spec-cli|"
-        r"user-scope-hooks|converters-pack|"
-        r"claude-plugins-install-route|codex-native-skills|"
-        r"apm-install-route-parity|skill-secrets|wire-session-start-hook|"
-        r"kiro-ide-hook|windows-ci-bundler|windows-hooks-phase3"
-        r")\b",
-        "catalogue spec name",
-    ),
-)
+_SEEDS_BLOCKLIST_PATTERNS: tuple[tuple[str, str], ...] = ()
 _SEEDS_BLOCKLIST_RE = [(re.compile(p), name) for p, name in _SEEDS_BLOCKLIST_PATTERNS]
 
 _SEEDS_REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
@@ -951,20 +1022,37 @@ def _cs_has_scrubbing_parser(py_path: Path) -> bool:
     return False
 
 
-def _cs_is_canonical_shim(py: Path, shim_source_dir: Path) -> bool:
+def _cs_is_canonical_shim(
+    py: Path,
+    shim_source_dir: Path,
+    *,
+    pack_dir: Path | None = None,
+    shim_pack_dir: Path | None = None,
+) -> bool:
+    """Compare a shim only through confined, single-link regular-file reads."""
     if py.name not in _CS_SHIM_BASENAMES:
         return False
     if py.parent.name not in {"scripts", "shared-libs"}:
         return False
+    actual_root = pack_dir if pack_dir is not None else py.parent
+    expected_root = shim_pack_dir if shim_pack_dir is not None else shim_source_dir
+    source_directories = [shim_source_dir]
+    if shim_pack_dir is not None:
+        source_directories = [shim_pack_dir, shim_pack_dir / ".apm", shim_source_dir]
+    for directory in (actual_root, *source_directories):
+        if (
+            directory.is_symlink()
+            or _path_is_junction(directory)
+            or not directory.is_dir()
+        ):
+            return False
     expected_path = shim_source_dir / py.name
     try:
-        expected = expected_path.read_bytes()
-    except OSError:
+        expected = sha256_confined_regular_file(expected_root, expected_path)
+        actual = sha256_confined_regular_file(actual_root, py)
+    except (OSError, UnsafeContentError):
         return False
-    try:
-        return py.read_bytes() == expected
-    except OSError:
-        return False
+    return actual == expected
 
 
 # ---------------------------------------------------------------------------
@@ -1058,10 +1146,14 @@ class _CatalogueRules:
         for entry in sorted(packs_dir.iterdir()):
             if entry.name.startswith("_"):
                 continue  # reserved authoring asset
-            if not entry.is_dir() or not (entry / "pack.toml").exists():
+            if entry.is_symlink() or _path_is_junction(entry) or not entry.is_dir():
+                continue
+            manifest = entry / "pack.toml"
+            if not (manifest.exists() or manifest.is_symlink() or _path_is_junction(manifest)):
                 continue
             try:
-                data = tomllib.loads((entry / "pack.toml").read_text(encoding="utf-8"))
+                content = read_confined_regular_file(entry, manifest).decode("utf-8")
+                data = tomllib.loads(content)
                 pack_name = data.get("pack", {}).get("name", "")
             except Exception:
                 continue
@@ -1093,21 +1185,27 @@ class _CatalogueRules:
         for toml_path in sorted(profiles_dir.glob("*.toml")):
             profile_id = toml_path.stem
             try:
-                raw = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-            except (tomllib.TOMLDecodeError, OSError) as exc:
+                content = read_confined_regular_file(profiles_dir, toml_path).decode("utf-8")
+                raw = tomllib.loads(content)
+            except (UnsafeContentError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
                 diags.append(_diag(
                     DiagnosticCode.CAT_L028,
                     Severity.ERROR,
                     f"profile {profile_id!r}: cannot parse: {exc}",
-                    path=str(toml_path),
+                    path=_diagnostic_path(self._root, toml_path),
                 ))
                 continue
-            for violation in _profile_lint_one(profile_id, raw, packs):
+            for violation in _profile_lint_one(
+                profile_id,
+                raw,
+                packs,
+                getattr(self._config, "name", None),
+            ):
                 diags.append(_diag(
                     DiagnosticCode.CAT_L028,
                     Severity.ERROR,
                     violation,
-                    path=str(toml_path),
+                    path=_diagnostic_path(self._root, toml_path),
                 ))
         return diags
 
@@ -1132,7 +1230,17 @@ class _CatalogueRules:
             if not val:
                 continue
             try:
-                resolved = (self._root / val).resolve()
+                configured_path = self._root / val
+                if configured_path.is_symlink() or _path_is_junction(configured_path):
+                    self._unsafe_config_paths.add(field)
+                    diags.append(_diag(
+                        DiagnosticCode.CAT_L021,
+                        Severity.ERROR,
+                        f"catalogue.paths.{field} is link-like: {val!r}",
+                        remediation="Use a real path inside the catalogue root.",
+                    ))
+                    continue
+                resolved = configured_path.resolve()
                 if not resolved.is_relative_to(root):
                     self._unsafe_config_paths.add(field)
                     diags.append(_diag(
@@ -1171,9 +1279,10 @@ class _PackRules:
         if not self._pack_toml_loaded:
             self._pack_toml_loaded = True
             toml_path = self._dir / "pack.toml"
-            if toml_path.exists():
+            if toml_path.exists() or toml_path.is_symlink() or _path_is_junction(toml_path):
                 try:
-                    self._pack_toml = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+                    content = read_confined_regular_file(self._dir, toml_path).decode("utf-8")
+                    self._pack_toml = tomllib.loads(content)
                 except Exception:
                     self._pack_toml = None
         return self._pack_toml
@@ -1203,17 +1312,18 @@ class _PackRules:
                 Severity.ERROR,
                 f"directory name {self._name!r} differs from [pack].name {pack_name!r}",
                 pack=self._name,
-                path=str(self._dir / "pack.toml"),
+                path=_diagnostic_path(self._root, self._dir / "pack.toml"),
                 remediation="Rename the directory to match [pack].name, or update [pack].name.",
             )]
         return []
 
     def _check_pack_toml_parseable(self) -> list[Diagnostic]:
         toml_path = self._dir / "pack.toml"
-        if not toml_path.exists():
+        if not (toml_path.exists() or toml_path.is_symlink() or _path_is_junction(toml_path)):
             return []
         try:
-            tomllib.loads(toml_path.read_text(encoding="utf-8"))
+            content = read_confined_regular_file(self._dir, toml_path).decode("utf-8")
+            tomllib.loads(content)
             return []
         except Exception as exc:
             return [_diag(
@@ -1221,7 +1331,7 @@ class _PackRules:
                 Severity.ERROR,
                 f"pack.toml is not valid TOML: {exc}",
                 pack=self._name,
-                path=str(toml_path),
+                path=_diagnostic_path(self._root, toml_path),
                 remediation="Fix the TOML syntax error in pack.toml.",
             )]
 
@@ -1246,24 +1356,29 @@ class _PackRules:
                 Severity.ERROR,
                 f"pack.toml fails schema validation: {errors[0]}",
                 pack=self._name,
-                path=str(self._dir / "pack.toml"),
+                path=_diagnostic_path(self._root, self._dir / "pack.toml"),
                 remediation="Fix the pack.toml field(s) reported by the schema validator.",
             )]
         return []
 
     def _check_plugin_json(self) -> list[Diagnostic]:
         plugin_path = plugin_json_path(self._dir)
-        if not plugin_path.exists():
+        if not (
+            plugin_path.exists()
+            or plugin_path.is_symlink()
+            or _path_is_junction(plugin_path)
+        ):
             return []
         try:
-            data = json.loads(plugin_path.read_text(encoding="utf-8"))
+            content = read_confined_regular_file(self._dir, plugin_path).decode("utf-8")
+            data = json.loads(content)
         except Exception as exc:
             return [_diag(
                 DiagnosticCode.CAT_L007,
                 Severity.ERROR,
                 f"plugin.json is not valid JSON: {exc}",
                 pack=self._name,
-                path=str(plugin_path),
+                path=_diagnostic_path(self._root, plugin_path),
                 remediation="Fix the JSON syntax error in plugin.json.",
             )]
         # Basic schema check: must have name and version
@@ -1275,7 +1390,7 @@ class _PackRules:
                     Severity.ERROR,
                     f"plugin.json missing required key: {key!r}",
                     pack=self._name,
-                    path=str(plugin_path),
+                    path=_diagnostic_path(self._root, plugin_path),
                     remediation=f"Add {key!r} to plugin.json.",
                 ))
         return diags
@@ -1285,10 +1400,15 @@ class _PackRules:
         if pt is None:
             return []
         plugin_path = plugin_json_path(self._dir)
-        if not plugin_path.exists():
+        if not (
+            plugin_path.exists()
+            or plugin_path.is_symlink()
+            or _path_is_junction(plugin_path)
+        ):
             return []
         try:
-            plugin_data = json.loads(plugin_path.read_text(encoding="utf-8"))
+            content = read_confined_regular_file(self._dir, plugin_path).decode("utf-8")
+            plugin_data = json.loads(content)
         except Exception:
             return []
         pack_name = pt.get("pack", {}).get("name", "")
@@ -1329,7 +1449,7 @@ class _PackRules:
                     Severity.ERROR,
                     f"skill directory {skill_dir.name!r} missing SKILL.md",
                     pack=self._name,
-                    path=str(skill_dir),
+                    path=_diagnostic_path(self._root, skill_dir),
                     remediation="Add a SKILL.md with name and description frontmatter.",
                 ))
                 continue
@@ -1341,7 +1461,7 @@ class _PackRules:
                     Severity.ERROR,
                     "SKILL.md missing frontmatter",
                     pack=self._name,
-                    path=str(skill_md),
+                    path=_diagnostic_path(self._root, skill_md),
                     remediation="Add --- frontmatter with name and description.",
                 ))
                 continue
@@ -1352,7 +1472,7 @@ class _PackRules:
                         Severity.ERROR,
                         f"SKILL.md frontmatter missing required key: {key!r}",
                         pack=self._name,
-                        path=str(skill_md),
+                        path=_diagnostic_path(self._root, skill_md),
                         remediation=f"Add {key!r} to the SKILL.md frontmatter.",
                     ))
             # Check description length
@@ -1363,7 +1483,7 @@ class _PackRules:
                     Severity.ERROR,
                     f"SKILL.md description exceeds {_MAX_DESC_LEN} chars ({len(desc)})",
                     pack=self._name,
-                    path=str(skill_md),
+                    path=_diagnostic_path(self._root, skill_md),
                     remediation="Shorten the description field.",
                 ))
         return diags
@@ -1382,7 +1502,7 @@ class _PackRules:
                     Severity.ERROR,
                     f"agent file {agent_file.name!r} missing frontmatter",
                     pack=self._name,
-                    path=str(agent_file),
+                    path=_diagnostic_path(self._root, agent_file),
                     remediation="Add --- frontmatter with name and description.",
                 ))
                 continue
@@ -1393,7 +1513,7 @@ class _PackRules:
                         Severity.ERROR,
                         f"agent file frontmatter missing required key: {key!r}",
                         pack=self._name,
-                        path=str(agent_file),
+                        path=_diagnostic_path(self._root, agent_file),
                         remediation=f"Add {key!r} to the agent frontmatter.",
                     ))
         return diags
@@ -1422,7 +1542,7 @@ class _PackRules:
                         Severity.ERROR,
                         violation,
                         pack=self._name,
-                        path=str(path),
+                        path=_diagnostic_path(self._root, path),
                     ))
         return diags
 
@@ -1441,7 +1561,7 @@ class _PackRules:
                 Severity.ERROR,
                 f"{pack_name}: {msg}",
                 pack=pack_name,
-                path=str(toml_path),
+                path=_diagnostic_path(self._root, toml_path),
             ))
 
         fv = pt.get("pack", {}).get("first-value")
@@ -1557,7 +1677,8 @@ class _PackRules:
         skills_dir = self._dir / ".apm" / "skills"
         if not skills_dir.is_dir():
             return []
-        shim_source_dir = self._root / "packs" / "credential-brokers" / ".apm" / "shared-libs"
+        shim_pack_dir = self._root / "packs" / "credential-brokers"
+        shim_source_dir = shim_pack_dir / ".apm" / "shared-libs"
         diags: list[Diagnostic] = []
 
         def _report(path: Path, message: str) -> None:
@@ -1669,7 +1790,12 @@ class _PackRules:
 
             # D3: dotfile read (AST walk)
             for py in py_files:
-                if _cs_is_canonical_shim(py, shim_source_dir):
+                if _cs_is_canonical_shim(
+                    py,
+                    shim_source_dir,
+                    pack_dir=self._dir,
+                    shim_pack_dir=shim_pack_dir,
+                ):
                     continue
                 for lineno, desc in _cs_check_dotfile_read(py):
                     _report(
@@ -1680,7 +1806,13 @@ class _PackRules:
 
             # Broker-specific checks
             consumer_py_files = [
-                p for p in py_files if not _cs_is_canonical_shim(p, shim_source_dir)
+                p for p in py_files
+                if not _cs_is_canonical_shim(
+                    p,
+                    shim_source_dir,
+                    pack_dir=self._dir,
+                    shim_pack_dir=shim_pack_dir,
+                )
             ]
 
             if auth == "creds":
@@ -1873,12 +2005,76 @@ def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -
     packs_dir = cat_rules._packs_dir()
 
     # Step 4+5: per-pack rules
+    safe_pack_dirs: list[Path] = []
+    safe_deep_pack_dirs: list[Path] = []
+    unsafe_pack_diagnostics: list[Diagnostic] = []
     if packs_dir is not None and packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
             if pack_dir.name.startswith("_"):
                 continue  # reserved authoring asset
-            if not pack_dir.is_dir() or not (pack_dir / "pack.toml").exists():
+            if pack_dir.is_symlink() or _path_is_junction(pack_dir):
+                unsafe_pack_diagnostics.append(_diag(
+                    DiagnosticCode.CAT_L005,
+                    Severity.ERROR,
+                    "pack directory is link-like and cannot be read safely",
+                    pack=pack_dir.name,
+                    path=_diagnostic_path(root, pack_dir),
+                    remediation="Replace the link with a real directory inside packs.",
+                ))
                 continue
+            if not pack_dir.is_dir():
+                continue
+            pack_name = pack_dir.name
+
+            unsafe_entry = _first_unsafe_pack_entry(pack_dir)
+            if unsafe_entry is not None:
+                unsafe_path, unsafe_reason = unsafe_entry
+                unsafe_pack_diagnostics.append(_diag(
+                    DiagnosticCode.CAT_L005,
+                    Severity.ERROR,
+                    f"pack contains a {unsafe_reason} and cannot be read safely",
+                    pack=pack_name,
+                    path=_diagnostic_path(root, unsafe_path),
+                    remediation=(
+                        "Use single-link regular files and real directories inside the pack."
+                    ),
+                ))
+                continue
+
+            manifest = pack_dir / "pack.toml"
+            has_manifest = (
+                manifest.exists()
+                or manifest.is_symlink()
+                or _path_is_junction(manifest)
+            )
+            if has_manifest:
+                try:
+                    sha256_confined_regular_file(pack_dir, manifest)
+                except UnsafeContentError as exc:
+                    unsafe_pack_diagnostics.append(_diag(
+                        DiagnosticCode.CAT_L005,
+                        Severity.ERROR,
+                        f"pack manifest cannot be read safely: {exc}",
+                        pack=pack_name,
+                        path=_diagnostic_path(root, manifest),
+                        remediation=(
+                            "Replace pack.toml with a single-link regular file."
+                        ),
+                    ))
+                    continue
+
+            safe_deep_pack_dirs.append(pack_dir)
+            if not has_manifest:
+                continue
+            safe_pack_dirs.append(pack_dir)
+
+        diagnostics.extend(
+            diagnostic
+            for diagnostic in unsafe_pack_diagnostics
+            if pack is None or diagnostic.pack == pack
+        )
+
+        for pack_dir in safe_pack_dirs:
             pack_name = pack_dir.name
             if pack is not None and pack_name != pack:
                 continue
@@ -1895,8 +2091,17 @@ def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -
     # Deep spec-compliance pass
     if deep:
         from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec
-        deep_diags = lint_skill_spec(root, pack=pack)
-        diagnostics.extend(deep_diags)
+
+        unsafe_in_scope = any(
+            pack is None or diagnostic.pack == pack
+            for diagnostic in unsafe_pack_diagnostics
+        )
+        if unsafe_in_scope:
+            for pack_dir in safe_deep_pack_dirs:
+                if pack is None or pack_dir.name == pack:
+                    diagnostics.extend(lint_skill_spec(root, pack=pack_dir.name))
+        else:
+            diagnostics.extend(lint_skill_spec(root, pack=pack))
 
     diagnostics.sort(key=_sort_key)
     ok = not any(d.severity == Severity.ERROR for d in diagnostics)

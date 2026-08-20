@@ -141,8 +141,8 @@ Journey content is authored in this priority order:
 | Journey | Priority | Rationale |
 |---|---|---|
 | `core` | 1 | Every adopter installs this; it's the entry point |
-| `discovery` | 1 | The discovery loop is the product's conceptual differentiator |
-| `release` | 1 | Completes the full SDLC story |
+| `product-engineering` | 1 | The discovery loop is the product's conceptual differentiator |
+| `release-engineering` | 1 | Completes the full SDLC story |
 | `desk-research` | 2 | High independent utility |
 | `architect` | 2 | Common in engineering-lead audiences |
 | `experience-design` | 2 | Differentiates for product-engineering teams |

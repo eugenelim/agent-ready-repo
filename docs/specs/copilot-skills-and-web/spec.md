@@ -1,6 +1,6 @@
 # Spec: copilot-skills-and-web
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — the skill homes this spec flips copilot to, `.github/skills/` at repo scope and `.copilot/skills/` at user scope, now route to the shared `.agents/skills/`; the `instruction-file`→`direct-directory` mode change and the web-degradation reversal stand) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0024](../../rfc/0024-copilot-subagent-projection.md) (§ Errata — closes Open Q4, records the skill-surface flip), [ADR-0013](../../adr/0013-copilot-full-parity-user-scope-adapter.md) (§ Errata), [RFC-0009](../../rfc/0009-codex-native-skills.md) (flip-on-upstream-support precedent). Modifies the adapter contract `contracts/adapter.toml` + its byte-identical twin `packages/agentbundle/agentbundle/_data/adapter.toml` (contract version `0.11` → `0.12`; copilot `skill` `instruction-file`→`direct-directory`; `copilot-instruction` frontmatter-default removed; scope prefixes retargeted).

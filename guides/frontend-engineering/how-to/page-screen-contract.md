@@ -1,12 +1,12 @@
 ---
-title: Write a Page/Screen Contract
+title: Write a page or screen contract
 summary: Decide whether a frontend change needs a page/screen contract and write the right-sized artifact before implementation.
 pack: frontend-engineering
 kind: how-to
 journey: frontend-engineering
 ---
 
-# Write a Page/Screen Contract
+# Write a page or screen contract
 
 Use this when you are about to build or materially change a web surface and need to decide how much contract is warranted. The result is either a completed page/screen contract, a proportional subset for a smaller change, or an explicit no-contract decision for trivial work.
 

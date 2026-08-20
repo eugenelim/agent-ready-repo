@@ -1,4 +1,19 @@
-"""Construction checks for the guide blockquote classification ledger."""
+"""Archival record of the one-time guide blockquote conversion.
+
+**Deliberately not wired into a gate.** These assertions pin a frozen 165-row
+blockquote ledger across 193 `guides/**` files, plus that spec's release-handoff
+record. They fire on edits with nothing to do with the callout contract — adding one
+blockquote to any guide is enough — there is no regenerator, and an unrelated PR
+(`8476fc63`, tracker-intake adapters) already had to hand-edit the ledger.
+`build-check.yml` carries no `paths:` filter, so gating them would redden a required
+check for unrelated work. Tracked as `guide-blockquote-ledger-has-no-regenerator`.
+
+The live invariants of the same feature — the standard's content, the packaged copy's
+bytes, its manifest digest, and `CLI_VERSION` — live in
+`tools/test_guide_authoring_standard.py`, which *is* gated. Run this file directly
+when touching the conversion ledger:
+`python3 -m pytest tools/test_guide_typed_asides.py -q`.
+"""
 
 from __future__ import annotations
 
@@ -19,6 +34,12 @@ BASELINE_PATH = (
     REPO_ROOT
     / "docs/specs/guide-typed-asides-conversion/notes/blockquote-baseline-identities.jsonl"
 )
+#: The agentbundle release that first shipped the guide callout contract. This is a
+#: fact about history, not about the current version, so it is not expected to move:
+#: `CHANGELOG.md` retains every release section. Pinning the *current* version here
+#: instead made this test fail on every release, and bumping it would have required
+#: the new release's notes to claim a change that release did not make.
+STANDARD_RELEASE = "0.37.1"
 ALLOWED_CLASSIFICATIONS = {"quotation", "note", "tip", "caution", "danger"}
 REQUIRED_FIELDS = {
     "item",
@@ -33,10 +54,6 @@ REQUIRED_FIELDS = {
 FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 SHA256 = re.compile(r"[0-9a-f]{64}")
 ASIDE_OPEN = re.compile(r"^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$")
-AUTHORING_STANDARD = GUIDES_ROOT / "_shared/reference/catalogue-authoring-standards.md"
-SCAFFOLD_ROOT = (
-    REPO_ROOT / "packages/agentbundle/agentbundle/_data/catalogue-scaffold"
-)
 
 
 def _expected_baseline_count() -> int:
@@ -159,7 +176,7 @@ def test_ledger_has_complete_terminal_classifications() -> None:
     assert [row["item"] for row in ledger] == list(range(1, expected_count + 1))
     assert [row["item"] for row in baseline] == list(range(1, expected_count + 1))
     assert all(set(row) == REQUIRED_FIELDS for row in ledger)
-    assert all(row["status"] == "done" for row in ledger)
+    assert all(row["status"] in {"done", "superseded"} for row in ledger)
     assert all(row["classification"] in ALLOWED_CLASSIFICATIONS for row in ledger)
     assert all(isinstance(row["reason"], str) and row["reason"].strip() for row in ledger)
     assert all(isinstance(row["anchor"], str) and row["anchor"].strip() for row in ledger)
@@ -186,8 +203,13 @@ def test_ledger_matches_converted_asides_and_unchanged_quotations() -> None:
         source_path = path.relative_to(REPO_ROOT).as_posix()
         lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
         rows = [row for row in ledger if row["path"] == source_path]
-        quotation_rows = [row for row in rows if row["classification"] == "quotation"]
-        typed_rows = [row for row in rows if row["classification"] != "quotation"]
+        active_rows = [row for row in rows if row["status"] == "done"]
+        quotation_rows = [
+            row for row in active_rows if row["classification"] == "quotation"
+        ]
+        typed_rows = [
+            row for row in active_rows if row["classification"] != "quotation"
+        ]
 
         blockquotes = _blockquote_blocks(lines)
         blockquote_hashes = [
@@ -214,7 +236,7 @@ def test_ledger_matches_converted_asides_and_unchanged_quotations() -> None:
 
         expected_sequence = [
             (str(row["classification"]), str(row["content_sha256"]))
-            for row in rows
+            for row in active_rows
         ]
         expected_containers = set(expected_sequence)
         current_containers = [
@@ -241,49 +263,45 @@ def test_ledger_matches_converted_asides_and_unchanged_quotations() -> None:
     assert failures == [], "\n".join(failures)
 
 
-def test_authoring_standard_defines_the_fixed_aside_contract() -> None:
-    standard = AUTHORING_STANDARD.read_text(encoding="utf-8")
+def test_standard_release_notes_record_the_conversion() -> None:
+    """Archival: the release that shipped the standard still says so.
 
-    for aside_type in ("note", "tip", "caution", "danger"):
-        assert re.search(rf"^\| `{aside_type}` \| .+ \|$", standard, re.MULTILINE)
-    assert "Use only those four types." in standard
-    assert re.search(r"```md\n:::caution\n.+\n:::\n```", standard, re.DOTALL)
-    assert "A blockquote has a different job" in standard
-    assert "Leave those passages as `>` blockquotes." in standard
-    assert "do not turn genuine quoted wording into an\naside" in standard
+    A tripwire on immutable history, which is why it lives in this file rather than the
+    gated one — no legitimate future change touches a frozen release section, and if one
+    does, that is worth a human look rather than a red required check.
 
-
-def test_agentbundle_release_carries_the_authoring_standard() -> None:
-    source = AUTHORING_STANDARD.read_bytes()
-    projected_path = (
-        SCAFFOLD_ROOT / "guides/_shared/reference/catalogue-authoring-standards.md"
-    )
-    assert projected_path.read_bytes() == source
-
-    manifest = json.loads((SCAFFOLD_ROOT / "manifest.json").read_text(encoding="utf-8"))
-    relative_path = "guides/_shared/reference/catalogue-authoring-standards.md"
-    assert manifest["files"][relative_path] == hashlib.sha256(source).hexdigest()
-
-    pyproject = tomllib.loads(
-        (REPO_ROOT / "packages/agentbundle/pyproject.toml").read_text(encoding="utf-8")
-    )
-    version_source = (
-        REPO_ROOT / "packages/agentbundle/agentbundle/version.py"
-    ).read_text(encoding="utf-8")
-    version = pyproject["project"]["version"]
-    assert version == "0.37.1"
-    assert f'CLI_VERSION = "{version}"' in version_source
-
+    The live contract — the standard's own content, the packaged copy's bytes, its
+    manifest digest, and `CLI_VERSION` — is asserted in
+    `tools/test_guide_authoring_standard.py`, which *is* gated.
+    """
     changelog = (REPO_ROOT / "packages/agentbundle/CHANGELOG.md").read_text(
         encoding="utf-8"
     )
     readme = (REPO_ROOT / "packages/agentbundle/README-pypi.md").read_text(
         encoding="utf-8"
     )
-    assert f"## [{version}]" in changelog
-    assert "typed\n  Starlight asides" in changelog
-    assert f"## What's new in {version}" in readme
-    assert "guide callout contract" in " ".join(readme.split())
+
+    # Anchored and counted: `"## [0.37.1]" in changelog` is also satisfied by a
+    # `### [0.37.1]` subheading, and a duplicated heading would silently take the first.
+    headings = re.findall(
+        rf"^## \[{re.escape(STANDARD_RELEASE)}\]", changelog, re.MULTILINE
+    )
+    assert len(headings) == 1, (
+        f"expected exactly one '## [{STANDARD_RELEASE}]' release heading, "
+        f"found {len(headings)}"
+    )
+
+    section = re.split(r"^## \[", changelog, flags=re.MULTILINE)
+    body = next(s for s in section if s.startswith(f"{STANDARD_RELEASE}]"))
+    # Whitespace-normalised: the raw form pinned an incidental line wrap between
+    # "typed" and "Starlight", so a reflow that changes nothing would have failed.
+    assert "typed Starlight asides" in " ".join(body.split()), (
+        f"the typed-asides wording must stay in {STANDARD_RELEASE}'s changelog section"
+    )
+    assert "guide callout contract" in " ".join(readme.split()), (
+        "README-pypi must keep documenting the callout contract somewhere; this does "
+        "not pin it to the Catalogue authoring section"
+    )
 
 
 def test_release_handoff_records_the_completed_change_and_batch_closeout() -> None:

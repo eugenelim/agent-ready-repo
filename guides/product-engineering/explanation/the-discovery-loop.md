@@ -1,3 +1,10 @@
+---
+title: The discovery loop — from a raw idea to a build-ready brief
+summary: Understand how divergence, specialist lenses, validation hooks, human gates, and reconciliation produce a build-ready decision brief.
+pack: product-engineering
+kind: explanation
+---
+
 # The discovery loop — from a raw idea to a build-ready brief
 
 :::note

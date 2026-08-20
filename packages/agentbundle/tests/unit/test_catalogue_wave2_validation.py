@@ -257,6 +257,102 @@ def test_verify_no_integrations_passes(tmp_path):
     assert result == []
 
 
+def test_verify_integration_refuses_linked_pack_manifest(tmp_path):
+    pack_dir = _make_pack(tmp_path, "declaring", [])
+    outside = tmp_path / "outside.toml"
+    outside.write_text(
+        '[pack]\nname = "declaring"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    (pack_dir / "pack.toml").unlink()
+    try:
+        (pack_dir / "pack.toml").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_integration_validation(tmp_path, None, None, tmp_path)
+
+    assert any(
+        item.code == "CAT-V-019" and "cannot be read safely" in item.message
+        for item in result
+    )
+
+
+def test_verify_integration_refuses_linked_primitive_directory(tmp_path):
+    pack_dir = _make_pack(
+        tmp_path,
+        "declaring",
+        [_valid_entry(pack="absent-pack")],
+    )
+    outside = tmp_path / "outside-skill"
+    outside.mkdir()
+    skills_dir = pack_dir / ".apm" / "skills"
+    skills_dir.mkdir(parents=True)
+    try:
+        (skills_dir / "consumer-skill").symlink_to(
+            outside, target_is_directory=True
+        )
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_integration_validation(tmp_path, None, None, tmp_path)
+
+    assert any(
+        item.code == "CAT-V-019" and "link-like primitive directory" in item.message
+        for item in result
+    )
+
+
+def test_verify_integration_pack_filter_suppresses_unrelated_unsafe_manifest(
+    tmp_path,
+):
+    _make_pack(tmp_path, "selected", [])
+    unrelated = _make_pack(tmp_path, "unrelated", [])
+    outside = tmp_path / "outside.toml"
+    outside.write_text(
+        '[pack]\nname = "unrelated"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    (unrelated / "pack.toml").unlink()
+    try:
+        (unrelated / "pack.toml").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_integration_validation(tmp_path, None, "selected", tmp_path)
+
+    assert result == []
+
+
+def test_verify_integration_pack_filter_reports_unsafe_target_manifest(tmp_path):
+    selected = _make_pack(
+        tmp_path,
+        "selected",
+        [_valid_entry(pack="target")],
+    )
+    _add_skill(selected, "consumer-skill")
+    target = _make_pack(tmp_path, "target", [])
+    outside = tmp_path / "outside.toml"
+    outside.write_text(
+        '[pack]\nname = "target"\nversion = "1.0.0"\n',
+        encoding="utf-8",
+    )
+    (target / "pack.toml").unlink()
+    try:
+        (target / "pack.toml").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_integration_validation(tmp_path, None, "selected", tmp_path)
+
+    assert any(
+        item.code == "CAT-V-019"
+        and item.pack == "target"
+        and "cannot be read safely" in item.message
+        for item in result
+    )
+
+
 # ── Pipeline-level tests (verify_catalogue wiring) ────────────────────────────
 # These tests drive verify_catalogue() directly to confirm step 19 is wired
 # into the pipeline. Deleting or un-registering the step would leave the unit

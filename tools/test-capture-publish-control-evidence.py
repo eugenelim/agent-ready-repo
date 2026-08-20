@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib.util
+import pathlib
 import sys
 import urllib.request
 from pathlib import Path
@@ -174,6 +175,49 @@ def main() -> int:
               "if this ever starts rejecting, drop the `--` rationale above")
     else:
         check("leading-dash owner is accepted (hence the `--`)", True)
+
+    # The artifact names its subject. Without this the document binds to nothing:
+    # a capture run against any other well-configured repository produces a
+    # byte-indistinguishable file, and the lint would accept it as evidence that
+    # THIS repository's publisher App is provisioned.
+    observed = []
+    real = (_MOD.observe_environment, _MOD.observe_branch, _MOD.observe_app)
+
+    def _stub_readers():
+        """Replace all three network readers, so nothing but the code under test can raise.
+
+        Load-bearing for the negative case below: with the real readers in
+        place, `build_evidence("owner/..")` raises CaptureError from the first
+        `gh api` call whether or not the validation exists, and the assertion
+        passes for the wrong reason. Deleting the validation was measured to
+        leave the suite green until these stubs were extended to cover it.
+        """
+        _MOD.observe_environment = lambda repo: (observed.append(("env", repo)) or ({}, 7))
+        _MOD.observe_branch = lambda repo, target: (observed.append(("branch", repo)) or ({}, 7))
+        _MOD.observe_app = lambda repo, app_id, key: (observed.append(("app", repo)) or ({}, 7))
+
+    try:
+        _stub_readers()
+        built = _MOD.build_evidence("owner/name", "refs/heads/x", {}, pathlib.Path("k"))
+        check("build_evidence records the repository it observed",
+              built.get("repo") == "owner/name", repr(built.get("repo")))
+        check("the recorded repo is the one every observation was made against",
+              {r for _, r in observed} == {"owner/name"}, str(observed))
+        check("the schema version moves with the field", built.get("version") == 2,
+              repr(built.get("version")))
+
+        # Recorded, therefore validated where it is recorded — main() also
+        # validates, but a direct caller must not be able to stamp an unchecked
+        # subject into the artifact.
+        try:
+            _MOD.build_evidence("owner/..", "refs/heads/x", {}, pathlib.Path("k"))
+        except _MOD.CaptureError:
+            check("build_evidence validates the subject it records", True)
+        else:
+            check("build_evidence validates the subject it records", False,
+                  "a dot-segment repo reached the artifact")
+    finally:
+        _MOD.observe_environment, _MOD.observe_branch, _MOD.observe_app = real
 
     print()
     if FAILURES:

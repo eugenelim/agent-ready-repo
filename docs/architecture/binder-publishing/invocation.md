@@ -49,7 +49,7 @@ paths still resolve from the project root or the explicit `--root` value.
 > use. `binder.py` still resolves its own realpath and skips content-root inference
 > when its CWD is beneath the installed pack, exiting 4 with the message naming
 > `--root` — retained for the adapters V6 could not measure.
-> [`overview.md`](overview.md#what-repository-scope-means-outside-git) carries the
+> [`overview.md`](overview.md#runtime-and-ownership-boundary) carries the
 > full four-rule resolution order and the coverage caveat;
 > [`verified-findings.md`](verified-findings.md) carries the measurement.
 >
@@ -128,11 +128,10 @@ what would have been derived. `recipe write <name>` now derives
 `<recipes_dir>/<name>.binder.toml` and `<recipes_dir>/editorial/<slug>.md`. See
 [`outline-and-templates.md`](outline-and-templates.md#3-recipe-write--the-editorial-write-path).
 
-### The six cut flags, and where their job went
+### Destination and profile rules
 
-D-A cut these. They are listed because a reader arriving from an earlier draft, a
-committed `Makefile`, or a stale CI job needs to know they are gone rather than
-renamed.
+The following rules are closed. The listed flags do not exist, so a stale
+`Makefile` or CI job receives a clear answer rather than an alternate route.
 
 | Cut | Where the job went |
 |---|---|
@@ -143,15 +142,11 @@ renamed.
 | `--force-unlock` | `clean --stale`. Deleting state deliberately is a different act from being handed a flag that breaks another process's lock. |
 | `--from-index=PATH` | Nowhere. `build` always resolves. Invariant 21 means identical inputs give a byte-identical index, so "the thing I approved" is still what gets built — which was the flag's only real purpose, obtained for free. |
 
-There is no `install-quarto` verb. There is no install verb at all: the renderer
-is one pinned pip package and the ladder is a single command, in
+The command surface has no install verb; renderer dependency handling is in
 [`zensical-adapter.md`](zensical-adapter.md).
 
-**Every destination is derived, not supplied.** That is the property D-A was
-actually reaching for, and it is stronger than routing `--out` through a lattice
-would have been: there is no unbounded write primitive reachable from the
-invocation string because there is no caller-named write target anywhere in the
-contract.
+**Every destination is derived, not supplied.** No invocation argument can select
+an unbounded write target.
 
 ### Path resolution
 

@@ -1,0 +1,10 @@
+[pack]
+name = "demo"
+
+[pack.metadata.okf]
+profile = "agentbundle-okf/v1"
+
+[[pack.metadata.okf.bundles]]
+id = "demo"
+path = "okf/demo"
+router-skill = "demo-router"

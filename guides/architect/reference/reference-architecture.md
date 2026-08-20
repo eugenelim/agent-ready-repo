@@ -1,3 +1,10 @@
+---
+title: "`reference.md` sections and the stack-pack contract"
+summary: Look up the required reference-architecture sections and the contract by which an optional stack pack supplies them.
+pack: architect
+kind: reference
+---
+
 # `reference.md` sections and the stack-pack contract
 
 :::note

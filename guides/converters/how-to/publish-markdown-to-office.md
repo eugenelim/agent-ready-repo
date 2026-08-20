@@ -1,3 +1,10 @@
+---
+title: Publish Markdown as a branded Office file
+summary: Fill an approved branded template with Markdown content to produce a Word document, presentation, or workbook.
+pack: converters
+kind: how-to
+---
+
 # Publish Markdown as a branded Office file
 
 **Use this when:** You have a polished Markdown artifact and need it as a branded Word, PowerPoint, or Excel file using your organization's template.

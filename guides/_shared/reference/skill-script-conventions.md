@@ -1,3 +1,10 @@
+---
+title: Skill script conventions
+summary: Apply the catalogue’s common flags, usage documentation, shortcut, shared-library, setup, and operation-logging conventions to helper scripts.
+pack: _shared
+kind: reference
+---
+
 # Skill script conventions
 
 Reference for helper scripts under a skill's `scripts/` directory. These conventions apply to any script — TypeScript or Python — that the skill invokes via the agent's `Bash` tool.

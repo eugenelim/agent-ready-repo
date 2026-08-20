@@ -1,93 +1,33 @@
-# AGENTS.md — `guides/` (adopter-facing guide tree)
+# AGENTS.md — `guides/`
 
-Source for every adopter guide published to `/agent-ready-repo/docs/guides/`.
-Not installed into adopter repos — packs ship seeds; adopters read this on the web.
+Applies to `guides/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 
-Write and restructure pages with the `author-product-docs` skill.
+## Audience and publication
 
-## Audience
+`guides/` is adopter-facing; `docs/guides/` is maintainer material. This tree is
+published by `tools/build-site.py`: writing a valid file is all publication and
+navigation require. Use the `author-product-docs` skill for authoring work.
 
-`guides/` is adopters. `docs/guides/` is repo maintainers (CI, seeds, adapters,
-internal tooling). Maintainer guidance written here ships to the public site.
+## Content traps
 
-## Publication
+[`contracts/guide.schema.json`](../contracts/guide.schema.json) owns frontmatter;
+`additionalProperties: false` means new fields belong there first. Keep `title`
+and the leading body H1 identical: `_shared` guides ship without rendered
+frontmatter, so no H1 leaves adopters without a page heading.
 
-`tools/build-site.py` mirrors this tree into the Starlight site on every Pages
-build — writing the file is all that publishing requires.
+When deleting or renaming a page, delete its `guide-nav-baseline.toml` entry in
+the same change. The nav-ineligible set is pinned by its inventory test.
 
-- `guides/<pack>/<kind>/<slug>.md` → `/docs/guides/<pack>/<kind>/<slug>/`
-- `README.md` → the directory's index
-- `slug:` frontmatter overrides path placement entirely
-
-## Frontmatter
-
-Required: `title`, `summary`, `pack`, `kind`. Optional: `slug`, `order`,
-`journey`, `aliases`, `status`. Schema is `contracts/guide.schema.json` with
-`additionalProperties: false` — add a field there first, and teach
-`build-site.py` to strip it, or it leaks into the rendered page.
-
-`kind` (`tutorial` | `how-to` | `reference` | `explanation`) is a page contract,
-not a directory choice — it records what the page does for the reader.
-
-`summary` is published: `build-site.py` maps it onto Starlight's `description`,
-which becomes the page's `<meta name="description">`, its search snippet, and
-the deck rendered under the title. Write it for a reader who has not opened the
-page.
-
-**`title` and the body H1 must agree.** Starlight renders `title:` as the page
-`<h1>`, so `build-site.py` strips a *leading* body H1 to avoid a second one.
-Keep the H1 and make it match — `guides/_shared/**` ships verbatim into adopter
-catalogues and bundles where frontmatter never renders, so a page with no H1
-opens with no heading there. `tools/lint-guide-titles.py` fails CI on a
-divergence, and on a body H1 that is not the first block (the build cannot strip
-that one, so it renders as a second `<h1>`).
-
-## Navigation is generated
-
-`tools/build-site.py` collates this tree into an inventory, then projects it
-into the sidebar. Writing the file is all that navigation requires — there is
-no config to edit.
-
-- **Group labels and order** are declared in `site.toml`'s `[[guide_groups]]`
-  (`dir` + `label`). **An entry is required for every directory, and an entry
-  with no directory fails the same test** — delete a pack's entry when you
-  delete the pack. The title-cased fallback is a safety net, not a supported path:
-  it would render `iac-terraform` as "Iac Terraform" rather than its curated
-  label.
-- **`order`** sorts a page within its pack group **across kinds** — that is how
-  a tutorial, a how-to, and an explanation form one reading sequence. Pages
-  without it fall into kind buckets below the ordered run.
-- **Labels** resolve `guide-nav-baseline.toml` → `title:` frontmatter →
-  filename. An index page falling through to derivation reads `Overview`. The
-  baseline is transitional: it froze the pre-generation labels so none
-  regressed. Add `title:` to a page and delete its baseline entry — that
-  deletion is the deliberate act, and the registry shrinks.
-
-## Traps
-
-- **No link checker.** Starlight does not fail the build on broken internal
-  links. Verify targets exist before linking.
-- Links out of `guides/` become GitHub blob URLs — they send the reader off the
-  site. Prefer an in-tree target.
-- `AGENTS.md`, and any `README.md` more than one directory below `guides/`,
-  are mirrored but never enter navigation — today that is the four
-  `_shared/<kind>/` authoring templates, which address guide *authors*, not
-  adopters. They stay reachable by URL. Each prints a `note` at build time.
-- **The nav-ineligible set is pinned by a test.** Adding a section index below
-  kind level (`<pack>/how-to/README.md`) fails
-  `test_nav_ineligible_set_is_exactly_the_declared_exceptions`; update it and
-  the spec's § Intent carve-out in the same change.
-- **Renaming or deleting a page requires deleting its
-  `guide-nav-baseline.toml` entry** in the same change, or the no-regression
-  test fails with `labels or pages regressed: {'…': ('Label', '<ABSENT>')}`.
-
-## Verify
+## Essential commands
 
 ```bash
-python3 tools/validate_guides.py     # frontmatter + duplicate slugs
-python3 tools/check-guide-index.py   # index coverage
-python3 tools/lint-guide-titles.py   # title vs body H1
-python3 tools/build-site.py          # mirror; inspect reported paths
+python3 tools/validate_guides.py
+python3 tools/check-guide-index.py
+python3 tools/lint-guide-titles.py
+python3 tools/build-site.py
 ```
 
-Build order for rendered checks: [`docs-site/AGENTS.md`](../docs-site/AGENTS.md) § Build.
+## Deeper pointers
+
+`site.toml` and `tools/build-site.py` own navigation and projection details. For
+rendered checks, follow [`docs-site/AGENTS.md` § Build](../docs-site/AGENTS.md#build).

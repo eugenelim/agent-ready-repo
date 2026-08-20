@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "groups": [
+    {
+      "packages": [
+        {
+          "name": "governance-extras",
+          "version": "0.9.7"
+        }
+      ],
+      "date": "2026-08-16",
+      "heading": "[governance-extras][0.9.7] — 2026-08-16",
+      "changelogAnchor": "governance-extras097--2026-08-16",
+      "highlights": [
+        {
+          "source": "**Writing an RFC or an ADR now files its reusable lessons for you, and only once the decision is actually settled.** Supporting lessons are handed to project knowledge at clean handoff and accepted-decision points, so a draft you abandon leaves nothing behind. If project knowledge is not installed, authoring proceeds unchanged and writes no stand-in file.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Writing an RFC or an ADR now files its reusable lessons for you, and only once the decision is actually settled."
+            },
+            {
+              "type": "text",
+              "value": " Supporting lessons are handed to project knowledge at clean handoff and accepted-decision points, so a draft you abandon leaves nothing behind. If project knowledge is not installed, authoring proceeds unchanged and writes no stand-in file."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,10 @@
+---
+title: How to create a Lean Canvas for an initiative
+summary: Elicit and commit a concise or full initiative brief grounded in an existing bet and capability map.
+pack: product-engineering
+kind: how-to
+---
+
 # How to create a Lean Canvas for an initiative
 
 **Use this when:** You have a committed bet (and optionally a capability map) and need to produce a shareable, version-controlled initiative brief through structured elicitation.

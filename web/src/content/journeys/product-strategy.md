@@ -15,6 +15,10 @@ contract:
     - "Approve the market situation picture"
     - "Approve the PRFAQ"
     - "Approve the OKR cascade and gap routing"
+  decisionGateIds:
+    - approve-strategy-situation
+    - approve-prfaq
+    - approve-okr-cascade
 whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR routing to the PE shaping queue, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes directly to `workspace.toml`, where product engineers pick up strategy-driven shaping items via `workspace-status`."
 skills:
   - name: synthesize-stakeholder-research
@@ -45,9 +49,9 @@ skills:
     description: "Produces a committed content-strategy.md using the Halvorson quad (Purpose + Process + Structure + Governance) — the organizational governance layer that the experience-design pack's content-design skill consumes."
     humanTouches: 0
 humanGates:
-  - id: G-situation
+  - id: approve-strategy-situation
     globalGate: null
-    label: "Approve the market situation picture"
+    label: "Approve the situation framing"
     trigger: "After run-swot synthesizes the macro environment, competitive landscape, and portfolio inputs"
     duration: "10–15 minutes"
     whatToCheck:
@@ -58,9 +62,9 @@ humanGates:
     whatGoodLooksLike: "A SWOT that reads as a compressed situation summary — each quadrant traceable to a specific finding from PESTLE, Porter's, or the portfolio analysis, with the most critical items named explicitly."
     whatBadLooksLike: "A SWOT that could apply to any company in any market — generic strengths like 'talented team' and generic threats like 'competition'. This means the market analysis didn't surface specific signal."
     consequence: "The SWOT is the situation anchor for the PRFAQ and OKR cascade that follow. A vague SWOT means the altitude-0 artifacts build on an ungrounded situation picture — and the OKR cascade will identify the wrong gaps."
-  - id: G-prfaq
+  - id: approve-prfaq
     globalGate: null
-    label: "Approve the PRFAQ"
+    label: "Approve the PR/FAQ"
     trigger: "After write-prfaq produces the press release and FAQ draft"
     duration: "10–20 minutes"
     whatToCheck:
@@ -71,13 +75,13 @@ humanGates:
     whatGoodLooksLike: "A press release that names a specific person, delivers a measurable benefit, and a FAQ that addresses real objections — readable without the prior market context and still fully specific."
     whatBadLooksLike: "A press release in corporate voice that names no specific person and delivers no measurable benefit. Or a FAQ that only addresses questions the team already knows the answers to."
     consequence: "The PRFAQ is the altitude-0 forcing function — the artifact that initiative briefs trace back to. An unspecific PRFAQ means teams shape initiatives without a shared vision of success. Every product engineer and designer will form their own theory of what 'done' means."
-  - id: G-cascade
+  - id: approve-okr-cascade
     globalGate: null
-    label: "Approve the OKR cascade and gap routing"
+    label: "Approve the OKR cascade"
     trigger: "After run-okr-cascade identifies gaps and before writing strategy-type entries to workspace.toml"
     duration: "10–15 minutes"
     whatToCheck:
-      - "Does each gap entry reflect an actual gap between current state and an OKR target — not a feature the team wants to build regardless?"
+      - "Does the OKR cascade identify actual gaps between current state and each target — not features the team wants to build regardless?"
       - "Are the gaps ranked — does the highest-weight OKR produce the highest-priority gap entries?"
       - "Is each gap specific enough for frame-situation to scope into a shaping brief, or is it too vague to act on?"
       - "Are there OKR targets vague enough that the cascade missed important gaps — should any OKRs be tightened before the cascade completes?"

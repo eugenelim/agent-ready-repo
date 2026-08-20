@@ -1,3 +1,10 @@
+---
+title: Your first research session
+summary: Produce and compare research outputs at each episodic depth in a guided first session.
+pack: desk-research
+kind: tutorial
+---
+
 # Your first research session
 
 **What you'll build:** Research artifacts in all four modes — quick inline answer, cited survey, applied practitioner survey, and deep survey with counterpoints — using the `desk-research` pack.

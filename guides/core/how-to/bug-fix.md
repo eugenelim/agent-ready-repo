@@ -1,3 +1,10 @@
+---
+title: How to fix a bug
+summary: Diagnose the root cause, constrain the change, prove the regression, and deliver a reviewed fix.
+pack: core
+kind: how-to
+---
+
 # How to fix a bug
 
 **Use this when:** Code deviates from intended behavior and you need to reproduce it, pin the root cause, and land a minimum fix with a regression test.

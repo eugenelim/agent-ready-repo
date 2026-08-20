@@ -1,3 +1,10 @@
+---
+title: How to author a browser-automation skill
+summary: Build a browser-driving skill with persistent sessions, robust authentication handoff, durable probes, and maintainable selectors.
+pack: _shared
+kind: how-to
+---
+
 # How to author a browser-automation skill
 
 **Use this when:** You are writing a skill that drives a web browser — to read, interact with, or extract data from a site that has no usable API.

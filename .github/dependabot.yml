@@ -1,0 +1,52 @@
+# Dependabot — npm bump PRs for the two Node projects in this repository.
+#
+# WHY THIS EXISTS, and what it is NOT. ADR-0083 chose `npm audit` as the SCA GATE
+# and recorded Dependabot as complementary rather than a substitute: they answer
+# different questions — "may this merge?" versus "should we bump?". `tools/audit-npm.py`
+# still blocks a merge on a known advisory; nothing here weakens or replaces it.
+# Without this file, remediation was hand-driven (`npm audit fix --package-lock-only`)
+# and only ever happened when someone went looking.
+#
+# ADR-0083 lists this as deferred "to the repo owner because it changes how much review
+# the team absorbs per week". That is a volume decision, not a technical one, and the
+# settings below are chosen to keep the volume low:
+#
+#   * weekly, not daily;
+#   * minor and patch updates GROUPED into one PR per project, so a quiet week is one
+#     PR rather than nine;
+#   * majors ungrouped and individual, because they are the ones that need reading;
+#   * a hard cap per project, so a burst cannot flood the queue.
+#
+# Both projects ship committed lockfiles, which is what makes a lockfile-only bump PR
+# meaningful here.
+#
+# NOT WIRED, deliberately:
+#   * `pip` — `sast-requirements-not-audited` in workspace.toml [backlog].open carries
+#     an explicit audit-vs-Dependabot decision for the Python side ("Decide which, then
+#     do one -- doing both duplicates the noise"). Adding a pip ecosystem here would
+#     pre-empt it.
+#   * `github-actions` — every action in this repo is already SHA-pinned, and turning
+#     this on is its own volume decision nobody has taken.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/docs-site"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      docs-site-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      web-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

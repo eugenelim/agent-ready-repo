@@ -1,3 +1,10 @@
+---
+title: Thread a feature from journey to screens
+summary: Produce the durable journey, screen-flow, service, design-intent, and review artifacts needed to implement a feature.
+pack: experience-design
+kind: how-to
+---
+
 # Thread a feature from journey to screens
 
 **Use this when:** you have a feature to design end to end — from a customer journey through screen briefs, service blueprint, and critique to an independent design review.

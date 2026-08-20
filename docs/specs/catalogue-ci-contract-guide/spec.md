@@ -123,7 +123,7 @@ failure rather than a silent lie.
 - [x] AC11: `guides/_shared/README.md` Reference section links to the guide.
 - [x] AC12: `guides/_shared/reference/agentbundle.md` has a short "Catalogue CI"
   paragraph pointing readers to the CI contract guide.
-- [x] AC13: `guides/_reference/catalogue-format.md` Validation section links to the
+- [x] AC13: `guides/_reference/catalogue-format.md` Validation section links to the <!-- Moved 2026-08-18 by spec/guide-metadata-completion to `guides/_shared/reference/catalogue-format.md`; the public route is unchanged. -->
   CI contract guide for CI pipeline patterns.
 
 **AGENTS.md references**

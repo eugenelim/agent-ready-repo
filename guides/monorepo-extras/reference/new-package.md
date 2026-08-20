@@ -1,3 +1,10 @@
+---
+title: "`new-package` reference"
+summary: Look up the generated package tree, template contents, post-scaffold steps, and boundaries of the package workflow.
+pack: monorepo-extras
+kind: reference
+---
+
 # `new-package` reference
 
 The authoritative description of what the `new-package` skill produces and the conventions the `packages/_example/` template carries.

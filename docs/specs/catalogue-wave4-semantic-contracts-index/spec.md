@@ -1,10 +1,10 @@
 ---
 slug: catalogue-wave4-semantic-contracts-index
 title: "Catalogue Wave 4 — Semantic contracts and neutral index"
-status: Approved
+status: Shipped
 ---
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D7](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (neutral catalogue index); D6 integration-view fields (parallel Wave 2 provides data; Wave 4 indexes it when present)
@@ -63,6 +63,13 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   and verify it exits 0.
 - Populate `integrations` and `integrations_inverse` from pack.toml entries when Wave 2 data
   is present; emit empty arrays when absent (Wave 2 is parallel — do not block on it).
+- Parse JOURNEY.md frontmatter with `yaml.safe_load` (or an explicitly safe loader),
+  require a mapping, and never use executable YAML constructors or `eval`.
+- Confine every catalogue input read to `CATALOGUE_ROOT` with the repository's
+  no-follow file-safety helpers, including parent symlinks and Windows junctions.
+- Reject default or relative output paths that escape `CATALOGUE_ROOT`, reject
+  symlink/reparse destinations, and publish validated JSON through a no-follow atomic
+  writer so a failure leaves no partial or replaced output.
 
 ### Ask first
 
@@ -107,8 +114,8 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   included packs; spot-check two JOURNEY.md files for required fields.
 - **Authoring hub (Phase E, AC27–AC28):** grep — "Journey format" section no longer
   contains the "not yet available" placeholder; required subsections present.
-- **Engine change (Phase F, AC29–AC31):** grep — version strings match; commit message
-  footer present; changelog entry present.
+- **Engine change (Phase F, AC29–AC31):** grep — version strings match; final handoff
+  carries the required footer; changelog entry present. No Git metadata is mutated.
 - **Regression (AC32–AC35):** `SKIP_SAST=1 make build-check` exits 0; pytest exits 0;
   packs/AGENTS.md ≤ 150 lines; root AGENTS.md ≤ 250 lines.
 
@@ -118,16 +125,17 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 **Format definition**
 
-- [ ] AC1: A `JOURNEY.md` convention document is written (this spec, the authoring hub
+- [x] AC1: A `JOURNEY.md` convention document is written (this spec, the authoring hub
   Phase E update, and the existing first-party JOURNEY.md files together constitute the
   convention). The required YAML frontmatter keys are formally declared in this spec:
   `journey_id` (string, unique within the catalogue), `pack` (string, matches pack name
   in pack.toml), `start_state` (string, one of `read-only | proposed-write | confirmed-write`),
   `end_state` (string, same enum), `scope` (string, `repo | user`), `tagline` (string,
-  ≤ 120 characters), `contract` (object with required sub-keys: `useItWhen`, `youProvide`,
-  `youReceive`, `yourDecisions`).
+  ≤ 120 characters), `contract` (closed object with required sub-keys:
+  `useItWhen` (string), `youProvide` (string), `youReceive` (string), and
+  `yourDecisions` (array of strings)).
 
-- [ ] AC2: The following JOURNEY.md frontmatter keys are declared optional:
+- [x] AC2: The following JOURNEY.md frontmatter keys are declared optional:
   `prerequisitePacks` (array of pack name strings), `whatChanges` (string), `skills`
   (array of objects with `name`, `description`, `humanTouches`), `humanGates` (array of
   gate objects with `id`, `label`, `trigger`, `duration`, `whatToCheck`,
@@ -136,12 +144,12 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   `docsUrl` (string), `packUrl` (string), `relatedJourneys` (array of journey_id strings),
   `effects` (array of effect declaration objects; see AC3).
 
-- [ ] AC3: The `effects` array, when present, declares the external effects a pack's
+- [x] AC3: The `effects` array, when present, declares the external effects a pack's
   primary workflow produces. Each element is an object with required `kind` (string, one
   of `file-write | git-push | network-call | shell-exec | credential-read`) and
   `description` (string). This data populates `packs[].effects` in the catalogue index.
 
-- [ ] AC4: The required body sections are declared in this spec (enforced by convention,
+- [x] AC4: The required body sections are declared in this spec (enforced by convention,
   not a schema validator in Wave 4). Required sections (H3 or numbered heading):
   - **Arrival trigger** — a quick-reference table mapping activation phrases to outcomes;
     must be the first body element after frontmatter.
@@ -154,7 +162,7 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   - **Next steps** — suggested follow-on packs or journeys; drawn from `relatedJourneys`
     frontmatter; may repeat `relatedJourneys` in prose.
 
-- [ ] AC5: A migration guide section in this spec (or an inline note in each relevant AC)
+- [x] AC5: A migration guide section in this spec (or an inline note in each relevant AC)
   states: existing JOURNEY.md files that predate the formal convention are considered
   conformant when (a) all required frontmatter keys in AC1 are present and (b) the body
   contains the activation-trigger table and at least two numbered workflow steps. Missing
@@ -163,7 +171,7 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 **JOURNEY.md validation in the index generator**
 
-- [ ] AC6: The `catalogue index` command reads JOURNEY.md from `packs/<name>/JOURNEY.md`
+- [x] AC6: The `catalogue index` command reads JOURNEY.md from `packs/<name>/JOURNEY.md`
   when the file is present. When JOURNEY.md is present but contains malformed YAML, the
   command fails (exit 1) and writes no output file; the result contains a structured
   diagnostic naming the offending pack. When JOURNEY.md is present but missing one or
@@ -172,14 +180,14 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   Optional key absence is not a failure condition. The command does not parse JOURNEY.md
   body markdown for structured data.
 
-- [ ] AC7: When `packs/<name>/JOURNEY.md` is absent, the pack's `journeys` field in the
+- [x] AC7: When `packs/<name>/JOURNEY.md` is absent, the pack's `journeys` field in the
   index is an empty array. This is not a validation error — JOURNEY.md is optional for
   index generation.
 
-- [ ] AC8: Test coverage includes both unit and CLI-level integration tests:
+- [x] AC8: Test coverage includes both unit and CLI-level integration tests:
   - Unit (`parse_journey_md`): JOURNEY.md with all required keys → `(data, [])`; missing
-    required key → `(None, [error])`; absent file → `(None, [])`; malformed YAML →
-    `(None, [error])`.
+    required key → `(None, [error])`; absent file → `(None, [])`; malformed YAML,
+    unsafe YAML tags, or non-mapping frontmatter → `(None, [error])`.
   - CLI integration (`agentbundle catalogue index`): JOURNEY.md with malformed YAML →
     exit 1, structured diagnostic, no output file written; JOURNEY.md missing required key
     → exit 1, structured diagnostic, no output file written. CLI tests are required because
@@ -187,7 +195,7 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 ### Phase B — catalogue-index.schema.json
 
-- [ ] AC9: `contracts/catalogue-index.schema.json` is created. It is a valid JSON Schema
+- [x] AC9: `contracts/catalogue-index.schema.json` is created. It is a valid JSON Schema
   draft 2020-12 document (consistent with pack.schema.json, profile.schema.json, and
   catalogue.schema.json). It uses `"$schema": "https://json-schema.org/draft/2020-12/schema"`,
   a stable `"$id"` (e.g. `"catalogue-index.schema.json"`), `"additionalProperties": false`
@@ -206,8 +214,11 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   - `packs` (array, required) — see AC10
   - `profiles` (array, required) — see AC11
 
-- [ ] AC10: Each element of `packs` in the schema defines:
-  - Required: `name` (string), `version` (string), `scope` (string, enum `["repo","user"]`)
+- [x] AC10: Each element of `packs` in the schema defines:
+  - Required: `name` (string), `version` (string), `scope` (string, enum `["repo","user"]`).
+    `scope` is sourced from `[pack.install].default-scope` for non-legacy packs. Legacy
+    packs without `[pack.install]` resolve to `repo`, matching the installer's
+    conservative default.
   - Optional (present when data is available from the authoritative source listed):
     - `description` (string) — from `pack.toml [pack].description`
     - `categories` (array of strings) — from `pack.toml [pack].categories`
@@ -269,12 +280,13 @@ spelling does not conflict with ini-005's CLI surface. Verification:
     directory cannot be read (see AC17)
   - `journey-summary` object fields: `journey_id` (string, required), `pack` (string,
     required), `start_state` (string, required), `end_state` (string, required), `scope`
-    (string, required), `tagline` (string, required), `contract` (object, required)
+    (string, required), `tagline` (string, required), `contract` (closed object, required,
+    with the exact required subfield types defined in AC1)
   - `integration-reference` object fields: `id` (string), `pack` (string), `kind`
     (string), `role` (string)
   - `effect-declaration` object fields: `kind` (string), `description` (string)
 
-- [ ] AC11: Each element of `profiles` in the schema defines:
+- [x] AC11: Each element of `profiles` in the schema defines:
   - `name` (string, required) — the profile filename stem (e.g. `solution-architect`)
   - `scope` (string, required) — from `profile.toml scope`; enum `["user","repo"]`
   - `description` (string, optional) — from `profile.toml description`
@@ -285,11 +297,11 @@ spelling does not conflict with ini-005's CLI surface. Verification:
     omitted if the implementing work-loop determines it is redundant given the pack entries
     already in the index.
 
-- [ ] AC12: `packages/agentbundle/agentbundle/_data/catalogue-index.schema.json` is
+- [x] AC12: `packages/agentbundle/agentbundle/_data/catalogue-index.schema.json` is
   byte-identical to `contracts/catalogue-index.schema.json`. This is verified by the
   existing `check_contract_parity.py` tool after the new schema is added to its scope.
 
-- [ ] AC13: A Python unit test asserts: (a) `contracts/catalogue-index.schema.json` parses
+- [x] AC13: A Python unit test asserts: (a) `contracts/catalogue-index.schema.json` parses
   as valid JSON; (b) three fixture index documents — normative-fields-only, full fields,
   and invalid missing `schema_version` — produce the expected validation outcomes
   (pass, pass, fail) using `agentbundle.build.validate.validate` (stdlib-only; no
@@ -297,19 +309,29 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 ### Phase C — `agentbundle catalogue index` command
 
-- [ ] AC14: `agentbundle catalogue index [CATALOGUE_ROOT]` exists. `CATALOGUE_ROOT` is
+- [x] AC14: `agentbundle catalogue index [CATALOGUE_ROOT]` exists. `CATALOGUE_ROOT` is
   optional and positional; defaults to `.`. Reads `catalogue.toml` from the root, then
   reads `packs/<name>/pack.toml` and `packs/<name>/JOURNEY.md` for each included pack,
   and `profiles/*.toml` for each included profile.
 
-- [ ] AC15: The command accepts the following flags:
+- [x] AC15: The command accepts the following flags:
   - `--output PATH` — output file path; defaults to `catalogue-index.json` in `CATALOGUE_ROOT`.
   - `--format {table,json}` — controls the command's own stdout (status table or JSON
     command result); does not affect the output file, which is always JSON.
+    The JSON command result is a closed object with exactly
+    `schema_version` (integer `1`), `command` (string `"catalogue index"`),
+    `status` (`"ok"` or `"error"`), `dry_run` (boolean), `output` (written path string
+    or `null` when no file was written), and `diagnostics` (array). Each diagnostic is
+    a closed object with exactly `code`, `message`, and `location` string fields.
+    Success returns an empty diagnostics array; failure returns at least one diagnostic.
   - `--dry-run` — validates, generates the index in memory, and writes nothing to disk;
     exits 0 on valid index, 1 on validation failure.
+  - `--generated-at <iso8601>` — supplies an RFC 3339 timestamp, normalized to UTC at
+    second precision with a `Z` suffix, and overrides `SOURCE_DATE_EPOCH`. Invalid,
+    date-only, or offset-naive values exit 1 with a structured field diagnostic and no
+    output replacement.
 
-- [ ] AC16: The generated `catalogue-index.json`:
+- [x] AC16: The generated `catalogue-index.json`:
   - Passes `contracts/catalogue-index.schema.json` validation before being written.
   - Is deterministic by default: two invocations with identical input and no timestamp
     flag produce byte-identical output. `generated_at` is omitted unless
@@ -319,7 +341,7 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   - Is UTF-8 with a final newline.
   - Is sorted: packs alphabetically by name; profiles alphabetically by name.
 
-- [ ] AC17: `digest` for each pack entry is the SHA-256 hex digest of the sorted,
+- [x] AC17: `digest` for each pack entry is the SHA-256 hex digest of the sorted,
   UTF-8-encoded concatenation of `<relative-path>:<sha256-of-file-bytes>\n` for every
   distributed pack source file in the pack directory tree. The digest must include
   dot-prefixed paths — canonical pack implementation lives under `.apm/**`,
@@ -343,13 +365,13 @@ spelling does not conflict with ini-005's CLI surface. Verification:
   directory cannot be read. Wave 5 reuses this same library implementation for
   mutation-refusal comparison.
 
-- [ ] AC18: `packs[].integrations` is populated from `[[pack.integrations]]` entries in
+- [x] AC18: `packs[].integrations` is populated from `[[pack.integrations]]` entries in
   the pack's `pack.toml` when present; otherwise an empty array. `packs[].integrations_inverse`
   is populated by scanning all other packs' integration entries for references to this
   pack; otherwise an empty array. (Both fields are empty arrays in a Wave 4 catalogue
   that predates Wave 2.)
 
-- [ ] AC19: Exit codes:
+- [x] AC19: Exit codes:
   - 0: success (file written or dry-run clean)
   - 0: optional JOURNEY.md keys absent — not a failure; no diagnostic emitted. The
     parser returns `(data, [])` for this case; `test_optional_keys_absent_no_warning`
@@ -360,17 +382,28 @@ spelling does not conflict with ini-005's CLI surface. Verification:
     written; structured diagnostic emitted naming the offending pack); JOURNEY.md
     present and missing one or more required frontmatter keys (fail-closed; same);
     catalogue-index schema validation failure (output names the failing field and
-    value); file write failure; unreadable pack directory
+    value); malformed or unreadable catalogue.toml, pack.toml, profile TOML, or
+    JOURNEY.md; invalid `SOURCE_DATE_EPOCH`; file write failure; unreadable pack
+    directory; nonexistent or unreadable `CATALOGUE_ROOT`. Every failure emits a
+    structured diagnostic with a confined relative path or field name, returns without
+    a traceback, and leaves any existing output unchanged. Under `--format json`, a
+    failure uses AC15's exact closed result object with `status: "error"`, `output: null`,
+    and one or more exact `{code, message, location}` diagnostic objects.
   - 2: CLI usage error (invalid flag, missing required argument)
 
-- [ ] AC20: The command makes no network requests. It does not invoke subprocesses. It
-  reads only files within `CATALOGUE_ROOT` (path-safety validation as per `scaffold.py`
-  precedent).
+- [x] AC20: The command makes no network requests. It does not invoke subprocesses. It
+  reads catalogue inputs only within `CATALOGUE_ROOT`. Every TOML, JOURNEY.md, content,
+  and digest read rejects symlinks, parent-symlink escapes, Windows junctions/reparse
+  points, and non-regular files through the repository's confined-file helpers. The
+  bundled adapter and index-schema resources are the only reads outside the catalogue
+  root. Default and relative output paths remain confined to `CATALOGUE_ROOT`; explicit
+  absolute output paths are allowed because the user selected the destination, but the
+  writer rejects symlink/reparse destinations and uses no-follow atomic replacement.
 
-- [ ] AC21: `agentbundle catalogue --help` shows `index` in the catalogue subcommand list.
+- [x] AC21: `agentbundle catalogue --help` shows `index` in the catalogue subcommand list.
   `agentbundle catalogue index --help` exits 0 and documents all flags.
 
-- [ ] AC22: Integration test: run `agentbundle catalogue index` against a test fixture
+- [x] AC22: Integration test: run `agentbundle catalogue index` against a test fixture
   catalogue containing two packs (one with JOURNEY.md, one without) and one profile.
   Assert: output file exists, parses as JSON, validates against the schema, pack with
   JOURNEY.md has non-empty `journeys`, pack without JOURNEY.md has empty `journeys`,
@@ -379,26 +412,28 @@ spelling does not conflict with ini-005's CLI surface. Verification:
 
 ### Phase D — First-party JOURNEY.md files
 
-- [ ] AC23: `packs/core/JOURNEY.md` is present and passes the required-frontmatter
+- [x] AC23: `packs/core/JOURNEY.md` is present and passes the required-frontmatter
   check (AC1 keys present). Migration conformance (AC5) applies — this file predates
   the formal convention.
 
-- [ ] AC24: `packs/governance-extras/JOURNEY.md` is present and passes the
+- [x] AC24: `packs/governance-extras/JOURNEY.md` is present and passes the
   required-frontmatter check.
 
-- [ ] AC25: At minimum two additional packs have JOURNEY.md files that pass the
+- [x] AC25: At minimum two additional packs have JOURNEY.md files that pass the
   required-frontmatter check. Candidates: `packs/desk-research/JOURNEY.md` and
   `packs/architect/JOURNEY.md` (both exist at HEAD). Verify before implementing;
   use any two that exist and pass.
 
-- [ ] AC26: `agentbundle catalogue index` run against the first-party catalogue exits 0
+- [x] AC26: `agentbundle catalogue index` run against the first-party catalogue exits 0
   with no validation errors. All packs that have JOURNEY.md files produce non-empty
   `journeys` in the generated index. The four packs named in AC23–AC25 each appear in
   the output with at minimum `name`, `version`, `scope`, and a non-empty `journeys` array.
+  An automated live-catalogue assertion enumerates `packs/*/JOURNEY.md` dynamically and
+  proves every matching pack entry has a non-empty `journeys` array.
 
 ### Phase E — Authoring hub update
 
-- [ ] AC27: `guides/_shared/reference/catalogue-authoring-standards.md` § "Journey format"
+- [x] AC27: `guides/_shared/reference/catalogue-authoring-standards.md` § "Journey format"
   no longer contains the "not yet available" placeholder. The section includes:
   - A one-paragraph summary of the JOURNEY.md convention.
   - A reference to `packs/<pack>/JOURNEY.md` as the file location.
@@ -406,33 +441,36 @@ spelling does not conflict with ini-005's CLI surface. Verification:
     as the machine contract that indexes journey data.
   - A pointer to the `agentbundle catalogue index` command for generating the neutral index.
 
-- [ ] AC28: The authoring hub contains no host CI workflow requirements, Make targets,
+- [x] AC28: The authoring hub contains no host CI workflow requirements, Make targets,
   or internal RFC/ADR/spec path citations in the updated section. Every guide-to-guide
   link resolves from within the scaffold.
 
 ### Phase F — Engine change and release markers
 
-- [ ] AC29: `packages/agentbundle/pyproject.toml` version is bumped to the next available
+- [x] AC29: `packages/agentbundle/pyproject.toml` version is bumped to the next available
   AgentBundle minor version after inspecting current HEAD at implementation time (Wave 2
   shipped as `0.27.0`; Wave 3 targets `0.28.0`; Wave 4 takes the next unclaimed minor
   after both — verify before opening the PR).
   `packages/agentbundle/agentbundle/version.py` `CLI_VERSION` is set to match in lockstep.
 
-- [ ] AC30: Every commit that modifies `agentbundle/_data/` or adds the new CLI command
-  includes `Engine-Change-RFC: RFC-0076` in the commit message footer.
+- [x] AC30: The final handoff includes the required commit footer
+  `Engine-Change-RFC: RFC-0076` for the human-owned commit. The implementation does not
+  stage, commit, rebase, or otherwise mutate Git metadata.
 
-- [ ] AC31: `docs/product/changelog.md` has an `[Unreleased]` or `<VER>` entry covering:
+- [x] AC31: `docs/product/changelog.md` has an `[Unreleased]` or `<VER>` entry covering:
   new `catalogue index` command; `catalogue-index.schema.json` bundled in `_data/`;
-  version bump. (User-visible entries land in `docs/product/changelog.md`, not
-  `packages/agentbundle/CHANGELOG.md`.)
+  version bump. The release-bearing package also updates
+  `packages/agentbundle/CHANGELOG.md` and `packages/agentbundle/README-pypi.md`, as
+  required by the package release convention; the product changelog remains the
+  catalogue-wide user-visible release record.
 
 ### Regression
 
-- [ ] AC32: `SKIP_SAST=1 make build-check` exits 0, including the `check-contract-parity`
+- [x] AC32: `SKIP_SAST=1 make build-check` exits 0, including the `check-contract-parity`
   step (which now verifies `catalogue-index.schema.json` parity).
-- [ ] AC33: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0.
-- [ ] AC34: `wc -l packs/AGENTS.md` ≤ 150 (CI enforces; verify after any edit).
-- [ ] AC35: `wc -l AGENTS.md` ≤ 250 (CI enforces; verify after any edit).
+- [x] AC33: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0.
+- [x] AC34: `wc -l packs/AGENTS.md` ≤ 150 (CI enforces; verify after any edit).
+- [x] AC35: `wc -l AGENTS.md` ≤ 250 (CI enforces; verify after any edit).
 
 ## Assumptions
 

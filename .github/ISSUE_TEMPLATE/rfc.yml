@@ -5,9 +5,14 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use this template **only** if the change touches multiple packages,
-        affects external users, reverses a previous ADR, or modifies a
-        top-level convention. For everything else, just open a PR.
+        Use this template **only** when the direction is unresolved and more
+        than one owner has to agree, or you want a proposal circulated. Charter
+        mission and scope, who may approve work, security trust models, and
+        breaking a published compatibility promise are always reserved.
+        Touching several packages, affecting users, renaming a top-level
+        directory, or editing a convention is not on its own a reason — those
+        raise review depth. A settled decision belongs in an ADR; routine and
+        behaviour-preserving work belongs in a PR.
 
         See [`docs/CONVENTIONS.md`](../docs/CONVENTIONS.md) for the
         RFC vs. ADR vs. spec vs. PR decision tree.

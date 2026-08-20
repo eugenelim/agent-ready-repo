@@ -1,0 +1,765 @@
+{
+  "_note": "Captured from the pre-change CLIs. `before` is observed; `after` is authored and present only on rows declaring a change_reason from golden_support.CHANGE_REASONS. Streams are normalized through golden_support.normalize at capture and compare time.",
+  "_not_capturable": "One artifact-integrity case has NO recordable `before`: a FIFO at spec.md or plan.md. The pre-change `read_text()` blocks on it indefinitely (verified with SIGALRM), so there is no exit code to capture \u2014 which is itself the strongest evidence for the bounded reader, since that unbounded block would sit inside the engine's critical section once the guards run in-process. It is covered by T1a's direct API tests rather than by a golden row.",
+  "rows": [
+    {
+      "key": "identity/ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "identity",
+        "<SPEC_DIR>",
+        "--expect-run-id",
+        "11111111-2222-3333-4444-555555555555"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: run_id=<RUN_ID_1> schema_version=1",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "identity/ok-json",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "identity",
+        "<SPEC_DIR>",
+        "--expect-run-id",
+        "11111111-2222-3333-4444-555555555555",
+        "--json"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "{\"run_id\": \"<RUN_ID_1>\", \"schema_version\": 1}",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "identity/run-id-mismatch",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "identity",
+        "<SPEC_DIR>",
+        "--expect-run-id",
+        "99999999-8888-7777-6666-555555555555"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 identity: run_id mismatch (stored='<RUN_ID_1>', expected='<RUN_ID_2>')"
+      }
+    },
+    {
+      "key": "identity/unsupported-schema",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "identity",
+        "<SPEC_DIR>",
+        "--expect-run-id",
+        "11111111-2222-3333-4444-555555555555"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 identity: unsupported schema_version=99 (expected 1)"
+      }
+    },
+    {
+      "key": "identity/absent-state",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "identity",
+        "<SPEC_DIR>",
+        "--expect-run-id",
+        "11111111-2222-3333-4444-555555555555"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 state.json missing at <SPEC_DIR>/state.json"
+      }
+    },
+    {
+      "key": "plan-check-current/pending",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan_review_status: pending"
+      },
+      "note": "the one refusal with no verb prefix"
+    },
+    {
+      "key": "plan-check-current/ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: plan check-current OK for plan-ok",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "plan-check-current/ok-require-schedule",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>",
+        "--require-schedule"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: plan check-current OK for plan-ok",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "plan-check-current/spec-drift",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: spec.md no longer matches the approved baseline \u2014 either the approved scope changed, or this baseline was pinned before canonical hashing landed. For the second case, recover the cohort only: (1) restore `Status: Approved` in BOTH spec.md and plan.md \u2014 approve-plan refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; (3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from `loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> --expect-run-id <run_id>`; (5) restore the Status you were on. Do NOT run `loop-engine reset` \u2014 `plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting verb, so resetting it strands the run. Note the reset clears the retry counters and the stasis baseline, and re-running approve-plan re-pins whatever is on disk, so it is a re-approval in substance (approved='<SHA256_1>' current='<SHA256_2>')"
+      }
+    },
+    {
+      "key": "plan-check-current/plan-drift",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: plan.md no longer matches the approved baseline \u2014 either the approved scope changed, or this baseline was pinned before canonical hashing landed. For the second case, recover the cohort only: (1) restore `Status: Approved` in BOTH spec.md and plan.md \u2014 approve-plan refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; (3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from `loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> --expect-run-id <run_id>`; (5) restore the Status you were on. Do NOT run `loop-engine reset` \u2014 `plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting verb, so resetting it strands the run. Note the reset clears the retry counters and the stasis baseline, and re-running approve-plan re-pins whatever is on disk, so it is a re-approval in substance (approved='<SHA256_1>' current='<SHA256_2>')"
+      }
+    },
+    {
+      "key": "plan-check-current/missing-spec",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: spec.md not found at <SPEC_DIR>/spec.md"
+      }
+    },
+    {
+      "key": "plan-check-current/missing-plan",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: plan.md not found at <SPEC_DIR>/plan.md"
+      }
+    },
+    {
+      "key": "plan-check-current/status-regressed",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: spec.md Status is 'Draft'; expected one of ['Approved', 'Implementing', 'Shipped'] after approval"
+      }
+    },
+    {
+      "key": "plan-check-current/empty-waves-require-schedule",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>",
+        "--require-schedule"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: schedule_waves is empty (run schedule first)"
+      }
+    },
+    {
+      "key": "plan-check-current/wave-index-out-of-range",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>",
+        "--require-schedule"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: current_wave_index=9 out of range [0, 2)"
+      }
+    },
+    {
+      "key": "plan-check-current/plan-hash-not-scheduled",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>",
+        "--require-schedule"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 plan check-current: plan_hash != approved_plan_hash (schedule not run or run on a different plan version); either the approved scope changed, or this baseline was pinned before canonical hashing landed. For the second case, recover the cohort only: (1) restore `Status: Approved` in BOTH spec.md and plan.md \u2014 approve-plan refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; (3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from `loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> --expect-run-id <run_id>`; (5) restore the Status you were on. Do NOT run `loop-engine reset` \u2014 `plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting verb, so resetting it strands the run. Note the reset clears the retry counters and the stasis baseline, and re-running approve-plan re-pins whatever is on disk, so it is a re-approval in substance"
+      }
+    },
+    {
+      "key": "schedule-check-current/ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "schedule",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: schedule check-current OK for sched-ok",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "schedule-check-current/plan-hash-drift",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "schedule",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 schedule check-current: plan.md no longer matches the scheduled baseline \u2014 either the approved scope changed, or this baseline was pinned before canonical hashing landed. For the second case, recover the cohort only: (1) restore `Status: Approved` in BOTH spec.md and plan.md \u2014 approve-plan refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; (3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from `loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> --expect-run-id <run_id>`; (5) restore the Status you were on. Do NOT run `loop-engine reset` \u2014 `plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting verb, so resetting it strands the run. Note the reset clears the retry counters and the stasis baseline, and re-running approve-plan re-pins whatever is on disk, so it is a re-approval in substance (stored='<SHA256_1>' current='<SHA256_2>')"
+      }
+    },
+    {
+      "key": "schedule-check-current/missing-plan",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "schedule",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 schedule check-current: plan.md not found at <SPEC_DIR>/plan.md"
+      }
+    },
+    {
+      "key": "schedule-check-current/plan-status-illegal",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "schedule",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 schedule check-current: plan.md Status is 'Drafting'; expected one of ['Approved', 'Executing', 'Done'] after approval"
+      }
+    },
+    {
+      "key": "schedule-check-current/absent-state",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "schedule",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 state.json missing at <SPEC_DIR>/state.json"
+      }
+    },
+    {
+      "key": "check/implement-ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "implement"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check/implement-absent-state",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "implement"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 state.json missing at <SPEC_DIR>/state.json"
+      },
+      "note": "read_state refuses BEFORE the implement stub \u2014 not a total no-op"
+    },
+    {
+      "key": "check/review-under-cap",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check/review-at-cap",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 review retry cap reached (5/5); reset and start a new run"
+      }
+    },
+    {
+      "key": "check/gates-failed-under-cap",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "gates-failed"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check/gates-failed-at-cap",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "gates-failed"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 implementation retry cap reached (5/5); reset and start a new run"
+      }
+    },
+    {
+      "key": "check/unsupported-schema-non-implement",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 check: unsupported schema_version=99 (expected 1); run reset pair"
+      }
+    },
+    {
+      "key": "check/review-string-typed-count",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "note": "int('1') coerces today; AC8 validates type and refuses",
+      "change_reason": "numeric-coercion",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "check/review-float-typed-count",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "note": "int(1.7) truncates to 1 today; AC8 refuses a non-int",
+      "change_reason": "numeric-coercion",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "check/review-negative-count",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "check",
+        "<SPEC_DIR>",
+        "--phase",
+        "review"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "note": "negative passes the cap comparison today; AC8 requires non-negative",
+      "change_reason": "numeric-coercion",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "wave-check/more-ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "more"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: wave check more \u2014 wave_index=0 has more waves (total=2)",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "wave-check/more-ok-with-index",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "more",
+        "--wave-index",
+        "0"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: wave check more \u2014 wave_index=0 has more waves (total=2)",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "wave-check/last-not-last",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "last"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 wave check last: not the last wave (current=0, total=2)"
+      }
+    },
+    {
+      "key": "wave-check/index-mismatch",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "more",
+        "--wave-index",
+        "1"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 wave check: current_wave_index=0 does not match --wave-index 1"
+      }
+    },
+    {
+      "key": "wave-check/last-ok",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "last"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: wave check last \u2014 wave_index=1 is the last wave (total=2)",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "wave-check/more-no-more",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "more"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 wave check more: no more waves (current=1, total=2)"
+      }
+    },
+    {
+      "key": "wave-check/absent-state",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "wave",
+        "check",
+        "<SPEC_DIR>",
+        "--expect",
+        "last"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "loop-cohort: stop \u2014 state.json missing at <SPEC_DIR>/state.json"
+      }
+    },
+    {
+      "key": "check-spec-status/default-shipped-ok",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Shipped at <SPEC_DIR>/spec.md",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check-spec-status/default-draft-refuses",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "check-spec-status: spec.md Status is 'Draft', expected 'Shipped'"
+      }
+    },
+    {
+      "key": "check-spec-status/expect-approved-ok",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Approved at <SPEC_DIR>/spec.md",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check-spec-status/expect-approved-plan-ok",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved",
+        "--file",
+        "plan.md"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Approved at <SPEC_DIR>/plan.md",
+        "stderr": ""
+      }
+    },
+    {
+      "key": "check-spec-status/absent-spec",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "check-spec-status: spec.md not found at <SPEC_DIR>/spec.md"
+      }
+    },
+    {
+      "key": "check-spec-status/no-status-line",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "check-spec-status: no **Status:** line found in <SPEC_DIR>/spec.md"
+      }
+    },
+    {
+      "key": "check-spec-status/file-escapes-spec-dir",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--file",
+        "../outside.md"
+      ],
+      "before": {
+        "returncode": 1,
+        "stdout": "",
+        "stderr": "check-spec-status: --file must be within spec-dir"
+      }
+    },
+    {
+      "key": "check-spec-status/file-multi-component-inside",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved",
+        "--file",
+        "sub/spec.md"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Approved at <SPEC_DIR>/sub/spec.md",
+        "stderr": ""
+      },
+      "note": "succeeds today (is_relative_to passes); AC9 requires a single component",
+      "change_reason": "file-narrowing",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "check-spec-status/symlinked-spec-md",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Approved at <SPEC_DIR>/real-spec.md",
+        "stderr": ""
+      },
+      "note": "resolves inside spec_dir so is_relative_to passes and read_text follows it today; O_NOFOLLOW refuses it after",
+      "change_reason": "artifact-integrity",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "plan-check-current/symlinked-plan-md",
+      "tool": "loop-cohort.py",
+      "argv": [
+        "plan",
+        "check-current",
+        "<SPEC_DIR>"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "loop-cohort: plan check-current OK for integ-symlink-plan",
+        "stderr": ""
+      },
+      "note": "sha256_canonical_contract reads through the symlink today",
+      "change_reason": "artifact-integrity",
+      "after": {
+        "returncode": 1
+      }
+    },
+    {
+      "key": "check-spec-status/oversized-spec-md",
+      "tool": "check-spec-status.py",
+      "argv": [
+        "<SPEC_DIR>",
+        "--expect",
+        "Approved"
+      ],
+      "before": {
+        "returncode": 0,
+        "stdout": "check-spec-status: OK \u2014 Status: Approved at <SPEC_DIR>/spec.md",
+        "stderr": ""
+      },
+      "note": "just over the 8 MiB managed-read cap; unbounded read_text accepts it today",
+      "change_reason": "artifact-integrity",
+      "after": {
+        "returncode": 1
+      }
+    }
+  ]
+}

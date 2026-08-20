@@ -11,6 +11,9 @@ import argparse
 import ast
 import contextlib
 import io
+import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -75,6 +78,275 @@ class PackSkillPytestShapeTest(unittest.TestCase):
         self.assertEqual(failures, [], "\n".join(failures))
 
 
+class BanditRegistryProvisioningTest(unittest.TestCase):
+    """`build-check` installs bandit unconditionally, last, and proves it worked.
+
+    `make build-check` chains `tools/lint-nosec-form.py`, whose unknown-test-id
+    check reads bandit's registry through `id_checker()` and **degrades to an
+    exit-0 caveat** when it cannot. So a provisioning step that quietly does
+    nothing leaves the required check green with that check inert — which is the
+    defect `docs/specs/build-check-coverage-gaps` exists to remove.
+
+    Nothing else pins the step. `tools/lint-ci-parity.py`'s roster only demands
+    a disposition for steps that *exist*, so deleting the step together with its
+    `STEP_DISPOSITION` row passes the parity gate in both directions.
+
+    The step body is **executed**, not pattern-matched: `pip` is stubbed so the
+    run is offline, and the cases below are its negative controls. The full
+    mutation set — body-level and workflow-level — is enumerated once, in
+    `docs/specs/build-check-coverage-gaps/spec.md` AC4b; it is not restated
+    here, so the number cannot drift between the two. An assertion never seen to
+    fail is an unverified one, and this file's older `workflow.index(...)` cases
+    are exactly the source-substring shape
+    `docs/knowledge/observations/antipattern/2026-08.jsonl` warns about.
+    """
+
+    STEP = "Install bandit unconditionally (lint-nosec-form's ID registry)"
+    GATE = "Run make build-check"
+
+    @classmethod
+    def _parse_steps(cls, text: str) -> list[dict]:
+        """Return `build-check.yml`'s steps as {name, has_if, run} dicts.
+
+        Hand-parsed rather than PyYAML on purpose. This module is pure stdlib
+        (AGENTS.md § New tool scripts) AND runs in Gate F of
+        catalogue-tooling-ci-gates.yml, whose job installs only agentbundle —
+        which declares no dependencies — so importing yaml here fails at
+        collection there. A pin that cannot run in one of the two jobs that run
+        it is not a pin.
+
+        Only the fixed shape of a steps list is read: a step opens at six
+        spaces + "- ", its keys sit at eight, and a block scalar's body sits
+        deeper. That is structure, not a substring search for the control.
+        """
+        steps: list[dict] = []
+        lines = text.splitlines()
+        index = 0
+        while index < len(lines) and lines[index] != "    steps:":
+            index += 1
+        index += 1
+        current: dict | None = None
+        run_indent: int | None = None
+        for line in lines[index:]:
+            stripped = line.strip()
+            if line and not line.startswith("      ") and stripped:
+                break  # dedented out of the steps list
+            if line.startswith("      - "):
+                current = {
+                    "name": None, "has_if": False, "run": None,
+                    "style": None, "continue_on_error": False,
+                }
+                steps.append(current)
+                run_indent = None
+                # Re-indent the first key onto the eight-space level the rest of
+                # the step's keys sit at, and re-strip: `stripped` above still
+                # carries the "- " that would otherwise land in the key name.
+                line = "        " + line[8:]
+                stripped = line.strip()
+            if current is None:
+                continue
+            if run_indent is not None:
+                if not stripped or len(line) - len(line.lstrip(" ")) >= run_indent:
+                    current["run"].append(line[run_indent:])
+                    continue
+                current["run"] = cls._join(current["run"], current["style"])
+                run_indent = None
+            if line.startswith("        ") and not line.startswith("         "):
+                key, _, value = stripped.partition(":")
+                if key == "name":
+                    current["name"] = value.strip()
+                elif key == "if":
+                    current["has_if"] = True
+                elif key == "continue-on-error":
+                    current["continue_on_error"] = value.strip() not in ("false", "")
+                elif key == "run" and value.strip() in ("|", "|-", ">-", ">"):
+                    current["run"] = []
+                    current["style"] = value.strip()
+                    run_indent = 10
+                elif key == "run":
+                    current["run"] = value.strip()
+                    current["style"] = "plain"
+        for step in steps:
+            if isinstance(step["run"], list):
+                step["run"] = cls._join(step["run"], step["style"])
+        return steps
+
+    @staticmethod
+    def _join(body: list[str], style: str | None) -> str:
+        """Join a block scalar's lines the way YAML would, per its style.
+
+        `|` keeps newlines; `>` folds a single newline to a space (blank lines
+        stay newlines). Getting this wrong is not cosmetic: a folded body run as
+        if it were literal is a different script — `set -euo pipefail pin=…` on
+        one line, which bash rejects — so a test that "executes the real body"
+        would be executing something GitHub never runs.
+        """
+        if style in (">", ">-"):
+            out: list[str] = []
+            for line in body:
+                if not line.strip():
+                    out.append("\n")
+                elif out and out[-1] != "\n":
+                    out[-1] = out[-1] + " " + line.strip()
+                else:
+                    out.append(line.strip())
+            return "".join(out).strip()
+        return "\n".join(body).rstrip("\n")
+
+    def setUp(self):
+        self.root = Path(__file__).resolve().parents[1]
+        self.steps = self._parse_steps(
+            (self.root / ".github/workflows/build-check.yml").read_text(encoding="utf-8")
+        )
+        self.names = [step["name"] for step in self.steps]
+        # The parse itself must not be the thing that silently breaks: if the
+        # workflow's shape ever stops matching, this fails loudly here rather
+        # than reporting an absent step.
+        self.assertGreater(len(self.steps), 30, "step parse collapsed")
+        self.assertIn(self.GATE, self.names, "step parse lost a known step")
+
+    def _step(self):
+        self.assertIn(
+            self.STEP, self.names,
+            "the unconditional bandit install is gone; lint-nosec-form's "
+            "unknown-id check is inert again and no other gate notices",
+        )
+        return self.steps[self.names.index(self.STEP)]
+
+    def _run_body(self, cwd: Path, extra_env: dict[str, str] | None = None):
+        """Run the real step body with `pip` stubbed out. Returns CompletedProcess."""
+        bash = shutil.which("bash")
+        if bash is None:  # pragma: no cover - POSIX runners always have it
+            self.skipTest("bash unavailable; the step body is a bash script")
+        holder = tempfile.TemporaryDirectory()
+        self.addCleanup(holder.cleanup)
+        stub = Path(holder.name) / "bin"
+        stub.mkdir()
+        (stub / "pip").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        (stub / "pip").chmod(0o755)
+        (stub / "python").write_text(
+            f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8"
+        )
+        (stub / "python").chmod(0o755)
+        env = dict(os.environ, PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+        env.update(extra_env or {})
+        return subprocess.run(  # noqa: S603
+            [bash, "-c", self._step()["run"]],
+            cwd=cwd, env=env, capture_output=True, text=True, check=False,
+        )
+
+    def test_step_is_unconditional_and_immediately_precedes_the_gate(self):
+        index = self.names.index(self._step()["name"])
+        self.assertFalse(
+            self._step()["has_if"],
+            "an `if:` here is what made the bandit install skippable in the "
+            "first place; the whole point is that it is not",
+        )
+        self.assertIn(self.GATE, self.names)
+        self.assertFalse(
+            self._step()["continue_on_error"],
+            "continue-on-error neuters the step as completely as deleting it, "
+            "and neither lint-ci-parity nor the position check notices",
+        )
+        self.assertEqual(
+            self._step()["style"], "|",
+            "the body below is executed verbatim; a folded scalar would run as "
+            "one line and is a different script",
+        )
+        self.assertEqual(
+            self.names[index + 1], self.GATE,
+            "another step between the install and the gate can replace a shared "
+            "transitive dependency of bandit while exiting 0",
+        )
+
+    def test_step_body_passes_against_the_real_tree(self):
+        try:
+            import bandit.core.extension_loader  # noqa: F401,PLC0415
+        except Exception:  # noqa: BLE001 - a broken plugin raises more than ImportError
+            self.skipTest("bandit not installed; the positive control needs it")
+        result = self._run_body(self.root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("bandit", result.stdout)
+
+    def test_step_body_fails_when_the_requirements_file_names_no_bandit(self):
+        """`pip install ""` exits 0 with no output — the substitution must fail first."""
+        holder = tempfile.TemporaryDirectory()
+        self.addCleanup(holder.cleanup)
+        fake = Path(holder.name)
+        (fake / "tools").mkdir()
+        (fake / "tools/requirements-sast.txt").write_text(
+            "pip-audit>=2.10,<3\nsemgrep>=1.166,<2\n", encoding="utf-8"
+        )
+        result = self._run_body(fake)
+        self.assertNotEqual(result.returncode, 0)
+        # Assert the cause, not just the exit code: with bandit absent (Gate F's
+        # env, where the positive control skips) a step that can never succeed
+        # for an unrelated reason would satisfy a bare non-zero check.
+        self.assertNotIn("installing pinned:", result.stdout)
+
+    def _bandit_shim(self, extension_loader_source: str) -> str:
+        holder = tempfile.TemporaryDirectory()
+        self.addCleanup(holder.cleanup)
+        shim = Path(holder.name)
+        (shim / "bandit" / "core").mkdir(parents=True)
+        (shim / "bandit/__init__.py").write_text("", encoding="utf-8")
+        (shim / "bandit/core/__init__.py").write_text("", encoding="utf-8")
+        (shim / "bandit/core/extension_loader.py").write_text(
+            extension_loader_source, encoding="utf-8"
+        )
+        return str(shim)
+
+    def test_step_body_fails_when_the_bandit_registry_is_unusable(self):
+        """`id_checker()` swallows every exception, so an API move must fail here."""
+        holder = tempfile.TemporaryDirectory()
+        self.addCleanup(holder.cleanup)
+        shim = Path(holder.name)
+        (shim / "bandit").mkdir()
+        (shim / "bandit/__init__.py").write_text("", encoding="utf-8")
+        result = self._run_body(self.root, {"PYTHONPATH": str(shim)})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        # It got past the grep and the install, and died on the import.
+        self.assertIn("installing pinned:", result.stdout)
+        self.assertIn("bandit.core", result.stderr)
+
+    def test_step_body_fails_when_the_registry_resolves_every_id(self):
+        """The probe's second direction, which the other cases cannot reach.
+
+        A `check_id` that says yes to everything satisfies the real-id half and
+        would leave `lint-nosec-form` reporting no unknown ids while resolving
+        `B999` — the same silent pass, from the opposite direction. Without this
+        case, deleting ` or loader.MANAGER.check_id("B999")` from the probe
+        leaves the suite green; measured.
+        """
+        shim = self._bandit_shim(
+            "class _Manager:\n"
+            "    def check_id(self, test_id):\n"
+            "        return True\n"
+            "MANAGER = _Manager()\n"
+        )
+        result = self._run_body(self.root, {"PYTHONPATH": shim})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("did not resolve as lint-nosec-form", result.stderr)
+
+    def test_step_body_fails_when_the_registry_resolves_nothing(self):
+        """The probe's first direction, so neither half can be deleted unnoticed.
+
+        An importable registry that resolves no id is not the silent-pass shape
+        — `lint-nosec-form` would flag every valid suppression instead — but
+        without this case the `check_id("B307")` half of the probe can be
+        removed and the suite stays green. Both halves get a negative control.
+        """
+        shim = self._bandit_shim(
+            "class _Manager:\n"
+            "    def check_id(self, test_id):\n"
+            "        return False\n"
+            "MANAGER = _Manager()\n"
+        )
+        result = self._run_body(self.root, {"PYTHONPATH": shim})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("did not resolve as lint-nosec-form", result.stderr)
+
+
 class CiPytestProvisioningTest(unittest.TestCase):
     """CI provisions pytest before entering pytest-backed gate paths."""
 
@@ -82,10 +354,16 @@ class CiPytestProvisioningTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/build-check.yml").read_text(encoding="utf-8")
 
-        install = workflow.index(
+        # Scoped to the gate-main block. Both offsets used to be file-wide
+        # index() calls, and after spec/ci-gate-parallelization split this workflow
+        # the install string exists in gate-main AND gate-export-boundary — the pair
+        # compared the right occurrences only because gate-main is declared first.
+        block = workflow.split("  gate-main:\n", 1)[1].split("\n  gate-sast:\n", 1)[0]
+
+        install = block.index(
             "run: python -m pip install -e packages/agentbundle/ pytest"
         )
-        build_check = workflow.index("- name: Run make build-check")
+        build_check = block.index("- name: Run make build-check")
 
         self.assertLess(install, build_check)
 
@@ -200,6 +478,8 @@ EXPECTED_SCRIPT_STEPS = [
     ".claude/skills/work-loop/scripts/lint-traceability.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
+    "tools/catalogue/tests/test_verify_host_checks.py",
+    "tools/catalogue/verify_host_checks.py",
     "tools/test-lint-catalogue-curation-guard.py",
     "tools/lint-catalogue-curation-guard.py",
     "tools/test-lint-experience-agnostic.py",
@@ -226,9 +506,18 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-nosec-form.py",
     "tools/test-lint-ci-parity.py",
     "tools/test-build-check-windows-workflow.py",
+    "tools/test-build-check-workflow.py",
+    "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",
+    # lint-performance-p0 (ADR-0087)
+    "tools/test-lint-git-ignore.py",
+    "tools/lint-no-direct-check-ignore.py",
+    "tools/test-lint-no-direct-check-ignore.py",
+    "tools/test-lint-boundary-golden.py",
+    "tools/test-lint-boundary-structural.py",
+    "tools/test-lint-agents-md-gitignore-probes.py",
 ]
 
 EXPECTED_PRE_PR_REPO_STEPS = [
@@ -295,6 +584,18 @@ EXPECTED_PRE_PR_REPO_STEPS = [
     (
         "journey-contract lint self-test",
         [sys.executable, "tools/test-lint-journey-contract.py"],
+    ),
+    # One gate, not one per pack: pack discovery moved into the shared script so
+    # the Linux aggregator and the Windows compat suite cannot drift into
+    # scanning different pack sets.
+    (
+        "okf compiler checks",
+        [
+            sys.executable,
+            str(gc.REPO_ROOT / "tools" / "check-okf-managed-packs.py"),
+            "--root",
+            str(gc.REPO_ROOT),
+        ],
     ),
 ]
 

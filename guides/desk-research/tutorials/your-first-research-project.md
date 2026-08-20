@@ -1,3 +1,10 @@
+---
+title: Your first research project
+summary: Build a durable source corpus and finish with a cited, confidence-graded brief ready for a decision-maker.
+pack: desk-research
+kind: tutorial
+---
+
 # Your first research project
 
 **What you'll build:** A complete research project folder with a self-contained, cited brief ready to hand to a decision-maker.

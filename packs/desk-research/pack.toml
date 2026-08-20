@@ -1,6 +1,6 @@
 [pack]
 name = "desk-research"
-version = "1.1.4"
+version = "1.1.5"
 description = "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over."
 readme = "README.md"
 display_name = "Desk Research"
@@ -100,3 +100,14 @@ starter-task     = "Start a research project on a topic relevant to your work"
 starter-prompt   = "Start a desk research project on the competitive landscape for our product category."
 expected-result  = "A research project folder in docs/product/research/ with a structured brief and source tracking file."
 next-action      = "Run desk-research-project-digest to get a synthesized summary when you have collected enough sources."
+
+[[pack.integrations]]
+id        = "project-knowledge-research-handoff"
+pack      = "core"
+kind      = "handoff"
+role      = "Terminal research capture and bounded counter-review enquiry"
+consumers = ["skill:desk-research", "skill:desk-research-project-synthesize", "skill:devils-advocate"]
+providers = ["skill:project-knowledge"]
+when      = "A repository-contained episodic survey or project synthesis reaches its exact terminal gate with reusable residue, or counter-review declares one bounded CQ-REVIEW enquiry after target and scope are fixed."
+purpose   = "Use core's public typed capture and receipt-scoped distillation for reusable research practice, and its read-only enquiry seam for untrusted candidate checks without changing research authority."
+fallback  = "If the provider is absent, emit project-knowledge unavailable and complete research without fallback persistence; personal or external outputs remain capture-ineligible."

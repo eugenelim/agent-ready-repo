@@ -1,6 +1,6 @@
 # Plan: catalogue-verifier-correctness
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Mode and declined patterns
@@ -20,6 +20,9 @@ Declined:
   deterministic projection derived from source, not a subprocess.
 - Tempted to add new verification steps beyond 19; declining — step additions require
   RFC or a separate spec.
+- Tempted to add step-11 validation and projection rules for agentic
+  `metadata.boundaries`; declining — this plan does not change that metadata contract,
+  and adding public verifier behavior would violate the spec's correctness-only boundary.
 - Tempted to emit `return []` with a docstring comment for steps that cannot be
   implemented in this PR; declining — every step must either implement or return a
   single `NotImplemented`-typed finding with a description, never a silent empty list.
@@ -36,8 +39,9 @@ Declined:
   spec (shipped schema sync for profile.schema.json).
 - Domain claim: `_APM_SKILL_BLOCKLIST` in verify.py contains `agent-ready-repo` by name.
   Confirmed by direct read of verify.py at HEAD.
-- Resolve-vs-surface: no open questions; all 11 defects confirmed (PyYAML guard already
-  correct at HEAD — T10 is regression coverage, not a defect fix). Proceeding to implementation.
+- Resolve-vs-surface: pre-EXECUTE review found contract and construction-test gaps. They
+  are resolved in this PLAN revision; implementation remains blocked until the revised
+  spec and plan pass review and receive fresh human approval.
 
 ## Task list
 
@@ -61,7 +65,7 @@ T12  Version + changelog + closeout               Depends on: T0–T11, T2b
 **Wave note:** T0–T10 and T2b all modify `verify.py` and are NOT parallelizable in supervisor
 mode — parallel implementers would conflict on the same file. Execute all tasks sequentially.
 T11 and T12 depend on all prior tasks and must be last.
-Final sequence: T0–T10, T2b (any order but sequential), then T11, then T12.
+Final sequence: T0, T2, T2b, T3–T10 (sequential), then T11, then T12.
 
 ---
 
@@ -75,6 +79,9 @@ Final sequence: T0–T10, T2b (any order but sequential), then T11, then T12.
 
 **Tests (write red first):**
 
+stub: true — materialized in `test_catalogue_verify_step1.py`; collect passes and the
+red assertion fails on raw diagnostic forwarding.
+
 ```python
 class TestStepConfigValidation:
     def test_malformed_catalogue_toml_returns_structured_diagnostic(self, tmp_path):
@@ -83,29 +90,36 @@ class TestStepConfigValidation:
         # assert result contains at least one Diagnostic, does NOT raise an exception
         # (malformed catalogue.toml must not escape as AttributeError or TOMLDecodeError)
         raise NotImplementedError  # STUB: AC0
-    def test_absent_catalogue_toml_still_ok(self, tmp_path):
+    def test_malformed_catalogue_toml_redacts_sensitive_details(self, tmp_path):
+        # malformed config includes a secret-like value and runs under an identifiable root
+        # assert CAT-V-001 contains neither raw exception text, the value, nor absolute root
+        raise NotImplementedError  # construction stub: config diagnostic redaction
+    def test_absent_catalogue_toml_continues_without_step1_diagnostic(self, tmp_path):
         # empty tmp_path — no catalogue.toml
         # call verify_catalogue(tmp_path)
-        # assert result is ok=True (absent = valid; load_catalogue_config() returns None)
-        # regression guard: test_verify_empty_dir_passes must remain green
-        raise NotImplementedError  # STUB: AC0
+        # assert no CAT-V-001; later CAT-V-002 source-identity lint is allowed
+        raise NotImplementedError  # construction stub: missing config continues
 ```
 
 **Approach:**
 
-`verify_catalogue()` currently calls `load_catalogue_config(root)` before entering
-`_VERIFY_STEPS`. If `catalogue.toml` is present but malformed, the TOML parse exception
-escapes the function entirely (including for `--format json`) — `_step_config_validation`
-is a no-op. Note: a missing `catalogue.toml` returns `None` from `load_catalogue_config()`
-(backward-compatible) — do NOT convert that case into an error.
+`verify_catalogue()` calls `load_catalogue_config(root)` before entering `_VERIFY_STEPS`.
+The current partial guard catches `CatalogueConfigError` and returns CAT-V-001, but it
+forwards `str(exc)` directly. That message is not a stable or safe public diagnostic: it
+can contain parser detail, absolute paths, or sensitive configuration text.
+`_step_config_validation` remains a no-op. A missing `catalogue.toml` returns `None` from
+`load_catalogue_config()`; do not convert that case into CAT-V-001. The remaining pipeline
+still runs and may correctly return CAT-V-002 for a missing source-identity contract.
 
-Fix: wrap the pre-loop `load_catalogue_config(root)` call in a try/except; on failure,
-return a result whose first diagnostic is a structured step-1 failure. Do NOT restructure
+Fix: retain the pre-loop `load_catalogue_config(root)` try/except, but replace raw exception
+forwarding with a bounded step-1 message such as `catalogue.toml is invalid`; use the
+repository-relative diagnostic path `catalogue.toml`. Do NOT restructure
 the step protocol by removing the pre-loop load — every subsequent step receives `config`
 from that pre-loop call, and removing it would pass `None` to valid catalogues, silently
 skipping config-dependent lint, schema, build, and drift checks. The guarded pre-load
 is the only correct approach. Do NOT silently swallow the error — return a structured
-finding per the "Boundaries / Never do" rule.
+finding per the "Boundaries / Never do" rule. Tests, rather than new control flow, are the
+main residual for this partially implemented task.
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/integration/test_catalogue_verify_step1.py -q` exits 0.
 
@@ -145,14 +159,12 @@ optional. That lint branch is currently unreachable for the same path reason
 argument is a statement of intent for both gates, not an appeal to live
 behaviour; whoever fixes lint should keep the two aligned.
 
-**Release:** shipped as agentbundle **0.35.3** — a patch, mid-plan. Not the minor
-T12 claims: 0.36.0 is reserved for the rest of this plan and Wave 4's AC29, which
-`workspace.toml` flags as a collision hazard. T12 still bumps a minor on top of
-0.35.3, and its changelog entry covers T0 and T2–T11 only — T1 is already
-published in the 0.35.3 sections of `packages/agentbundle/CHANGELOG.md` and
-`docs/product/changelog.md`.
+**Release:** T1 shipped independently as a patch. T12 derives the next available
+version from the package manifest and current workspace collision notes rather than
+reserving a number in this plan. Its changelog entry covers T0 and T2–T11 only —
+T1 already has its own published changelog sections.
 
-Resume this plan at T2. The rest of the task is left below as the record.
+Resume this plan at T0. The rest of the task is left below as the record.
 
 **Verification mode:** TDD
 
@@ -178,8 +190,10 @@ class TestStepPluginValidation:
         raise NotImplementedError  # STUB: AC2
 ```
 
-Note: all TDD task stubs in this plan that use `...` should be materialized as
-`raise NotImplementedError  # STUB: AC<n>` before EXECUTE begins (CONVENTIONS.md:391-396).
+Note: all open TDD task stubs must be materialized as compilable red tests before
+EXECUTE begins and recorded as `stub: true` in their task. Package tests use
+behavior-named construction-stub comments rather than internal AC identifiers, per
+`packages/AGENTS.local.md`.
 
 **Approach:**
 
@@ -217,6 +231,9 @@ Without this second change, a pack that has only `plugin.json` (wrong path) woul
 
 **Tests (write red first):**
 
+stub: true — materialized in `test_catalogue_verify_profile_schema.py`; collect passes
+and schema/reference/confinement assertions are red.
+
 ```python
 class TestStepProfiles:
     def test_valid_profile_passes(self, tmp_path):
@@ -241,6 +258,14 @@ class TestStepProfiles:
         # a missing pack
         # assert: step 6 still emits a pack-ref finding (config-None does not skip this check)
         raise NotImplementedError  # STUB: AC3
+    def test_invalid_or_traversing_pack_reference_emits_finding(self, tmp_path):
+        # schema-valid profile shape whose pack value violates canonical slug grammar
+        # assert: finding is emitted before any path outside packs_dir is read
+        raise NotImplementedError  # construction stub: invalid pack reference
+    def test_symlink_or_junction_escape_emits_finding(self, tmp_path):
+        # packs/<slug> resolves outside the configured packs root
+        # assert: finding is root-relative and the escaped sentinel is never read
+        raise NotImplementedError  # construction stub: confined pack reference
 ```
 
 **Approach:**
@@ -262,7 +287,15 @@ Extend `_step_profiles` in two passes per profile file:
    Note: `contracts/catalogue.schema.json:74-76` defines `[catalogue.paths].packs` as the
    relative packs-dir path and lint.py honors it; use the same derivation here so a
    catalogue with a custom packs path does not produce false "missing pack" findings.
-   A missing pack directory → finding. This check applies whether `config is None` or not.
+   Validate the referenced name against the canonical pack-name grammar before joining it
+   to `packs_dir`. Resolve both the root and candidate and require the candidate to remain
+   beneath the canonical root; reject absolute/traversing values and symlink or Windows
+   junction escapes without reading the escaped target. Detect junctions through
+   `Path.is_junction()` when available (with a false-returning compatibility fallback), so
+   the detector is construction-testable on non-Windows hosts. Use the repository's existing
+   pack-name/path-confinement helpers when available rather than adding a local variant.
+   A missing or escaped pack directory → finding. This check applies whether `config is
+   None` or not.
    Also update test fixtures and comments to use the object form: `{"pack": "nonexistent-pack"}`
    not a bare string in the profile's packs array.
 
@@ -279,6 +312,9 @@ Extend `_step_profiles` in two passes per profile file:
 - `packages/agentbundle/tests/integration/test_catalogue_verify_marketplace.py` (new)
 
 **Tests (write red first):**
+
+stub: true — materialized in `test_catalogue_verify_marketplace.py`; collect passes and
+the source-path assertion is red.
 
 ```python
 class TestStepMarketplace:
@@ -332,6 +368,12 @@ diagnostic code.
 
 **Tests (write red first):**
 
+stub: true — materialized in `test_catalogue_verify_dependencies.py`,
+`test_install_dependencies_gate.py`, and `test_catalogue_tooling_lint.py`; collect passes.
+The red construction suite covers every deterministic AC4 branch, the complete accepted
+range grammar and exclusion boundaries across verify/install/lint, external-catalogue
+profile closure, and traversal/symlink confinement before EXECUTE.
+
 ```python
 class TestStepDependencies:
     def test_no_dependencies_passes(self, tmp_path):
@@ -383,6 +425,14 @@ class TestStepDependencies:
         # run verify --pack A → assert NO finding (B's defect must not surface in A-only mode)
         # (AC4 scoping: check only the selected pack's dependencies)
         raise NotImplementedError  # STUB: AC4
+    def test_invalid_or_traversing_dependency_pack_emits_finding(self, tmp_path):
+        # local dependency pack violates canonical slug grammar
+        # assert: finding is emitted before local path lookup
+        raise NotImplementedError  # construction stub: invalid dependency pack
+    def test_dependency_symlink_or_junction_escape_emits_finding(self, tmp_path):
+        # packs/<dependency> resolves outside packs_dir
+        # assert: finding is root-relative and escaped pack.toml is never read
+        raise NotImplementedError  # construction stub: confined dependency lookup
     def test_config_none_skips_local_check_emits_diagnostic(self, tmp_path):
         # catalogue with NO catalogue.toml (config is None)
         # pack A declares required dep: catalogue = "my-catalogue", pack = "B"; pack B is absent
@@ -426,7 +476,10 @@ dependencies are objects with `catalogue`, `pack`, `version` under
       the RFC-0001 grammar does not accept emits a finding (syntax error) and skips the
       remaining checks for this dependency.
    b. If `dependency.catalogue == current_catalogue_name` (and range syntax is valid),
-      branch by dependency kind per RFC-0001 semantics (§ dependency semantics):
+      validate `dependency.pack` against the canonical pack-name grammar, resolve the
+      candidate beneath `packs_dir.resolve()`, and refuse absolute/traversing values plus
+      symlink or Windows-junction escapes before reading `pack.toml`. Then branch by
+      dependency kind per RFC-0001 semantics (§ dependency semantics):
       - **`required`**: fail-if-unsatisfied. Verify `packs/<dependency.pack>/` exists;
         if not, emit a finding (missing required dependency). If present, read the pack's
         `pack.toml` version field and check it satisfies the declared range; version out
@@ -527,6 +580,9 @@ python3 -m pytest packages/agentbundle/tests/unit/test_catalogue_tooling_lint.py
 
 **Tests (write red first):**
 
+stub: true — materialized in `test_catalogue_verify_adapter_compat.py`; collect passes
+and the unknown-adapter assertion is red.
+
 ```python
 class TestStepAdapterCompat:
     def test_no_allowed_adapters_passes(self, tmp_path):
@@ -577,6 +633,9 @@ Unknown adapter → finding. Load adapter keys from `_data/adapter.toml` via
 
 **Tests (write red first):**
 
+stub: true — materialized in `test_catalogue_verify_output_drift.py`; collect passes and
+the confined-tree assertion is red.
+
 ```python
 class TestStepOutputDrift:
     def test_no_generated_projections_passes(self, tmp_path):
@@ -598,6 +657,14 @@ class TestStepOutputDrift:
         # run verify --pack A → fresh tree contains only A; assert no finding
         # for pack B (out-of-scope packs must not produce spurious findings)
         raise NotImplementedError  # STUB: AC6
+    def test_output_symlink_or_junction_escape_is_refused(self, tmp_path):
+        # configured output contains a directory alias to an out-of-root sentinel
+        # assert: root-relative finding; sentinel content is never compared
+        raise NotImplementedError  # construction stub: confined output walk
+    def test_output_resolution_loop_terminates_with_finding(self, tmp_path):
+        # configured output contains a circular symlink/reparse path
+        # assert: verifier catches resolution failure and terminates deterministically
+        raise NotImplementedError  # construction stub: bounded output walk
 ```
 
 **Approach:**
@@ -618,12 +685,19 @@ Algorithm:
    Scope both trees to the same pack's projection paths (`dist/claude-plugins/<pack>/`,
    `dist/apm/<pack>/`) before comparing; otherwise all other packs in configured output
    produce spurious "stale" findings. When no `--pack` is specified, compare full trees.
-3. Compare bidirectionally (scoped as above):
+3. Walk both trees with one confined regular-file iterator. Canonicalize each root; record
+   the resolved current directory before inspecting filenames; reject child directories
+   whose resolved path leaves the root, including Windows junction/reparse points; never
+   follow symlink aliases; call `Path.is_junction()` when available (with a false-returning
+   compatibility fallback); and catch both `OSError` and `RuntimeError` from resolution.
+   Yield only root-relative paths so diagnostics cannot expose checkout paths. A refused
+   path produces a structured finding and its target is never read.
+4. Compare bidirectionally (scoped as above):
    a. For every file in the (scoped) configured output tree: if the file is absent from
       the fresh tree or its contents differ → emit a finding naming the stale path.
    b. For every file in the (scoped) fresh tree: if it is absent from the configured output
       → emit a finding naming the missing path (newly added pack projection not yet built).
-4. Replace `return []` with real implementation.
+5. Replace `return []` with real implementation.
 
 Note: per-pack `.claude-code/`, `.cursor/`, `.kiro/`, `.copilot/`, `.codex/` trees do NOT
 exist in the packs directory layout. Catalogue-level self-host projection drift is covered
@@ -640,14 +714,11 @@ by step 15 (`_step_selfhost_drift`); step 14 targets build-output package projec
 **Touches:**
 - `packages/agentbundle/agentbundle/catalogue_tooling/verify.py`
 - `packages/agentbundle/tests/integration/test_catalogue_verify_package_preflight.py` (new)
-- NOTE: `package.py` is intentionally NOT touched. Full custom-path support for
-  `package_catalogue()` would also require updating `_check_required_files` (still defaults
-  to the literal required path `packs`) and manifest extraction (only recognizes archive keys
-  whose first component is `packs`). That is a packaging-paths fix, not a verifier defect.
-  The verifier must implement its own path-aware traversal for step 17 (see step 3 below)
-  rather than calling the hardcoded helpers from `package.py`.
 
 **Tests (write red first):**
+
+stub: true — materialized in `test_catalogue_verify_package_preflight.py`; collect passes
+and the missing-manifest assertion is red.
 
 ```python
 class TestStepPackagePreflight:
@@ -660,67 +731,26 @@ class TestStepPackagePreflight:
         # A verifier finding for missing README would introduce a new contract rule
         # under a correctness-only spec — not permitted. Assert no finding is emitted.
     def test_config_less_preflight_emits_no_finding(self, tmp_path): ...
-        # verify_catalogue() currently passes config=None to all steps (AC0/T0 not yet
-        # implemented). This test exercises step 17 with config=None and a valid pack;
+        # This test exercises step 17 with config=None and a valid pack;
         # the step must fall back to root/"packs" and emit no finding.
-    def test_custom_packs_dir_used(self, tmp_path): ...
-        # When catalogue.toml specifies paths.packs = "components", step 17 still looks at
-        # root/"packs" — matching package_catalogue() which hardcodes that path.
-        # Packs placed in "components/" are NOT found; step emits a finding for the missing
-        # "packs/" directory. Verifier and packager are consistent: both fail for this config.
-        # (Using config.paths.packs here would create a false-pass — T2 uses it; T6 does not.)
+    def test_catalogue_root_required_paths_are_out_of_scope(self, tmp_path): ...
+        # valid pack.toml without marketplace/license files still passes step 17
+        # because those are packaging-root rules, not pack preflight.
 ```
 
 **Approach:**
 
-Implement `_step_package_preflight` to check:
-0. **Path:** `_step_package_preflight` may be called with `config is None` — AC0's
-   early return (T0) is not yet implemented; the current `verify_catalogue()` passes
-   `config=None` to all steps in `_VERIFY_STEPS`. Derive packs dir as `root / "packs"` —
-   matching `package_catalogue()`'s current behavior, which hardcodes `root / "packs"` for
-   scanning, required-file checks, and manifest extraction. Do NOT use `config.paths.packs`
-   here: packaging does not yet honor custom packs paths; using the configured path in the
-   verifier would create a false-pass (step 17 passes for `components/`, then `catalogue
-   package` immediately fails against `packs/`). T2 (step 6 / profile validation) uses
-   `config.paths.packs` per `lint.py:1801` — that is a different step with a different goal.
-   If `root/"packs"` does not exist AND `config is not None`, emit a diagnostic (CAT-V-NNN
-   "required packs directory 'packs/' is missing") before continuing to step 1. Do NOT emit
-   this diagnostic when `config is None` — a missing `packs/` under config-None is normal
-   for empty-directory catalogues (AC0: ok=True).
-1. `pack.toml` is present and parses as TOML → finding if missing or unparseable.
-2. `pack.toml` validates against `pack.schema.json` → finding if schema violation.
-3. Verify the pack layout. When `config is not None`:
-   Do NOT call `_scan_content()`, `_validate_content()`, or `_check_required_files()` from
-   `package.py` — they all hardcode `root / "packs"` internally, and a full custom-path fix
-   for `package_catalogue()` would require updating those helpers, `_check_required_files`,
-   and manifest extraction (out of scope for this verifier-correctness spec). Instead,
-   implement the equivalent traversal inline in `_step_package_preflight` or via a new
-   helper in `verify.py` that accepts `packs_dir` as a parameter.
-   The traversal must:
-   a. Walk `packs_dir` for pack directories (using `config.package.include` filter if set).
-   b. Mirror the `_REQUIRED_PATHS` check against the catalogue root. `_REQUIRED_PATHS` contains
-      four entries (`package.py:57-61`): `"packs"`, `".claude-plugin/marketplace.json"`,
-      `"LICENSE-APACHE"`, `"LICENSE-MIT"`. Check each as `root / entry`; emit a finding for any
-      that is absent. Since T6 uses `root / "packs"` unconditionally (step 0), the `"packs"`
-      entry maps directly to `root / "packs"` — no substitution needed.
-      `config.package.required or None` correctly handles both absent and `[]` cases: an
-      empty list evaluates falsy → `None` → `_REQUIRED_PATHS` applied (packaging defaults
-      preserved). Only a non-empty list overrides the defaults. Do NOT state that `[]`
-      disables defaults — `[] or None` evaluates to `None`, so defaults are always applied.
-   c. Validate content structure using the packs_dir, not the hardcoded `root / "packs"`.
-   When `config is None`, skip this sub-step — no package config is available to drive it.
-   **Pack-scoped mode (--pack A):** scope BOTH the content collection AND the pack-root
-   walks to the selected pack. `_scan_content()` collects content for all packs by default;
-   `_validate_content()` independently iterates every directory under `packs/`. Adding
-   `pack_filter` only to the pack.toml traversal does not prevent pack B's content from
-   failing the step when only pack A was requested. Fix: scope both `_scan_content()` and
-   `_validate_content()` to the selected pack's directory; all three sub-calls (scan,
-   required-files, validate) must be restricted to the selected pack when `--pack` is used.
-   Do NOT call `_check_required_files` with a `Path` and config object directly —
-   `_check_required_files` immediately iterates `content_paths` and raises `TypeError`
-   on that shape.
-4. `README.md` absence → no finding (not a required contract artifact). Replace `return []`
-   with real implementation.
+Implement `_step_package_preflight` as the narrow pack contract in AC7:
+1. Derive `packs_dir` from `config.paths.packs` when config exists, otherwise
+   `root / "packs"`. A missing packs directory is an empty catalogue, not a step-17 error.
+2. Iterate non-reserved pack directories, honoring `--pack` when supplied.
+3. Require each selected pack's `pack.toml` to exist and parse as TOML; malformed or
+   missing files emit a finding.
+4. Validate the parsed value against bundled `pack.schema.json` using the existing
+   stdlib validator; each schema error emits a finding.
+5. Do not check README, catalogue-root required paths, licenses, marketplace files,
+   package include lists, or packaging-content traversal. Replace `return []` with the
+   implementation above.
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/integration/test_catalogue_verify_package_preflight.py -q` exits 0.
 
@@ -736,6 +766,9 @@ Implement `_step_package_preflight` to check:
 - `packages/agentbundle/tests/integration/test_catalogue_verify_fixture_checks.py` (new)
 
 **Tests (write red first):**
+
+stub: true — materialized in `test_catalogue_verify_fixture_checks.py`; collect passes
+and the malformed-manifest assertion is red.
 
 ```python
 class TestStepFixtureChecks:
@@ -824,6 +857,11 @@ for that file.
 - `Makefile` or `tools/repo/build_gate_chain.py` (add `tools/catalogue/tests/` to an executed test target)
 
 **Tests (write red first):**
+
+stub: true — materialized in `tools/catalogue/tests/test_verify_host_checks.py`; collect
+passes. The red suite covers pattern detection in both preserved scan scopes, seed opt-in,
+sentinel and fenced-example exemptions, confinement to the core APM tree, checker presence,
+and both test/checker runtime gate registrations.
 
 ```python
 # In test_catalogue_tooling_lint.py — migrate existing assertion:
@@ -1007,6 +1045,8 @@ SKIP_SAST=1 make build-check  # exit 0 with verify_host_checks running as part o
 
 **Verification mode:** goal-based
 
+stub: no stub (goal-based check)
+
 **Touches:**
 - `packages/agentbundle/agentbundle/catalogue_tooling/verify.py` (module docstring, `verify_catalogue` docstring, verification-table comment)
 - `packages/agentbundle/agentbundle/cli.py` (CLI help text at line ~781)
@@ -1045,6 +1085,8 @@ python3 -c "from agentbundle.catalogue_tooling.verify import _VERIFY_STEPS; asse
 
 **Tests:**
 
+stub: n/a — the named regression tests already exist and collect.
+
 **Note:** `packages/agentbundle/tests/unit/test_catalogue_tooling_verify.py` already
 contains `test_step_agent_artifacts_pyyaml_absent` (monkeypatches `import yaml`, asserts
 `CAT-V-011` warning Diagnostic is returned) and its clean-path companion. T10 does NOT
@@ -1064,13 +1106,17 @@ Do NOT create a new test file; do NOT duplicate the existing coverage. Do NOT mo
 
 **Verification mode:** TDD
 
-**Depends on:** T0–T10
+**Depends on:** T0–T10, T2b
 
 **Touches:**
 - `packages/agentbundle/tests/fixtures/external_catalogue/` (new fixture directory)
 - `packages/agentbundle/tests/integration/test_catalogue_verify_external_portability.py` (new; filesystem — uses fixture dir and tmp_path)
 
 **Tests:**
+
+stub: true — materialized with the synthetic `external_catalogue` fixture and
+`test_catalogue_verify_external_portability.py`; collect passes and the host-leak
+assertion is red while the nineteen-step assertion is green.
 
 ```python
 FIXTURE_DIR = Path(__file__).parent.parent / "fixtures" / "external_catalogue"
@@ -1112,15 +1158,19 @@ A separate seed fixture at `seeds/AGENTS.md` (recognized path) contains both
 
 **Verification mode:** goal-based
 
-**Depends on:** T0–T11
+stub: no stub (goal-based check)
+
+**Depends on:** T0–T11, T2b
 
 **Touches (this PR):**
-- `packages/agentbundle/pyproject.toml` — already bumped to 0.35.3 at T1; bump again
+- `packages/agentbundle/pyproject.toml` — derive and apply the next available version
 - `packages/agentbundle/agentbundle/version.py` — same
-- `docs/product/changelog.md` — already carries a 0.35.3 section covering T1 only
+- `packages/agentbundle/README-pypi.md` — describe the release-bearing verifier behavior
+- `docs/product/changelog.md` — add the new release section; do not duplicate T1
+- `docs/specs/catalogue-verifier-correctness/spec.md` — check completed ACs and set Shipped
+- `docs/specs/catalogue-verifier-correctness/plan.md` — set Done
 
 **Touches (post-publish follow-on PR):**
-- `docs/specs/catalogue-verifier-correctness/spec.md` (Status: Implementing → Shipped)
 - `workspace.toml` (move verifier-correctness from queue to shipped)
 
 **Tests:** none (goal-based)
@@ -1133,20 +1183,21 @@ A separate seed fixture at `seeds/AGENTS.md` (recognized path) contains both
    implementations; host-only leak extracted to repository-local tooling; all public
    "18-step" references updated to "19-step"; regression coverage added for PyYAML guard
    (was already correct; no behavior change).
-3. Include `Engine-Change-RFC: RFC-0076` in the commit message footer (verify.py
+3. Update `README-pypi.md` so the checked-in package description matches the release.
+4. Include `Engine-Change-RFC: RFC-0076` in the commit message footer (verify.py
    is catalogue tooling infrastructure; D1/D2 authority model).
-4. Run full gates: `SKIP_SAST=1 make build-check`; `python3 -m pytest packages/agentbundle/tests/ -q`.
-5. Tag and publish to PyPI — T3 changes accepted dependency-range semantics for
+5. Check every completed AC, set spec Status to Shipped, and set plan Status to Done.
+6. Run full gates: `SKIP_SAST=1 make build-check`; `python3 -m pytest packages/agentbundle/tests/ -q`.
+7. Tag and publish to PyPI — T3 changes accepted dependency-range semantics for
    `validate_dependencies_required`, which is a public CLI semantic change per
    `packages/AGENTS.local.md:7-13`. After the PR merges: tag `agentbundle-vX.Y.Z` and
    push to PyPI via the standard release process before closing out this spec.
 
 **Post-publish follow-on (separate change, after PyPI release is confirmed):**
-6. Update spec.md Status: Shipped.
-7. Move `spec/catalogue-verifier-correctness` from `queue` to `shipped` in `workspace.toml`.
+8. Move `spec/catalogue-verifier-correctness` from `queue` to `shipped` in `workspace.toml`.
 
-Steps 6–7 cannot land in the same PR as the version bump because the PyPI publication
-occurs post-merge. Mark these as a follow-on change triggered by confirmed publication.
+Only step 8 waits for publication confirmation; package policy permits the release PR to
+close the spec and plan while workspace membership remains active until publication.
 
 **Done when:**
 ```bash
@@ -1158,10 +1209,10 @@ grep "19-step" packages/agentbundle/agentbundle/catalogue_tooling/verify.py   # 
 
 ## Constraints
 
-- T11 may not start until T1–T10 all pass gates — the portability test validates the
+- T11 may not start until T0–T10 and T2b all pass gates — the portability test validates the
   cumulative result of all corrections.
-- T12 must be last; no *further* version bump until T0–T11 pass gates. T1 shipped
-  ahead of the plan and already consumed a patch (0.35.3) — see the T1 record.
+- T12 must be last; derive its version only after T0–T11 and T2b pass gates and re-check
+  current workspace collision notes at execution time.
 - No step may be left returning `return []` without a real implementation or a
   `NotImplemented` finding — silent empty results are the root cause of this spec.
 

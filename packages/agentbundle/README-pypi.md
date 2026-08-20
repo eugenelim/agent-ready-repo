@@ -14,17 +14,82 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.37.1
+## What's new in 0.38.2
 
-**New catalogue scaffolds now document the guide callout contract.** The
-bundled authoring reference distinguishes exact quoted wording, which stays a
-blockquote, from guidance that should render as a Starlight `note`, `tip`,
-`caution`, or `danger` aside. Existing catalogues remain unchanged until their
-scaffolded authoring reference is refreshed.
+The bundled catalogue authoring scaffold now has shorter, restructured
+`packs/AGENTS.md` and `profiles/AGENTS.md` files. Catalogues created with
+`agentbundle catalogue init` start with leaner instructions; no CLI verb, flag,
+or output format changed.
+
+`JOURNEY.md` can now optionally list ordered `contract.decisionGateIds` drawn
+from `humanGates[].id`. Gate labels still provide reader-facing wording, and
+`yourDecisions` remains required, so existing packs stay valid without changes.
+This engine change shipped after 0.38.1 and reaches PyPI for the first time here.
+
+## What's new in 0.38.1
+
+`agentbundle catalogue self-host --check --windows` gained a stage that verifies
+a source catalogue's declared knowledge bundles against their committed output.
+The verification itself is performed by the catalogue's own tooling, so this
+changes nothing for installing or using a pack.
+
+## What's new in 0.38.0
+
+`agentbundle show <pack> --format json` now emits the additive pre-release rich
+discovery fields `pack_metadata`, `skill_metadata`, and `knowledge` when the
+pack is read from a live catalogue. The existing fields keep their current
+meaning and ordering; installed-state fallback cannot prove rich metadata, so
+those three fields are exactly `null` there.
+
+The rich discovery surface is deliberately one-pack-at-a-time. It does not add
+OKF data to `list-packs`, Claude marketplace output, `catalogue-index.json`, or
+installed state, and it does not run compilers, network fetches, or pack code.
+
+## Catalogue verification
+
+`agentbundle catalogue verify` performs all 19 advertised checks. It validates
+profile schemas and pack references, dependency ranges and cycles, adapter
+compatibility, generated-output drift, pack preflight metadata, and skill
+evaluation manifests. The verifier remains read-only and portable across
+external catalogues.
+
+Dependency ranges use the same npm-compatible grammar in verify, lint, and
+install: caret, tilde, comparator, compound, and prerelease forms agree across
+all three commands. In particular, caret ranges below `1.0.0` use normal semver
+compatibility (`^0.2` does not include `0.3.x`).
+
+`agentbundle catalogue index` now generates a deterministic, adapter-neutral
+`catalogue-index.json` from catalogue, pack, profile, and optional journey
+metadata. The command validates against its bundled public schema before an
+atomic no-follow write; `--dry-run` writes nothing, and `--format json` emits one
+closed result document for automation.
+
+The generated index exposes content-addressable pack digests, structural content
+and execution inventory, profile composition, declared external effects, and
+forward and inverse pack integrations without relying on one agent host's
+marketplace format.
+
+## Catalogue authoring
+
+New catalogue scaffolds document the `JOURNEY.md` convention: required and
+optional frontmatter, external-effect declarations, reader-facing body sections,
+and migration guidance. Existing packs without a journey remain valid and appear
+with an empty `journeys` array.
+
+The same authoring reference retains the guide callout contract: exact quoted
+wording remains a blockquote, while guidance uses the documented typed aside.
+
+Generate and validate a neutral index with:
+
+```bash
+agentbundle catalogue index . --dry-run
+agentbundle catalogue index . --output catalogue-index.json
+```
 
 ## Contract discovery
 
-The bundled public contract inventory now includes the strict
+The bundled public contract inventory includes `catalogue-index.schema.json` as
+the closed contract for generated neutral indexes. It also includes the strict
 `knowledge-captured-observation.schema.json` contract used by the core pack's
 project-knowledge capture handoff.
 
@@ -127,7 +192,7 @@ agentbundle uninstall --pack core --yes
 
 **`list-installed`** reads your state files (not the catalogue) and reports every installed `(pack, adapter)` at each scope with its version and a four-value status — `up-to-date`, `upgrade-available`, `ahead` (installed version is newer than catalogue), or `unknown`; it degrades to `unknown` (never an error) when the catalogue can't be resolved, and `--no-check` skips the check entirely. `--format json` emits a stable JSON contract (`schema_version: 1`) to stdout — useful for CI automation of upgrade decisions. `--updates-only` hides `up-to-date` rows.
 
-**`show <pack>`** answers "what skills and agents does this pack contain?" by walking the pack's source tree live on each call — so the answer can't drift, and nothing is persisted. `--format json` emits a stable object (`name`, `version`, `description`, `skills`, `agents`, `source`) for scripts and agents. When the catalogue can't be resolved, an *installed* pack still reports its inventory from your state files (marked `source: installed-state`); a not-installed pack errors.
+**`show <pack>`** answers "what skills and agents does this pack contain?" by walking the pack's source tree live on each call — so the answer can't drift, and nothing is persisted. `--format json` emits a stable object (`name`, `version`, `description`, `skills`, `agents`, `integrations`, `source`, `pack_metadata`, `skill_metadata`, `knowledge`) for scripts and agents. The three rich metadata fields are pre-release: they are source-backed only for live catalogue reads and are not a cross-pack OKF index. When the catalogue can't be resolved, an *installed* pack still reports its inventory from your state files (marked `source: installed-state`), with `pack_metadata`, `skill_metadata`, and `knowledge` set to `null`; a not-installed pack errors.
 
 A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to pin a past version, point the catalogue at that git ref. Install a pack that's **already there** and `agentbundle` offers to `upgrade` it instead (`--yes` runs it straight away).
 

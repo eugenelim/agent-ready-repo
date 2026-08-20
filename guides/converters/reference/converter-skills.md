@@ -1,3 +1,10 @@
+---
+title: Converter skills
+summary: Look up each converter’s accepted inputs, outputs, options, dependencies, and operational limitations.
+pack: converters
+kind: reference
+---
+
 # Converter skills
 
 The skills in the `converters` pack, their inputs, outputs, flags, and prerequisites. Each skill is a thin wrapper: the agent invokes a script and reports the result.

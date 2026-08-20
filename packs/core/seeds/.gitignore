@@ -15,6 +15,9 @@ docs/specs/**/*.json.lock.reclaim.*
 # Supervisor-mode worktrees.
 .worktrees/
 
+# `agentbundle pack evals run` artifacts are not source; never commit them.
+.eval-workspace/
+
 # Implementer reports — session-scratch.
 docs/specs/**/notes/implementer-*.md
 

@@ -1,3 +1,10 @@
+---
+title: "`experience-design` — guides"
+summary: Move from an understood need through journeys, screens, service evidence, design decisions, and independent review.
+pack: experience-design
+kind: explanation
+---
+
 # `experience-design` — guides
 
 Use this pack to move from an understood user need to design decisions a builder

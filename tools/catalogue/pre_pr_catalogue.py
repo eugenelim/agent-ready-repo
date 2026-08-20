@@ -88,6 +88,17 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _okf_check_script(repo_root: Path) -> Path:
+    """The shared OKF check entry point.
+
+    Pack discovery and the per-pack compiler invocation live in that script so
+    this aggregator and the Windows compat suite cannot drift into scanning
+    different pack sets — the platform that scanned fewer would report a pass it
+    had not earned.
+    """
+    return repo_root / "tools" / "check-okf-managed-packs.py"
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run portable verification unless delegated, then every repository gate."""
     args = _build_parser().parse_args(argv)
@@ -134,6 +145,10 @@ def main(argv: list[str] | None = None) -> int:
     _run("journey-contract lint", [py, "tools/lint-journey-contract.py"])
     _run("journey-contract lint self-test",
          [py, "tools/test-lint-journey-contract.py"])
+    _run(
+        "okf compiler checks",
+        [py, str(_okf_check_script(repo_root)), "--root", str(repo_root)],
+    )
 
     # Delegate to the shipped adopter-facing hook for the work-loop caps gate.
     result = subprocess.run(

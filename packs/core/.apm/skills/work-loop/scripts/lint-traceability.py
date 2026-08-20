@@ -184,11 +184,12 @@ _SERVICE_RE = field_re("Service")
 
 def _is_placeholder(value: str) -> bool:
     """True for an unset/template value — empty, `none`, an HTML comment, or a
-    bare angle-bracket placeholder (`<slug>`). Mirrors lint-brief-coverage.py."""
+    bare angle-bracket placeholder (`<slug>`). Punctuation is tolerated after
+    `none` because `_first` checks the normalized leading token."""
     v = value.strip()
     return (
         not v
-        or v.lower() == "none"
+        or v.lower().rstrip(".,;:") == "none"
         or v.startswith("<!--")
         or (v.startswith("<") and v.endswith(">"))
     )
@@ -402,8 +403,9 @@ def _confined_file(path: Path, root: Path) -> Path | None:
 def _first(text: str, pat: re.Pattern[str]) -> str | None:
     for line in text.splitlines():
         m = pat.search(line)
-        if m and not _is_placeholder(m.group(1)):
-            return _token(m.group(1))
+        if m:
+            value = _token(m.group(1))
+            return None if _is_placeholder(value) else value
     return None
 
 
@@ -1271,7 +1273,7 @@ def _validated_root(candidate: Path | None) -> Path:
     the argv read*. Taint analysers recognise that shape; they do not follow
     the `_within()` / `_confined()` confinement applied to every path derived
     from this root, because that check is interprocedural and expressed as a
-    comprehension filter. Same pattern as `check-spec-status.py:72-80`.
+    comprehension filter. Same pattern as `_loop_guards.check_artifact_status`.
 
     This normalises and asserts directory-ness; it deliberately does **not**
     confine the root to a fixed prefix. `--root` *is* the caller-supplied scan

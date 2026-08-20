@@ -45,6 +45,18 @@ contract:
 - **Output:** a green implementation.
 """
 
+# A generated journey carries BOTH decision keys. `decisionGateIds` drives
+# fragments and ordering; `yourDecisions` is still required by the published
+# catalogue contract, so it is added alongside rather than substituted.
+_GENERATED_VALID = _VALID.replace(
+    "pack: alpha\n",
+    "pack: alpha\ngenerated: true\n",
+).replace(
+    '  yourDecisions:\n    - "Approve the plan"\n',
+    '  yourDecisions:\n    - "Approve the plan"\n'
+    "  decisionGateIds:\n    - approve-plan\n",
+)
+
 
 def _run(journey_dir: pathlib.Path) -> subprocess.CompletedProcess[str]:
     env = {**os.environ, "LJC_JOURNEY_DIR": str(journey_dir)}
@@ -85,6 +97,78 @@ def test_missing_contract_key() -> None:
             f"expected exit 1 when a contract key is missing; got {r.returncode}",
         )
         _assert("youReceive" in r.stderr, f"expected missing-key message; got:\n{r.stderr}")
+
+
+def test_generated_contract_with_decision_gate_ids_passes() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        j = pathlib.Path(tmp)
+        _write(j, "alpha.md", _GENERATED_VALID)
+        r = _run(j)
+        _assert(
+            r.returncode == 0,
+            f"expected exit 0 for valid generated journey; got {r.returncode}\n{r.stderr}",
+        )
+
+
+def test_generated_requires_decision_gate_ids() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        j = pathlib.Path(tmp)
+        _write(
+            j,
+            "alpha.md",
+            _GENERATED_VALID.replace("  decisionGateIds:\n    - approve-plan\n", ""),
+        )
+        r = _run(j)
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 without decisionGateIds; got {r.returncode}",
+        )
+        _assert(
+            "contract missing key `decisionGateIds`" in r.stderr,
+            f"expected missing decisionGateIds message; got:\n{r.stderr}",
+        )
+
+
+def test_generated_requires_display_decisions_too() -> None:
+    """A generated journey still needs `yourDecisions`.
+
+    The published catalogue contract requires it, so dropping it must fail even
+    when `decisionGateIds` is present. Without this case the additive contract
+    change would have no control at all on the repo side.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        j = pathlib.Path(tmp)
+        _write(
+            j,
+            "alpha.md",
+            _GENERATED_VALID.replace(
+                '  yourDecisions:\n    - "Approve the plan"\n', ""
+            ),
+        )
+        r = _run(j)
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 without yourDecisions on a generated journey; got {r.returncode}",
+        )
+        _assert(
+            "contract missing key `yourDecisions`" in r.stderr,
+            f"expected missing yourDecisions message; got:\n{r.stderr}",
+        )
+
+
+def test_hand_authored_requires_display_decisions() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        j = pathlib.Path(tmp)
+        _write(j, "alpha.md", _VALID.replace('  yourDecisions:\n    - "Approve the plan"\n', ""))
+        r = _run(j)
+        _assert(
+            r.returncode == 1,
+            f"expected exit 1 without yourDecisions; got {r.returncode}",
+        )
+        _assert(
+            "contract missing key `yourDecisions`" in r.stderr,
+            f"expected missing yourDecisions message; got:\n{r.stderr}",
+        )
 
 
 def test_stage_missing_output() -> None:
@@ -136,6 +220,10 @@ def main() -> None:
     tests = [
         test_valid_passes,
         test_missing_contract_key,
+        test_generated_contract_with_decision_gate_ids_passes,
+        test_generated_requires_decision_gate_ids,
+        test_generated_requires_display_decisions_too,
+        test_hand_authored_requires_display_decisions,
         test_stage_missing_output,
         test_unknown_actor,
         test_surviving_old_heading,

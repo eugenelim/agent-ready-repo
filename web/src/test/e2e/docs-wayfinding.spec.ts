@@ -1,8 +1,10 @@
 import { test, expect, type Locator } from '@playwright/test';
 import axe from 'axe-core';
 
-const DOCS_HOME = '/agent-ready-repo/docs/';
-const NESTED_GUIDE = '/agent-ready-repo/docs/guides/core/how-to/start-a-project/';
+import { withDocsBase } from './site-base';
+
+const DOCS_HOME = withDocsBase('/');
+const NESTED_GUIDE = withDocsBase('/guides/core/how-to/start-a-project/');
 const THEMES = ['light', 'dark'] as const;
 
 async function useTheme(page: import('@playwright/test').Page, theme: (typeof THEMES)[number]) {

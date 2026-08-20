@@ -3,9 +3,10 @@
 // border (task instruction: "amber-bordered gate cards on #fafaf9 background").
 // Uses <details>/<summary> for expandable what-to-check content — zero JS.
 
+import { decisionTargetId } from '../../lib/journey-decisions';
+
 interface Gate {
   id: string;
-  globalGate: string | null;
   label: string;
   trigger: string;
   duration: string;
@@ -17,18 +18,20 @@ interface Gate {
 
 interface Props {
   gate: Gate;
+  decisionGateIds?: string[];
 }
 
-const { gate } = Astro.props;
+const { gate, decisionGateIds } = Astro.props;
+const decisionTarget = decisionTargetId(decisionGateIds, gate.id);
 ---
 
 <div class="gate-card">
   <div class="gate-card__header">
-    <div class="gate-card__id-row">
-      <span class="gate-id">{gate.id}</span>
-      {gate.globalGate && <span class="global-gate">{gate.globalGate}</span>}
-    </div>
-    <h3 class="gate-card__label">{gate.label}</h3>
+    <h3
+      id={decisionTarget}
+      class="gate-card__label"
+      tabindex={decisionTarget ? '-1' : undefined}
+    >{gate.label}</h3>
     <dl class="gate-card__meta">
       <dt>Trigger</dt>
       <dd>{gate.trigger}</dd>
@@ -84,35 +87,29 @@ const { gate } = Astro.props;
     padding-bottom: var(--ds-space-4);
   }
 
-  .gate-card__id-row {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-space-3);
-    margin-bottom: var(--ds-space-3);
-  }
-
-  .gate-id {
-    font-family: var(--ds-font-mono);
-    font-weight: var(--ds-weight-heavy);
-    font-size: var(--ds-type-body-lg);
-    color: var(--ds-accent-deep);
-  }
-
-  .global-gate {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    background-color: var(--ds-accent-subtle);
-    color: var(--ds-accent-deep);
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--ds-radius-sm);
-  }
-
   .gate-card__label {
     font-size: var(--ds-type-h3);
     margin-bottom: var(--ds-space-4);
     color: var(--ds-on-surface);
+  }
+
+  /* One interaction, one indicator, on the element that actually holds the state.
+     Amber measured 2.29:1 on the page and 2.08:1 on the card, under the 3:1
+     non-text floor (WCAG 1.4.11), and this is the indicator a keyboard user
+     relies on AFTER activating a chip, once focus has left the chip and its own
+     ring is gone. `--ds-on-surface` measures 16.49:1, matching
+     `.decision-chip:focus-visible` so one interaction speaks one focus language.
+
+     `:target` is here, not on an ancestor `:has()`: programmatic focus on a
+     `tabindex="-1"` heading matches `:focus-visible` only by Chromium heuristic,
+     so a cold fragment load needs its own selector. Declaring both on the heading
+     rather than one here and one on the card avoids painting two concentric,
+     visually identical rings at once — which is what happened while both were
+     near-invisible and nobody noticed. */
+  .gate-card__label:focus-visible,
+  .gate-card__label:target {
+    outline: 3px solid var(--ds-focus-ring);
+    outline-offset: 3px;
   }
 
   .gate-card__meta {

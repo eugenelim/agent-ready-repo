@@ -6,6 +6,7 @@ import JourneyHero from '../../components/journey/JourneyHero.astro';
 import JourneyContract from '../../components/journey/JourneyContract.astro';
 import GateDetail from '../../components/journey/GateDetail.astro';
 import { withBase } from '../../lib/paths';
+import { parseTranscript } from '../../lib/journey-transcript';
 
 export async function getStaticPaths() {
   const journeys = await getCollection('journeys');
@@ -46,12 +47,20 @@ const installCommand =
     docsUrl={data.docsUrl}
   />
 
+  {data.eyebrow && (
+    <Section tone="surface-alt">
+      <div class="content-body">
+        <p class="journey-eyebrow">{data.eyebrow}</p>
+      </div>
+    </Section>
+  )}
+
   <!-- 2. The contract — compact above-the-fold summary (journey-template-revamp) -->
   {data.contract && (
     <Section tone="surface">
       <div class="content-body">
         <h2 class="section-h2">The contract</h2>
-        <JourneyContract contract={data.contract} />
+        <JourneyContract contract={data.contract} humanGates={data.humanGates} />
       </div>
     </Section>
   )}
@@ -96,7 +105,34 @@ const installCommand =
     <Section tone="surface-alt">
       <div class="content-body">
         <h2 class="section-h2">What good output looks like</h2>
-        <p class="good-output">{data.goodOutputDescription}</p>
+        {(() => {
+          const turns = parseTranscript(data.goodOutputDescription);
+          // A `goodOutputDescription` need not be a transcript. The spec permits a
+          // prose summary — `atlassian` ships one — and dressing narrative prose in
+          // the mono session register would assert session evidence for a
+          // paraphrase, the inverse of principle 2's "name the evidence boundary".
+          // An unlabelled single turn is that case.
+          const isSession = turns.length > 1 || (turns[0] && turns[0].speaker !== '');
+          const parts = (turn: (typeof turns)[number]) =>
+            turn.parts.map((part) =>
+              part.kind === 'code' ? <code>{part.value}</code> : part.value
+            );
+          return isSession ? (
+            // An ordered list, not a `dl`: the HTML standard calls `dl`
+            // inappropriate for dialogue, so a screen reader would announce a
+            // term/definition list for a sequence of speaker turns.
+            <ol class="transcript">
+              {turns.map((turn) => (
+                <li class="transcript__turn">
+                  <span class="transcript__speaker">{turn.speaker}</span>
+                  <span class="transcript__utterance">{parts(turn)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p class="good-output">{turns.map((turn) => parts(turn))}</p>
+          );
+        })()}
       </div>
     </Section>
   )}
@@ -111,7 +147,7 @@ const installCommand =
       <ul class="gates-list" role="list">
         {data.humanGates.map((gate) => (
           <li>
-            <GateDetail gate={gate} />
+            <GateDetail gate={gate} decisionGateIds={data.contract.decisionGateIds} />
           </li>
         ))}
       </ul>
@@ -210,6 +246,13 @@ const installCommand =
     letter-spacing: var(--ds-track-heading);
     margin-bottom: var(--ds-space-5);
     color: var(--ds-on-surface);
+  }
+
+  .journey-eyebrow {
+    color: var(--ds-accent-deep);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-body-lg);
+    font-weight: var(--ds-weight-semibold);
   }
 
   /* What changes (section 3) */
@@ -385,10 +428,85 @@ const installCommand =
   }
 
   /* What good output looks like (section 5) */
+  /* A captured session, not prose. The approved copy is a light-Markdown block
+     scalar; it used to be interpolated into a <p>, so Astro escaped it and the
+     asterisks and backticks shipped as visible characters while HTML whitespace
+     collapsing flattened every turn into one paragraph. `parseTranscript` returns
+     structure so these are real elements, and the mono register matches how the
+     rest of the page presents machine output. Turns stack rather than using a
+     two-column grid: this page carries no media query, and a speaker as long as
+     "Independent reviewer" squeezes the utterance at 360px. */
+  /* The prose register, for a `goodOutputDescription` that is a summary rather
+     than a captured session. */
   .good-output {
     font-size: var(--ds-type-body-lg);
     color: var(--ds-on-surface-2);
     line-height: var(--ds-lead-body);
+  }
+
+  /* A bordered card, not a coloured fill. This section is `tone="surface-alt"`,
+     and `--ds-surface` lifted off it measures 1.10:1 — a fill alone would be
+     invisible, so the border does the differentiating. A dark terminal slab was
+     the other option and was rejected: it would put ~480px of dark on an
+     explanatory page, and a focusable dark block re-introduces the
+     `outline-offset` problem where the ring lands on the light page behind it. */
+  .transcript {
+    display: grid;
+    gap: var(--ds-space-2);
+    margin: 0;
+    /* Mono-specific measure. Inheriting `.content-body`'s 72ch is calibrated for
+       the sans face and yields ~84 monospace characters at 1440 — wider than a
+       multi-turn read wants. */
+    max-width: 66ch;
+    padding: var(--ds-space-5);
+    list-style: none;
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    font-family: var(--ds-font-mono);
+    /* Not `--ds-type-mono-sm` (13px): that step is for inline code and skill
+       names, and against the 18px prose above it the cliff read as a different
+       component rather than a different register. */
+    font-size: var(--ds-type-body);
+    line-height: var(--ds-lead-body);
+    color: var(--ds-on-surface-2);
+  }
+
+  /* The speaker runs inline with its utterance rather than stacked above it. A
+     stacked label costs one line per turn, which at nine turns was the dominant
+     term in this block's height. Inline is not the two-column grid that was
+     rejected earlier — there is no fixed label column to crush the utterance at
+     360px, the text simply flows. */
+  .transcript__turn {
+    display: block;
+  }
+
+  .transcript__speaker {
+    color: var(--ds-on-surface);
+    font-weight: 600;
+  }
+
+  .transcript__speaker::after {
+    content: ': ';
+  }
+
+  .transcript__utterance {
+    display: inline;
+  }
+
+  /* The whole block is already mono, so an inline-code chip would nest a box
+     inside a box. Carry the emphasis with weight instead. */
+  /* A literal is not an attribution. Both were `--ds-on-surface` at weight 600,
+     so `release-loop` inside an utterance was indistinguishable from the "You" /
+     "Agent" label above it. The page's established literal colour separates them
+     and measures 5.43:1 on `--ds-surface`. */
+  .transcript code {
+    font-family: inherit;
+    font-size: inherit;
+    background: none;
+    padding: 0;
+    color: var(--ds-accent-deep);
+    font-weight: 600;
   }
 
   /* Section 7 */

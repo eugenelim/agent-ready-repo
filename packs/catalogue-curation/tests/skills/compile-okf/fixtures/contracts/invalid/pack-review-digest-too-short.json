@@ -1,0 +1,16 @@
+{
+  "profile": "agentbundle-okf/v1",
+  "bundles": [
+    {
+      "id": "reviewed-routing",
+      "path": "okf/reviewed-routing",
+      "router-skill": "reviewed-router",
+      "projected-concepts": [
+        {
+          "path": "procedures/triage.md",
+          "reviewed-projection-digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    }
+  ]
+}

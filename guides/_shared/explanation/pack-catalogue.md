@@ -1,3 +1,10 @@
+---
+title: The pack catalogue
+summary: Understand how packs, profiles, adapters, catalogues, and `agentbundle` compose into an organization-owned workflow distribution system.
+pack: _shared
+kind: explanation
+---
+
 # The pack catalogue
 
 The catalogue is an organization-owned distribution system for repeatable agent workflows. It is not a starter template and it is not one indivisible operating model. You choose packs for the work your team does, combine them into profiles when a standard starting set is useful, and use `agentbundle` to project the same source into each supported agent's native layout.

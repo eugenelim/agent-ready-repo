@@ -11,140 +11,16 @@
 # docs/specs/guides-sidebar-generation/spec.md section Layer 2.
 
 [[entry]]
-slug = "guides"
-label = "Overview"
-
-[[entry]]
-slug = "guides/core"
-label = "Overview"
-
-[[entry]]
-slug = "guides/core/explanation/foundation-vs-map"
-label = "Foundation vs Map"
-
-[[entry]]
-slug = "guides/core/explanation/token-economy"
-label = "Token Economy"
-
-[[entry]]
-slug = "guides/core/explanation/walking-skeleton-vs-throwaway"
-label = "Walking Skeleton"
-
-[[entry]]
 slug = "guides/core/explanation/why-a-brief-layer"
 label = "Why a Brief Layer"
-
-[[entry]]
-slug = "guides/core/explanation/why-the-plan-owns-the-lld"
-label = "Why the Plan Owns LLD"
-
-[[entry]]
-slug = "guides/core/how-to/bug-fix"
-label = "Bug Fix"
-
-[[entry]]
-slug = "guides/core/how-to/plan-and-execute-non-trivial-work"
-label = "Plan and Execute"
 
 [[entry]]
 slug = "guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs"
 label = "Receive a Brief"
 
 [[entry]]
-slug = "guides/core/how-to/record-your-foundation-during-inception"
-label = "Record Foundation"
-
-[[entry]]
-slug = "guides/core/how-to/review-someone-elses-pr"
-label = "Review a PR"
-
-[[entry]]
 slug = "guides/core/reference/product-brief-fields"
 label = "Product Brief Fields"
-
-[[entry]]
-slug = "guides/core/reference/spec-shape-and-lld"
-label = "Spec Shape & LLD"
-
-[[entry]]
-slug = "guides/core/tutorials/start-a-new-project"
-label = "Start a New Project"
-
-[[entry]]
-slug = "guides/product-strategy"
-label = "Overview"
-
-[[entry]]
-slug = "guides/product-strategy/explanation/why-strategy-is-its-own-seat"
-label = "Why Strategy Is Its Own Seat"
-
-[[entry]]
-slug = "guides/product-strategy/how-to/run-a-market-and-competitive-analysis"
-label = "Run a Market Analysis"
-
-[[entry]]
-slug = "guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue"
-label = "Cascade OKRs"
-
-[[entry]]
-slug = "guides/product-strategy/how-to/set-ux-and-content-strategy"
-label = "Set UX & Content Strategy"
-
-[[entry]]
-slug = "guides/product-strategy/reference/frameworks-and-artifacts"
-label = "Frameworks & Artifacts"
-
-[[entry]]
-slug = "guides/product-strategy/tutorials/run-your-first-swot"
-label = "Run Your First SWOT"
-
-[[entry]]
-slug = "guides/product-engineering"
-label = "Overview"
-
-[[entry]]
-slug = "guides/product-engineering/explanation/the-discovery-loop"
-label = "The Discovery Loop"
-
-[[entry]]
-slug = "guides/product-engineering/explanation/the-intent-tree"
-label = "The Intent Tree"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/frame-a-product-vision"
-label = "Frame a Product Vision"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/run-a-discovery"
-label = "Run a Discovery"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/shape-a-feature-intent"
-label = "Shape a Feature Intent"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/shape-a-product-strategy"
-label = "Shape a Product Strategy"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/run-a-capability-across-a-value-stream"
-label = "Run a Value Stream"
-
-[[entry]]
-slug = "guides/product-engineering/how-to/write-product-microcopy"
-label = "Write Microcopy"
-
-[[entry]]
-slug = "guides/product-engineering/reference/discovery-sidecar-and-roster"
-label = "Sidecar & Roster"
-
-[[entry]]
-slug = "guides/product-engineering/reference/intent-fields-and-modes"
-label = "Intent Fields"
-
-[[entry]]
-slug = "guides/product-engineering/tutorials/walk-a-discovery-end-to-end"
-label = "Walk a Discovery"
 
 [[entry]]
 slug = "guides/release-engineering"
@@ -167,144 +43,8 @@ slug = "guides/release-engineering/tutorials/your-first-release"
 label = "Your First Release"
 
 [[entry]]
-slug = "guides/desk-research"
-label = "Overview"
-
-[[entry]]
-slug = "guides/desk-research/explanation/episodic-vs-project-research"
-label = "Episodic vs Project"
-
-[[entry]]
-slug = "guides/desk-research/explanation/research-methodology"
-label = "Research Methodology"
-
-[[entry]]
-slug = "guides/desk-research/how-to/research-pipelines"
-label = "Research Pipelines"
-
-[[entry]]
-slug = "guides/desk-research/how-to/run-a-research-project-into-an-rfc"
-label = "Research into an RFC"
-
-[[entry]]
-slug = "guides/desk-research/reference/desk-research-pack"
-label = "Desk Research Pack"
-
-[[entry]]
-slug = "guides/desk-research/tutorials/desk-research-first-session"
-label = "First Research Session"
-
-[[entry]]
-slug = "guides/desk-research/tutorials/your-first-research-project"
-label = "First Research Project"
-
-[[entry]]
-slug = "guides/architect"
-label = "Overview"
-
-[[entry]]
-slug = "guides/architect/how-to/diagram-a-system"
-label = "Diagram a System"
-
-[[entry]]
-slug = "guides/architect/how-to/establish-reference-architecture"
-label = "Establish Reference Architecture"
-
-[[entry]]
-slug = "guides/architect/how-to/review-an-architecture-artifact"
-label = "Review an Architecture"
-
-[[entry]]
-slug = "guides/architect/how-to/shape-an-architecture-concept"
-label = "Shape a Concept"
-
-[[entry]]
-slug = "guides/architect/reference/reference-architecture"
-label = "Reference Architecture"
-
-[[entry]]
-slug = "guides/architect/tutorials/create-your-reference-architecture"
-label = "Create Reference Arch"
-
-[[entry]]
-slug = "guides/experience-design"
-label = "Overview"
-
-[[entry]]
-slug = "guides/experience-design/explanation/the-experience-thread"
-label = "The Experience Thread"
-
-[[entry]]
-slug = "guides/experience-design/how-to/author-design-intent"
-label = "Author Design Intent"
-
-[[entry]]
-slug = "guides/experience-design/reference/experience-design"
-label = "Experience Design Pack"
-
-[[entry]]
-slug = "guides/frontend-engineering"
-label = "Overview"
-
-[[entry]]
-slug = "guides/frontend-engineering/tutorials/scaffold-a-component"
-label = "Scaffold a Component"
-
-[[entry]]
-slug = "guides/frontend-engineering/how-to/run-an-audit"
-label = "Run an Audit"
-
-[[entry]]
 slug = "guides/frontend-engineering/reference/frontend-engineering"
 label = "Frontend Engineering Pack"
-
-[[entry]]
-slug = "guides/contracts"
-label = "Overview"
-
-[[entry]]
-slug = "guides/contracts/explanation/contract-first-design"
-label = "Contract-First Design"
-
-[[entry]]
-slug = "guides/contracts/how-to/generate-an-api-contract"
-label = "Generate an API Contract"
-
-[[entry]]
-slug = "guides/contracts/how-to/author-an-event-contract"
-label = "Author an Event Contract"
-
-[[entry]]
-slug = "guides/contracts/reference/contract-skills"
-label = "Contract Skills"
-
-[[entry]]
-slug = "guides/converters"
-label = "Overview"
-
-[[entry]]
-slug = "guides/converters/how-to/convert-documents-to-markdown"
-label = "Documents to Markdown"
-
-[[entry]]
-slug = "guides/converters/how-to/convert-markdown-to-html-and-email"
-label = "Markdown to HTML"
-
-[[entry]]
-slug = "guides/converters/how-to/publish-markdown-to-office"
-label = "Markdown to Office"
-
-[[entry]]
-slug = "guides/converters/how-to/render-mermaid-diagrams"
-label = "Render Mermaid"
-
-[[entry]]
-slug = "guides/converters/reference/converter-skills"
-label = "Converter Skills"
-
-[[entry]]
-slug = "guides/atlassian"
-label = "Overview"
 
 [[entry]]
 slug = "guides/atlassian/tutorials/review-your-team-backlog"
@@ -315,64 +55,12 @@ slug = "guides/atlassian/how-to/work-with-jira"
 label = "Work with Jira"
 
 [[entry]]
-slug = "guides/atlassian/how-to/crawl-and-publish-confluence"
-label = "Crawl Confluence"
-
-[[entry]]
-slug = "guides/atlassian/how-to/measure-flow-and-dora-metrics"
-label = "DORA Metrics"
-
-[[entry]]
-slug = "guides/atlassian/how-to/report-ai-adoption-as-a-delivery-lead"
-label = "Report AI Adoption"
-
-[[entry]]
 slug = "guides/atlassian/reference/atlassian-skills"
 label = "Atlassian Skills"
 
 [[entry]]
 slug = "guides/atlassian/explanation/atlassian-pack"
 label = "How the Atlassian Pack Works"
-
-[[entry]]
-slug = "guides/atlassian/explanation/ai-adoption-measurement"
-label = "Measuring AI Adoption"
-
-[[entry]]
-slug = "guides/figma"
-label = "Overview"
-
-[[entry]]
-slug = "guides/figma/how-to/inspect-a-figma-file"
-label = "Inspect a Figma File"
-
-[[entry]]
-slug = "guides/figma/reference/figma-skill"
-label = "Figma Skill"
-
-[[entry]]
-slug = "guides/governance-extras"
-label = "Overview"
-
-[[entry]]
-slug = "guides/governance-extras/how-to/new-rfc"
-label = "New RFC"
-
-[[entry]]
-slug = "guides/monorepo-extras"
-label = "Overview"
-
-[[entry]]
-slug = "guides/monorepo-extras/how-to/scaffold-a-new-package"
-label = "Scaffold a Package"
-
-[[entry]]
-slug = "guides/monorepo-extras/reference/new-package"
-label = "new-package"
-
-[[entry]]
-slug = "guides/credential-brokers"
-label = "Overview"
 
 [[entry]]
 slug = "guides/product-documentation/getting-started"
@@ -390,34 +78,3 @@ label = "Author Product Docs"
 slug = "guides/product-documentation/how-to/write-a-guide"
 label = "Write a Guide"
 
-[[entry]]
-slug = "guides/_shared"
-label = "Overview"
-
-[[entry]]
-slug = "guides/_shared/explanation/the-three-loops"
-label = "The Three Loops"
-
-[[entry]]
-slug = "guides/_shared/explanation/pack-catalogue"
-label = "Pack Catalogue"
-
-[[entry]]
-slug = "guides/_shared/explanation/shaping-a-new-engagement"
-label = "Shaping an Engagement"
-
-[[entry]]
-slug = "guides/_shared/how-to/build-an-org-stack-pack"
-label = "Build an Org Pack"
-
-[[entry]]
-slug = "guides/_shared/how-to/install-a-profile"
-label = "Install a Profile"
-
-[[entry]]
-slug = "guides/_shared/how-to/run-a-full-inception"
-label = "Run a Full Inception"
-
-[[entry]]
-slug = "guides/_shared/reference/agentbundle"
-label = "agentbundle CLI"

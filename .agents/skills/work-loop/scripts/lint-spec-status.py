@@ -397,7 +397,7 @@ def _validated_root(candidate: Path | None) -> Path:
 
     The normalise-then-check is deliberately kept *in one function, adjacent to
     the argv read*, because that is the shape taint analysers recognise. Same
-    pattern as `check-spec-status.py:72-80`.
+    pattern as `_loop_guards.check_artifact_status`.
 
     Normalises and asserts directory-ness only — it does not confine the root
     to a fixed prefix, since `--root` is the caller-supplied scan scope. Note

@@ -1,0 +1,8 @@
+scope = "repo"
+description = "Both fixture packs"
+
+[[packs]]
+pack = "alpha"
+
+[[packs]]
+pack = "beta"

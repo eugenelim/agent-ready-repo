@@ -42,9 +42,8 @@ excluded — see `docs/specs/claude-plugin-route-scope`. How a pack's
 
 Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles`,
 `list-installed` — takes an optional trailing catalogue argument. When you
-omit it, the CLI resolves one through a five-layer, first-match-wins chain
-(RFC-0046 / ADR-0036, in
-[`source_defaults.resolve_default_source`](../../packages/agentbundle/agentbundle/source_defaults.py)):
+omit it, the CLI resolves one through a five-layer, first-match-wins chain in
+[`source_defaults.resolve_default_source`](../../packages/agentbundle/agentbundle/source_defaults.py):
 
 | Layer | Source | Set by |
 | --- | --- | --- |

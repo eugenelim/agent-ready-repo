@@ -3,6 +3,8 @@ name: security-checklists
 description: Progressive-disclosure security-depth modules for the security-reviewer. Holds boundary-keyed checklists (access-control, authn-session, injection, path-and-file, secrets-and-crypto, outbound-ssrf, supply-chain, config-misconfig, exceptional-conditions, llm-agent, agentic-skills) as references/, each anchored on a current standard (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, Proactive Controls 2024, CWE Top 25, OWASP LLM Top 10:2025, OWASP Top 10 for Agentic Applications:2026, OWASP Agentic Skills Top 10 v1.0 (AST01–AST10)). The work-loop's orchestrator loads only the boundary-matching modules and inlines them into the security-reviewer's brief; the subagent never self-discovers this skill. Not a reviewer prompt itself — it is the depth library the reviewer reasons from.
 ---
 
+<!-- agentbundle-okf: router-handoff=author-owned -->
+
 # Skill: security-checklists
 
 This skill is the **depth library** behind the `security-reviewer` agent. The

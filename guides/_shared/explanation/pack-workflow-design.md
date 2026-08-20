@@ -1,3 +1,10 @@
+---
+title: Pack workflow design
+summary: Design a coherent pack by classifying its workflow, mapping its session arc, naming skills, choosing storage paths, and registering lifecycle state.
+pack: _shared
+kind: explanation
+---
+
 # Pack workflow design
 
 ## What a pack is

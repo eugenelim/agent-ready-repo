@@ -93,6 +93,7 @@
   --ds-on-surface-muted: var(--prim-neutral-600); /* captions, metadata */
   --ds-border:           var(--prim-neutral-200); /* card, section border */
   --ds-border-subtle:    var(--prim-black-06);    /* hairline, lowest weight */
+  --ds-focus-ring:       var(--ds-on-surface);    /* UI-state indicator on light */
 
   /* ── Accent — amber-gold, single chromatic ──────────────────────── */
   --ds-accent:            var(--prim-amber-400);  /* icon, CTA fill on dark, stat */
@@ -217,4 +218,57 @@
   --ds-state-neutral-bg:     var(--prim-neutral-100);
   --ds-state-neutral-fg:     var(--prim-neutral-800);
   --ds-state-neutral-border: var(--prim-neutral-300);
+}
+
+/* Dark-zone roots override the inherited light focus token. This stylesheet is
+   global, so these selectors match Astro's rendered classes even though each
+   component's own styles are scoped.
+
+   These are dark *containers*, and the token is inherited by their focusable
+   descendants — whose rings land on the container's dark fill. A focusable element
+   that is itself dark must NOT appear here: `outline-offset` draws its ring OUTSIDE
+   its own box, onto whatever is behind it. The syntax-highlighted `<pre>` blocks are
+   the case in point — they carry `--ds-hero-bg` and receive `tabindex` when they
+   overflow, but their ring lands on the light page at rgb(250,250,249), so amber
+   would measure 2.29:1 there. They keep the light default.
+
+   A carrier must also hold at least the ring's offset plus its width of its own
+   fill around every focusable descendant. Otherwise part of that descendant's ring
+   falls outside the carrier onto the light page — the same defect by a different
+   route. Verified at the time of writing: `.terminal__bar` holds 12/16px and
+   `.install-block` 24/32px, against a 3px offset plus a 2px ring. */
+/* Accent-filled controls take a white ring, not the amber one they inherit.
+   Ring and fill were both `--prim-amber-400`, so with only a 3px band of carrier
+   between them the indicator read as a dark seam rather than a contour. This is not
+   a floor breach — the ring measures 8.07:1 against the dark carrier on both sides
+   — but it is the weakest focus signal on the site and it sits on the most-visited
+   focus stops. White measures 19.34:1 against the carrier and steps clearly off the
+   amber fill. No assertion covers this: the walk measures ring-versus-backdrop, and
+   amber-on-dark passes, so a missed control here fails nothing. Kept as a list
+   because these CTAs share no class.
+
+   Only controls on a DARK carrier belong here. `.page-hero__action--primary`,
+   `.decision-band__action--primary` and `.btn-primary` are amber-filled too but sit
+   on `--ds-surface-alt`, where the light default already gives 16.49:1 and a white
+   ring measures 1.15:1. Adding them by name-matching "primary CTA" is exactly the
+   sweep the carrier list itself was designed to avoid, and the focus-ring walk
+   caught it on the first run. */
+:where(.nav__cta, .hero__cta--primary, .org__cta, .notfound__cta--primary) {
+  --ds-focus-ring: var(--ds-hero-fg);
+}
+
+:where(
+  .section--dark,
+  .nav,
+  .footer,
+  .hero,
+  .stats,
+  .terminal,
+  .cat-hero,
+  .notfound,
+  .journeys-hero,
+  .now-hero,
+  .install-block
+) {
+  --ds-focus-ring: var(--ds-accent);
 }

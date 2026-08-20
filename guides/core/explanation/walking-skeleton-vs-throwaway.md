@@ -1,3 +1,10 @@
+---
+title: About the walking skeleton
+summary: Understand why a greenfield project keeps a minimal end-to-end slice instead of discarding a prototype.
+pack: core
+kind: explanation
+---
+
 # About the walking skeleton
 
 :::note

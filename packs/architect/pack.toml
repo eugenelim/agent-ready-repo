@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.14.4"
+version = "0.14.5"
 description = "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it."
 readme = "README.md"
 display_name = "Architect"
@@ -69,3 +69,14 @@ starter-prompt   = "Describe the architecture of this codebase and create a refe
 expected-result  = "A docs/architecture/reference.md file with the codebase's key components and structural decisions described in plain language."
 next-action      = "On your next design question, ask: 'Does this approach align with our reference architecture?'"
 tutorial         = "guides/architect/tutorials/architect-first-session.md"
+
+[[pack.integrations]]
+id        = "project-knowledge-review-enquiry"
+pack      = "core"
+kind      = "handoff"
+role      = "Bounded architecture-review knowledge enquiry"
+consumers = ["skill:architect-review"]
+providers = ["skill:project-knowledge"]
+when      = "An optional consequential CQ-REVIEW question is declared after the artifact, scope, mode, and rubric are fixed and before the rubric walk."
+purpose   = "Supply untrusted candidate checks through core's public read-only enquiry seam without changing architecture-review authority."
+fallback  = "If the provider is absent, emit project-knowledge unavailable and complete the independently grounded review without fallback persistence."

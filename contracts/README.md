@@ -22,6 +22,7 @@ in `agentbundle/_data/`.
 | `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge |
 | `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests |
 | `profile.schema.json` | JSON Schema for profile TOML files |
+| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index |
 | `guide.schema.json` | JSON Schema for guide frontmatter |
 | `skill.schema.json` | JSON Schema for skill frontmatter and body |
 | `skill-manifest.schema.json` | JSON Schema for skill manifest files |
@@ -37,6 +38,9 @@ in `agentbundle/_data/`.
   `profile.schema.json` — come from the [catalogue spec and CLI][cli], which
   also lifted these contracts into a published open standard with versioning and
   a conformance suite.
+- **The neutral catalogue index** — `catalogue-index.schema.json` — comes from
+  the [contracts composition and discovery design][composition] and pins the
+  adapter-neutral discovery document emitted by `agentbundle catalogue index`.
 - **The guide and skill schemas** — `guide.schema.json`, `skill.schema.json`,
   and `skill-manifest.schema.json` — implement the
   [agentskills.io standard](../guides/_shared/reference/agentskills-io-standard.md),

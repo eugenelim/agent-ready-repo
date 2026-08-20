@@ -58,6 +58,7 @@ CHECKOUT_STEP = re.compile(r"uses:\s*actions/checkout@")
 ALLOWED_EVIDENCE_KEYS = frozenset(
     {
         "version",
+        "repo",
         "branch",
         "app",
         "environment",
@@ -161,6 +162,52 @@ def _load_pack_scope_module():
         raise ValueError("cannot load the canonical pack-scope mirror")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    return module
+
+
+def _load_capture_module():
+    """Return the capture tool's module, for its `owner/name` rule.
+
+    Loaded by path — the filename is hyphenated, so it is not importable — the
+    same way `_load_pack_scope_module` loads `tools/pack_scope.py`. Sharing the
+    function rather than restating the regex is deliberate: the rule has two
+    parts (a charset that must admit `owner/.github`, and a dot-segment refusal
+    that the charset alone cannot express), and a second copy is a second thing
+    to get wrong. `capture-evidence-repo-dot-segments` exists because the first
+    copy was already wrong once.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "capture_publish_control_evidence",
+        REPO_ROOT / "tools" / "capture-publish-control-evidence.py",
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load the capture tool's repository-name rule")
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except BaseException as exc:  # noqa: BLE001
+        # spec_from_file_location returns a populated spec for a path that does
+        # not exist, so the guard above never fires for the failure it looks
+        # like it covers. A missing, unreadable, or corrupt capture tool reaches
+        # here; without this it leaves validate_desired as a traceback of
+        # absolute paths rather than through main()'s error handler. Fails
+        # closed either way -- this makes it legible, including inside the
+        # publish job.
+        # BaseException, not Exception: a module-level SystemExit in a corrupt
+        # capture tool would otherwise exit this process silently with its own
+        # code, which is the quietest possible failure of a required gate.
+        raise ValueError(
+            f"cannot load the capture tool's repository-name rule: {exc!r}"
+        ) from None
+    for attribute in ("_validate_repo", "CaptureError"):
+        if not hasattr(module, attribute):
+            # A truncated file imports cleanly and then fails at the call site,
+            # inside an `except capture.CaptureError` whose own clause cannot
+            # resolve. Refuse here instead.
+            raise ValueError(
+                "the capture tool loaded but has no "
+                f"{attribute}; its repository-name rule cannot be shared"
+            )
     return module
 
 
@@ -307,15 +354,53 @@ def validate_desired(desired: dict) -> list[str]:
     }
     if canary != expected_canary:
         errors.append("canary contract must prove ordinary denial and app acceptance")
-    if desired.get("version") != 1:
-        errors.append("desired control version must be 1")
+    # The subject. Without it the evidence binds to nothing: a capture against
+    # any other well-configured repository is byte-indistinguishable, and
+    # `validate_sequencing` would then conclude THIS repository's publisher App
+    # is provisioned on the strength of someone else's controls.
+    repo = desired.get("repo")
+    if not isinstance(repo, str) or not repo:
+        errors.append(
+            "desired control must name the repository it governs as a bare "
+            "owner/name `repo`"
+        )
+    else:
+        try:
+            capture = _load_capture_module()
+        except ValueError as exc:
+            errors.append(str(exc))
+        else:
+            # Do not trust the loaded module's shape at the call site either:
+            # `except capture.CaptureError` cannot even be evaluated if the
+            # module lacks it, so a truncated capture tool would raise from
+            # inside the handler.
+            rule = getattr(capture, "_validate_repo", None)
+            failure = getattr(capture, "CaptureError", Exception)
+            if rule is None:
+                errors.append(
+                    "the capture tool exposes no _validate_repo; the "
+                    "repository-name rule cannot be shared"
+                )
+            else:
+                try:
+                    rule(repo)
+                except failure as exc:
+                    errors.append(
+                        f"desired control repo is not a bare owner/name: {exc}"
+                    )
+    if desired.get("version") != 2:
+        errors.append("desired control version must be 2")
     return errors
 
 
 def compare_evidence(desired: dict, evidence: dict) -> list[str]:
     """Compare independently captured sanitized state with desired state."""
     errors: list[str] = []
-    if evidence.get("version") != desired.get("version"):
+    # Against the literal, not against each other: `.get(...) != .get(...)`
+    # compares equal when the key is absent from both, and this comparison is
+    # the only thing rejecting a stale v1 artifact against the v2 desired file.
+    # Same reasoning as the repo check below; the sibling was cut free first.
+    if evidence.get("version") != 2 or desired.get("version") != 2:
         errors.append("evidence version differs from desired control")
     observed_branch = evidence.get("branch")
     observed_app = evidence.get("app")
@@ -343,6 +428,21 @@ def compare_evidence(desired: dict, evidence: dict) -> list[str]:
                 "ID variable all naming the same App"
             )
         errors.extend(_identifier_leaks(evidence))
+    # Compared like every other block: the desired file declares the subject the
+    # controls are authored for, the capture records the subject its API reads
+    # were made against. A mismatch means the artifact describes some other
+    # repository's controls — the one thing a settings read cannot tell you.
+    # Self-standing: `evidence.get(...) != desired.get(...)` compares EQUAL when
+    # both are absent, so a desired file with no repo would make this pass and
+    # the binding would rest on validate_desired happening to run first.
+    desired_repo = desired.get("repo")
+    if not isinstance(desired_repo, str) or evidence.get("repo") != desired_repo:
+        errors.append(
+            "evidence repo "
+            f"{evidence.get('repo')!r} differs from the repository the desired "
+            f"control governs ({desired_repo!r}); this evidence does not "
+            "describe this repository"
+        )
     if evidence.get("canary") != desired.get("canary"):
         errors.append("evidence canary differs from desired control")
     observed_at = evidence.get("observed_at")
@@ -361,6 +461,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--workflow", type=Path, default=WORKFLOW_PATH)
     parser.add_argument("--require-live-evidence", action="store_true")
+    parser.add_argument(
+        "--subject",
+        help="the repository this run is executing in, as a bare owner/name. "
+        "The publish workflow passes the runner's $GITHUB_REPOSITORY, which no "
+        "committed file can forge -- the desired/evidence pair travels with a "
+        "fork or a clone and still compares equal, so this is the only half of "
+        "the binding a copy cannot satisfy. Optional so `make build-check` "
+        "keeps one behaviour locally and in CI.",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -369,6 +478,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-claude-plugin-publish-control: {exc}", file=sys.stderr)
         return 1
     errors = validate_desired(desired)
+    if args.subject is not None and args.subject != desired.get("repo"):
+        errors.append(
+            f"this run is in {args.subject!r} but the publication control is "
+            f"authored for {desired.get('repo')!r}; its evidence describes "
+            "another repository's controls and must not gate publication here"
+        )
     try:
         workflow = args.workflow.read_text(encoding="utf-8")
     except OSError as exc:

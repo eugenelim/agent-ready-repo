@@ -1,6 +1,6 @@
 [pack]
 name = "catalogue-curation"
-version = "0.2.4"
+version = "0.4.0"
 description = "For the person who runs a catalogue, not the people installing from it. Bring in an outside skill, survey a repo worth borrowing from, or draft the case for a new pack."
 readme = "README.md"
 display_name = "Catalogue Curation"
@@ -26,6 +26,9 @@ allowed-scopes = ["repo"]
 homepage = "https://github.com/eugenelim/agent-ready-repo"
 repository = "https://github.com/eugenelim/agent-ready-repo"
 documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/guides/catalogue-curation/"
+
+[pack.evals]
+skills = ["compile-okf"]
 
 [[pack.maintainers]]
 name = "eugenelim"

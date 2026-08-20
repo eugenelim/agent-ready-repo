@@ -5,6 +5,10 @@
 
 PYTHON ?= python3
 PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
+# Stale __pycache__ makes catalogue verify's fresh-output build (CAT-V-014)
+# fail mid-run, on a clean tree too. Overridable: PYTHONDONTWRITEBYTECODE= make ci
+PYTHONDONTWRITEBYTECODE ?= 1
+export PYTHONDONTWRITEBYTECODE
 PACKS_DIR ?= packs
 OUTPUT_DIR ?= dist
 PACK ?=
@@ -83,26 +87,30 @@ package:
 # scrolls away, and the reader who scrolls to the bottom is exactly the reader
 # about to conclude "green, ship it". $(1) is the invoked target's name.
 #
-# Three outcomes, not two. build-check.yml sets SKIP_SAST=1 itself whenever a
-# PR's diff touches nothing SAST-relevant, so shouting INCOMPLETE inside a green
-# required check on most PRs would train readers to ignore the banner — the same
-# way the mid-run echo trained them to miss the skip. In CI the skip is a
-# decision the workflow made from the diff; on a laptop it is a shortcut whose
-# consequence the reader is about to inherit.
+# Three outcomes, not two. Since ADR-0086 build-check.yml no longer sets
+# SKIP_SAST=1: the SAST/SCA leg is its own `gate-sast` job, and `gate-main`
+# invokes this target with SAST_DELEGATED=1 instead. So the third outcome is
+# "delegated" — this target did not scan, and something else did. On a laptop
+# SKIP_SAST is still a shortcut whose consequence the reader inherits, which is
+# why it keeps the INCOMPLETE banner.
 #
 # "was invoked", not "ran": make reports whether each leg exited 0, and a leg can
 # exit 0 having gated nothing — the wired catalogue-curation guard skips its
 # path-gate when the base ref is missing or stale (backlog
 # `curation-guard-silent-base-skip`). The banner should not assert more than make
 # can see.
-# The CI-intentional branch keys on GITHUB_WORKFLOW, not GITHUB_ACTIONS alone:
-# the reassuring line asserts a specific provenance ("build-check.yml decided the
-# diff has nothing to scan"), and any process can export GITHUB_ACTIONS — `act`,
-# a devcontainer image, a developer exercising the CI branch — which would hand
-# them a claim that is not true of their run.
+# The delegated branch keys on `$(origin SAST_DELEGATED)` being `command line`,
+# NOT on any environment variable. That is the whole point: GITHUB_WORKFLOW, CI,
+# GITHUB_ACTIONS and RUNNER_ENVIRONMENT are each either synthesised by `act` or
+# exportable from a devcontainer image or a shell profile, so none of them can
+# distinguish "CI deliberately delegated this" from "something in my environment
+# happens to be set". Command-line origin can, because only the invoker supplies
+# it. An ambient SAST_DELEGATED therefore does NOT reach the quiet banner and does
+# NOT skip the leg — it runs the scan and prints the honest "complete" verdict.
 define gate_verdict
-@if [ -n "$(SKIP_SAST)" ] && [ "$$GITHUB_WORKFLOW" = "build-check" ]; then \
-	printf '\n%s: %s\n\n' '$(1)' 'complete for this diff — SAST/SCA skipped by build-check.yml because the diff touches nothing scannable.'; \
+@if [ "$(origin SAST_DELEGATED)" = "command line" ] && [ -n "$(SAST_DELEGATED)" ]; then \
+	printf '\n%s: %s\n' '$(1)' 'complete for this target — SAST/SCA was NOT invoked here; it is delegated.'; \
+	printf '%s\n\n' 'This target did not scan. To scan on this machine: make sast'; \
 elif [ -n "$(SKIP_SAST)" ]; then \
 	printf '\n%s\n' '*************************************************************'; \
 	printf '*** %s: %s\n' '$(1)' 'INCOMPLETE — this is NOT a full pass.'; \
@@ -124,14 +132,18 @@ build-check:
 	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
-	# SKIP_SAST short-circuits the SAST/SCA leg only (the drift + lint gates
-	# above always run). build-check.yml sets it for PRs that touch no
-	# SAST-relevant file (neither SAST_DIRS nor SAST_CONFIG) — the scanners
-	# have nothing to scan, so the ~76k-LOC pass is pure waste there. Intent of
-	# ADR-0017 is preserved: SAST stays chained into the required build-check
-	# job (not a separate skippable workflow) and runs on every PR that changes
-	# a SAST-relevant file.
-	@if [ -n "$(SKIP_SAST)" ]; then \
+	# Two things short-circuit this leg only (the drift + lint gates above always
+	# run): SKIP_SAST, still a laptop shortcut; and SAST_DELEGATED passed ON THE
+	# COMMAND LINE, which is how `gate-main` says "gate-sast owns the scan".
+	# ADR-0086 partially supersedes ADR-0017 here: the leg is no longer chained
+	# into the required job in CI, but this Makefile chain is DELIBERATELY intact
+	# so `make build-check` on a developer machine still scans — that is what
+	# ADR-0017's dogfooding rationale actually required, and tools/assert-sast-
+	# chain-reachable.py pins it, because after the split no CI path runs this
+	# branch and nothing else would notice it being deleted.
+	@if [ "$(origin SAST_DELEGATED)" = "command line" ] && [ -n "$(SAST_DELEGATED)" ]; then \
+		echo "build-check: SAST_DELEGATED passed on the command line — SAST/SCA delegated, not invoked by this target"; \
+	elif [ -n "$(SKIP_SAST)" ]; then \
 		echo "build-check: SKIP_SAST set — skipping SAST/SCA gate (no SAST-relevant changes to scan)"; \
 	else \
 		$(MAKE) sast; \
@@ -141,7 +153,11 @@ build-check:
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
 # deps. Chained into build-check above so the repo's single native gate runs it
-# locally and in build-check.yml CI. Not added to tools/hooks/pre-pr.py or
+# locally. NOT in build-check.yml CI any more: since ADR-0086 the leg is its own
+# `gate-sast` job and `gate-main` passes SAST_DELEGATED=1, so this chain runs only
+# on a developer machine — which is exactly what ADR-0017's dogfooding rationale
+# required, and what tools/assert-sast-chain-reachable.py now pins. Not added to
+# tools/hooks/pre-pr.py or
 # tools/catalogue/pre_pr_catalogue.py (the Windows CI path runs the former;
 # Semgrep has no Windows support). Linux/macOS only (Semgrep).
 #
@@ -237,6 +253,10 @@ sast:
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
 	python3 tools/audit-requirements.py --build-system \
 		packages/agentbundle/pyproject.toml packages/credbroker/pyproject.toml
+	# Audit AgentBundle's authoring/lint extra from pyproject.toml so the SCA
+	# input fails closed if the optional dependency declaration changes.
+	python3 tools/audit-requirements.py --optional-group lint \
+		packages/agentbundle/pyproject.toml
 	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
 	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
 	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,
@@ -244,7 +264,8 @@ sast:
 	# mcp CVEs requires a Semgrep backend compromise + targeted CI attack; the click CVE
 	# requires controlling semgrep's CLI args (i.e. write access to this repo).
 	# Suppression is unblocked once semgrep ships mcp>=1.28.1 + click>=8.3.3 deps.
-	# Full diagnosis and unblock condition: docs/backlog.md § semgrep-mcp-cve-allowlist.
+	# Full diagnosis and unblock condition: workspace.toml [backlog].open, entry
+	# `semgrep-mcp-cve-allowlist` — the suppressions' only recorded expiry.
 	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
 	@pip-audit -r tools/requirements-sast.txt \
 		--ignore-vuln CVE-2026-52870 \
@@ -319,6 +340,16 @@ test:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) tools/lint-conformance-portability.py --root .
+	# spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
+	# too, so `make ci` covers what gate-main's contrast step runs.
+	$(PYTHON) tools/check-docs-contrast.py
+	# spec/docs-site-build-contract-hardening AC6: the rehype plugin suite runs
+	# locally too. Without this `make ci` stays green with a red plugin suite —
+	# the orphan class the register tracks as tools-test-runner-boundary.
+	@command -v npm >/dev/null 2>&1 || { echo "make test: npm not found — install Node.js (>=24, per docs-site/package.json engines)" >&2; exit 1; }
+	@test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
+	npm run test:plugins --prefix docs-site
+	$(PYTHON) tools/test-pages-workflow.py
 	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q
@@ -332,8 +363,11 @@ test:
 	$(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
+	$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
+	$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
@@ -356,20 +390,33 @@ test:
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
 	 if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
 	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
-	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
+	$(PYTHON) -m pytest packs/desk-research/tests/pack/ -q
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-check/ -q
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-digest/ -q
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-status/ -q
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-synthesize/ -q
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/devils-advocate/ -q
+	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
+	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
+	$(PYTHON) -m pytest tools/test_bootstrap.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
 	$(PYTHON) -m pytest \
 		tools/test_lint_agents_md_diataxis_block.py \
 		tools/test_lint_agents_md_legacy_block.py \
 		tools/test_lint_agents_md_risk_block.py \
+		tools/test_lint_agents_md_frontmatter_scope.py \
 		tools/test_catalogue_curation_guard.py \
 		tools/test_contract_parity.py \
+		tools/test_marketplace_envelope_parity.py \
+		tools/test_guide_authoring_standard.py \
 		tools/test_release_check.py \
 		tools/test_check_release_impact.py \
 		tools/test_scaffold_projection.py \
 		tools/test_conformance_portability.py \
-		tools/test_lint_guides_no_repo_only_refs.py -q
+		tools/test_lint_guides_no_repo_only_refs.py \
+		tools/test_okf_pre_pr.py -q
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per
@@ -395,7 +442,11 @@ ci: build-check pre-pr lint-ruff lint-mypy test
 # ── Site publishing ──────────────────────────────────────────────────────────
 # Requires: npm ci --prefix docs-site (one-time setup)
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
-# writes into build/docs/. This matches .github/workflows/pages.yml.
+# writes into build/docs/. These targets are the valid LOCAL full-generation
+# sequence — one build-site.py pass, then both builds. CI is NOT identical; see
+# docs-site/AGENTS.md § Build, which owns that comparison. site-link-check is the
+# one target here that runs tools/check-rendered-site-links.py after both builds,
+# as CI does.
 
 .PHONY: site-sync site-build site-link-check site-serve
 
@@ -411,3 +462,20 @@ site-link-check: site-build  ## Build both sites, then audit emitted internal li
 
 site-serve: site-sync  ## Start Starlight dev server at http://localhost:4321
 	npm run dev --prefix docs-site
+
+.PHONY: worktree-doctor bootstrap-web bootstrap-docs-site bootstrap-sites web-browser-gate
+
+worktree-doctor:  ## Inspect worktree-local generated and runtime artifacts
+	$(PYTHON) tools/repo/worktree_hygiene.py scan
+
+bootstrap-web:  ## Install only web npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py web
+
+bootstrap-docs-site:  ## Install only docs-site npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py docs-site
+
+bootstrap-sites:  ## Install web and docs-site npm dependencies
+	$(PYTHON) tools/repo/bootstrap.py sites
+
+web-browser-gate:  ## Run the browser gate on a leased preview port
+	$(PYTHON) tools/repo/frontend_runtime.py gate

@@ -1,3 +1,10 @@
+---
+title: Your first assimilation
+summary: Safely review, reshape, verify, and adopt one external skill into the catalogue.
+pack: catalogue-curation
+kind: tutorial
+---
+
 # Your first assimilation
 
 **What you'll build:** One external skill adopted into the catalogue — fetched, security-reviewed, shaped to catalogue convention, and verified with a passing definition-of-done checklist.

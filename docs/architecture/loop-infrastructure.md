@@ -1,164 +1,79 @@
-# Loop Infrastructure — Phase 1
+# Loop infrastructure
 
-The work-loop's execution machinery is split across two purpose-built scripts
-with a hard boundary: `loop-engine.py` is a read-only FSM phase tracker;
-`loop-cohort.py` is the sole writer of cohort execution state.
+## 1. Purpose and boundary
 
-## Key references
+The execution harness tracks work-loop phases and cohort state for one spec
+directory. `loop-engine.py` advances the finite-state machine.
+`loop-cohort.py` records cohort execution state.
 
-- **Decision (why):** [`docs/adr/0061-loop-infrastructure-phase-1.md`](../adr/0061-loop-infrastructure-phase-1.md)
-- **Feature contract (what):** [`docs/specs/loop-infrastructure-phase-1/spec.md`](../specs/loop-infrastructure-phase-1/spec.md)
-- **Implementation plan (how):** [`docs/specs/loop-infrastructure-phase-1/plan.md`](../specs/loop-infrastructure-phase-1/plan.md)
-- **State field reference:** [`packs/core/.apm/skills/work-loop/references/state-schema.md`](../../packs/core/.apm/skills/work-loop/references/state-schema.md)
+The harness does not create requirements or implement work. It consumes approved
+specification and plan artifacts.
 
-## Components
+## 2. Entrypoints
 
-### `loop-engine.py` (FSM phase tracker)
+- `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
+- `loop-cohort.py`: `init`, `identity`, `status`, `approve-plan`,
+  `schedule`, `check`, wave, and review commands.
+- `check-spec-status.py`: validates a requested status in `spec.md` or
+  `plan.md`.
 
-Owns `engine-state.json` (gitignored at `docs/specs/**/engine-state.json`).
-Read-only except for `init`, `transition`, and `reset`.
+## 3. Owned state and write authority
 
-```
-loop-engine init <spec-dir> --mode {code|spec-plan} [--json]
-loop-engine transition <spec-dir> <event> [--wave-index <n>]
-loop-engine status <spec-dir> [--json]
-loop-engine reset <spec-dir>
-```
+| State | Location | Write authority | Readers |
+| --- | --- | --- | --- |
+| FSM phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
+| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Harness operators and engine guards |
+| Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
 
-**FSM modes (Phase 1):**
+## 4. Dependencies and allowed edges
 
-`code` — ten-state lifecycle with spec/plan drafting, two human-approval gates, and implementation waves:
+`loop-engine.py` reads spec and plan status, then invokes `loop-cohort.py`
+identity and schedule checks before guarded transitions. `check-spec-status.py`
+imports the canonical status parser from `lint-spec-status.py`.
 
-```
-SPEC-PLAN-DRAFTING → (spec-ready)       → SPEC-PLAN-REVIEW
-SPEC-PLAN-REVIEW   → (reviewers-clean)  → SPEC-HUMAN-GATE
-SPEC-PLAN-REVIEW   → (findings-remain)  → SPEC-PLAN-DRAFTING
-SPEC-HUMAN-GATE    → (spec-approved)    → PLAN-HUMAN-GATE      guard: spec.md Status==Approved
-SPEC-HUMAN-GATE    → (spec-rejected)    → SPEC-PLAN-DRAFTING
-PLAN-HUMAN-GATE    → (plan-approved)    → SPEC-PLAN-APPROVED   guard: plan.md Status==Approved
-PLAN-HUMAN-GATE    → (plan-rejected)    → SPEC-PLAN-DRAFTING
-SPEC-PLAN-APPROVED → (plan-locked)      → CODE-IMPLEMENTATION  guard: spec.md Status==Approved + schedule
-CODE-IMPLEMENTATION  → (wave-complete) → CODE-VERIFICATION
-CODE-VERIFICATION    → (wave-passed)   → CODE-IMPLEMENTATION   [requires --wave-index]
-CODE-VERIFICATION    → (gates-clean)   → CODE-REVIEW
-CODE-VERIFICATION    → (gates-failed)  → CODE-IMPLEMENTATION
-CODE-REVIEW          → (reviewers-clean) → CODE-HUMAN-GATE
-CODE-REVIEW          → (findings-remain) → CODE-IMPLEMENTATION
-CODE-HUMAN-GATE      → (done)          → DONE
-CODE-HUMAN-GATE      → (blocker-applied) → CODE-IMPLEMENTATION
-```
+The engine reads cohort state but does not write it. The cohort tool does not
+advance FSM phase state.
 
-`spec-plan` — six-state lifecycle terminating at DONE on plan-locked (no code phase):
+## 5. Primary flows
 
-```
-SPEC-PLAN-DRAFTING → (spec-ready)       → SPEC-PLAN-REVIEW
-SPEC-PLAN-REVIEW   → (reviewers-clean)  → SPEC-HUMAN-GATE
-SPEC-PLAN-REVIEW   → (findings-remain)  → SPEC-PLAN-DRAFTING
-SPEC-HUMAN-GATE    → (spec-approved)    → PLAN-HUMAN-GATE      guard: spec.md Status==Approved
-SPEC-HUMAN-GATE    → (spec-rejected)    → SPEC-PLAN-DRAFTING
-PLAN-HUMAN-GATE    → (plan-approved)    → SPEC-PLAN-APPROVED   guard: plan.md Status==Approved
-PLAN-HUMAN-GATE    → (plan-rejected)    → SPEC-PLAN-DRAFTING
-SPEC-PLAN-APPROVED → (plan-locked)      → DONE                 guard: spec.md Status==Approved
-```
+1. `loop-engine.py init` creates FSM state and emits a run identifier.
+   `loop-cohort.py init` adopts that identifier.
+2. A guarded engine transition verifies required artifact status and cohort
+   identity. Code transitions also verify the scheduled plan remains current.
+3. `loop-cohort.py` records plan approval, scheduling, attempts, waves, and
+   review evidence. `loop-engine.py` records phase transitions and events.
 
-Human-wait states: `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE`
-(all report `pending_human_wait: true`). `SPEC-PLAN-APPROVED` is not a
-human-wait state — it is a durable intermediate state between both approvals
-and the `plan-locked` cohort-seal step.
+## 6. Failure and recovery behavior
 
-**G-plan sequence (code mode):**
+A failed guard blocks the transition. A run-identifier mismatch blocks cohort
+mutation. A changed plan blocks code transitions until scheduling is current.
 
-```bash
-# 1. Spec approver writes Status: Approved in spec.md.
-python3 scripts/loop-engine.py transition docs/specs/<feature> spec-approved
-# → SPEC-HUMAN-GATE exits; engine enters PLAN-HUMAN-GATE
+Both state writers use `tempfile.mkstemp` and `os.replace` in the target
+directory. A crash leaves either the previous JSON or the replacement JSON.
+`reset` is the explicit recovery action.
 
-# 2. Plan approver writes Status: Approved in plan.md.
-python3 scripts/loop-engine.py transition docs/specs/<feature> plan-approved
-# → PLAN-HUMAN-GATE exits; engine enters SPEC-PLAN-APPROVED
+## 7. Observability and evidence
 
-# 3. Cohort records the approved baseline:
-python3 scripts/loop-cohort.py approve-plan docs/specs/<feature> --expect-run-id <run_id>
+Both tools expose `status --json`. `engine-state.json`, `state.json`, and
+`.loop-run/events.jsonl` record phase, cohort, and transition evidence.
+Workspace MCP reads the event stream.
 
-# 4. Schedule waves:
-python3 scripts/loop-cohort.py schedule docs/specs/<feature> --expect-run-id <run_id>
+## 8. Mechanical invariants
 
-# 5. Seal and hand off:
-python3 scripts/loop-engine.py transition docs/specs/<feature> plan-locked
-# → CODE-IMPLEMENTATION; write Status: Implementing before any code
-```
+- `check-spec-status.py` blocks guarded transitions unless the requested
+  `spec.md` or `plan.md` status is present.
+- `loop-engine.py` checks cohort identity before every transition.
+- `loop-engine.py` checks the current schedule before code transitions except
+  `done`.
+- `loop-cohort.py` requires `--expect-run-id` for cohort mutations.
 
-**Guards** fire before each transition to enforce pre-conditions. The engine
-runs `loop-cohort identity --expect-run-id` as a preflight on every transition
-to confirm the cohort `run_id` matches. CODE-* transitions (except `done`)
-additionally run `loop-cohort schedule check-current` to verify plan.md hasn't
-changed since scheduling. Event-specific guards are detailed in the spec.
+## 9. Relevant ADRs
 
-### `loop-cohort.py` (sole state.json writer)
+- [ADR-0061 — Loop infrastructure](../adr/0061-loop-infrastructure-phase-1.md)
+- [ADR-0064 — Events JSONL as FSM event source](../adr/0064-events-jsonl-as-fsm-event-source.md)
+- [ADR-0074 — Work loop owns its state lock](../adr/0074-the-work-loop-owns-its-state-lock.md)
 
-Owns `state.json` (gitignored at `docs/specs/**/state.json`). All cohort
-mutations are explicit verbs with `--expect-run-id` for identity safety.
+## 10. Last verified against commit
 
-**Phase 1 verb surface:**
+`c8cf4b37`
 
-```
-init <spec-dir> --run-id <uuid>
-identity <spec-dir> [--expect-run-id <uuid>] [--json]
-status <spec-dir> [--json]
-reset <spec-dir>
-approve-plan <spec-dir> --expect-run-id <uuid>
-plan check-current <spec-dir> [--require-schedule]
-schedule <spec-dir> --expect-run-id <uuid>
-schedule check-current <spec-dir>
-check <spec-dir> --phase {implement|gates-failed|review}
-record-attempt <spec-dir> --phase implement --cycle-id <run_id>:<seq> --expect-run-id <uuid>
-wave check <spec-dir> --expect {more|last} [--wave-index <n>]
-wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
-review inspect <spec-dir> --report <path> [--json]
-review record <spec-dir> (--fingerprint <hex> ... | --report <path>) --expect-run-id <uuid>
-```
-
-**Disabled in Phase 1** (exit non-zero with "disabled in Phase 1" message):
-`dispatch-decision`, `worktree {add, record, list, merge, cleanup, preflight}`, `auto-parallel`.
-
-### `check-spec-status.py` (status guard)
-
-Called by `loop-engine` as the guard for multiple transitions. Imports
-`parse_status` from `lint-spec-status.py` via `importlib` to share a single
-canonical status parser.
-
-```
-check-spec-status.py <spec-dir> [--expect <status>] [--file <filename>]
-```
-
-- `--expect` omitted → defaults to `Shipped`.
-- `--file` omitted → defaults to `spec.md`.
-- `--file plan.md --expect Approved` → reads `<spec-dir>/plan.md`, checks `Status: Approved`.
-
-Used by `spec-approved` guard (`--expect Approved`), `plan-approved` guard
-(`--expect Approved --file plan.md`), `plan-locked` guard (`--expect Approved`),
-and `reviewers-clean` guard (`--expect Shipped`, default).
-
-## Init pair
-
-Both tools must be initialized before use; the engine generates the `run_id`
-that cohort adopts:
-
-```bash
-run_id=$(python3 scripts/loop-engine.py init docs/specs/<feature> \
-    --mode code --json | python3 -c "import sys,json; print(json.load(sys.stdin)['run_id'])")
-python3 scripts/loop-cohort.py init docs/specs/<feature> --run-id "$run_id"
-```
-
-## Atomic write guarantee
-
-Both scripts write state through `tempfile.mkstemp` + `os.replace` in the same
-directory as the target file. A crash mid-write cannot produce malformed JSON;
-the target either carries the previous content or the new content, never a
-partial write.
-
-## Phase 2 (deferred)
-
-Parallel fan-out (`dispatch-decision`, worktrees, `auto-parallel`), token-budget
-tracking, consecutive-error detection, and cross-session resumption identifiers
-are reserved for Phase 2.

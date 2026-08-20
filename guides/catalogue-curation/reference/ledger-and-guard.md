@@ -1,3 +1,10 @@
+---
+title: "Reference: the ledger and the engine guard"
+summary: Look up the append-only assimilation ledger, progress model, confinement guard, and recovery behavior.
+pack: catalogue-curation
+kind: reference
+---
+
 # Reference: the ledger and the engine guard
 
 Two pieces of `catalogue-curation` machinery worth knowing in detail.

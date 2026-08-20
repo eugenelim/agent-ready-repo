@@ -24,6 +24,8 @@ import pytest
 
 yaml = pytest.importorskip("yaml", reason="PyYAML not installed; skip deep lint tests")
 
+import agentbundle.catalogue_tooling.skill_spec_lint as _skill_lint_module  # noqa: E402
+from agentbundle.catalogue_tooling.package import _TRANSIENT_DIRS  # noqa: E402
 from agentbundle.catalogue_tooling.results import Severity  # noqa: E402
 from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec  # noqa: E402
 
@@ -776,7 +778,161 @@ def test_tree_e_symlink_loop(tmp_path):
     errors = [d for d in diags if d.severity == Severity.ERROR]
     msg = _messages(diags)
     assert errors, "expected error diagnostic for symlink loop"
-    assert "could not read skill" in msg
+    assert "linked skill entry is not allowed" in msg
+
+
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks unavailable on this platform")
+def test_linked_skill_directory_is_not_read(tmp_path: Path) -> None:
+    """Deep lint reports a linked skill directory without reading its target."""
+    skills = tmp_path / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    _write(outside / "SKILL.md", "not valid skill frontmatter\n")
+    try:
+        (skills / "linked").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+
+    diagnostics = lint_skill_spec(tmp_path)
+    messages = _messages(diagnostics)
+
+    assert any(
+        diagnostic.code == "CAT-S001"
+        and diagnostic.path == ".claude/skills/linked"
+        and diagnostic.message == "linked skill directory is not allowed"
+        for diagnostic in diagnostics
+    )
+    assert "missing YAML frontmatter" not in messages
+
+
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks unavailable on this platform")
+def test_linked_projection_walk_root_is_not_read(tmp_path: Path) -> None:
+    """Deep lint rejects a linked projection root before enumeration."""
+    outside = tmp_path / "outside-skills"
+    _write(outside / "outside" / "SKILL.md", "not valid skill frontmatter\n")
+    projection_parent = tmp_path / ".claude"
+    projection_parent.mkdir()
+    try:
+        (projection_parent / "skills").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+
+    diagnostics = lint_skill_spec(tmp_path)
+    messages = _messages(diagnostics)
+
+    assert any(
+        diagnostic.code == "CAT-S001"
+        and diagnostic.path == ".claude/skills"
+        and diagnostic.message == "linked skill walk root is not allowed"
+        for diagnostic in diagnostics
+    )
+    assert "missing YAML frontmatter" not in messages
+
+
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks unavailable on this platform")
+def test_linked_pack_walk_root_is_not_read(tmp_path: Path) -> None:
+    """Scoped deep lint rejects a linked pack skill root before enumeration."""
+    outside = tmp_path / "outside-skills"
+    _write(outside / "outside" / "SKILL.md", "not valid skill frontmatter\n")
+    apm = tmp_path / "packs" / "example" / ".apm"
+    apm.mkdir(parents=True)
+    try:
+        (apm / "skills").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+
+    diagnostics = lint_skill_spec(tmp_path, pack="example")
+    messages = _messages(diagnostics)
+
+    assert any(
+        diagnostic.code == "CAT-S001"
+        and diagnostic.path == "packs/example/.apm/skills"
+        and diagnostic.message == "linked skill walk root is not allowed"
+        for diagnostic in diagnostics
+    )
+    assert "missing YAML frontmatter" not in messages
+
+
+@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks unavailable on this platform")
+def test_linked_eval_manifest_is_not_read(tmp_path: Path) -> None:
+    """Eval manifests use the same confined regular-file reader as skills."""
+    skill = tmp_path / ".claude" / "skills" / "example"
+    _write(
+        skill / "SKILL.md",
+        "---\nname: example\ndescription: A valid fixture skill.\n---\n\nBody.\n",
+    )
+    (skill / "evals").mkdir()
+    outside = tmp_path / "outside-evals.json"
+    outside.write_text("[]\n", encoding="utf-8")
+    try:
+        (skill / "evals" / "eval_queries.json").symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+
+    diagnostics = lint_skill_spec(tmp_path)
+
+    assert any(
+        diagnostic.code == "CAT-S005"
+        and diagnostic.path == ".claude/skills/example/evals/eval_queries.json"
+        and diagnostic.message.startswith("could not read eval manifest:")
+        for diagnostic in diagnostics
+    )
+
+
+@pytest.mark.parametrize("transient_name", sorted(_TRANSIENT_DIRS))
+def test_transient_skill_directory_is_not_read(tmp_path: Path, transient_name: str) -> None:
+    """Packaging-pruned skill directories cannot re-enter through deep lint."""
+    transient_skill = (
+        tmp_path / "packs" / "example" / ".apm" / "skills" / transient_name
+    )
+    transient_skill.mkdir(parents=True)
+    (transient_skill / "SKILL.md").write_text(
+        "not valid skill frontmatter\n", encoding="utf-8"
+    )
+
+    assert lint_skill_spec(tmp_path) == []
+
+
+@pytest.mark.parametrize("transient_name", sorted(_TRANSIENT_DIRS))
+def test_transient_skill_layout_directory_is_ignored(
+    tmp_path: Path, transient_name: str
+) -> None:
+    """Every packager-pruned directory is silent inside a valid skill."""
+    skill = tmp_path / ".claude" / "skills" / "example"
+    _write(
+        skill / "SKILL.md",
+        "---\nname: example\ndescription: A valid fixture skill.\n---\n\nBody.\n",
+    )
+    (skill / transient_name).mkdir()
+
+    messages = _messages(lint_skill_spec(tmp_path))
+
+    assert "non-blessed top-level subdirectory" not in messages
+
+
+def test_unreadable_skill_root_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Deep lint fails closed when a non-transient skill root cannot be listed."""
+    skills = tmp_path / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    original_scandir = os.scandir
+
+    def refuse_skill_root(path):
+        if Path(path) == skills:
+            raise PermissionError("fixture directory is unreadable")
+        return original_scandir(path)
+
+    monkeypatch.setattr(_skill_lint_module.os, "scandir", refuse_skill_root)
+
+    diagnostics = lint_skill_spec(tmp_path)
+
+    assert any(
+        diagnostic.code == "CAT-S001"
+        and diagnostic.path == ".claude/skills"
+        and diagnostic.message == "could not enumerate skill directory"
+        for diagnostic in diagnostics
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -887,6 +1043,30 @@ def test_tree_g_pack_evals_coverage(tmp_path):
     msg = _messages(diags)
     _assert_all_in("tree-G", msg, TREE_G_EXPECTED)
     _assert_none_in("tree-G", msg, TREE_G_UNEXPECTED)
+
+
+def test_pack_filter_rejects_path_traversal_before_discovery(tmp_path: Path) -> None:
+    """A scoped pack filter must be a name, never a filesystem path."""
+    diagnostics = lint_skill_spec(tmp_path, pack="../outside")
+
+    assert any(
+        diagnostic.code == "CAT-S001"
+        and diagnostic.path == "packs"
+        and diagnostic.message == "pack filter is not a safe pack name"
+        for diagnostic in diagnostics
+    )
+
+
+def test_pack_evals_rejects_path_traversal_skill_name(tmp_path: Path) -> None:
+    """Cross-reference entries are validated before constructing skill paths."""
+    _write(
+        tmp_path / "packs" / "example" / "pack.toml",
+        '[pack]\nname = "example"\n[pack.evals]\nskills = ["../outside"]\n',
+    )
+
+    messages = _messages(lint_skill_spec(tmp_path))
+
+    assert "entry '../outside' is not a safe skill name" in messages
 
 
 # ---------------------------------------------------------------------------

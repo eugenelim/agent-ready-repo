@@ -8,14 +8,24 @@ interface Contract {
   useItWhen: string;
   youProvide: string;
   youReceive: string;
-  yourDecisions: string[];
+  decisionGateIds?: string[];
+  yourDecisions?: string[];
+}
+
+interface Gate {
+  id: string;
+  label: string;
 }
 
 interface Props {
   contract: Contract;
+  humanGates: Gate[];
 }
 
-const { contract } = Astro.props;
+const { contract, humanGates } = Astro.props;
+const gatesById = new Map(humanGates.map((gate) => [gate.id, gate]));
+const decisions = contract.decisionGateIds?.map((id) => gatesById.get(id));
+const decisionCount = decisions?.length ?? 0;
 ---
 
 <div class="contract-card">
@@ -32,16 +42,40 @@ const { contract } = Astro.props;
       <dt>You receive</dt>
       <dd>{contract.youReceive}</dd>
     </div>
-    <div class="contract-row">
-      <dt>Your decisions</dt>
-      <dd class="contract-decisions">
-        {contract.yourDecisions.map((decision) => (
-          <span class="decision-chip">{decision}</span>
-        ))}
-      </dd>
-    </div>
   </dl>
+
+  <section class="contract-decisions" aria-labelledby="where-you-decide">
+    <h3 id="where-you-decide">Where you decide</h3>
+    <p>The agent pauses at these points. You choose whether to continue, redirect, or stop.</p>
+    <div class="decision-chip-list">
+      {decisions?.map((gate, index) => gate && (
+        <a class="decision-chip" href={`#decision-${gate.id}`}>
+          <span>{gate.label}</span>
+          <span class="decision-chip__ordinal">Decision {index + 1} of {decisionCount}</span>
+        </a>
+      ))}
+      {!decisions && contract.yourDecisions?.map((decision) => (
+        <span class="decision-chip">{decision}</span>
+      ))}
+    </div>
+  </section>
 </div>
+
+{decisions && (
+  <script is:inline>
+    const focusDecisionTarget = () => {
+      if (!window.location.hash.startsWith('#decision-')) return;
+      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      if (target instanceof HTMLElement) {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'start' });
+      }
+    };
+
+    window.addEventListener('hashchange', focusDecisionTarget);
+    focusDecisionTarget();
+  </script>
+)}
 
 <style>
   .contract-card {
@@ -81,18 +115,61 @@ const { contract } = Astro.props;
   }
 
   .contract-decisions {
+    margin-top: var(--ds-space-5);
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .contract-decisions h3 {
+    color: var(--ds-on-surface);
+    font-size: var(--ds-type-h3);
+    margin-bottom: var(--ds-space-2);
+  }
+
+  .contract-decisions p {
+    color: var(--ds-on-surface-2);
+    margin-bottom: var(--ds-space-4);
+  }
+
+  .decision-chip-list {
     display: flex;
     flex-wrap: wrap;
     gap: var(--ds-space-3);
   }
 
   .decision-chip {
+    display: grid;
+    gap: var(--ds-space-1);
     font-family: var(--ds-font-mono);
     font-size: var(--ds-type-mono-sm);
     background-color: var(--ds-accent-subtle);
     color: var(--ds-accent-deep);
     padding: 0.25rem 0.6rem;
     border-radius: var(--ds-radius-sm);
+    text-decoration: none;
+  }
+
+  .decision-chip:hover,
+  .decision-chip:focus-visible {
+    background-color: var(--ds-accent);
+    /* Dark on amber, not white. `--ds-hero-fg` is white "primary text on dark"
+       and `--ds-accent` is the "CTA fill on dark" — pairing them on a LIGHT
+       surface gave 2.40:1 against a 4.5:1 requirement for this 13px/12px
+       weight-400 text, so acquiring focus made the chip less legible than its
+       resting neighbours. `--ds-cta-primary-fg` is the system's own
+       dark-on-amber CTA pairing and measures 8.07:1. axe cannot see this: it
+       scans the resting DOM, so a :hover/:focus-visible rule never applies
+       during the scan. `assertStateContrast` in the browser gate covers it. */
+    color: var(--ds-cta-primary-fg);
+  }
+
+  .decision-chip:focus-visible {
+    outline: 3px solid var(--ds-focus-ring);
+    outline-offset: 3px;
+  }
+
+  .decision-chip__ordinal {
+    font-size: var(--ds-type-xs);
   }
 
   /* Stack labels above values on narrow viewports. */

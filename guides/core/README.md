@@ -1,3 +1,10 @@
+---
+title: "`core` — guides"
+summary: Start durable work through one intake route, then carry approved work through planning, execution, verification, independent review, and merge.
+pack: core
+kind: explanation
+---
+
 # `core` — guides
 
 `core` is the flagship pack: one front door for durable work intake, then a loop your agent can't cut corners in. Describe the work in ordinary language; `work-intake` routes it to the right artifact and lifecycle state. Approved specs continue through hard gates and cold review.

@@ -451,20 +451,23 @@ not toggled by user setting. Exception: `web/public/favicon.svg` does include a
 `@media (prefers-color-scheme: dark)` rule to adjust the favicon fill in dark OS mode — this is
 a standalone SVG asset and does not affect page or component CSS.
 
-Dark mode equivalents exist only in the **Starlight docs-site** (`docs-site/src/styles/starlight.css`
-via `[data-theme='dark']`, toggled by the Starlight theme switcher). The Starlight CSS imports
-`tokens.css` at build time (`@import './tokens.css'`), so dark-mode color overrides use
-`--prim-*` and `--ds-*` tokens directly rather than raw hex values.
+Dark mode exists only in the **Starlight docs-site** (`docs-site/src/styles/starlight.css`,
+toggled by the Starlight theme switcher) — and that sheet is dark-**first**: the dark palette
+is declared on bare `:root`, and `:root[data-theme='light']` overrides it. There is no
+`[data-theme='dark']` selector. The docs palette is also self-contained per ADR-0085:
+`starlight.css` carries no `@import` and does not read `web/src/styles/tokens.css`. It
+declares its own `--doc-*` tokens and re-derives the `--ds-*` names that the shared
+`primitives/` components consume, so no `--prim-*` token reaches the docs surface.
 
-Dark-mode resolved values (token → hex):
+Docs dark-theme resolved values (token → hex), read from `starlight.css`:
 
 | Role | Token reference | Hex |
 | --- | --- | --- |
-| Docs surface background | `var(--prim-dark-950)` | `#0b0e12` |
-| Sidebar / elevated surface | `var(--prim-dark-900)` | `#111520` |
-| Accent / icon highlight | `var(--ds-accent)` | `#e8952b` |
-| Link color | `var(--prim-amber-300)` | `#f5bc6a` |
-| Inline code background | `var(--ds-accent-subtle-dk)` | `rgba(232,149,43,0.15)` |
+| Docs surface background | `var(--doc-ground)` | `#0c111c` |
+| Sidebar / elevated surface | `var(--doc-surface)` | `#111726` |
+| Accent — fills, large marks | `var(--doc-accent)` | `#4f7df0` |
+| Link color — text-safe on dark (8.68:1) | `var(--doc-accent-strong)` | `#8ab0f9` |
+| Inline code background | `var(--doc-tint)` | `rgba(138,176,249,0.12)` |
 
 ## 7. Card icon parity decision
 
@@ -489,20 +492,21 @@ closes the question so it is not re-litigated in future PRs.
 previously planned audit of Material-injected raw-hex deviations (`.md-header`, `.md-tabs`,
 etc.) no longer applies — those component classes do not exist in the current codebase.
 
-The Starlight CSS (`docs-site/src/styles/starlight.css`) imports `tokens.css` at build time
-(`@import './tokens.css'`) and maps Starlight's slot variables (`--sl-*`) to design-system
-tokens. It is predominantly token-compliant. Known deviations:
+The Starlight CSS (`docs-site/src/styles/starlight.css`) is a self-contained token sheet per
+ADR-0085: it imports nothing, declares its own `--doc-*` palette, and maps Starlight's slot
+variables (`--sl-*`) onto that palette. A compatibility layer at the foot of the file
+re-derives the `--ds-*` names that the shared `src/components/primitives/` components consume
+in scoped styles — those names are re-derivations onto the doc palette, not imports of
+`web/`'s values. It is predominantly token-compliant. One known deviation:
 
-| Location | Raw value | Closest `--ds-*` token | Note |
-| --- | --- | --- | --- |
-| `--sl-color-text-invert` (light-mode assignment) | `#ffffff` | `--ds-hero-fg` (`#ffffff`) | Used by Starlight's built-in UI for inverted text; same resolved value but a distinct semantic slot |
-| `.site-footer__brand { color }` | `#ffffff` | `--ds-hero-fg` (`#ffffff`) | Bootstrap override for the Starlight footer brand; same resolved value |
+| Location | Raw value | Note |
+| --- | --- | --- |
+| `--sl-color-text-invert`, light-theme assignment (`starlight.css:124`) | `#ffffff` | Used by Starlight's built-in UI for inverted text. The dark-theme assignment of the same slot uses `var(--doc-ground)`, so this is the only raw literal left in the slot mapping |
 
-Both deviations resolve to the same hex value as `--ds-hero-fg`. The `--sl-*` slot system
-already cross-references `--ds-*` tokens elsewhere in `starlight.css` (e.g.
-`--sl-color-accent: var(--ds-accent)`), so these two literals could technically be updated to
-reference `--ds-hero-fg` instead. Doing so is out of scope for this spec — they are documented
-as known current deviations, not necessary architectural exceptions.
+The `.site-footer__brand { color }` literal previously recorded here is resolved: it now reads
+`color: var(--doc-heading)`. Updating the remaining `--sl-color-text-invert` literal to a
+`--doc-*` token is out of scope for this spec — it is documented as a known current
+deviation, not a necessary architectural exception.
 
 The zone-violation lint (`tools/lint_zone_violations.py`) scans `web/src/` only.
 `docs-site/src/styles/starlight.css` is intentionally outside its scope — the two `#ffffff`

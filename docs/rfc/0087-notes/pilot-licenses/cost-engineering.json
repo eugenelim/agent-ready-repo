@@ -1,0 +1,25 @@
+{
+  "pilot": "cost-engineering",
+  "status": "frozen",
+  "license": "Apache-2.0 OR MIT",
+  "source_material": [
+    {
+      "path": "packs/_okf-pilot-cost-engineering/**",
+      "origin": "Original placeholder pilot content authored in this repository for RFC-0087 validation.",
+      "license_evidence": ["LICENSE-APACHE", "LICENSE-MIT", "README.md#license"],
+      "external_content_used": false
+    },
+    {
+      "path": "docs/rfc/0087-okf-knowledge-projection.md",
+      "origin": "Accepted local RFC defining the OKF projection experiment and pilot constraints.",
+      "license_evidence": ["LICENSE-APACHE", "LICENSE-MIT"],
+      "external_content_used": false
+    }
+  ],
+  "compatibility": "The pilot uses only repository-local original text and accepted local governance material under the repository dual license.",
+  "provenance_limits": [
+    "No vendor-specific examples are imported.",
+    "No external source is cited or transformed.",
+    "Prompts use generic placeholders and do not name real accounts, vendors, people, or organizations."
+  ]
+}

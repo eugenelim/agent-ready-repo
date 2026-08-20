@@ -111,7 +111,12 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "
         "site build; the assertion's self-test remains in the blocking local "
-        "build gate chain.",
+        "build gate chain. Since spec/docs-site-build-contract-hardening it ALSO "
+        "carries one hard gate — the rehype plugin suite, whose local counterpart "
+        "is `make test` (npm run test:plugins --prefix docs-site) and whose "
+        "presence, ordering and path filters are pinned by "
+        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
+        "the deploy, not the merge: this workflow is not a required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
@@ -219,8 +224,12 @@ def CI_ONLY(reason: str) -> tuple[str, str]:
 STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "<unnamed step in build-check>":
         CI_ONLY(
-            "`uses: actions/checkout@v4` — the unnamed first step. Repository "
-            "checkout, not a gate."
+            "`uses: actions/checkout` in the AGGREGATOR job (this key is job-id "
+            "scoped, and the aggregator kept the id `build-check`). Deliberately "
+            "shallow — AC12 exempts it from fetch-depth: 0 because it runs one "
+            "stdlib script over one workflow file and touches no history — and "
+            "persist-credentials: false. No local equivalent: a working tree is the "
+            "local precondition, not a gate."
         ),
     "Detect whether SAST-relevant files changed":
         CI_ONLY(
@@ -239,10 +248,83 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "Provisioning."
         ),
-    "Run make build-check":
+    "Install bandit unconditionally (lint-nosec-form's ID registry)":
         CI_ONLY(
-            "Invokes the local gate itself — this is the parity anchor, not a "
-            "divergence."
+            "Provisioning — but not interchangeable with the conditional step "
+            "above, which is why it is a separate row. `make build-check` "
+            "chains lint-nosec-form.py on every run, and its unknown-test-id "
+            "check reads bandit's registry; without bandit that check silently "
+            "no-ops. Behind the skip_sast condition it was inert on exactly the "
+            "diffs it exists for. Locally the contributor already has bandit "
+            "(tools/requirements-sast.txt), so there is no make target to name."
+        ),
+    "Run make build-check":
+        LOCAL("build-check"),
+    # ── build-check.yml is FIVE jobs: four work jobs + the aggregator ────────
+    # spec/ci-gate-parallelization split out gate-sast and gate-export-boundary;
+    # spec/ci-gate-credbroker added gate-credbroker.
+    # `make build-check` still covers gate-main ∪ gate-sast, but NO single local
+    # command equals any single CI job — gate-main runs the local gate minus SAST.
+    # That is AC16's one-to-many parity model; per-job reproduction is
+    # `make build-check SAST_DELEGATED=1` and `make sast` respectively.
+    "<unnamed step in gate-main>":
+        CI_ONLY(
+            "`uses: actions/checkout@v4` — repository checkout. No local "
+            "equivalent; a working tree is the local precondition, not a gate."
+        ),
+    "<unnamed step in gate-sast>":
+        CI_ONLY("Repository checkout for the SAST job."),
+    "Set up Python (gate-sast)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Run make sast":
+        LOCAL("sast"),
+    "<unnamed step in gate-export-boundary>":
+        CI_ONLY(
+            "Repository checkout for the export-boundary job. Deliberately NOT "
+            "sparse: the suite's real-artifact tests skipif on "
+            "packages/agentbundle being a directory (AC14)."
+        ),
+    "Set up Python (gate-export-boundary)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Install tools dependencies (gate-export-boundary)":
+        CI_ONLY(
+            "Provisioning. `build` and `setuptools` come from here; without them "
+            "the suite's wheel check skips while reporting green."
+        ),
+    "Install agentbundle (editable) + pytest (gate-export-boundary)":
+        CI_ONLY("Provisioning; the gate declares pytest in _DEPENDENCY_IMPORTS."),
+    "Install credbroker (editable, with crypto extra) (gate-export-boundary)":
+        CI_ONLY(
+            "Provisioning. check-artifact-contents.py's _DEPENDENCY_IMPORTS "
+            "includes credbroker and RAISES on a miss."
+        ),
+    "<unnamed step in gate-credbroker>":
+        CI_ONLY(
+            "Repository checkout for the credbroker job. Deliberately SHALLOW — no "
+            "fetch-depth: 0, because packages/credbroker invokes git nowhere; the "
+            "same carve-out the aggregator carries. No local equivalent: a working "
+            "tree is the local precondition, not a gate."
+        ),
+    "Set up Python (gate-credbroker)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)":
+        CI_ONLY(
+            "Provisioning, and the whole of this job's dependency need: the suite "
+            "imports only stdlib, pytest, credbroker, and cryptography/argon2 from "
+            "the [crypto] extra. The extra is not optional — without it 21 vault "
+            "tests and 11 @requires_crypto cases skip silently, which is why the "
+            "pytest step below probes for it rather than trusting this step."
+        ),
+    "Set up Python (aggregator)":
+        CI_ONLY("Interpreter provisioning for the posture test."),
+    "Run the build-check.yml posture test":
+        LOCAL("build-check"),
+    "Require every gate":
+        CI_ONLY(
+            "Consults needs.*.result across sibling jobs. No local target can "
+            "reproduce it — `make ci` runs the legs directly rather than through "
+            "GitHub's scheduler. This is the residual AC16 names, and it is why "
+            "this step is split from the posture test above, which IS local."
         ),
     "Install ripgrep":
         CI_ONLY(
@@ -280,7 +362,25 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test"),
-    "pytest guides sidebar generation":
+        "pytest guides sidebar generation":
+            LOCAL("test"),
+        "pytest journey editorial decisions":
+            LOCAL("test"),
+    # Both wired by docs/specs/build-check-coverage-gaps. The seven files these
+    # two steps run were on `make test`'s Makefile line and in no workflow's
+    # run: steps — locally gated, remotely not.
+    "pytest guides + catalogue navigation":
+        LOCAL("test"),
+    "pytest site build + link rewriting":
+        LOCAL("test"),
+    # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
+    # `make ci` via the `test` target: the checker on its own line near the top,
+    # and its suite on the site/catalogue pytest line.
+    "docs palette contrast gate":
+        LOCAL("test"),
+    # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via the
+    # `test` target, which invokes the same script.
+    "pages.yml deploy-gate posture":
         LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes
@@ -329,6 +429,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest architect design-reviewer guards (RFC-0032)":
         LOCAL("test"),
     "pytest enriched-pack-manifest (RFC-0031)":
+        LOCAL("test"),
+    "pytest catalogue Wave 4 live contracts (roster-owned)":
         LOCAL("test"),
     "pytest consolidated-pack-layout installer append (RFC-0040)":
         LOCAL("test"),

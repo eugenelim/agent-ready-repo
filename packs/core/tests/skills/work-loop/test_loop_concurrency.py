@@ -33,6 +33,7 @@ import time
 from pathlib import Path
 
 import pytest
+import spawn_support as ss
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -670,41 +671,125 @@ def test_noop_paths_do_not_write(tmp: Path) -> None:
 
 # ── AC10 — the lock-hold budget is machine-checked, not asserted in prose ──
 
-# STUB: AC10
-def test_lock_hold_budget() -> None:
-    """timeout < max hold < stale_after, and every under-lock call is bounded.
+# The canonical spawn set lives in `spawn_support`, imported by this file AND by
+# the no-child-Python recorder, so a `check_call` or `os.system` added under the
+# lock fails both scans. It used to be two independent literals in two files under
+# a comment claiming they were shared; they were not, and both covered only the
+# `subprocess` half.
+SPAWN_ATTRS = ss.SUBPROCESS_ATTRS
 
-    loop-engine holds the state lock across git-shelling guards. An unbounded
-    call makes the max hold unprovable; if the real hold can exceed stale_after,
-    a merely-slow holder is judged dead, its lock is reclaimed, and a second
-    writer is admitted — reinstating the lost update. Adding a guard must not be
-    able to break that quietly, so the bound is derived from the source here.
+
+def _locked_region_source(module_path):
+    """`cmd_transition`'s body — the region that actually runs under the lock.
+
+    NOT the syntactic `with sl.exclusive(...)` block: that lives in
+    `_locked.decorate.wrapper` and contains only `return fn(args)`, an indirect call
+    no AST walk can resolve. The decorator's own `_resolve_spec_dir` runs BEFORE the
+    lock is taken and must not be counted.
     """
     import ast as _ast
 
-    src = ENGINE.read_text(encoding="utf-8")
-    tree = _ast.parse(src)
+    tree = _ast.parse(module_path.read_text(encoding="utf-8"))
+    return next(n for n in _ast.walk(tree)
+                if isinstance(n, _ast.FunctionDef) and n.name == "cmd_transition")
 
-    unbounded = []
-    for node in _ast.walk(tree):
-        if not isinstance(node, _ast.Call):
-            continue
-        fn = node.func
-        if not (
-            isinstance(fn, _ast.Attribute)
-            and isinstance(fn.value, _ast.Name)
-            and fn.value.id == "subprocess"
-            and fn.attr in ("run", "Popen", "check_output")
-        ):
-            continue
-        name = f"subprocess.{fn.attr}"
-        if not any(kw.arg == "timeout" for kw in node.keywords):
-            unbounded.append(f"{name} at {ENGINE.name}:{node.lineno}")
-    if unbounded:
+
+def _subprocess_edges_under_lock(module_path) -> int:
+    """Count subprocess INVOCATION EDGES reachable from cmd_transition.
+
+    Edges, not call sites. There is one `subprocess.run` site under the lock — in
+    `_get_repo_root` — and `cmd_transition` reaches it twice: once through its own
+    `_resolve_spec_dir`, once directly. Counting sites would give 1 and counting
+    functions would give 2 for the wrong reason, so the walk resolves callees and
+    sums their per-call subprocess counts.
+    """
+    import ast as _ast
+
+    tree = _ast.parse(module_path.read_text(encoding="utf-8"))
+    funcs = {n.name: n for n in _ast.walk(tree) if isinstance(n, _ast.FunctionDef)}
+
+    def walk_body(fn):
+        """Walk a function's BODY only, never its decorator list.
+
+        Load-bearing: `cmd_transition` is decorated `@_locked("transition")`, and
+        `ast.walk` on the FunctionDef includes that decorator expression — so a naive
+        walk descends into `_locked`, finds its `_resolve_spec_dir` call, and counts
+        the one edge that runs BEFORE `sl.exclusive()` and must be excluded. It
+        computed 3 instead of 2 until this was scoped to the body, which the test
+        caught on its first run.
+        """
+        for stmt in fn.body:
+            yield from _ast.walk(stmt)
+
+    def direct(fn) -> int:
+        return sum(
+            1 for node in walk_body(fn)
+            if isinstance(node, _ast.Call) and isinstance(node.func, _ast.Attribute)
+            and isinstance(node.func.value, _ast.Name)
+            and node.func.value.id == "subprocess" and node.func.attr in SPAWN_ATTRS
+        )
+
+    def edges(fn, seen: frozenset) -> int:
+        total = direct(fn)
+        for node in walk_body(fn):
+            if not isinstance(node, _ast.Call):
+                continue
+            name = node.func.id if isinstance(node.func, _ast.Name) else None
+            if name and name in funcs and name not in seen:
+                total += edges(funcs[name], seen | {name})
+        return total
+
+    return edges(_locked_region_source(module_path), frozenset({"cmd_transition"}))
+
+
+def test_lock_hold_budget() -> None:
+    """timeout < max hold < stale_after, and the constant matches the real call graph.
+
+    loop-engine holds the state lock across a read-decide-write section. An unbounded
+    call makes the max hold unprovable; if the real hold can exceed stale_after, a
+    merely-slow holder is judged dead, its lock is reclaimed, and a second writer is
+    admitted — reinstating the lost update. Adding a guard must not be able to break
+    that quietly, so every part of the bound is derived from source here.
+
+    The constant-vs-source check is the new half. Before the guards moved in-process
+    the constant was 6, a conservative bound over a measured five; a bound that is
+    merely conservative goes stale silently, and a stale bound is how the inequality
+    stops describing the code.
+    """
+    import ast as _ast
+
+    for subject in (ENGINE, SCRIPT_DIR / "_loop_guards.py"):
+        tree = _ast.parse(subject.read_text(encoding="utf-8"))
+        unbounded = []
+        for label, node in ss.spawn_calls(tree):
+            # `os.*` primitives take no `timeout=` at all, so any one of them is
+            # unbounded by construction — there is no bounded form to allow. Only
+            # `subprocess.*` has a timeout to check for. Scanning the os half was
+            # the gap: `os.system("git gc")` under the lock passed this test.
+            if label.startswith("os."):
+                unbounded.append(f"{label} at {subject.name}:{node.lineno} (unboundable)")
+            elif not any(kw.arg == "timeout" for kw in node.keywords):
+                unbounded.append(f"{label} at {subject.name}:{node.lineno}")
+        if unbounded:
+            fail("lock-hold-budget",
+                 "process spawn(s) with no enforceable timeout reachable while the "
+                 f"lock is held: {unbounded}. An unbounded call makes the maximum "
+                 "hold unprovable against stale_after.")
+            return
+
+    # The guard layer must reach no spawning capability at all. A timeout scan cannot
+    # see it: guard dispatch is indirect (`_GUARDS.get(...)` then `guard_fn(...)`)
+    # through a module loaded at runtime, so absence is the only checkable property.
+    guards_src = (SCRIPT_DIR / "_loop_guards.py").read_text(encoding="utf-8")
+    guards_tree = _ast.parse(guards_src)
+    spawn_refs = sorted({
+        node.id for node in _ast.walk(guards_tree)
+        if isinstance(node, _ast.Name) and node.id in ss.SPAWN_MODULES
+    })
+    if spawn_refs:
         fail("lock-hold-budget",
-             "subprocess call(s) with no timeout= reachable while the lock is "
-             f"held: {unbounded}. An unbounded call makes the maximum hold "
-             "unprovable against stale_after.")
+             f"_loop_guards.py reaches a spawning capability: {spawn_refs}. The guard "
+             "layer runs inside the lock-holding process and must not be able to.")
         return
 
     # The arithmetic, read from the two modules rather than restated.
@@ -722,7 +807,131 @@ def test_lock_hold_budget() -> None:
              f"({sl.DEFAULT_STALE_AFTER}s), or a live holder is reclaimed and a "
              "second writer admitted")
         return
+
+    # And the constant must match the call graph, so it cannot go stale.
+    edges = _subprocess_edges_under_lock(ENGINE)
+    if edges != engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK:
+        fail("lock-hold-budget",
+             f"MAX_SUBPROCESS_CALLS_UNDER_LOCK is "
+             f"{engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK} but {edges} subprocess "
+             "invocation edge(s) are reachable from cmd_transition. A bound that no "
+             "longer describes the call graph is how the inequality stops meaning "
+             "anything — update both together.")
+        return
     ok("lock-hold-budget")
+
+
+def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
+    """AC21's reachability half: `lint-spec-status.py` is not scanned file-wide.
+
+    It imports `subprocess` and makes four `git` calls with no `timeout=`
+    (`resolve_default_base_ref`, `base_spec_text`, `_repo_root`). Those are fine
+    *because the guard path never invokes them* — and that claim is what needs an
+    artifact, since `workspace.toml`'s deferral record cites this assertion by name
+    as the reason the four calls are left unbounded.
+
+    The guard path enters this module at exactly the symbols `_loop_guards.py`
+    requires, so the roots are read from `_PARSER_SYMBOLS` rather than restated:
+    a symbol added there widens this walk automatically.
+
+    Vacuity is the real hazard, and the FIRST version of this test fell into it. It
+    asserted only that no spawn was in the reachable set and that the spawning
+    functions were disjoint from it — both trivially true when the walk resolves
+    nothing, which is exactly what happens here: `parse_status` and
+    `extract_status_token` call no other same-module function, so the reachable set
+    IS the root set. Patching `reachable_from` to `return set()` left it green.
+
+    So the artifact is a POSITIVE CONTROL plus the negative claim. `main()` demonstrably
+    reaches every spawning function through a multi-hop walk; if the walker stops
+    resolving edges, that assertion goes red and the negative result below stops being
+    reported as meaningful. The count is not hardcoded — `spawning` is derived, so a
+    fourth git-calling function is covered automatically. Without it, "the guard path reaches no spawn" is
+    indistinguishable from "the walker found nothing at all".
+    """
+    import ast as _ast
+
+    parser = SCRIPT_DIR / "lint-spec-status.py"
+    tree = _ast.parse(parser.read_text(encoding="utf-8"))
+    funcs = ss.functions_in(tree)
+
+    spawning = {
+        name for name, fn in funcs.items() if any(True for _ in ss.spawn_calls(fn))
+    }
+    if not spawning:
+        fail("guard-path-reachability",
+             f"no spawning function found in {parser.name} — the scan is not looking "
+             "at what it thinks it is (did the spawn set or the file change?)")
+        return
+
+    # ── positive control: the walker really does resolve multi-hop edges ────
+    # `main` is the CLI entry point and reaches every spawning function. This is the
+    # assertion that makes the negative result below mean something.
+    control = ss.reachable_from(tree, {"main"})
+    missed = sorted(spawning - control)
+    if missed:
+        fail("guard-path-reachability",
+             f"positive control failed: walking from main() did not reach {missed}, so "
+             "the reachability walker is not resolving edges and the negative result "
+             "below would be vacuous")
+        return
+    if len(control) < 5:
+        fail("guard-path-reachability",
+             f"positive control resolved only {len(control)} name(s) from main(); the "
+             "walk has collapsed to something too shallow to trust")
+        return
+
+    # ── the negative claim ─────────────────────────────────────────────────
+    guards = _load_module(SCRIPT_DIR / "_loop_guards.py", "_guards_reach")
+    roots = set(guards._PARSER_SYMBOLS)
+    callable_roots = roots & set(funcs)
+    if not callable_roots:
+        fail("guard-path-reachability",
+             f"none of the required parser symbols {sorted(roots)} is a function in "
+             f"{parser.name} — the walk would start nowhere and prove nothing")
+        return
+
+    reachable = ss.reachable_from(tree, callable_roots)
+    offenders = sorted({
+        f"{label} at {parser.name}:{node.lineno} (in {name}())"
+        for name in reachable
+        for label, node in ss.spawn_calls(funcs[name])
+    })
+    if offenders:
+        fail("guard-path-reachability",
+             f"the guard path reaches a process spawn in {parser.name}: {offenders}. "
+             "AC21's deferral of the four unbounded git calls rests on them being "
+             "unreachable; bound them or re-scope the criterion.")
+        return
+    ok("guard-path-reachability")
+
+
+def test_only_git_runs_under_the_lock() -> None:
+    """Every subprocess reachable under the lock is git, by argv inspection.
+
+    Complements the count: two bounded edges would still be wrong if one of them had
+    become something other than git.
+    """
+    import ast as _ast
+
+    src = ENGINE.read_text(encoding="utf-8")
+    tree = _ast.parse(src)
+    non_git = []
+    for node in _ast.walk(tree):
+        if not (isinstance(node, _ast.Call) and isinstance(node.func, _ast.Attribute)
+                and isinstance(node.func.value, _ast.Name)
+                and node.func.value.id == "subprocess"):
+            continue
+        if not node.args:
+            non_git.append(f"line {node.lineno}: no argv")
+            continue
+        argv = node.args[0]
+        first = argv.elts[0] if isinstance(argv, (_ast.List, _ast.Tuple)) and argv.elts else None
+        if not (isinstance(first, _ast.Constant) and first.value == "git"):
+            non_git.append(f"line {node.lineno}: argv[0] is not 'git'")
+    if non_git:
+        fail("only-git-under-lock", f"non-git subprocess under the lock: {non_git}")
+        return
+    ok("only-git-under-lock")
 
 
 # ── AC18 — every child resolves its throwaway repo ─────────────────────────

@@ -1,3 +1,10 @@
+---
+title: Episodic vs project research — the two axes
+summary: Understand when a question deserves one research session and when it requires a durable project corpus.
+pack: desk-research
+kind: explanation
+---
+
 # Episodic vs project research — the two axes
 
 The `desk-research` pack answers questions at two very different scales, and it's
@@ -94,6 +101,24 @@ The decision tree is short: **one sitting, one answer → one-off `/desk-researc
 Accumulating corpus, durable brief → a project.** When in doubt, start with a
 one-off; you can always promote what you learn into a project later, but you
 rarely need to.
+
+## How project knowledge intersects
+
+It does not become a third research axis. Desk research owns the investigation,
+source corpus, output root, claims, citations, confidence, counter-evidence,
+verdict, and brief. Project knowledge is only an optional post-result handoff
+after a terminal repository-contained survey or project synthesis.
+
+That handoff may retain an independently reusable research practice or
+carefully sanitized evidence residue. It may not retain the research product
+or source corpus, and it cannot validate a claim or become a citation. Quick
+answers, non-survey artifacts, scaffolding, digest, check, status, incomplete,
+and abandoned paths do nothing. Personal or external output roots also do
+nothing because assigning them repository-relative provenance would be false.
+
+A counter-evidence review may separately ask project knowledge for bounded,
+untrusted candidate checks. The reviewer still selects and verifies independent
+direct sources and omits or caveats any claim it cannot establish.
 
 ## See also
 

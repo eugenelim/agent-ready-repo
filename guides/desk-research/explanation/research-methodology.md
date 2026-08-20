@@ -1,3 +1,10 @@
+---
+title: Research methodology — the why behind the pack
+summary: Understand the pack’s source, depth, confidence, citation, perspective, and counter-evidence design choices.
+pack: desk-research
+kind: explanation
+---
+
 # Research methodology — the why behind the pack
 
 The `desk-research` pack ships eleven skills (seven for episodic depth, four for the project lifecycle) and two retrieval subagents. This page is about the *episodic* skills' methodology — the shapes look obvious in retrospect — modes on `/desk-research`, a flat directory layout, citations forced per claim — but each is a deliberate choice driven either by a mature discipline borrowed from a neighboring field or by an architectural finding from multi-agent research. This page tells the story behind those choices. For the project lifecycle and the two-axis model, see [episodic vs project research](episodic-vs-project-research.md).

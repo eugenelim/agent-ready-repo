@@ -62,6 +62,8 @@ _PATH_BEARING_ATTRS = frozenset(
         "target",
         # `source` is the catalogue-init --source flag: path to source catalogue root.
         "source",
+        # `catalogue_root` is the neutral catalogue-index positional.
+        "catalogue_root",
     }
 )
 
@@ -787,7 +789,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _ver_p = cat_subs.add_parser(
         "verify",
         help=(
-            "Verify catalogue against contracts (18-step pipeline, including "
+            "Verify catalogue against contracts (19-step pipeline, including "
             "agent-artifact lint and plugin manifest validation)."
         ),
     )
@@ -1056,6 +1058,44 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _init_p.set_defaults(func=_lazy("catalogue_init"))
 
+    # catalogue index
+    _ci_p = cat_subs.add_parser(
+        "index",
+        help="Generate a neutral catalogue index from pack.toml and JOURNEY.md files.",
+    )
+    _ci_p.add_argument(
+        "catalogue_root",
+        nargs="?",
+        default=".",
+        metavar="CATALOGUE_ROOT",
+        help="Path to the catalogue root (default: current directory).",
+    )
+    _ci_p.add_argument(
+        "--output",
+        metavar="PATH",
+        help="Output file path (default: <CATALOGUE_ROOT>/catalogue-index.json).",
+    )
+    _ci_p.add_argument(
+        "--format",
+        choices=("table", "json"),
+        default="table",
+        help="Command result output format (does not affect the output file).",
+    )
+    _ci_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and generate in memory; write nothing to disk.",
+    )
+    _ci_p.add_argument(
+        "--generated-at",
+        metavar="ISO8601",
+        help=(
+            "Set generated_at to an ISO 8601 timestamp. Overrides SOURCE_DATE_EPOCH. "
+            "When both are absent, generated_at is omitted."
+        ),
+    )
+    _ci_p.set_defaults(func=_lazy("catalogue_index"))
+
     # catalogue contracts
     _contracts_p = cat_subs.add_parser(
         "contracts",
@@ -1299,9 +1339,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     # file emits a stderr warning and returns UserConfig(adapter=None)
     # without raising, so `--help`, `config path`, and `config unset`
     # all keep working when the file is broken.
-    from agentbundle.user_config import load_user_config
+    if getattr(args, "catalogue_sub", None) != "index":
+        from agentbundle.user_config import load_user_config
 
-    args._user_config = load_user_config()
+        args._user_config = load_user_config()
     return int(args.func(args))
 
 

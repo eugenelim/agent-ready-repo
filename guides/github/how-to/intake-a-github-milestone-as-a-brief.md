@@ -1,3 +1,10 @@
+---
+title: Intake GitHub work into the repository
+summary: Read selected issue or milestone content and route it through `work-intake` without writing back to the tracker.
+pack: github
+kind: how-to
+---
+
 # Intake GitHub work into the repository
 
 **Use this when:** an Issue, Milestone, or explicit GitHub selection should

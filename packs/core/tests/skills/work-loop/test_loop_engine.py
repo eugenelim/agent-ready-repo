@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import os
+import signal
 import stat
 import subprocess
 import sys
@@ -620,6 +621,234 @@ def _pending_fixture(tmp: Path, name: str, sentinel: str) -> tuple[Path, Path, d
 
 
 # STUB: AC3 — pending-event recovery must not follow an outside symlink.
+# (label, bytes for events.pending, must the audit record survive?)
+#
+# The discard decision is what commit b8c7d361's `_is_content_invalid` replaced: it
+# used to substring-match `str(exc)` against a hand-listed set of message fragments,
+# duplicated at two call sites, and the list had fallen behind the reader — the
+# non-finite-number message was absent, so `NaN` and `1e400` were never recognised as
+# invalid content and the file was retained forever, re-warning on every transition.
+# Both directions matter: discarding too eagerly destroys a durable audit record, and
+# retaining invalid content wedges every subsequent transition behind a warning.
+_PENDING_RECOVERY_CASES = [
+    # content-invalid: the bytes are unusable, so discarding is correct
+    ("malformed-json", b'{ not json', False),
+    ("nan-literal", b'{"seq": NaN, "to": "X"}', False),
+    ("overflow-float", b'{"seq": 1e400, "to": "X"}', False),
+    ("root-not-object", b'[1, 2]', False),
+    ("invalid-utf8", b'{"a": "\xff\xfe"}', False),
+    # structural: the read failed and says NOTHING about the content, so the audit
+    # record must survive. A FIFO is the shape that used to hang the reader.
+    ("fifo", None, True),
+]
+
+
+@pytest.mark.parametrize(
+    "label,payload,must_survive",
+    _PENDING_RECOVERY_CASES, ids=[c[0] for c in _PENDING_RECOVERY_CASES],
+)
+def test_recover_pending_discards_only_invalid_content(
+    label: str, payload: bytes | None, must_survive: bool, tmp: Path,
+) -> None:
+    """`events.pending` is deleted for invalid CONTENT and kept for a failed READ."""
+    name = f"recover-pending-content-vs-structural-{label}"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(parents=True, exist_ok=True)
+    pending_path = loop_dir / "events.pending"
+    if payload is None:
+        os.mkfifo(pending_path)
+    else:
+        pending_path.write_bytes(payload)
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+        _engine._recover_pending(tmp)
+    diagnostic = stderr.getvalue()
+
+    survived = pending_path.exists() or pending_path.is_fifo()
+    if survived != must_survive:
+        fail(name,
+             f"{label}: events.pending "
+             f"{'survived' if survived else 'was discarded'}, expected the opposite. "
+             f"diagnostic={diagnostic.strip()[:160]!r}")
+        return
+    # A silent decision is as bad as a wrong one — an operator has to be told which
+    # happened, because the retained case needs manual cleanup.
+    expected_phrase = "left in place" if must_survive else "discarded"
+    if expected_phrase not in diagnostic:
+        fail(name, f"{label}: diagnostic does not say {expected_phrase!r}: "
+                   f"{diagnostic.strip()[:160]!r}")
+        return
+    ok(name)
+
+
+def test_a_guard_module_load_failure_never_discards_the_audit_record(tmp: Path) -> None:
+    """The data-loss case, stated as its own test.
+
+    `_read_managed_json` delegates to the shared guard module, so it can now fail for
+    a reason that says nothing about `events.pending` — most importantly a
+    `GuardsUnavailable` when `_loop_guards.py` is missing or corrupt. Treating that as
+    invalid content destroyed a byte-perfect audit record, which is what was observed
+    before the fix. `_is_content_invalid` must answer False for it.
+    """
+    name = "load-failure-never-discards"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(parents=True, exist_ok=True)
+    pending_path = loop_dir / "events.pending"
+    payload = json.dumps({"seq": 1, "to": "CODE-VERIFICATION", "run_id": "r"})
+    pending_path.write_text(payload, encoding="utf-8")
+
+    exc = _engine.GuardsUnavailable("cannot load _loop_guards.py: truncated")
+    if _engine._is_content_invalid(exc):
+        fail(name, "a guard-module load failure was classified as invalid content, "
+                   "which authorises deleting the audit record")
+        return
+
+    # And the same for an ordinary structural reader failure.
+    if _engine._is_content_invalid(ValueError("events.pending must be a regular file")):
+        fail(name, "a structural read failure was classified as invalid content")
+        return
+
+    if pending_path.read_text(encoding="utf-8") != payload:
+        fail(name, "the audit record was modified")
+        return
+    ok(name)
+
+
+_TMP_RECOVERY_CASES = [
+    # (label, writer, expect the tmp file to survive)
+    #
+    # `deep-nesting` is the regression: `json.loads` raises RecursionError — NOT a
+    # ValueError — so a narrowed `except (FileNotFoundError, ValueError)` let it
+    # escape as a traceback from inside `sl.exclusive(...)`. And because the dotfile
+    # was never removed, EVERY later transition on that spec failed identically.
+    ("deep-nesting", lambda p: p.write_text(
+        '{"state":"X","run_id":"y","z":' + "[" * 20000 + "]" * 20000 + "}",
+        encoding="utf-8"), False),
+    ("malformed", lambda p: p.write_text("{ not json", encoding="utf-8"), False),
+    ("non-finite", lambda p: p.write_text(
+        '{"state":"X","run_id":"y","n":NaN}', encoding="utf-8"), False),
+    ("missing-fields", lambda p: p.write_text('{"foo":1}', encoding="utf-8"), False),
+    # Structural: says nothing about the content, so the artifact must survive.
+    ("fifo", lambda p: os.mkfifo(p), True),
+]
+
+
+@pytest.mark.parametrize(
+    "label,writer,must_survive", _TMP_RECOVERY_CASES,
+    ids=[c[0] for c in _TMP_RECOVERY_CASES],
+)
+def test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content(
+    label: str, writer, must_survive: bool, tmp: Path,
+) -> None:
+    """Two independent properties, both of which this line has got wrong once.
+
+    Nothing may ESCAPE — it runs inside `cmd_transition`'s critical section and
+    `main()` handles only `GuardsUnavailable` and `KeyboardInterrupt`. And only invalid
+    CONTENT may authorise the unlink, because a structural read failure says nothing
+    about the file and deleting a byte-perfect crash-recovery artifact is irreversible.
+    Catching broadly while deleting narrowly is what satisfies both.
+    """
+    name = f"recover-tmp-{label}"
+    spec_dir = tmp / f"spec-{label}"
+    spec_dir.mkdir(parents=True)
+    tmp_path = spec_dir / ".engine-state-abc.json.tmp"
+    writer(tmp_path)
+
+    stderr = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+            _engine._recover_engine_state_tmp(spec_dir)
+    except BaseException as exc:  # noqa: BLE001 — that nothing escapes is the assertion
+        fail(name, f"{label}: {type(exc).__name__} escaped a lock-holding section: {exc}")
+        return
+
+    survived = tmp_path.exists() or tmp_path.is_fifo()
+    if survived != must_survive:
+        fail(name, f"{label}: tmp file {'survived' if survived else 'was deleted'}, "
+                   f"expected the opposite. stderr={stderr.getvalue().strip()[:160]!r}")
+        return
+    if "warning" not in stderr.getvalue():
+        fail(name, f"{label}: the decision was silent: {stderr.getvalue()!r}")
+        return
+    ok(name)
+
+
+def test_a_planted_filename_cannot_inject_control_characters(tmp: Path) -> None:
+    """The engine's diagnostics are also an agent-captured stream.
+
+    `_recover_engine_state_tmp` reads its filename from a `glob()`, under the same
+    planted-file threat model it already accepts for the file's CONTENT — so a
+    `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real screen-clear and
+    colour change into the transcript. The `GuardResult` chokepoint does not cover
+    this: the engine formats these warnings itself.
+
+    `_diag` is a deliberate second copy of the guard module's escape table, because
+    these lines fire on paths where that module may be unloadable — which is when a
+    diagnostic matters most.
+    """
+    name = "planted-filename-cannot-inject"
+    spec_dir = tmp / "spec-inject"
+    spec_dir.mkdir(parents=True)
+    evil = ".engine-state-\x1b[2J\x1b[31mFAKE-OK.json.tmp"
+    (spec_dir / evil).write_text("{ not json", encoding="utf-8")
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+        _engine._recover_engine_state_tmp(spec_dir)
+    out = stderr.getvalue()
+
+    if not out.strip():
+        fail(name, "no diagnostic at all — nothing was measured")
+        return
+    offenders = sorted({c for c in out.rstrip("\n") if ord(c) < 32 or ord(c) == 127})
+    if offenders:
+        fail(name, f"raw control character(s) {[hex(ord(c)) for c in offenders]} reached "
+                   f"the captured stream: {out!r}")
+        return
+    if len(out.strip().splitlines()) != 1:
+        fail(name, f"the diagnostic is not one line: {out!r}")
+        return
+    ok(name)
+
+
+def test_gitignore_courtesy_cannot_hang_the_locked_init(tmp: Path) -> None:
+    """`_ensure_gitignore_entry` runs under `cmd_init`'s lock and must not block.
+
+    It was a plain `read_text()`, and the caller's `is_symlink()` pre-check does not
+    exclude a FIFO — so a repo-root `.gitignore` FIFO hung `init` indefinitely while
+    holding `engine-state.json.lock`. Past `stale_after` the lock is reclaimed and a
+    second writer admitted, which is the lost update the lock exists to prevent.
+
+    The alarm is a LIVENESS guard, not a performance assertion: a blocking read has no
+    exit code to assert on, so interrupting it is the only way to tell "refused" from
+    "blocked forever".
+    """
+    name = "gitignore-cannot-hang-locked-init"
+    gitignore = tmp / ".gitignore"
+    os.mkfifo(gitignore)
+
+    def _blocked(*_a):
+        raise TimeoutError("the read blocked instead of refusing")
+
+    previous = signal.signal(signal.SIGALRM, _blocked)
+    signal.alarm(5)
+    try:
+        with pytest.raises(Exception) as caught:  # noqa: PT011 — the reader's vocabulary
+            _engine._ensure_gitignore_entry(gitignore, ".loop-run/")
+    except TimeoutError:
+        fail(name, "the gitignore read blocked instead of refusing — a lock holder "
+                   "that blocks is reclaimed as stale and a second writer admitted")
+        return
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+    if "regular file" not in str(caught.value):
+        fail(name, f"refused, but not as a non-regular file: {caught.value!r}")
+        return
+    ok(name)
+
+
 def test_recover_pending_rejects_symlink(tmp: Path) -> None:
     name = "recover-pending-rejects-symlink"
     sentinel = "outside-pending-sentinel"
@@ -3227,3 +3456,158 @@ def test_check_spec_status_no_flags_defaults_shipped_spec_md(tmp: Path) -> None:
 
 
 # ── runner ────────────────────────────────────────────────────────────────
+
+
+# ══ in-process guards: transition ordering and the guard boundary (T3) ══════
+#
+# AC17 is the rail the `Never do` reordering prohibition is measured against, so it
+# needs an artifact rather than prose. Two shapes, because neither alone is enough:
+# double-violation cases prove which refusal *wins* at runtime, and a source-order
+# assertion covers the steps that have no callee to observe.
+
+# The eleven steps cmd_transition holds the lock across, in order. Each entry is
+# (label, source anchor) — a substring that must appear in cmd_transition's body.
+_TRANSITION_STEPS = [
+    ("spec-dir re-resolution", "_resolve_spec_dir(args.spec_dir)"),
+    ("--wave-index validation", "does not accept --wave-index"),
+    ("crash recovery: engine-state tmp", "_recover_engine_state_tmp(spec_dir)"),
+    ("crash recovery: pending outbox", "_recover_pending("),
+    ("engine-state read", "_read_engine_state(spec_dir)"),
+    ("schema_version check", "unsupported schema_version"),
+    ("run-ID preflight", "_run_id_preflight(spec_dir, run_id)"),
+    ("transition-table validation", "illegal transition"),
+    ("CODE schedule pre-check", "_schedule_check_current(spec_dir)"),
+    ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
+    # The DECISION and the FINALIZATION are two steps, and they were previously one
+    # anchor: the label said "state decision" while the anchor was the atomic write,
+    # so AC17's decision step had no anchor at all and the count only looked right
+    # because crash recovery had been split into two. This list is now one-for-one
+    # with AC17's twelve.
+    ("state decision", '"gate_question": _GATE_QUESTIONS.get(next_state)'),
+    ("outbox plus state finalization", "_write_engine_state_atomic(spec_dir, new_state)"),
+]
+
+
+def _cmd_transition_source() -> str:
+    import ast
+
+    tree = ast.parse(ENGINE.read_text(encoding="utf-8"))
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "cmd_transition")
+    lines = ENGINE.read_text(encoding="utf-8").split("\n")
+    return "\n".join(lines[fn.lineno - 1:fn.end_lineno])
+
+
+def test_transition_steps_appear_in_the_documented_order() -> None:
+    """All twelve anchors resolve, and in AC17's order.
+
+    The vacuity guard is the point. Four of these steps — wave-index validation, the
+    schema check, transition-table validation, the state decision — have no callee to
+    observe at runtime, so the assertion keys on literals. An anchor that silently
+    stopped matching would drop out of a sorted list that then always passes, which is
+    the antipattern `e6d4c14a` records: "a gate whose scanned file set can collapse to
+    zero while still exiting 0 is silent when it works and silent when it is broken."
+    So a missing anchor is a failure, not a skipped comparison.
+    """
+    src = _cmd_transition_source()
+    positions = []
+    missing = []
+    for label, anchor in _TRANSITION_STEPS:
+        idx = src.find(anchor)
+        if idx < 0:
+            missing.append(f"{label} ({anchor!r})")
+        else:
+            positions.append((idx, label))
+    assert not missing, (
+        "these transition steps no longer resolve in cmd_transition, so the ordering "
+        f"assertion would silently stop covering them: {missing}"
+    )
+    assert len(positions) == len(_TRANSITION_STEPS)
+    ordered = [label for _, label in sorted(positions)]
+    expected = [label for label, _ in _TRANSITION_STEPS]
+    assert ordered == expected, (
+        "cmd_transition's critical section has been reordered.\n"
+        f"  expected: {expected}\n  found:    {ordered}"
+    )
+
+
+def test_wave_index_validation_wins_over_an_unreadable_engine_state(tmp: Path) -> None:
+    """Double violation, steps 2 vs 5: the earlier step's refusal is the one reported.
+
+    `wave-passed` without `--wave-index` AND an unreadable engine-state.json. The
+    wave-index check is step 2 and the engine-state read is step 5, so the wave-index
+    message wins. Step numbers are AC17's twelve, which `_TRANSITION_STEPS` mirrors
+    one-for-one — an earlier revision cited two different numberings in these two
+    docstrings.
+    """
+    name = "double-violation-wave-index-vs-read"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "engine-state.json").write_text("{ not json", encoding="utf-8")
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-passed")
+    if rc == 0:
+        fail(name, "expected a refusal")
+    elif "requires --wave-index" not in err:
+        fail(name, f"the later step's refusal won: {err.strip()[:160]!r}")
+    else:
+        ok(name)
+
+
+def test_schedule_precheck_wins_over_a_failing_event_guard(tmp: Path) -> None:
+    """Double violation, steps 9 vs 10: the CODE schedule pre-check precedes the guard.
+
+    Step numbers are AC17's twelve, mirrored by `_TRANSITION_STEPS`.
+
+    A drifted plan hash AND a not-last wave. `gates-clean`'s own guard would refuse on
+    the wave, but the schedule pre-check runs first.
+    """
+    name = "double-violation-schedule-vs-guard"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Implementing")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "plan_hash": "0" * 64,               # drifted -> step 9 refuses
+        "schedule_waves": [["T1"], ["T2"]],
+        "current_wave_index": 0,             # not last -> step 10 would refuse
+    }))
+    rc, _, err = run_engine("transition", str(spec_dir), "gates-clean")
+    if rc == 0:
+        fail(name, "expected a refusal")
+    elif "schedule check-current" not in err:
+        fail(name, f"the event guard won over the schedule pre-check: {err.strip()[:160]!r}")
+    else:
+        ok(name)
+
+
+def test_engine_names_no_python_script_but_its_two_siblings() -> None:
+    """Source-absence signal, independent of the runtime recorder in T5.
+
+    Two signals rather than one because they fail differently: a recorder proves no
+    spawn happened on the paths it drove, and this proves the engine cannot name a
+    Python script to spawn on any path at all.
+    """
+    import ast
+    import re as _re
+
+    src = ENGINE.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+
+    executable_refs = [
+        node.lineno for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute) and node.attr == "executable"
+        and isinstance(node.value, ast.Name) and node.value.id == "sys"
+    ]
+    assert not executable_refs, f"sys.executable is referenced at lines {executable_refs}"
+
+    literals = {
+        node.value for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        and _re.search(r"\.py$", node.value)
+    }
+    assert literals <= {"_statelock.py", "_loop_guards.py"}, (
+        f"the engine names other Python scripts: {sorted(literals - {'_statelock.py', '_loop_guards.py'})}"
+    )

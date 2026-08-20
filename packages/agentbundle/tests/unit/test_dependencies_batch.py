@@ -67,7 +67,7 @@ def test_default_call_without_batch_is_unchanged_behavior():
 def test_dep_in_state_still_satisfies_with_batch_param():
     state = State(packs={
         ("core", "claude-code"): PackState(
-            installed_version="0.4.9", scope="repo", adapter="claude-code"
+            installed_version="0.1.9", scope="repo", adapter="claude-code"
         ),
     })
     validate_dependencies_required(
@@ -105,7 +105,11 @@ def test_batch_param_does_not_bypass_grammar_check():
             "version": "0.1.0",
             "dependencies": {
                 "required": [
-                    {"catalogue": "agent-ready-repo", "pack": "core", "version": "0.1"}
+                    {
+                        "catalogue": "agent-ready-repo",
+                        "pack": "core",
+                        "version": "not-a-version",
+                    }
                 ]
             },
         }

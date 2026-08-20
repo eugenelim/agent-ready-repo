@@ -2,7 +2,7 @@
 journey_id: atlassian
 pack: atlassian
 start_state: read-only
-end_state: publish
+end_state: confirmed-write
 scope: user
 tagline: "Run Jira and Confluence from a conversation"
 prerequisitePacks: []
@@ -16,6 +16,11 @@ contract:
     - "Confirm the exact issue keys and fields before any Jira write"
     - "Confirm each refresh write-back mutation separately"
     - "Approve the Confluence draft before publishing"
+  decisionGateIds:
+    - confirm-backlog-scope
+    - review-story-drafts
+    - confirm-jira-writes
+    - approve-confluence-publish
 whatChanges: "After installing the Atlassian pack, you can ask for your team's full backlog in plain language and receive a structured, annotated result — grouped by readiness, with scope and completeness disclosed — without opening a browser or writing JQL. The pack selects the right workflow for each request: orient first (read-only), improve unclear work when needed (draft), and write only after the requested change is explicit and confirmed. You do not need to know which skill handles each stage."
 skills:
   - name: jira-team-status
@@ -58,9 +63,9 @@ skills:
     description: "Compare two flow-metrics outputs and produce a Markdown adoption report. Read-only; does not call Jira or Confluence."
     humanTouches: 1
 humanGates:
-  - id: G-scope
+  - id: confirm-backlog-scope
     globalGate: null
-    label: "Confirm team scope"
+    label: "Confirm the backlog scope"
     trigger: "When the agent resolves more than one plausible team scope — before returning any backlog results"
     duration: "1–2 minutes"
     whatToCheck:
@@ -70,9 +75,9 @@ humanGates:
     whatGoodLooksLike: "A scope that names the correct board, project set, or Team field — confirmed in one sentence."
     whatBadLooksLike: "A scope that includes the wrong projects, misses a key sprint, or uses the Team field when the board is the right source of truth."
     consequence: "Wrong scope means wrong backlog. Catching it here is a 30-second correction; catching it after reading 184 issues means starting over."
-  - id: G-draft-review
+  - id: review-story-drafts
     globalGate: null
-    label: "Review story drafts"
+    label: "Review the story drafts"
     trigger: "After jira-story-triage produces proposed rewrites — before any write is requested"
     duration: "5–15 minutes"
     whatToCheck:
@@ -83,9 +88,9 @@ humanGates:
     whatGoodLooksLike: "A draft you could hand to an engineer and have them begin work without asking a follow-up question."
     whatBadLooksLike: "A draft that rewrites prose but leaves the ambiguous scope or missing acceptance criteria untouched."
     consequence: "Approving a weak draft locks in the ambiguity. Story triage is the last cheap moment to catch a missing acceptance criterion before it reaches engineering."
-  - id: G-write-confirm
+  - id: confirm-jira-writes
     globalGate: "G4"
-    label: "Confirm exact Jira writes"
+    label: "Confirm the Jira changes"
     trigger: "After the agent shows the write preview — before any Jira data is changed"
     duration: "2–5 minutes"
     whatToCheck:
@@ -96,9 +101,9 @@ humanGates:
     whatGoodLooksLike: "A write payload that exactly matches the approved draft — no extra fields, no unexpected issues, protected fields not listed."
     whatBadLooksLike: "A payload that includes issues you did not select, or fields beyond description and acceptance criteria."
     consequence: "Jira writes are immediate and visible to the team. Confirming the wrong payload means a manual rollback."
-  - id: G-publish
+  - id: approve-confluence-publish
     globalGate: null
-    label: "Approve Confluence publish"
+    label: "Approve publishing to Confluence"
     trigger: "After the agent produces a Confluence-ready draft — before publishing to the space"
     duration: "2–5 minutes"
     whatToCheck:

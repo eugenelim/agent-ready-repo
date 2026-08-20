@@ -1,6 +1,6 @@
 # Spec: frozen-spec-supersession
 
-- **Status:** Shipped
+- **Status:** Shipped (§ Survey's register anchor `frozen-spec-supersession-survey` was closed by [`frozen-doc-supersession-annotations`](../frozen-doc-supersession-annotations/spec.md), which also corrects this § Survey's counts; not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** none — see § Named deviation
 - **Mode:** full (governance surface — it writes a rule into
