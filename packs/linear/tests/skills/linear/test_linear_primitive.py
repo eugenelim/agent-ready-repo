@@ -785,6 +785,53 @@ class TestLinearRefreshProcessor:
         assert result.transport_calls == 1
         assert len(calls) == 1
 
+    def test_successful_action_reports_terminal_receipt_update_failure(
+        self,
+        linear_mod: types.ModuleType,
+        refresh_mod: types.ModuleType,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        calls: list[dict[str, object]] = []
+        store = _receipt_store(refresh_mod, tmp_path)
+        original_record = refresh_mod.RemoteReceiptStore.record
+
+        def fail_terminal_record(self: object, receipt: object) -> None:
+            if getattr(receipt, "status", None) == "succeeded":
+                raise OSError("concurrent artifact update")
+            original_record(self, receipt)
+
+        monkeypatch.setattr(
+            refresh_mod.RemoteReceiptStore, "record", fail_terminal_record
+        )
+        processor = linear_mod.LinearRefreshProcessor(
+            refresh_runtime=refresh_mod,
+            receipt_store=store,
+            api_key_loader=lambda: "opaque-key",
+            graphql_transport=lambda **kwargs: calls.append(dict(kwargs))
+            or {"data": {"commentCreate": {"success": True}}},
+            resolver=lambda _host: ("93.184.216.34",),
+        )
+
+        result = processor.write(
+            action="comment",
+            target="lin-1",
+            body="Looks good",
+            artifact_path="docs/product/briefs/example.md",
+            source_revision="remote-rev-2",
+            policy=_policy(refresh_mod),
+            confirmation=_confirmation(refresh_mod),
+            now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+        )
+
+        assert result.code == "receipt_update_failed"
+        assert result.transport_calls == 1
+        assert len(calls) == 1
+        durable = refresh_mod.parse_source_authority(
+            (store.repository_root / store.artifact_path).read_text()
+        ).remote_actions
+        assert durable[-1]["status"] == "pending"
+
     def test_linear_refresh_registration_declares_profile_capabilities(
         self, linear_mod: types.ModuleType, refresh_mod: types.ModuleType
     ) -> None:

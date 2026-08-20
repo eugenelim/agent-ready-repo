@@ -117,7 +117,9 @@ Acquisition and comparison failures are pre-commit failures. Local mutation is
 one guarded operation over the artifact and workspace mirror. Remote write-back
 is deliberately outside that local transaction: the local authority decision
 is durable first, then the confirmed adapter command runs once and returns a
-retry-safe outcome. A stale artifact/workspace fingerprint, profile-version
+retry-safe outcome unless the terminal receipt write itself fails, which
+leaves the effect unknown and needs operator repair. A stale
+artifact/workspace fingerprint, profile-version
 mismatch, unsupported capability, ambiguous field map, unresolved redaction,
 or execution lock refuses without mutation.
 
@@ -125,8 +127,8 @@ Credential-bearing destinations used by repository-owned HTTP pass a shared
 pre-request guard. The guard enforces profile-declared schemes, hostnames, and
 ports; requires HTTPS for credentialed calls; rejects userinfo and forbidden
 literal/resolved address ranges including cloud metadata; disables redirects
-unless the profile permits and revalidates them; and pins or connect-time
-rechecks DNS resolution to resist rebinding and validation/use races.
+and refuses profiles that request them; and pins or connect-time rechecks DNS
+resolution to resist rebinding and validation/use races.
 
 GitHub remains a distinct approved-CLI boundary. Repository code accepts its
 host only from trusted repository or administrator configuration, verifies
@@ -228,9 +230,10 @@ def test_remote_confirmation_is_bound_and_single_use(refresh_contract):
   queued remote mutation. Verifies AC5, AC12.
 - Add destination-guard cases for profile-permitted schemes, profile-scoped
   host/port allowlists, userinfo, literal and DNS-resolved
-  loopback/private/link-local/multicast/unspecified and cloud-metadata
-  addresses, redirects disabled by default, permitted-hop revalidation, DNS
-  rebinding, and validation/use races; every refusal records zero requests.
+loopback/private/link-local/multicast/unspecified and cloud-metadata
+addresses, redirects disabled with profile-requested redirects refused before
+any request, DNS rebinding, and validation/use races; every refusal records
+zero requests.
   Verifies AC21-AC22.
 - Add instruction-shaped source strings and sensitive-field fixtures that
   cannot affect routing or visible output. Verifies AC15-AC16.
@@ -244,7 +247,9 @@ def test_remote_confirmation_is_bound_and_single_use(refresh_contract):
 - Add confirmation-binding fixtures covering identity, role, artifact, source
   revision, profile, destination, action, target, canonical payload digest,
   staleness, and one-time consumption. Assert a failed remote action records a
-  retry-safe receipt and a retry requires a new confirmation. Verifies AC25.
+  retry-safe receipt and a retry requires a new confirmation, and that a failed
+  terminal receipt write instead reports `receipt_update_failed` with the receipt
+  left pending. Verifies AC25.
 
 **Approach:**
 
@@ -411,8 +416,8 @@ def test_jira_align_undeclared_action_is_refused(jira_align_processor, confirmat
 - Assert every Jira SSO-cookie non-GET/HEAD attempt raises before the fake
   transport records a request, including raw-call paths. Verifies AC14.
 - Assert auth, redaction, unsupported custom-field mapping, and remote
-  partial-failure results are fail-closed and retry-safe. Verifies AC12, AC16,
-  AC18.
+  partial-failure results are fail-closed; terminal receipt-update failures
+  require operator repair. Verifies AC12, AC16, AC18.
 - Assert both clients validate configured schemes, profile hosts, resolved
   address ranges, and rebound DNS before credential loading or fake transport
   use; profiles requesting redirects are refused. Verifies AC21-AC22.

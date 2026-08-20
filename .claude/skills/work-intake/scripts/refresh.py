@@ -230,7 +230,10 @@ class ProcessorRegistration:
             acquired = self.acquire(request.source_ref, request.compared_revision)
             if not isinstance(acquired, dict):
                 raise RefreshRefusal("acquisition_failed")
+            redact = _intake_guard_callable("_redact")
             object_type = acquired.get("type")
+            if isinstance(object_type, str):
+                object_type = redact(object_type)
             if (
                 acquired.get("locator") != request.source_ref
                 or acquired.get(self.revision_field) != request.compared_revision
@@ -249,7 +252,6 @@ class ProcessorRegistration:
             }
             slots = {"Outcome": "outcomes", "User stories": "behaviors"}
             source_values: dict[str, str] = {}
-            redact = _intake_guard_callable("_redact")
             for canonical_field, source_field in self.field_mapping:
                 slot = slots.get(canonical_field)
                 value = acquired.get(source_field)

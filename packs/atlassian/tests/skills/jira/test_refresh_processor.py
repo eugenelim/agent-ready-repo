@@ -363,6 +363,53 @@ def test_token_write_uses_exact_allowlisted_payload(
     assert durable[0]["profile_version"] == "1.0"
 
 
+def test_successful_jira_write_reports_terminal_receipt_update_failure(
+    processor, refresh, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = FakeJiraClient()
+    store = _receipt_store(refresh, tmp_path)
+    payload = {"body": "Reviewed trace."}
+    expected_payload = {"issue_key": "PROJ-1", **payload}
+    original_record = refresh.RemoteReceiptStore.record
+
+    def fail_terminal_record(self: object, receipt: object) -> None:
+        if getattr(receipt, "status", None) == "succeeded":
+            raise OSError("concurrent artifact update")
+        original_record(self, receipt)
+
+    monkeypatch.setattr(refresh.RemoteReceiptStore, "record", fail_terminal_record)
+    result = asyncio.run(
+        processor.write_back(
+            client=client,
+            action="comment",
+            target="PROJ-1",
+            payload=payload,
+            confirmation=_confirmation(
+                refresh,
+                action="comment",
+                target="PROJ-1",
+                payload=expected_payload,
+            ),
+            policy=_policy(refresh),
+            receipt_store=store,
+            artifact_path="docs/specs/example/spec.md",
+            source_revision="JIRA-1@7",
+            destination="https://tracker.example.test",
+            refresh_runtime=refresh,
+            destination_resolver=_safe_destination_resolver,
+            now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+        )
+    )
+
+    assert result.code == "receipt_update_failed"
+    assert len(client.calls) == 1
+    assert result.receipt.status == "pending"
+    durable = refresh.parse_source_authority(
+        (store.repository_root / store.artifact_path).read_text()
+    ).remote_actions
+    assert durable[-1]["status"] == "pending"
+
+
 def test_durable_receipt_store_preserves_confirmed_comment_payload(
     processor, refresh, tmp_path: Path
 ) -> None:

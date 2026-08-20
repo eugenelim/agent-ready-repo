@@ -119,6 +119,8 @@ uses its own fresh confirmation. The confirmation is bound to the approver,
 artifact, source revision, profile, destination, action, target, and payload
 digest. A pending local receipt is recorded before the command or request. A
 failed mutation is not retried automatically; retrying requires a new
+confirmation. `receipt_update_failed` means the adapter effect is unknown and
+the receipt remains pending; require operator repair rather than a new
 confirmation.
 
 ## Know the active profile limits
@@ -137,8 +139,10 @@ fall back to a raw API or generic update command.
 ## Next request
 
 Run `workspace-status` to confirm the compared revision and any unresolved
-conflict. If one remote action failed, inspect its receipt and request a new
-confirmation for that action only.
+conflict. If a remote action returns `receipt_update_failed`, the effect is
+unknown and its pending receipt requires operator repair rather than another
+confirmation. For another failed action, inspect its receipt before requesting
+a new confirmation for that action only.
 
 ## See also
 

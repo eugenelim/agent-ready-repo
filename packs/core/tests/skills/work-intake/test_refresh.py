@@ -1092,7 +1092,7 @@ def test_acquisition_redacts_sensitive_tracker_values_before_commit(
         capabilities=frozenset({"acquire"}),
         acquire=lambda locator, revision: {
             "locator": locator,
-            "type": "issue",
+            "type": "contact colleague@example.com",
             "updatedAt": revision,
             "title": sensitive,
         },
@@ -1164,6 +1164,10 @@ def test_acquisition_redacts_sensitive_tracker_values_before_commit(
     for forbidden in (b"colleague@example.com", b"AKIAIOSFODNN7EXAMPLE"):
         assert forbidden not in committed
     assert redacted.encode("utf-8") in committed
+    assert (
+        invocation.normalized_record["source"]["object_type"]
+        == "contact [redacted-personal-data]"
+    )
 
 
 def test_confirmation_is_exact_fresh_and_single_use(tmp_path: Path) -> None:

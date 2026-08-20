@@ -313,7 +313,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and binding are recorded in the artifact's remote-action receipt before the
   adapter call; reuse, mismatch, stale, ambiguous, or unauthorized confirmation
   fails before transport or `gh` invocation. A failed call updates only that
-  receipt to a retry-safe failed state and a retry requires a new confirmation.
+  receipt to a retry-safe failed state and a retry requires a new confirmation;
+  a failed terminal receipt write instead reports `receipt_update_failed`, leaves
+  the receipt pending, and requires operator repair.
   The Jira client checks the pending receipt structurally for its action and
   target at the guarded-write boundary; concrete receipt-class identity is not
   asserted across pack runtimes.

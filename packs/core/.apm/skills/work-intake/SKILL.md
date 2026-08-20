@@ -212,6 +212,9 @@ zero effects. A completed comparison advances the compared revision; advance
 the accepted revision only when the reviewed source requirements are accepted.
 Do not advance either pin after acquisition or comparison failure.
 
+For `accept-source`, the comparison's `source_value` is already redacted and
+is the exact requirement body to write; using the raw tracker value is refused.
+
 Before a local update, resolve both the artifact and `workspace.toml` by
 realpath, reject lexical or symlink escape, and revalidate exact SHA-256
 fingerprints immediately before the guarded pair replace. Use
@@ -229,15 +232,16 @@ the exact artifact and workspace fingerprints; processors refuse callback-only
 or process-local ledgers. Bind the confirmation to that exact tuple and consume
 it once. The concrete store must durably append the pending receipt before the
 adapter call and replace only its status with failed or succeeded afterward. A
-retry is a new mutation and requires a new confirmation. Never perform a live
-write as verification.
+retry is a new mutation and requires a new confirmation. A
+`receipt_update_failed` result leaves the receipt pending with the adapter
+effect unknown; require operator repair rather than another confirmation.
+Never perform a live write as verification.
 
 The owning adapter must validate its trusted profile before any request:
 permitted scheme, exact host and port, no URL credentials, DNS results free of
 loopback/private/link-local/multicast/unspecified/cloud-metadata addresses, and
-least-privilege credentials for the declared action. Redirects are off by
-default; when enabled, revalidate every hop and pin the validated addresses for
-the request so validation and use cannot diverge. Preserve processor-specific
+least-privilege credentials for the declared action. Redirects are disabled; a
+profile that requests them is refused before any request. Preserve processor-specific
 stricter boundaries, including Jira SSO-cookie zero-wire refusal for every
 non-GET/HEAD request and GitHub mutations through the fixed-host approved `gh`
 surface only.

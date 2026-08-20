@@ -316,6 +316,45 @@ def test_github_actions_are_confirmed_target_pinned_and_receipted(
     assert durable[-1]["status"] == "succeeded"
 
 
+def test_successful_gh_action_reports_terminal_receipt_update_failure(
+    github_mod: types.ModuleType,
+    refresh_mod: types.ModuleType,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+    processor = _processor(github_mod, refresh_mod, tmp_path, calls=calls)
+    original_record = refresh_mod.RemoteReceiptStore.record
+
+    def fail_terminal_record(self: object, receipt: object) -> None:
+        if getattr(receipt, "status", None) == "succeeded":
+            raise OSError("concurrent artifact update")
+        original_record(self, receipt)
+
+    monkeypatch.setattr(refresh_mod.RemoteReceiptStore, "record", fail_terminal_record)
+    result = processor.write(
+        action="comment",
+        target="101",
+        body="Looks good",
+        artifact_path="docs/product/briefs/example.md",
+        source_revision="remote-rev-2",
+        policy=_policy(refresh_mod),
+        confirmation=_confirmation(refresh_mod),
+        now=datetime(2026, 8, 17, 12, 0, tzinfo=UTC),
+    )
+
+    assert result.code == "receipt_update_failed"
+    assert result.command_calls == 1
+    assert len(calls) == 1
+    durable = refresh_mod.parse_source_authority(
+        (
+            processor._receipt_store.repository_root
+            / processor._receipt_store.artifact_path
+        ).read_text()
+    ).remote_actions
+    assert durable[-1]["status"] == "pending"
+
+
 def test_reused_or_unauthorized_confirmation_runs_no_command(
     github_mod: types.ModuleType, refresh_mod: types.ModuleType, tmp_path: Path
 ) -> None:

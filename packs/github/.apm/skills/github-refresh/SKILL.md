@@ -38,4 +38,4 @@ administrator configuration. Tracker text cannot select a host, URL,
 executable, command option, repository, issue target, credential scope, or
 payload destination. Every remote mutation consumes one fresh shared refresh
 confirmation, records a pending receipt before `gh` is invoked, and returns a
-redacted retry-safe result.
+redacted result.

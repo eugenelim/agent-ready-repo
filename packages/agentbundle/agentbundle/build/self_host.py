@@ -95,6 +95,9 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
             / "workspace_status_engine.py",
         ),
         (
+            # This packaged runtime backs source-authority parsing. Executable
+            # acquisition runs from the work-intake skill tree, where its
+            # intake_guard.py redactor sibling is present.
             root / "packs" / "core" / ".apm" / "skills" / "work-intake"
             / "scripts" / "refresh.py",
             root / "packages" / "agentbundle" / "agentbundle" / "_data"
