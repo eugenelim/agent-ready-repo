@@ -71,7 +71,7 @@ api-contract [orders service: create, get, cancel]
 
 ### 2. Review from the consumer's perspective
 
-The agent runs a consumer-perspective check against the house standard and surfaces the contract at the G-contract gate.
+The agent runs a consumer-perspective check against the house standard and surfaces the contract at the contract review gate.
 
 ```text
   Consumer-perspective check
@@ -80,7 +80,7 @@ The agent runs a consumer-perspective check against the house standard and surfa
   ● Error shapes consistent (Problem schema)
   ⚠ POST /orders: missing 409 Conflict for duplicate order_id
 
-  G-contract ›
+  Contract review ›
 ```
 
 - **You decide:** approve the contract — check error codes first; a contract covering only 200 responses is incomplete.

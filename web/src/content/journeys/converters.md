@@ -79,5 +79,5 @@ relatedJourneys:
 ### 3. Review the output
 
 - **Agent does:** reports where the output lands and emits a brief summary of what it converted.
-- **You decide:** open the output file at the G-output gate and review it — check for truncation, structure loss, and template application; if a section is missing, re-run with an explicit instruction to include it.
+- **You decide:** open the output file at the output review gate and review it — check for truncation, structure loss, and template application; if a section is missing, re-run with an explicit instruction to include it.
 - **Output:** a verified conversion artifact ready to share or use in a downstream workflow.
