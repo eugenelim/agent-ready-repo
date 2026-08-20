@@ -13,7 +13,8 @@ from typing import cast
 
 import pytest
 
-PACK_ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[2]
+PACK_ROOT = ROOT / "packs" / "github"
 GITHUB_REFRESH_SCRIPT = (
     PACK_ROOT / ".apm" / "skills" / "github-refresh" / "scripts" / "processor.py"
 )

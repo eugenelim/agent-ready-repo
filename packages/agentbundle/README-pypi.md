@@ -14,6 +14,14 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.3
+
+The `workspace_status` MCP result now reports safe tracker-refresh availability
+facts: origin mode, active profile, compared and accepted revisions, unresolved
+conflict state, and explicit or unknown refresh and write-back availability. The
+response still withholds field ownership, decisions, receipts, and approver
+identities, so no CLI verb, flag, or output format changed for existing callers.
+
 ## What's new in 0.38.2
 
 The bundled catalogue authoring scaffold now has shorter, restructured

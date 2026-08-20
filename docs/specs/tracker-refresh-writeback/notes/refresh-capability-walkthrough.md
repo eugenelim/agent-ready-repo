@@ -81,8 +81,8 @@ credentials, generic update method, or live request were used.
 Run each command from the repository root. They use only local fixtures:
 
 ```bash
-env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider packs/linear/tests/skills/linear/ -q
-env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider packs/github/tests/skills/github-refresh/ -q
-env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider packs/atlassian/tests/skills/jira/test_refresh_processor.py packs/atlassian/tests/skills/jira/test_intake_policy.py packs/atlassian/tests/skills/jira/test_sso_client.py -q
-env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider packs/atlassian/tests/skills/jira-align/test_refresh_processor.py packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider packs/linear/tests/skills/linear/ tests/roster/test_linear_refresh_processor.py -q
+env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider tests/roster/test_github_refresh_processor.py -q
+env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider tests/roster/test_jira_refresh_processor.py packs/atlassian/tests/skills/jira/test_intake_policy.py packs/atlassian/tests/skills/jira/test_sso_client.py -q
+env PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -p no:cacheprovider tests/roster/test_jira_align_refresh_processor.py packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
 ```

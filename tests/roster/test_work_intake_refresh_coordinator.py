@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator
 
-_ROOT = Path(__file__).resolve().parents[5]
+_ROOT = Path(__file__).resolve().parents[2]
 _REFRESH_PATH = (
     _ROOT / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
 )

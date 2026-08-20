@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[5]
+ROOT = Path(__file__).resolve().parents[2]
 PROCESSOR = ROOT / "packs/atlassian/.apm/skills/jira-align-refresh/scripts/processor.py"
 REFRESH = ROOT / "packs/core/.apm/skills/work-intake/scripts/refresh.py"
 
