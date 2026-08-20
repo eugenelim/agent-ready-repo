@@ -40,18 +40,20 @@ and schema shape; register a separate Makefile invocation to avoid basename coll
 ## Task 4 — bounded test-evidence lifecycle (shipped)
 
 Tests: dedicated `tools/test_playwright_evidence_lifecycle.py` invocation covering
-failed-run archival, successful-run cleanup, newest and pinned retention, age-budget
-expiry, predicate re-assertion before deletion, current-worktree refusal, and budget
-parsing.
+failed-run archival, successful-run cleanup, explicit archive-time ordering across
+two invocations, file and directory pin retention, age-budget expiry, predicate
+re-assertion before deletion, current-worktree refusal, and budget parsing.
 
 1. Wrap the existing browser-gate command in `frontend_runtime.run_gate` without
    changing its pinned command strings or Playwright diagnostics.
 2. Retain failed `web/test-results/` evidence in ignored, worktree-local storage while
    preserving that live path for the existing Pages failure-artifact upload; remove
    successful `test-results` and `playwright-report` output immediately.
-3. Keep the newest failed run and `.pinned` evidence, pruning only older unpinned runs
-   by the configurable seven-day-default age budget through the hygiene module's
-   registered-current-worktree predicate and its immediate pre-mutation recheck.
+3. Keep the newest explicitly timestamped failed run and non-symlink `.pinned`
+   evidence, pruning only older unpinned runs by the configurable seven-day-default
+   age budget through the hygiene module's registered-current-worktree predicate and
+   its immediate pre-mutation recheck. Release the preview-port lease after the
+   child gate exits and before this lifecycle work starts.
 
 ## Task 5 — worktree lifecycle hooks (shipped)
 
@@ -60,8 +62,9 @@ optional hook's Git-backed lifecycle report, the no-Orca implementation boundary
 inside import success, shadowing refusal, and the existing protection channels.
 
 1. Added optional `after-create`, `before-run`, `after-run`, and `before-remove`
-   commands that report default-branch-merged, removed, currently-active, and
-   no-merge-or-prune-signal worktrees without claiming liveness or attaching to Orca.
+   commands that report default-branch-merged, Git-backed prune-signal,
+   currently-active, and no-merge-or-prune-signal worktrees without claiming
+   liveness or attaching to Orca.
    When Git cannot determine the default branch, the merged result is undetermined.
 2. Made `before-remove` reuse AC8's isolated import-resolution measurement and refuse
    outside, absent, and inconclusive results, as well as existing protected worktrees.

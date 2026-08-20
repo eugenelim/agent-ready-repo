@@ -101,7 +101,13 @@ def evidence_root() -> Path:
 def _failed_run(
     root: Path, name: str, age_seconds: int, *, pinned: bool = False
 ) -> Path:
-    run = root / "web" / hygiene.PLAYWRIGHT_EVIDENCE_DIRECTORY / name
+    timestamp_ns = time.time_ns() - age_seconds * 1_000_000_000
+    run = (
+        root
+        / "web"
+        / hygiene.PLAYWRIGHT_EVIDENCE_DIRECTORY
+        / f"failed-{timestamp_ns}"
+    )
     run.mkdir(parents=True)
     (run / "trace.zip").write_text(name, encoding="utf-8")
     if pinned:
@@ -192,6 +198,54 @@ def test_pinned_failed_run_survives_the_age_budget(evidence_root: Path) -> None:
 
     assert pinned.exists()
     assert newest.exists()
+
+
+def test_pinned_directory_survives_the_age_budget(evidence_root: Path) -> None:
+    git = EvidenceGit(evidence_root)
+    pinned = _failed_run(evidence_root, "pinned-directory", 120)
+    (pinned / hygiene.PLAYWRIGHT_EVIDENCE_PIN).mkdir()
+    _failed_run(evidence_root, "newest", 61)
+
+    hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=0,
+        max_age_seconds=60,
+        runner=git,
+    )
+
+    assert pinned.exists()
+
+
+def test_stale_live_results_do_not_expire_the_newest_archived_failure(
+    evidence_root: Path,
+) -> None:
+    git = EvidenceGit(evidence_root)
+    stale_source = evidence_root / "web" / "test-results"
+    stale_timestamp = time.time() - 100_000
+    os.utime(stale_source, (stale_timestamp, stale_timestamp))
+    older = _failed_run(evidence_root, "previous", 90_000)
+
+    first = hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=1,
+        max_age_seconds=3_600,
+        runner=git,
+    )
+    archived = next(
+        (evidence_root / "web" / hygiene.PLAYWRIGHT_EVIDENCE_DIRECTORY).iterdir()
+    )
+    second = hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=0,
+        max_age_seconds=3_600,
+        runner=git,
+    )
+
+    assert first.archived == 1
+    assert first.pruned == 1
+    assert second.pruned == 0
+    assert not older.exists()
+    assert (archived / "trace.zip").read_text(encoding="utf-8") == "failure"
 
 
 def test_refuses_deletion_when_selected_entry_becomes_a_symlink(
@@ -297,11 +351,15 @@ def test_gate_wrapper_applies_lifecycle_after_the_pinned_gate(
 
     class Lease:
         port = 5432
+        released = False
 
         def release(self) -> None:
-            return None
+            self.released = True
+
+    lease = Lease()
 
     def manage(repository: Path, **kwargs: object) -> hygiene.PlaywrightEvidenceResult:
+        assert lease.released
         observed["repository"] = repository
         observed.update(kwargs)
         return hygiene.PlaywrightEvidenceResult(receipt=("cleaned test evidence",))
@@ -311,7 +369,7 @@ def test_gate_wrapper_applies_lifecycle_after_the_pinned_gate(
         "manage_playwright_failure_evidence",
         manage,
     )
-    monkeypatch.setattr(frontend_runtime, "lease_preview_port", lambda *_: Lease())
+    monkeypatch.setattr(frontend_runtime, "lease_preview_port", lambda *_: lease)
     monkeypatch.setattr(frontend_runtime, "_run_child", lambda *_: 0)
 
     assert frontend_runtime.run_gate(

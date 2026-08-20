@@ -33,6 +33,7 @@ class LifecycleHookTest(unittest.TestCase):
             self.current,
             self.merged,
             self.no_merge_or_prune_signal,
+            self.removed,
             self.default_branch_worktree,
         ):
             path.mkdir()
@@ -137,7 +138,8 @@ class LifecycleHookTest(unittest.TestCase):
                 )
                 self.assertEqual(result.code, 0)
                 self.assertIn(f"merged: {self.merged}", result.lines)
-                self.assertIn(f"removed: {self.removed}", result.lines)
+                self.assertIn(f"prune-signal: {self.removed}", result.lines)
+                self.assertNotIn(f"removed: {self.removed}", result.lines)
                 self.assertIn(
                     f"no-merge-or-prune-signal: {self.no_merge_or_prune_signal}",
                     result.lines,

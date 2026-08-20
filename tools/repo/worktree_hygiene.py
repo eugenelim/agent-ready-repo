@@ -619,7 +619,7 @@ def _lifecycle_report(
     )
     if merged_warning:
         warnings.append(merged_warning)
-    removed = [worktree.path for worktree in worktrees if worktree.prunable]
+    prune_signal = [worktree.path for worktree in worktrees if worktree.prunable]
     currently_active = [current] if current is not None else []
     merged_paths = [
         worktree.path
@@ -640,7 +640,7 @@ def _lifecycle_report(
     no_merge_or_prune_signal = [
         worktree.path
         for worktree in worktrees
-        if worktree.path not in removed
+        if worktree.path not in prune_signal
         and worktree.path not in currently_active
         and worktree.path not in merged_paths
     ]
@@ -648,13 +648,15 @@ def _lifecycle_report(
         "lifecycle report:",
         "currently-active observation: registered worktree containing the "
         "invocation directory; no liveness claim",
+        "prune-signal observation: Git reported the worktree record as prunable; "
+        "this does not assert that its path has been removed",
         "no-merge-or-prune-signal observation: registered worktree without a "
         "prune signal, default-branch merge signal, or current-invocation "
         "containment; no activity or liveness inference",
     ]
     categories: list[tuple[str, list[Path] | None]] = [
         ("merged", merged_paths if merged is not None else None),
-        ("removed", removed),
+        ("prune-signal", prune_signal),
         ("no-merge-or-prune-signal", no_merge_or_prune_signal),
         ("currently-active", currently_active),
     ]
@@ -1349,6 +1351,55 @@ def _playwright_evidence_candidates(root: Path) -> tuple[Path, Path, Path]:
     )
 
 
+def _playwright_archive_time_ns(entry: Path) -> int | None:
+    """Return the creation time recorded in a lifecycle-owned archive name."""
+    prefix = "failed-"
+    if not entry.name.startswith(prefix):
+        return None
+    try:
+        timestamp = int(entry.name.removeprefix(prefix))
+    except ValueError:
+        return None
+    return timestamp if timestamp >= 0 else None
+
+
+def _playwright_retention_actions(
+    archive: Path, max_age_seconds: int
+) -> tuple[list[tuple[str, Path, tuple[Path, ...]]], list[tuple[Path, str]]]:
+    """Select retained evidence from its explicit archive creation time."""
+    entries = (
+        [
+            entry
+            for entry in archive.iterdir()
+            if entry.is_dir() and not entry.is_symlink()
+        ]
+        if archive.is_dir()
+        else []
+    )
+    creation_times = {
+        entry: timestamp
+        for entry in entries
+        if (timestamp := _playwright_archive_time_ns(entry)) is not None
+    }
+    newest = max(creation_times, key=creation_times.__getitem__, default=None)
+    cutoff = time.time_ns() - max_age_seconds * 1_000_000_000
+    actions: list[tuple[str, Path, tuple[Path, ...]]] = []
+    retained: list[tuple[Path, str]] = []
+    for entry in entries:
+        pin = entry / PLAYWRIGHT_EVIDENCE_PIN
+        if entry not in creation_times:
+            retained.append((entry, "unrecognized archive time"))
+        elif entry == newest:
+            retained.append((entry, "newest failed run"))
+        elif pin.exists() and not pin.is_symlink():
+            retained.append((entry, "pinned"))
+        elif creation_times[entry] >= cutoff:
+            retained.append((entry, "within age budget"))
+        else:
+            actions.append(("prune", entry, (entry,)))
+    return actions, retained
+
+
 def manage_playwright_failure_evidence(
     repository: Path,
     *,
@@ -1368,70 +1419,15 @@ def manage_playwright_failure_evidence(
     common = common.resolve()
     effective_mount_check = mount_check or _default_mount_check()
     test_results, playwright_report, archive = _playwright_evidence_candidates(root)
-    actions: list[tuple[str, Path, tuple[Path, ...]]] = []
-    retained: list[tuple[Path, str]] = []
+    initial_actions: list[tuple[str, Path, tuple[Path, ...]]] = []
     if gate_returncode:
         if test_results.exists():
-            actions.append(("archive", test_results, (test_results, archive)))
+            initial_actions.append(("archive", test_results, (test_results, archive)))
     else:
         for path in (test_results, playwright_report):
             if not path.exists():
                 continue
-            actions.append(("clean", path, (path,)))
-    entries = []
-    if archive.is_dir():
-        entries = sorted(
-            (
-                entry
-                for entry in archive.iterdir()
-                if entry.is_dir() and not entry.is_symlink()
-            ),
-            key=lambda entry: entry.stat().st_mtime,
-        )
-    newest = entries[-1] if entries else None
-    cutoff = time.time() - max_age_seconds
-    for entry in entries:
-        if entry == newest:
-            retained.append((entry, "newest failed run"))
-            continue
-        if (entry / PLAYWRIGHT_EVIDENCE_PIN).is_file():
-            retained.append((entry, "pinned"))
-            continue
-        if entry.stat().st_mtime >= cutoff:
-            retained.append((entry, "within age budget"))
-            continue
-        actions.append(("prune", entry, (entry,)))
-
-    candidates: dict[Path, Candidate] = {}
-    reasons: dict[Path, str] = {}
-    for _, _, paths in actions:
-        for path in paths:
-            if path in candidates:
-                continue
-            candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
-            candidates[path] = candidate
-            reasons[path] = _playwright_evidence_local_safety_reason(
-                path, root, common, effective_mount_check
-            )
-    git_candidates = [
-        candidate
-        for path, candidate in candidates.items()
-        if not reasons[path]
-    ]
-    git_status = _mark_git_status(root, git_candidates, runner)
-    if git_status.error:
-        for path in candidates:
-            if not reasons[path]:
-                reasons[path] = git_status.error
-    else:
-        for path, candidate in candidates.items():
-            if reasons[path]:
-                continue
-            relative = candidate.canonical_path.relative_to(root)
-            if _is_tracked(relative, git_status.tracked):
-                reasons[path] = "tracked"
-            elif relative not in git_status.ignored:
-                reasons[path] = "not ignored"
+            initial_actions.append(("clean", path, (path,)))
 
     def recheck_local(paths: tuple[Path, ...]) -> str:
         """Recheck the local predicate after selection and before mutation."""
@@ -1446,47 +1442,88 @@ def manage_playwright_failure_evidence(
 
     archived = cleaned = pruned = skipped = failures = reclaimed = selected = 0
     lines: list[str] = []
+
+    def apply_actions(actions: list[tuple[str, Path, tuple[Path, ...]]]) -> None:
+        """Apply one selected lifecycle phase after its safety proof."""
+        nonlocal archived, cleaned, failures, pruned, reclaimed, selected, skipped
+        if not actions:
+            return
+        candidates: dict[Path, Candidate] = {}
+        reasons: dict[Path, str] = {}
+        for _, _, paths in actions:
+            for path in paths:
+                if path in candidates:
+                    continue
+                candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
+                candidates[path] = candidate
+                reasons[path] = _playwright_evidence_local_safety_reason(
+                    path, root, common, effective_mount_check
+                )
+        git_candidates = [
+            candidate for path, candidate in candidates.items() if not reasons[path]
+        ]
+        git_status = _mark_git_status(root, git_candidates, runner)
+        if git_status.error:
+            for path in candidates:
+                if not reasons[path]:
+                    reasons[path] = git_status.error
+        else:
+            for path, candidate in candidates.items():
+                if reasons[path]:
+                    continue
+                relative = candidate.canonical_path.relative_to(root)
+                if _is_tracked(relative, git_status.tracked):
+                    reasons[path] = "tracked"
+                elif relative not in git_status.ignored:
+                    reasons[path] = "not ignored"
+
+        for kind, path, paths in actions:
+            reason = next((reasons[item] for item in paths if reasons[item]), "")
+            if reason:
+                lines.append(f"warning: skipped {path}: {reason}")
+                skipped += 1
+                continue
+            bytes_, _ = _tree_size(path, [])
+            lines.append(f"selected {path}: {bytes_} bytes")
+            selected += 1
+            reason = recheck_local(paths)
+            if reason:
+                lines.append(f"aborted {path}: safety changed: {reason}")
+                skipped += 1
+                continue
+            try:
+                if kind == "archive":
+                    archive.mkdir(parents=True, exist_ok=True)
+                    reason = recheck_local(paths)
+                    if reason:
+                        lines.append(f"aborted {path}: safety changed: {reason}")
+                        skipped += 1
+                        continue
+                    destination = archive / f"failed-{time.time_ns()}"
+                    shutil.copytree(path, destination)
+                    lines.append(f"archived {path}: {bytes_} bytes to {destination}")
+                    archived += 1
+                else:
+                    shutil.rmtree(path)
+                    verb = "cleaned" if kind == "clean" else "pruned"
+                    lines.append(f"{verb} {path}: {bytes_} bytes")
+                    if kind == "clean":
+                        cleaned += 1
+                    else:
+                        pruned += 1
+                    reclaimed += bytes_
+            except OSError as exc:
+                lines.append(f"failure {path}: {exc}")
+                failures += 1
+
+    apply_actions(initial_actions)
+    retention_actions, retained = _playwright_retention_actions(
+        archive, max_age_seconds
+    )
     for path, reason in retained:
         lines.append(f"warning: skipped {path}: {reason}")
         skipped += 1
-    for kind, path, paths in actions:
-        reason = next((reasons[item] for item in paths if reasons[item]), "")
-        if reason:
-            lines.append(f"warning: skipped {path}: {reason}")
-            skipped += 1
-            continue
-        bytes_, _ = _tree_size(path, [])
-        lines.append(f"selected {path}: {bytes_} bytes")
-        selected += 1
-        reason = recheck_local(paths)
-        if reason:
-            lines.append(f"aborted {path}: safety changed: {reason}")
-            skipped += 1
-            continue
-        try:
-            if kind == "archive":
-                archive.mkdir(parents=True, exist_ok=True)
-                reason = recheck_local(paths)
-                if reason:
-                    lines.append(f"aborted {path}: safety changed: {reason}")
-                    skipped += 1
-                    continue
-                destination = archive / f"failed-{time.time_ns()}"
-                shutil.copytree(path, destination)
-                lines.append(f"archived {path}: {bytes_} bytes to {destination}")
-                archived += 1
-            else:
-                shutil.rmtree(path)
-                verb = "cleaned" if kind == "clean" else "pruned"
-                lines.append(f"{verb} {path}: {bytes_} bytes")
-                if kind == "clean":
-                    cleaned += 1
-                else:
-                    pruned += 1
-                reclaimed += bytes_
-        except OSError as exc:
-            lines.append(f"failure {path}: {exc}")
-            failures += 1
+    apply_actions(retention_actions)
     _append_receipt_summary(
         lines,
         selected=selected,

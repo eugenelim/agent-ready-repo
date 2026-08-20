@@ -93,9 +93,13 @@ state, and silently skipped tests unrelated to the actual space problem.
   `web/playwright-report/` artifacts, copies each failed run into ignored,
   current-worktree-local evidence storage while retaining the live
   `web/test-results/` output for CI, and keeps the newest failed run by default.
-  Older unpinned retained runs expire by the configurable
+  Retention orders lifecycle-owned `failed-<time_ns>` archives by that explicit
+  creation time rather than copied source metadata, and runs after a successful
+  archive so the new failure participates immediately. Older unpinned retained runs
+  expire by the configurable
   `PLAYWRIGHT_FAILURE_EVIDENCE_MAX_AGE_SECONDS` age budget (seven days by default);
-  a `.pinned` marker preserves explicitly pinned evidence. Every lifecycle mutation
+  a non-symlink `.pinned` marker (file or directory) preserves explicitly pinned
+  evidence. Every lifecycle mutation
   re-establishes the same registered-current-worktree safety predicate immediately
   before acting and refuses an inconclusive worktree, so it never touches another
   worktree. If the live failure-output path changes, the Pages workflow upload
@@ -104,13 +108,15 @@ state, and silently skipped tests unrelated to the actual space problem.
 
 - [x] **AC10 — optional lifecycle hooks report without removing.** The
   `after-create`, `before-run`, `after-run`, and `before-remove` commands work with
-  plain Git worktrees and have no Orca dependency. They report Git-backed removed,
+  plain Git worktrees and have no Orca dependency. They report Git-backed prune-signal,
   currently-active, default-branch-merged, and no-merge-or-prune-signal worktrees.
   The latter is an observation only: it does not infer activity or liveness.
   Currently-active means only the registered worktree containing the invocation
   directory, not liveness. Default-branch discovery comes from Git; when it cannot be
   determined, the merged result is explicitly undetermined. If an attachment
   observation is ever reported, it is named `attached`, never live, active, or busy.
+  A prune signal is an administrative observation, not a claim that the path is
+  absent.
   `before-remove` calls AC8's isolated import-resolution check and refuses outside,
   absent, or inconclusive resolution, because none proves that removing the worktree
   is safe. It also honours the existing repeatable `--protect-worktree` and

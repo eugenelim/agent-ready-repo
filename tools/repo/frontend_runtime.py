@@ -589,22 +589,22 @@ def run_gate(
         requested,
     )
     try:
+        values["ARR_PREVIEW_PORT"] = str(lease.port)
+        values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
+        announce_browser_cache(cache)
+        print(f"Preview port lease: {lease.port}", flush=True)
         with _release_lease_on_signals(lease):
-            values["ARR_PREVIEW_PORT"] = str(lease.port)
-            values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
-            announce_browser_cache(cache)
-            print(f"Preview port lease: {lease.port}", flush=True)
             returncode = _run_child(command, values, repo_root)
-            evidence = worktree_hygiene.manage_playwright_failure_evidence(
-                repo_root,
-                gate_returncode=returncode,
-                max_age_seconds=playwright_evidence_max_age(values),
-            )
-            for line in evidence.receipt:
-                print(line, flush=True)
-            return returncode
     finally:
         lease.release()
+    evidence = worktree_hygiene.manage_playwright_failure_evidence(
+        repo_root,
+        gate_returncode=returncode,
+        max_age_seconds=playwright_evidence_max_age(values),
+    )
+    for line in evidence.receipt:
+        print(line, flush=True)
+    return returncode
 
 
 def install_browsers(
