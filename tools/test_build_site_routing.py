@@ -1,12 +1,14 @@
 """Tests for guide-routing and /now/ projection in tools/build-site.py.
 
-Covers: frontmatter parsing, guide-metadata stripping, slug-override routing,
-alias redirect-stub generation, docs/guides/ exclusion, generation's
-independence from the marketing design-token file, and the released-changelog
-Highlights projection that feeds the public `/now/` route.
+Covers: shared-chrome contract validation and projection, frontmatter parsing,
+guide-metadata stripping, slug-override routing, alias redirect-stub generation,
+docs/guides/ exclusion, generation's independence from the marketing
+design-token file, and the released-changelog Highlights projection that feeds
+the public `/now/` route.
 """
 from __future__ import annotations
 
+import copy
 import importlib.util
 import shutil
 import subprocess
@@ -22,6 +24,54 @@ _spec.loader.exec_module(build_site)  # type: ignore[union-attr]
 
 SITE_BASE = "/agent-ready-repo/docs"
 
+_APPROVED_SHARED_CHROME_HEADER = (
+    "how-it-works", "use-cases", "catalogue", "now", "docs", "try-the-build-loop",
+)
+_APPROVED_SHARED_CHROME_DOCS_BAND = (
+    "product", "how-it-works", "use-cases", "catalogue", "now", "docs",
+)
+_APPROVED_SHARED_CHROME_DOCS_PRODUCT_NAVIGATION = (
+    "product-home", "how-it-works", "use-cases", "catalogue", "now",
+)
+_APPROVED_SHARED_CHROME_GROUPS = (
+    (
+        "product",
+        "Product",
+        ("how-it-works", "use-cases", "catalogue", "packs", "journeys"),
+    ),
+    (
+        "docs",
+        "Docs",
+        ("get-started", "install", "three-loops", "all-docs"),
+    ),
+    (
+        "project",
+        "Project",
+        ("now", "changelog", "contributing", "claude-plugins", "github", "pypi"),
+    ),
+)
+_APPROVED_SHARED_CHROME_DESTINATIONS = {
+    "product": ("Product", "/", "internal"),
+    "product-home": ("Product home", "/", "internal"),
+    "how-it-works": ("How it works", "/#three-loops", "internal"),
+    "use-cases": ("Use cases", "/#use-cases", "internal"),
+    "catalogue": ("Catalogue", "/catalogue/", "internal"),
+    "now": ("Now", "/now/", "internal"),
+    "docs": ("Docs", "/docs/", "internal"),
+    "try-the-build-loop": ("Try the build loop", "/#install", "internal"),
+    "packs": ("Packs", "/packs/", "internal"),
+    "journeys": ("Journeys", "/journeys/", "internal"),
+    "get-started": ("Get started", "/docs/getting-started/", "internal"),
+    "install": ("Install", "/docs/getting-started/install/", "internal"),
+    "three-loops": ("The three loops", "/docs/getting-started/three-loops/", "internal"),
+    "all-docs": ("All docs", "/docs/", "internal"),
+    "changelog": ("Changelog", "/docs/changelog/", "internal"),
+    "contributing": ("Contributing", "/docs/contributing/", "internal"),
+    "claude-plugins": ("Claude plugins", "/plugins/", "internal"),
+    "github": ("GitHub", "https://github.com/eugenelim/agent-ready-repo", "external"),
+    "pypi": ("PyPI", "https://pypi.org/project/agentbundle/", "external"),
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -34,6 +84,342 @@ def _make_guide(tmp_path: Path, rel: str, content: str) -> tuple[Path, Path]:
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(content, encoding="utf-8")
     return src, guides_root
+
+
+def _shared_chrome_fixture() -> dict:
+    """Return a fresh copy of the approved site.toml shared-chrome contract."""
+    return copy.deepcopy(
+        build_site.load_shared_chrome_contract(
+            Path(__file__).resolve().parent.parent / "site.toml"
+        )
+    )
+
+
+def _assert_shared_chrome_rejected(contract: dict, expected: str) -> None:
+    """Assert validation fails before it can return renderer projection data."""
+    try:
+        build_site.project_shared_chrome(contract)
+    except ValueError as exc:
+        assert expected in str(exc), str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError(f"shared chrome contract unexpectedly projected: {contract!r}")
+
+
+def _link(destination_id: str, label: str, target: str, kind: str) -> dict:
+    return {"id": destination_id, "label": label, "target": target, "kind": kind}
+
+
+# ---------------------------------------------------------------------------
+# Shared chrome contract — T1 of spec/site-shared-chrome
+# ---------------------------------------------------------------------------
+
+def test_shared_chrome_contract_anchor_matches_approved_vocabulary():
+    """Pin the approved IA vocabulary outside the renderer-neutral source."""
+    contract = _shared_chrome_fixture()
+
+    assert tuple(contract["header"]) == _APPROVED_SHARED_CHROME_HEADER
+    assert tuple(contract["docs_band"]) == _APPROVED_SHARED_CHROME_DOCS_BAND
+    assert (
+        tuple(contract["docs_product_navigation"])
+        == _APPROVED_SHARED_CHROME_DOCS_PRODUCT_NAVIGATION
+    )
+    assert tuple(
+        (group["id"], group["label"], tuple(group["destinations"]))
+        for group in contract["groups"]
+    ) == _APPROVED_SHARED_CHROME_GROUPS
+    assert {
+        destination["id"]: (
+            destination["label"], destination["target"], destination["kind"]
+        )
+        for destination in contract["destinations"]
+    } == _APPROVED_SHARED_CHROME_DESTINATIONS
+
+
+def _expected_renderer_projection(contract: dict) -> dict:
+    """Build projection expectations from the source contract, not a second taxonomy."""
+    destinations = {
+        destination["id"]: _link(
+            destination["id"],
+            destination["label"],
+            destination["target"],
+            destination["kind"],
+        )
+        for destination in contract["destinations"]
+    }
+    return {
+        "header": [
+            destinations[destination_id] for destination_id in contract["header"]
+        ],
+        "footer": [
+            {
+                "id": group["id"],
+                "label": group["label"],
+                "destinations": [
+                    destinations[destination_id]
+                    for destination_id in group["destinations"]
+                ],
+            }
+            for group in contract["groups"]
+        ],
+    }
+
+
+def _expected_docs_renderer_projection(contract: dict) -> dict:
+    """Build docs expectations from the source's docs-specific ordered lists."""
+    destinations = {
+        destination["id"]: _link(
+            destination["id"],
+            destination["label"],
+            destination["target"],
+            destination["kind"],
+        )
+        for destination in contract["destinations"]
+    }
+    return {
+        "product_orientation_band": [
+            destinations[destination_id]
+            for destination_id in contract["docs_band"]
+        ],
+        "product_navigation": [
+            destinations[destination_id]
+            for destination_id in contract["docs_product_navigation"]
+        ],
+        "footer": _expected_renderer_projection(contract)["footer"],
+    }
+
+
+def test_shared_chrome_projects_independently_allocated_renderer_data():
+    """Renderers receive their own ordered, separately allocated projection data."""
+    contract = _shared_chrome_fixture()
+    marketing_expected = _expected_renderer_projection(contract)
+    docs_expected = _expected_docs_renderer_projection(contract)
+
+    first = build_site.project_shared_chrome(contract)
+    second = build_site.project_shared_chrome(contract)
+    assert first == second == {"marketing": marketing_expected, "docs": docs_expected}
+    assert first["marketing"] is not first["docs"]
+    assert first["marketing"]["header"] is not first["docs"]["product_orientation_band"]
+    assert first["marketing"]["footer"] is not first["docs"]["footer"]
+
+    first["marketing"]["header"][0]["label"] = "Changed only in marketing"
+    assert first["docs"]["product_orientation_band"][1]["label"] == "How it works"
+
+
+def test_shared_chrome_rejects_duplicate_destination_ids():
+    contract = _shared_chrome_fixture()
+    duplicate = copy.deepcopy(
+        next(
+            destination
+            for destination in contract["destinations"]
+            if destination["id"] == "how-it-works"
+        )
+    )
+    contract["destinations"].append(duplicate)
+
+    _assert_shared_chrome_rejected(contract, "duplicate destination ID 'how-it-works'")
+
+
+def test_shared_chrome_rejects_duplicate_group_ids():
+    contract = _shared_chrome_fixture()
+    duplicate = copy.deepcopy(contract["groups"][0])
+    contract["groups"].append(duplicate)
+
+    _assert_shared_chrome_rejected(contract, "duplicate group ID 'product'")
+
+
+def test_shared_chrome_rejects_missing_group_members():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"][-1] = "missing-journeys"
+
+    _assert_shared_chrome_rejected(contract, "destination 'missing-journeys'")
+
+
+def test_shared_chrome_rejects_a_group_repeating_a_member():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"].append("how-it-works")
+
+    _assert_shared_chrome_rejected(contract, "group 'product' repeats destination 'how-it-works'")
+
+
+def test_shared_chrome_rejects_a_group_listing_a_destination_from_another_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"][-1] = "all-docs"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'all-docs' references group 'docs', not 'product'",
+    )
+
+
+def test_shared_chrome_rejects_a_destination_omitted_from_its_declared_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"].pop(0)
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'how-it-works' references group 'product' but is missing",
+    )
+
+
+def test_shared_chrome_rejects_destination_referencing_a_missing_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"].pop(0)
+
+    _assert_shared_chrome_rejected(contract, "destination 'how-it-works' references missing group 'product'")
+
+
+def test_shared_chrome_rejects_unsupported_target_kinds():
+    contract = _shared_chrome_fixture()
+    next(
+        destination
+        for destination in contract["destinations"]
+        if destination["id"] == "how-it-works"
+    )["kind"] = "mailto"
+
+    _assert_shared_chrome_rejected(contract, "destination 'how-it-works' has unsupported kind 'mailto'")
+
+
+def test_shared_chrome_rejects_invalid_internal_target_shapes():
+    invalid_targets = {
+        "https://example.test/": "expected a root-relative target",
+        "//example.test/": "protocol-relative targets are not allowed",
+        "/docs\\getting-started/": "backslashes are not allowed",
+        "/docs/../getting-started/": "parent-directory segments are not allowed",
+        "/docs/has space/": "whitespace is not allowed",
+        "/#": "fragment must be non-empty",
+        "/docs/getting-started": "expected a '/'-terminated path or '#fragment' form",
+    }
+    for target, expected in invalid_targets.items():
+        contract = _shared_chrome_fixture()
+        contract["destinations"][0]["target"] = target
+
+        _assert_shared_chrome_rejected(contract, expected)
+
+
+def test_shared_chrome_rejects_header_references_and_duplicates():
+    contract = _shared_chrome_fixture()
+    contract["header"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(contract, "header references missing destination 'missing-destination'")
+
+    contract = _shared_chrome_fixture()
+    contract["header"][1] = "how-it-works"
+
+    _assert_shared_chrome_rejected(contract, "header repeats destination 'how-it-works'")
+
+
+def test_shared_chrome_rejects_invalid_docs_band_entries():
+    contract = _shared_chrome_fixture()
+    contract["docs_band"] = "product"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "site.toml shared_chrome.docs_band must be an ordered destination ID array",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][0] = ""
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "shared chrome docs_band has invalid 'docs_band'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_band references missing destination 'missing-destination'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][1] = "product"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_band repeats destination 'product'",
+    )
+
+
+def test_shared_chrome_rejects_invalid_docs_product_navigation_entries():
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"] = "product-home"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "site.toml shared_chrome.docs_product_navigation must be an ordered destination ID array",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][0] = ""
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "shared chrome docs_product_navigation has invalid 'docs_product_navigation'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_product_navigation references missing destination 'missing-destination'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][1] = "product-home"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_product_navigation repeats destination 'product-home'",
+    )
+
+
+def test_shared_chrome_rejects_presentation_and_state_fields():
+    contract = _shared_chrome_fixture()
+    contract["state"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "contract has unsupported field 'state'")
+
+    contract = _shared_chrome_fixture()
+    next(
+        destination
+        for destination in contract["destinations"]
+        if destination["id"] == "how-it-works"
+    )["breakpoint"] = "renderer-owned"
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'how-it-works' has unsupported field 'breakpoint'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["state"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "group 'product' has unsupported field 'state'")
+
+    contract = _shared_chrome_fixture()
+    contract["unexpected"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "contract has unsupported field 'unexpected'")
+
+
+def test_journeys_only_validates_shared_chrome_before_projection(monkeypatch):
+    """A malformed contract blocks journeys-only projections before they run."""
+    def fail_validation(_site_toml: Path) -> None:
+        raise ValueError("invalid shared chrome")
+
+    def unexpected_projection(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("journeys-only projection ran before shared-chrome validation")
+
+    monkeypatch.setattr(build_site, "load_shared_chrome_contract", fail_validation)
+    monkeypatch.setattr(build_site, "sync_pack_journeys", unexpected_projection)
+    monkeypatch.setattr(build_site, "_report_now_projection", unexpected_projection)
+    monkeypatch.setattr(sys, "argv", ["build-site.py", "--journeys-only"])
+
+    try:
+        build_site.main()
+    except ValueError as exc:
+        assert str(exc) == "invalid shared chrome"
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("journeys-only build unexpectedly projected invalid shared chrome")
 
 
 # ---------------------------------------------------------------------------
