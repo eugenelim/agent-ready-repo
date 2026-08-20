@@ -376,10 +376,12 @@ class WorktreeHygieneTest(unittest.TestCase):
         )
 
     def test_linux_mountinfo_parser_decodes_mount_point(self) -> None:
-        mountinfo = "36 25 0:32 / /tmp/work\\040tree/data rw - ext4 /dev/root rw\n"
+        # `/mnt`, not `/tmp`: this is mountinfo TEXT for the parser, not a real
+        # temp path, and a `/tmp` literal trips bandit B108 in required CI.
+        mountinfo = "36 25 0:32 / /mnt/work\\040tree/data rw - ext4 /dev/root rw\n"
         self.assertEqual(
             hygiene._parse_mountinfo(mountinfo),
-            {Path("/tmp/work tree/data").resolve()},
+            {Path("/mnt/work tree/data").resolve()},
         )
 
     def test_default_mount_check_uses_one_mountinfo_snapshot(self) -> None:
