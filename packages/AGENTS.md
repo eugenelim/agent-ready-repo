@@ -15,6 +15,11 @@ CLI-surface changes may require release; see
   `grep`, `sed`, or `make` from portable package code.
 - Tests isolating a user root must set `AGENTBUNDLE_USER_ROOT` with `HOME`:
   Windows `expanduser()` ignores monkeypatched environment variables.
+- Do not hardcode `/tmp` or read `os.environ["HOME"]` directly in portable tests.
+- Wrap `os.symlink()` in `try/except OSError` and skip when symlinks are unavailable.
+- Use `tmp_path`, not `tempfile.mkdtemp()`; autouse fixtures use
+  `tmp_path_factory.mktemp()`.
+- Patch environments with the `monkeypatch` fixture.
 - Projection-layout, orphan-scanner, and adapter-resolution tests parametrize over
   every shipped adapter from `agentbundle/_data/adapter.toml`; document exceptions.
 - Use `build_pipeline`, not `build`, for build-pipeline tests: pytest skips any

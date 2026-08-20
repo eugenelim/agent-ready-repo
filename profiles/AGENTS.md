@@ -14,6 +14,9 @@ is its identifier. Reserved `_` children are authoring assets, not active profil
 semantic validation. Profile TOML is the source; profiles are scaffold sources but
 are not projected by `catalogue self-host`.
 
+- A pack name appears at most once in a profile.
+- Packs with a declared `conflicts` relationship do not share a profile.
+
 ## Essential commands
 
 ```bash
