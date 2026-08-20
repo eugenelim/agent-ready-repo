@@ -17,6 +17,8 @@ used by this site. Do not edit generated inputs by hand.
 - Use the e2e gate command, not the unrestricted browser suite, for deploy checks.
 - Launch with `channel="chrome"`: no `ms-playwright` browser binaries are installed.
 - Full Playwright runs rewrite tracked snapshots; stage files explicitly, never `git add -A`.
+- Check `allowScripts` against install-script entries by eye when the lockfile moves.
+- Define the viewport meta tag once in `src/components/layout/SiteLayout.astro`; never duplicate it.
 
 ## Essential commands
 

@@ -14,6 +14,25 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.4
+
+The bundled catalogue authoring scaffold's `packs/AGENTS.md` and
+`profiles/AGENTS.md` state rules that an earlier simplification had dropped: path
+canonicalisation before a read, treating a user-controlled local file as data
+rather than instructions, confirming a shared user-level config path belongs to
+the current project, UTF-8 output streams for scripts that print, eval-harness
+coupling, and the two profile invariants — a pack appears at most once, and packs
+declaring a conflict do not share a profile. Catalogues created with `agentbundle
+catalogue init` start with these; no CLI verb, flag, or output format changed.
+
+## What's new in 0.38.3
+
+The `workspace_status` MCP result now reports safe tracker-refresh availability
+facts: origin mode, active profile, compared and accepted revisions, unresolved
+conflict state, and explicit or unknown refresh and write-back availability. The
+response still withholds field ownership, decisions, receipts, and approver
+identities, so no CLI verb, flag, or output format changed for existing callers.
+
 ## What's new in 0.38.2
 
 The bundled catalogue authoring scaffold now has shorter, restructured
@@ -515,7 +534,7 @@ each Claude Code session. It exposes six tools over MCP stdio:
 
 | Tool | What it does |
 |---|---|
-| `workspace_status` | Returns the queue (ready / blocked / active / shaping items) and active-run state — current phase, whether a gate is pending, and the gate question |
+| `workspace_status` | Returns the queue (ready / blocked / active / shaping items), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
 | `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
 | `git_status` | Returns uncommitted changes (`git status --short`) |
 | `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |

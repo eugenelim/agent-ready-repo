@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import re
 import subprocess
 import sys
@@ -12,6 +13,7 @@ import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "linear"
+SYNC_SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "linear-brief-sync"
 ENTRY_POINTS = ("linear.py",)
 TEXT_SUFFIXES = {".js", ".json", ".md", ".py", ".toml"}
 WINDOWS_RENDERER_SOURCE = SKILL_ROOT / "scripts" / "linear.py"
@@ -118,3 +120,58 @@ def test_runtime_help_uses_the_resolved_entry() -> None:
     assert proc.returncode == 0
     assert str(entry.resolve()) in proc.stdout
     assert "<skill-dir>" not in proc.stdout
+
+
+def test_linear_refresh_metadata_is_least_privilege() -> None:
+    skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    frontmatter = skill.split("---", 2)[1]
+    allowed_tools = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
+    assert allowed_tools is not None
+    assert allowed_tools.group(1) == "Read Bash"
+    assert set(re.findall(r"^    - (.+)$", frontmatter, re.MULTILINE)) == {
+        "network_fetch",
+        "filesystem_read_untrusted",
+        "filesystem_write",
+    }
+    assert "credentialed: true" in skill
+    assert "auth: creds" in skill
+    assert "namespace: linear" in skill
+    assert 'keys: ["API_KEY"]' in skill
+
+
+def test_linear_brief_sync_is_compatibility_wrapper() -> None:
+    skill = (SYNC_SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    compact = " ".join(skill.split())
+    manifest = json.loads(
+        (SYNC_SKILL_ROOT / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert "compatibility skill" in compact
+    assert "delegates refresh authority" in compact
+    assert "configured `work-intake` Linear refresh processor" in compact
+    assert "does not own a separate lifecycle or authority model" in compact
+    assert "Invoke `work-intake` by its skill name" in skill
+    for private_sync_instruction in (
+        "linear: get-issue",
+        "## Status guard",
+        "Re-fetch the Linear Issue",
+        "Diff Linear-sourced fields",
+        "Present for PE approval",
+        "Write approved changes",
+    ):
+        assert private_sync_instruction not in skill
+    assert [dependency["name"] for dependency in manifest["deps"]["skills"]] == [
+        "work-intake"
+    ]
+    assert "re-fetch" not in manifest["description"].lower()
+    assert manifest["output"]["artifacts"] == []
+
+
+def test_linear_refresh_profile_matches_production_registration() -> None:
+    profile = json.loads(
+        (SKILL_ROOT / "references/refresh-profile.json").read_text(encoding="utf-8")
+    )
+    source = WINDOWS_RENDERER_SOURCE.read_text(encoding="utf-8")
+    assert "def load_refresh_profile" in source
+    assert "profile = load_refresh_profile()" in source
+    assert profile["id"] == "linear-default"
+    assert profile["version"] == "1.0"

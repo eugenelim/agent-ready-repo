@@ -2,17 +2,16 @@
 // Primary navigation. Dark zone — continuous with the hero below it, no gap.
 // Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
 // Nav structure:
-//   Logo | How it works | Use cases | Catalogue | Now | Docs ↗ | [Try the build loop →]
+//   Logo | approved shared destinations | [Try the build loop →]
 import { withBase } from '../../lib/paths';
-const links = [
-  { label: 'How it works', href: withBase('/#three-loops') },
-  { label: 'Use cases', href: withBase('/#use-cases') },
-  { label: 'Catalogue', href: withBase('/catalogue/') },
-  { label: 'Now', href: withBase('/now/') },
-];
+import marketingChrome from '../../lib/shared-chrome.generated.json';
+import { chromeHref, currentState, splitHeader, type ChromeLink } from '../../lib/shared-chrome';
+
 const homeHref = withBase('/');
-const docsHref = withBase('/docs/');
-const installHref = withBase('/#install');
+// The CTA is selected by its stable ID, not by falling last in the order.
+const { links, cta } = splitHeader(marketingChrome.header);
+const current = (link: ChromeLink) =>
+  currentState(link, Astro.url.pathname, import.meta.env.BASE_URL);
 ---
 
 <nav class="nav" aria-label="Primary">
@@ -21,15 +20,10 @@ const installHref = withBase('/#install');
 
     <ul class="nav__links">
       {links.map((l) => (
-        <li><a class="nav__link" href={l.href}>{l.label}</a></li>
+        <li><a class="nav__link" href={chromeHref(l)} aria-current={current(l)}>{l.label}</a></li>
       ))}
       <li>
-        <a class="nav__link nav__link--docs" href={docsHref} rel="noopener">
-          Docs <span aria-hidden="true">↗</span>
-        </a>
-      </li>
-      <li>
-        <a class="nav__cta" href={installHref}>Try the build loop <span aria-hidden="true">→</span></a>
+        <a class="nav__cta" href={chromeHref(cta)}>{cta.label} <span aria-hidden="true">→</span></a>
       </li>
     </ul>
 
@@ -39,15 +33,10 @@ const installHref = withBase('/#install');
       </summary>
       <ul class="nav__drawer">
         {links.map((l) => (
-          <li><a class="nav__link" href={l.href}>{l.label}</a></li>
+          <li><a class="nav__link" href={chromeHref(l)} aria-current={current(l)}>{l.label}</a></li>
         ))}
         <li>
-          <a class="nav__link nav__link--docs" href={docsHref} rel="noopener">
-            Docs <span aria-hidden="true">↗</span>
-          </a>
-        </li>
-        <li>
-          <a class="nav__cta" href={installHref}>Try the build loop <span aria-hidden="true">→</span></a>
+          <a class="nav__cta" href={chromeHref(cta)}>{cta.label} <span aria-hidden="true">→</span></a>
         </li>
       </ul>
     </details>
@@ -102,8 +91,11 @@ const installHref = withBase('/#install');
     text-decoration: none;
   }
 
-  .nav__link--docs {
-    color: var(--ds-hero-fg-muted);
+  .nav__link[aria-current] {
+    color: var(--ds-hero-fg);
+    font-weight: var(--ds-weight-semibold);
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
   }
 
   .nav__cta {

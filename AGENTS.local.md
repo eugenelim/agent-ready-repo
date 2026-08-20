@@ -39,3 +39,11 @@ Edit sources, not generated catalogue-scaffold projections. For changes under
 ## Release coupling
 
 See [`docs/guides/explanation/release-coupling.md`](docs/guides/explanation/release-coupling.md); per-package specifics live in `packages/AGENTS.local.md`.
+
+## Projected source comments
+
+Do not put `# AC10:`, `# AC36:`, or similar spec-AC citation comments in `.apm/**` source; strip the identifier and keep the invariant description.
+
+## Landing changes
+
+Auto-merge is disabled and branches must be current with `main`: update a behind branch before merging, then return to merge it manually. In a busy period, update it again if `main` moves.

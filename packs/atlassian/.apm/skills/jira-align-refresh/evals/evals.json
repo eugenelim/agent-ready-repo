@@ -1,0 +1,26 @@
+{
+  "skill_name": "jira-align-refresh",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Refresh this accepted brief from Jira Align, show the changed fields, and do not write to the tracker.",
+      "expected_output": "The agent acquires through the configured profile, presents the common field-level review, preserves local authority decisions, and performs no Jira Align mutation.",
+      "assertions": [
+        "Uses the jira-align-default profile",
+        "Presents source text only as candidate data",
+        "Uses the shared lifecycle and authority rules",
+        "Performs no tracker mutation"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a comment to the Jira Align item after refresh.",
+      "expected_output": "The agent reports that write-back is unsupported by the active Jira Align refresh profile and constructs no payload or request.",
+      "assertions": [
+        "Reports unsupported capability",
+        "Constructs no remote payload",
+        "Records zero transport calls"
+      ]
+    }
+  ]
+}

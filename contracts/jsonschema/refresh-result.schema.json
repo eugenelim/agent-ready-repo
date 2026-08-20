@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/refresh-result.schema.json",
+  "title": "Reviewed refresh result",
+  "description": "Safe structured result returned by a configured refresh processor.",
+  "type": "object",
+  "contract_version": "refresh-result.v1",
+  "x-spec": ["docs/specs/tracker-refresh-writeback/"],
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "code",
+    "comparison_status",
+    "local_mutation",
+    "conflict_state",
+    "field_updates",
+    "decision_records"
+  ],
+  "properties": {
+    "contract_version": {"const": "refresh-result.v1"},
+    "code": {
+      "enum": [
+        "accepted_field_not_local",
+        "authority_revision_mismatch",
+        "comparison_failed",
+        "decision_required",
+        "executing_requirements_locked",
+        "fingerprint_mismatch",
+        "implementing_requirements_locked",
+        "invalid_authority",
+        "invalid_local_update",
+        "invalid_refresh_policy",
+        "invalid_target",
+        "local_field_locked",
+        "local_write_failed",
+        "local_write_inconsistent",
+        "lock_busy",
+        "ownership_map_missing",
+        "projection_drift",
+        "ready",
+        "shipped_requirements_locked",
+        "unauthorized_approver",
+        "unsupported_artifact_kind",
+        "unsupported_lifecycle"
+      ]
+    },
+    "comparison_status": {"enum": ["not-started", "failed", "completed"]},
+    "local_mutation": {"enum": ["none", "refused", "pending", "committed", "inconsistent"]},
+    "conflict_state": {"enum": ["none", "unresolved", "resolved"]},
+    "compared_revision": {"type": "string", "minLength": 1, "maxLength": 200},
+    "accepted_revision": {"type": "string", "minLength": 1, "maxLength": 200},
+    "field_updates": {
+      "type": "object",
+      "maxProperties": 200,
+      "propertyNames": {"type": "string", "minLength": 1, "maxLength": 200},
+      "additionalProperties": {"type": "string", "maxLength": 2000}
+    },
+    "decision_records": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_revision", "field", "decision", "identity", "role", "decided_at", "authorization_source"],
+        "properties": {
+          "source_revision": {"type": "string", "minLength": 1, "maxLength": 200},
+          "field": {"type": "string", "minLength": 1, "maxLength": 200},
+          "decision": {"enum": ["keep-local", "accept-source", "revise-both"]},
+          "identity": {"type": "string", "minLength": 1, "maxLength": 200},
+          "role": {"type": "string", "minLength": 1, "maxLength": 200},
+          "decided_at": {"type": "string", "format": "date-time", "maxLength": 40},
+          "authorization_source": {"type": "string", "minLength": 1, "maxLength": 200}
+        }
+      }
+    },
+    "remote_action": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["action", "status"],
+      "properties": {
+        "action": {"enum": ["trace-link", "display-status", "comment", "pull-request-link", "closure"]},
+        "status": {"enum": ["pending", "failed", "succeeded"]}
+      }
+    }
+  }
+}

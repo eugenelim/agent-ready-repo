@@ -303,10 +303,12 @@ Items flow left to right: from backlog → shaping → work → done. `workspace
 
 **Every session starts with `workspace-status`.** It replaces reading multiple product docs by hand — you get a ready/blocked/done summary in one shot.
 
-**Every session ends with `work-intake remember`.** Follow-ons, deferred scope,
-and discovered issues become canonical Draft artifacts plus schema-valid,
-non-dispatchable `workspace.toml` entries, so they survive the session without
-making comments or chat history the requirements store.
+**A session closes captured follow-ons with `work-intake remember`.** An owner
+explicitly requests capture when a follow-on, excluded scope, or discovered
+issue should survive the session; it then becomes a canonical Draft artifact
+plus a schema-valid, non-dispatchable `workspace.toml` entry. Work excluded
+without that request is acknowledged in the PR or final summary, not made
+durable by default.
 
 This orient/close discipline is the habit that makes workspace.toml accurate over time. A workspace.toml that is only written once and never updated is stale within a week.
 
@@ -432,8 +434,8 @@ All reviewers use the same three severity levels:
 | Label | Meaning |
 |-------|---------|
 | **Blocker** | Must fix before merge. The loop iterates. |
-| **Concern** | Should address; human decides whether to apply or defer. |
-| **Nit** | Optional cleanup; agent applies if trivial; otherwise defers. |
+| **Concern** | Should address; human decides whether it belongs in the accepted intent and current review unit. |
+| **Nit** | Optional cleanup; agent applies if trivial and in scope; otherwise excludes it unless the owner requests capture. |
 
 ### The surface message
 

@@ -1,7 +1,7 @@
 [pack]
 name = "github"
-version = "0.1.4"
-description = "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub."
+version = "0.2.0"
+description = "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back."
 readme = "README.md"
 display_name = "GitHub"
 license = "Apache-2.0 OR MIT"
@@ -18,7 +18,7 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 [pack.evals]
-skills = ["github-brief-intake"]
+skills = ["github-brief-intake", "github-refresh"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

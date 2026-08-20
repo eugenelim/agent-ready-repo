@@ -15,6 +15,7 @@ These tests pin the two ship-time invariants for the zipapp:
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -80,6 +81,55 @@ def test_zipapp_list_targets_runs_standalone(zipapp_path: Path):
     assert proc.returncode == 0, proc.stderr
     for adapter in ("claude_code", "codex", "copilot", "kiro"):
         assert adapter in proc.stdout, f"missing adapter {adapter} in {proc.stdout!r}"
+
+
+def test_zipapp_workspace_status_uses_bundled_authority_parser(
+    zipapp_path: Path,
+    tmp_path: Path,
+) -> None:
+    script = """
+import json
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from agentbundle.workspace_mcp import _load_workspace_status_engine
+
+engine = _load_workspace_status_engine(Path(sys.argv[2]))
+markdown = '''# Spec: Packaged authority
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+
+[owned_fields]
+Outcome = "local"
+```
+'''
+status, error, source_ref, source_revision = engine._parse_source_authority_status(markdown)
+print(json.dumps({
+    "status": status,
+    "error": error,
+    "source_ref": source_ref,
+    "source_revision": source_revision,
+}, sort_keys=True))
+"""
+    proc = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(zipapp_path), str(tmp_path)],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+
+    assert proc.returncode == 0, proc.stderr
+    assert json.loads(proc.stdout) == {
+        "error": None,
+        "source_ref": "example-service://ABC-123",
+        "source_revision": "remote-rev-2",
+        "status": {"compared_revision": "remote-rev-2", "conflict": False},
+    }
 
 
 def test_zipapp_is_a_single_file_under_a_reasonable_size(zipapp_path: Path):

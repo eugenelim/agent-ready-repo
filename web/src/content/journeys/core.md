@@ -13,6 +13,8 @@ contract:
   youReceive: "An agreed plan, a checked implementation, review findings, and a merge decision."
   yourDecisions:
     - "Approve the plan"
+    - "Approve each local refresh field decision"
+    - "Confirm every remote tracker mutation separately"
     - "Merge the PR"
   decisionGateIds:
     - approve-plan
@@ -154,6 +156,19 @@ continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
+
+#### Optional return path — refresh tracked work
+
+For an existing tracker-origin artifact, ask `work-intake` to compare the
+registered source revision. You receive a field-level delta before anything
+changes. Approve each local decision; if you later request a tracker comment,
+trace link, pull-request link, display-status change, or closure, confirm that
+one remote mutation separately.
+
+- **You decide:** each local field outcome, then each exact remote mutation.
+- **Output:** updated local authority and revision mirror, plus a pending,
+  failed, or succeeded receipt for any confirmed remote action.
+- **State:** confirmed-write
 
 ---
 

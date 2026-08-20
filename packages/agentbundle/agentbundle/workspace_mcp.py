@@ -226,20 +226,18 @@ def _is_skill_present(dispatch_skill: str | None, repo_root: Path) -> bool:
 
 def _load_workspace_status_engine(repo_root: Path):
     """Import the canonical engine from an installed or packaged projection."""
+    import importlib
     import importlib.util
 
-    # All current candidates are enabled for trusted-repo sessions only. Keep the
-    # existing explicit refusal in isolated mode until that spawn contract lands.
+    # Repository candidates remain limited to trusted sessions. The bundled
+    # package module is safe to load in isolated mode because it does not execute
+    # repository-controlled code.
     candidates: list[Path] = []
     if not sys.flags.isolated:
         candidates = [
             repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
-            Path(__file__).resolve().parent / "_data/workspace_status_engine.py",
-            # Development fallback before the package projection is refreshed.
-            Path(__file__).resolve().parents[3]
-            / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
         ]
     for path in candidates:
         if path.exists():
@@ -248,11 +246,38 @@ def _load_workspace_status_engine(repo_root: Path):
             sys.modules["workspace_status_engine"] = mod
             spec.loader.exec_module(mod)
             return mod
+    try:
+        return importlib.import_module("agentbundle._data.workspace_status_engine")
+    except ModuleNotFoundError as exc:
+        if exc.name not in {
+            "agentbundle._data",
+            "agentbundle._data.workspace_status_engine",
+        }:
+            raise
+    if not sys.flags.isolated:
+        # Development fallback before the package projection is refreshed.
+        path = (
+            Path(__file__).resolve().parents[3]
+            / "packs"
+            / "core"
+            / ".apm"
+            / "skills"
+            / "workspace-status"
+            / "scripts"
+            / "workspace_status_engine.py"
+        )
+        if path.exists():
+            spec = importlib.util.spec_from_file_location(
+                "workspace_status_engine", path
+            )
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules["workspace_status_engine"] = mod
+            spec.loader.exec_module(mod)
+            return mod
     if sys.flags.isolated:
         raise RuntimeError(
-            "workspace_status_engine.py not found — Stage 1 requires trusted-repo mode "
-            "(do not use python -I; run agentbundle install core to set up adapter "
-            "projections). Isolated-module untrusted-repo support is deferred to Stage 2."
+            "packaged workspace_status_engine.py unavailable in isolated mode; "
+            "reinstall agentbundle before retrying"
         )
     raise RuntimeError("workspace_status_engine.py not found in any skill root")
 
@@ -746,7 +771,7 @@ def _canonical_failure_projection(code: str = "configuration_mismatch") -> dict[
 
 
 def _canonical_eval_dict(evaluation: Any) -> dict[str, Any]:
-    return {
+    result = {
         "ini_slug": evaluation.ini_slug,
         "collection": evaluation.collection,
         "path": _public_canonical_path(evaluation.entry.path),
@@ -755,6 +780,12 @@ def _canonical_eval_dict(evaluation: Any) -> dict[str, Any]:
         "dispatchable": bool(evaluation.dispatchable),
         "findings": [_canonical_finding_dict(f) for f in evaluation.findings],
     }
+    if getattr(evaluation, "authority_status", None) is not None:
+        authority_status = dict(evaluation.authority_status)
+        if set(result).intersection(authority_status):
+            raise ValueError("authority status overlaps canonical evaluation fields")
+        result.update(authority_status)
+    return result
 
 
 def _canonical_legacy_dict(membership: Any) -> dict[str, Any]:

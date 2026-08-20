@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.4] — 2026-08-20
+
+### Changed
+
+- The bundled catalogue authoring scaffold carries restored instruction rules in
+  `packs/AGENTS.md` and `profiles/AGENTS.md`. No engine behaviour changed; the
+  package data moves because those two repository files are its sources.
+
+## [0.38.3] — 2026-08-19
+
+### Changed
+
+- **The `workspace_status` MCP result now includes safe tracker-refresh
+  availability facts.** Callers can read origin mode, active profile, compared
+  and accepted revisions, unresolved conflict state, and explicit or unknown
+  refresh/write-back availability. The response does not expose field
+  ownership, decisions, receipts, or approver identities.
+
 ## [0.38.2] — 2026-08-19
 
 ### Added

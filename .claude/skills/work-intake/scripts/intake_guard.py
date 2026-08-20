@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -119,16 +120,42 @@ def render_minimal_intent(
     }
     if set(_TEMPLATE_TOKEN_RE.findall(template)) != set(replacements):
         raise ValueError("minimal-intent template tokens do not match the renderer")
-    return _TEMPLATE_TOKEN_RE.sub(
+    rendered = _TEMPLATE_TOKEN_RE.sub(
         lambda match: replacements[match.group(0)],
         template,
+    )
+    if getattr(source, "mode", None) == "tracker-origin":
+        rendered += "\n\n" + _render_tracker_source_authority(source)
+    return rendered
+
+
+def _render_tracker_source_authority(source: NormalizedSourceLike) -> str:
+    """Render the closed authority fence only for tracker-origin artifacts."""
+
+    return "\n".join(
+        (
+            "```toml source-authority",
+            'contract_version = "source-authority.v1"',
+            'mode = "tracker-origin"',
+            f"source_ref = {json.dumps(_inline(source.locator), ensure_ascii=False)}",
+            f"source_revision = {json.dumps(_inline(source.revision), ensure_ascii=False)}",
+            "",
+            "[owned_fields]",
+            "```",
+        )
     )
 
 
 def _inline(value: str) -> str:
     """Make one untrusted value structurally inert inside Markdown."""
 
-    return _redact(re.sub(r"\s+", " ", value).strip())
+    rendered = _redact(re.sub(r"\s+", " ", value).strip())
+    # A tracker value occupies a whole Markdown line in the template. Escape
+    # a leading fence run so it cannot open a block before the trusted
+    # authority fence. A later run is prose, not a line-start Markdown fence.
+    if re.match(r"(?:`|~){3,}", rendered):
+        return "\\" + rendered
+    return rendered
 
 
 def _redact(value: str) -> str:

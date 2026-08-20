@@ -365,7 +365,7 @@ def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") 
 
 
 def _canonical_evaluation_dict(e) -> dict:
-    return {
+    result = {
         "path": _public_canonical_path(e.entry.path),
         "slug": _public_canonical_slug(e.entry.path),
         "kind": e.entry.kind,
@@ -374,6 +374,12 @@ def _canonical_evaluation_dict(e) -> dict:
         "dispatchable": e.dispatchable,
         "findings": [_canonical_finding_dict(f) for f in e.findings],
     }
+    if getattr(e, "authority_status", None) is not None:
+        authority_status = dict(e.authority_status)
+        if set(result).intersection(authority_status):
+            raise ValueError("authority status overlaps canonical evaluation fields")
+        result.update(authority_status)
+    return result
 
 
 def _canonical_legacy_dict(m) -> dict:

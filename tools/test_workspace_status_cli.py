@@ -230,6 +230,74 @@ backlog = []
         self.assertIn("spec/legacy-ready", blocked_paths)
         self.assertNotIn(str(root), result.stdout)
 
+    def test_status_renders_refresh_authority_without_owned_fields(self) -> None:
+        root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/tracker-backed/spec.md", kind = "spec", source = {mode = "tracker-origin", ref = "example-service://ABC-123", revision = "remote-rev-2", tracker_profile = {id = "example-service", version = "1.0"}}, summary = "ready", needs = []},
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+"""
+        )
+        spec_dir = root / "docs/specs/tracker-backed"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text(
+            """# Spec: Tracker backed
+
+- **Status:** Approved
+- **Brief:** none
+
+```toml source-authority
+contract_version = "source-authority.v1"
+mode = "tracker-origin"
+source_ref = "example-service://ABC-123"
+source_revision = "remote-rev-2"
+accepted_revision = "remote-rev-1"
+
+[owned_fields]
+Outcome = "local"
+
+[[conflicts]]
+source_revision = "remote-rev-2"
+field = "Outcome"
+status = "unresolved"
+```
+""",
+            encoding="utf-8",
+        )
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+        result = _run_cli("status", "--root", str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        data = json.loads(result.stdout)
+        item = data["canonical"]["evaluations"][0]
+        self.assertEqual(item["origin_mode"], "tracker-origin")
+        self.assertEqual(item["profile"], {"id": "example-service", "version": "1.0"})
+        self.assertEqual(
+            item["refresh"],
+            {
+                "available": "unknown",
+                "write_back_available": "unknown",
+                "compared_revision": "remote-rev-2",
+                "accepted_revision": "remote-rev-1",
+                "conflict": True,
+            },
+        )
+        self.assertNotIn("owned_fields", result.stdout)
+        self.assertNotIn(str(root), result.stdout)
+
     def test_public_work_projection_excludes_brief_and_shaping_blocks(self) -> None:
         root = self._write_workspace(
             """\

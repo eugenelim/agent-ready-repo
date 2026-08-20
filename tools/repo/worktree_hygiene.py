@@ -15,6 +15,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,11 +32,32 @@ def _configure_stream(stream: object, errors: str) -> None:
 _configure_stream(sys.stdout, "strict")
 _configure_stream(sys.stderr, "backslashreplace")
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+IMPORT_SENTINEL = "__AGENTBUNDLE_IMPORT_RESOLUTION__="
+IMPORT_TIMEOUT_SECONDS = 10
+IMPORT_PROBE = (
+    "import json\n"
+    "try:\n"
+    "    import agentbundle\n"
+    "except ModuleNotFoundError as error:\n"
+    "    if error.name != 'agentbundle':\n"
+    "        raise\n"
+    "    result = {'state': 'absent'}\n"
+    "else:\n"
+    "    path = getattr(agentbundle, '__file__', None)\n"
+    "    if not isinstance(path, str):\n"
+    "        raise RuntimeError('agentbundle has no import path')\n"
+    "    result = {'state': 'resolved', 'path': path}\n"
+    f"print({IMPORT_SENTINEL!r} + json.dumps(result, sort_keys=True))\n"
+)
 CATEGORIES = ("dependencies", "generated", "test_artifacts")
 CLEANABLE_CATEGORIES = frozenset(CATEGORIES)
 EXPENSIVE = {"dependencies"}
 PROTECTED_ROOTS = {".loop-run", ".context"}
+PLAYWRIGHT_EVIDENCE_DIRECTORY = ".playwright-failure-evidence"
+PLAYWRIGHT_EVIDENCE_PIN = ".pinned"
+DEFAULT_PLAYWRIGHT_EVIDENCE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+PLAYWRIGHT_ARCHIVE_NAME_ATTEMPTS = 64
 NAMES = {
     "node_modules": "dependencies",
     ".venv": "dependencies",
@@ -108,6 +130,26 @@ class GitStatus:
     error: str = ""
 
 
+@dataclass(frozen=True)
+class PlaywrightEvidenceResult:
+    """Account for lifecycle mutations made for browser-gate evidence."""
+
+    archived: int = 0
+    cleaned: int = 0
+    pruned: int = 0
+    skipped: int = 0
+    refused: bool = False
+    receipt: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class LifecycleResult:
+    """Report an optional worktree lifecycle hook without mutating Git state."""
+
+    code: int
+    lines: tuple[str, ...]
+
+
 def _run(
     argv: list[str],
     *,
@@ -132,6 +174,156 @@ def _call(
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return runner(argv, input=input, env=env)
+
+
+def _run_import_probe(
+    argv: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    """Run the isolated import measurement without writing worktree bytecode."""
+    return subprocess.run(  # nosec B603  # fixed interpreter and inline probe
+        argv,
+        cwd=str(cwd),
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=IMPORT_TIMEOUT_SECONDS,
+    )
+
+
+def _import_provenance(worktree: Path) -> dict[str, object]:
+    """Describe the process context used for the isolated import probe."""
+    return {
+        "interpreter": sys.executable,
+        "cwd": str(worktree.resolve()),
+        "removed_environment_inputs": [
+            "PYTHONPATH",
+            "cwd sys.path entry (-P)",
+        ],
+    }
+
+
+def _agentbundle_import_resolution(
+    worktree: Path,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
+) -> dict[str, object]:
+    """Measure where agentbundle resolves without this worktree's PYTHONPATH."""
+    provenance = _import_provenance(worktree)
+    environment = os.environ.copy()
+    environment.pop("PYTHONPATH", None)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    try:
+        result = import_runner(
+            [sys.executable, "-P", "-c", IMPORT_PROBE],
+            cwd=worktree,
+            env=environment,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe timed out",
+        }
+    except OSError as error:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": f"isolated import probe could not run: {error}",
+        }
+    if result.returncode:
+        detail = result.stderr.strip() or f"exit {result.returncode}"
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": f"isolated import probe failed: {detail}",
+        }
+    records = [
+        line.removeprefix(IMPORT_SENTINEL)
+        for line in result.stdout.splitlines()
+        if line.startswith(IMPORT_SENTINEL)
+    ]
+    if len(records) != 1:
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced no unambiguous result",
+        }
+    try:
+        record = json.loads(records[0])
+    except json.JSONDecodeError:
+        record = None
+    if not isinstance(record, dict):
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced an invalid result",
+        }
+    if record.get("state") == "absent":
+        return {**provenance, "status": "absent"}
+    path = record.get("path")
+    if record.get("state") != "resolved" or not isinstance(path, str):
+        return {
+            **provenance,
+            "status": "inconclusive",
+            "detail": "isolated import probe produced an invalid result",
+        }
+    resolved = Path(path).resolve()
+    return {
+        **provenance,
+        "status": "inside" if _under(resolved, worktree) else "outside",
+        "path": str(resolved),
+    }
+
+
+def _unregistered_worktree_resolution(repository: Path) -> dict[str, object]:
+    """State why an import probe cannot use a registered worktree."""
+    return {
+        **_import_provenance(repository),
+        "status": "inconclusive",
+        "detail": "no registered worktree contains the invocation directory",
+    }
+
+
+def _import_resolution_warning(resolution: dict[str, object]) -> str | None:
+    """Render only the measured import-resolution fact for scan warnings."""
+    context = (
+        f"interpreter: {resolution['interpreter']}; "
+        f"cwd: {resolution['cwd']}; removed environment inputs: "
+        f"{', '.join(resolution['removed_environment_inputs'])}"
+    )
+    status = resolution["status"]
+    if status == "outside":
+        return (
+            "agentbundle resolves outside this worktree, at "
+            f"{resolution['path']} ({context})"
+        )
+    if status == "absent":
+        return f"agentbundle is absent in isolated import measurement ({context})"
+    if status == "inconclusive":
+        return (
+            "agentbundle isolated import measurement is inconclusive: "
+            f"{resolution['detail']} ({context})"
+        )
+    return None
+
+
+def _import_resolution_human_line(resolution: dict[str, object]) -> str:
+    """Render the measured import-resolution fact for the human report."""
+    warning = _import_resolution_warning(resolution)
+    if warning:
+        return warning
+    context = (
+        f"interpreter: {resolution['interpreter']}; "
+        f"cwd: {resolution['cwd']}; removed environment inputs: "
+        f"{', '.join(resolution['removed_environment_inputs'])}"
+    )
+    return (
+        "agentbundle resolves inside this worktree, at "
+        f"{resolution['path']} ({context})"
+    )
 
 
 def _parse_porcelain(text: str) -> list[Worktree]:
@@ -341,6 +533,179 @@ def _under(path: Path, root: Path) -> bool:
     except (OSError, ValueError):
         return False
     return True
+
+
+def _containing_worktree(
+    directory: Path, worktrees: list[Worktree]
+) -> Path | None:
+    """Return the most-specific registered worktree containing a directory."""
+    current = directory.resolve()
+    matches = [
+        worktree.path
+        for worktree in worktrees
+        if _under(current, worktree.path)
+    ]
+    return max(matches, key=lambda path: len(path.parts), default=None)
+
+
+def _default_branch_ref(
+    repository: Path, runner: Runner
+) -> tuple[str | None, str | None]:
+    """Determine one remote-tracking default branch without guessing."""
+    remotes = _call(runner, ["git", "-C", str(repository), "remote"])
+    if remotes.returncode:
+        detail = remotes.stderr.strip() or f"exit {remotes.returncode}"
+        return None, f"could not determine default branch: {detail}"
+    remote_names = [name for name in remotes.stdout.splitlines() if name]
+    if len(remote_names) != 1:
+        return None, "could not determine default branch: expected exactly one remote"
+    default = _call(
+        runner,
+        [
+            "git",
+            "-C",
+            str(repository),
+            "symbolic-ref",
+            "--quiet",
+            f"refs/remotes/{remote_names[0]}/HEAD",
+        ],
+    )
+    if default.returncode or not default.stdout.strip():
+        detail = default.stderr.strip() or f"exit {default.returncode}"
+        return None, f"could not determine default branch: {detail}"
+    return default.stdout.strip(), None
+
+
+def _merged_branches(
+    repository: Path, runner: Runner
+) -> tuple[set[str] | None, str | None]:
+    """Read branches merged into the Git-determined default branch once."""
+    default_branch, default_warning = _default_branch_ref(repository, runner)
+    if default_warning:
+        return None, default_warning
+    assert default_branch is not None
+    result = _call(
+        runner,
+        [
+            "git",
+            "-C",
+            str(repository),
+            "for-each-ref",
+            "--format=%(refname)",
+            "--merged",
+            default_branch,
+            "refs/heads",
+        ],
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or f"exit {result.returncode}"
+        return None, f"could not determine merged worktrees: {detail}"
+    return set(result.stdout.splitlines()), None
+
+
+def _lifecycle_report(
+    repository: Path,
+    worktrees: list[Worktree],
+    warnings: list[str],
+    runner: Runner = _run,
+) -> list[str]:
+    """Classify registered worktrees from Git facts and the invocation directory."""
+    current = _containing_worktree(repository, worktrees)
+    merged, merged_warning = _merged_branches(repository, runner)
+    default_branch, _ = _default_branch_ref(repository, runner)
+    default_local = (
+        "refs/heads/" + "/".join(default_branch.split("/")[3:])
+        if default_branch
+        else None
+    )
+    if merged_warning:
+        warnings.append(merged_warning)
+    prune_signal = [worktree.path for worktree in worktrees if worktree.prunable]
+    currently_active = [current] if current is not None else []
+    merged_paths = [
+        worktree.path
+        for worktree in worktrees
+        if (
+            merged is not None
+            and worktree.branch
+            and worktree.branch in merged
+            and worktree.path != current
+            # "merged into the default branch" is vacuous for the default
+            # branch itself; keep the primary checkout out of this bucket.
+            # The porcelain reports refs/heads/<name> while the default is a
+            # remote-tracking refs/remotes/<remote>/<name>, so compare the
+            # local form -- a bare != never matches.
+            and worktree.branch != default_local
+        )
+    ]
+    no_merge_or_prune_signal = [
+        worktree.path
+        for worktree in worktrees
+        if worktree.path not in prune_signal
+        and worktree.path not in currently_active
+        and worktree.path not in merged_paths
+    ]
+    lines = [
+        "lifecycle report:",
+        "currently-active observation: registered worktree containing the "
+        "invocation directory; no liveness claim",
+        "prune-signal observation: Git reported the worktree record as prunable; "
+        "this does not assert that its path has been removed",
+        "no-merge-or-prune-signal observation: registered worktree without a "
+        "prune signal, default-branch merge signal, or current-invocation "
+        "containment; no activity or liveness inference",
+    ]
+    categories: list[tuple[str, list[Path] | None]] = [
+        ("merged", merged_paths if merged is not None else None),
+        ("prune-signal", prune_signal),
+        ("no-merge-or-prune-signal", no_merge_or_prune_signal),
+        ("currently-active", currently_active),
+    ]
+    for label, paths in categories:
+        if paths is None:
+            lines.append(f"{label}: undetermined")
+            continue
+        if paths:
+            lines.extend(f"{label}: {path}" for path in paths)
+        else:
+            lines.append(f"{label}: none")
+    lines.extend(f"warning: {warning}" for warning in sorted(set(warnings)))
+    return lines
+
+
+def lifecycle_hook(
+    command: str,
+    repository: Path,
+    *,
+    protected: set[Path] | None = None,
+    runner: Runner = _run,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
+) -> LifecycleResult:
+    """Run an optional hook and refuse unsafe removal without removing anything."""
+    _, _, worktrees, warnings = discover_worktrees(repository, runner)
+    lines = _lifecycle_report(repository, worktrees, warnings, runner)
+    if command != "before-remove":
+        return LifecycleResult(0, tuple(lines))
+    current = _containing_worktree(repository, worktrees)
+    resolution = (
+        _agentbundle_import_resolution(current, import_runner)
+        if current is not None
+        else _unregistered_worktree_resolution(repository)
+    )
+    lines.append("import resolution: " + _import_resolution_human_line(resolution))
+    if current is not None and current in (protected or set()):
+        lines.append(f"refusing worktree removal: protected worktree: {current}")
+        return LifecycleResult(2, tuple(lines))
+    if resolution["status"] != "inside":
+        lines.append(
+            "refusing worktree removal: agentbundle import resolution is "
+            f"{resolution['status']}, not inside this worktree"
+        )
+        return LifecycleResult(2, tuple(lines))
+    lines.append(
+        "before-remove passed: this hook does not remove worktrees or branches"
+    )
+    return LifecycleResult(0, tuple(lines))
 
 
 def _protected_paths(values: Iterable[str]) -> set[Path]:
@@ -625,8 +990,22 @@ def scan(
     runner: Runner = _run,
     *,
     include_ignore_status: bool = True,
+    include_import_resolution: bool = True,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
 ) -> dict[str, Any]:
     repo, common, worktrees, warnings = discover_worktrees(repository, runner)
+    worktree_root = _containing_worktree(repo, worktrees)
+    if include_import_resolution:
+        import_resolution = (
+            _agentbundle_import_resolution(worktree_root, import_runner)
+            if worktree_root is not None
+            else _unregistered_worktree_resolution(repo)
+        )
+        import_warning = _import_resolution_warning(import_resolution)
+        if import_warning:
+            warnings.append(import_warning)
+    else:
+        import_resolution = _import_provenance(worktree_root or repo)
     selected_roots = {path.resolve() for path in selected or []}
     if selected_roots:
         registered = {worktree.path for worktree in worktrees}
@@ -695,6 +1074,7 @@ def scan(
         "repository": str(repo),
         "git_common_dir": str(common) if common is not None else None,
         "measurement": _measurement_name(),
+        "agentbundle_import": import_resolution,
         "worktrees": worktree_data,
         "shared_caches": shared,
         "warnings": sorted(set(warnings)),
@@ -707,6 +1087,14 @@ def _human(report: dict[str, Any]) -> str:
         f"measurement: {report['measurement']} bytes",
         "worktree  dependencies  generated  tests  protected  total local",
     ]
+    import_resolution = report["agentbundle_import"]
+    import_warning: str | None = None
+    if "status" in import_resolution:
+        import_warning = _import_resolution_warning(import_resolution)
+        lines.append(
+            "import resolution: "
+            + _import_resolution_human_line(import_resolution)
+        )
     for worktree_data in report["worktrees"]:
         categories = worktree_data["categories"]
         values = (
@@ -755,7 +1143,11 @@ def _human(report: dict[str, Any]) -> str:
         else:
             description += "; cleanup: report only"
         lines.append(description)
-    lines.extend(f"warning: {warning}" for warning in report["warnings"])
+    lines.extend(
+        f"warning: {warning}"
+        for warning in report["warnings"]
+        if warning != import_warning
+    )
     return "\n".join(lines)
 
 
@@ -897,16 +1289,18 @@ def _candidate_safety_reason(
     return _path_component_reason(candidate, root, mount_check)
 
 
-def _current_worktree(repository: Path, runner: Runner) -> Path:
-    """Resolve the registered worktree containing the invocation directory."""
-    current = repository.resolve()
+def _registered_current_worktree(
+    repository: Path,
+    runner: Runner,
+) -> Path | None:
+    """Resolve the registered worktree containing an invocation, if known."""
     _, _, worktrees, _ = discover_worktrees(repository, runner)
-    matches = [
-        worktree.path
-        for worktree in worktrees
-        if _under(current, worktree.path)
-    ]
-    return max(matches, key=lambda path: len(path.parts), default=current)
+    return _containing_worktree(repository, worktrees)
+
+
+def _current_worktree(repository: Path, runner: Runner) -> Path:
+    """Resolve the clean target, retaining clean's established fallback."""
+    return _registered_current_worktree(repository, runner) or repository.resolve()
 
 
 def _append_receipt_summary(
@@ -928,6 +1322,249 @@ def _append_receipt_summary(
         lines.append("  none")
     for size, path, reason in ordered:
         lines.append(f"  {path}: {size} bytes ({reason})")
+
+
+def _playwright_evidence_local_safety_reason(
+    path: Path,
+    root: Path,
+    common: Path,
+    mount_check: MountCheck,
+) -> str:
+    """Re-establish the local portion of the evidence safety predicate."""
+    web = root / "web"
+    archive = web / PLAYWRIGHT_EVIDENCE_DIRECTORY
+    allowed = {web / "test-results", web / "playwright-report", archive}
+    if path not in allowed and path.parent != archive:
+        return "outside Playwright evidence surface"
+    if path == archive and not path.exists():
+        return ""
+    candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
+    return _candidate_safety_reason(candidate, root, common, set(), mount_check)
+
+
+def _playwright_evidence_candidates(root: Path) -> tuple[Path, Path, Path]:
+    """Return the two live Playwright outputs and retained-failure root."""
+    web = root / "web"
+    return (
+        web / "test-results",
+        web / "playwright-report",
+        web / PLAYWRIGHT_EVIDENCE_DIRECTORY,
+    )
+
+
+def _playwright_archive_time_ns(entry: Path) -> int | None:
+    """Return the creation time recorded in a lifecycle-owned archive name."""
+    prefix = "failed-"
+    if not entry.name.startswith(prefix):
+        return None
+    try:
+        timestamp = int(entry.name.removeprefix(prefix))
+    except ValueError:
+        return None
+    return timestamp if timestamp >= 0 else None
+
+
+def _playwright_archive_destination(archive: Path) -> Path:
+    """Return an unused lifecycle-owned archive path for one failed run.
+
+    `time.time_ns()` is not a uniqueness guarantee: two failures inside the same
+    nanosecond, or a directory that already carries the generated name, made
+    `copytree` raise and lost the failure it was archiving.
+    """
+    for suffix in range(PLAYWRIGHT_ARCHIVE_NAME_ATTEMPTS):
+        stamp = time.time_ns()
+        name = f"failed-{stamp}" if suffix == 0 else f"failed-{stamp + suffix}"
+        destination = archive / name
+        if not destination.exists():
+            return destination
+    raise FileExistsError(
+        f"could not allocate an unused archive name under {archive}"
+    )
+
+
+def _playwright_retention_actions(
+    archive: Path, max_age_seconds: int
+) -> tuple[list[tuple[str, Path, tuple[Path, ...]]], list[tuple[Path, str]]]:
+    """Select retained evidence from its explicit archive creation time."""
+    entries = (
+        [
+            entry
+            for entry in archive.iterdir()
+            if entry.is_dir() and not entry.is_symlink()
+        ]
+        if archive.is_dir()
+        else []
+    )
+    selected_at = time.time_ns()
+    # The archive name is ordinary worktree-local state: a stray directory, or a
+    # clock stepped backwards by NTP, can carry a timestamp in the future. Such a
+    # name would hold "newest" indefinitely and, under a zero budget, get the
+    # genuine newest run pruned instead. Refuse to read it as a time at all;
+    # unrecognized archives fall into the retained bucket, never the pruned one.
+    creation_times = {
+        entry: timestamp
+        for entry in entries
+        if (timestamp := _playwright_archive_time_ns(entry)) is not None
+        and timestamp <= selected_at
+    }
+    newest = max(creation_times, key=creation_times.__getitem__, default=None)
+    cutoff = selected_at - max_age_seconds * 1_000_000_000
+    actions: list[tuple[str, Path, tuple[Path, ...]]] = []
+    retained: list[tuple[Path, str]] = []
+    for entry in entries:
+        pin = entry / PLAYWRIGHT_EVIDENCE_PIN
+        if entry not in creation_times:
+            retained.append((entry, "unrecognized archive time"))
+        elif entry == newest:
+            retained.append((entry, "newest failed run"))
+        elif pin.exists() and not pin.is_symlink():
+            retained.append((entry, "pinned"))
+        elif creation_times[entry] >= cutoff:
+            retained.append((entry, "within age budget"))
+        else:
+            actions.append(("prune", entry, (entry,)))
+    return actions, retained
+
+
+def manage_playwright_failure_evidence(
+    repository: Path,
+    *,
+    gate_returncode: int,
+    max_age_seconds: int,
+    runner: Runner = _run,
+    mount_check: MountCheck | None = None,
+) -> PlaywrightEvidenceResult:
+    """Retain bounded failed runs and remove artifacts from successful gates."""
+    _, common, worktrees, _ = discover_worktrees(repository, runner)
+    root = _containing_worktree(repository, worktrees)
+    if root is None or common is None:
+        return PlaywrightEvidenceResult(
+            refused=True,
+            receipt=("warning: skipped Playwright evidence: current worktree is not registered",),
+        )
+    common = common.resolve()
+    effective_mount_check = mount_check or _default_mount_check()
+    test_results, playwright_report, archive = _playwright_evidence_candidates(root)
+    initial_actions: list[tuple[str, Path, tuple[Path, ...]]] = []
+    if gate_returncode:
+        if test_results.exists():
+            initial_actions.append(("archive", test_results, (test_results, archive)))
+    else:
+        for path in (test_results, playwright_report):
+            if not path.exists():
+                continue
+            initial_actions.append(("clean", path, (path,)))
+
+    def recheck_local(paths: tuple[Path, ...]) -> str:
+        """Recheck the local predicate after selection and before mutation."""
+        fresh_mount_check = mount_check or _default_mount_check()
+        for item in paths:
+            reason = _playwright_evidence_local_safety_reason(
+                item, root, common, fresh_mount_check
+            )
+            if reason:
+                return reason
+        return ""
+
+    archived = cleaned = pruned = skipped = failures = reclaimed = selected = 0
+    lines: list[str] = []
+
+    def apply_actions(actions: list[tuple[str, Path, tuple[Path, ...]]]) -> None:
+        """Apply one selected lifecycle phase after its safety proof."""
+        nonlocal archived, cleaned, failures, pruned, reclaimed, selected, skipped
+        if not actions:
+            return
+        candidates: dict[Path, Candidate] = {}
+        reasons: dict[Path, str] = {}
+        for _, _, paths in actions:
+            for path in paths:
+                if path in candidates:
+                    continue
+                candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
+                candidates[path] = candidate
+                reasons[path] = _playwright_evidence_local_safety_reason(
+                    path, root, common, effective_mount_check
+                )
+        git_candidates = [
+            candidate for path, candidate in candidates.items() if not reasons[path]
+        ]
+        git_status = _mark_git_status(root, git_candidates, runner)
+        if git_status.error:
+            for path in candidates:
+                if not reasons[path]:
+                    reasons[path] = git_status.error
+        else:
+            for path, candidate in candidates.items():
+                if reasons[path]:
+                    continue
+                relative = candidate.canonical_path.relative_to(root)
+                if _is_tracked(relative, git_status.tracked):
+                    reasons[path] = "tracked"
+                elif relative not in git_status.ignored:
+                    reasons[path] = "not ignored"
+
+        for kind, path, paths in actions:
+            reason = next((reasons[item] for item in paths if reasons[item]), "")
+            if reason:
+                lines.append(f"warning: skipped {path}: {reason}")
+                skipped += 1
+                continue
+            bytes_, _ = _tree_size(path, [])
+            lines.append(f"selected {path}: {bytes_} bytes")
+            selected += 1
+            reason = recheck_local(paths)
+            if reason:
+                lines.append(f"aborted {path}: safety changed: {reason}")
+                skipped += 1
+                continue
+            try:
+                if kind == "archive":
+                    archive.mkdir(parents=True, exist_ok=True)
+                    reason = recheck_local(paths)
+                    if reason:
+                        lines.append(f"aborted {path}: safety changed: {reason}")
+                        skipped += 1
+                        continue
+                    destination = _playwright_archive_destination(archive)
+                    shutil.copytree(path, destination)
+                    lines.append(f"archived {path}: {bytes_} bytes to {destination}")
+                    archived += 1
+                else:
+                    shutil.rmtree(path)
+                    verb = "cleaned" if kind == "clean" else "pruned"
+                    lines.append(f"{verb} {path}: {bytes_} bytes")
+                    if kind == "clean":
+                        cleaned += 1
+                    else:
+                        pruned += 1
+                    reclaimed += bytes_
+            except OSError as exc:
+                lines.append(f"failure {path}: {exc}")
+                failures += 1
+
+    apply_actions(initial_actions)
+    retention_actions, retained = _playwright_retention_actions(
+        archive, max_age_seconds
+    )
+    for path, reason in retained:
+        lines.append(f"warning: skipped {path}: {reason}")
+        skipped += 1
+    apply_actions(retention_actions)
+    _append_receipt_summary(
+        lines,
+        selected=selected,
+        skipped=skipped,
+        reclaimed=reclaimed,
+        failures=failures,
+        remaining=[],
+    )
+    return PlaywrightEvidenceResult(
+        archived=archived,
+        cleaned=cleaned,
+        pruned=pruned,
+        skipped=skipped,
+        receipt=tuple(lines),
+    )
 
 
 def clean(
@@ -982,6 +1619,7 @@ def clean(
         clean_selection,
         runner,
         include_ignore_status=False,
+        include_import_resolution=False,
     )
     lines.extend(f"warning: {warning}" for warning in report["warnings"])
     common_value = report["git_common_dir"]
@@ -1188,6 +1826,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Select test, coverage, lint, and bytecode artifacts.",
     )
+    for command in ("after-create", "before-run", "after-run", "before-remove"):
+        hook_parser = subparsers.add_parser(
+            command,
+            help="Report optional worktree lifecycle state without removing worktrees.",
+        )
+        if command == "before-remove":
+            hook_parser.add_argument(
+                "--protect-worktree",
+                action="append",
+                type=Path,
+                default=[],
+                help=(
+                    "Protect a worktree; repeatable and supplemented by "
+                    "WORKTREE_HYGIENE_PROTECT_WORKTREES."
+                ),
+            )
     args = parser.parse_args(argv)
     if args.command == "scan":
         selected = [args.worktree] if args.worktree else None
@@ -1204,6 +1858,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(_human(report))
         return 0
+    if args.command in {"after-create", "before-run", "after-run", "before-remove"}:
+        protected = _protected_paths(
+            str(path) for path in getattr(args, "protect_worktree", [])
+        )
+        result = lifecycle_hook(args.command, Path.cwd(), protected=protected)
+        print("\n".join(result.lines))
+        return result.code
     categories = {
         category for category in CATEGORIES if getattr(args, category)
     }

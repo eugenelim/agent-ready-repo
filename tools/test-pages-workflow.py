@@ -68,8 +68,16 @@ REQUIRED_PATHS = (
 )
 # What `test:plugins` must actually BE. An explicit path fails closed when the suite
 # moves; a glob exits 0 with `tests 0`, and so does `true`.
-PLUGIN_SUITE = "docs-site/src/plugins/rehype-scrollable-tables.test.ts"
-EXPECTED_PLUGIN_SCRIPT = "node --test src/plugins/rehype-scrollable-tables.test.ts"
+# Every suite `test:plugins` must run. Each is checked for existence below, so a
+# path can neither be dropped from the script nor deleted from the tree silently.
+PLUGIN_SUITES = (
+    "docs-site/src/plugins/rehype-scrollable-tables.test.ts",
+    "docs-site/src/components/shared-chrome.test.ts",
+)
+EXPECTED_PLUGIN_SCRIPT = (
+    "node --test src/plugins/rehype-scrollable-tables.test.ts"
+    " src/components/shared-chrome.test.ts"
+)
 PACKAGE_JSON = "docs-site/package.json"
 
 # ── spec/site-browser-quality-gate ──────────────────────────────────────────
@@ -535,7 +543,16 @@ def self_test() -> int:
         if expected not in got:
             failures.append(f"{mut_id}: expected {expected!r}, got {got}")
     # The real-tree predicate, proved with crafted inputs rather than left asserted.
-    for bad_script in ("true", "node --test src/plugins/*.test.ts", "", "echo ok"):
+    for bad_script in (
+        "true",
+        "node --test src/plugins/*.test.ts",
+        "",
+        "echo ok",
+        # Dropping either suite from the invocation must be rejected too: the
+        # whole point of exact equality is that a path cannot quietly fall off.
+        "node --test src/plugins/rehype-scrollable-tables.test.ts",
+        "node --test src/components/shared-chrome.test.ts",
+    ):
         if script_is_pinned(bad_script):
             failures.append(f"script_is_pinned accepted {bad_script!r}")
     if not script_is_pinned(EXPECTED_PLUGIN_SCRIPT):
@@ -572,8 +589,9 @@ def main(argv: list[str]) -> int:
         violations.append(
             f"plugin-script-pinned ({PACKAGE_JSON} scripts['test:plugins'] must be "
             f"{EXPECTED_PLUGIN_SCRIPT!r}, got {_plugin_script()!r})")
-    if not (REPO_ROOT / PLUGIN_SUITE).is_file():
-        violations.append(f"plugin-suite-file-exists ({PLUGIN_SUITE} is missing)")
+    for suite in PLUGIN_SUITES:
+        if not (REPO_ROOT / suite).is_file():
+            violations.append(f"plugin-suite-file-exists ({suite} is missing)")
     # The browser gate's script, pinned by EXACT equality for the same reason: the
     # workflow-text matrix cannot flip a value read from `web/package.json`, and a
     # containment check here accepted `… || true` and `… --shard=1/50`. The

@@ -1,0 +1,24 @@
+{
+  "contract_version": "tracker-refresh-profile.v1",
+  "id": "github-default",
+  "version": "1.0",
+  "revision_field": "updatedAt",
+  "field_mapping": {
+    "Outcome": "title",
+    "User stories": "body"
+  },
+  "destination": {
+    "boundary": "approved-gh-fixed-host",
+    "allowed_hosts": ["github.com"],
+    "host_source": "trusted-configuration-only",
+    "payload_host_allowed": false
+  },
+  "capabilities": [
+    "acquire",
+    "trace-link",
+    "display-status",
+    "comment",
+    "pull-request-link",
+    "closure"
+  ]
+}

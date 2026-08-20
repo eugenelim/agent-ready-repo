@@ -13,6 +13,11 @@ The Atlassian pack is one conversational layer over several focused workflows.
 
 You ask in team language. The agent selects the smallest workflow that can answer safely: orient first, improve unclear work when needed, and write only after the requested change is explicit.
 
+For registered tracker-origin work, refresh is a return path rather than a new
+intake. It compares source changes through the same local authority rules.
+Supported Jira coordination writes remain separate, exact-confirmation
+operations; Jira Align refresh has no remote write-back capability.
+
 ## The mental model
 
 ```
@@ -74,6 +79,11 @@ Before any write, the agent shows you the exact payload: issue key, field, curre
 **Story review has a dedicated quality contract.** `jira-story-triage` applies a specific readiness model, produces structured per-item output, and surfaces human questions that the product owner must answer. That contract is different from a general Jira update — it deserves its own skill with its own rules.
 
 **Jira writes require a distinct approval boundary.** Every write must show exact fields and values before executing. Having a dedicated write skill (`jira`) keeps that boundary explicit and testable. No other skill in the pack writes to Jira autonomously.
+
+Refresh keeps two decisions distinct. Approving a local field outcome does not
+approve a tracker mutation. A Jira refresh comment, display-status transition,
+or closure consumes its own fresh confirmation and records a pending receipt
+before the request. SSO-cookie writes remain unavailable.
 
 **Reporting and publishing need different aggregation and output contracts.** A stand-up summary and a Confluence page have different audiences, different formats, and different safety properties. Separating them means each can be tested and approved independently.
 

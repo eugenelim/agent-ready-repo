@@ -347,6 +347,7 @@ def main() -> int:
         "docs/CHARTER.md",
         "ARCHITECTURE.md",
         "docs/architecture/overview.md",
+        "docs/architecture/reference.md",
         "docs/product/roadmap.md",
     )
     now_epoch = time.time()
@@ -514,14 +515,12 @@ def main() -> int:
                         f"CONVENTIONS.md#supervisor-mode)."
                     )
 
-    # 10g — risk-trigger block byte-identical across the four docs that
-    # carry it (work-loop-light-mode spec AC2): the projected work-loop
-    # SKILL.md (canonical wording), root AGENTS.md, the seed AGENTS.md, and
-    # projected docs/CONVENTIONS.md. Source↔projection equality for SKILL.md
-    # and CONVENTIONS.md is build-self's job (projection drift gate); this
-    # check guards the four doc homes against a hand-edit diverging one from
-    # the rest — the standing guard the spec's one-time grep could not
-    # provide. Marker-driven, mirroring 10f's precedent.
+    # 10g — risk-trigger block byte-identical across the three work-loop
+    # SKILL.md homes (ADR-0088): the canonical pack source, its `.claude/`
+    # projection, and the shared `.agents/` projection that Codex, Cursor,
+    # Gemini and Copilot all read. A copy in any other document fails with a
+    # drift diagnostic, so other surfaces name the skill instead of carrying
+    # the block. Marker-driven, mirroring 10f's precedent.
     rt_start = "<!-- risk-triggers:start"
     rt_end = "risk-triggers:end -->"
     rt_canonical = ".claude/skills/work-loop/SKILL.md"

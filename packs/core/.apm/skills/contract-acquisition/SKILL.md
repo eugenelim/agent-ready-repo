@@ -21,7 +21,7 @@ stack ships, the type checker / compiler / introspection a language ships — an
 to ground authoring in what they return, declaring honestly how strong that
 oracle is.
 
-This is the **generalization of AGENTS.md's "grep to verify a function exists
+This is the **generalization of AGENTS.md's "Grep to verify a function exists
 before importing it"**: don't guess a flag, a schema field, a constraint, a
 signature, or a packaging assumption when the toolchain can tell you the truth
 deterministically. The bare grep confirms a symbol *exists*; this skill confirms

@@ -35,6 +35,12 @@ defect, separate units, or view-only result. Jira object types and hierarchy are
 profile hints, not artifact identities. Intake never writes to Jira or Jira
 Align; `work-intake` owns any later repository materialization.
 
+For an existing tracker-origin artifact, ask for a refresh. Jira and Jira Align
+both support reviewed local comparison. Token-authenticated Jira can also
+comment, transition display status, or close after one fresh confirmation per
+mutation. Jira SSO cookies remain read-only for every non-GET/HEAD request, and
+the Jira Align refresh profile declares no remote write-back actions.
+
 ### 1. See what the team can work on
 
 ```
@@ -127,6 +133,8 @@ You do not need to select these manually. They are named here for reference.
 | `ai-adoption-report` | Compare flow-metrics outputs; produce an adoption report |
 | `jira-brief-intake` | Read Jira work into shared content-based repository intake |
 | `jira-align-brief-intake` | Read Jira Align work into shared content-based repository intake |
+| `jira-refresh` | Review Jira source changes; optionally comment, transition, or close through confirmed token-authenticated writes |
+| `jira-align-refresh` | Review Jira Align source changes; remote write-back is unsupported |
 | `jira-defect-flow` | Fix a Jira defect end-to-end — pull, fix, PR, transition |
 | `jira-align` | Read and write Jira Align portfolio data |
 
@@ -134,6 +142,7 @@ You do not need to select these manually. They are named here for reference.
 
 → [Full tutorial — Review your team backlog from start to finish](/agent-ready-repo/docs/guides/atlassian/tutorials/review-your-team-backlog/)\
 → [How-to — common Jira tasks](/agent-ready-repo/docs/guides/atlassian/how-to/work-with-jira/)\
+→ [How-to — refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/)\
 → [Skills reference — exact read, write, and approval contracts](/agent-ready-repo/docs/guides/atlassian/reference/atlassian-skills/)\
 → [How the pack works — composition model](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/)\
 → [Journey — four-stage visual storyboard](/journeys/atlassian/)

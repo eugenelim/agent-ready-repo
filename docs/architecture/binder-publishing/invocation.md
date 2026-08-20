@@ -140,7 +140,7 @@ The following rules are closed. The listed flags do not exist, so a stale
 | `--out=PATH` | `resolve` writes to the workspace and prints its path; CI reads it there. `outline` prints its draft to stdout; `templates <name>` writes to a derived path in `recipes_dir`. **No verb takes a caller-named destination.** |
 | `--replace-foreign-dir` | Nowhere. A publication directory that is not ours is exit 4; the caller empties it themselves. |
 | `--force-unlock` | `clean --stale`. Deleting state deliberately is a different act from being handed a flag that breaks another process's lock. |
-| `--from-index=PATH` | Nowhere. `build` always resolves. Invariant 21 means identical inputs give a byte-identical index, so "the thing I approved" is still what gets built — which was the flag's only real purpose, obtained for free. |
+| `--from-index=PATH` | Nowhere. `build` always resolves. Invariant 15 means identical inputs give a byte-identical index, so "the thing I approved" is still what gets built — which was the flag's only real purpose, obtained for free. |
 
 The command surface has no install verb; renderer dependency handling is in
 [`zensical-adapter.md`](zensical-adapter.md).
@@ -185,7 +185,7 @@ nothing to tell the verb which files to re-hash. The flow is:
    publication in every repository, with no source change and no way to tell
    "sources drifted" from "the compiler's emission drifted". A version mismatch is
    therefore **exit 10, `rebuild-recommended`**, distinct from stale.
-5. Then compare `index-sha256`. The index is byte-reproducible (invariant 21) and
+5. Then compare `index-sha256`. The index is byte-reproducible (invariant 15) and
    carries no paths, so hashing it discloses nothing and catches everything —
    including a reorder, a renamed section, an item moved into a part, or a changed
    `label`, none of which alter the node set or any content hash but all of which

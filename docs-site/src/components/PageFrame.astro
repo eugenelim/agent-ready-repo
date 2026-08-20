@@ -1,0 +1,231 @@
+---
+// Docs-local supported Starlight layout override. It preserves the native
+// header slot, sidebar slot, and MobileMenuToggle while adding only the docs
+// product-orientation affordances around them.
+import MobileMenuToggle from 'virtual:starlight/components/MobileMenuToggle';
+import sharedChrome from '../shared-chrome.generated.json';
+import { docsChromeCurrent, docsChromeHref } from './shared-chrome';
+
+const { hasSidebar } = Astro.locals.starlightRoute;
+const docsBase = import.meta.env.BASE_URL.replace(/\/docs\/?$/, '');
+const pathname = Astro.url.pathname.startsWith(docsBase)
+  ? Astro.url.pathname.slice(docsBase.length) || '/'
+  : Astro.url.pathname;
+
+// The disclosure trigger reuses the band's own Product label rather than a
+// literal: `site.toml` is the sole source of shared destination labels, so a
+// hardcoded trigger would keep the old wording after an approved rename.
+const productLabel = sharedChrome.product_orientation_band.find(
+  (link) => link.id === 'product'
+)?.label;
+if (!productLabel) {
+  throw new Error(
+    "shared-chrome docs band is missing its 'product' destination, which names the " +
+      'phone Product disclosure trigger'
+  );
+}
+
+---
+
+<div class="page sl-flex">
+  <header class="header">
+    <nav class="docs-orientation-band" aria-label="Product orientation">
+      {
+        sharedChrome.product_orientation_band.map((link, index) => (
+          <>
+            {index === 1 && <span class="docs-orientation-band__divider" aria-hidden="true">|</span>}
+            <a
+              class:list={{
+                'docs-orientation-band__link': true,
+                'docs-orientation-band__link--product': link.id === 'product',
+                'docs-orientation-band__link--current': docsChromeCurrent(link, pathname) !== undefined,
+              }}
+              href={docsChromeHref(link, docsBase)}
+              aria-current={docsChromeCurrent(link, pathname)}
+            >
+              {link.label}
+            </a>
+          </>
+        ))
+      }
+    </nav>
+    <slot name="header" />
+  </header>
+  {
+    hasSidebar && (
+      <nav class="sidebar print:hidden" aria-label={Astro.locals.t('sidebarNav.accessibleLabel')}>
+        <nav class="docs-product-disclosure" aria-label="Product navigation">
+          <details>
+            <summary>{productLabel}</summary>
+            <div class="docs-product-disclosure__panel">
+              {sharedChrome.product_navigation.map((link) => (
+                <a href={docsChromeHref(link, docsBase)}>{link.label}</a>
+              ))}
+            </div>
+          </details>
+        </nav>
+        <MobileMenuToggle />
+        <div id="starlight__sidebar" class="sidebar-pane">
+          <div class="sidebar-content sl-flex">
+            <slot name="sidebar" />
+          </div>
+        </div>
+      </nav>
+    )
+  }
+  <div class="main-frame"><slot /></div>
+</div>
+
+<style>
+  .page {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .header {
+    --docs-orientation-band-height: 2.25rem;
+    z-index: var(--sl-z-index-navbar);
+    position: sticky;
+    top: calc(-1 * var(--docs-orientation-band-height));
+    width: 100%;
+    background-color: var(--sl-color-bg-nav);
+  }
+
+  .docs-orientation-band {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    height: var(--docs-orientation-band-height);
+    padding-inline: var(--sl-nav-pad-x);
+    border-bottom: 1px solid var(--doc-rule);
+    color: var(--doc-text-muted);
+    font-size: 0.75rem;
+  }
+
+  .docs-orientation-band__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .docs-orientation-band__link:hover,
+  .docs-orientation-band__link:focus-visible {
+    color: var(--doc-heading);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .docs-orientation-band__link--product,
+  .docs-orientation-band__link--current {
+    color: var(--doc-heading);
+    font-weight: 700;
+  }
+
+  .docs-orientation-band__divider { color: var(--doc-text-faint); }
+
+  .header > :global(.header) {
+    height: var(--sl-nav-height);
+    padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+    padding-inline-end: calc(var(--sl-nav-pad-x) + var(--sl-menu-button-size) + 5rem);
+    /* No border here: starlight.css's own `header.header` already draws the rule
+       under the whole sticky header, and a second one would double it. */
+  }
+
+  .sidebar-pane {
+    visibility: var(--docs-sidebar-visibility, hidden);
+    position: fixed;
+    z-index: var(--sl-z-index-menu);
+    inset-block: var(--sl-nav-height) 0;
+    inset-inline-start: 0;
+    width: 100%;
+    background-color: var(--sl-color-black);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+
+  :global(starlight-menu-button[aria-expanded='true']) ~ .sidebar-pane {
+    --docs-sidebar-visibility: visible;
+  }
+
+  .sidebar-content {
+    height: 100%;
+    min-height: max-content;
+    padding: 1rem var(--sl-sidebar-pad-x) 0;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .main-frame {
+    /* Starlight's own PageFrame pads for BOTH its fixed header and the fixed
+       mobile table of contents. Here the header is sticky and therefore in
+       flow, so it no longer needs clearing — but the mobile ToC is still
+       `position: fixed` at `top: var(--sl-nav-height)` and 3rem tall below
+       72rem, so dropping this padding put the first 48px of content behind it
+       at every phone width. The custom property is already 0rem at wide
+       widths, so this is inert there. */
+    padding-top: var(--sl-mobile-toc-height);
+    padding-inline-start: var(--sl-content-inline-start);
+  }
+
+  .docs-product-disclosure {
+    position: fixed;
+    z-index: var(--sl-z-index-navbar);
+    top: calc((var(--sl-nav-height) - 2rem) / 2);
+    inset-inline-end: calc(var(--sl-nav-pad-x) + var(--sl-menu-button-size) + 0.5rem);
+  }
+
+  .docs-product-disclosure summary {
+    cursor: pointer;
+    color: var(--doc-heading);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .docs-product-disclosure summary::-webkit-details-marker { display: none; }
+
+  .docs-product-disclosure__panel {
+    position: absolute;
+    inset-inline-end: 0;
+    width: max-content;
+    min-width: 11rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--doc-rule);
+    background: var(--doc-surface);
+    box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 18%);
+  }
+
+  .docs-product-disclosure__panel a {
+    display: block;
+    padding: 0.45rem 0.6rem;
+    color: var(--doc-text);
+    font-size: 0.8125rem;
+    text-decoration: none;
+  }
+
+  .docs-product-disclosure__panel a:hover { background: var(--doc-hover-fill); }
+
+  .page :focus-visible {
+    outline: 2px solid var(--doc-accent-strong);
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 50rem) {
+    .header > :global(.header) {
+      padding-inline-end: var(--sl-nav-pad-x);
+    }
+    .docs-product-disclosure { display: none; }
+    .sidebar-pane {
+      --docs-sidebar-visibility: visible;
+      width: var(--sl-sidebar-width);
+      background-color: var(--sl-color-bg-sidebar);
+      border-inline-end: 1px solid var(--sl-color-hairline-shade);
+    }
+    .sidebar-content::after { content: ''; padding-bottom: 1px; }
+  }
+
+  @media (max-width: 49.999rem) {
+    .docs-orientation-band { display: none; }
+    .header { top: 0; }
+  }
+</style>

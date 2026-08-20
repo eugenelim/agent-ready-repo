@@ -70,6 +70,27 @@ def _cookie_client(monkeypatch, handler, sso: SsoConfig = SSO) -> _client.JiraCl
     return _client.JiraClient.from_sso_cookies(sso)
 
 
+def test_real_jira_client_exposes_token_and_sso_auth_modes(broker_jar, monkeypatch):
+    """The processor's pre-wire auth guard depends on this real-client contract."""
+    token = _client.JiraClient(
+        _client.Credentials(
+            base_url="https://jira.corp.example.com",
+            token="fixture",
+            flavor="server",
+            email=None,
+        )
+    )
+    cookie = _cookie_client(
+        monkeypatch, lambda request: httpx.Response(200, request=request)
+    )
+    try:
+        assert token._auth_mode == "creds"
+        assert cookie._auth_mode == "sso-cookie"
+    finally:
+        asyncio.run(token._client.aclose())
+        asyncio.run(cookie._client.aclose())
+
+
 # --- no Authorization, confined cookies on the outbound request
 
 def test_no_authorization_header_and_confined_cookies(broker_jar, monkeypatch):

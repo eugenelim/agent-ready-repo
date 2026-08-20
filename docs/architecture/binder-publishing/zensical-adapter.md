@@ -18,8 +18,8 @@
 Its only inputs are `binder-index.json` and the pack's own theme assets. It is
 given **no recipe and no discovery function**, and although the index carries
 `content-root`, every source read goes through a single `read_node_source(node)`
-accessor that **rejects any path not enumerated in the index** (invariant 3). It
-writes no field of the index (invariant 22); anything it must invent goes in
+accessor that **rejects any path not enumerated in the index** (invariant 8). It
+writes no field of the index (invariant 16); anything it must invent goes in
 `renderer-plan.json`.
 
 > Stated that way deliberately. "It is given no source root" would be the stronger
@@ -133,7 +133,7 @@ diagnostic can name "chapter 3" without re-deriving it.
 
 Written entirely from the index. The `nav` array is the resolved structure — the
 generator is *told* the order, never asked to derive it, which is the relationship
-invariant 3 wants.
+invariant 8 wants.
 
 ```toml
 [project]
@@ -357,7 +357,7 @@ caption and `fence-sha256` arrive with captions in Phase 2. So the only name the
 compiler can derive in v1 is one it owns outright: **`Diagram <chapter-ordinal>.<n>`**,
 where the chapter ordinal is `emitted-ordinal` from `renderer-plan.json` (D44) and
 `n` counts fences in document order as step 5 walks them. No new index field, so
-invariant 22 is untouched.
+invariant 16 is untouched.
 
 That is a real accessible name and a weak one: it identifies and distinguishes a
 diagram, and it describes nothing. **`accDescr` has no v1 source at all** and is
@@ -493,7 +493,7 @@ describes the boundary and points here.
 | `staged-path` | workspace-relative path of the staged file, under `stage/` |
 | `line-offset` | single integer; add it to a source line to get the staged line |
 | `heading-rule` | which normalization ran: `none`, `dropped-duplicate-h1`, or `shifted-down` |
-| `clamped-source-lines` | source line numbers where a heading shift hit the H6 ceiling and was clamped with a warning. **The accessibility check reads this** — the clamp is a transformation record, so invariant 22 keeps it out of the index |
+| `clamped-source-lines` | source line numbers where a heading shift hit the H6 ceiling and was clamped with a warning. **The accessibility check reads this** — the clamp is a transformation record, so invariant 16 keeps it out of the index |
 | `a11y` | one entry per Mermaid fence in document order: the `data-a11y-name` and `data-a11y-desc` values emitted (D46), or `omitted: true` where no name was derivable. **The accessibility smoke check reads this** rather than asserting bare presence, so an honestly-unnamed diagram is not a build failure and a *silently* unnamed one still is. `desc` is `null` throughout v1 — there is no source for it until `figures[]` ships |
 | `emitted-ordinal` | the chapter number or appendix letter the adapter emitted **as the `data-ordinal` attribute** (D44), because Z2h established the renderer numbers nothing. **Never written into the title text or the nav label.** `null` for an unnumbered chapter |
 | `assets` | source-relative asset reference → staged asset path |

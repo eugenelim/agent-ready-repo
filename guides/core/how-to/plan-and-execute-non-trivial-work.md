@@ -106,7 +106,7 @@ The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/
 - **EXECUTE** — implements task by task. TDD-mode tasks run red-green-refactor; goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
 - **GATES** — lint, typecheck, tests. Mechanical, ordered, no editing the gate to make it pass.
 - **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `CONVENTIONS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what enables stasis detection in the next phase. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants.
-- **DECIDE** — each finding routes to `apply` (fix in this PR) or `defer` (one-line entry under `Deferred:` in the PR body). Stasis detection fires if the same findings come back two iterations in a row — stop and surface to a human rather than spinning a third pass.
+- **DECIDE** — intent fit decides each finding: in-intent work that cannot share this unit becomes the next review unit in the same session; excluded work is acknowledged in the PR and captured only if its owner asks. Stasis detection fires if the same findings come back two iterations in a row — stop and surface to a human rather than spinning a third pass.
 
 For the end-to-end narrative with the parts in context, read [core-pack.md § How they tie together](../explanation/core-pack.md#how-they-tie-together).
 

@@ -56,9 +56,13 @@ workspace-status
 ```
 
 `work-intake` passes this directly to `workspace-status`; it does not reclassify
-or edit the result. Requirements refresh is intentionally unavailable in this
-release. A refresh request resolves the current artifact and processor, reports
-that limit, and changes no artifact or workspace state.
+or edit the result. For an existing registered tracker-origin artifact, request
+`work-intake` refresh and review the field-level delta. Refresh changes local
+requirements only after the lifecycle permits it and an authorized approver
+records every decision. Any supported remote coordination write is separate
+and requires its own fresh, exact confirmation. See
+[Use work intake](../../_shared/how-to/use-work-intake.md) for the full flow and
+tracker capability limits.
 
 ## Read and write boundary
 

@@ -34,6 +34,12 @@ SITE_BASE = "/agent-ready-repo/docs"
 NOW_PROJECTION = (
     REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
 )
+MARKETING_SHARED_CHROME_PROJECTION = (
+    REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+)
+DOCS_SHARED_CHROME_PROJECTION = (
+    REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+)
 # Seven calendar days ending on launch day, inclusive (brief decision 19): the
 # launch date itself plus the six dates before it.
 NOW_WINDOW_DAYS = 7
@@ -351,6 +357,56 @@ def project_shared_chrome(contract: object) -> dict[str, dict]:
     }
 
     return {"marketing": marketing, "docs": docs}
+
+
+def generate_marketing_shared_chrome_projection(
+    contract: object,
+    output: Path = MARKETING_SHARED_CHROME_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Project the marketing chrome input before and after its site build."""
+    payload = project_shared_chrome(contract)["marketing"]
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def assert_marketing_shared_chrome_projection_current(
+    contract: object, output: Path = MARKETING_SHARED_CHROME_PROJECTION
+) -> None:
+    """Reject a committed marketing input that no longer matches ``site.toml``."""
+    expected = project_shared_chrome(contract)["marketing"]
+    actual = json.loads(output.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise ValueError(
+            f"{output} is stale — run `python3 tools/build-site.py --journeys-only`"
+        )
+
+
+def generate_docs_shared_chrome_projection(
+    contract: object,
+    output: Path = DOCS_SHARED_CHROME_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Project the docs chrome input in the full pre-docs-build pass."""
+    payload = project_shared_chrome(contract)["docs"]
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def assert_docs_shared_chrome_projection_current(
+    contract: object, output: Path = DOCS_SHARED_CHROME_PROJECTION
+) -> None:
+    """Reject a committed docs input that no longer matches ``site.toml``."""
+    expected = project_shared_chrome(contract)["docs"]
+    actual = json.loads(output.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise ValueError(
+            f"{output} is stale — run `python3 tools/build-site.py`"
+        )
 
 
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
@@ -1966,7 +2022,7 @@ def main() -> None:
     site_toml = REPO_ROOT / "site.toml"
     # Validate the complete shared vocabulary before either build path can
     # project or clean renderer inputs.
-    load_shared_chrome_contract(site_toml)
+    shared_chrome_contract = load_shared_chrome_contract(site_toml)
 
     if args.journeys_only:
         journey_dir = REPO_ROOT / "web" / "src" / "content" / "journeys"
@@ -1980,6 +2036,9 @@ def main() -> None:
         # `npm run build --prefix web`, and the full pass only afterwards, so a
         # projection emitted solely by the full pass would always be one build
         # stale for the renderer that consumes it.
+        generate_marketing_shared_chrome_projection(
+            shared_chrome_contract, dry_run=args.dry_run
+        )
         _report_now_projection(changelog_src, dry_run=args.dry_run)
         return
 
@@ -2039,6 +2098,19 @@ def main() -> None:
 
     print("build-site: projecting released changelog highlights …")
     _report_now_projection(changelog_src, dry_run=args.dry_run)
+
+    print("build-site: projecting marketing shared chrome …")
+    generate_marketing_shared_chrome_projection(
+        shared_chrome_contract, dry_run=args.dry_run
+    )
+
+    # Docs runs last in the load-bearing build order. Its committed input is
+    # therefore refreshed only here, immediately before `npm run build --prefix
+    # docs-site`; unlike marketing, it is not needed in the journeys-only pass.
+    print("build-site: projecting docs shared chrome …")
+    generate_docs_shared_chrome_projection(
+        shared_chrome_contract, dry_run=args.dry_run
+    )
 
     print("build-site: copying changelog …")
     changelog_dst = SITE_DOCS / "changelog.md"

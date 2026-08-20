@@ -1,12 +1,12 @@
 # Spec: Tracker refresh and write-back
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0083, ADR-0077, ADR-0078
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** `contracts/jsonschema/normalized-intake.schema.json`, `contracts/jsonschema/workspace-entry.schema.json`
+- **Contract:** `contracts/jsonschema/normalized-intake.schema.json`, `contracts/jsonschema/workspace-entry.schema.json`, `contracts/jsonschema/source-authority.schema.json`, `contracts/jsonschema/refresh-authorization-policy.schema.json`, `contracts/jsonschema/refresh-result.schema.json`
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -30,10 +30,10 @@ changelog of how the approach evolved. -->
 An adopter can ask `work-intake` to refresh existing tracker-origin work from
 Jira, Jira Align, Linear, or GitHub and receive a reviewed field-level delta
 whose allowed actions follow the artifact lifecycle. The local approver decides
-every requirement change, Implementing work stays locked, Shipped work permits
-only trace and coordination write-back, and a completed comparison leaves the
-canonical artifact and its `workspace.toml` revision mirror consistent without
-exposing credentials or source payloads.
+every requirement change, Implementing work stays locked, remote write-back
+payloads are limited to trace and coordination actions, and a completed
+comparison leaves the canonical artifact and its `workspace.toml` revision
+mirror consistent without exposing credentials or source payloads.
 
 ## Boundaries
 
@@ -52,6 +52,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Treat the canonical artifact's source-authority record as authoritative and
   `workspace.toml` as a mirror of only the mode, source locator, and compared
   revision.
+- Parse exactly one fenced `toml source-authority` block from a tracker-origin
+  artifact and validate its closed record before using ownership, acceptance,
+  decision, conflict, receipt, or revision data. Surrounding prose and tracker
+  content are never authority.
 - Present requirement deltas field by field and require the local approver's
   decision before changing a requirement, accepted revision, receipt,
   dependency pin, or tracker projection.
@@ -65,10 +69,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   Draft-refresh approver role when no acceptance record exists; check that
   identity and role before any effect and record the authorized identity, role,
   decision time, and source.
+- Validate the repository's global `[authorization.refresh]` table against the
+  refresh-authorization-policy contract. The table declares permitted roles
+  only; artifact ownership, decisions, conflicts, receipts, and identities
+  remain in the canonical artifact. The current human session supplies the
+  approver identity and claimed role through an explicit confirmation.
 - Validate every credential-bearing, user-configured destination used by
   repository-owned HTTP before credential loading or network I/O: enforce the
   profile's permitted scheme and host allowlist, resolve and pin an allowed
-  address, and revalidate any permitted redirect hop.
+  address, and refuse redirects.
 - Keep GitHub `gh` invocations on the fixed-host approved-CLI boundary: obtain
   the host only from trusted repository or administrator configuration, bind
   credentials to that host, and treat tracker content only as argv-safe data.
@@ -112,6 +121,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   option, credential scope, or repository target.
 - Introduce a second refresh lifecycle or tracker-specific authority vocabulary
   beside the Group 2 contracts.
+- Reuse a remote confirmation, or apply it to any artifact, revision, profile,
+  destination, action, target, or payload other than the exact mutation whose
+  digest it approved.
 
 ## Testing Strategy
 
@@ -120,13 +132,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   comparison outcome, and profile capability because these inputs have a
   compact deterministic result.
 - **Guarded local updates — TDD integration tests.** Failure injection proves
-  that artifact content, decision/conflict record, receipts, dependency pins,
-  and workspace revision mirror either advance together or remain unchanged.
+  that staging and replacement failures preserve artifact content,
+  decision/conflict record, receipts, dependency pins, and workspace revision
+  mirror; a rollback failure returns the named inconsistent terminal result.
 - **Tracker acquisition and write payloads — TDD contract tests.** Fake
   transports and command runners assert exact method, path, payload,
   confirmation, and refusal behavior without live tracker writes.
 - **Status and `work-intake` delegation — TDD integration tests.** Tests
-  exercise the Group 4 processor interface and Group 3 status result so a
+  exercise Group 4's public refresh front door, the Group 6 configured
+  processor interface, and Group 3's status result so a
   missing processor, conflict, or unsupported capability remains visible and
   non-mutating.
 - **Pack projection, activation, and documentation — goal-based checks.**
@@ -140,18 +154,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Existing-artifact boundary.** Refresh rejects a missing,
-  malformed, out-of-repository, or provenance-mismatched artifact/workspace
-  pair before tracker acquisition and creates no artifact or workspace entry.
-- [ ] **AC2 — Contract validation.** Every acquired record accepted by refresh
+- [x] **AC1 — Existing-artifact boundary.** The guarded local mutation resolves
+  the artifact and workspace paths to canonical real paths beneath the
+  repository root and rejects a missing, malformed, lexically traversing,
+  symlink-escaping, out-of-repository, or provenance-mismatched pair before
+  any local effect. It creates no artifact or workspace entry and revalidates
+  both confined targets and their exact fingerprints immediately before
+  guarded replacement.
+- [x] **AC2 — Contract validation.** Every acquired record accepted by refresh
   validates against `contracts/jsonschema/normalized-intake.schema.json`, and
   every workspace mirror written by refresh validates against
   `contracts/jsonschema/workspace-entry.schema.json`.
-- [ ] **AC3 — Repo-origin isolation.** A repo-origin requirement delta changes
+- [ ] **AC3 — Repo-origin isolation.** (deferred: tracker-refresh-projection-repair-confirmation) A repo-origin requirement delta changes
   no local requirement or source authority; the result reports projection
   drift or offers separate Draft intake, while coordination-only projection
   repair still requires confirmation.
-- [ ] **AC4 — Draft refresh.** For a Draft tracker-origin intent, brief, or
+- [x] **AC4 — Draft refresh.** For a Draft tracker-origin intent, brief, or
   spec, a reviewed delta updates only approved source-owned fields, preserves
   local-owned fields, and advances the compared revision in the artifact and
   workspace mirror only after an identity authorized by the repository's
@@ -159,87 +177,105 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   check occurs before any effect, the review record includes identity, role,
   timestamp, and authorization source, and missing, ambiguous, stale, or
   unauthorized approval produces zero local effects.
-- [ ] **AC5 — Accepted conflict gate.** For an Accepted intent, Ready brief, or
+- [x] **AC5 — Accepted conflict gate.** For an Accepted intent, Ready brief, or
   Approved spec, every changed locally owned requirement receives exactly one
   recorded `keep-local`, `accept-source`, or `revise-both` decision from an
   identity whose role is authorized by the artifact acceptance record and
   repository policy; the check occurs before any effect, missing/ambiguous or
   unauthorized identity fails closed, and the record includes identity, role,
   timestamp, and authorization source. Accepted fields remain locally owned
-  afterward.
-- [ ] **AC6 — Compared-revision semantics.** A completed comparison advances
+  afterward. The guarded commit rejects a changed accepted field unless its
+  existing and proposed ownership are both `local`, and rejects any ownership
+  map change unless a separate explicit origin/ownership-change path authorized
+  it.
+- [x] **AC6 — Compared-revision semantics.** A completed comparison advances
   `source_revision` and its workspace mirror even when the approver keeps local
   requirements or leaves a conflict unresolved; acquisition or comparison
   failure advances neither.
-- [ ] **AC7 — Rejection preservation.** `keep-local`, rejection, and
+- [x] **AC7 — Rejection preservation.** `keep-local`, rejection, and
   unresolved-conflict outcomes change no accepted revision, accepted
   requirement value, coordination receipt, or dependency pin.
-- [ ] **AC8 — Guarded local write.** Injected failure at every local-write
-  boundary leaves the canonical artifact, source decision/conflict record,
-  workspace mirror, receipts, and dependency pins at their pre-refresh values.
-- [ ] **AC9 — Executing lock.** An Implementing spec or Executing brief refuses
-  requirement refresh before any local or remote mutation and names the
-  lifecycle state that must change before retry.
-- [ ] **AC10 — Deferred brief scope.** A Ready brief returning from execution
+- [x] **AC8 — Guarded local write.** A staging or replacement failure rolls the
+  canonical artifact, source decision/conflict record, workspace mirror,
+  receipts, and dependency pins back to their pre-refresh values. A failure of
+  the rollback itself returns `local_write_inconsistent`, a distinct terminal
+  result that names a possibly torn pair rather than reporting a clean rollback.
+- [ ] **AC9 — Executing lock.** (deferred: tracker-refresh-enforced-capability-state) An Implementing spec or Executing brief refuses
+  requirement refresh before any local mutation and names the lifecycle state
+  that must change before retry. Remote write-back remains constrained by
+  declared capability and per-mutation confirmation, but does not receive a
+  verified lifecycle.
+- [ ] **AC10 — Deferred brief scope.** (deferred: tracker-refresh-materialized-child-scope) A Ready brief returning from execution
   may refresh only not-yet-materialized scope after conflict resolution;
   Shipped children remain byte-stable and queued Approved children use their
   own Approved-state gate.
-- [ ] **AC11 — Shipped allowlist.** A Shipped artifact permits only confirmed
-  trace links, display status, comments, pull-request links, and closure; tests
-  prove that no other coordination field or requirement/body field enters the
-  remote payload.
-- [ ] **AC12 — Remote partial failure.** Remote write-back is a separately
-  confirmed operation after the local authority decision is durable; every
-  individual remote mutation receives its own check-before-effect confirmation
-  from the authorized local approver and records identity and timestamp. A
-  missing, stale, ambiguous, or unauthorized confirmation rejects before the
-  request. A failed remote call leaves local authority intact, reports a
-  retry-safe failed/pending outcome, and is not silently retried.
-- [ ] **AC13 — Profile parity.** The same lifecycle fixture matrix passes for
-  the supported Jira, Jira Align, Linear, and GitHub tracker-origin profiles;
-  profile differences are limited to declared acquisition, revision, field
-  mapping, and write-back capabilities.
-- [ ] **AC14 — Jira SSO confinement.** Jira SSO-cookie non-GET/HEAD attempts
+- [ ] **AC11 — Shipped allowlist.** (deferred: tracker-refresh-enforced-capability-state) Remote write-back accepts only
+  confirmed trace links, display status, comments, pull-request links, and
+  closure; no other coordination field or requirement/body field enters the
+  remote payload. Shipped-only scoping is not enforced on the remote path
+  because that path does not receive a verified lifecycle.
+- [x] **AC12 — Remote partial failure.** Remote write-back is a separately
+  confirmed operation: every individual mutation receives its own
+  check-before-effect confirmation from the authorized local approver and
+  records identity and timestamp. A durable pending receipt precedes every
+  adapter effect. A missing, stale, ambiguous, or unauthorized confirmation
+  rejects before the request. A failed remote call leaves local authority
+  intact, reports a retry-safe failed/pending outcome, and is not silently
+  retried. A terminal receipt-update failure reports `receipt_update_failed`;
+  because the prior adapter effect is then unknown, it requires operator repair
+  and is not retry-safe. The processor boundary does not itself establish
+  correspondence to a preceding local authority decision.
+- [x] **AC13 — Profile parity.** The same lifecycle fixture matrix passes for
+  registration-dependent acquisition, mapping, and common local authority
+  outcome across the supported Jira, Jira Align, Linear, and GitHub
+  tracker-origin profiles; profile differences are limited to declared
+  acquisition, revision, field mapping, and write-back capabilities. This
+  matrix does not exercise per-profile durable-write transactions.
+- [x] **AC14 — Jira SSO confinement.** Jira SSO-cookie non-GET/HEAD attempts
   fail before the transport records a request; token-authenticated writes
   continue through the existing Jira confirmation and method guards.
-- [ ] **AC15 — Untrusted source handling.** Instruction-shaped source text
+- [x] **AC15 — Untrusted source handling.** Instruction-shaped source text
   appears only as candidate field data and cannot select a processor, alter a
   decision, expand a write payload, or invoke a tool.
-- [ ] **AC16 — Output confidentiality.** Credentials, raw source payloads, and
-  unnecessary personal or sensitive fields are absent from stdout, stderr,
-  logs, diffs, workspace entries, and agent-visible skill output.
-- [ ] **AC17 — Status visibility.** `workspace-status` renders origin mode,
+- [x] **AC16 — Output confidentiality.** Credentials, raw source payloads, and
+  unnecessary personal or sensitive fields are absent from the front-door
+  result and remediation, the materialized artifact, and tracker command
+  construction.
+- [x] **AC17 — Status visibility.** `workspace-status` renders origin mode,
   compared revision, accepted revision when present, unresolved conflict state,
-  active profile, and refresh/write-back availability without becoming a
-  second authority store.
-- [ ] **AC18 — Front-door delegation.** `work-intake` resolves and invokes the
+  active profile, and advisory refresh/write-back availability without becoming
+  a second authority store. Availability reports `False` or `unknown` where
+  resolved capability state is unavailable.
+- [x] **AC18 — Front-door delegation.** `work-intake` resolves and invokes the
   configured processor for each supported profile; a missing, incompatible, or
   unavailable processor changes nothing and returns one named remediation.
-- [ ] **AC19 — Published surface.** Changed packs carry required version,
+- [x] **AC19 — Published surface.** Changed packs carry required version,
   plugin-manifest, changelog, projection, activation-eval, behavioral-eval,
   README, and tracker-guide updates, and all catalogue and guide gates pass.
-- [ ] **AC20 — No live-write test dependency.** The complete automated suite
+- [x] **AC20 — No live-write test dependency.** The complete automated suite
   passes with fake transports and command runners and requires no tracker
   credentials or external mutation.
-- [ ] **AC21 — Credentialed destination confinement.** Before any request or
+- [x] **AC21 — Credentialed destination confinement.** Before any request or
   credential-bearing repository-owned HTTP client is created, the adapter
   accepts only a profile-declared scheme and profile-scoped hostname, requires
   HTTPS whenever credentials are attached, rejects userinfo and undeclared
   ports, and rejects loopback, private, link-local, multicast, unspecified, and
-  known cloud-metadata addresses for both literal and DNS-resolved hosts.
-- [ ] **AC22 — Redirect and rebinding resistance.** Redirects are disabled by
-  default; any profile-permitted redirect is revalidated at every hop before
-  credentials or requests cross it. Resolution is pinned or rechecked at
+  known cloud-metadata addresses for both literal and DNS-resolved destination
+  hosts. AC23 governs a configured proxy hop: private corporate-network ranges
+  remain permitted there while unspecified, link-local, and explicit metadata
+  addresses are refused.
+- [x] **AC22 — Redirect and rebinding resistance.** Redirects are disabled and
+  no permitted-redirect path is offered. Resolution is pinned or rechecked at
   connect time so a DNS answer cannot change from an allowed address to a
   forbidden address between validation and use, and every refusal occurs
-  before the fake transport records a request. These connect, redirect, and
-  DNS controls apply where repository code owns user-configured HTTP. GitHub
+  before the fake transport records a request. These connect and DNS controls
+  apply where repository code owns user-configured HTTP. GitHub
   instead uses the approved `gh` CLI with a host read only from trusted
   repository or administrator configuration: credentials remain bound to that
   host, tracker content cannot alter it, and a mismatch or untrusted hostname
   or URL rejects before invocation. Locally owned tests prove argv and stdin
   isolation without asserting control over `gh`'s internal transport.
-- [ ] **AC23 — Least-privilege skill metadata.** Every new or changed refresh
+- [x] **AC23 — Least-privilege skill metadata.** Every new or changed refresh
   or write-back skill action declares only the `allowed-tools` and
   `metadata.boundaries` it uses, including `network_fetch`,
   `filesystem_read_untrusted`, and `filesystem_write` only where applicable.
@@ -247,7 +283,41 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `primitive-class`, `auth`/`auth-fallback`, namespace, and key metadata field
   without inventing locally managed keys for an approved CLI. Per-processor
   source tests and supported-adapter projection tests prove these declarations
-  survive unchanged and are never broadened.
+  survive unchanged and are never broadened. `github-refresh` declares
+  `metadata.credentialed: true`, `metadata.primitive-class: credentialed-cli`,
+  and `metadata.auth: cli`, with no locally managed `namespace` or `keys`.
+  Linear honors `HTTPS_PROXY`/`NO_PROXY`, `REQUESTS_CA_BUNDLE`,
+  `SSL_CERT_FILE`, and `SSL_CERT_DIR` without weakening AC21-AC22 destination,
+  redirect, or DNS-rebinding controls; an unsafe or unusable proxy/trust
+  configuration fails closed with redacted output.
+  A configured proxy is an explicit corporate-network hop, not a destination
+  exemption: its resolved address is pinned and rejects unspecified,
+  link-local, and cloud-metadata ranges before connection.
+- [x] **AC24 — Closed authority and policy encoding.** A tracker-origin
+  artifact contains exactly one fenced `toml source-authority` block whose
+  parsed object validates against `source-authority.schema.json`; the block is
+  the only source for mode, locator, compared revision, accepted revision,
+  field ownership, acceptance, decisions, conflicts, local receipts, and remote
+  action receipts. The global `[authorization.refresh]` table validates against
+  `refresh-authorization-policy.schema.json` and declares permitted Draft and
+  accepted approver roles without storing identities or artifact authority.
+  Missing, duplicate, malformed, unknown, or contradictory fields fail before
+  acquisition or effects, and surrounding prose or tracker text cannot become
+  authority. Every coordinator result validates against
+  `refresh-result.schema.json`.
+- [x] **AC25 — Exact single-use remote confirmation.** Every remote mutation
+  consumes one fresh confirmation bound to approver identity and role, artifact
+  path, compared source revision, tracker profile and destination, action type,
+  target locator, and a canonical payload digest. The confirmation identifier
+  and binding are recorded in the artifact's remote-action receipt before the
+  adapter call; reuse, mismatch, stale, ambiguous, or unauthorized confirmation
+  fails before transport or `gh` invocation. A failed call updates only that
+  receipt to a retry-safe failed state and a retry requires a new confirmation;
+  a failed terminal receipt write instead reports `receipt_update_failed`, leaves
+  the receipt pending, and requires operator repair.
+  The Jira client checks the pending receipt structurally for its action and
+  target at the guarded-write boundary; concrete receipt-class identity is not
+  asserted across pack runtimes.
 
 ## Assumptions
 
@@ -255,12 +325,22 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   workspace-entry JSON Schemas rather than defining parallel encodings
   (source: user confirmation 2026-08-09).
 - Technical: Group 3 supplies reconciliation/status support for authority
-  mismatches and guarded workspace transitions, and Group 4 supplies the
-  configured refresh-processor interface (source: user confirmation
-  2026-08-09).
+  mismatches, Group 4 supplies the public refresh front door and fail-closed
+  unavailable result, and Group 6 supplies the configured refresh-processor
+  interface and registry (source: user confirmations 2026-08-09 and
+  2026-08-17).
 - Technical: Group 5's supported profile registry covers Jira, Jira Align,
   Linear, and GitHub and distinguishes tracker profile capability from
   authentication capability (source: user confirmation 2026-08-09).
+- Technical: Group 6 owns the missing configured refresh-processor registry,
+  guarded artifact/workspace writer, and the three refresh-specific schemas;
+  these extend the shipped Group 2–5 seams without changing their normalized
+  intake, workspace-entry, lifecycle, or profile vocabularies (source: user
+  confirmation 2026-08-17).
+- Product: the current human session is the trusted source of the explicit
+  approver identity and role presented to refresh; repository policy authorizes
+  the role and the canonical artifact records the identity and evidence (source:
+  user confirmation 2026-08-17).
 - Technical: Jira SSO-cookie authentication remains read-only unless a
   separate security-reviewed XSRF change is approved (source:
   `packs/atlassian/.apm/skills/jira/scripts/_client.py`).

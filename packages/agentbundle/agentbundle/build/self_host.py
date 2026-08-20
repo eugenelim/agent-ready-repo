@@ -80,6 +80,32 @@ from agentbundle.build.user_libs import (
     compute_projections as _user_libs_compute_projections,
 )
 
+# Package-data runtimes back core-pack entry points. They are source files, not
+# ordinary self-host projections, so only the real-write path synchronizes them.
+
+
+def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
+    """Return package-runtime sync pairs confined to one target tree."""
+
+    return (
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
+            / "scripts" / "workspace_status_engine.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "workspace_status_engine.py",
+        ),
+        (
+            # This packaged runtime backs source-authority parsing. Executable
+            # acquisition runs from the work-intake skill tree, where its
+            # intake_guard.py redactor sibling is present.
+            root / "packs" / "core" / ".apm" / "skills" / "work-intake"
+            / "scripts" / "refresh.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "work_intake_refresh.py",
+        ),
+    )
+
+
 # Canonical lowercase-hyphen marker grammar. The self-host
 # regex narrows from the prior wide `[A-Za-z0-9_-]+` form to match
 # what the adapt-to-project skill writes. Legacy UPPER_SNAKE markers
@@ -1331,6 +1357,11 @@ def run_self_host(
             if agents_path is not None:
                 extra_marker_paths.append(Path("AGENTS.md"))
             resolve_markers(shadow, discovery_flat, extra_paths=extra_marker_paths)
+            print(
+                "self-host: dry-run does not compare packaged runtime pairs; "
+                "run: make build-check",
+                file=sys.stderr,
+            )
             source_map = _build_projected_to_source_map(packs_dir, contract, preferred_adapter)
             projected_paths = {
                 rendered.relative_to(shadow)
@@ -1402,6 +1433,11 @@ def run_self_host(
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))
     resolve_markers(working_tree, discovery_flat, extra_paths=extra_marker_paths)
+    for source_path, bundled_path in _runtime_projections(working_tree):
+        if not source_path.is_file() or not bundled_path.parent.is_dir():
+            continue
+        bundled_path.write_bytes(source_path.read_bytes())
+        print(f"self-host: synced packaged runtime {bundled_path.name}")
     return 0
 
 
@@ -1509,10 +1545,12 @@ def run_build_check_drift_gates(
     1. **Writer-template drift:** every derived
        ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
        must be byte-identical to the canonical template.
-    2. **Source-shape plugin.json:** every
+    2. **Packaged runtime drift:** the bundled workspace-status engine and
+       work-intake refresh runtime must match their core pack sources.
+    3. **Source-shape plugin.json:** every
        ``packs/<pack>/.claude-plugin/plugin.json`` must NOT carry a ``hooks``
        block (defence-in-depth, in-Python rail).
-    3. **Vendored ``_emit_basic_string`` parity:** the template's
+    4. **Vendored ``_emit_basic_string`` parity:** the template's
        vendored copy must produce byte-identical output to the source primitive
        ``agentbundle.config._emit_basic_string`` across the fixed corpus.
 
@@ -1553,7 +1591,7 @@ def run_build_check_drift_gates(
         # Fourth predicate site (docs/specs/claude-plugin-route-scope): a
         # repo-only pack has no derived claude-plugins projection after the
         # filter, so expecting one here would hard-fail the required gate for
-        # every such pack. Gate 1c (APM) and Gate 2 (source-shape) are
+        # every such pack. Gate 1c (APM) and Gate 3 (source-shape) are
         # deliberately NOT narrowed — both legitimately cover every pack.
         from agentbundle.build.main import pack_is_publishable
 
@@ -1628,6 +1666,20 @@ def run_build_check_drift_gates(
             "to re-sync"
         )
 
+    # workspace-status can run from package data when no installed core skill
+    # tree is present. Keep both bundled runtimes byte-identical to their pack
+    # sources so that path never drifts into a weaker contract.
+    for source_path, bundled_path in _runtime_projections(REPO_ROOT):
+        if not source_path.is_file() or not bundled_path.is_file():
+            continue
+        if (
+            source_path.read_bytes() != bundled_path.read_bytes()
+        ):
+            failures.append(
+                "build-check: packaged runtime drift — "
+                f"{bundled_path.name} must be byte-identical to its core pack source"
+            )
+
     # ------------------------------------------------------------------
     # Gate 1c: APM writer-template drift
     #
@@ -1676,7 +1728,7 @@ def run_build_check_drift_gates(
                     )
 
     # ------------------------------------------------------------------
-    # Gate 2: Source-shape plugin.json
+    # Gate 3: Source-shape plugin.json
     # ------------------------------------------------------------------
     if packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
@@ -1704,7 +1756,7 @@ def run_build_check_drift_gates(
                 )
 
     # ------------------------------------------------------------------
-    # Gate 3: Vendored _emit_basic_string parity
+    # Gate 4: Vendored _emit_basic_string parity
     # ------------------------------------------------------------------
     if template_path.exists():
         try:
