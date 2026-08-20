@@ -563,11 +563,43 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     // rule applying. Assert the controls AC9 actually names instead. These counts
     // were verified against a build with the PageFrame override disabled, so they
     // record native Starlight behaviour rather than a number that happened to pass.
-    expect(home.querySelectorAll('header.header > div.header').length).toBe(1);
-    expect(home.querySelectorAll('a.site-title').length).toBe(1);
-    expect(home.querySelectorAll('site-search').length).toBe(1);
-    expect(home.querySelectorAll('#starlight__sidebar').length).toBe(1);
-    expect(home.querySelectorAll('nav.sidebar').length).toBe(1);
+    // AC9 names twelve controls and applies to home AND nested guide routes, so
+    // assert every one of them on both rather than a convenient subset of one.
+    // `starlight-theme-select` is TWICE and `a[href="#_top"]` THREE times in a
+    // build with this override DISABLED — native Starlight behaviour, so those
+    // are the counts singularity means here, not 1.
+    for (const [routeName, page] of [['home', home], ['nested', nested]] as const) {
+      const only = (selector: string, expectedCount = 1) =>
+        expect(
+          page.querySelectorAll(selector).length,
+          `${routeName}: ${selector}`
+        ).toBe(expectedCount);
+      only('header.header > div.header');   // one Starlight header
+      only('a.site-title');                 // title
+      only('site-search');                  // search
+      only('starlight-theme-select', 2);    // theme control (native: desktop + mobile)
+      only('starlight-menu-button');        // Docs menu trigger
+      only('#starlight__sidebar');          // sidebar
+      only('nav.sidebar');
+      only('.sl-skip-link');                // skip link
+      only('h1');                           // page title
+      only('head > meta[name="description"]');
+      only('starlight-toc');                // table of contents
+      only('mobile-starlight-toc');
+      only('.main-frame');                  // content layout
+      only('footer');
+      // The skip link stays the first focusable control on both routes.
+      expect(
+        page.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link'),
+        `${routeName}: skip link first`
+      ).toBe(true);
+    }
+    // Edit control and pagination are Starlight-owned and singular on the nested
+    // guide route, which is where they render.
+    expect(nested.querySelectorAll('a[href*="/edit/"]').length).toBe(1);
+    expect(nested.querySelectorAll('.pagination-links').length).toBe(1);
+    expect(nested.querySelectorAll('nav[aria-label="Breadcrumbs"], .docs-breadcrumbs').length)
+      .toBeLessThanOrEqual(1);
 
     const footer = nested.querySelector('footer.docs-site-footer');
     expect(nested.querySelectorAll('footer').length).toBe(1);
@@ -584,12 +616,50 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
         );
         expect(link.hasAttribute('rel')).toBe(false);
         expect(link.getAttribute('target')).toBeNull();
+        // AC7 is renderer-agnostic: docs owes the same external treatment as
+        // marketing. Without this the docs footer could drop the glyph or the
+        // visually hidden word and still pass.
+        // Asserted SEMANTICALLY, not by class name. Marketing hides the word with
+        // its own `.visually-hidden`; docs uses a docs-local class. Requiring one
+        // shared class here would mandate exactly the shared CSS AC10 forbids, so
+        // the contract is the accessible name and the aria-hidden glyph.
+        const glyph = link.querySelector('[aria-hidden="true"]');
+        const accessibleName = [...link.childNodes]
+          .filter((node) => !(node as Element).getAttribute?.('aria-hidden'))
+          .map((node) => node.textContent)
+          .join('')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (expectedLink.kind === 'external') {
+          expect(glyph?.textContent?.trim()).toBe('↗');
+          expect(accessibleName).toBe(`${expectedLink.label} external`);
+        } else {
+          expect(link.textContent?.includes('↗')).toBe(false);
+          expect(glyph).toBeNull();
+          expect(accessibleName).toBe(expectedLink.label);
+        }
       }
     }
+    // AC8 in the docs footer: same current-state semantics as marketing.
+    const docsFooterCurrent = footer!.querySelectorAll('[aria-current]');
+    for (const link of docsFooterCurrent) {
+      expect(link.getAttribute('href')).not.toContain('#');
+    }
+    expect(footer!.querySelectorAll('[href$="/docs/"][aria-current]').length).toBeGreaterThan(0);
     expect(footer?.textContent?.replace(/\s+/g, ' ').trim()).toContain(`© ${new Date().getFullYear()} · agent-ready-repo`);
     expect(footer?.textContent).not.toContain('The supervised AI operating model for software teams.');
     expect(footer?.textContent).not.toContain('Platform');
-    expect(footer?.querySelector('.pagination-links')).not.toBeNull();
+    // AC4 says the groups follow Starlight pagination. "Both present" is not that:
+    // a reversed order would satisfy a presence check.
+    const footerChildren = [...footer!.querySelectorAll('*')];
+    const paginationIndex = footerChildren.findIndex((el) => el.classList.contains('pagination-links'));
+    const firstGroupIndex = footerChildren.findIndex((el) =>
+      el.classList.contains('docs-site-footer__group')
+    );
+    expect(paginationIndex, 'docs footer renders Starlight pagination').toBeGreaterThanOrEqual(0);
+    expect(firstGroupIndex, 'docs footer renders the shared groups').toBeGreaterThanOrEqual(0);
+    expect(paginationIndex, 'the shared groups must follow Starlight pagination')
+      .toBeLessThan(firstGroupIndex);
   });
 
   it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {

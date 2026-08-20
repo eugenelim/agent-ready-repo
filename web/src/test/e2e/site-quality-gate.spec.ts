@@ -32,6 +32,7 @@ import {
   expectNoSeriousAxeViolations,
   expectOutlineContrast,
   expectSkipLinkFirst,
+  expectVisibleFocusIndicator,
   expectTextContrast,
   gotoSettled,
   label,
@@ -404,12 +405,87 @@ test.describe('docs routes at every approved width in both themes', () => {
           await expectFragmentsResolve(page, ctx);
           await expectSkipLinkFirst(page, ctx);
           await expectDocsChromeIsWellPlaced(page, ctx);
+          await expectDocsChromeIsKeyboardOperable(page, ctx);
           expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
         });
       }
     }
   }
 });
+
+/**
+ * spec/site-shared-chrome AC8 and AC12 — the docs chrome is keyboard-operable
+ * with a visible focus indicator, at every approved width and theme.
+ *
+ * Split out because the matrix above asserted overflow, axe, fragments and
+ * skip-order but never operated a control, so a Product disclosure that could
+ * only be opened with a pointer, or a focus ring that never rendered, would
+ * have passed every case the criteria cite.
+ */
+async function expectDocsChromeIsKeyboardOperable(
+  page: Page,
+  ctx: { route: string; width: number; theme?: string }
+): Promise<void> {
+  const where = `${label(ctx)}: docs chrome keyboard`;
+  const band = page.locator('nav[aria-label="Product orientation"] a').first();
+  const productSummary = page.locator('nav[aria-label="Product navigation"] summary');
+
+  // Whichever product affordance this width renders, it must be reachable by Tab
+  // and show a focus indicator that is not colour-only.
+  if (await band.isVisible()) {
+    await band.focus();
+    await expect(band, `${where}: band link takes focus`).toBeFocused();
+    await expectVisibleFocusIndicator(page, ctx);
+  }
+
+  if (await productSummary.isVisible()) {
+    await productSummary.focus();
+    await expect(productSummary, `${where}: Product trigger takes focus`).toBeFocused();
+    await expectVisibleFocusIndicator(page, ctx);
+
+    const isOpen = () =>
+      page
+        .locator('nav[aria-label="Product navigation"] details')
+        .evaluate((el: HTMLDetailsElement) => el.open);
+
+    // A <summary> opens on Enter and on Space. Both are asserted because a
+    // custom trigger that intercepted one of them would still look operable.
+    expect(await isOpen(), `${where}: starts closed`).toBe(false);
+    await page.keyboard.press('Enter');
+    expect(await isOpen(), `${where}: Enter opens the Product disclosure`).toBe(true);
+
+    // Focus stays on the trigger, and the disclosed links come next in tab order.
+    await expect(productSummary, `${where}: focus stays on the trigger`).toBeFocused();
+    await page.keyboard.press('Tab');
+    const focusedInPanel = await page.evaluate(() => {
+      const panel = document.querySelector('nav[aria-label="Product navigation"]');
+      return !!panel && !!document.activeElement && panel.contains(document.activeElement);
+    });
+    expect(focusedInPanel, `${where}: disclosed links follow the trigger in tab order`).toBe(true);
+    await expectVisibleFocusIndicator(page, ctx);
+
+    await productSummary.focus();
+    await page.keyboard.press('Enter');
+    expect(await isOpen(), `${where}: Enter closes it again`).toBe(false);
+    await page.keyboard.press('Space');
+    expect(await isOpen(), `${where}: Space also operates the trigger`).toBe(true);
+    await page.keyboard.press('Enter');
+  }
+
+  // The Docs menu trigger is Starlight's and must remain keyboard-operable too.
+  const docsMenu = page.locator('starlight-menu-button button');
+  if (await docsMenu.isVisible()) {
+    await docsMenu.focus();
+    await expect(docsMenu, `${where}: Docs menu trigger takes focus`).toBeFocused();
+    await expectVisibleFocusIndicator(page, ctx);
+    await page.keyboard.press('Enter');
+    expect(
+      await page.locator('starlight-menu-button').getAttribute('aria-expanded'),
+      `${where}: Enter opens the Docs menu`
+    ).toBe('true');
+    await page.keyboard.press('Enter');
+  }
+}
 
 /**
  * spec/site-shared-chrome AC5, AC6, AC9.
@@ -456,6 +532,32 @@ async function expectDocsChromeIsWellPlaced(
   });
 
   const where = `${label(ctx)}: docs chrome`;
+  // AC5 says the band sits ABOVE the Starlight header. Querying each separately
+  // proves both exist, not that one precedes the other, so assert the relation:
+  // DOM order, and — when the band is displayed — geometry too.
+  const ordering = await page.evaluate(() => {
+    const band = document.querySelector('nav[aria-label="Product orientation"]');
+    const starlightHeader = document.querySelector('header.header > div.header');
+    if (!band || !starlightHeader) return null;
+    const relation = band.compareDocumentPosition(starlightHeader);
+    return {
+      bandPrecedesHeader: Boolean(relation & Node.DOCUMENT_POSITION_FOLLOWING),
+      bandTop: band.getBoundingClientRect().top,
+      headerTop: starlightHeader.getBoundingClientRect().top,
+      bandDisplayed: getComputedStyle(band).display !== 'none',
+    };
+  });
+  expect(ordering, `${where}: band and Starlight header must both be present`).not.toBeNull();
+  expect(
+    ordering!.bandPrecedesHeader,
+    `${where}: the band must precede the Starlight header in DOM order`
+  ).toBe(true);
+  if (ordering!.bandDisplayed) {
+    expect(
+      ordering!.bandTop,
+      `${where}: the band must render above the Starlight header`
+    ).toBeLessThan(ordering!.headerTop);
+  }
   expect(measured.nativeHeaders, `${where}: Starlight header must stay singular`).toBe(1);
   expect(measured.menuButtons, `${where}: Docs menu trigger must stay singular`).toBe(1);
   expect(measured.sidebars, `${where}: Starlight sidebar must stay singular`).toBe(1);

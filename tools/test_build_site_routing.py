@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -716,27 +717,72 @@ _DOCS_CHROME_SOURCES = (
 )
 
 
+# Any construct that makes one tree depend on a file in another: JS/TS imports and
+# re-exports, CSS `@import`, and `url()` asset references. A named-file allowlist
+# would only cover the files someone remembered, so the sweep walks both trees.
+_DEPENDENCY_RE = re.compile(
+    r"""(?:\bfrom\s*|\bimport\s*|\brequire\s*\(\s*|@import\s*|\burl\s*\()['"]([^'"]+)['"]"""
+)
+_RENDERER_TREES = (
+    # (tree scanned, the other renderer's directory it may not reach into)
+    ("web/src", "docs-site"),
+    ("docs-site/src", "web"),
+)
+# The emitted-output suites deliberately read BOTH build trees to compare them;
+# they are assertions about the boundary, not a crossing of it.
+_CROSS_TREE_TEST_FILES = frozenset({
+    "web/src/test/rendered-output.test.ts",
+})
+
+
+def _renderer_source_files(tree: str):
+    """Every hand-written source file under a renderer tree."""
+    root = _REPO_ROOT / tree
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or "node_modules" in path.parts:
+            continue
+        if path.suffix not in {".astro", ".ts", ".tsx", ".js", ".mjs", ".css", ".json"}:
+            continue
+        if path.name.endswith(".generated.json"):
+            continue
+        yield path
+
+
 def test_neither_renderer_imports_the_other_renderers_chrome():
-    """AC10: no shared components, helpers, tokens, or state across renderers."""
+    """AC10: no shared components, helpers, tokens, CSS, or state across renderers.
+
+    Swept over both trees rather than a list of the files someone thought of: a
+    cross-renderer `@import` in a stylesheet, or an import added to a component
+    this guard never named, is the same violation as one in the chrome files.
+    """
     offenders = []
-    for source, forbidden in (
-        (_MARKETING_CHROME_SOURCES, "docs-site"),
-        (_DOCS_CHROME_SOURCES, "web/"),
-    ):
-        for relative in source:
-            path = _REPO_ROOT / relative
-            assert path.is_file(), f"{relative} is missing; update this AC10 guard"
+    for tree, forbidden in _RENDERER_TREES:
+        for path in _renderer_source_files(tree):
+            relative = str(path.relative_to(_REPO_ROOT))
+            if relative in _CROSS_TREE_TEST_FILES:
+                continue
             for number, line in enumerate(
                 path.read_text(encoding="utf-8").splitlines(), start=1
             ):
-                stripped = line.strip()
-                if not (stripped.startswith("import ") or " from '" in stripped):
-                    continue
-                if forbidden in stripped:
-                    offenders.append(f"{relative}:{number}: {stripped}")
+                for target in _DEPENDENCY_RE.findall(line):
+                    # Only a path that climbs out of this tree can reach the other.
+                    if ".." not in target and not target.startswith("/"):
+                        continue
+                    if re.search(rf"(^|/){re.escape(forbidden)}/", target):
+                        offenders.append(f"{relative}:{number}: {line.strip()}")
     assert not offenders, (
-        "a renderer imported the other renderer's chrome: " + "; ".join(offenders)
+        "a renderer depends on the other renderer's files: " + "; ".join(offenders)
     )
+
+
+def test_the_chrome_files_this_guard_names_still_exist():
+    """A stale path would silently drop a file from the AC10 sweep's spot-checks."""
+    missing = [
+        relative
+        for relative in _MARKETING_CHROME_SOURCES + _DOCS_CHROME_SOURCES
+        if not (_REPO_ROOT / relative).is_file()
+    ]
+    assert not missing, f"AC10 guard names files that no longer exist: {missing}"
 
 
 def test_each_renderer_reads_its_own_projected_input():
