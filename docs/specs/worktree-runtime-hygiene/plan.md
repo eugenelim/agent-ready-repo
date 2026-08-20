@@ -53,7 +53,17 @@ parsing.
    by the configurable seven-day-default age budget through the hygiene module's
    registered-current-worktree predicate and its immediate pre-mutation recheck.
 
-## Task 5 — worktree lifecycle hooks (planned)
+## Task 5 — worktree lifecycle hooks (shipped)
 
-Plan and implement lifecycle hooks that coordinate worktree creation and removal with
-the existing safety model.
+Tests: dedicated `tools/test_worktree_lifecycle_hooks.py` invocation covering each
+optional hook's Git-backed lifecycle report, the no-Orca implementation boundary,
+inside import success, shadowing refusal, and the existing protection channels.
+
+1. Added optional `after-create`, `before-run`, `after-run`, and `before-remove`
+   commands that report default-branch-merged, removed, currently-active, and
+   no-merge-or-prune-signal worktrees without claiming liveness or attaching to Orca.
+   When Git cannot determine the default branch, the merged result is undetermined.
+2. Made `before-remove` reuse AC8's isolated import-resolution measurement and refuse
+   outside, absent, and inconclusive results, as well as existing protected worktrees.
+3. Kept every lifecycle command report-only: none removes a worktree, directory, or
+   branch.

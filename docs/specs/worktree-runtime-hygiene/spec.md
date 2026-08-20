@@ -102,6 +102,21 @@ state, and silently skipped tests unrelated to the actual space problem.
   contract (`browser-gate-failure`, seven-day retention, ignore when absent) and its
   contract tests change in the same commit.
 
+- [x] **AC10 — optional lifecycle hooks report without removing.** The
+  `after-create`, `before-run`, `after-run`, and `before-remove` commands work with
+  plain Git worktrees and have no Orca dependency. They report Git-backed removed,
+  currently-active, default-branch-merged, and no-merge-or-prune-signal worktrees.
+  The latter is an observation only: it does not infer activity or liveness.
+  Currently-active means only the registered worktree containing the invocation
+  directory, not liveness. Default-branch discovery comes from Git; when it cannot be
+  determined, the merged result is explicitly undetermined. If an attachment
+  observation is ever reported, it is named `attached`, never live, active, or busy.
+  `before-remove` calls AC8's isolated import-resolution check and refuses outside,
+  absent, or inconclusive resolution, because none proves that removing the worktree
+  is safe. It also honours the existing repeatable `--protect-worktree` and
+  `WORKTREE_HYGIENE_PROTECT_WORKTREES` input. No lifecycle command removes a
+  worktree, directory, or branch.
+
 ## Limitations
 
 Linux same-filesystem bind-mount detection uses one `/proc/self/mountinfo` snapshot for
@@ -126,9 +141,10 @@ unobservable without the cooperative lease deferred to round 2.
 
 ## Testing Strategy
 
-Real `tempfile` fixtures exercise scan and clean guards. A fake subprocess runner
-supplies Git porcelain and batched responses and proves Git calls are bounded by
-worktree count; a traversal counter proves one walk per worktree. Mutations remove
+Real `tempfile` fixtures exercise scan, clean, and lifecycle-hook guards. A fake
+subprocess runner supplies Git porcelain and batched responses and proves Git
+calls are bounded by worktree count; a traversal counter proves one walk per
+worktree. Mutations remove
 each guard and must make its named falsification case fail. Python formatting, type,
 and focused pytest gates are run by the supervisor only.
 

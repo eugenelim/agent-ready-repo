@@ -141,6 +141,14 @@ class PlaywrightEvidenceResult:
     receipt: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class LifecycleResult:
+    """Report an optional worktree lifecycle hook without mutating Git state."""
+
+    code: int
+    lines: tuple[str, ...]
+
+
 def _run(
     argv: list[str],
     *,
@@ -537,6 +545,164 @@ def _containing_worktree(
         if _under(current, worktree.path)
     ]
     return max(matches, key=lambda path: len(path.parts), default=None)
+
+
+def _default_branch_ref(
+    repository: Path, runner: Runner
+) -> tuple[str | None, str | None]:
+    """Determine one remote-tracking default branch without guessing."""
+    remotes = _call(runner, ["git", "-C", str(repository), "remote"])
+    if remotes.returncode:
+        detail = remotes.stderr.strip() or f"exit {remotes.returncode}"
+        return None, f"could not determine default branch: {detail}"
+    remote_names = [name for name in remotes.stdout.splitlines() if name]
+    if len(remote_names) != 1:
+        return None, "could not determine default branch: expected exactly one remote"
+    default = _call(
+        runner,
+        [
+            "git",
+            "-C",
+            str(repository),
+            "symbolic-ref",
+            "--quiet",
+            f"refs/remotes/{remote_names[0]}/HEAD",
+        ],
+    )
+    if default.returncode or not default.stdout.strip():
+        detail = default.stderr.strip() or f"exit {default.returncode}"
+        return None, f"could not determine default branch: {detail}"
+    return default.stdout.strip(), None
+
+
+def _merged_branches(
+    repository: Path, runner: Runner
+) -> tuple[set[str] | None, str | None]:
+    """Read branches merged into the Git-determined default branch once."""
+    default_branch, default_warning = _default_branch_ref(repository, runner)
+    if default_warning:
+        return None, default_warning
+    assert default_branch is not None
+    result = _call(
+        runner,
+        [
+            "git",
+            "-C",
+            str(repository),
+            "for-each-ref",
+            "--format=%(refname)",
+            "--merged",
+            default_branch,
+            "refs/heads",
+        ],
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or f"exit {result.returncode}"
+        return None, f"could not determine merged worktrees: {detail}"
+    return set(result.stdout.splitlines()), None
+
+
+def _lifecycle_report(
+    repository: Path,
+    worktrees: list[Worktree],
+    warnings: list[str],
+    runner: Runner = _run,
+) -> list[str]:
+    """Classify registered worktrees from Git facts and the invocation directory."""
+    current = _containing_worktree(repository, worktrees)
+    merged, merged_warning = _merged_branches(repository, runner)
+    default_branch, _ = _default_branch_ref(repository, runner)
+    default_local = (
+        "refs/heads/" + "/".join(default_branch.split("/")[3:])
+        if default_branch
+        else None
+    )
+    if merged_warning:
+        warnings.append(merged_warning)
+    removed = [worktree.path for worktree in worktrees if worktree.prunable]
+    currently_active = [current] if current is not None else []
+    merged_paths = [
+        worktree.path
+        for worktree in worktrees
+        if (
+            merged is not None
+            and worktree.branch
+            and worktree.branch in merged
+            and worktree.path != current
+            # "merged into the default branch" is vacuous for the default
+            # branch itself; keep the primary checkout out of this bucket.
+            # The porcelain reports refs/heads/<name> while the default is a
+            # remote-tracking refs/remotes/<remote>/<name>, so compare the
+            # local form -- a bare != never matches.
+            and worktree.branch != default_local
+        )
+    ]
+    no_merge_or_prune_signal = [
+        worktree.path
+        for worktree in worktrees
+        if worktree.path not in removed
+        and worktree.path not in currently_active
+        and worktree.path not in merged_paths
+    ]
+    lines = [
+        "lifecycle report:",
+        "currently-active observation: registered worktree containing the "
+        "invocation directory; no liveness claim",
+        "no-merge-or-prune-signal observation: registered worktree without a "
+        "prune signal, default-branch merge signal, or current-invocation "
+        "containment; no activity or liveness inference",
+    ]
+    categories: list[tuple[str, list[Path] | None]] = [
+        ("merged", merged_paths if merged is not None else None),
+        ("removed", removed),
+        ("no-merge-or-prune-signal", no_merge_or_prune_signal),
+        ("currently-active", currently_active),
+    ]
+    for label, paths in categories:
+        if paths is None:
+            lines.append(f"{label}: undetermined")
+            continue
+        if paths:
+            lines.extend(f"{label}: {path}" for path in paths)
+        else:
+            lines.append(f"{label}: none")
+    lines.extend(f"warning: {warning}" for warning in sorted(set(warnings)))
+    return lines
+
+
+def lifecycle_hook(
+    command: str,
+    repository: Path,
+    *,
+    protected: set[Path] | None = None,
+    runner: Runner = _run,
+    import_runner: Callable[..., subprocess.CompletedProcess[str]] = _run_import_probe,
+) -> LifecycleResult:
+    """Run an optional hook and refuse unsafe removal without removing anything."""
+    _, _, worktrees, warnings = discover_worktrees(repository, runner)
+    lines = _lifecycle_report(repository, worktrees, warnings, runner)
+    if command != "before-remove":
+        return LifecycleResult(0, tuple(lines))
+    current = _containing_worktree(repository, worktrees)
+    resolution = (
+        _agentbundle_import_resolution(current, import_runner)
+        if current is not None
+        else _unregistered_worktree_resolution(repository)
+    )
+    lines.append("import resolution: " + _import_resolution_human_line(resolution))
+    if current is not None and current in (protected or set()):
+        lines.append(f"refusing worktree removal: protected worktree: {current}")
+        return LifecycleResult(2, tuple(lines))
+    if resolution["status"] != "inside":
+        lines.append(
+            "refusing worktree removal: agentbundle import resolution is "
+            f"{resolution['status']}, not inside this worktree"
+        )
+        return LifecycleResult(2, tuple(lines))
+    lines.append(
+        "before-remove passed: this hook does not remove worktrees or branches"
+    )
+    return LifecycleResult(0, tuple(lines))
 
 
 def _protected_paths(values: Iterable[str]) -> set[Path]:
@@ -1597,6 +1763,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Select test, coverage, lint, and bytecode artifacts.",
     )
+    for command in ("after-create", "before-run", "after-run", "before-remove"):
+        hook_parser = subparsers.add_parser(
+            command,
+            help="Report optional worktree lifecycle state without removing worktrees.",
+        )
+        if command == "before-remove":
+            hook_parser.add_argument(
+                "--protect-worktree",
+                action="append",
+                type=Path,
+                default=[],
+                help=(
+                    "Protect a worktree; repeatable and supplemented by "
+                    "WORKTREE_HYGIENE_PROTECT_WORKTREES."
+                ),
+            )
     args = parser.parse_args(argv)
     if args.command == "scan":
         selected = [args.worktree] if args.worktree else None
@@ -1613,6 +1795,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(_human(report))
         return 0
+    if args.command in {"after-create", "before-run", "after-run", "before-remove"}:
+        protected = _protected_paths(
+            str(path) for path in getattr(args, "protect_worktree", [])
+        )
+        result = lifecycle_hook(args.command, Path.cwd(), protected=protected)
+        print("\n".join(result.lines))
+        return result.code
     categories = {
         category for category in CATEGORIES if getattr(args, category)
     }

@@ -398,6 +398,7 @@ test:
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
+	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
 	$(PYTHON) -m pytest tools/test_bootstrap.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
