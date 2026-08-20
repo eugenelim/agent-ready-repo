@@ -61,6 +61,31 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
     assert "Run `new-spec` to scaffold" not in body
 
 
+def test_direct_light_confines_locators_at_the_acting_surface() -> None:
+    """Direct-light is enterable without passing through `work-intake`.
+
+    The confinement rule therefore has to be stated in `work-loop` itself. A rule
+    that lives only in `work-intake` is a control on a path this one does not
+    take, which is indistinguishable from no control when an agent starts here.
+    """
+
+    body = _normalized(_WORK_LOOP.read_text(encoding="utf-8"))
+
+    for required in (
+        "Confine every locator before using it.",
+        "Direct-light may be entered here without passing through `work-intake`",
+        "resolve it with native real-path resolution and prove it stays inside"
+        " the repository root",
+        "reject absolute paths, drive-letter paths, backslashes, empty segments,"
+        " `.` or `..` segments, and any symlink, junction, or reparse-point"
+        " target that escapes",
+        "Refuse on containment uncertainty rather than guessing.",
+        "A refusal here is terminal for the attempt and precedes any"
+        " implementation write.",
+    ):
+        assert _normalized(required) in body, required
+
+
 def test_persisted_light_specs_remain_spec_driven() -> None:
     """Direct-light removes creation only; legacy persisted specs still resume."""
     raw = _WORK_LOOP.read_text(encoding="utf-8")
