@@ -347,6 +347,7 @@ def main() -> int:
         "docs/CHARTER.md",
         "ARCHITECTURE.md",
         "docs/architecture/overview.md",
+        "docs/architecture/reference.md",
         "docs/product/roadmap.md",
     )
     now_epoch = time.time()

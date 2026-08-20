@@ -158,3 +158,7 @@ dependency of pack source or of a target runtime.
 - **STATUS: PLANNED** — [Binder publishing](docs/architecture/binder-publishing/README.md)
   is designed but not implemented. [ADR-0073](docs/adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
+
+## 9. Last verified against commit
+
+`4e81d407`

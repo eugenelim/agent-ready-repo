@@ -2,11 +2,18 @@
 
 The repository's accumulating record of *patterns, gotchas, and
 antipatterns* — the things a project learns about itself as code lands. The
-progressive `project-knowledge` capability and its topic/journal contracts are
-shipped. This repository has not activated a coherent v1 topic map yet, so its
-current canonical corpus remains the legacy `patterns.jsonl` next to this file.
-Contributors and agents curate it deliberately; the installed session-start
-hook does not load it into model context automatically.
+progressive `project-knowledge` capability uses the canonical per-topic JSON
+model established by [ADR-0081](../adr/0081-canonical-project-knowledge-uses-per-topic-json.md):
+reconciled knowledge is stored under `docs/knowledge/topics/` with a
+deterministic body-free `docs/knowledge/topics.index.json` map, published in
+the same Git snapshot. Ordinary enquiry reads only a coherent committed
+topic/map snapshot, so a topic absent from the index is not visible to it.
+`patterns.jsonl` is the legacy corpus; the store retains a legacy append writer
+and a legacy import path, but the append writer refuses with
+`staged_dual_writer` once a coherent committed topic map exists, so it is not a
+live write target and ordinary enquiry does not read it. Contributors and
+agents curate knowledge deliberately; the installed session-start hook does not
+load it into model context automatically.
 
 This is deliberately different from the documents that already exist:
 
@@ -15,7 +22,7 @@ This is deliberately different from the documents that already exist:
 | `docs/adr/` | Decisions ("we chose X over Y because…"). Immutable. |
 | `docs/architecture/` | Current code structure. Living. |
 | `guides/` | User-facing docs. Diátaxis. |
-| **`docs/knowledge/patterns.jsonl`** | **Practitioner-level lessons: patterns, gotchas, antipatterns. Scoped to file globs.** |
+| **`docs/knowledge/topics/` + `docs/knowledge/topics.index.json`** | **Canonical practitioner-level lessons: patterns, gotchas, and antipatterns. `patterns.jsonl` is the legacy corpus.** |
 
 ADRs answer *why was this decided*. Knowledge entries answer *what
 should the next person avoid stepping on, or repeat*.

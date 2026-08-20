@@ -2930,6 +2930,27 @@ open = [
   # with nothing signalling it. Weigh both cases, not just the burst one.
   # Unblocks when: ready now.
   { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
+  # guides/credential-brokers/ carries an author how-to
+  # (how-to/add-a-credentialed-skill.md), an explanation, and a reference -- and
+  # nothing for the OPERATOR who has to store a credential. The architecture page
+  # docs/architecture/credentials.md correctly does not carry setup steps
+  # (architecture is not a how-to), which left the author guide as the only
+  # available link target for a task it does not cover. The credential-setup skill
+  # exists at packs/credential-brokers/.apm/skills/credential-setup/; the guide
+  # does not.
+  # Fix: write the operator how-to under guides/credential-brokers/how-to/ and
+  # point the credentials architecture page at it.
+  # Unblocks when: ready now -- the skill it documents already ships.
+  { slug = "credential-operator-setup-guide", source = "docs/architecture/credentials.md; guides/credential-brokers/ operator-guide gap", summary = "guides/credential-brokers/ has an author how-to but nothing for the operator who must store a credential, and the credential-setup skill ships without one" },
+  # docs/architecture/binder-publishing/ is a large STATUS: PLANNED design the
+  # owner intends to build. The only existing spec,
+  # docs/specs/binder-publishing-gate-propagation/, is narrow. The tree's
+  # invariant set is now self-contained rather than citing an absent brief, so
+  # the design is spec-ready.
+  # Fix: decompose the planned design into build units and open the spec(s).
+  # Unblocks when: someone applies RFC-0090's tail-triage lane to it -- that is
+  # the likely lens for the decomposition, given the design's size.
+  { slug = "binder-publishing-build-spec", source = "docs/architecture/binder-publishing/ (STATUS: PLANNED)", summary = "The planned binder-publishing design has no build spec; the only existing spec covers gate propagation only" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives

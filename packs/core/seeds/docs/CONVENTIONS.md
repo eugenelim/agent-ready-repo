@@ -628,6 +628,12 @@ How the code is *currently* organized. Not why (ADRs); not what we want
 only when its index carries a `STATUS: PLANNED` marker and links to its
 governing decision.
 
+When a page carries a `Last verified against commit` marker, it records a
+deliberate whole-page re-verification against that commit, not merely an edit.
+Update it only after re-reading the whole page against the tree at the recorded
+commit. An unchanged marker means the page has not received that full audit;
+it is provenance, not a freshness requirement.
+
 **Why separate from ADRs:** ADRs accumulate; current state has to be
 reconstructed by reading them all in order. `architecture/` is the
 rolled-up snapshot — the answer to "what does this codebase look like

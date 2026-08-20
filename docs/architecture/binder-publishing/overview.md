@@ -72,21 +72,28 @@ renderer is absent.
 
 ## Architectural invariants
 
-Twenty-two invariants govern this design. Eight are restated below. The
-originating brief containing the remaining fourteen is absent from this
-repository and must be recovered before implementation. There is no invariant
-23.
+These invariants are the complete, tree-owned contract for binder publishing.
+Each states a property the resolver, runtime, or adapter can enforce or test.
 
 | # | Invariant |
 | --- | --- |
-| 3 | Renderers consume the index and never rediscover or reorder. Every adapter source read uses `read_node_source(node)`, which rejects a path absent from the index. |
-| 8 | Build state is isolated per `(binder-id, content-key)` and the resolved publication directory has a separate lock. |
-| 10 | No global mutable binder state file exists. |
+| 1 | For identical valid recipes and normalized source bytes, resolution emits the same ordered node and navigation sequence. |
+| 2 | Every resolved node source is confined beneath the content root, has an allowed Markdown extension, and is read through realpath-checked containment. |
+| 3 | Canonical source artifacts are never modified; every binder write is confined to the complete declared write set. |
+| 4 | `binder build` validates, resolves, and writes `binder-index.json` before staging or renderer invocation. |
+| 5 | Every editorial selection is recorded as an exact recipe reference, and editorial output may add only recipe or editorial content at derived destinations. |
+| 6 | AI-shaped recipe and editorial content is untrusted input: it cannot relax the strict profile, select a renderer binary, or bypass validation and write confinement. |
+| 7 | The trust scan applies the renderer-independent floor and the selected adapter's declared rules before an index is emitted. |
+| 8 | Renderers consume the index and never rediscover or reorder. Every adapter source read uses `read_node_source(node)`, which rejects a path absent from the index. |
+| 9 | Renderer-specific paths, link rewrites, line offsets, and generated configuration are written only to that adapter's `renderer-plan.json`. |
+| 10 | Build state is isolated per `(binder-id, content-key)` and the resolved publication directory has a separate lock. |
+| 11 | No global mutable binder state file exists. |
 | 12 | Pack-produced Markdown is content, not trusted renderer configuration. |
 | 13 | The first renderer is not the canonical model. |
-| 18 | The strict trust profile is mechanically enforced. |
-| 21 | `binder-index.json` is byte-reproducible for identical inputs. It contains no timestamps, run IDs, host names, or absolute paths. |
-| 22 | `binder build` writes no field of `binder-index.json`. Adapter-generated data belongs in its plan file. |
+| 14 | The strict trust profile is mechanically enforced. |
+| 15 | `binder-index.json` is byte-reproducible for identical inputs. It contains no timestamps, run IDs, host names, or absolute paths. |
+| 16 | `binder build` writes no field of `binder-index.json`. Adapter-generated data belongs in its plan file. |
+| 17 | Reading a published binder makes no network request, and renderer-independent verbs remain available when the renderer is absent. |
 
 D-A removes origin classification and policy/grant inputs. D39 therefore leaves
 no authority lattice to implement. Invariant 13 permits a renderer replacement
@@ -134,7 +141,7 @@ namespaced renderer options. The adapter owns staged paths, generated
 ordinals, and staged link rewriting.
 
 The adapter has no discovery or selection path. It reads a caller-owned source
-only through `read_node_source(node)`. The accessor enforces invariant 3 by
+only through `read_node_source(node)`. The accessor enforces invariant 8 by
 rejecting a source path not enumerated by the index.
 
 ### Renderer options
