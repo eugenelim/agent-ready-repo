@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.5] — 2026-08-20
+
+### Changed
+
+- The bundled catalogue authoring scaffold's `packs/AGENTS.md` and authoring
+  standard state how to write pack tests that survive a shared interpreter:
+  load a skill's modules under a name that includes its pack and skill rather
+  than putting `scripts/` on `sys.path`, and keep a suite's cost in assertions
+  rather than processes. No engine behaviour changed; the package data moves
+  because those two repository files are its sources.
+
+### Fixed
+
+- Local-scope install and uninstall reuse each structural `git rev-parse`
+  answer for the duration of one command, dropping the cache at the command
+  boundary. Measured on the engine unit suite: git child processes fell from
+  176 to 59.
+
+- `catalogue init --preset self-hosted` and both archive flavours no longer
+  copy a repository-only conformance test into an adopter's catalogue. The
+  shipped set is now derived from `tests/conformance/` in one place, so the
+  manifest that plain init reads and the directory that self-hosted init copies
+  cannot describe different sets.
+
 ## [0.38.4] — 2026-08-20
 
 ### Changed

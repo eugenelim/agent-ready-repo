@@ -24,6 +24,22 @@ agentbundle catalogue verify --root .
 agentbundle catalogue self-host --root . --write
 ```
 
+## Writing pack tests
+
+Load a skill's modules under a unique name that includes its pack and skill. Do
+not put a skill's `scripts/` on `sys.path` and import by bare name: skills are
+independent, so several may ship a `render.py`, and a bare `import render` binds
+whichever directory reached the path first, then caches it for every later
+importer. Name shared test helpers the same way.
+
+Keep a suite's cost in assertions rather than processes: prefer a function call
+over spawning an interpreter, put a seam in front of any external binary, never
+invoke a package manager from a test, and give an expensive fixture the widest
+scope its assertions allow.
+
+Both rules, with the loader recipe and the reasoning, are in the
+[catalogue authoring standards](../guides/_shared/reference/catalogue-authoring-standards.md).
+
 ## Version bump rule
 
 Every non-cosmetic pack-content change, including `seeds/**` and `.apm/**`, bumps matching versions in `pack.toml` and

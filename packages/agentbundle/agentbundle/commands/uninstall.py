@@ -44,6 +44,11 @@ def run(args: argparse.Namespace) -> int:
 
     Returns 0 on success, non-zero on error.
     """
+    # Structural git answers are cached for this invocation only.
+    from agentbundle.local_exclude import reset_git_query_cache
+
+    reset_git_query_cache()
+
     from agentbundle import safety
     from agentbundle.commands._common import resolve_state_path
     from agentbundle.config import ConfigError, dump_state, load_state

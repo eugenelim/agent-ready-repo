@@ -14,6 +14,17 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.5
+
+The bundled authoring scaffold now says how to write pack tests that survive a
+shared interpreter: load a skill's modules under a unique name rather than
+putting its `scripts/` directory on `sys.path`, and keep a suite's cost in
+assertions rather than in spawned processes. Separately, a repository-only
+conformance test no longer travels into catalogues created with
+`--preset self-hosted`; the shipped conformance set is derived in one place, so
+the manifest plain init reads and the directory self-hosted init copies can no
+longer disagree.
+
 ## What's new in 0.38.4
 
 The bundled catalogue authoring scaffold's `packs/AGENTS.md` and

@@ -24,13 +24,10 @@ import pytest
 
 
 def _git_init(repo: Path) -> None:
+    # Init only. A committer identity is needed to author a commit, and nothing
+    # in this module commits -- the subject writes .git/info/exclude and reads
+    # rev-parse. Setting it cost two extra git processes per repo, per test.
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    subprocess.run(
-        ["git", "-C", str(repo), "config", "user.email", "test@example.com"], check=True
-    )
-    subprocess.run(
-        ["git", "-C", str(repo), "config", "user.name", "Test"], check=True
-    )
 
 
 @pytest.fixture()
