@@ -25,6 +25,27 @@
         "Performs no capture or fallback persistence and keeps diagnostics redacted",
         "Allows a committed Git blob only as the safely rooted read-free alternative"
       ]
+    },
+    {
+      "id": "ready-with-zero-specs-is-valid",
+      "prompt": "This brief has an outcome, in-scope and non-goals, an appetite, two named risks, and a durable source reference, but no confirmed slices yet. Mark it Ready.",
+      "expected_output": "The agent checks the six canonical semantic Ready fields, passes the gate, stamps Status: Ready, and moves the workspace entry from draft to ready. The Spec map stays empty: a Ready brief with zero specs is valid and non-dispatchable, and no placeholder spec, plan, or workspace entry is created.",
+      "assertions": [
+        "Checks exactly the six canonical semantic fields",
+        "Passes Ready with zero specs",
+        "Creates no placeholder spec, plan, or workspace entry",
+        "Reports the Ready brief as non-dispatchable"
+      ]
+    },
+    {
+      "id": "ready-refused-when-a-canonical-field-is-absent",
+      "prompt": "The brief has an outcome and scope but names no assumptions or risks and no durable source reference. Mark it Ready.",
+      "expected_output": "The agent refuses to stamp Ready, surfaces the two absent gate fields by name, and asks the user to fill them. It does not invent them and does not stamp Status: Ready on a brief that fails the gate.",
+      "assertions": [
+        "Refuses Ready when a canonical field is absent",
+        "Names the absent fields",
+        "Does not invent missing fields"
+      ]
     }
   ]
 }

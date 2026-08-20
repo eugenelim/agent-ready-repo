@@ -73,6 +73,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A small, low-risk change no longer has to write a spec first.** Ask the agent
+  to make one bounded change now and it plans, implements, runs your gates, takes
+  one adversarial review pass, repairs what that finds, and hands you the result —
+  without creating a spec directory, a plan, a queue entry, or any state file. The
+  rigor is unchanged; only the paperwork is gone. Work that genuinely needs to
+  outlive the session still gets the full treatment: anything that trips a risk
+  trigger, needs queueing or a second session, is handed to someone else, is
+  coordinated by an external system, needs an approval that survives a context
+  loss, or defines a durable published behavior — and, of course, asking for a
+  spec. Queue dispatch is untouched and still refuses to start anything that
+  lacks an approved spec and plan, so a direct run is never resumable from a cold
+  start; if it turns out to need durability, it stops at that boundary and moves
+  onto the durable path instead of pretending it had one all along. Specs and
+  plans you already have keep working exactly as before, with nothing to migrate.
+- **Briefs have one readiness checklist instead of two that disagreed.** Writing
+  a brief from an email or an issue now produces a draft that records what is
+  known and names what is missing — it no longer demands an appetite or a rabbit
+  hole up front, and it never marks a brief ready. Readiness is checked in one
+  place, against six things: the outcome, what is in scope, what is not, the
+  constraint or appetite, at least one named assumption or risk, and a durable
+  reference to where the brief came from. Metrics, instrumentation, user stories,
+  and design links are genuinely optional. A ready brief with no slices cut yet is
+  valid, and the bundled template now matches that checklist — including a place
+  to record the source, which it previously lacked.
+- **A spec means the behavior, and a plan means how it gets built.** Several pages
+  said or implied that a spec carries the implementation; it does not. The spec is
+  the durable behavior contract for one delivery slice, and its plan carries the
+  implementation and verification strategy.
+
 - **Keyboard focus is visible everywhere on the marketing site, not just in the
   dark bands.** The focus outline used a gold that was too faint against light
   backgrounds, so on most pages the ring around the control you had tabbed to was
