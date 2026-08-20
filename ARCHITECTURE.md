@@ -136,6 +136,16 @@ dependency of pack source or of a target runtime.
   canonical root `AGENTS.md`.
 - `tools/check-rendered-site-links.py` validates internal links and fragments
   in rendered site output.
+- `tools/lint-adapter-layer-boundary.py` enforces the section 3 edge direction
+  for the build layers: a projection may not import an adapter, and neither
+  layer may be imported by pack source or by a target-runtime file.
+- `tools/lint-pack-dependency-declaration.py` requires a pack that reaches into
+  another pack's directory from executable content to declare that pack, and
+  fails a declared dependency whose owning pack contributes no referenced
+  primitive.
+- `tools/lint-generated-path-ownership.py` requires every canonical generated
+  projection path to have exactly one declared producer, and refuses a
+  hand-authored file occupying one.
 
 ## 8. Deeper current-state pages
 

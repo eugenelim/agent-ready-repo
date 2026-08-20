@@ -87,6 +87,14 @@ the durable evidence record.
 - `tools/catalogue/check_contract_parity.py` requires portable contract schemas
   and TOML to match their `agentbundle/_data/` counterparts.
 - `agentbundle lint packs` (`make lint-packs`) checks pack conformance.
+- `tools/lint-adapter-layer-boundary.py` holds the adapter/projection edge
+  direction: a projection may not import an adapter, and neither layer may be
+  imported by pack source or by a target-runtime file.
+- `tools/lint-generated-path-ownership.py` requires each canonical generated
+  projection path to have exactly one declared producer and refuses a
+  hand-authored file occupying one. It reads the producer set from the self-host
+  recipe and the target roots from `contracts/adapter.toml`, so a pack leaving
+  the recipe changes the expected set rather than passing on an empty scan.
 
 ## 9. Relevant ADRs
 

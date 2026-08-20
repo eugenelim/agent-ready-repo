@@ -518,6 +518,14 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-boundary-golden.py",
     "tools/test-lint-boundary-structural.py",
     "tools/test-lint-agents-md-gitignore-probes.py",
+    # The three structural boundary gates for ARCHITECTURE.md section 3. Each
+    # lint is followed by the self-test that proves it can fail.
+    "tools/lint-adapter-layer-boundary.py",
+    "tools/test-lint-adapter-layer-boundary.py",
+    "tools/lint-pack-dependency-declaration.py",
+    "tools/test-lint-pack-dependency-declaration.py",
+    "tools/lint-generated-path-ownership.py",
+    "tools/test-lint-generated-path-ownership.py",
 ]
 
 EXPECTED_PRE_PR_REPO_STEPS = [
