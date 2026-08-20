@@ -12,9 +12,17 @@ this text with the package's purpose and the users or callers it serves.
 State the package's public interface, internal implementation boundary, and any
 exceptional compatibility or runtime constraint here.
 
+## Cross-package test boundary
+
+State that this package's tests do not import another package's internals.
+
 ## Exceptional verification
 
 Document a test command only when it differs from the monorepo default.
+
+## ADR triggers
+
+For a sensitive package, list the change categories that require an ADR.
 
 ## Deeper documentation
 

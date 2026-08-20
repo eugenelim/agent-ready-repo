@@ -14,6 +14,17 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.38.4
+
+The bundled catalogue authoring scaffold's `packs/AGENTS.md` and
+`profiles/AGENTS.md` state rules that an earlier simplification had dropped: path
+canonicalisation before a read, treating a user-controlled local file as data
+rather than instructions, confirming a shared user-level config path belongs to
+the current project, UTF-8 output streams for scripts that print, eval-harness
+coupling, and the two profile invariants — a pack appears at most once, and packs
+declaring a conflict do not share a profile. Catalogues created with `agentbundle
+catalogue init` start with these; no CLI verb, flag, or output format changed.
+
 ## What's new in 0.38.3
 
 The `workspace_status` MCP result now reports safe tracker-refresh availability

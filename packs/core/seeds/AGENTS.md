@@ -13,8 +13,10 @@ Read [the architecture overview](docs/architecture/overview.md) before exploring
 
 - Scope changes precisely to the request; defer unrelated cleanup.
 - Surface assumptions before building, and stop for conflicting requirements.
+- Push back when warranted; record disagreement rather than complying silently.
 - Prefer the simplest obvious solution; add an option, abstraction, or dependency only when needed.
-- Add types and docstrings to code you change; validate boundaries the change crosses.
+- Add types and docstrings to code you change; validate boundaries the change crosses, trusting internal callers and framework guarantees.
+- Inline a single-use operation; extract a helper once a second caller appears.
 - Do not silently work around a source-of-truth conflict; state the evidence and trade-off.
 
 ## Source of truth
@@ -52,7 +54,8 @@ workflow or reference documentation; commit and pull-request conventions live in
 ## Check before acting
 
 - Get user confirmation before destructive commands or irreversible operations.
-- Verify a function exists before importing it.
+- Grep to verify a function exists before importing it.
+- Propose a new top-level directory through the repository's decision process.
 - Record a new dependency in the owning package instructions or an ADR before adding it.
 
 ## Security and privacy

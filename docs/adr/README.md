@@ -95,6 +95,8 @@
 | 0087 | [Lints resolve Git-ignore status in one batched call over stdin](0087-batch-git-check-ignore-over-stdin.md) | Accepted |
 | 0088 | [Risk triggers have a single documented home](0088-risk-triggers-have-a-single-documented-home.md) | Accepted |
 | 0089 | [Decision weight trims the RFC pre-handoff gate: RFC-0054 D1 over its implementing spec](0089-decision-weight-trims-the-rfc-gate.md) | Accepted |
+| 0090 | [Distribution routes are a layer separate from runtime adapters](0090-distribution-routes-separate-from-runtime-adapters.md) | Accepted |
+| 0091 | [A Kiro Power route is justified: superseding the Kiro-route rejection only](0091-kiro-power-route-supersedes-rejection.md) | Accepted |
 
 ## Adding a new ADR
 

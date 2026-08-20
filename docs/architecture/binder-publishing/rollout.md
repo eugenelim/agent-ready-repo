@@ -38,7 +38,7 @@ Unit coverage must include:
   substitution; and unresolved substitution failure;
 - publication ownership, `publication-dir` confinement, heading-shift warnings,
   scan-exclusion handling, cross-device publication detection, exit-code mapping,
-  and a golden index unchanged by `build` (invariant 22);
+  and a golden index unchanged by `build` (invariant 16);
 - renderer-version lookup through `importlib.metadata.version`, never
   `zensical.__version__`.
 

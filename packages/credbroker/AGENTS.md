@@ -13,6 +13,10 @@ then dotfile/vault credentials in-process and never passes cleartext to an LLM.
   the next resolver tier.
 - The optional `[crypto]` extra must be skipped gracefully when unavailable.
 - Vault tests must redirect their home and vault paths to test fixtures.
+- In credbroker tests, use `tmp_path` — or `tmp_path_factory.mktemp()` for autouse
+  fixtures — never `tempfile.mkdtemp()`, literal `/tmp`, or direct `HOME` reads.
+- Use `monkeypatch` to direct resolver environments; guard symlink setup with
+  `OSError` skips where the platform cannot provide it.
 
 ## Essential commands
 

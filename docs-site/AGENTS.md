@@ -25,6 +25,9 @@ npm run build --prefix docs-site
 - The repository, not Starlight, checks rendered internal links after both builds.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
   both themes, and reduced-motion behavior.
+- Check `allowScripts` against install-script entries by eye when the lockfile moves.
+- After a Starlight upgrade, re-verify dependent integration contracts against
+  vendored `node_modules/@astrojs/starlight` components.
 
 ## Deeper pointers
 

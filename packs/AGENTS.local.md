@@ -43,6 +43,9 @@ grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|
 
 Rewrite internal citations rather than deleting their meaning. IETF RFC numbers never
 start with `0`, unlike this catalogue's zero-padded identifiers.
+Illustrative examples that teach a skill are permitted and must not be stripped: they
+describe adopter artifacts. The same ordinal can be internal in one file and
+illustrative in another; judge what it points at, never the number.
 
 ## Self-hosting projection
 

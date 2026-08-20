@@ -57,9 +57,16 @@ class RiskBlockHomeTests(unittest.TestCase):
             self.assertIn("must carry exactly one", run(root))
 
     def test_noncanonical_homes_fail(self) -> None:
+        # The canonical source must exist in the fixture. Without it the
+        # "source must carry one complete block" branch emits the same marker,
+        # so the assertion below passes whether or not the non-canonical-home
+        # guard exists — the test cannot then detect that guard's removal.
         for path in ("AGENTS.md", "packs/core/seeds/AGENTS.md", "docs/CONVENTIONS.md"):
             with self.subTest(path=path), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
+                source = root / "packs/core/.apm/skills/work-loop/SKILL.md"
+                source.parent.mkdir(parents=True)
+                source.write_text(BLOCK, encoding="utf-8")
                 target = root / path
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(BLOCK, encoding="utf-8")

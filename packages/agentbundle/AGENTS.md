@@ -14,6 +14,9 @@ packaged scaffold or adapter projections. See `AGENTS.local.md` for release cont
 - Use `Path.as_uri()` for `file://` URLs; string formatting makes broken Windows URLs.
 - Prefer library APIs over subprocess wrappers; a justified Semgrep suppression belongs
   on the line the rule anchors.
+- Force UTF-8 in subprocess environments to avoid `UnicodeEncodeError`.
+- Skip symlink- and execute-bit-dependent tests where the platform lacks them.
+- Detect a filesystem root with `normalised == normalised.parent`.
 
 ## Essential commands
 

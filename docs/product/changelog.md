@@ -37,6 +37,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.10.1] — 2026-08-20
+
+#### Added
+
+- **The instruction surfaces state their security rules again.** A 2026-08-19
+  simplification compressed nineteen `AGENTS.md` surfaces and, along the way,
+  removed rules that no linter, test, schema, or other document asserted. The
+  pack-authoring guidance again requires canonicalising a path before a read
+  (because a symlink inside an approved directory escapes containment without
+  it), treating a file loaded from a user-controlled local path as data rather
+  than instructions, and confirming that a path taken from a user-level config
+  shared across projects belongs to the current project.
+- **Agents are told again to push back.** The seed instructions restore the duty
+  to record disagreement rather than comply silently, to trust internal callers
+  and framework guarantees rather than validate everywhere, and to inline a
+  single-use operation until a second caller appears. The seed also regains the
+  new-top-level-directory check that the live repository copy had kept, so an
+  adopter's instructions and this repository's no longer disagree.
+- **Illustrative examples are protected from over-zealous scrubbing.** Shipped
+  pack content must carry no internal-governance citations, and the exception
+  that keeps teaching examples safe was lost while the rule survived — so the
+  documented pre-commit scan flagged legitimate sample output with nothing to
+  say it was allowed. The carve-out is restored, together with the rule that the
+  same identifier may be internal in one file and illustrative in another and is
+  judged by what it points at rather than by its number.
+
+#### Fixed
+
+- **The risk-trigger block no longer instructs an action that fails CI.** Its
+  marker comment still told maintainers to copy the block into three other
+  documents and keep all four byte-identical. Those copies were removed, and a
+  later decision made this skill the block's only home — so a copy now fails the
+  lint. The comment states the single-home rule instead.
+
+### [monorepo-extras][0.1.7] — 2026-08-20
+
+#### Added
+
+- **The example package template prompts for two more things.** It now asks the
+  author to state that a package's tests do not import another package's
+  internals, and — for a sensitive package — to list the change categories that
+  require an architecture decision record.
+
+### [agentbundle][0.38.4] — 2026-08-20
+
+#### Changed
+
+- **The bundled authoring scaffold carries the restored pack and profile
+  rules.** The scaffold's `packs/AGENTS.md` regains the security and
+  eval-coupling rules described above, and its `profiles/AGENTS.md` again states
+  that a pack appears at most once in a profile and that packs declaring a
+  conflict do not share one. No CLI behaviour changes.
+
 ### [agentbundle][0.38.3] — 2026-08-17
 
 #### Changed

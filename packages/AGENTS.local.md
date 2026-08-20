@@ -14,11 +14,14 @@ See [`docs/guides/explanation/release-coupling.md`](../docs/guides/explanation/r
 Release when a public CLI verb, required flag semantics, published output layout,
 or a schema change invalidates previously valid files.
 
-## Source markers
+## No internal-governance markers in source
 
-IETF RFC numbers never start with `0`; this catalogue's internal ordinals are
-zero-padded. Runtime message text is often pinned by tests, so rename the message
-and its assertion together.
+Everything here is adopter-visible: the sdist ships source and the repository is
+public. Do not put `RFC-0NNN` / `ADR-0NNN` ordinals, spec ACs, or internal spec paths
+in comments, docstrings, argparse `help=` text, or runtime messages; state the rule
+instead of citing where it was decided. IETF RFC numbers never start with `0`; this
+catalogue's internal ordinals are zero-padded. Runtime message text is often pinned
+by tests, so rename the message and its assertion together.
 
 ## Engine-Change-RFC requirement
 

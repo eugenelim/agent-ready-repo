@@ -23,6 +23,20 @@
   unchanged and still emitted for every pack, so the question is answered for
   one route, not both. Approver: eugenelim.
 
+- **2026-08-20 — alternative 2's rejection premise has expired; superseded by
+  [ADR-0091](../adr/0091-kiro-power-route-supersedes-rejection.md).**
+  *Alternatives considered* item 2 rejected a `kiro-plugins` sibling install route
+  on the grounds that "Kiro has no programmatic plugin-install API to integrate
+  with … Kiro Powers has no documented install verb." That was researched and
+  accurate when written. Kiro has since documented Powers as an Agent Plugin plus
+  an optional `dev.kiro/` extension, imported from GitHub or a local folder, with a
+  Powers marketplace — so the load-bearing fact no longer holds. ADR-0091 supersedes
+  **that rejected alternative only**, and adopts a `kiro-power` route *profile* over
+  the portable Agent Plugin artifact rather than the per-IDE sibling package this
+  item contemplated; the route is `components-only`, because Kiro documents no
+  Power-install lifecycle event. Every other conclusion in this RFC, including its
+  decision on repo-scope per-adapter projection, is intact.
+
 ## Summary
 
 **CLI surface.** `agentbundle install --pack <name> --scope repo --adapter <name> .` lands the pack at the adopter repo's per-IDE directory directly — `<repo>/.claude/skills/`, `<repo>/.kiro/skills/`, `<repo>/.agents/skills/`, or `<repo>/.github/instructions/` — instead of the current dist-tree shape (`<repo>/claude-plugins/<pack>/...` and `<repo>/apm/<pack>/...`). The `--adapter` flag, which RFC-0011 bound to `--scope user`, lifts to work at both scopes; the existing argparse `choices=` already enumerates every shipped adapter (RFC-0011's implementation widened from the user-scope-capable subset its text named; no `cli.py` edit needed for the lift). The dist-tree shape becomes opt-in via `--emit-install-routes` for catalogue-publishing workflows.

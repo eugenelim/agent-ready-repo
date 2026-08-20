@@ -68,20 +68,15 @@ fixed rather than patched:
 
 ## Load-bearing invariants
 
-The invariants this tree restates and amends are #3, #8, #10, #12, #13, #18, #21
-and #22, in [`overview.md`](overview.md#architectural-invariants); the original
-twenty come from the brief. Three carry most of the weight:
+The complete invariant set is in [`overview.md`](overview.md#architectural-invariants).
+Three carry most of the weight:
 
-- **3 — the adapter cannot re-select.** Every source read goes through a single
+- **8 — the adapter cannot re-select.** Every source read goes through a single
   `read_node_source(node)` accessor that rejects any path not enumerated in the
   index. Renderer neutrality is mechanical rather than declared.
-- **21 — `binder-index.json` is byte-reproducible for identical inputs.** No
+- **15 — `binder-index.json` is byte-reproducible for identical inputs.** No
   timestamps, run IDs, host names, or absolute paths. This makes ceremonial fields
   structurally impossible rather than merely discouraged.
-- **22 — `binder build` writes no field of `binder-index.json`.** Anything an
+- **16 — `binder build` writes no field of `binder-index.json`.** Anything an
   adapter must invent goes in that adapter's own plan file — and this was checked
   rather than asserted: the renderer changed and the index did not.
-
-> There is no invariant 23. An earlier draft added *"every input is classified by
-> origin before it is trusted"* to serve the authority lattice; D39 deleted the
-> lattice, and origin classification with it.
