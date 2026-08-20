@@ -430,16 +430,29 @@ async function expectDocsChromeIsKeyboardOperable(
   const band = page.locator('nav[aria-label="Product orientation"] a').first();
   const productSummary = page.locator('nav[aria-label="Product navigation"] summary');
 
-  // Whichever product affordance this width renders, it must be reachable by Tab
-  // and show a focus indicator that is not colour-only.
-  if (await band.isVisible()) {
-    await band.focus();
-    await expect(band, `${where}: band link takes focus`).toBeFocused();
+  // Which affordance each breakpoint owes is DECIDED here, not discovered from the
+  // page. Guarding every block behind `isVisible()` meant a regression that hid
+  // the phone disclosure turned this helper into a no-op that still reported
+  // green — a skip is not a pass. 50rem is the docs breakpoint: the band is
+  // desktop-only, the Product disclosure phone-only.
+  const isPhone = ctx.width < 800;
+  const bandVisible = await band.isVisible();
+  const productVisible = await productSummary.isVisible();
+  expect(bandVisible, `${where}: the desktop band must render iff wide`).toBe(!isPhone);
+  expect(productVisible, `${where}: the phone Product disclosure must render iff narrow`).toBe(
+    isPhone
+  );
+
+  if (bandVisible) {
+    // Reached by Tab, not by a programmatic focus() — `tabindex="-1"` would still
+    // accept .focus() and every assertion after it, proving nothing about
+    // keyboard reachability.
+    await tabToAndAssertFocus(page, 'nav[aria-label="Product orientation"] a', ctx, 'derive');
     await expectVisibleFocusIndicator(page, ctx);
   }
 
-  if (await productSummary.isVisible()) {
-    await productSummary.focus();
+  if (productVisible) {
+    await tabToAndAssertFocus(page, 'nav[aria-label="Product navigation"] summary', ctx, 'derive');
     await expect(productSummary, `${where}: Product trigger takes focus`).toBeFocused();
     await expectVisibleFocusIndicator(page, ctx);
 
@@ -473,9 +486,17 @@ async function expectDocsChromeIsKeyboardOperable(
   }
 
   // The Docs menu trigger is Starlight's and must remain keyboard-operable too.
+  // It is a phone affordance, so on a phone width its absence is a failure rather
+  // than a reason to skip.
   const docsMenu = page.locator('starlight-menu-button button');
-  if (await docsMenu.isVisible()) {
-    await docsMenu.focus();
+  const docsMenuVisible = await docsMenu.isVisible();
+  if (isPhone) {
+    expect(docsMenuVisible, `${where}: the Docs menu trigger must render at phone widths`).toBe(
+      true
+    );
+  }
+  if (docsMenuVisible) {
+    await tabToAndAssertFocus(page, 'starlight-menu-button button', ctx, 'derive');
     await expect(docsMenu, `${where}: Docs menu trigger takes focus`).toBeFocused();
     await expectVisibleFocusIndicator(page, ctx);
     await page.keyboard.press('Enter');
@@ -563,10 +584,44 @@ async function expectDocsChromeIsWellPlaced(
   expect(measured.sidebars, `${where}: Starlight sidebar must stay singular`).toBe(1);
   expect(measured.headerPosition, `${where}: Starlight header must stay sticky`).toBe('sticky');
   expect(measured.bandPresent, `${where}: the product band must be emitted`).toBe(true);
+  // Rejecting `fixed` alone is not the contract: `sticky` would also keep the
+  // band pinned, which is exactly what "scrolls away" forbids. Reject both, then
+  // prove the behaviour by scrolling — the band must leave the viewport while the
+  // Starlight header stays put.
   expect(
     measured.bandPosition,
     `${where}: the band must scroll away, so it must not be pinned itself`
   ).not.toBe('fixed');
+  expect(
+    measured.bandPosition,
+    `${where}: the band must scroll away, so it must not be sticky either`
+  ).not.toBe('sticky');
+
+  if (ordering!.bandDisplayed) {
+    const scrolled = await page.evaluate(async () => {
+      const band = document.querySelector('nav[aria-label="Product orientation"]')!;
+      const starlightHeader = document.querySelector('header.header > div.header')!;
+      window.scrollTo(0, 600);
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      const bandRect = band.getBoundingClientRect();
+      const headerRect = starlightHeader.getBoundingClientRect();
+      window.scrollTo(0, 0);
+      return {
+        scrollY: window.scrollY,
+        bandBottom: bandRect.bottom,
+        headerTop: headerRect.top,
+        headerBottom: headerRect.bottom,
+      };
+    });
+    expect(
+      scrolled.bandBottom,
+      `${where}: the band must scroll out of the viewport, not stay pinned`
+    ).toBeLessThanOrEqual(0);
+    expect(
+      scrolled.headerBottom,
+      `${where}: the Starlight header must stay pinned while the band scrolls away`
+    ).toBeGreaterThan(0);
+  }
   expect(measured.productTriggerIsLink, `${where}: the Product trigger must not be a link`).toBe(
     false
   );
