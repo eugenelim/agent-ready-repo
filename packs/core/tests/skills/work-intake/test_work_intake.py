@@ -46,6 +46,7 @@ _ROUTER_PATH = (
     / "work-intake"
     / "scripts"
     / "intake_router.py"
+)
 _REFRESH_PATH = (
     _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "refresh.py"
 )
@@ -71,6 +72,10 @@ def _load_router():
     spec = importlib.util.spec_from_file_location("intake_router", _ROUTER_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules["intake_router"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_refresh():
     spec = importlib.util.spec_from_file_location("work_intake_refresh", _REFRESH_PATH)
     module = importlib.util.module_from_spec(spec)
