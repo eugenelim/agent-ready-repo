@@ -694,6 +694,82 @@ def test_docs_guides_not_mirrored_from_real_guides_root(tmp_path):
 
 
 # --------------------------------------------------------------------------
+# spec/site-shared-chrome AC10 — the two renderers stay independent
+# --------------------------------------------------------------------------
+#
+# Shared chrome means shared destination vocabulary and NOTHING else. Both
+# renderers now consume the same canonical contract, which is exactly the
+# condition under which someone reaches for "just import the other one's
+# helper" — so the boundary needs a check rather than a convention. The
+# existing marketing-token tests below cover the palette half of AC10; these
+# cover source imports and the separateness of the two projected inputs.
+
+_MARKETING_CHROME_SOURCES = (
+    "web/src/components/layout/SiteNav.astro",
+    "web/src/components/layout/SiteFooter.astro",
+    "web/src/lib/shared-chrome.ts",
+)
+_DOCS_CHROME_SOURCES = (
+    "docs-site/src/components/PageFrame.astro",
+    "docs-site/src/components/Footer.astro",
+    "docs-site/src/components/shared-chrome.ts",
+)
+
+
+def test_neither_renderer_imports_the_other_renderers_chrome():
+    """AC10: no shared components, helpers, tokens, or state across renderers."""
+    offenders = []
+    for source, forbidden in (
+        (_MARKETING_CHROME_SOURCES, "docs-site"),
+        (_DOCS_CHROME_SOURCES, "web/"),
+    ):
+        for relative in source:
+            path = _REPO_ROOT / relative
+            assert path.is_file(), f"{relative} is missing; update this AC10 guard"
+            for number, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                stripped = line.strip()
+                if not (stripped.startswith("import ") or " from '" in stripped):
+                    continue
+                if forbidden in stripped:
+                    offenders.append(f"{relative}:{number}: {stripped}")
+    assert not offenders, (
+        "a renderer imported the other renderer's chrome: " + "; ".join(offenders)
+    )
+
+
+def test_each_renderer_reads_its_own_projected_input():
+    """AC10: one canonical source, two independently allocated renderer inputs."""
+    marketing = _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+    docs = _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+    assert marketing.is_file() and docs.is_file()
+    assert marketing != docs
+
+    marketing_payload = json.loads(marketing.read_text(encoding="utf-8"))
+    docs_payload = json.loads(docs.read_text(encoding="utf-8"))
+    # The docs projection deliberately exposes no `header`: the docs band is not
+    # the marketing header, and inferring one from the other is the drift this
+    # separation exists to prevent.
+    assert set(marketing_payload) == {"header", "footer"}
+    assert "header" not in docs_payload
+    assert set(docs_payload) == {
+        "product_orientation_band", "product_navigation", "footer",
+    }
+
+    # Each renderer reads its own file and only its own file.
+    for relative, own, other in (
+        ("web/src/components/layout/SiteFooter.astro",
+         "lib/shared-chrome.generated.json", "docs-site"),
+        ("docs-site/src/components/PageFrame.astro",
+         "shared-chrome.generated.json", "web/src"),
+    ):
+        text = (_REPO_ROOT / relative).read_text(encoding="utf-8")
+        assert own in text, f"{relative} no longer reads its own projected input"
+        assert other not in text, f"{relative} reaches into the other renderer"
+
+
+# --------------------------------------------------------------------------
 # spec/docs-site-build-contract-hardening AC1/AC2 — no marketing-token dependency
 # --------------------------------------------------------------------------
 #
