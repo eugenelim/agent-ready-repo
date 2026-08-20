@@ -1,42 +1,16 @@
 ---
 // Footer — dark zone. Labelled column groups rather than a flat link row: this
 // is the last thing on every marketing page, and a three-link strip was
-// carrying none of the site's navigable surface. Every href below resolves to
-// a route that exists in the build; do not add a column entry without one.
-import { withBase } from '../../lib/paths';
+// carrying none of the site's navigable surface. The generated projection is
+// the renderer-local input derived from the approved destination contract.
+import marketingChrome from '../../lib/shared-chrome.generated.json';
+import { chromeHref, currentState, type ChromeLink } from '../../lib/shared-chrome';
+
 const year = new Date().getFullYear();
 
-const columns = [
-  {
-    label: 'Product',
-    links: [
-      { text: 'How it works', href: withBase('/#three-loops') },
-      { text: 'Use cases', href: withBase('/#use-cases') },
-      { text: 'Catalogue', href: withBase('/catalogue/') },
-      { text: 'Packs', href: withBase('/packs/') },
-      { text: 'Journeys', href: withBase('/journeys/') },
-    ],
-  },
-  {
-    label: 'Docs',
-    links: [
-      { text: 'Get started', href: withBase('/docs/getting-started/') },
-      { text: 'Install', href: withBase('/docs/getting-started/install/') },
-      { text: 'The three loops', href: withBase('/docs/getting-started/three-loops/') },
-      { text: 'All docs', href: withBase('/docs/') },
-    ],
-  },
-  {
-    label: 'Project',
-    links: [
-      { text: 'Changelog', href: withBase('/docs/changelog/') },
-      { text: 'Contributing', href: withBase('/docs/contributing/') },
-      { text: 'Claude plugins', href: withBase('/plugins/') },
-      { text: 'GitHub', href: 'https://github.com/eugenelim/agent-ready-repo' },
-      { text: 'PyPI', href: 'https://pypi.org/project/agentbundle/' },
-    ],
-  },
-];
+const columns = marketingChrome.footer;
+const current = (link: ChromeLink) =>
+  currentState(link, Astro.url.pathname, import.meta.env.BASE_URL);
 ---
 
 <footer class="footer">
@@ -51,8 +25,12 @@ const columns = [
         <div class="footer__col">
           <h2 class="footer__collabel">{col.label}</h2>
           <ul class="footer__list">
-            {col.links.map((l) => (
-              <li><a href={l.href} rel="noopener">{l.text}</a></li>
+            {col.destinations.map((link) => (
+              <li>
+                <a href={chromeHref(link)} aria-current={current(link)}>
+                  {link.label}{link.kind === 'external' && <><span aria-hidden="true"> ↗</span><span class="visually-hidden"> external</span></>}
+                </a>
+              </li>
             ))}
           </ul>
         </div>
@@ -123,6 +101,13 @@ const columns = [
   .footer__list a:hover {
     color: var(--ds-accent);
     text-decoration: none;
+  }
+
+  .footer__list a[aria-current] {
+    color: var(--ds-hero-fg);
+    font-weight: var(--ds-weight-semibold);
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
   }
 
   .footer__copy {
