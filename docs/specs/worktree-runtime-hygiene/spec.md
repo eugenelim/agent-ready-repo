@@ -86,6 +86,22 @@ state, and silently skipped tests unrelated to the actual space problem.
   fact; an absent, failed, timed-out, or unparseable probe is explicitly reported as
   absent or inconclusive rather than silently passing.
 
+- [x] **AC9 — browser-gate failure evidence has a bounded lifecycle.** The
+  Playwright configuration retains `trace: 'retain-on-failure'` and
+  `screenshot: 'only-on-failure'`; the gate wrapper never weakens either diagnostic.
+  It immediately removes successful-run `web/test-results/` and
+  `web/playwright-report/` artifacts, copies each failed run into ignored,
+  current-worktree-local evidence storage while retaining the live
+  `web/test-results/` output for CI, and keeps the newest failed run by default.
+  Older unpinned retained runs expire by the configurable
+  `PLAYWRIGHT_FAILURE_EVIDENCE_MAX_AGE_SECONDS` age budget (seven days by default);
+  a `.pinned` marker preserves explicitly pinned evidence. Every lifecycle mutation
+  re-establishes the same registered-current-worktree safety predicate immediately
+  before acting and refuses an inconclusive worktree, so it never touches another
+  worktree. If the live failure-output path changes, the Pages workflow upload
+  contract (`browser-gate-failure`, seven-day retention, ignore when absent) and its
+  contract tests change in the same commit.
+
 ## Limitations
 
 Linux same-filesystem bind-mount detection uses one `/proc/self/mountinfo` snapshot for

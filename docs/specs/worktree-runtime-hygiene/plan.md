@@ -37,10 +37,21 @@ and schema shape; register a separate Makefile invocation to avoid basename coll
    version comparison, remediation advice, or exit-code change.
 3. Fail closed into stated absent or inconclusive findings.
 
-## Task 4 — bounded test-evidence lifecycle (planned)
+## Task 4 — bounded test-evidence lifecycle (shipped)
 
-Plan and implement bounded retention and cleanup of test evidence without broadening
-the worktree doctor's deletion authority.
+Tests: dedicated `tools/test_playwright_evidence_lifecycle.py` invocation covering
+failed-run archival, successful-run cleanup, newest and pinned retention, age-budget
+expiry, predicate re-assertion before deletion, current-worktree refusal, and budget
+parsing.
+
+1. Wrap the existing browser-gate command in `frontend_runtime.run_gate` without
+   changing its pinned command strings or Playwright diagnostics.
+2. Retain failed `web/test-results/` evidence in ignored, worktree-local storage while
+   preserving that live path for the existing Pages failure-artifact upload; remove
+   successful `test-results` and `playwright-report` output immediately.
+3. Keep the newest failed run and `.pinned` evidence, pruning only older unpinned runs
+   by the configurable seven-day-default age budget through the hygiene module's
+   registered-current-worktree predicate and its immediate pre-mutation recheck.
 
 ## Task 5 — worktree lifecycle hooks (planned)
 

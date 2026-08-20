@@ -15,6 +15,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,6 +54,9 @@ CATEGORIES = ("dependencies", "generated", "test_artifacts")
 CLEANABLE_CATEGORIES = frozenset(CATEGORIES)
 EXPENSIVE = {"dependencies"}
 PROTECTED_ROOTS = {".loop-run", ".context"}
+PLAYWRIGHT_EVIDENCE_DIRECTORY = ".playwright-failure-evidence"
+PLAYWRIGHT_EVIDENCE_PIN = ".pinned"
+DEFAULT_PLAYWRIGHT_EVIDENCE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 NAMES = {
     "node_modules": "dependencies",
     ".venv": "dependencies",
@@ -123,6 +127,18 @@ class GitStatus:
     ignored: set[Path]
     tracked: set[Path]
     error: str = ""
+
+
+@dataclass(frozen=True)
+class PlaywrightEvidenceResult:
+    """Account for lifecycle mutations made for browser-gate evidence."""
+
+    archived: int = 0
+    cleaned: int = 0
+    pruned: int = 0
+    skipped: int = 0
+    refused: bool = False
+    receipt: tuple[str, ...] = ()
 
 
 def _run(
@@ -1104,10 +1120,18 @@ def _candidate_safety_reason(
     return _path_component_reason(candidate, root, mount_check)
 
 
-def _current_worktree(repository: Path, runner: Runner) -> Path:
-    """Resolve the registered worktree containing the invocation directory."""
+def _registered_current_worktree(
+    repository: Path,
+    runner: Runner,
+) -> Path | None:
+    """Resolve the registered worktree containing an invocation, if known."""
     _, _, worktrees, _ = discover_worktrees(repository, runner)
-    return _containing_worktree(repository, worktrees) or repository.resolve()
+    return _containing_worktree(repository, worktrees)
+
+
+def _current_worktree(repository: Path, runner: Runner) -> Path:
+    """Resolve the clean target, retaining clean's established fallback."""
+    return _registered_current_worktree(repository, runner) or repository.resolve()
 
 
 def _append_receipt_summary(
@@ -1129,6 +1153,189 @@ def _append_receipt_summary(
         lines.append("  none")
     for size, path, reason in ordered:
         lines.append(f"  {path}: {size} bytes ({reason})")
+
+
+def _playwright_evidence_local_safety_reason(
+    path: Path,
+    root: Path,
+    common: Path,
+    mount_check: MountCheck,
+) -> str:
+    """Re-establish the local portion of the evidence safety predicate."""
+    web = root / "web"
+    archive = web / PLAYWRIGHT_EVIDENCE_DIRECTORY
+    allowed = {web / "test-results", web / "playwright-report", archive}
+    if path not in allowed and path.parent != archive:
+        return "outside Playwright evidence surface"
+    if path == archive and not path.exists():
+        return ""
+    candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
+    return _candidate_safety_reason(candidate, root, common, set(), mount_check)
+
+
+def _playwright_evidence_candidates(root: Path) -> tuple[Path, Path, Path]:
+    """Return the two live Playwright outputs and retained-failure root."""
+    web = root / "web"
+    return (
+        web / "test-results",
+        web / "playwright-report",
+        web / PLAYWRIGHT_EVIDENCE_DIRECTORY,
+    )
+
+
+def manage_playwright_failure_evidence(
+    repository: Path,
+    *,
+    gate_returncode: int,
+    max_age_seconds: int,
+    runner: Runner = _run,
+    mount_check: MountCheck | None = None,
+) -> PlaywrightEvidenceResult:
+    """Retain bounded failed runs and remove artifacts from successful gates."""
+    _, common, worktrees, _ = discover_worktrees(repository, runner)
+    root = _containing_worktree(repository, worktrees)
+    if root is None or common is None:
+        return PlaywrightEvidenceResult(
+            refused=True,
+            receipt=("warning: skipped Playwright evidence: current worktree is not registered",),
+        )
+    common = common.resolve()
+    effective_mount_check = mount_check or _default_mount_check()
+    test_results, playwright_report, archive = _playwright_evidence_candidates(root)
+    actions: list[tuple[str, Path, tuple[Path, ...]]] = []
+    retained: list[tuple[Path, str]] = []
+    if gate_returncode:
+        if test_results.exists():
+            actions.append(("archive", test_results, (test_results, archive)))
+    else:
+        for path in (test_results, playwright_report):
+            if not path.exists():
+                continue
+            actions.append(("clean", path, (path,)))
+    entries = []
+    if archive.is_dir():
+        entries = sorted(
+            (
+                entry
+                for entry in archive.iterdir()
+                if entry.is_dir() and not entry.is_symlink()
+            ),
+            key=lambda entry: entry.stat().st_mtime,
+        )
+    newest = entries[-1] if entries else None
+    cutoff = time.time() - max_age_seconds
+    for entry in entries:
+        if entry == newest:
+            retained.append((entry, "newest failed run"))
+            continue
+        if (entry / PLAYWRIGHT_EVIDENCE_PIN).is_file():
+            retained.append((entry, "pinned"))
+            continue
+        if entry.stat().st_mtime >= cutoff:
+            retained.append((entry, "within age budget"))
+            continue
+        actions.append(("prune", entry, (entry,)))
+
+    candidates: dict[Path, Candidate] = {}
+    reasons: dict[Path, str] = {}
+    for _, _, paths in actions:
+        for path in paths:
+            if path in candidates:
+                continue
+            candidate = Candidate(path, "test_artifacts", 0, path.is_dir())
+            candidates[path] = candidate
+            reasons[path] = _playwright_evidence_local_safety_reason(
+                path, root, common, effective_mount_check
+            )
+    git_candidates = [
+        candidate
+        for path, candidate in candidates.items()
+        if not reasons[path]
+    ]
+    git_status = _mark_git_status(root, git_candidates, runner)
+    if git_status.error:
+        for path in candidates:
+            if not reasons[path]:
+                reasons[path] = git_status.error
+    else:
+        for path, candidate in candidates.items():
+            if reasons[path]:
+                continue
+            relative = candidate.canonical_path.relative_to(root)
+            if _is_tracked(relative, git_status.tracked):
+                reasons[path] = "tracked"
+            elif relative not in git_status.ignored:
+                reasons[path] = "not ignored"
+
+    def recheck_local(paths: tuple[Path, ...]) -> str:
+        """Recheck the local predicate after selection and before mutation."""
+        fresh_mount_check = mount_check or _default_mount_check()
+        for item in paths:
+            reason = _playwright_evidence_local_safety_reason(
+                item, root, common, fresh_mount_check
+            )
+            if reason:
+                return reason
+        return ""
+
+    archived = cleaned = pruned = skipped = failures = reclaimed = selected = 0
+    lines: list[str] = []
+    for path, reason in retained:
+        lines.append(f"warning: skipped {path}: {reason}")
+        skipped += 1
+    for kind, path, paths in actions:
+        reason = next((reasons[item] for item in paths if reasons[item]), "")
+        if reason:
+            lines.append(f"warning: skipped {path}: {reason}")
+            skipped += 1
+            continue
+        bytes_, _ = _tree_size(path, [])
+        lines.append(f"selected {path}: {bytes_} bytes")
+        selected += 1
+        reason = recheck_local(paths)
+        if reason:
+            lines.append(f"aborted {path}: safety changed: {reason}")
+            skipped += 1
+            continue
+        try:
+            if kind == "archive":
+                archive.mkdir(parents=True, exist_ok=True)
+                reason = recheck_local(paths)
+                if reason:
+                    lines.append(f"aborted {path}: safety changed: {reason}")
+                    skipped += 1
+                    continue
+                destination = archive / f"failed-{time.time_ns()}"
+                shutil.copytree(path, destination)
+                lines.append(f"archived {path}: {bytes_} bytes to {destination}")
+                archived += 1
+            else:
+                shutil.rmtree(path)
+                verb = "cleaned" if kind == "clean" else "pruned"
+                lines.append(f"{verb} {path}: {bytes_} bytes")
+                if kind == "clean":
+                    cleaned += 1
+                else:
+                    pruned += 1
+                reclaimed += bytes_
+        except OSError as exc:
+            lines.append(f"failure {path}: {exc}")
+            failures += 1
+    _append_receipt_summary(
+        lines,
+        selected=selected,
+        skipped=skipped,
+        reclaimed=reclaimed,
+        failures=failures,
+        remaining=[],
+    )
+    return PlaywrightEvidenceResult(
+        archived=archived,
+        cleaned=cleaned,
+        pruned=pruned,
+        skipped=skipped,
+        receipt=tuple(lines),
+    )
 
 
 def clean(
