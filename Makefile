@@ -400,6 +400,7 @@ test:
 		tools/test_lint_agents_md_diataxis_block.py \
 		tools/test_lint_agents_md_legacy_block.py \
 		tools/test_lint_agents_md_risk_block.py \
+		tools/test_lint_agents_md_frontmatter_scope.py \
 		tools/test_catalogue_curation_guard.py \
 		tools/test_contract_parity.py \
 		tools/test_marketplace_envelope_parity.py \
