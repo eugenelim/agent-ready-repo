@@ -57,6 +57,7 @@ PROTECTED_ROOTS = {".loop-run", ".context"}
 PLAYWRIGHT_EVIDENCE_DIRECTORY = ".playwright-failure-evidence"
 PLAYWRIGHT_EVIDENCE_PIN = ".pinned"
 DEFAULT_PLAYWRIGHT_EVIDENCE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+PLAYWRIGHT_ARCHIVE_NAME_ATTEMPTS = 64
 NAMES = {
     "node_modules": "dependencies",
     ".venv": "dependencies",
@@ -1363,6 +1364,24 @@ def _playwright_archive_time_ns(entry: Path) -> int | None:
     return timestamp if timestamp >= 0 else None
 
 
+def _playwright_archive_destination(archive: Path) -> Path:
+    """Return an unused lifecycle-owned archive path for one failed run.
+
+    `time.time_ns()` is not a uniqueness guarantee: two failures inside the same
+    nanosecond, or a directory that already carries the generated name, made
+    `copytree` raise and lost the failure it was archiving.
+    """
+    for suffix in range(PLAYWRIGHT_ARCHIVE_NAME_ATTEMPTS):
+        stamp = time.time_ns()
+        name = f"failed-{stamp}" if suffix == 0 else f"failed-{stamp + suffix}"
+        destination = archive / name
+        if not destination.exists():
+            return destination
+    raise FileExistsError(
+        f"could not allocate an unused archive name under {archive}"
+    )
+
+
 def _playwright_retention_actions(
     archive: Path, max_age_seconds: int
 ) -> tuple[list[tuple[str, Path, tuple[Path, ...]]], list[tuple[Path, str]]]:
@@ -1376,13 +1395,20 @@ def _playwright_retention_actions(
         if archive.is_dir()
         else []
     )
+    selected_at = time.time_ns()
+    # The archive name is ordinary worktree-local state: a stray directory, or a
+    # clock stepped backwards by NTP, can carry a timestamp in the future. Such a
+    # name would hold "newest" indefinitely and, under a zero budget, get the
+    # genuine newest run pruned instead. Refuse to read it as a time at all;
+    # unrecognized archives fall into the retained bucket, never the pruned one.
     creation_times = {
         entry: timestamp
         for entry in entries
         if (timestamp := _playwright_archive_time_ns(entry)) is not None
+        and timestamp <= selected_at
     }
     newest = max(creation_times, key=creation_times.__getitem__, default=None)
-    cutoff = time.time_ns() - max_age_seconds * 1_000_000_000
+    cutoff = selected_at - max_age_seconds * 1_000_000_000
     actions: list[tuple[str, Path, tuple[Path, ...]]] = []
     retained: list[tuple[Path, str]] = []
     for entry in entries:
@@ -1499,7 +1525,7 @@ def manage_playwright_failure_evidence(
                         lines.append(f"aborted {path}: safety changed: {reason}")
                         skipped += 1
                         continue
-                    destination = archive / f"failed-{time.time_ns()}"
+                    destination = _playwright_archive_destination(archive)
                     shutil.copytree(path, destination)
                     lines.append(f"archived {path}: {bytes_} bytes to {destination}")
                     archived += 1

@@ -170,3 +170,13 @@ Participating gate wrappers are coordinated by the shared lease, but the availab
 probe closes before Astro binds. An unrelated machine-local listener can therefore
 take the selected port during that interval. The wrapper does not claim an absolute
 reservation guarantee, and handing a bound socket to Astro is outside this scope.
+
+A second, pre-existing case shares that boundary. `_run_child` reaps the child's
+process group on its interrupt paths but not after a normal `wait()`, and the lease is
+released as soon as the child returns. A gate command that backgrounds the preview
+server and exits zero therefore leaves a descendant holding the port after release, so
+a peer worktree can lease it and collide. This is task 2's shipped behaviour, unchanged
+by the evidence-lifecycle work, which restored that original release ordering after
+briefly holding the lease across archival. Closing it means reaping the process group on
+the normal-exit path too, which is a change to shipped port-lease behaviour and belongs
+with AC6's cooperative lease rather than here.

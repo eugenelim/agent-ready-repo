@@ -168,6 +168,105 @@ def test_success_removes_live_run_artifacts_but_keeps_retained_failure(
     assert retained.exists()
 
 
+def test_future_dated_archive_does_not_starve_the_newest_run(
+    evidence_root: Path,
+) -> None:
+    # The archive name is ordinary worktree-local state, and a clock stepped
+    # backwards by NTP produces exactly this: a name whose timestamp is in the
+    # future. Read as a time it would hold "newest" forever and, with a zero
+    # budget, the genuine newest run gets pruned instead of kept.
+    git = EvidenceGit(evidence_root)
+    archive = evidence_root / "web" / hygiene.PLAYWRIGHT_EVIDENCE_DIRECTORY
+    archive.mkdir(parents=True)
+    future = archive / f"failed-{time.time_ns() + 10**15}"
+    future.mkdir()
+    (future / "trace.zip").write_text("FUTURE", encoding="utf-8")
+
+    result = hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=1,
+        max_age_seconds=0,
+        runner=git,
+    )
+
+    genuine = [
+        entry
+        for entry in archive.iterdir()
+        if entry.is_dir() and entry != future
+    ]
+    assert result.archived == 1
+    assert len(genuine) == 1, "the genuine failed run must survive"
+    assert (genuine[0] / "trace.zip").read_text(encoding="utf-8") == "failure"
+    assert any("unrecognized archive time" in line for line in result.receipt)
+
+
+def test_archive_name_collision_still_archives_the_failure(
+    evidence_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A frozen clock models two failures inside one nanosecond. Before the
+    # collision-safe allocator this raised FileExistsError and lost the failure.
+    git = EvidenceGit(evidence_root)
+    archive = evidence_root / "web" / hygiene.PLAYWRIGHT_EVIDENCE_DIRECTORY
+    archive.mkdir(parents=True)
+    frozen = time.time_ns()
+    monkeypatch.setattr(hygiene.time, "time_ns", lambda: frozen)
+    taken = archive / f"failed-{frozen}"
+    taken.mkdir()
+    (taken / "trace.zip").write_text("TAKEN", encoding="utf-8")
+
+    result = hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=1,
+        max_age_seconds=3600,
+        runner=git,
+    )
+
+    assert result.archived == 1
+    copies = [
+        entry
+        for entry in archive.iterdir()
+        if entry.is_dir()
+        and (entry / "trace.zip").read_text(encoding="utf-8") == "failure"
+    ]
+    assert len(copies) == 1
+
+
+def test_symlinked_pin_does_not_preserve_expired_evidence(
+    evidence_root: Path,
+) -> None:
+    # `.pinned` is honoured as a file or a directory, but a symlink must not
+    # count: it can point outside the worktree, so a symlinked marker would let
+    # anything outside decide what is retained here.
+    git = EvidenceGit(evidence_root)
+    expired = _failed_run(evidence_root, "failed-100", 120)
+    _failed_run(evidence_root, "failed-900", 1)
+    outside = evidence_root / "elsewhere"
+    outside.mkdir()
+    (expired / hygiene.PLAYWRIGHT_EVIDENCE_PIN).symlink_to(
+        outside, target_is_directory=True
+    )
+    shutil.rmtree(evidence_root / "web" / "test-results")
+
+    result = hygiene.manage_playwright_failure_evidence(
+        evidence_root,
+        gate_returncode=0,
+        max_age_seconds=60,
+        runner=git,
+    )
+
+    # It survives, but never as "pinned": a second, older guard refuses to
+    # recurse into any candidate containing a link. Asserting the *reason*
+    # discriminates -- drop the `not pin.is_symlink()` clause and this entry is
+    # retained as "pinned" instead, which is the bug.
+    assert any(
+        f"skipped {expired}: link inside candidate" in line
+        for line in result.receipt
+    )
+    assert not any(
+        f"skipped {expired}: pinned" in line for line in result.receipt
+    )
+
+
 def test_newest_failed_run_survives_the_age_budget(evidence_root: Path) -> None:
     git = EvidenceGit(evidence_root)
     oldest = _failed_run(evidence_root, "failed-oldest", 120)
