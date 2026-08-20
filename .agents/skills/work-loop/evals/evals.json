@@ -130,7 +130,7 @@
     {
       "id": "reconcile-stale-routes-to-workspace-status",
       "prompt": "Several specs in workspace.toml are showing Status: Shipped but are still listed in the queue. How do I find and fix all stale queue entries?",
-      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan — reconcile is the canonical tool for portfolio-wide stale detection.",
+      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan \u2014 reconcile is the canonical tool for portfolio-wide stale detection.",
       "assertions": [
         "Response recommends `workspace-status reconcile` as the correct tool",
         "Response does NOT say to use work-loop for this",
@@ -141,7 +141,7 @@
     {
       "id": "find-untracked-specs-routes-to-reconcile",
       "prompt": "I want to find spec files that exist on disk but are not declared in workspace.toml and are actively in progress (Approved or Implementing). What command should I run?",
-      "expected_output": "Run `workspace-status reconcile` — it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
+      "expected_output": "Run `workspace-status reconcile` \u2014 it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
       "assertions": [
         "Response recommends `workspace-status reconcile`",
         "Response mentions Type 1 findings or untracked spec detection",
@@ -151,7 +151,7 @@
     {
       "id": "two-gate-resumption-spec-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `last_event: reviewers-clean`, `pending_human_wait: true`. You read spec.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `spec-approved` immediately — this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
+      "expected_output": "Fire `spec-approved` immediately \u2014 this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
       "assertions": [
         "Response fires `spec-approved` immediately without waiting for a new human signal",
         "Response identifies this as crash-recovery for the approval window",
@@ -162,7 +162,7 @@
     {
       "id": "two-gate-resumption-plan-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: PLAN-HUMAN-GATE`, `last_event: spec-approved`, `pending_human_wait: true`. You read plan.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `plan-approved` immediately — crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
+      "expected_output": "Fire `plan-approved` immediately \u2014 crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
       "assertions": [
         "Response fires `plan-approved` immediately without waiting",
         "Response identifies this as crash-recovery",
@@ -173,7 +173,7 @@
     {
       "id": "two-gate-resumption-incompatible-spec-status",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `pending_human_wait: true`. spec.md shows `Status: Implementing`. What should you do?",
-      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible — it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
+      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible \u2014 it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
       "assertions": [
         "Response surfaces the incompatible state to the human",
         "Response does NOT fire any transition automatically",
@@ -194,7 +194,7 @@
     {
       "id": "explain-query-routes-to-explain",
       "prompt": "Why is spec/foo still blocked? Its upstream dependencies look resolved to me.",
-      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec — it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
+      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec \u2014 it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
       "assertions": [
         "Response recommends `workspace-status explain --item spec/foo`",
         "Response does NOT describe a work-loop mechanism for explaining blocked specs",
@@ -357,6 +357,46 @@
         "Response invalidates the envelope on a material target or scope change",
         "Response requires a new explicit declaration rather than automatic refresh"
       ]
+    },
+    {
+      "prompt": "Fix this validation bug, and assign it to Dana to pick up.",
+      "expected_output": "The agent refuses direct-light: assignment to another person means the contract must be readable without this session. It invokes new-spec and creates the durable spec and plan before implementation.",
+      "assertions": [
+        "Treats assignment to another person as a durability trigger",
+        "Refuses the direct-light route",
+        "Creates a durable spec and plan"
+      ],
+      "id": "durability-assignment-to-another-person"
+    },
+    {
+      "prompt": "Make this change, but it needs sign-off recorded before it can ship, and the approver is out until next week.",
+      "expected_output": "The agent refuses direct-light: an approval boundary that must survive context loss cannot rest on a session-local record. It routes to the durable spec-and-plan path where the approval persists.",
+      "assertions": [
+        "Treats a context-surviving approval boundary as a durability trigger",
+        "Refuses the direct-light route",
+        "Does not offer the session decision record as the approval"
+      ],
+      "id": "durability-approval-must-survive-context-loss"
+    },
+    {
+      "prompt": "Import the requirements from the tracker issue and keep the refresh conflict decision so a later session can see what we accepted.",
+      "expected_output": "The agent refuses direct-light: source-authority and refresh state that must stay meaningful after the session is durable state. It routes to the durable path and preserves provenance there.",
+      "assertions": [
+        "Treats durable source-authority and refresh state as a durability trigger",
+        "Refuses the direct-light route",
+        "Preserves provenance in a durable artifact"
+      ],
+      "id": "durability-source-authority-and-refresh-state"
+    },
+    {
+      "prompt": "Do these three changes in order \u2014 the second depends on the first landing, and the third on the second.",
+      "expected_output": "The agent refuses direct-light: dependent delivery tasks needing durable sequencing are not one bounded logical change, and the order must outlive the session that chose it. It routes to the durable spec-and-plan path.",
+      "assertions": [
+        "Treats dependent sequencing as a durability trigger",
+        "Refuses the direct-light route",
+        "Does not treat three dependent changes as one bounded change"
+      ],
+      "id": "durability-dependent-task-sequencing"
     }
   ]
 }

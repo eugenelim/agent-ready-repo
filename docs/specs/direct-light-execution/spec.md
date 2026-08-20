@@ -165,15 +165,23 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   reason future work should use a durable spec. Its testable form is the
   five-field requirement asserted in the skill body plus an eval case; no
   durable handoff file is created.
-- [ ] AC4 — Direct-light eligibility is a conjunction, and each conjunct has a
-  positive and a negative test case: an explicit user request to start or perform
+- [ ] AC4 — Direct-light eligibility is a conjunction, and each conjunct is
+  individually pinned. These predicates are semantic judgements an agent makes, so
+  the achievable verification is (a) one parameterized case per conjunct asserting
+  it is stated with its consequence, (b) a completeness pin failing when a conjunct
+  is added without a case, and (c) eval coverage for behavioral discrimination — not
+  a unit test that evaluates the predicate itself. The conjuncts are: an explicit user request to start or perform
   the change now; one bounded logical change; independent verifiability; expected
   completion in the current session; no firing full-mode risk trigger; no need
   for queueing, assignment, cross-session resumption, parallel coordination, or a
   durable product contract; no conflict with a canonical queued or active
   workspace item; and no supplied governing spec for the same work.
-- [ ] AC5 — Each of these routes to the durable spec-and-plan path, is refused
-  the direct route, and has its own test case: any current full-mode risk
+- [ ] AC5 — Each of these routes to the durable spec-and-plan path and is refused
+  the direct route. Each is stated as its own row with a reason, carries its own
+  parameterized case, and is covered by the completeness pin described in AC4; the
+  four least self-evident — assignment to another person, an approval that must
+  survive context loss, durable source-authority or refresh state, and dependent
+  task sequencing — additionally carry eval cases. The triggers are: any current full-mode risk
   trigger; multi-person or parallel execution; dependent delivery tasks needing
   durable sequencing; expected multi-session work; queueing for later; external
   control-plane orchestration; a human approval boundary that must survive

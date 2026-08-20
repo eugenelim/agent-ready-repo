@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 _WORK_LOOP = (
     Path(__file__).resolve().parents[3]
     / ".apm"
@@ -32,10 +34,31 @@ def _normalized(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_direct_light_is_session_local_and_fail_closed() -> None:
-    """Pin direct-light authority, durability, and workspace-dispatch limits."""
-    body = _normalized(_WORK_LOOP.read_text(encoding="utf-8"))
+def _section(body: str, start: str, end: str) -> str:
+    """Return one operative section, normalized.
 
+    Searching the whole 900-line skill would let a required statement be moved
+    out of the procedure an agent follows and into unrelated commentary while the
+    assertion still passed. A contract pin has to check the text where the
+    instruction is acted on.
+    """
+
+    return _normalized(body[body.index(start) : body.index(end)])
+
+
+def test_direct_light_is_session_local_and_fail_closed() -> None:
+    """Pin direct-light authority, durability, and workspace-dispatch limits.
+
+    Scoped to the two operative regions: the direct-light procedure and route,
+    and Step 0's orientation. See `_section`.
+    """
+    raw = _WORK_LOOP.read_text(encoding="utf-8")
+    operative = _section(raw, "**Light mode**", "## Step 1. PLAN")
+    finish = _section(raw, "## Finish checklist", "## FIX")
+    body = _normalized(raw)
+
+    # These must appear in the operative direct-light/Step-0 region, not merely
+    # somewhere in the file.
     for required in (
         "explicit trusted invocation is the authority",
         "emit a user-visible, session-only decision record",
@@ -49,14 +72,19 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
         "A direct-light run is not resumable through `workspace-status`",
         "Direct-light does **not** invoke `new-spec`; create `docs/specs/`;"
         " create a sibling plan;",
-        "do not run the spec-status lint.",
         "Do not backfill a fake implementation chronology.",
         "gates cannot be repaired in-session, stop, Surface the situation,"
         " and escalate",
+    ):
+        assert _normalized(required) in operative, required
+
+    # These two are checklist obligations, so they are pinned to the checklist.
+    for required in (
+        "do not run the spec-status lint.",
         "the requested outcome, implemented scope, verification evidence,"
         " non-goals and deferrals",
     ):
-        assert _normalized(required) in body, required
+        assert _normalized(required) in finish, required
 
     assert "Run `new-spec` to scaffold" not in body
 
@@ -101,3 +129,83 @@ def test_persisted_light_specs_remain_spec_driven() -> None:
     table = table.split("\n## ", 1)[0]
     for status in ("`Draft`", "`Approved`", "`Implementing`"):
         assert status in table, status
+
+# The eight eligibility conjuncts and ten durability triggers, each pinned
+# individually. A single grouped assertion would pass while one predicate was
+# silently dropped, which is the failure these tables exist to prevent.
+_ELIGIBILITY_CONJUNCTS = (
+    "Explicit user request to start or perform the change now",
+    "One bounded logical change",
+    "Independently verifiable",
+    "Expected to complete in the current session",
+    "No current full-mode risk trigger",
+    "No need for queueing, assignment, cross-session resumption, parallel"
+    " coordination, or a durable product contract",
+    "No conflict with a canonical queued or active workspace item",
+    "No supplied governing spec for the same work",
+)
+
+_DURABILITY_TRIGGERS = (
+    "A current full-mode risk trigger",
+    "Multi-person or parallel execution",
+    "Dependent delivery tasks needing durable sequencing",
+    "Expected multi-session work",
+    "Queueing for later",
+    "External control-plane orchestration",
+    "A human approval boundary that must survive context loss",
+    "A public or durable product behavior contract",
+    "Source-authority or refresh state that must stay meaningful after the session",
+    "An explicit user request for a spec",
+)
+
+
+def _table_rows(body: str, start: str, end: str) -> list[str]:
+    window = body[body.index(start) : body.index(end)]
+    return [
+        line
+        for line in window.splitlines()
+        if line.startswith("| ") and "---" not in line
+    ][1:]
+
+
+@pytest.mark.parametrize("conjunct", _ELIGIBILITY_CONJUNCTS)
+def test_each_eligibility_conjunct_is_stated_with_a_consequence(conjunct: str) -> None:
+    """One case per conjunct, so dropping any single one turns a named test red."""
+    rows = _table_rows(
+        _WORK_LOOP.read_text(encoding="utf-8"),
+        "| Required condition",
+        "Durability is a disjunction",
+    )
+    matching = [r for r in rows if _normalized(conjunct) in _normalized(r)]
+    assert matching, f"eligibility conjunct absent: {conjunct}"
+    # Every row must carry a consequence, not just the condition.
+    assert all(len(r.strip().strip("|").split("|")) >= 2 for r in matching), matching
+
+
+@pytest.mark.parametrize("trigger", _DURABILITY_TRIGGERS)
+def test_each_durability_trigger_is_stated_with_a_reason(trigger: str) -> None:
+    """One case per trigger. AC5 requires each to route durable on its own."""
+    rows = _table_rows(
+        _WORK_LOOP.read_text(encoding="utf-8"),
+        "| Durability trigger",
+        "Direct execution being unavailable",
+    )
+    matching = [r for r in rows if _normalized(trigger) in _normalized(r)]
+    assert matching, f"durability trigger absent: {trigger}"
+    assert all(len(r.strip().strip("|").split("|")) >= 2 for r in matching), matching
+
+
+def test_the_predicate_tables_have_no_unpinned_rows() -> None:
+    """Adding a predicate without adding its case must fail, not pass silently.
+
+    Without this, the per-predicate tests above would still pass while a ninth
+    conjunct or eleventh trigger went entirely uncovered — an enumeration that
+    only checks the things it already knows about.
+    """
+    body = _WORK_LOOP.read_text(encoding="utf-8")
+    eligibility = _table_rows(body, "| Required condition", "Durability is a disjunction")
+    durability = _table_rows(body, "| Durability trigger", "Direct execution being unavailable")
+    assert len(eligibility) == len(_ELIGIBILITY_CONJUNCTS), (
+        len(eligibility), len(_ELIGIBILITY_CONJUNCTS))
+    assert len(durability) == len(_DURABILITY_TRIGGERS), (
+        len(durability), len(_DURABILITY_TRIGGERS))

@@ -1,8 +1,23 @@
-"""Decision-seam no-write coverage, not an end-to-end agent-execution guarantee.
+"""Decision-seam no-write coverage. Read the scope limits before trusting it.
 
-This proves that routing a direct-light request selects no transaction and leaves
-the fixture repository unchanged. It cannot establish that an agent following
-``SKILL.md`` writes nothing; that requires separately recorded manual QA.
+What this establishes: for a direct-light signal, ``route_intake()`` returns an
+all-absent ``Route``, and a caller that gates the transaction on any durable-route
+marker will not invoke it.
+
+What it does NOT establish, in two distinct ways:
+
+1. ``route_intake()`` is a pure function with no filesystem actor, so the
+   unchanged fixture snapshot is guaranteed by construction rather than earned.
+   It catches a *code path* that starts writing; it cannot catch an agent
+   following ``SKILL.md`` that writes. That property is recorded manual QA.
+2. ``_drive_route`` below is *test-local* wiring, not production wiring. There is
+   no production route-to-transaction dispatcher to exercise. So the
+   "transaction not invoked" assertion proves the marker rule holds for a caller
+   shaped like ``_drive_route`` — it would not catch a future orchestration layer
+   that writes despite an all-absent route.
+
+Both limits are deliberate: the alternative was inventing a dispatcher this
+change does not need.
 """
 
 from __future__ import annotations

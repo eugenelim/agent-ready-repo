@@ -139,6 +139,11 @@ enters `new-spec` when it needs a durable contract, queueing, resumption,
 approval persistence, external orchestration, or elevated assurance, or when
 the user asks for a spec.
 
+**`work-loop` owns the complete eligibility and durability policy** — its
+conjunct and trigger tables are authoritative. The summary above is a routing
+aid, not a second source of truth; when the two disagree, `work-loop` governs
+and this section is the one to correct.
+
 Never infer readiness from tracker labels, titles, comments, summaries, or list
 order. A Ready brief can have zero materialized specs and is still not
 executable.
