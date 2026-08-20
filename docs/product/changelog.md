@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.10.2] — 2026-08-20
+
+#### Changed
+
+- **Completion now follows the intent you accepted, not the size of one PR.**
+  Work that belongs to that intent can continue as a separately reviewed unit;
+  work outside it is acknowledged in the PR and remembered only when you ask.
+
 ### [core][2.10.1] — 2026-08-20
 
 #### Added
