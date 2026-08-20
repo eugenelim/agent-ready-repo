@@ -37,6 +37,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Running the activation evals no longer writes into the repository you are
+  measuring.** `agentbundle pack evals run` projected the pack into a directory
+  inside your repository and ran each probe from there, so a skill that resolves
+  the repository root could create files in your tree — one *negative* eval query
+  fired a spec-authoring skill and left a spec at the worktree root, which then
+  read as workspace drift with no author. The projection now lives in a temporary
+  directory outside the repository and is removed when the run ends, and the run
+  refuses outright if `TMPDIR` points inside the repository rather than silently
+  losing the confinement. Eval outputs still land in `.eval-workspace/`,
+  unchanged. Probes also no longer pause three seconds each waiting on standard
+  input.
+
 ### Added
 
 - **Journey authors can record which decisions a reader meets, and in what
@@ -46,6 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   label. The field is optional and `yourDecisions` remains required, so every
   pack authored before this stays valid with no edit.
 
+### Removed
+
+- **The `update-conventions` skill is gone.** Asking to "update the rules", "amend the
+  charter", or "change our principles" now reaches `new-rfc`, which tells you which
+  artifact the change actually needs — usually a plain pull request. What the skill
+  carried: a rule that every substantive conventions edit needed an RFC, which no longer
+  holds; a commit-footer convention, already covered by the conventions' § Commits
+  footer-references rule; a typo exemption, now subsumed by the routing rules; and a
+  nudge to update an accepted RFC's follow-on-artifacts list after merge, which is no
+  longer prompted for (RFC-0091).
+
 ### Changed
 
 - **Keyboard focus is visible everywhere on the marketing site, not just in the
@@ -53,6 +78,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   backgrounds, so on most pages the ring around the control you had tabbed to was
   hard to make out. Light areas now use a near-black outline; the dark bands keep
   the gold, which was already clearly visible there.
+- **You no longer need an RFC just because a change is big.** What opens an RFC is
+  now an unresolved direction that more than one owner has to agree on, or someone
+  asking to circulate a proposal. Touching several packages, changing something
+  users can see, renaming a top-level directory, or editing `docs/CONVENTIONS.md`
+  raises how carefully the change is reviewed — none of them, on its own, requires a
+  proposal any more. Charter mission and scope, who may approve work, security trust
+  models, and breaking a published compatibility promise are still reserved
+  (RFC-0091).
+- **A decision you have already made goes straight into an ADR.** Reversing an
+  earlier ADR when you already know the replacement is a superseding ADR, not a
+  proposal for comment. Behaviour-preserving refactors, dependency upgrades and bug
+  fixes are pull requests; a bounded feature whose direction is settled is a spec
+  (RFC-0091).
+- **A light RFC is now genuinely lighter.** `light` means one focused decision, a
+  completeness check and a single review pass — not the full apparatus over a shorter
+  draft. Citation and claim checking still apply at every weight, to whatever the
+  proposal actually claims (RFC-0091).
+- **Governance advice now works in a repository that has no RFC process.** If you
+  installed `core` without the optional governance pack, the conventions no longer
+  tell you to run a workflow you do not have: reserved and contested decisions ask
+  for a recorded owner decision using whatever mechanism you already use. No new
+  file, pack or configuration is required, and a stricter local rule of your own
+  still wins (RFC-0091).
 - **The example session on a journey page now reads as a session.** Each turn is
   attributed to whoever spoke it and sits on its own line in a terminal-style
   register, instead of running together in one paragraph with stray asterisks and

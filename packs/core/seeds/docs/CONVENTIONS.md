@@ -221,8 +221,9 @@ the edited file, not by trusting this paragraph.
 **What:** one page. Mission, scope, and principles. The foundational
 document. Modeled on the [CNCF charter pattern](https://contribute.cncf.io/maintainers/governance/charter/).
 
-**Lifecycle:** living, but rarely changed. Substantive edits go through an
-RFC. Trivial edits (typos, broken links) can be a normal PR.
+**Lifecycle:** living, but rarely changed. Mission, scope, and foundational-principle
+changes are reserved; wording, clarification, examples, typos, broken links, and
+accepted decisions are normal PRs regardless of pathname.
 
 **What goes here:**
 
@@ -306,8 +307,8 @@ Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
 ```
 
 **Optional `Experimental` status.** An RFC that proposes running an
-experiment — using the optional `Experiment / validation` section of the
-`new-rfc` template — may sit in `Experimental` while the trial runs and
+experiment — using an optional `Experiment / validation` section of the RFC
+template — may sit in `Experimental` while the trial runs and
 results are pending, instead of being forced to a premature Accept or Reject.
 Results live in a linked spike note (or a follow-up RFC / superseding ADR),
 not the RFC body; when they land, the RFC moves to `Accepted | Rejected |
@@ -330,21 +331,38 @@ is optional and informal; the RFC body remains the contract.
 
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 
-**Template:** `assets/rfc.md` in the `new-rfc` skill that creates RFCs from it.
+**Template:** the RFC template provided by the repository's RFC workflow, if it has one.
 
 **When to open an RFC:**
 
-- The change touches more than one package, or affects external users.
-- The change reverses a previous ADR.
-- The change adds, removes, or modifies a top-level directory or a convention.
-- You expect any reasonable contributor to want a say.
+- Direction is unresolved and more than one owner must agree.
+- Someone explicitly asks to circulate a proposal.
+- Always reserved, taking the strongest route the repository has:
+  - charter mission, scope, or foundational principles;
+  - maintainer authority, approval process, or governance model;
+  - a security trust model, as distinct from a security implementation;
+  - withdrawal of, or a breaking change to, a stable published compatibility promise.
+- Evidence only, never sufficient: package or file count, public visibility, top-level
+  location, a prior ADR, or a governed-document pathname. These raise review depth;
+  they do not select the artifact.
 
 **When NOT to open an RFC:**
 
-- A bug fix, performance improvement, or refactor that preserves behavior —
-  just open a PR.
-- A new feature that fits cleanly within an existing package and doesn't change
-  any interface — write a spec, not an RFC.
+- Bug fix, performance work, behavior-preserving refactor, or accepted-decision
+  implementation → PR; cite the decision.
+- Bounded feature whose direction is settled → issue, or a spec when concrete behaviour
+  and acceptance criteria need defining.
+- Settled durable architectural choice, including a settled replacement for a prior ADR
+  → ADR, or a superseding ADR.
+- Reversible, time-bounded trial with stated exit criteria → normal implementation
+  review; promote to RFC only if permanent adoption is contested.
+- Conventions maintenance that preserves an obligation → PR; a changed obligation uses
+  the test above; authority, mission, scope, and principles are reserved.
+
+Without an RFC process, reserved and unresolved multi-owner decisions require owners to
+reach and retain an explicit recorded decision before implementation, using the existing
+mechanism; no file, pack, or configuration is required. Honour a stricter declared local
+policy as an override.
 
 ---
 

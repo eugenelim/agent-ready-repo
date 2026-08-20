@@ -26,8 +26,10 @@ version = "^2.0"
 catalogue = "agent-ready-repo"
 pack = "governance-extras"
 # Requires the governance-index template, `new-adr` infrastructure mode, and
-# extension-contract convention introduced in governance-extras 0.9.
-version = "^0.9"
+# extension-contract convention introduced in governance-extras 0.9; all three
+# are unchanged in 0.10, which retired the `update-conventions` skill this pack
+# never used (RFC-0091). Bumped so the range admits the minor actually shipped.
+version = "^0.10"
 
 [pack.links]
 homepage = "https://github.com/eugenelim/agent-ready-repo"

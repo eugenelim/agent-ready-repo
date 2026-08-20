@@ -28,9 +28,6 @@ skills:
   - name: new-adr
     description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
     humanTouches: 2
-  - name: update-conventions
-    description: "Evolves CONVENTIONS.md with tracked changes — the living record of how this project's team works."
-    humanTouches: 1
   - name: rfc-status
     description: "Surfaces the current RFC landscape at a glance — how many RFCs are in each lifecycle state, which are active, and how many findings are waiting in the candidate register."
     humanTouches: 0
@@ -88,7 +85,6 @@ relatedJourneys:
 | `rfc-status`           | Orient — RFC landscape by status and findings count     |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC |
 | `new-adr`              | Record an architectural decision with critique tracks   |
-| `update-conventions`   | Evolve CONVENTIONS.md through tracked RFC review        |
 
 ---
 

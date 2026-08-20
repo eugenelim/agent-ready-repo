@@ -1,6 +1,6 @@
 # Spec: new-rfc, sized to its two humans (RFC-0054 implementation)
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0089](../../adr/0089-decision-weight-trims-the-rfc-gate.md) — AC5 and AC6's rule that no tier drops or weakens a gate check; every other acceptance criterion stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0054, RFC-0014

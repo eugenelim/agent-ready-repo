@@ -7,11 +7,11 @@ kind: how-to
 
 # How to propose a cross-cutting change (RFC)
 
-**Use this when:** A change touches more than one package, reverses a prior decision, or needs cross-team consensus before implementation begins.
+**Use this when:** A change's direction is still unresolved and more than one owner has to agree, or you want a proposal circulated — plus the reserved categories below, which take this route even with one owner.
 **Prerequisites:** `governance-extras` pack installed, a `docs/rfc/` directory, and web search available for the prior-art sweep — see [Prerequisites](#prerequisites) below.
 **Result:** A scaffolded, research-backed RFC at `docs/rfc/NNNN-<title>.md`, gate-checked and ready to circulate as `Open`.
 
-You have a change in mind that touches more than one package, alters a convention, or reverses a previous decision — the kind of change where "open a PR and see what happens" is the wrong shape. This guide walks the path of drafting an RFC with the `new-rfc` skill: scaffolding the file, running the per-subpoint research-and-de-risk phase before any body sentence gets written, drafting answer-first, and circulating the proposal after a self-review gate.
+You have a change in mind whose *direction* is not settled, and more than one person has to agree before it can be built — the kind of change where "open a PR and see what happens" is the wrong shape. Note what does *not* put you here: a change being large, spanning packages, visible to users, or touching a governed document. Those affect how carefully it is reviewed, not which artifact it needs. This guide walks the path of drafting an RFC with the `new-rfc` skill: scaffolding the file, running the per-subpoint research-and-de-risk phase before any body sentence gets written, drafting answer-first, and circulating the proposal after a self-review gate.
 
 For the surrounding system — where RFCs sit relative to ADRs, specs, and the loop that builds features once an RFC is accepted — read [the core pack as a system](../../core/explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.
 
@@ -25,7 +25,7 @@ The two skills look adjacent but solve different problems. Get this right before
 | Lifecycle | `Draft` → `Open` → `Final Comment Period` → `Accepted` \| `Rejected` \| `Withdrawn` (optional `Experimental` while a trial runs) | `Proposed` → `Accepted` → (`Deprecated` \| `Superseded by ADR-NNNN`) |
 | Body after acceptance | Frozen at acceptance (status field can change later, body cannot); stays as historical record; produces follow-on ADRs, specs, or CONVENTIONS edits | Frozen at acceptance (status field can change later, body cannot) |
 | Reject path | `Rejected` is a normal terminal state — the discussion was the point | A pre-acceptance ADR that doesn't earn `Accepted` just isn't committed; there's no `Rejected` state |
-| Trigger | The decision is still being debated, or affects external users | The decision is made (or is being formally proposed) and has a concrete tradeoff |
+| Trigger | The direction is unresolved and more than one owner must agree | The decision is made (or is being formally proposed) and has a concrete tradeoff |
 
 Quick rule: **RFCs propose; ADRs record.** If the discussion hasn't happened yet, you want an RFC. If the discussion is done and you're writing it down so the next maintainer can reconstruct it, you want an ADR. Both are covered by the lifecycle table in [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle).
 
@@ -42,14 +42,30 @@ If you're recording a decision that's already settled, see [how to record a deci
 
 ## When `new-rfc` is the right call
 
-Before invoking, check that the change clears at least one of these bars, lifted from [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc):
+Before invoking, check that the change clears one of these bars, lifted from [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc):
 
-- It touches more than one package, or affects external users.
-- It reverses a previous ADR.
-- It adds, removes, or modifies a top-level directory or convention.
-- You expect any reasonable contributor to want a say.
+- The direction is unresolved **and** more than one owner has to agree.
+- Someone explicitly asks for a proposal to be circulated.
+- It is one of the reserved categories, which take this route even with a single
+  owner: the charter's mission, scope, or foundational principles; who may approve
+  work, or the governance model; a security **trust model** (as distinct from a
+  security implementation); withdrawing or breaking a stable published compatibility
+  promise.
 
-If none of these fire — the change fits in one package and preserves public interfaces — push back on yourself. A normal PR is enough. [`AGENTS.md`](../../../AGENTS.md) carries the same rule for *substantive* CHARTER edits: those go through RFC, but trivial ones (typos, broken links) ship as PRs.
+Some facts feel decisive and are not. Package or file count, visibility to users,
+top-level location, a prior ADR, and the pathname of a governed document raise how
+carefully a change is reviewed — none of them, on its own, calls for a proposal.
+
+If no bar fires, push back on yourself and pick the artifact that fits: a settled
+durable architectural choice is an ADR (a superseding ADR when it replaces one); a
+bounded feature whose direction is settled is a spec; routine and behaviour-preserving
+work, and implementing a decision already accepted, is a PR; and a reversible,
+time-bounded trial with stated exit criteria just gets normal review.
+
+Working in a repository with no RFC process at all? Reserved and contested decisions
+still need an explicit recorded decision from the owners before implementation, using
+whatever mechanism that repository already has. No file, pack, or configuration is
+required — and if the repository declares a stricter rule of its own, that rule wins.
 
 :::tip
 **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's get input on X" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Lead with `use the new-rfc skill to …` whenever you want the discipline to trigger reliably.
@@ -80,7 +96,7 @@ Before any research, the skill gets the frame straight — and how hard it leans
 - **A sharp ask** (a clear change, a named surface, an evident motivation) — the skill infers the frame and moves straight to research. You won't be made to fill in a questionnaire you've already answered.
 - **A vague ask** ("we should probably do something about X") — the skill asks a *small* set of framing questions (what outcome, what's in and out of scope, what's the bet) and reflects back a short proposal frame for you to confirm, so research effort doesn't get spent on the wrong target.
 
-The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers: a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight right-sizes how much research depth and pre-handoff ceremony the RFC carries — a `light` RFC collapses sections to one-liners — but it **never** licenses dropping a gate check (see Step 5). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
+The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers: a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight now changes what the RFC is actually *obliged* to do, not just how long it is (see Step 5). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
 
 ## Step 3 — Watch the research + de-risk phase
 
@@ -123,15 +139,15 @@ Once the file and the RFC index are written, the skill hands back a short **comp
 
 ## Step 5 — The pre-handoff gate
 
-Before the RFC moves to `Open`, the skill runs a mandatory self-review gate so you aren't the one catching obvious misses. Each check is *run, not asserted*. The `Decision weight` right-sizes how much research and draft each tier carries — **never whether a check runs**: a `light` RFC runs the full gate over a smaller draft (citations still fetched, the adversarial pass still mandatory and re-run until clean), `standard` is the full gate, and `heavy` adds a mandatory de-risk spike and explicit Approver sign-off. The checks:
+Before the RFC moves to `Open`, the skill runs a self-review gate so you aren't the one catching obvious misses. Each check is *run, not asserted*. What the gate obliges depends on the `Decision weight`: a `light` RFC gets the completeness checklist and **one** adversarial pass, not an iterative one, and no automatic fresh-reader readability review; `standard` adds the full argument, proportionate research, decision-by-decision backing, and adversarial review re-run until clean; `heavy` adds applicable reversal, compatibility or trust-model analysis, a security review when a security boundary or trust model is involved, and validation planning where the uncertainty is empirical. Two checks apply at **every** weight, scoped to whatever the proposal actually claims: citation integrity and verify-before-you-assert. The checks:
 
 - **Citation-integrity.** Every reference is fetched and confirmed to actually contain the claim it's cited for — a link that merely loads isn't enough. Citations are challenged the same way (by fetching), never by eyeballing whether an identifier "looks real."
 - **Verify-before-you-assert.** Self-claims the RFC makes about itself (counts, "lighter", "readable") are checked against the artifact.
 - **Per-subpoint backing + completeness.** Each decision is backed; the `Approver` is named; every decision has a recommendation; do-nothing is present; open questions are ≤3 and owned.
 - **A different-lens review.** A fresh-context `adversarial-reviewer` pass (and `security-reviewer` if the RFC touches a security boundary), re-run until clean — because a same-session self-check rationalises its own draft.
-- **A cold-reader readability check.** A *generic* subagent dispatched in a fresh context with **only the RFC text** — denied the project docs, `CLAUDE.md`/`AGENTS.md`, and sibling RFCs — lists every term, acronym, or back-reference it can't resolve from the RFC alone; the skill glosses each before handoff. It runs *in addition to* the adversarial pass (which loads project conventions by design and so can't be the cold-reader instrument), and degrades to a noted skip if the harness offers no subagent. This is the check that catches inherited jargon before a reviewer hits it cold.
+- **A fresh-reader readability review** — *conditional, not automatic.* It runs only when the proposal coins vocabulary of its own, leans on cross-references to sibling proposals a reader may not have read, or is written for adopters or contributors who did not take part in drafting it. When it runs, a *generic* subagent gets **only the RFC text** — denied the project docs, `CLAUDE.md`/`AGENTS.md`, and sibling RFCs — and lists every term, acronym, or back-reference it can't resolve; the skill glosses each before handoff. It is a separate instrument from the adversarial pass, which loads project conventions by design, and it degrades to a noted skip if the harness offers no subagent.
 
-What you get back at handoff is a short, reviewer-friendly **readiness summary** — the skill's `REVIEW READINESS` checklist (decision clear, citations checked, adversarial pass clean, cold-reader check, and the rest) — not a compliance dump, and the heavy **proof** (citation-fetch detail, the adversarial-review transcript) stays *linked*, not pasted into the RFC. The summary is a chat handoff, never a section in the RFC itself. (The skill owns the exact item list, so this guide doesn't re-enumerate it.)
+What you get back at handoff is a short, reviewer-friendly **readiness summary** — the skill's `REVIEW READINESS` checklist (decision clear, citations checked, adversarial pass clean, fresh-reader review, and the rest) — not a compliance dump, and the heavy **proof** (citation-fetch detail, the adversarial-review transcript) stays *linked*, not pasted into the RFC. The summary is a chat handoff, never a section in the RFC itself. (The skill owns the exact item list, so this guide doesn't re-enumerate it.)
 
 ## Step 6 — Move through the lifecycle
 
