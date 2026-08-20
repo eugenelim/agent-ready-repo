@@ -26,8 +26,9 @@ Never install this repo's own packages. The Makefile puts live worktree source o
 Once per machine, install `ruff`, `mypy`, `pytest`, and `-r tools/requirements.txt`;
 a `.venv` is optional for tool-version isolation. Once per worktree, run `npm ci
 --prefix docs-site`; `make test` reports that command when it is missing.
-For bare `python -m agentbundle` or `pytest packages/credbroker`, export
+For bare `python -m agentbundle`, `pytest packages/credbroker`, or `pytest tests/`, export
 `PYTHONPATH=packages/agentbundle:packages/credbroker` instead of installing.
+A global install can silently shadow the tree, so a domain-looking error may be a stale import.
 
 ## Sources and projections
 

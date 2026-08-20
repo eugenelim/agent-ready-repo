@@ -59,6 +59,7 @@ workflow or reference documentation; commit and pull-request conventions live in
 
 Never commit personal information or credentials. Use generic placeholders in
 repository artifacts and follow the security workflow for security-boundary changes.
+The complete privacy convention is in [docs/CONVENTIONS.md](docs/CONVENTIONS.md#privacy).
 
 **blessed security tools/helpers:** list this repository's sanctioned helpers by
 boundary here. This declaration takes precedence over inferred alternatives.
