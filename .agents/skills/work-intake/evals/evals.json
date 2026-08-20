@@ -44,13 +44,13 @@
     },
     {
       "id": 5,
-      "prompt": "Start work on adding export retention controls for workspace owners.",
-      "expected_output": "The agent treats the named actor plus bounded capability as one shippable feature, routes it to new-spec at docs/specs/export-retention/spec.md with direct-spec provenance, and leaves product details for new-spec elicitation.",
+      "prompt": "Start work now on correcting the off-by-one in the export retention cutoff comparison, a bounded one-file change with an existing regression test.",
+      "expected_output": "The agent validates the normalized source and locator, confirms the change is bounded, low-risk, independently verifiable, session-completable, and needs no durability, then selects direct-light: artifact none, workspace membership none, processor work-loop, no transaction, and an unchanged repository until implementation begins.",
       "assertions": [
-        "Selects new-spec as processor",
-        "Records spec lifecycle membership",
-        "Omits brief provenance for a direct spec",
-        "Does not demote the feature to an intent merely because product details need elicitation"
+        "Validates normalized source and locator before classification",
+        "Renders artifact none and workspace membership none as valid output",
+        "Selects work-loop without a transaction or rollback",
+        "Leaves the repository unchanged until implementation begins"
       ]
     },
     {
@@ -101,6 +101,27 @@
         "Allows Ready with zero specs",
         "Creates no speculative specs",
         "Stops before invoking new-spec"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Queue this bounded change for another session after the current session ends.",
+      "expected_output": "The agent does not select direct-light because queueing and cross-session resumption require a durable spec-and-plan path. It routes or recommends new-spec rather than creating an untracked direct execution.",
+      "assertions": [
+        "Treats queueing as a durable-work need",
+        "Refuses the direct-light route",
+        "Selects or recommends new-spec"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Start work on adding export retention controls for workspace owners.",
+      "expected_output": "The agent does not select direct-light: a new user-facing capability is a durable product behavior contract. It routes to new-spec with direct-spec provenance and leaves product details for new-spec elicitation.",
+      "assertions": [
+        "Treats a durable product behavior contract as a durability need",
+        "Refuses the direct-light route",
+        "Selects new-spec as processor",
+        "Does not demote the capability to an intent merely because product details need elicitation"
       ]
     }
   ]

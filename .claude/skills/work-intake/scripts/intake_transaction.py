@@ -1,4 +1,4 @@
-"""Fail-closed transaction sequencing for work-intake writes and dispatch."""
+"""Fail-closed sequencing for durable artifact creation, registration, and dispatch."""
 
 from __future__ import annotations
 
@@ -40,11 +40,14 @@ def run_intake_transaction(
     record_reconciliation: Callable[[str], None],
     dispatch_processor: Callable[[], None],
 ) -> TransactionResult:
-    """Materialize, register, then dispatch; fail closed before dispatch.
+    """Materialize, register, then dispatch one durable artifact route.
 
     Callers supply idempotent rollback and reconciliation operations appropriate
     to their workspace writer. Exception values are intentionally not returned,
     because they may contain untrusted source data or sensitive paths.
+
+    Direct-light routes do not create durable artifacts and must not invoke this
+    transaction helper.
     """
 
     try:
