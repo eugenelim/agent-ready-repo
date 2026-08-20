@@ -114,8 +114,9 @@ resolution); the run temporary root's creation and sweep
 in both directions, with any unexpected symlink refused — name equality is not
 equivalence while the source is still the only copy. With the old location renamed away,
 the pre-correction root resolution refuses and the post-correction form passes — both
-observed, and observed before the old tree is removed. A planted absolute tree root in a
-member makes the privacy sweep fail. Two concurrent runs are observed to be refused
+observed, and observed before the old tree is removed. A planted absolute tree root in a member makes the
+archive builder refuse — the exemption gate fires first because the plant widens the derived
+set, so the control asserts refusal rather than naming one detector. Two concurrent runs are observed to be refused
 rather than one deleting the other's root. All three fact-negative harnesses pass from
 the new location.
 
