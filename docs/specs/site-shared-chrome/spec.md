@@ -1,6 +1,6 @@
 # Spec: Site shared chrome
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -201,7 +201,7 @@ means only the destination architecture and vocabulary above.
 - [x] At 360, 375, 390, 414, and 1440 CSS-pixel widths in the approved themes,
   chrome has at most 1px horizontal overflow, is fully keyboard-usable, has
   visible focus, and produces zero serious or critical axe findings.
-- [ ] Recorded design review finds no Major issue against either renderer's
+- [x] Recorded design review finds no Major issue against either renderer's
   named aesthetic direction or the four tech-site principles.
 
 ## Acceptance evidence
@@ -224,7 +224,7 @@ human judgement and is not self-certifiable.
 | 10 | `test_neither_renderer_imports_the_other_renderers_chrome` sweeps **every** hand-written `.astro`/`.ts`/`.js`/`.css`/`.json` file under both `web/src` and `docs-site/src` — not a named-file list — for any JS import, re-export, `require`, CSS `@import`, or `url()` whose path climbs into the other renderer's tree. A cross-renderer CSS `@import`, and an import in a component the earlier named-list guard never covered, both fail it (mutation-proved). `test_each_renderer_reads_its_own_projected_input` adds that each renderer reads only its own projection and the docs projection exposes no `header` key. The palette half is additionally held by the existing no-marketing-token-dependency tests. |
 | 11 | `/now/` exists and is linked; `test_the_public_work_surface_is_gone_from_marketing_inputs` checks the retired routes, the projection, and the marketing component sources for a `/work/` literal — the source scan fails when one is reintroduced (mutation-proved). `check-rendered-site-links.py` resolves every page and fragment. |
 | 12 | `npm run test:e2e:gate --prefix web`. The docs matrix is 20 cases — `/docs/` and `/docs/guides/core/how-to/start-a-project/` × 360/375/390/414/1440 × light/dark — each asserting ≤1px horizontal overflow, zero serious or critical axe findings, resolvable fragments, and skip-link-first. Keyboard operability is asserted by operating the controls: `expectDocsChromeIsKeyboardOperable` decides which affordance each breakpoint owes and **fails when it is absent** rather than skipping — the band iff wide, the Product disclosure and Docs-menu trigger iff narrow. Each is reached with `tabToAndAssertFocus`, i.e. by pressing Tab rather than calling `focus()`, so a control removed from the tab order cannot pass; the disclosure is then opened with **both** Enter and Space, focus must stay on the trigger, the disclosed links must follow it in tab order, and each stop must show a visible focus indicator. Hiding the phone disclosure, and giving the trigger or the disclosed links `tabindex="-1"`, each fail (mutation-proved). Tap targets were re-measured across the same 20 cases: no demonstrated non-exempt failure, all 22 shared-chrome candidates conforming through SC 2.5.8's Spacing clause at 35.2–69.8px against a 24px threshold. |
-| 13 | **Open.** Requires a recorded human design review against each renderer's named aesthetic direction and the four tech-site principles. Not self-certifiable. |
+| 13 | Recorded human design review, 2026-08-20, at `main` `ae6d0e30` — [`notes/design-review.md`](notes/design-review.md). Both renderers reviewed at wide and phone widths, docs in both themes through Starlight's own theme control, against each renderer's named direction and the four principles, with Major and Nit defined in advance so the answer was decidable. Verdict: no Major issue. Not self-certified — the verdict is the human reviewer's. The physical-device pass is explicitly out of this record's boundary and remains the programme's separate manual release check. |
 
 ## Assumptions
 
