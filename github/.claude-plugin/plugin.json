@@ -1,7 +1,7 @@
 {
   "name": "github",
-  "version": "0.1.4",
-  "description": "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub.",
+  "version": "0.2.0",
+  "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back.",
   "hooks": {
     "SessionStart": [
       {

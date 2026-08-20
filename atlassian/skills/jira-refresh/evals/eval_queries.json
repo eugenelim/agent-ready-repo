@@ -1,0 +1,19 @@
+[
+  {"query": "Refresh this tracker-origin artifact from its Jira issue", "should_trigger": true},
+  {"query": "Show the reviewed Jira delta for this registered spec", "should_trigger": true},
+  {"query": "Comment on the linked Jira issue after I confirm the text", "should_trigger": true},
+  {"query": "Move the linked Jira issue to the reviewed display status", "should_trigger": true},
+  {"query": "Close the linked Jira issue after a fresh confirmation", "should_trigger": true},
+  {"query": "Catch this local artifact up with the latest Jira revision", "should_trigger": true},
+  {"query": "Review the Jira changes without overwriting local fields", "should_trigger": true},
+  {"query": "Refresh from Jira but keep SSO-cookie access read-only", "should_trigger": true},
+
+  {"query": "Intake a new Jira epic as repository work", "should_trigger": false},
+  {"query": "Search Jira with this JQL", "should_trigger": false},
+  {"query": "Create a Jira story", "should_trigger": false},
+  {"query": "Refresh this artifact from GitHub", "should_trigger": false},
+  {"query": "Read Jira Align feature 42", "should_trigger": false},
+  {"query": "Publish this page to Confluence", "should_trigger": false},
+  {"query": "Run workspace status", "should_trigger": false},
+  {"query": "Draft a new specification", "should_trigger": false}
+]

@@ -1,0 +1,20 @@
+{
+  "contract_version": "tracker-refresh-profile.v1",
+  "id": "jira-align-default",
+  "version": "1.0",
+  "revision_field": "modifiedDate",
+  "field_mapping": {
+    "Outcome": "title",
+    "User stories": "description"
+  },
+  "capabilities": [
+    "acquire"
+  ],
+  "destination": {
+    "scheme": "https",
+    "host": "portfolio-tracker.example.test",
+    "port": 443,
+    "redirects": false,
+    "dns_policy": "pinned-address"
+  }
+}

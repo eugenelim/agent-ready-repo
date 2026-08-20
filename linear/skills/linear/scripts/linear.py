@@ -19,14 +19,25 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
+import importlib.util
+import ipaddress
 import json
 import logging
+import os
 import re
 import shlex
+import socket
+import ssl
 import sys
 import time
+from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from types import ModuleType
+from typing import Any, Callable, Iterable, Mapping, cast
+from urllib.parse import urlparse, urlsplit
+from urllib.request import proxy_bypass
 
 if __package__ in (None, "") and __spec__ is None:
     for _stream in (sys.stdout, sys.stderr):
@@ -58,7 +69,11 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 
+PROFILE_PATH = Path(__file__).resolve().parents[1] / "references" / "refresh-profile.json"
 GRAPHQL_URL = "https://api.linear.app/graphql"
+LINEAR_PROFILE_ID = "linear-default"
+LINEAR_PROFILE_VERSION = "1.0"
+_REFRESH_RUNTIME: ModuleType | None = None
 PAGE_SIZE = 50
 MAX_PAGES = 5  # hard bound: ≤250 issues (PAGE_SIZE × MAX_PAGES)
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -78,6 +93,43 @@ TOKEN_CLI_FLAGS = frozenset({
     "--access-token",
     "--auth-token",
 })
+
+_COMMENT_CREATE_MUTATION = """
+mutation CommentCreate($input: CommentCreateInput!) {
+  commentCreate(input: $input) { success comment { id } }
+}
+"""
+_ATTACHMENT_CREATE_MUTATION = """
+mutation AttachmentCreate($input: AttachmentCreateInput!) {
+  attachmentCreate(input: $input) { success attachment { id } }
+}
+"""
+_ISSUE_UPDATE_MUTATION = """
+mutation IssueUpdate($id: String!, $input: IssueUpdateInput!) {
+  issueUpdate(id: $id, input: $input) { success issue { id } }
+}
+"""
+
+
+class LinearWriteBackResult:
+    """Redacted result for one confirmed Linear write-back attempt."""
+
+    def __init__(
+        self,
+        code: str,
+        action: str,
+        *,
+        target: str = "",
+        payload_digest: str | None = None,
+        transport_calls: int = 0,
+        receipt: dict[str, object] | None = None,
+    ) -> None:
+        self.code = code
+        self.action = action
+        self.target = target
+        self.payload_digest = payload_digest
+        self.transport_calls = transport_calls
+        self.receipt = receipt or {}
 
 
 def _render_windows_command(argv: list[str], fallback: str) -> str:
@@ -126,6 +178,122 @@ def _reject_token_on_cli(argv: list[str]) -> None:
                 "via env / keyring / dotfile.\n"
             )
             sys.exit(EXIT_ERROR)
+
+
+def _load_refresh_runtime() -> ModuleType:
+    """Load the shared work-intake refresh runtime from an installed skill tree."""
+
+    global _REFRESH_RUNTIME
+    if _REFRESH_RUNTIME is not None:
+        return _REFRESH_RUNTIME
+    here = Path(__file__).resolve()
+    skills_root = here.parents[2]
+    candidate = skills_root / "work-intake" / "scripts" / "refresh.py"
+    try:
+        resolved_root = skills_root.resolve(strict=True)
+        resolved = candidate.resolve(strict=True)
+        resolved.relative_to(resolved_root)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("work-intake refresh runtime unavailable") from exc
+    if not resolved.is_file():
+        raise RuntimeError("work-intake refresh runtime unavailable")
+    module_name = "_work_intake_refresh_runtime_" + hashlib.sha256(
+        str(resolved).encode("utf-8")
+    ).hexdigest()
+    module = sys.modules.get(module_name)
+    if module is not None:
+        _REFRESH_RUNTIME = module
+        return _REFRESH_RUNTIME
+    spec = importlib.util.spec_from_file_location(module_name, resolved)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("work-intake refresh runtime unavailable")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    _REFRESH_RUNTIME = module
+    return _REFRESH_RUNTIME
+
+
+def _trusted_https_url(value: str | None) -> bool:
+    """Accept a bounded, credential-free HTTPS URL for a coordination link."""
+
+    if not value or any(
+        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in value
+    ):
+        return False
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return bool(
+        parsed.scheme == "https"
+        and parsed.username is None
+        and parsed.password is None
+        and parsed.hostname is not None
+        and (port is None or port > 0)
+        and parsed.path.startswith("/")
+    )
+
+
+def load_refresh_profile(path: Path = PROFILE_PATH) -> dict[str, Any]:
+    """Load the strict Linear processor profile from its installed skill."""
+
+    try:
+        profile = json.loads(path.read_text(encoding="utf-8"))
+        destination = profile["destination"]
+        capabilities = profile["capabilities"]
+        mapping = profile["field_mapping"]
+        if (
+            not isinstance(profile, dict)
+            or set(profile) != {
+                "contract_version", "id", "version", "revision_field", "field_mapping",
+                "capabilities", "destination",
+            }
+            or profile.get("contract_version") != "tracker-refresh-profile.v1"
+            or profile.get("id") != LINEAR_PROFILE_ID
+            or profile.get("version") != LINEAR_PROFILE_VERSION
+            or not isinstance(profile.get("revision_field"), str)
+            or not isinstance(mapping, dict)
+            or not all(
+                isinstance(key, str) and isinstance(value, str)
+                for key, value in mapping.items()
+            )
+            or not isinstance(capabilities, list)
+            or any(not isinstance(value, str) for value in capabilities)
+            or len(capabilities) != len(set(capabilities))
+            or "acquire" not in capabilities
+            or not isinstance(destination, dict)
+            or destination.get("scheme") != "https"
+            or not isinstance(destination.get("host"), str)
+            or not isinstance(destination.get("port"), int)
+            or destination.get("redirects") is not False
+            or destination.get("dns_policy") != "pinned-address"
+        ):
+            raise ValueError
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("invalid_refresh_profile") from exc
+    return cast(dict[str, Any], profile)
+
+
+def linear_refresh_registration(
+    refresh_runtime: ModuleType | None = None,
+    *,
+    acquire: Callable[[str, str], Mapping[str, object]],
+) -> object:
+    """Return the configured Linear refresh processor registration."""
+
+    runtime = refresh_runtime or _load_refresh_runtime()
+    profile = load_refresh_profile()
+    return runtime.ProcessorRegistration(
+        name="linear-refresh",
+        profile_id=profile["id"],
+        profile_version=profile["version"],
+        capabilities=frozenset(profile["capabilities"]),
+        acquire=acquire,
+        revision_field=profile["revision_field"],
+        field_mapping=tuple(profile["field_mapping"].items()),
+    )
 
 
 class _ScrubbingArgumentParser(argparse.ArgumentParser):
@@ -192,6 +360,7 @@ def _graphql_request(
     *,
     url: str = GRAPHQL_URL,
     timeout: float = DEFAULT_TIMEOUT_S,
+    pinned_destination: object | None = None,
 ) -> dict[str, Any]:
     """POST one GraphQL request.  Returns the parsed JSON body.
 
@@ -212,7 +381,11 @@ def _graphql_request(
 
     try:
         resp = _bounded_post(
-            url, json_body=payload, headers=headers, timeout=timeout
+            url,
+            json_body=payload,
+            headers=headers,
+            timeout=timeout,
+            pinned_destination=pinned_destination,
         )
     except httpx.TransportError as exc:
         sys.stderr.write(f"error: network error — {exc}\n")
@@ -251,17 +424,185 @@ def _graphql_request(
     return body
 
 
+def _linear_ssl_context() -> ssl.SSLContext:
+    """Build system trust plus the repository's corporate CA environment."""
+
+    try:
+        context = ssl.create_default_context()
+        cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get(
+            "REQUESTS_CA_BUNDLE"
+        )
+        capath = os.environ.get("SSL_CERT_DIR")
+        if cafile or capath:
+            context.load_verify_locations(cafile=cafile or None, capath=capath or None)
+        return context
+    except (OSError, ssl.SSLError) as exc:
+        raise httpx.TransportError("TLS trust configuration is unavailable") from exc
+
+
+def _resolved_proxy_addresses(host: str, port: int) -> frozenset[str]:
+    """Resolve a configured proxy to one stable, non-empty address set."""
+
+    try:
+        resolved = socket.getaddrinfo(host, port)
+        parsed = frozenset(ipaddress.ip_address(item[4][0]) for item in resolved)
+    except (IndexError, OSError, TypeError, ValueError) as exc:
+        raise httpx.TransportError("HTTPS proxy resolution failed") from exc
+    if not parsed or any(
+        address.is_unspecified
+        or address.is_link_local
+        # A proxy may legitimately be private, loopback, or multicast on a
+        # corporate network. The IPv6 metadata endpoint is unique-local, so
+        # rejecting its category would over-reject legitimate proxy hops.
+        # GCP and Azure use the IPv4 IMDS address below; Alibaba uses its own
+        # explicit IPv4 address. The shared 100.64.0.0/10 range stays allowed.
+        or str(address) in {"169.254.169.254", "100.100.100.200", "fd00:ec2::254"}
+        for address in parsed
+    ):
+        raise httpx.TransportError("HTTPS proxy resolution failed")
+    return frozenset(str(address) for address in parsed)
+
+
+def _https_proxy_settings(
+    destination_host: str,
+) -> tuple[str | None, tuple[str, int, frozenset[str]] | None]:
+    """Honor HTTPS_PROXY/NO_PROXY and pin the configured proxy socket."""
+
+    if proxy_bypass(destination_host):
+        return None, None
+    proxy_url = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+    if not proxy_url:
+        return None, None
+    parsed = urlparse(proxy_url)
+    default_ports = {"http": 80, "https": 443, "socks5": 1080, "socks5h": 1080}
+    scheme = parsed.scheme.lower()
+    if scheme not in default_ports:
+        raise httpx.TransportError("HTTPS proxy configuration is unsupported")
+    try:
+        port = parsed.port or default_ports[scheme]
+    except (KeyError, ValueError) as exc:
+        raise httpx.TransportError("HTTPS proxy configuration is unsupported") from exc
+    if (
+        not parsed.hostname
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise httpx.TransportError("HTTPS proxy configuration is unsupported")
+    host = parsed.hostname.rstrip(".").lower()
+    return proxy_url, (host, port, _resolved_proxy_addresses(host, port))
+
+
+class _PinnedSyncNetworkBackend:
+    """httpcore backend that refuses proxy DNS changes at connect time."""
+
+    def __init__(self, proxy_pin: tuple[str, int, frozenset[str]]) -> None:
+        import httpcore  # noqa: PLC0415 — only pinned Linear requests need it
+
+        self._proxy_pin = proxy_pin
+        self._backend = httpcore.SyncBackend()
+
+    def connect_tcp(
+        self,
+        host: str,
+        port: int,
+        timeout: float | None = None,
+        local_address: str | None = None,
+        socket_options: Iterable[tuple[int, int, int | bytes]] | None = None,
+    ) -> Any:
+        proxy_host, proxy_port, expected_addresses = self._proxy_pin
+        if host.rstrip(".").lower() != proxy_host or port != proxy_port:
+            raise httpx.TransportError("HTTPS proxy connection escaped its pin")
+        addresses = _resolved_proxy_addresses(host, port)
+        if addresses != expected_addresses:
+            raise httpx.TransportError("HTTPS proxy address changed before connect")
+        address = sorted(addresses, key=lambda value: (":" in value, value))[0]
+        return self._backend.connect_tcp(
+            address, port, timeout, local_address, socket_options
+        )
+
+    def connect_unix_socket(
+        self,
+        path: str,
+        timeout: float | None = None,
+        socket_options: Iterable[tuple[int, int, int | bytes]] | None = None,
+    ) -> Any:
+        return self._backend.connect_unix_socket(path, timeout, socket_options)
+
+    def sleep(self, seconds: float) -> None:
+        self._backend.sleep(seconds)
+
+
+def _pinned_transport(destination: Any) -> httpx.HTTPTransport:
+    """Build a corporate-network-aware transport with a pinned proxy socket."""
+
+    proxy_url, proxy_pin = _https_proxy_settings(destination.host)
+    try:
+        transport = httpx.HTTPTransport(
+            verify=_linear_ssl_context(),
+            retries=0,
+            proxy=proxy_url,
+            trust_env=False,
+        )
+    except (ImportError, OSError, ValueError) as exc:
+        raise httpx.TransportError("HTTPS proxy configuration is unavailable") from exc
+    if proxy_pin is not None:
+        transport._pool._network_backend = _PinnedSyncNetworkBackend(  # type: ignore[attr-defined]  # noqa: SLF001
+            proxy_pin
+        )
+    return transport
+
+
 def _bounded_post(
     url: str,
     *,
     json_body: dict[str, Any],
     headers: dict[str, str],
     timeout: float,
+    pinned_destination: object | None = None,
 ) -> httpx.Response:
     """Stream one response and stop before the fixed profile byte cap."""
-    with httpx.stream(
-        "POST", url, json=json_body, headers=headers, timeout=timeout
-    ) as response:
+    request_url = url
+    request_headers = dict(headers)
+    extensions: dict[str, object] | None = None
+    if pinned_destination is not None:
+        addresses = tuple(pinned_destination.addresses)
+        if not addresses:
+            raise httpx.TransportError("pinned destination has no validated address")
+        address = sorted(addresses, key=lambda value: (":" in value, value))[0]
+        host_for_url = f"[{address}]" if ":" in address else address
+        request_url = f"https://{host_for_url}:{pinned_destination.port}/graphql"
+        request_headers["Host"] = pinned_destination.host
+        extensions = {"sni_hostname": pinned_destination.host}
+    with contextlib.ExitStack() as stack:
+        if pinned_destination is None:
+            response_context = httpx.stream(
+                "POST",
+                request_url,
+                json=json_body,
+                headers=request_headers,
+                timeout=timeout,
+                follow_redirects=False,
+                verify=_linear_ssl_context(),
+                trust_env=True,
+            )
+        else:
+            client = stack.enter_context(
+                httpx.Client(
+                    timeout=timeout,
+                    transport=_pinned_transport(pinned_destination),
+                    trust_env=False,
+                )
+            )
+            response_context = client.stream(
+                "POST",
+                request_url,
+                json=json_body,
+                headers=request_headers,
+                follow_redirects=False,
+                extensions=extensions,
+            )
+        response = stack.enter_context(response_context)
         content = bytearray()
         for chunk in response.iter_bytes():
             if len(content) + len(chunk) > MAX_RESPONSE_BYTES:
@@ -306,6 +647,232 @@ def _graphql_with_retry(
         return result2
 
     return result
+
+
+class LinearRefreshProcessor:
+    """Configured Linear refresh/write-back edge using the shared lifecycle."""
+
+    def __init__(
+        self,
+        *,
+        refresh_runtime: ModuleType | None = None,
+        api_key_loader: Callable[[], str] = _load_api_key,
+        graphql_transport: Callable[..., dict[str, Any]] | None = None,
+        resolver: Callable[[str], Iterable[str]] | None = None,
+        receipt_store: object | None = None,
+    ) -> None:
+        self._refresh = refresh_runtime or _load_refresh_runtime()
+        self._profile = load_refresh_profile()
+        self._api_key_loader = api_key_loader
+        self._graphql_transport = graphql_transport or self._default_transport
+        self._resolver = resolver
+        self._receipt_store = receipt_store
+
+    def write(
+        self,
+        *,
+        action: str,
+        target: str,
+        artifact_path: str,
+        source_revision: str,
+        policy: object,
+        confirmation: object | None,
+        now: datetime | None = None,
+        body: str | None = None,
+        url: str | None = None,
+        status: str | None = None,
+    ) -> LinearWriteBackResult:
+        """Execute one confirmed Linear mutation with fakeable transport."""
+
+        if action not in set(self._profile["capabilities"]) - {"acquire"}:
+            return LinearWriteBackResult("unsupported_capability", action, target=target)
+        receipt_store = self._receipt_store
+        if not self._refresh.is_remote_receipt_store(receipt_store):
+            return LinearWriteBackResult("receipt_store_required", action, target=target)
+        if receipt_store.artifact_path != artifact_path:
+            return LinearWriteBackResult("receipt_store_mismatch", action, target=target)
+        payload = self._payload_for_action(
+            action=action,
+            target=target,
+            body=body,
+            url=url,
+            status=status,
+        )
+        if payload is None:
+            return LinearWriteBackResult("invalid_remote_payload", action, target=target)
+        try:
+            pinned = self._validate_destination()
+            payload_digest = self._refresh.canonical_payload_digest(payload)
+            binding = self._refresh.ConfirmationBinding(
+                artifact_path=artifact_path,
+                source_revision=source_revision,
+                profile_id=self._profile["id"],
+                profile_version=self._profile["version"],
+                destination=f"{pinned.scheme}://{pinned.host}:{pinned.port}",
+                action=action,
+                target=target,
+                payload_digest=payload_digest,
+            )
+            if confirmation is None:
+                raise self._refresh.RefreshRefusal("confirmation_required")
+            receipt = self._refresh.consume_remote_confirmation(
+                confirmation=confirmation,
+                expected_binding=binding,
+                policy=policy,
+                receipt_store=receipt_store,
+                used_confirmation_ids=receipt_store.confirmation_ids(),
+                now=now or datetime.now(UTC),
+            )
+        except self._refresh.RefreshRefusal as exc:
+            return LinearWriteBackResult(str(exc), action, target=target)
+        try:
+            receipt_store.record(receipt)
+        except Exception:
+            return LinearWriteBackResult(
+                "pending_receipt_failed",
+                action,
+                target=target,
+                payload_digest=payload_digest,
+                transport_calls=0,
+            )
+
+        transport_called = False
+        try:
+            api_key = self._api_key_loader()
+            query, variables, result_key = self._operation_for_action(action, payload)
+            transport_called = True
+            response = self._graphql_transport(
+                api_key=api_key,
+                query=query,
+                variables=variables,
+                url=GRAPHQL_URL,
+                pinned_destination=pinned,
+            )
+            if response.get("data", {}).get(result_key, {}).get("success") is not True:
+                raise RuntimeError("remote action was not acknowledged")
+        except (SystemExit, Exception):
+            failed_receipt = replace(receipt, status="failed")
+            try:
+                receipt_store.record(failed_receipt)
+                failed = dict(failed_receipt.__dict__)
+                code = "remote_action_failed"
+            except Exception:
+                failed = dict(receipt.__dict__)
+                code = "receipt_update_failed"
+            return LinearWriteBackResult(
+                code,
+                action,
+                target=target,
+                payload_digest=payload_digest,
+                transport_calls=int(transport_called),
+                receipt=failed,
+            )
+        succeeded_receipt = replace(receipt, status="succeeded")
+        succeeded = dict(succeeded_receipt.__dict__)
+        try:
+            receipt_store.record(succeeded_receipt)
+        except Exception:
+            return LinearWriteBackResult(
+                "receipt_update_failed",
+                action,
+                target=target,
+                payload_digest=payload_digest,
+                transport_calls=1,
+                receipt={**receipt.__dict__, "status": "pending"},
+            )
+        return LinearWriteBackResult(
+            "remote_action_succeeded",
+            action,
+            target=target,
+            payload_digest=payload_digest,
+            transport_calls=1,
+            receipt=succeeded,
+        )
+
+    def _validate_destination(self) -> object:
+        destination = self._profile["destination"]
+        policy = self._refresh.DestinationPolicy(
+            schemes=frozenset({destination["scheme"]}),
+            hosts=frozenset({destination["host"]}),
+            ports=frozenset({destination["port"]}),
+            credentials_attached=True,
+        )
+        kwargs: dict[str, object] = {"policy": policy}
+        if self._resolver is not None:
+            kwargs["resolver"] = self._resolver
+        return self._refresh.validate_destination(
+            f"{destination['scheme']}://{destination['host']}:{destination['port']}", **kwargs
+        )
+
+    @staticmethod
+    def _payload_for_action(
+        *,
+        action: str,
+        target: str,
+        body: str | None,
+        url: str | None,
+        status: str | None,
+    ) -> dict[str, object] | None:
+        if not target:
+            return None
+        if action == "comment" and body:
+            return {"issue_id": target, "body": body}
+        if (
+            action in {"trace-link", "pull-request-link"}
+            and _trusted_https_url(url)
+        ):
+            title = "Pull request" if action == "pull-request-link" else "Trace link"
+            return {"issue_id": target, "url": url, "title": title}
+        if action == "display-status" and status:
+            return {"issue_id": target, "state_id": status}
+        if action == "closure" and status:
+            return {"issue_id": target, "state_id": status}
+        return None
+
+    @staticmethod
+    def _operation_for_action(
+        action: str, payload: dict[str, object]
+    ) -> tuple[str, dict[str, object], str]:
+        if action == "comment":
+            return (
+                _COMMENT_CREATE_MUTATION,
+                {"input": {"issueId": payload["issue_id"], "body": payload["body"]}},
+                "commentCreate",
+            )
+        if action in {"trace-link", "pull-request-link"}:
+            return (
+                _ATTACHMENT_CREATE_MUTATION,
+                {
+                    "input": {
+                        "issueId": payload["issue_id"],
+                        "url": payload["url"],
+                        "title": payload["title"],
+                    }
+                },
+                "attachmentCreate",
+            )
+        return (
+            _ISSUE_UPDATE_MUTATION,
+            {"id": payload["issue_id"], "input": {"stateId": payload["state_id"]}},
+            "issueUpdate",
+        )
+
+    @staticmethod
+    def _default_transport(
+        *,
+        api_key: str,
+        query: str,
+        variables: dict[str, Any],
+        url: str,
+        pinned_destination: object,
+    ) -> dict[str, Any]:
+        return _graphql_request(
+            api_key,
+            query,
+            variables,
+            url=url,
+            pinned_destination=pinned_destination,
+        )
 
 
 # ---------------------------------------------------------------------------

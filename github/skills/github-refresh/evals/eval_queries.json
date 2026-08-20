@@ -1,0 +1,19 @@
+[
+  {"query": "Refresh this tracker-origin spec from GitHub and show me the field delta", "should_trigger": true},
+  {"query": "Catch this registered artifact up with GitHub issue 101", "should_trigger": true},
+  {"query": "Add the reviewed trace link to the linked GitHub issue", "should_trigger": true},
+  {"query": "Comment on the source GitHub issue after I confirm the exact text", "should_trigger": true},
+  {"query": "Record this pull request link on the linked GitHub issue", "should_trigger": true},
+  {"query": "Update the display-status label for this shipped GitHub-backed spec", "should_trigger": true},
+  {"query": "Close the linked GitHub issue after a fresh confirmation", "should_trigger": true},
+  {"query": "Review GitHub changes without rewriting local requirements automatically", "should_trigger": true},
+
+  {"query": "Intake this new GitHub milestone as repository work", "should_trigger": false},
+  {"query": "Create a new GitHub issue", "should_trigger": false},
+  {"query": "Search GitHub for open pull requests", "should_trigger": false},
+  {"query": "Refresh this artifact from Linear", "should_trigger": false},
+  {"query": "Run workspace status", "should_trigger": false},
+  {"query": "Draft a new specification", "should_trigger": false},
+  {"query": "Review this code diff", "should_trigger": false},
+  {"query": "Publish this report to Confluence", "should_trigger": false}
+]

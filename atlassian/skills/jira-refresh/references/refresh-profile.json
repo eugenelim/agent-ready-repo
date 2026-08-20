@@ -1,0 +1,23 @@
+{
+  "contract_version": "tracker-refresh-profile.v1",
+  "id": "jira-default",
+  "version": "1.0",
+  "revision_field": "updated",
+  "field_mapping": {
+    "Outcome": "summary",
+    "User stories": "description"
+  },
+  "capabilities": [
+    "acquire",
+    "comment",
+    "display-status",
+    "closure"
+  ],
+  "destination": {
+    "scheme": "https",
+    "host": "tracker.example.test",
+    "port": 443,
+    "redirects": false,
+    "dns_policy": "pinned-address"
+  }
+}

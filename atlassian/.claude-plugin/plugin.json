@@ -1,7 +1,7 @@
 {
   "name": "atlassian",
-  "version": "0.8.4",
-  "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route.",
+  "version": "0.9.0",
+  "description": "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back.",
   "hooks": {
     "SessionStart": [
       {
