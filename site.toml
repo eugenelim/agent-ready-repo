@@ -138,3 +138,165 @@ label = "GitHub"
 dir = "linear"
 label = "Linear"
 
+# ---------------------------------------------------------------------------
+# Shared chrome destination contract.
+#
+# This is renderer-neutral vocabulary only. Renderer-local components decide
+# presentation, current state, focus treatment, and responsive behaviour.
+# ---------------------------------------------------------------------------
+
+[shared_chrome]
+header = [
+  "how-it-works",
+  "use-cases",
+  "catalogue",
+  "now",
+  "docs",
+  "try-the-build-loop",
+]
+docs_band = ["product", "how-it-works", "use-cases", "catalogue", "now", "docs"]
+docs_product_navigation = ["product-home", "how-it-works", "use-cases", "catalogue", "now"]
+
+[[shared_chrome.destinations]]
+id = "product"
+label = "Product"
+target = "/"
+kind = "internal"
+
+[[shared_chrome.destinations]]
+id = "product-home"
+label = "Product home"
+target = "/"
+kind = "internal"
+
+[[shared_chrome.destinations]]
+id = "how-it-works"
+label = "How it works"
+target = "/#three-loops"
+kind = "internal"
+group = "product"
+
+[[shared_chrome.destinations]]
+id = "use-cases"
+label = "Use cases"
+target = "/#use-cases"
+kind = "internal"
+group = "product"
+
+[[shared_chrome.destinations]]
+id = "catalogue"
+label = "Catalogue"
+target = "/catalogue/"
+kind = "internal"
+group = "product"
+
+[[shared_chrome.destinations]]
+id = "now"
+label = "Now"
+target = "/now/"
+kind = "internal"
+group = "project"
+
+[[shared_chrome.destinations]]
+id = "docs"
+label = "Docs"
+target = "/docs/"
+kind = "internal"
+
+[[shared_chrome.destinations]]
+id = "try-the-build-loop"
+label = "Try the build loop"
+target = "/#install"
+kind = "internal"
+
+[[shared_chrome.destinations]]
+id = "packs"
+label = "Packs"
+target = "/packs/"
+kind = "internal"
+group = "product"
+
+[[shared_chrome.destinations]]
+id = "journeys"
+label = "Journeys"
+target = "/journeys/"
+kind = "internal"
+group = "product"
+
+[[shared_chrome.destinations]]
+id = "get-started"
+label = "Get started"
+target = "/docs/getting-started/"
+kind = "internal"
+group = "docs"
+
+[[shared_chrome.destinations]]
+id = "install"
+label = "Install"
+target = "/docs/getting-started/install/"
+kind = "internal"
+group = "docs"
+
+[[shared_chrome.destinations]]
+id = "three-loops"
+label = "The three loops"
+target = "/docs/getting-started/three-loops/"
+kind = "internal"
+group = "docs"
+
+[[shared_chrome.destinations]]
+id = "all-docs"
+label = "All docs"
+target = "/docs/"
+kind = "internal"
+group = "docs"
+
+[[shared_chrome.destinations]]
+id = "changelog"
+label = "Changelog"
+target = "/docs/changelog/"
+kind = "internal"
+group = "project"
+
+[[shared_chrome.destinations]]
+id = "contributing"
+label = "Contributing"
+target = "/docs/contributing/"
+kind = "internal"
+group = "project"
+
+[[shared_chrome.destinations]]
+id = "claude-plugins"
+label = "Claude plugins"
+target = "/plugins/"
+kind = "internal"
+group = "project"
+
+[[shared_chrome.destinations]]
+id = "github"
+label = "GitHub"
+target = "https://github.com/eugenelim/agent-ready-repo"
+kind = "external"
+group = "project"
+
+[[shared_chrome.destinations]]
+id = "pypi"
+label = "PyPI"
+target = "https://pypi.org/project/agentbundle/"
+kind = "external"
+group = "project"
+
+[[shared_chrome.groups]]
+id = "product"
+label = "Product"
+destinations = ["how-it-works", "use-cases", "catalogue", "packs", "journeys"]
+
+[[shared_chrome.groups]]
+id = "docs"
+label = "Docs"
+destinations = ["get-started", "install", "three-loops", "all-docs"]
+
+[[shared_chrome.groups]]
+id = "project"
+label = "Project"
+destinations = ["now", "changelog", "contributing", "claude-plugins", "github", "pypi"]

@@ -27,7 +27,7 @@ humanGates:
       - "Are the test command and test directory correct — not pointing to a parent package's test suite?"
     whatGoodLooksLike: "A package that builds from its own root, has a meaningful AGENTS.md, and follows the naming and layout conventions of the existing packages in the monorepo."
     whatBadLooksLike: "A package whose AGENTS.md still reads 'TODO: describe this package.' Or a package whose test command runs the wrong test suite because the `jest.config.js` points to the wrong root. These are the two most common post-scaffold defects."
-    consequence: "A scaffold that passes the G-review gate and then fails the first real build is the most expensive outcome — you've committed structural debt to the repo. The review gate is five minutes; fixing structural wiring after the first three PRs have extended the scaffolded pattern is much more expensive."
+    consequence: "A scaffold that passes the package review gate and then fails the first real build is the most expensive outcome — you've committed structural debt to the repo. The review gate is five minutes; fixing structural wiring after the first three PRs have extended the scaffolded pattern is much more expensive."
 typicalSession:
   agentTurns: "3–5"
   humanTouches: 1
@@ -50,7 +50,7 @@ relatedJourneys:
 ### 2. Scaffold, wire, and gate the package
 
 - **Agent does:** produces the package skeleton — directory structure, package.json (or equivalent), AGENTS.md, build configuration, and test directory; populates AGENTS.md with the package name, description, and correct build and test commands.
-- **You do:** at the G-review gate, check the two things most likely to be wrong: the AGENTS.md still has placeholder text, and the test command points to the wrong root; both are easy to catch here and expensive to fix after other packages have extended the scaffolded pattern.
+- **You do:** at the package review gate, check the two things most likely to be wrong: the AGENTS.md still has placeholder text, and the test command points to the wrong root; both are easy to catch here and expensive to fix after other packages have extended the scaffolded pattern.
 - **You decide:** review the scaffolded package before first commit.
 - **Output:** a reviewed, corrected scaffold ready for commit.
 

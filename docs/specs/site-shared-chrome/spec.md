@@ -164,8 +164,14 @@ means only the destination architecture and vocabulary above.
   IDs, labels, targets, groups, order, and internal/external kind; it contains
   no CSS, token, breakpoint, state, or component prescription.
 - [ ] Generator validation rejects duplicate destination/group IDs, missing
-  group references, invalid target kinds, order drift, and unknown internal
-  destinations, and projects deterministic renderer-local data.
+  group references, unknown destination references in groups and in the ordered
+  header and docs-navigation lists, repeated entries in those lists, invalid
+  target kinds, and invalid internal target shape, and projects deterministic
+  renderer-local data. Drift from the approved vocabulary — labels, targets,
+  kinds, and header, group, and docs-navigation order — is rejected by a
+  merge-blocking anchor test rather than by generator logic, because AC1 makes
+  `site.toml` the sole source of that order; target resolution is rejected by
+  `tools/check-rendered-site-links.py`.
 - [ ] Marketing header and mobile disclosure emit the exact six destinations,
   order, labels, targets, and existing CTA treatment approved above.
 - [ ] Marketing and docs footers emit the exact Product, Docs, and Project
