@@ -45,6 +45,28 @@ _SEED_VENDOR_ROOT_BACKLOG = frozenset({
 })
 
 
+def _body_lines(text: str) -> list[str]:
+    """Return the document body, skipping a leading YAML frontmatter block.
+
+    Projected copies of an AGENTS.md carry frontmatter where the source carries
+    an ATX heading. Without this, the opening `---` is the first non-heading
+    line and the scope-declaration check reads the delimiter instead of the
+    declaration, so a correct projection fails while the check never inspects
+    the sentence it exists to enforce.
+    """
+    lines = text.splitlines()
+    # A YAML document marker sits at column zero. Accepting an indented `---`
+    # would treat a leading Markdown horizontal rule as frontmatter and skip
+    # past it, so a document that declares nothing would pass a check the
+    # unindented form correctly fails.
+    if not lines or lines[0].rstrip() != "---":
+        return lines
+    for index, line in enumerate(lines[1:], start=1):
+        if line.rstrip() in ("---", "..."):
+            return lines[index + 1:]
+    return lines
+
+
 def _is_seed(path: Path) -> bool:
     return (
         path.name == "AGENTS.md"
@@ -231,7 +253,7 @@ def main() -> int:
         first_content = next(
             (
                 line
-                for line in text.splitlines()
+                for line in _body_lines(text)
                 if line.strip() and not line.lstrip().startswith("#")
             ),
             "",
