@@ -2555,13 +2555,6 @@ open = [
   # asserted by test_the_archival_conversion_record_stays_unwired.
   # Closing this file as a sanctioned case reduces the leak count again; the numeral
   # in the summary drifts with every instance closed, so trust the enumeration, not it.
-  # The tap-target audit's docs-footer rows measure a footer that
-  # spec/site-shared-chrome replaces with the approved three-group taxonomy, and its
-  # product-orientation band does not exist yet so has no rows at all. The audit says
-  # so, but that prose freezes with the spec. Fix: re-measure both docs routes at all
-  # five widths in both themes after shared chrome lands and update
-  # notes/docs-tap-target-audit.md.
-  {slug = "tap-target-audit-remeasure-after-shared-chrome", source = "spec/site-browser-quality-gate T0", summary = "Re-measure the docs tap-target audit after site-shared-chrome replaces the footer and adds the orientation band"},
   # spec/site-browser-quality-gate AC12 was narrowed to the axes its print audit
   # actually measures, listed once in that audit's Measured axes section; close-stale
   # rests on axes 1 and 2. Navigation visibility is withdrawn to
