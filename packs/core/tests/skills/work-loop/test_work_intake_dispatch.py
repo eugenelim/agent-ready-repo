@@ -130,6 +130,7 @@ def test_persisted_light_specs_remain_spec_driven() -> None:
     for status in ("`Draft`", "`Approved`", "`Implementing`"):
         assert status in table, status
 
+
 # The eight eligibility conjuncts and ten durability triggers, each pinned
 # individually. A single grouped assertion would pass while one predicate was
 # silently dropped, which is the failure these tables exist to prevent.
