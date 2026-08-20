@@ -32,6 +32,16 @@ from pathlib import Path
 from types import FrameType
 from typing import Any, Callable, Iterator, Mapping, Sequence
 
+# Imported two ways, so both must work: as a script (`python3
+# tools/repo/frontend_runtime.py`, where sys.path[0] is tools/repo) and as
+# `tools.repo.frontend_runtime` -- tools/repo has no __init__.py but is a PEP 420
+# namespace package, which is how tools/test_frontend_runtime.py:16 imports it.
+# Dropping either branch breaks one of those callers at collection time.
+if __package__:
+    from . import worktree_hygiene
+else:
+    import worktree_hygiene
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 GATE_COMMAND = ("npm", "run", "test:e2e:gate", "--prefix", "web")
 DEFAULT_PREVIEW_PORT = 4321
@@ -40,11 +50,30 @@ LEASE_MAX_AGE_SECONDS = 24 * 60 * 60
 LEASE_RETRY_LIMIT = 20
 LEASE_RETRY_DELAY_SECONDS = 0.05
 PROCESS_TREE_EXIT_TIMEOUT_SECONDS = 5.0
+PLAYWRIGHT_EVIDENCE_MAX_AGE_ENV = "PLAYWRIGHT_FAILURE_EVIDENCE_MAX_AGE_SECONDS"
 SignalHandler = Callable[[int, FrameType | None], Any] | int | None
 
 
 class FrontendRuntimeError(RuntimeError):
     """An actionable frontend-runtime configuration or execution error."""
+
+
+def playwright_evidence_max_age(environ: Mapping[str, str]) -> int:
+    """Read the optional bounded-retention age budget for failed test evidence."""
+    raw = environ.get(PLAYWRIGHT_EVIDENCE_MAX_AGE_ENV)
+    if raw is None:
+        return worktree_hygiene.DEFAULT_PLAYWRIGHT_EVIDENCE_MAX_AGE_SECONDS
+    try:
+        value = int(raw)
+    except ValueError as error:
+        raise FrontendRuntimeError(
+            f"{PLAYWRIGHT_EVIDENCE_MAX_AGE_ENV} must be a whole number of seconds"
+        ) from error
+    if value < 0:
+        raise FrontendRuntimeError(
+            f"{PLAYWRIGHT_EVIDENCE_MAX_AGE_ENV} must not be negative"
+        )
+    return value
 
 
 @dataclass(frozen=True)
@@ -560,14 +589,22 @@ def run_gate(
         requested,
     )
     try:
+        values["ARR_PREVIEW_PORT"] = str(lease.port)
+        values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
+        announce_browser_cache(cache)
+        print(f"Preview port lease: {lease.port}", flush=True)
         with _release_lease_on_signals(lease):
-            values["ARR_PREVIEW_PORT"] = str(lease.port)
-            values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
-            announce_browser_cache(cache)
-            print(f"Preview port lease: {lease.port}", flush=True)
-            return _run_child(command, values, repo_root)
+            returncode = _run_child(command, values, repo_root)
     finally:
         lease.release()
+    evidence = worktree_hygiene.manage_playwright_failure_evidence(
+        repo_root,
+        gate_returncode=returncode,
+        max_age_seconds=playwright_evidence_max_age(values),
+    )
+    for line in evidence.receipt:
+        print(line, flush=True)
+    return returncode
 
 
 def install_browsers(

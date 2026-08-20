@@ -396,6 +396,9 @@ test:
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
+	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
+	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
 	$(PYTHON) -m pytest tools/test_bootstrap.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
