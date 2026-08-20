@@ -1,4 +1,4 @@
-# RFC-0092: Direct-light execution without durable planning artifacts
+# RFC-0094: Direct-light execution without durable planning artifacts
 
 - **Status:** Accepted
 - **Author:** eugenelim
@@ -6,7 +6,7 @@
 - **Date opened:** 2026-08-20
 - **Date closed:** 2026-08-20
 - **Decision weight:** heavy
-- **Related:** RFC-0025; RFC-0083; RFC-0090; ADR-0014; ADR-0076; ADR-0078; ADR-0088; ADR-0090
+- **Related:** RFC-0025; RFC-0083; RFC-0090; ADR-0014; ADR-0076; ADR-0078; ADR-0088; ADR-0092
 
 ## Reviewer brief
 
@@ -94,6 +94,6 @@ Adopters receive the behavior on their next `work-loop` run after pulling the bu
 
 ## Follow-on artifacts
 
-- ADR-0090 records the durable execution boundary and precise partial refinements.
+- ADR-0092 records the durable execution boundary and precise partial refinements.
 - [`docs/specs/direct-light-execution/`](../specs/direct-light-execution/) implements this decision.
 

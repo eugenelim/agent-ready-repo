@@ -95,7 +95,7 @@
 | 0087 | [Lints resolve Git-ignore status in one batched call over stdin](0087-batch-git-check-ignore-over-stdin.md) | Accepted |
 | 0088 | [Risk triggers have a single documented home](0088-risk-triggers-have-a-single-documented-home.md) | Accepted |
 | 0089 | [Decision weight trims the RFC pre-handoff gate: RFC-0054 D1 over its implementing spec](0089-decision-weight-trims-the-rfc-gate.md) | Accepted |
-| 0090 | [Direct-light execution is session-local outside workspace dispatch](0090-direct-light-execution-session-local-boundary.md) | Accepted |
+| 0092 | [Direct-light execution is session-local outside workspace dispatch](0092-direct-light-execution-session-local-boundary.md) | Accepted |
 
 ## Adding a new ADR
 

@@ -98,8 +98,8 @@ available without re-planning: T1 | T2+T3 | T4 | T5+T6+T7.
   stale comment inside its opening marker is corrected (AC26).
 - `workspace.toml`'s schema, collections, and kinds are untouched.
 - The normalized intake envelope keeps its existing `contract_version`.
-- No accepted RFC or ADR body is rewritten; refinements are recorded in RFC-0092
-  and ADR-0090.
+- No accepted RFC or ADR body is rewritten; refinements are recorded in RFC-0094
+  and ADR-0092.
 - Frozen historical records (accepted RFC/ADR bodies, Shipped and Archived spec
   directories) are exempt from the AC26 sweep and are not edited.
 - Transactionality on the intent, brief, spec, defect, and tracker-refresh routes
@@ -231,13 +231,13 @@ counterpart AC16 — it is not an unattributed change.
 
 ## Tasks
 
-### T1: Governance — RFC-0092 and refining ADR-0090
+### T1: Governance — RFC-0094 and refining ADR-0092
 
 **Depends on:** none. **Verification mode:** goal-based. **Covers:** AC29.
 **Files:** `docs/rfc/0092-<slug>.md`, `docs/adr/0090-<slug>.md`,
 `docs/rfc/README.md`, `docs/adr/README.md`.
 
-Author RFC-0092 at `heavy` weight recording one decision: bounded low-risk work
+Author RFC-0094 at `heavy` weight recording one decision: bounded low-risk work
 executes directly from the explicit current request and creates no durable
 planning artifact, while durable, queued, resumable, coordinated, or explicitly
 spec-driven work keeps spec-and-plan. It carries the reversal analysis —
@@ -245,11 +245,11 @@ spec-driven work keeps spec-and-plan. It carries the reversal analysis —
 spec") and `:77` rejected option D — and the compatibility analysis for existing
 persisted specs, workspace entries, and adopters.
 
-RFC-0092 also refines RFC-0083's artifact-first clauses — `:33` "only an
+RFC-0094 also refines RFC-0083's artifact-first clauses — `:33` "only an
 existing spec and plan may authorize execution" and `:57` the router "dispatches
 only an existing spec and plan" — while preserving its workspace-dispatch rule.
 
-ADR-0090 refines exactly three accepted clauses, editing no accepted body:
+ADR-0092 refines exactly three accepted clauses, editing no accepted body:
 ADR-0014's "A lean spec written inline" light mode (`:37-43`); ADR-0076's
 "agents may dispatch work only from structured workspace entries that reference
 those files" (`:16-18`); and ADR-0078's "**Start or do this:** classify
@@ -262,7 +262,7 @@ single-home rule is untouched.
 
 **Done when:** both files exist with registered index rows and
 `pytest packs/core/tests/pack -q` plus the governance lints pass.
-**Mutation proof:** delete ADR-0090's refinement of ADR-0078 → the repository
+**Mutation proof:** delete ADR-0092's refinement of ADR-0078 → the repository
 simultaneously asserts "start materializes a canonical artifact" (ADR-0078:66)
 and "direct-light materializes nothing" (work-loop), and adversarial review must
 reject the contradiction.
@@ -501,7 +501,7 @@ plus `make build-self`.
 - 2026-08-19 — Revised after two independent pre-EXECUTE reviews. Corrected the
   risk-trigger model from four byte-identical homes to ADR-0088's single home
   (the original was factually wrong and would have reddened CI); added ADR-0078
-  to the set of clauses ADR-0090 must refine (its start route requires
+  to the set of clauses ADR-0092 must refine (its start route requires
   materialization, which direct-light reverses); replaced the manual
   fresh-fixture gesture with a committed whole-tree digest harness, because the
   direct route bypasses the transaction the earlier test would have exercised;
@@ -518,7 +518,7 @@ plus `make build-self`.
   router can actually observe, since workspace membership is computed in `Route`
   rather than supplied; the T2 mutation proof's false "harness sees a non-empty
   diff" claim was replaced with a discriminating one. Added: RFC-0083's
-  artifact-first clauses to RFC-0092's refinement set; locator-derived path
+  artifact-first clauses to RFC-0094's refinement set; locator-derived path
   confinement to AC9; a canonical representation rule for absent
   artifact/membership. Resolved an internal contradiction where AC1 named an issue
   or PR as *authority* while AC8 called their text data — the invocation may now

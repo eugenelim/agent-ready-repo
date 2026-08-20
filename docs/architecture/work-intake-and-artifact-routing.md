@@ -103,7 +103,7 @@ arbitrary adopter repository.
 - [ADR-0033 — Intent-level open recognized set decoupled from scale](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
 - [ADR-0077 — Feature projection and tracker authority](../adr/0077-feature-projection-and-tracker-authority.md)
 - [ADR-0078 — Standalone intake and deterministic workspace index](../adr/0078-standalone-intake-and-deterministic-workspace-index.md)
-- [ADR-0090 — Direct-light execution is session-local outside workspace dispatch](../adr/0090-direct-light-execution-session-local-boundary.md)
+- [ADR-0092 — Direct-light execution is session-local outside workspace dispatch](../adr/0092-direct-light-execution-session-local-boundary.md)
   — the decision this page's §5 invariant records; it refines ADR-0078's
   start-route materialization rule for captured and indexed items while leaving
   its workspace-entry dispatchability rule unchanged.

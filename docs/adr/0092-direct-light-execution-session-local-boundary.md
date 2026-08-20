@@ -1,10 +1,10 @@
-# ADR-0090: Direct-light execution is session-local outside workspace dispatch
+# ADR-0092: Direct-light execution is session-local outside workspace dispatch
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
 - **Decision-makers:** eugenelim
 - **Supersedes:** ADR-0014 (in part — light mode's persisted inline-spec obligation; its trigger set, light/full selection, and no-new-executable-code, skill, or artifact-type boundary stand); ADR-0076 (in part — its dispatch-only wording; workspace dispatch remains spec-and-plan based); ADR-0078 (in part — its start-route materialization rule and its "every executable work item has a reviewable canonical contract and plan" consequence, both narrowed to workspace-indexed items; workspace-entry dispatchability stands)
-- **Related:** RFC-0092; ADR-0014; ADR-0076; ADR-0078; ADR-0088
+- **Related:** RFC-0094; ADR-0014; ADR-0076; ADR-0078; ADR-0088
 
 ## Decision summary
 
@@ -16,7 +16,7 @@
 
 ## Context
 
-Three accepted clauses require a narrower scope after RFC-0092 accepts direct-light execution. The decision does not make direct-light a workspace route: it has no workspace entry, no durable artifact, no argless dispatch, and no fresh-session resumption.
+Three accepted clauses require a narrower scope after RFC-0094 accepts direct-light execution. The decision does not make direct-light a workspace route: it has no workspace entry, no durable artifact, no argless dispatch, and no fresh-session resumption.
 
 This is one boundary decision. It preserves the durable contract where a repository index, queue, or later session needs it, while allowing the explicit invocation itself to authorize one bounded session-local change.
 
@@ -69,7 +69,7 @@ ADR-0078's dispatchability rule is preserved unchanged: an entry is dispatchable
 ## Confirmation
 
 - **Mode:** reviewer-checked
-- **Signal:** RFC-0092 and the implementing spec preserve the three refinements, leave accepted bodies unchanged, and retain workspace dispatch's existing-spec-and-plan requirement.
+- **Signal:** RFC-0094 and the implementing spec preserve the three refinements, leave accepted bodies unchanged, and retain workspace dispatch's existing-spec-and-plan requirement.
 - **Owner:** maintainers
 
 ## Alternatives considered
@@ -82,7 +82,7 @@ ADR-0078's dispatchability rule is preserved unchanged: an entry is dispatchable
 
 ## References
 
-- RFC-0092: direct-light execution without durable planning artifacts.
+- RFC-0094: direct-light execution without durable planning artifacts.
 - ADR-0014: light/full modes and its deferred mode-selection mechanism.
 - ADR-0076: workspace dispatch from structured entries referencing a spec and plan.
 - ADR-0078: standalone intake and workspace-entry dispatchability.

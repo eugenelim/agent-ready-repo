@@ -3,8 +3,8 @@
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0092 and ADR-0090 (both authored by this spec).
-  ADR-0090 refines ADR-0014, ADR-0076, and ADR-0078. ADR-0088 and RFC-0090 are
+- **Constrained by:** RFC-0094 and ADR-0092 (both authored by this spec).
+  ADR-0092 refines ADR-0014, ADR-0076, and ADR-0078. ADR-0088 and RFC-0090 are
   preserved unchanged and constrain how this spec may edit its target files.
 - **Brief:** none
 - **Discovery:** none
@@ -338,13 +338,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Governance, release, and proof
 
-- [ ] AC29 — RFC-0092 records the decision at `heavy` weight and carries the
+- [ ] AC29 — RFC-0094 records the decision at `heavy` weight and carries the
   reversal analysis (RFC-0025 explicitly rejected a no-spec light mode and its
   option D) and the compatibility analysis for existing persisted specs,
-  workspace entries, and adopters. RFC-0092 also refines RFC-0083's artifact-first
+  workspace entries, and adopters. RFC-0094 also refines RFC-0083's artifact-first
   clauses — "only an existing spec and plan may authorize execution" and the
   router "dispatches only an existing spec and plan" — while preserving its
-  workspace-dispatch rule. ADR-0090 refines exactly four accepted
+  workspace-dispatch rule. ADR-0092 refines exactly four accepted
   clauses without editing any accepted body: ADR-0014's inline-lean-spec light
   mode; ADR-0076's dispatch-only-from-workspace-entries rule; ADR-0078's
   start-route-materializes rule together with its "every captured item must
@@ -427,7 +427,7 @@ and consciously accepted rather than silently carried.
   shipped adopter-facing workflow is RFC-qualified and carries `heavy` weight
   (source: `docs/rfc/0091-right-size-rfc-governance.md:60-67,77-81`, read
   2026-08-19).
-- Process: the next free ordinals are RFC-0092 and ADR-0090 (source:
+- Process: the next free ordinals are RFC-0094 and ADR-0092 (source:
   `python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc` → `0092`;
   `python3 .claude/skills/new-adr/scripts/next-ordinal.py docs/adr` → `0090`,
   run 2026-08-19).
@@ -435,7 +435,7 @@ and consciously accepted rather than silently carried.
   versus explicit user flag) "to the implementation spec", so this spec may fix it
   as an explicit request to start (source:
   `docs/adr/0014-rigor-scales-with-risk-work-loop-modes.md:82-84`).
-- Process: three accepted clauses become false and are refined by ADR-0090 rather
+- Process: three accepted clauses become false and are refined by ADR-0092 rather
   than edited — ADR-0014's "A lean spec written inline"
   (`docs/adr/0014-…md:37-43`), ADR-0076's "agents may dispatch work only from
   structured workspace entries that reference those files"
