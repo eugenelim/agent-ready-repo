@@ -1083,6 +1083,21 @@ open = [
   # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
   # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
   {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+  # Cause measured, not inferred: a non-editable `agentbundle` in site-packages
+  # resolves ahead of the worktree source under audit. The okf test asserts
+  # `expected == CLI_VERSION` and reports '0.38.4' == '0.38.1' — worktree source
+  # at 0.38.4 against the installed 0.38.1. This is agentbundle's CLI version,
+  # NOT the core pack version, so a core bump neither causes nor fixes it.
+  # Affected: test_okf_catalogue_discovery.py::test_release_metadata_moves_together_for_okf_catalogue_discovery,
+  # test_catalogue_wave4_live_contracts.py::test_live_catalogue_indexes_every_manifest_pack
+  # (raises inside site-packages/agentbundle/catalogue_tooling/index_generator.py:502),
+  # and test_marketplace_envelope_parity.py::test_resolved_layer_fails_loudly_when_the_package_is_unimportable.
+  # Reproduced independently in two control worktrees with no branch commits
+  # applied — at 0b7e5340 and at 3fc76067 — so it is environmental, not content.
+  # None are in `make build-check`; all are in `make test`. Unblocks when: the
+  # installed agentbundle is reconciled with the worktree source (editable
+  # install or uninstall), or the roster tests pin worktree source explicitly.
+  {slug = "pre-existing-roster-catalogue-index-and-okf-release-metadata", source = "pre-flight/2026-08-20"},
   # RFC-0088 round 11 measured that Node's permission model refuses
   # `process.dlopen` by POLICY when `--allow-addons` is absent
   # (`ERR_DLOPEN_DISABLED`) and lets it through to a non-policy failure when the

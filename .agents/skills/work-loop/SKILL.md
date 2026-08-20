@@ -158,17 +158,22 @@ entries for a slug match. On match, stop: "This is a `[shape]` item (`type =
 <subtype>`); use `<skill>` — `work-loop` is for build items only."
 (shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 
-After orientation:
+After orientation, route by invocation shape. **Order matters: an explicit
+current request is decided before the workspace-dispatch branches, which exist
+only for an argless start or a fresh-session `resume`.** A canonical active item
+must never capture an explicit request for different work.
+
 - If a spec path was supplied and matched `canonical.ready` or `canonical.active`, use
   that canonical evaluation and proceed to PLAN.
-- Otherwise, exactly one canonical active item → read its `spec.md` and `plan.md`,
-  then proceed to PLAN.
-- Otherwise, exactly one selected canonical ready item → read its `spec.md` and
-  `plan.md`, then proceed to PLAN.
-- Otherwise, an explicit current request with no matching `canonical.ready`,
-  `canonical.active`, or `canonical.blocked` item may proceed to the direct-light
-  decision record. A matching or conflicting canonical item surfaces the conflict
-  rather than starting untracked parallel implementation.
+- Otherwise, for an **explicit current request**: with no matching
+  `canonical.ready`, `canonical.active`, or `canonical.blocked` item, proceed to
+  the direct-light decision record. A matching or conflicting canonical item
+  surfaces the conflict rather than starting untracked parallel implementation,
+  and an explicit request that names existing durable work uses that spec.
+- Otherwise, for an **argless start or fresh-session `resume`** only: exactly one
+  canonical active item → read its `spec.md` and `plan.md`, then proceed to PLAN.
+- Otherwise, for an **argless start** only: exactly one selected canonical ready
+  item → read its `spec.md` and `plan.md`, then proceed to PLAN.
 - Otherwise, stop. A direct-light run is not resumable through
   `workspace-status`; a bare `resume` in a fresh context requires a matching
   `canonical.active` item.
@@ -653,7 +658,16 @@ Route each reviewer finding into `apply` (fix in this PR) or `defer` (capture as
 - **Blockers** → `apply`. Re-run GATES and REVIEW after each fix.
 - **Concerns** → `apply` if mechanical and in scope (default for any Concern whose fix meets the bundled-fixes gates). `defer` if the fix crosses files outside the plan, requires a design call, or changes user-visible behavior the spec didn't authorize. Don't let Concerns rot in chat — every Concern resolves into one of the two.
 - **Nits** → `apply` if they meet the bundled-fixes gates (land in `Bundled fixes:`). Otherwise `defer` — one line in `Deferred:`. Every Nit resolves into one of the two; the `Deferred:` line is the acknowledgement that the loop saw it and chose not to fix.
-- **Deferred items** → before recording, ask: *"Could this be delivered in this PR without crossing scope or introducing unreviewed risk?"* Only defer if genuinely no. Record in `workspace.toml [backlog].open` as `{slug = "...", source = "spec/<name> ACn"}` with a cold-start-sufficient TOML comment. Add `(deferred: <slug>)` to the spec criterion that defers. PR description keeps only a one-line pointer in a standalone `Deferred:` section (alongside `Bundled fixes:`; append below standard template content, don't modify the template). After recording, prompt: *"Does this look like an RFC candidate or roadmap intent? If so, add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Skip if neither file exists.
+- **Deferred items** → before recording, ask: *"Could this be delivered in this PR without crossing scope or introducing unreviewed risk?"* Only defer if genuinely no.
+
+  **Direct-light defers in the session, never in the repository.** It has no spec
+  criterion to annotate and must not write `workspace.toml`, so a deferral is
+  carried in the handoff's non-goals-and-deferrals field and in the PR
+  description. If the finding genuinely needs durable tracking that must outlive
+  this session, that need *is* a durability trigger: stop and escalate to the
+  spec-and-plan path rather than writing a backlog entry from a direct-light run.
+
+  For spec-backed work, record in `workspace.toml [backlog].open` as `{slug = "...", source = "spec/<name> ACn"}` with a cold-start-sufficient TOML comment. Add `(deferred: <slug>)` to the spec criterion that defers. PR description keeps only a one-line pointer in a standalone `Deferred:` section (alongside `Bundled fixes:`; append below standard template content, don't modify the template). After recording, prompt: *"Does this look like an RFC candidate or roadmap intent? If so, add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Skip if neither file exists.
 
 **Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
 

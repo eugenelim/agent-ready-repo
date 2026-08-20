@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-20
 - **Decision-makers:** eugenelim
-- **Supersedes:** ADR-0014 (in part — light mode's persisted inline-spec obligation; its trigger set, light/full selection, and no-new-executable-code, skill, or artifact-type boundary stand); ADR-0076 (in part — its dispatch-only wording; workspace dispatch remains spec-and-plan based); ADR-0078 (in part — its start-route materialization rule for captured and indexed items; workspace-entry dispatchability stands)
+- **Supersedes:** ADR-0014 (in part — light mode's persisted inline-spec obligation; its trigger set, light/full selection, and no-new-executable-code, skill, or artifact-type boundary stand); ADR-0076 (in part — its dispatch-only wording; workspace dispatch remains spec-and-plan based); ADR-0078 (in part — its start-route materialization rule and its "every executable work item has a reviewable canonical contract and plan" consequence, both narrowed to workspace-indexed items; workspace-entry dispatchability stands)
 - **Related:** RFC-0092; ADR-0014; ADR-0076; ADR-0078; ADR-0088
 
 ## Decision summary
@@ -39,6 +39,8 @@ ADR-0076 states: "agents may dispatch work only from structured workspace entrie
 ### ADR-0078 refinement
 
 ADR-0078 states: "**Start or do this:** classify normalized content, materialize the canonical artifact, register it, and invoke the processor that owns the next step." Its accepted tradeoff says that "every captured item must materialize a canonical artifact before it can become executable." These rules govern **captured and indexed** items. A direct-light request is never captured or indexed, so it is outside their scope rather than an exception to them.
+
+ADR-0078 also records an unqualified consequence: "Every executable work item has a reviewable canonical contract and plan." Direct-light work is executable and deliberately has neither, so that consequence is refined too: it holds for every **workspace-indexed** work item. A session-local direct-light request is executable without being a work *item* in the index, and its reviewable substitute is the pre-write decision record plus the pull request, neither of which is a durable repository artifact.
 
 ADR-0078's dispatchability rule is preserved unchanged: an entry is dispatchable only when it names an existing Approved spec and sibling plan. That rule already scopes itself to workspace entries, which direct-light never creates.
 

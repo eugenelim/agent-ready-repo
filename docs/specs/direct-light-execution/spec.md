@@ -344,11 +344,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   workspace entries, and adopters. RFC-0092 also refines RFC-0083's artifact-first
   clauses — "only an existing spec and plan may authorize execution" and the
   router "dispatches only an existing spec and plan" — while preserving its
-  workspace-dispatch rule. ADR-0090 refines exactly three accepted
+  workspace-dispatch rule. ADR-0090 refines exactly four accepted
   clauses without editing any accepted body: ADR-0014's inline-lean-spec light
-  mode, ADR-0076's dispatch-only-from-workspace-entries rule, and ADR-0078's
+  mode; ADR-0076's dispatch-only-from-workspace-entries rule; ADR-0078's
   start-route-materializes rule together with its "every captured item must
-  materialize a canonical artifact before it can become executable" tradeoff.
+  materialize a canonical artifact before it can become executable" tradeoff; and
+  ADR-0078's consequence that "every executable work item has a reviewable
+  canonical contract and plan", narrowed to workspace-indexed items.
   Both are registered in their indexes.
 - [ ] AC30 — Falsification cases exist and each turns a named test red:
   reintroducing spec creation on the direct path; mutating `workspace.toml` on

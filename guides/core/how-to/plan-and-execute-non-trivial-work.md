@@ -137,7 +137,7 @@ Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled 
 ## Pitfalls
 
 :::caution
-**Skipping `new-spec` for "small" multi-file work.** If the change touches more than one file, the spec is cheap insurance. A three-paragraph spec is fine — the discipline is the point, not the document length.
+**Reaching for `new-spec` because the change touches several files.** File count stopped deciding this a long time ago; risk decides it, and so does durability. A bounded, low-risk change you are doing now runs direct-light with its plan in the session and no spec at all, however many files it touches. Write a spec when the work needs a durable contract — a risk trigger fires, it needs queueing, another session, another person, an external orchestrator, an approval that outlives the context, or it defines published behavior. The discipline is the loop, not the document.
 :::
 
 :::caution

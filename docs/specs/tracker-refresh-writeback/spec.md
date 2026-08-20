@@ -12,12 +12,11 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
-<!-- **Light-mode lean fill.** For low-risk work running the `work-loop`
-skill's light mode, only Objective + Acceptance Criteria + a short task list
-(in `plan.md`) are required. **Boundaries**, **Testing Strategy**, and
-**Assumptions** are optional — keep them only if they earn their place. Any
-risk trigger (see the `work-loop` skill) escalates to full mode, where every
-section is filled. -->
+<!-- **Durable-spec fill.** This template governs work that needs a durable
+behavior contract for one delivery slice. Fill Objective, Boundaries, Testing
+Strategy, Acceptance Criteria, and Assumptions to the depth the durable work
+requires. The sibling plan carries the implementation and verification strategy.
+Eligible direct-light work does not create this artifact. -->
 
 <!-- **Present tense, as-built.** Write every body section below as if the
 feature already exists and always worked this way — no "will be", no
