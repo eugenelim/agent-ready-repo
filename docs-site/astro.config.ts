@@ -73,6 +73,7 @@ export default defineConfig({
       },
       components: {
         Footer: './src/components/Footer.astro',
+        PageFrame: './src/components/PageFrame.astro',
         PageTitle: './src/components/PageTitle.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in

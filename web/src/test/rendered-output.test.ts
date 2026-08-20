@@ -39,6 +39,7 @@ const DOCS_HOME = join(DOCS_ROOT, 'index.html');
 const NOW_PAGE = join(BUILD_ROOT, 'now', 'index.html');
 const NOW_PROJECTION = join(REPO_ROOT, 'web/src/lib/now-highlights.generated.json');
 const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.generated.json');
+const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
 function walk(dir: string, match: (name: string) => boolean, out: string[] = []): string[] {
@@ -520,6 +521,75 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(footerCurrent('journeys/core', '[href$="/catalogue/"][aria-current="location"]')).toBe(1);
     // Fragment destinations stay non-current in the footer too.
     expect(footerCurrent('now', '[href*="#"][aria-current]')).toBe(0);
+  });
+
+  it('shared chrome AC4–AC9: docs keeps native Starlight controls around its local product chrome', () => {
+    if (!docsBuilt) throw new Error('docs emitted-output guard requires build/docs/');
+    const expected = JSON.parse(readFileSync(DOCS_SHARED_CHROME_PROJECTION, 'utf8'));
+    const base = '/agent-ready-repo';
+    const home = doc(DOCS_HOME);
+    const nested = doc(join(DOCS_ROOT, 'getting-started/install/index.html'));
+    const labels = (links: HTMLAnchorElement[]) => links.map((link) =>
+      link.textContent?.replace(/\s+/g, ' ').trim().replace(/ ↗ external$/, '')
+    );
+
+    const band = home.querySelector('nav[aria-label="Product orientation"]');
+    expect(band).not.toBeNull();
+    expect(labels([...band!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
+      expected.product_orientation_band.map((link: { label: string }) => link.label)
+    );
+    expect([...band!.querySelectorAll<HTMLAnchorElement>('a')].map((link) => link.getAttribute('href'))).toEqual(
+      expected.product_orientation_band.map((link: { target: string; kind: string }) =>
+        link.kind === 'internal' ? `${base}${link.target}` : link.target
+      )
+    );
+    expect(band!.querySelector('[href$="/docs/"]')?.getAttribute('aria-current')).toBe('page');
+    expect(nested.querySelector('nav[aria-label="Product orientation"] [href$="/docs/"]')?.getAttribute('aria-current'))
+      .toBe('location');
+
+    const productNav = home.querySelector('nav[aria-label="Product navigation"]');
+    expect(productNav?.querySelector('summary')?.textContent?.trim()).toBe('Product');
+    expect(productNav?.querySelector('summary a')).toBeNull();
+    expect(labels([...productNav!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
+      expected.product_navigation.map((link: { label: string }) => link.label)
+    );
+    expect(home.querySelectorAll('starlight-menu-button button[aria-controls="starlight__sidebar"]').length).toBe(1);
+    expect(home.querySelectorAll('.sl-skip-link').length).toBe(1);
+    expect(home.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link')).toBe(true);
+    // `.header` is not a singularity proxy. Starlight's own Header renders a
+    // `<div class="header">`, Expressive Code emits `<figcaption class="header">`
+    // for captioned code blocks, and the page frame's `<header class="header">` is
+    // the docs-local sticky wrapper that keeps starlight.css's `header.header`
+    // rule applying. Assert the controls AC9 actually names instead. These counts
+    // were verified against a build with the PageFrame override disabled, so they
+    // record native Starlight behaviour rather than a number that happened to pass.
+    expect(home.querySelectorAll('header.header > div.header').length).toBe(1);
+    expect(home.querySelectorAll('a.site-title').length).toBe(1);
+    expect(home.querySelectorAll('site-search').length).toBe(1);
+    expect(home.querySelectorAll('#starlight__sidebar').length).toBe(1);
+    expect(home.querySelectorAll('nav.sidebar').length).toBe(1);
+
+    const footer = nested.querySelector('footer.docs-site-footer');
+    expect(nested.querySelectorAll('footer').length).toBe(1);
+    expect([...footer!.querySelectorAll('.docs-site-footer__group h2')].map((heading) => heading.textContent?.trim()))
+      .toEqual(expected.footer.map((group: { label: string }) => group.label));
+    for (const [index, group] of [...footer!.querySelectorAll('.docs-site-footer__group')].entries()) {
+      const expectedGroup = expected.footer[index];
+      const links = [...group.querySelectorAll<HTMLAnchorElement>('a')];
+      expect(labels(links)).toEqual(expectedGroup.destinations.map((link: { label: string }) => link.label));
+      for (const [linkIndex, link] of links.entries()) {
+        const expectedLink = expectedGroup.destinations[linkIndex];
+        expect(link.getAttribute('href')).toBe(
+          expectedLink.kind === 'internal' ? `${base}${expectedLink.target}` : expectedLink.target
+        );
+        expect(link.hasAttribute('rel')).toBe(false);
+        expect(link.getAttribute('target')).toBeNull();
+      }
+    }
+    expect(footer?.textContent?.replace(/\s+/g, ' ').trim()).toContain(`© ${new Date().getFullYear()} · agent-ready-repo`);
+    expect(footer?.textContent).not.toContain('The supervised AI operating model for software teams.');
+    expect(footer?.textContent).not.toContain('Platform');
+    expect(footer?.querySelector('.pagination-links')).not.toBeNull();
   });
 
   it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {
