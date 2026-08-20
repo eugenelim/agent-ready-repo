@@ -798,6 +798,17 @@ class TestLinearRefreshProcessor:
         assert registration.field_mapping == tuple(profile["field_mapping"].items())
         assert registration.capabilities == frozenset(profile["capabilities"])
 
+    def test_refresh_profile_refuses_redirects_enabled_before_transport(
+        self, linear_mod: types.ModuleType, tmp_path: Path
+    ) -> None:
+        profile = json.loads(linear_mod.PROFILE_PATH.read_text(encoding="utf-8"))
+        profile["destination"]["redirects"] = True
+        path = tmp_path / "refresh-profile.json"
+        path.write_text(json.dumps(profile), encoding="utf-8")
+
+        with pytest.raises(RuntimeError, match="invalid_refresh_profile"):
+            linear_mod.load_refresh_profile(path)
+
     def test_missing_receipt_store_refuses_before_credentials(
         self, linear_mod: types.ModuleType, refresh_mod: types.ModuleType
     ) -> None:

@@ -1296,7 +1296,6 @@ def test_destination_validation_rejects_forbidden_addresses() -> None:
         schemes=frozenset({"https"}),
         hosts=frozenset({"tracker.example"}),
         ports=frozenset({443}),
-        allow_redirects=False,
     )
 
     pinned = refresh.validate_destination(
@@ -1312,12 +1311,6 @@ def test_destination_validation_rejects_forbidden_addresses() -> None:
                 policy=policy,
                 resolver=lambda _host, address=address: (address,),
             )
-    with pytest.raises(refresh.RefreshRefusal, match="redirect_refused"):
-        refresh.validate_redirect(
-            "https://tracker.example/other",
-            policy=policy,
-            resolver=lambda _host: ("203.0.113.10",),
-        )
 
 
 def test_destination_validation_rejects_credentials_and_mapped_loopback() -> None:

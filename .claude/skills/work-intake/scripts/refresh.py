@@ -416,7 +416,6 @@ class DestinationPolicy:
     schemes: frozenset[str]
     hosts: frozenset[str]
     ports: frozenset[int]
-    allow_redirects: bool = False
     credentials_attached: bool = False
 
 
@@ -1269,19 +1268,6 @@ def validate_destination(
     if not addresses or any(_address_is_forbidden(address) for address in addresses):
         raise RefreshRefusal("destination_forbidden")
     return PinnedDestination(url, scheme, host, port, addresses)
-
-
-def validate_redirect(
-    url: str,
-    *,
-    policy: DestinationPolicy,
-    resolver: Callable[[str], Collection[str]] = _default_resolver,
-) -> PinnedDestination:
-    """Refuse redirects unless the trusted profile explicitly allows them."""
-
-    if not policy.allow_redirects:
-        raise RefreshRefusal("redirect_refused")
-    return validate_destination(url, policy=policy, resolver=resolver)
 
 
 def digest_bytes(value: bytes) -> str:

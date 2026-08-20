@@ -795,7 +795,6 @@ class LinearRefreshProcessor:
             schemes=frozenset({destination["scheme"]}),
             hosts=frozenset({destination["host"]}),
             ports=frozenset({destination["port"]}),
-            allow_redirects=destination["redirects"],
             credentials_attached=True,
         )
         kwargs: dict[str, object] = {"policy": policy}
