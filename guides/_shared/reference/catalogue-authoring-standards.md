@@ -307,6 +307,9 @@ Two collisions matter, and they are not the same:
 Load a subject module under a name that includes its pack and skill:
 
 ```python
+import importlib.util
+import sys
+
 spec = importlib.util.spec_from_file_location(
     "<pack>_<skill>_render", SKILL / "scripts" / "render.py"
 )

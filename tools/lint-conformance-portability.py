@@ -30,7 +30,13 @@ def _pack_names(catalogue_root: Path) -> list[str]:
 # `catalogue init` does not. A conformance test that reaches one of them is
 # repository-only by construction, whatever its filename suggests, and belongs
 # with its real owner rather than in the shipped set.
-_REPO_ONLY_SEGMENTS = ("packages", "tools", "docs")
+_REPO_ONLY_SEGMENTS = ("packages", "tools", "docs", "contracts")
+# `contracts` is here even though a shipped pack shares the name. The
+# pack-name check below deliberately exempts `CATALOGUE_ROOT / "contracts"`
+# as a path rather than a pack reference; for portability that expression is
+# exactly the defect, because a catalogue from `catalogue init` has only
+# tests/, packs/, guides/ and profiles/ at its root. The two checks read the
+# same expression for opposite reasons, which is why neither can cover both.
 
 # `CATALOGUE_ROOT / "packages"` and a bare `"packages/agentbundle"` literal are
 # the two ways the reach is written; neither is visible to a pack-name search.
@@ -43,7 +49,13 @@ _PATH_LITERAL = re.compile(
 
 
 def find_repo_only_references(catalogue_root: Path) -> list[str]:
-    """Return line-addressed repository-only path reaches in conformance tests."""
+    """Return line-addressed repository-only path reaches in conformance tests.
+
+    Bound worth stating: this reads text, so it catches the two spellings that
+    appear in practice -- a literal join and a bare path literal -- and cannot
+    see a segment assembled from a variable or split across lines. It is a
+    barrier against the accident, not a proof of portability.
+    """
     violations: list[str] = []
     for path in sorted((catalogue_root / "tests" / "conformance").rglob("*.py")):
         for line_number, line in enumerate(

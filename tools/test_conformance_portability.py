@@ -49,6 +49,12 @@ def test_repo_only_path_literal_is_rejected(tmp_path: Path) -> None:
     assert _load_linter().find_repo_only_references(root)
 
 
+def test_contracts_reach_is_rejected(tmp_path: Path) -> None:
+    """A catalogue from `catalogue init` has no contracts/ directory."""
+    root = _seed_catalogue(tmp_path, 'SCHEMA = CATALOGUE_ROOT / "contracts" / "x.json"\n')
+    assert _load_linter().find_repo_only_references(root)
+
+
 def test_rule_shaped_paths_pass(tmp_path: Path) -> None:
     """`packs/` and `profiles/` exist in every catalogue, so they stay legal."""
     root = _seed_catalogue(
