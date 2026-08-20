@@ -17,7 +17,7 @@
  * Writes nothing. Screenshot capture lives in `screenshots.spec.ts` and stays
  * outside the required subset (AC11).
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -403,10 +403,157 @@ test.describe('docs routes at every approved width in both themes', () => {
           await expectNoSeriousAxeViolations(page, ctx, testInfo);
           await expectFragmentsResolve(page, ctx);
           await expectSkipLinkFirst(page, ctx);
+          await expectDocsChromeIsWellPlaced(page, ctx);
           expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
         });
       }
     }
+  }
+});
+
+/**
+ * spec/site-shared-chrome AC5, AC6, AC9.
+ *
+ * The occlusion clause exists because a real defect shipped past every other
+ * gate. Starlight's own PageFrame pads `.main-frame` for BOTH its fixed header
+ * and the fixed mobile table of contents. The docs product band makes that
+ * header sticky — in flow, so the header half of that padding is no longer
+ * needed — and dropping the whole declaration put the first 48px of content
+ * behind the ToC bar at 360, 375, 390 and 414 in both themes. Nothing caught
+ * it: the build passed, every unit test passed, and `--sl-mobile-toc-height`
+ * is 0rem at 1440, so the widest case looked correct.
+ */
+async function expectDocsChromeIsWellPlaced(
+  page: Page,
+  ctx: { route: string; width: number; theme?: string }
+): Promise<void> {
+  const measured = await page.evaluate(() => {
+    const band = document.querySelector('nav[aria-label="Product orientation"]');
+    const frameHeader = document.querySelector('header.header');
+    const main = document.querySelector('.main-frame');
+    const tocNav = document.querySelector('mobile-starlight-toc nav');
+    const content = document.querySelector('main');
+    return {
+      bandPresent: !!band,
+      bandDisplayed: band ? getComputedStyle(band).display !== 'none' : false,
+      // The band must not be independently pinned; the sticky wrapper is the
+      // header, and the band scrolls out of it.
+      bandPosition: band ? getComputedStyle(band).position : null,
+      headerPosition: frameHeader ? getComputedStyle(frameHeader).position : null,
+      nativeHeaders: document.querySelectorAll('header.header > div.header').length,
+      menuButtons: document.querySelectorAll(
+        'starlight-menu-button button[aria-controls="starlight__sidebar"]'
+      ).length,
+      sidebars: document.querySelectorAll('#starlight__sidebar').length,
+      productNavs: document.querySelectorAll('nav[aria-label="Product navigation"]').length,
+      // A direct link as the trigger is explicitly forbidden.
+      productTriggerIsLink: !!document.querySelector(
+        'nav[aria-label="Product navigation"] summary a'
+      ),
+      contentTop: content ? content.getBoundingClientRect().top : null,
+      tocBottom: tocNav ? tocNav.getBoundingClientRect().bottom : null,
+    };
+  });
+
+  const where = `${label(ctx)}: docs chrome`;
+  expect(measured.nativeHeaders, `${where}: Starlight header must stay singular`).toBe(1);
+  expect(measured.menuButtons, `${where}: Docs menu trigger must stay singular`).toBe(1);
+  expect(measured.sidebars, `${where}: Starlight sidebar must stay singular`).toBe(1);
+  expect(measured.headerPosition, `${where}: Starlight header must stay sticky`).toBe('sticky');
+  expect(measured.bandPresent, `${where}: the product band must be emitted`).toBe(true);
+  expect(
+    measured.bandPosition,
+    `${where}: the band must scroll away, so it must not be pinned itself`
+  ).not.toBe('fixed');
+  expect(measured.productTriggerIsLink, `${where}: the Product trigger must not be a link`).toBe(
+    false
+  );
+  expect(measured.productNavs, `${where}: Product navigation landmark must be singular`).toBe(1);
+
+  if (measured.tocBottom !== null && measured.contentTop !== null) {
+    expect(
+      measured.contentTop,
+      `${where}: content starts at ${measured.contentTop}px, behind the mobile table of ` +
+        `contents which ends at ${measured.tocBottom}px`
+    ).toBeGreaterThanOrEqual(measured.tocBottom - 0.5);
+  }
+}
+
+test.describe('docs Product and Docs disclosures stay independent', () => {
+  // spec/site-shared-chrome AC6. The static emitted-output checks can prove the
+  // landmark, the item order, and that the trigger is not a link — but the
+  // requirement is behavioural: "Opening or closing it does not open, close,
+  // rename, or replace Starlight's Docs menu." Only driving both controls proves
+  // that. Phone widths only: the Product disclosure is display:none from 50rem.
+  const PHONE_WIDTHS = WIDTHS.filter((width) => width < 800);
+
+  for (const width of PHONE_WIDTHS) {
+    test(`/docs/ Product and Docs disclosures @${width}`, async ({ page }) => {
+      const ctx = { route: '/', width };
+      await page.setViewportSize({ width, height: 900 });
+      await gotoSettled(page, withDocsBase('/'), ctx);
+
+      const productDetails = page.locator('nav[aria-label="Product navigation"] details');
+      const docsMenuButton = page.locator(
+        'starlight-menu-button button[aria-controls="starlight__sidebar"]'
+      );
+      // Read expansion off the CUSTOM ELEMENT, not the button. Starlight's
+      // `setExpanded` does `this.setAttribute('aria-expanded', …)` on
+      // `<starlight-menu-button>`; the inner button's `aria-expanded="false"` is
+      // static markup that never changes, so reading the button reports the menu
+      // permanently closed and makes this whole test assert nothing.
+      const docsMenuHost = page.locator('starlight-menu-button');
+      const productOpen = () => productDetails.evaluate((el: HTMLDetailsElement) => el.open);
+      const docsOpen = async () =>
+        (await docsMenuHost.getAttribute('aria-expanded')) === 'true';
+      const triggerText = () =>
+        page.locator('nav[aria-label="Product navigation"] summary').innerText();
+      // Not just the attribute: the requirement is that the Docs MENU does not
+      // open. Starlight reveals it by CSS keyed off the menu button, so assert
+      // the pane's computed visibility as well — an attribute-only check would
+      // miss a selector change that reveals the sidebar without touching state.
+      const docsSidebarShown = () =>
+        page
+          .locator('#starlight__sidebar')
+          .evaluate((el) => getComputedStyle(el).visibility === 'visible');
+
+      await expect(productDetails).toHaveCount(1);
+      await expect(docsMenuButton).toHaveCount(1);
+      const restingTrigger = await triggerText();
+      expect(await productOpen(), `${label(ctx)}: Product starts closed`).toBe(false);
+      expect(await docsOpen(), `${label(ctx)}: Docs starts closed`).toBe(false);
+      expect(await docsSidebarShown(), `${label(ctx)}: Docs sidebar starts hidden`).toBe(false);
+
+      // Opening Product must not open, or rename, the Docs menu.
+      await productDetails.locator('summary').click();
+      expect(await productOpen(), `${label(ctx)}: Product opened`).toBe(true);
+      expect(await docsOpen(), `${label(ctx)}: opening Product must not open Docs`).toBe(false);
+      expect(
+        await docsSidebarShown(),
+        `${label(ctx)}: opening Product must not reveal the Docs sidebar`
+      ).toBe(false);
+
+      // Opening Docs must not close Product, and must not replace its trigger.
+      await docsMenuButton.click();
+      expect(await docsOpen(), `${label(ctx)}: Docs opened`).toBe(true);
+      expect(await productOpen(), `${label(ctx)}: opening Docs must not close Product`).toBe(true);
+      expect(await triggerText(), `${label(ctx)}: Docs must not rename the Product trigger`).toBe(
+        restingTrigger
+      );
+      // Both open at once: neither control replaced the other.
+      await expect(productDetails).toHaveCount(1);
+      await expect(docsMenuButton).toHaveCount(1);
+
+      // Closing Product must leave Docs open.
+      await productDetails.locator('summary').click();
+      expect(await productOpen(), `${label(ctx)}: Product closed`).toBe(false);
+      expect(await docsOpen(), `${label(ctx)}: closing Product must not close Docs`).toBe(true);
+
+      // Closing Docs must leave Product closed — and still present.
+      await docsMenuButton.click();
+      expect(await docsOpen(), `${label(ctx)}: Docs closed`).toBe(false);
+      expect(await productOpen(), `${label(ctx)}: closing Docs must not open Product`).toBe(false);
+    });
   }
 });
 

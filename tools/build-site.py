@@ -37,6 +37,9 @@ NOW_PROJECTION = (
 MARKETING_SHARED_CHROME_PROJECTION = (
     REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
 )
+DOCS_SHARED_CHROME_PROJECTION = (
+    REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+)
 # Seven calendar days ending on launch day, inclusive (brief decision 19): the
 # launch date itself plus the six dates before it.
 NOW_WINDOW_DAYS = 7
@@ -378,6 +381,31 @@ def assert_marketing_shared_chrome_projection_current(
     if actual != expected:
         raise ValueError(
             f"{output} is stale — run `python3 tools/build-site.py --journeys-only`"
+        )
+
+
+def generate_docs_shared_chrome_projection(
+    contract: object,
+    output: Path = DOCS_SHARED_CHROME_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Project the docs chrome input in the full pre-docs-build pass."""
+    payload = project_shared_chrome(contract)["docs"]
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def assert_docs_shared_chrome_projection_current(
+    contract: object, output: Path = DOCS_SHARED_CHROME_PROJECTION
+) -> None:
+    """Reject a committed docs input that no longer matches ``site.toml``."""
+    expected = project_shared_chrome(contract)["docs"]
+    actual = json.loads(output.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise ValueError(
+            f"{output} is stale — run `python3 tools/build-site.py`"
         )
 
 
@@ -2073,6 +2101,14 @@ def main() -> None:
 
     print("build-site: projecting marketing shared chrome …")
     generate_marketing_shared_chrome_projection(
+        shared_chrome_contract, dry_run=args.dry_run
+    )
+
+    # Docs runs last in the load-bearing build order. Its committed input is
+    # therefore refreshed only here, immediately before `npm run build --prefix
+    # docs-site`; unlike marketing, it is not needed in the journeys-only pass.
+    print("build-site: projecting docs shared chrome …")
+    generate_docs_shared_chrome_projection(
         shared_chrome_contract, dry_run=args.dry_run
     )
 

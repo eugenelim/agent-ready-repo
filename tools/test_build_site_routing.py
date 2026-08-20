@@ -245,6 +245,45 @@ def test_marketing_shared_chrome_projection_rejects_a_seeded_stale_literal(tmp_p
         raise AssertionError("a stale marketing shared-chrome literal passed consistency")
 
 
+def test_docs_shared_chrome_projection_writes_only_the_docs_contract(tmp_path):
+    """The post-web-build docs input has no marketing header projection."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+
+    payload = build_site.generate_docs_shared_chrome_projection(contract, output)
+
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+    assert payload == build_site.project_shared_chrome(contract)["docs"]
+    assert "header" not in payload
+
+
+def test_docs_shared_chrome_projection_dry_run_does_not_write(tmp_path):
+    """Dry runs calculate the docs projection without changing its input file."""
+    output = tmp_path / "shared-chrome.generated.json"
+
+    build_site.generate_docs_shared_chrome_projection(
+        _shared_chrome_fixture(), output, dry_run=True
+    )
+
+    assert not output.exists()
+
+
+def test_docs_shared_chrome_projection_rejects_a_seeded_stale_literal(tmp_path):
+    """AC1 guard: hand-edited docs input cannot drift from the sole source."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+    payload = build_site.generate_docs_shared_chrome_projection(contract, output)
+    payload["product_orientation_band"][0]["label"] = "Stale docs literal"
+    output.write_text(json.dumps(payload), encoding="utf-8")
+
+    try:
+        build_site.assert_docs_shared_chrome_projection_current(contract, output)
+    except ValueError as exc:
+        assert "is stale" in str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("a stale docs shared-chrome literal passed consistency")
+
+
 def test_shared_chrome_rejects_duplicate_destination_ids():
     contract = _shared_chrome_fixture()
     duplicate = copy.deepcopy(
@@ -476,6 +515,13 @@ def test_journeys_only_emits_marketing_shared_chrome_before_the_web_build(monkey
         build_site,
         "generate_marketing_shared_chrome_projection",
         lambda received, **kwargs: calls.append(("shared_chrome", (received, kwargs))),
+    )
+    monkeypatch.setattr(
+        build_site,
+        "generate_docs_shared_chrome_projection",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("journeys-only must not emit the post-web docs input")
+        ),
     )
     monkeypatch.setattr(
         build_site,
@@ -1543,6 +1589,9 @@ _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.jso
 _MARKETING_SHARED_CHROME_PROJECTION = (
     _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
 )
+_DOCS_SHARED_CHROME_PROJECTION = (
+    _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+)
 _EMITTED_CHANGELOG = _REPO_ROOT / "build" / "docs" / "changelog" / "index.html"
 
 # The day `/now/` launched. A historical fact, deliberately pinned rather than
@@ -1575,6 +1624,13 @@ def test_the_committed_marketing_shared_chrome_projection_matches_site_toml():
     """The committed marketing renderer input remains derived from site.toml."""
     build_site.assert_marketing_shared_chrome_projection_current(
         _shared_chrome_fixture(), _MARKETING_SHARED_CHROME_PROJECTION
+    )
+
+
+def test_the_committed_docs_shared_chrome_projection_matches_site_toml():
+    """The docs build input remains derived from the renderer-neutral source."""
+    build_site.assert_docs_shared_chrome_projection_current(
+        _shared_chrome_fixture(), _DOCS_SHARED_CHROME_PROJECTION
     )
 
 
