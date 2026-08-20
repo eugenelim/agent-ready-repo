@@ -1,7 +1,7 @@
 # Plan: direct-light execution
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`
@@ -543,3 +543,13 @@ plus `make build-self`.
   `docs-site/src/content/docs/guides/**` only, so that page is a hand-authored
   tracked source. `make site-sync` ran clean without touching it, which is what
   exposed the error. The stale lean-spec claim there was edited directly.
+- 2026-08-20 — Loop closed. Merged `main` through `b4dae24d` rather than
+  rebasing (main squash-merges, so replaying eleven commits through repeated
+  generated-projection conflicts bought nothing). Renumbered to RFC-0094 /
+  ADR-0092 after both reserved ordinals were taken during review. Core version
+  2.10.3. A note on the cohort baseline for whoever reads this next: `plan.md`
+  must stay byte-identical from `approve-plan` until after `reviewers-clean`,
+  because every wave and review transition re-checks its hash while `approve-plan`
+  refuses unless the file reads `Approved`. So `Status: Done` has to be the last
+  edit of the run, after the final transition — writing it earlier forces a
+  re-seal, which the tool correctly calls a re-approval in substance.

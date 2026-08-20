@@ -1,6 +1,6 @@
 # Spec: direct-light execution
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0094 and ADR-0092 (both authored by this spec).
@@ -145,7 +145,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Direct-light execution
 
-- [ ] AC1 — A bounded explicit low-risk start runs the full light loop (plan,
+- [x] AC1 — A bounded explicit low-risk start runs the full light loop (plan,
   implement, gates, one bounded adversarial review, repair, decide, handoff) with
   no durable planning artifact: `packs/core/.apm/skills/work-loop/SKILL.md`
   light mode names the explicit trusted invocation as authority — which may
@@ -155,17 +155,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `docs/specs/README.md` update, a `workspace.toml` mutation, `loop-engine` or
   `loop-cohort` initialization, spec-status lint when no spec exists, and
   project-knowledge capture triggered solely by an absent spec gate.
-- [ ] AC2 — Before the first implementation write, a direct-light run emits a
+- [x] AC2 — Before the first implementation write, a direct-light run emits a
   user-visible decision record naming the authority source, the bounded scope,
   the non-goals, the risk-trigger assessment, the assumptions, and the
   verification plan; ambiguity in any of the six stops the run and surfaces
   rather than proceeding. The record is session output, not a persisted file.
-- [ ] AC3 — The direct-light handoff carries requested outcome, implemented
+- [x] AC3 — The direct-light handoff carries requested outcome, implemented
   scope, verification evidence, non-goals and deferrals, and any discovered
   reason future work should use a durable spec. Its testable form is the
   five-field requirement asserted in the skill body plus an eval case; no
   durable handoff file is created.
-- [ ] AC4 — Direct-light eligibility is a conjunction, and each conjunct is
+- [x] AC4 — Direct-light eligibility is a conjunction, and each conjunct is
   individually pinned. These predicates are semantic judgements an agent makes, so
   the achievable verification is (a) one parameterized case per conjunct asserting
   it is stated with its consequence, (b) a completeness pin failing when a conjunct
@@ -176,7 +176,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   for queueing, assignment, cross-session resumption, parallel coordination, or a
   durable product contract; no conflict with a canonical queued or active
   workspace item; and no supplied governing spec for the same work.
-- [ ] AC5 — Each of these routes to the durable spec-and-plan path and is refused
+- [x] AC5 — Each of these routes to the durable spec-and-plan path and is refused
   the direct route. Each is stated as its own row with a reason, carries its own
   parameterized case, and is covered by the completeness pin described in AC4; the
   four least self-evident — assignment to another person, an approval that must
@@ -189,19 +189,19 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   or refresh state that must remain meaningful after the session; and an explicit
   user request for a spec. A refused direct route invokes or recommends
   `new-spec`.
-- [ ] AC6 — Classification happens before the first implementation write, and a
+- [x] AC6 — Classification happens before the first implementation write, and a
   trigger discovered mid-implementation stops before crossing the newly
   discovered boundary, preserves the current diff without asserting it was
   produced under an earlier approved spec, creates a spec and plan describing the
   intended final state and the already-observed repository reality, runs the
   normal human approval gates, and brings the complete diff through full
   verification and review. No backfilled implementation chronology.
-- [ ] AC7 — Direct execution being unavailable never creates a brief; a brief
+- [x] AC7 — Direct execution being unavailable never creates a brief; a brief
   requires a coherent multi-slice or cross-repository outcome.
 
 ### Authority boundary
 
-- [ ] AC8 — Eligibility, scope, the risk-trigger assessment, and any exception
+- [x] AC8 — Eligibility, scope, the risk-trigger assessment, and any exception
   decision derive only from the explicit trusted invocation plus repository
   policy. Text embedded in an issue body, pull-request description,
   `workspace.toml` comment, README, issue template, commit message, branch name,
@@ -210,7 +210,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   scope. Falsification cases cover at least an embedded "start this direct-light",
   an embedded "no risk trigger applies", and an embedded instruction to change a
   file outside the stated scope.
-- [ ] AC9 — All applicable input validation, confidentiality comparison, and
+- [x] AC9 — All applicable input validation, confidentiality comparison, and
   path-independent safety checks run and can refuse **before** route
   classification selects a processor and before any implementation write; a
   refusal is terminal for the attempt and no implementation write follows it.
@@ -223,16 +223,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Existing specs and workspace orientation
 
-- [ ] AC10 — A supplied or workspace-resolved existing spec is used, never
+- [x] AC10 — A supplied or workspace-resolved existing spec is used, never
   replaced or downgraded; spec/plan lifecycle and workspace reconciliation are
   preserved; full-mode behavior on a firing risk trigger is preserved; and every
   spec-related check is conditional on a spec existing.
-- [ ] AC11 — A persisted spec that predates this change and carries
+- [x] AC11 — A persisted spec that predates this change and carries
   `Mode: light (no risk trigger fired)` remains readable, remains valid, and
   remains resumable as a spec-driven run through its existing status ladder; no
   adopter must migrate or delete such a spec, and a test covers resumption from
   each of its `Draft`, `Approved`, and `Implementing` states.
-- [ ] AC12 — `work-loop` Step 0 no longer lets the mere presence of
+- [x] AC12 — `work-loop` Step 0 no longer lets the mere presence of
   `workspace.toml` force an explicit current request to resolve to a canonical
   spec. An argless queued start still requires a `canonical.ready` item; a
   fresh-session resume still requires a `canonical.active` item; a supplied spec
@@ -240,11 +240,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   through `workspace-status`; and a bare `resume` in a fresh context never infers
   a direct-light authority from workspace comments, old chat, branch names, or
   surrounding prose.
-- [ ] AC13 — An explicit current request may enter direct light mode without
+- [x] AC13 — An explicit current request may enter direct light mode without
   workspace registration when no matching active, ready, or blocked canonical
   item exists; a matching or conflicting item makes the run surface the conflict
   instead of starting an untracked parallel implementation.
-- [ ] AC14 — A direct-light run that cannot finish in-session fails safe: on
+- [x] AC14 — A direct-light run that cannot finish in-session fails safe: on
   discovering it needs a further session, that a second worktree is already
   changing the same files, or that gates cannot be repaired in-session, it stops,
   surfaces the situation, and escalates to the durable spec-and-plan path rather
@@ -252,13 +252,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Intake routing
 
-- [ ] AC15 — `packs/core/.apm/skills/work-intake/SKILL.md` and
+- [x] AC15 — `packs/core/.apm/skills/work-intake/SKILL.md` and
   `scripts/intake_router.py` carry a direct route whose observable result is no
   artifact path, no workspace membership, no transaction or rollback, and
   `work-loop` as processor, and whose repository state is unchanged until
   implementation begins; the route still validates and normalizes input and runs
   the confidentiality and path-independent safety checks of AC9.
-- [ ] AC16 — The direct route is fail-closed on the combinations the router can
+- [x] AC16 — The direct route is fail-closed on the combinations the router can
   observe. Workspace membership is *computed* in `Route`, not supplied, so the
   discriminant is over inputs: a direct-light signal is rejected terminally,
   before any write, unless its `action` is `start`, its `artifact` is empty, its
@@ -268,33 +268,33 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   the direct signal, and expects that rejection. This bounds misrouting; it does
   not make the declared signal itself trustworthy — see
   [Accepted limitations](#accepted-limitations).
-- [ ] AC17 — "Materialize before register" applies only to routes that create
+- [x] AC17 — "Materialize before register" applies only to routes that create
   durable artifacts, and transactionality is unweakened for intents, briefs,
   specs, defects, and tracker-origin refresh. Artifact routes continue to resolve
   their target through `resolve_confined_target()`.
-- [ ] AC18 — `artifact: none` and `workspace membership: none` render as a valid
+- [x] AC18 — `artifact: none` and `workspace membership: none` render as a valid
   direct-route result, not an error. The internal representation is fixed once and
   documented: the router carries the empty string for an absent artifact and the
   literal `none` for absent membership; `none` in output is a *rendering* literal,
   and no fixture encodes a conflicting meaning.
-- [ ] AC19 — The rule that one actor plus one bounded capability always enters
+- [x] AC19 — The rule that one actor plus one bounded capability always enters
   `new-spec` is replaced by the direct-light-versus-durable-work decision, and
   the intake routing table carries the six routes (direct-light, durable single
   slice, multi-slice brief, remember, cited defect, incomplete or ambiguous).
 
 ### Brief convergence
 
-- [ ] AC20 — `author-brief` creates a Draft from incomplete multi-slice input
+- [x] AC20 — `author-brief` creates a Draft from incomplete multi-slice input
   when the intended multi-slice outcome is identifiable or the missing outcome is
   named as a blocking gap, provenance is recorded, and missing Ready fields are
   named; it requires neither Appetite nor a Rabbit hole to create a Draft,
   invents no missing field, never sets Ready, and never creates a brief for a
   single direct-light change.
-- [ ] AC21 — `author-brief` Draft creation still proceeds only from the validated
+- [x] AC21 — `author-brief` Draft creation still proceeds only from the validated
   normalized envelope after the existing terminal confidentiality and redaction
   refusal, and still copies no raw external payload into the brief; removing the
   Appetite and Rabbit-hole preconditions weakens no containment control.
-- [ ] AC22 — `receive-brief` is the single owner of one canonical Ready gate
+- [x] AC22 — `receive-brief` is the single owner of one canonical Ready gate
   whose semantic fields are exactly Outcome, In scope, Non-goals, Constraints or
   appetite, Named assumptions or risks, and Durable source provenance; the Spec
   map may be mechanically present with zero slices; Success metrics,
@@ -302,14 +302,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   installed workflow or explicit policy; a Ready brief with zero specs is valid
   and non-dispatchable; and only confirmed delivery slices create specs and
   plans.
-- [ ] AC23 — `packs/core/seeds/docs/product/briefs/_template.md` carries an
+- [x] AC23 — `packs/core/seeds/docs/product/briefs/_template.md` carries an
   explicit safe source/provenance field, Outcome, Scope and Non-goals,
   Constraints/Appetite, Assumptions/Risks, and an empty-capable Spec map; marks
   Success signals, Instrumentation, User stories, and Design artifacts optional;
   claims no field mandatory that the canonical Ready gate does not require;
   duplicates no explanation `receive-brief` owns; and remains a prompt sheet
   rather than a schema or a generic wrapper for every request.
-- [ ] AC24 — `new-spec` remains the explicit durable-contract authoring workflow,
+- [x] AC24 — `new-spec` remains the explicit durable-contract authoring workflow,
   invoked for an explicit spec request, full mode or durable coordination, a
   confirmed brief slice, work needing queueing, resumption, approval persistence,
   or external orchestration, and a warranted durable published behavior contract;
@@ -318,14 +318,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Documentation, terminology, and stale claims
 
-- [ ] AC25 — `docs/architecture/work-intake-and-artifact-routing.md` states the
+- [x] AC25 — `docs/architecture/work-intake-and-artifact-routing.md` states the
   narrowed invariant — every workspace-dispatchable, queued, or resumable build
   item resolves to an existing durable spec and plan, while an explicit
   direct-light request is session-local, creates no workspace entry, and is
   ineligible for argless dispatch or fresh-session resumption — and carries the
   three-branch classification flow (direct light; durable single slice;
   multi-slice outcome). `workspace.toml`'s schema is unchanged.
-- [ ] AC26 — No **living** surface — skill, script, test, eval, seed, template,
+- [x] AC26 — No **living** surface — skill, script, test, eval, seed, template,
   guide, architecture page, `AGENTS.md`, `CONVENTIONS.md`, or projection — states
   that light mode persists a lean spec, that every nontrivial change creates a
   spec, or that a spec carries the implementation "how". Frozen historical
@@ -335,10 +335,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   the block is copied verbatim into three retired homes and that all four must be
   byte-identical, is corrected to match ADR-0088. A spec means durable delivery
   behavior and a plan means implementation strategy everywhere.
-- [ ] AC27 — Root `AGENTS.md` and `packs/core/seeds/AGENTS.md` carry a concise
+- [x] AC27 — Root `AGENTS.md` and `packs/core/seeds/AGENTS.md` carry a concise
   `work-loop` pointer and neither the routing policy nor the classification
   table; neither reintroduces a risk-trigger block copy.
-- [ ] AC28 — No `work-contract.md`, Work Contract schema, registry, lifecycle,
+- [x] AC28 — No `work-contract.md`, Work Contract schema, registry, lifecycle,
   `workspace.toml` kind, or public concept exists anywhere in the repository;
   machine-protocol "contract" terminology remains where it genuinely describes an
   interface contract, and the normalized intake envelope keeps its existing
@@ -346,7 +346,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Governance, release, and proof
 
-- [ ] AC29 — RFC-0094 records the decision at `heavy` weight and carries the
+- [x] AC29 — RFC-0094 records the decision at `heavy` weight and carries the
   reversal analysis (RFC-0025 explicitly rejected a no-spec light mode and its
   option D) and the compatibility analysis for existing persisted specs,
   workspace entries, and adopters. RFC-0094 also refines RFC-0083's artifact-first
@@ -360,13 +360,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   ADR-0078's consequence that "every executable work item has a reviewable
   canonical contract and plan", narrowed to workspace-indexed items.
   Both are registered in their indexes.
-- [ ] AC30 — Falsification cases exist and each turns a named test red:
+- [x] AC30 — Falsification cases exist and each turns a named test red:
   reintroducing spec creation on the direct path; mutating `workspace.toml` on
   the direct path; permitting argless direct dispatch; treating a one-slice
   request as a brief; letting `author-brief` stamp Ready; letting embedded issue
   or PR text select the direct route; and letting an artifact-bearing signal
   combination take the direct route.
-- [ ] AC31 — The committed harness proves what an executable seam can prove, and
+- [x] AC31 — The committed harness proves what an executable seam can prove, and
   claims no more: driven inside a throwaway fixture repository, the decision seam
   returns the direct `Route`, invokes no transaction helper, and leaves the
   fixture's recursive path-to-digest map identical. `route_intake()` is a pure
@@ -374,21 +374,21 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   and cannot establish that an agent following prose writes nothing. Its mutation
   proof is scoped accordingly: removing the fail-closed guard, or making the
   direct branch return an artifact-bearing route, turns a named assertion red.
-- [ ] AC34 — Because the writer is an agent following `SKILL.md`, the end-to-end
+- [x] AC34 — Because the writer is an agent following `SKILL.md`, the end-to-end
   property is verified by **recorded manual QA**, not by a test: one real
   direct-light run of the shipped skill executes in a throwaway fixture repository
   containing a `workspace.toml`, and the recorded evidence shows the fixture's
   `workspace.toml` SHA-256 unchanged, no `docs/specs/**` path created, and no
   `state.json` or `engine-state.json` created. The recorded observation is the
   evidence; a passing unit gate does not satisfy this criterion.
-- [ ] AC32 — The core pack version and the matching Claude plugin manifest
+- [x] AC32 — The core pack version and the matching Claude plugin manifest
   version are bumped together, `docs/product/changelog.md` carries the
   adopter-facing entry using no repository-only identifier, eval coverage
   including activation near-misses is updated for every changed public skill,
   self-host projection has run after all source edits, every supported adapter
   projection verifies, and catalogue or package versions changed only where the
   changed source requires it.
-- [ ] AC33 — `make build-check` passes; the catalogue deep lint and verify
+- [x] AC33 — `make build-check` passes; the catalogue deep lint and verify
   commands pass; the focused `work-intake`, `work-loop`, `author-brief`,
   `receive-brief`, workspace-reconciliation, pack-surface, template, link, and
   documentation suites pass; core skill evals including activation near-misses
