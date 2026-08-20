@@ -41,10 +41,9 @@ Progress — Inline `done/total`; draw a bar only when animating in a terminal.
 
 Mode is determined by **risk, not file count** — a familiar two-file change is light; a one-file auth change is full.
 
-<!-- risk-triggers:start — canonical wording lives here; copied verbatim
-     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
-     Keep all four byte-identical (grep-equality is an acceptance
-     criterion of the work-loop-light-mode spec). -->
+<!-- risk-triggers:start — this skill is the canonical and only home.
+     Other surfaces name this skill instead of copying the block; a copy
+     elsewhere fails the lint. -->
 **Risk triggers — any one routes the work to full mode:**
 
 - **Unfamiliar** — territory you don't know well.

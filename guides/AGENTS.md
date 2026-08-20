@@ -18,6 +18,9 @@ frontmatter, so no H1 leaves adopters without a page heading.
 When deleting or renaming a page, delete its `guide-nav-baseline.toml` entry in
 the same change. The nav-ineligible set is pinned by its inventory test.
 
+- Prefer in-tree link targets: links out of `guides/` render as GitHub blob URLs
+  and send readers off-site.
+
 ## Essential commands
 
 ```bash
