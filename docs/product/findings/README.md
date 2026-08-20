@@ -5,14 +5,14 @@ registers that surface work and decisions that overflow the normal
 `docs/specs/` → ADR pipeline.
 
 **Purpose (per CONVENTIONS.md §5b):** governance registers — candidate
-RFCs surfaced by scope-deferrals and `frame-situation` escalations, and
+RFCs surfaced by owner-requested capture and `frame-situation` escalations, and
 deferred roadmap items that are not yet specs.
 
 ## Registers (coming in M3)
 
 The following register files are created by M3:
 
-- `rfc-candidates.md` — candidate RFCs surfaced by scope-deferrals and
+- `rfc-candidates.md` — candidate RFCs surfaced by owner-requested capture and
   `frame-situation` escalations.
 - `roadmap-intents.md` — deferred roadmap items.
 
@@ -25,9 +25,9 @@ directory's purpose ahead of that work.
 
 ## How entries get here
 
-- **`work-loop`:** when the loop defers something out of scope, the
-  `Deferred:` entry in the PR description names the slug tracked in
-  `workspace.toml [backlog].open`.
+- **`work-loop`:** an out-of-scope finding reaches a register only when its
+  owner explicitly decides to record it; otherwise the PR acknowledges the
+  exclusion without a durable follow-on.
   A `frame-situation` escalation or a pattern that warrants an RFC is
   promoted into `rfc-candidates.md` (M3).
 - **`workspace-status`** (after M3 ships): surfaces the candidate count

@@ -534,7 +534,11 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
 
-**When ALL warranted reviewers are clean (or are named skips)** — write `Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one reviewer produced a clean report, record it (transition first; record is non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit count already moved; guard requires Status: Shipped):
+**When ALL warranted reviewers are clean (or are named skips)** — normally write
+`Status: Shipped` in spec.md, then fire `reviewers-clean` and, if at least one
+reviewer produced a clean report, record it (transition first; record is
+non-idempotent — recording first then crashing leaves CODE-REVIEW with the audit
+count already moved; the default guard requires Status: Shipped):
 ```
 python scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean
 # If at least one reviewer produced a clean report:
@@ -544,7 +548,22 @@ python scripts/loop-cohort.py review record docs/specs/<feature> \
 python scripts/loop-cohort.py review record docs/specs/<feature> \
     --all-skipped --expect-run-id <run_id>
 ```
-Engine is now in `CODE-HUMAN-GATE`. **Before waiting: complete the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human response:
+For an intermediate review unit under an accepted intent that remains incomplete,
+leave `spec.md` at `Status: Implementing` and declare that boundary explicitly:
+```
+python scripts/loop-engine.py transition docs/specs/<feature> reviewers-clean \
+    --intent-incomplete
+```
+This opt-in accepts `Implementing` only; it does not disable the status guard or
+permit another status. The next in-intent unit still returns through
+`blocker-applied` and receives GATES, REVIEW, and a human gate of its own. This
+intermediate human gate is not a finish: do not mark the spec `Shipped`, run
+`done` (which refuses until the spec is `Shipped`), or apply the Finish
+checklist's intent-completion item. After the human
+gate, fire `blocker-applied` to begin the next unit.
+Engine is now in `CODE-HUMAN-GATE`. For a final unit, **before waiting: complete
+the [Finish checklist](#finish-checklist) and open the PR.** Then wait for human
+response:
 - **Approved (merge confirmed):** fire `done`.
   ```
   python scripts/loop-engine.py transition docs/specs/<feature> done
@@ -557,6 +576,11 @@ Engine is now in `CODE-HUMAN-GATE`. **Before waiting: complete the [Finish check
   python scripts/loop-engine.py transition docs/specs/<feature> wave-complete
   # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
   ```
+- **Further in-intent review unit:** when an included discovery needs its own
+  independently reviewed unit, use the same `blocker-applied` return edge,
+  then apply that unit, fire `wave-complete`, and run GATES, REVIEW, and the
+  human gate again. A separate review unit does not defer or complete the
+  original accepted intent.
 
 If a specialist reviewer returns findings, first exit `CODE-REVIEW` via `findings-remain` and record the fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
 ```
@@ -579,14 +603,39 @@ python scripts/loop-engine.py transition docs/specs/<feature> wave-complete
 
 ## Step 5. DECIDE
 
-Route each reviewer finding into `apply` (fix in this PR) or `defer` (capture as follow-up) — the work-loop's interpretation of reviewer output; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
+Route each implementation or reviewer discovery by intent fit before deciding
+whether it belongs in the current review unit. The work-loop interprets the
+result; the reviewer keeps its narrow Blockers / Concerns / Nits contract:
+
+| Intent fit | Session decision | Disposition |
+| --- | --- | --- |
+| Matches | Include now | Add it to the current plan or session. |
+| Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
+| Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Do not include | Exclude it with no durable follow-on by default. |
+| Unclear | — | Ask the owner before acting. |
+
+Only the owner may narrow or waive an accepted intent. A matching discovery
+may share the current review unit only when the accepted contract authorizes it
+and it qualifies under the bundled-fixes tiers. Otherwise, it is the next
+independently reviewed unit in the same session: use the existing human-gate
+`blocker-applied` return edge, then run GATES, REVIEW, and the human gate again.
 
 **Execution-path check.** Before routing any finding to `apply`: confirm the fix reaches a live code path — grep for callers or trace the entry point. A guard that no caller exercises doesn't close a finding; a test that drives a mock seam instead of the real entry point doesn't count.
 
-- **Blockers** → `apply`. Re-run GATES and REVIEW after each fix.
-- **Concerns** → `apply` if mechanical and in scope (default for any Concern whose fix meets the bundled-fixes gates). `defer` if the fix crosses files outside the plan, requires a design call, or changes user-visible behavior the spec didn't authorize. Don't let Concerns rot in chat — every Concern resolves into one of the two.
-- **Nits** → `apply` if they meet the bundled-fixes gates (land in `Bundled fixes:`). Otherwise `defer` — one line in `Deferred:`. Every Nit resolves into one of the two; the `Deferred:` line is the acknowledgement that the loop saw it and chose not to fix.
-- **Deferred items** → before recording, ask: *"Could this be delivered in this PR without crossing scope or introducing unreviewed risk?"* Only defer if genuinely no. Record in `workspace.toml [backlog].open` as `{slug = "...", source = "spec/<name> ACn"}` with a cold-start-sufficient TOML comment. Add `(deferred: <slug>)` to the spec criterion that defers. PR description keeps only a one-line pointer in a standalone `Deferred:` section (alongside `Bundled fixes:`; append below standard template content, don't modify the template). After recording, prompt: *"Does this look like an RFC candidate or roadmap intent? If so, add a row to `docs/product/findings/rfc-candidates.md` or `docs/product/findings/roadmap-intents.md`."* Skip if neither file exists.
+- **Blockers** → include the correction required by the accepted intent. Re-run
+  GATES and REVIEW after each fix; use the next review unit when it cannot
+  safely share this one.
+- **Concerns and Nits** → apply now only when their inclusion is authorized by
+  the accepted contract and they qualify under the bundled-fixes tiers. A
+  matching discovery that cannot share this unit remains incomplete and moves
+  to the next review unit in the same session. An out-of-intent discovery is
+  excluded unless the owner explicitly changes scope.
+- **Excluded work** → acknowledge it in the PR's *What did you not change that
+  you considered?* answer. Do not create a durable follow-on by default. If
+  the owner explicitly asks to remember it, route the request through
+  `work-intake`; do not create a `[backlog].open` entry or `(deferred: <slug>)`
+  marker merely because this loop did not include the work.
 
 **Scratch note.** After routing each finding: if it revealed a non-obvious trap — something that would have changed your approach — save a one-line note to your IDE's native scratch (Claude Code: memory file; Codex: `.context/` scratch). Format: `[kind] title — what triggered it`. These feed [Capture learnings](#capture-learnings).
 
@@ -596,9 +645,9 @@ When gates are green and the mode's review requirements are satisfied → procee
 
 Stop when **any** of these is true:
 
-1. **Gates green AND the mode's review requirements are satisfied** — normal exit. Proceed to [Finish checklist](#finish-checklist).
+1. **Gates green AND the mode's review requirements are satisfied for the current review unit** — proceed to [Finish checklist](#finish-checklist). A merged or clean review unit does not complete the accepted intent while matching work remains for a later unit.
 2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected `plan_review_status: pending` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: implementation retry cap (`check --phase gates-failed`), review retry cap (`check --phase review`). The exit message identifies the condition.
-   **Stasis** (same findings two review rounds in a row) is detected by `review inspect` returning `matches_previous_round=True` — not by `check`. Surface immediately; do not run another review round.
+   **Stasis** (same findings two review rounds in a row) is detected by `review inspect` returning `matches_previous_round=True` — not by `check`. Surface immediately for human replanning; do not run another review round. A retry cap or stasis never completes the accepted intent or creates backlog work automatically.
 3. **Diff is shrinking but findings aren't** — spot-fixing without addressing root cause. Stop and rethink the approach (back to PLAN).
 
 If you hit any of these and the work isn't done: stop, write down what you learned, re-plan. Never silently expand scope to make a finding go away.
@@ -610,9 +659,13 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
 - [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs) returned `Clean — ready to commit.` or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks**. Silent skips are not allowed.
-- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an `apply` or `defer` disposition; applied fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or is an allowed named skip.
+- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an intent-fit and session-decision disposition; included fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
+- [ ] The original accepted intent is complete, or its owner explicitly narrowed
+  or waived the remaining matching work. A merged PR, retry cap, or review
+  stasis alone is not completion; excluded work needs no backlog entry unless
+  the owner explicitly requested capture through `work-intake`.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
 - [ ] **Doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` is invalid and will fail `lint-spec-status.py`); every AC is `[x]` or `(deferred: <slug>)`; each deferral resolves in `[backlog].open`; intra-repo references the change touches resolve. Run `scripts/lint-spec-status.py` where Python is available.
 - [ ] Conventional commit format used; no force-push to shared branches.
