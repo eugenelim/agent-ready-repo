@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import shutil
 import subprocess
 import sys
@@ -203,6 +204,45 @@ def test_shared_chrome_projects_independently_allocated_renderer_data():
 
     first["marketing"]["header"][0]["label"] = "Changed only in marketing"
     assert first["docs"]["product_orientation_band"][1]["label"] == "How it works"
+
+
+def test_marketing_shared_chrome_projection_writes_the_marketing_contract(tmp_path):
+    """The pre-build marketing input contains no docs renderer projection."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+
+    payload = build_site.generate_marketing_shared_chrome_projection(contract, output)
+
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+    assert payload == build_site.project_shared_chrome(contract)["marketing"]
+    assert "product_orientation_band" not in payload
+
+
+def test_marketing_shared_chrome_projection_dry_run_does_not_write(tmp_path):
+    """Dry runs calculate the marketing projection without changing its input file."""
+    output = tmp_path / "shared-chrome.generated.json"
+
+    build_site.generate_marketing_shared_chrome_projection(
+        _shared_chrome_fixture(), output, dry_run=True
+    )
+
+    assert not output.exists()
+
+
+def test_marketing_shared_chrome_projection_rejects_a_seeded_stale_literal(tmp_path):
+    """AC1 guard: hand-edited renderer input cannot drift from the sole source."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+    payload = build_site.generate_marketing_shared_chrome_projection(contract, output)
+    payload["header"][0]["label"] = "Stale marketing literal"
+    output.write_text(json.dumps(payload), encoding="utf-8")
+
+    try:
+        build_site.assert_marketing_shared_chrome_projection_current(contract, output)
+    except ValueError as exc:
+        assert "is stale" in str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("a stale marketing shared-chrome literal passed consistency")
 
 
 def test_shared_chrome_rejects_duplicate_destination_ids():
@@ -411,6 +451,9 @@ def test_journeys_only_validates_shared_chrome_before_projection(monkeypatch):
 
     monkeypatch.setattr(build_site, "load_shared_chrome_contract", fail_validation)
     monkeypatch.setattr(build_site, "sync_pack_journeys", unexpected_projection)
+    monkeypatch.setattr(
+        build_site, "generate_marketing_shared_chrome_projection", unexpected_projection
+    )
     monkeypatch.setattr(build_site, "_report_now_projection", unexpected_projection)
     monkeypatch.setattr(sys, "argv", ["build-site.py", "--journeys-only"])
 
@@ -420,6 +463,33 @@ def test_journeys_only_validates_shared_chrome_before_projection(monkeypatch):
         assert str(exc) == "invalid shared chrome"
     else:  # pragma: no cover - the raise below is the failure report
         raise AssertionError("journeys-only build unexpectedly projected invalid shared chrome")
+
+
+def test_journeys_only_emits_marketing_shared_chrome_before_the_web_build(monkeypatch):
+    """The pre-web-build path emits the generated marketing renderer input."""
+    contract = _shared_chrome_fixture()
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(build_site, "load_shared_chrome_contract", lambda _path: contract)
+    monkeypatch.setattr(build_site, "sync_pack_journeys", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(
+        build_site,
+        "generate_marketing_shared_chrome_projection",
+        lambda received, **kwargs: calls.append(("shared_chrome", (received, kwargs))),
+    )
+    monkeypatch.setattr(
+        build_site,
+        "_report_now_projection",
+        lambda *_args, **_kwargs: calls.append(("now", None)),
+    )
+    monkeypatch.setattr(sys, "argv", ["build-site.py", "--journeys-only", "--dry-run"])
+
+    build_site.main()
+
+    assert calls == [
+        ("shared_chrome", (contract, {"dry_run": True})),
+        ("now", None),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1470,6 +1540,9 @@ def test_the_window_does_not_filter_the_projection():
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
 _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
+_MARKETING_SHARED_CHROME_PROJECTION = (
+    _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+)
 _EMITTED_CHANGELOG = _REPO_ROOT / "build" / "docs" / "changelog" / "index.html"
 
 # The day `/now/` launched. A historical fact, deliberately pinned rather than
@@ -1495,6 +1568,13 @@ def test_the_committed_now_projection_matches_the_changelog_source():
     assert committed == expected, (
         "web/src/lib/now-highlights.generated.json is stale — "
         "run `python3 tools/build-site.py --journeys-only`"
+    )
+
+
+def test_the_committed_marketing_shared_chrome_projection_matches_site_toml():
+    """The committed marketing renderer input remains derived from site.toml."""
+    build_site.assert_marketing_shared_chrome_projection_current(
+        _shared_chrome_fixture(), _MARKETING_SHARED_CHROME_PROJECTION
     )
 
 
@@ -1698,8 +1778,8 @@ def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
         assert got_anchors.index(base) < got_anchors.index(anchor)
 
 
-def test_the_public_work_surface_is_gone_from_the_marketing_source():
-    """`/work/` is removed outright — no page, no component, no exporter, no redirect.
+def test_the_public_work_surface_is_gone_from_marketing_inputs():
+    """`/work/` is removed from routes and the generated marketing input.
 
     Asserted over source rather than the build so it holds in the required suite,
     which runs without a site build.
@@ -1715,11 +1795,31 @@ def test_the_public_work_surface_is_gone_from_the_marketing_source():
     present = [str(p.relative_to(_REPO_ROOT)) for p in forbidden if p.exists()]
     assert not present, f"retired work-index surface still present: {present}"
 
-    nav = (
-        _REPO_ROOT / "web" / "src" / "components" / "layout" / "SiteNav.astro"
-    ).read_text(encoding="utf-8")
-    assert "/work/" not in nav
-    assert "withBase('/now/')" in nav
+    projection = json.loads(
+        _MARKETING_SHARED_CHROME_PROJECTION.read_text(encoding="utf-8")
+    )
+    destinations = [
+        link
+        for section in (
+            projection["header"],
+            *(group["destinations"] for group in projection["footer"]),
+        )
+        for link in section
+    ]
+    assert all(link["target"] != "/work/" for link in destinations)
+    assert any(link["id"] == "now" and link["target"] == "/now/" for link in destinations)
+
+    # The projection check above cannot see a hand-written literal reintroduced
+    # into a component, and the emitted-output check that would runs only when a
+    # build exists. Keep a source-level scan so the required suite still fails.
+    layout = _REPO_ROOT / "web" / "src" / "components" / "layout"
+    marketing_chrome = [layout / "SiteNav.astro", layout / "SiteFooter.astro"]
+    with_work = [
+        str(path.relative_to(_REPO_ROOT))
+        for path in marketing_chrome
+        if "/work/" in path.read_text(encoding="utf-8")
+    ]
+    assert not with_work, f"marketing chrome reintroduced a /work/ literal: {with_work}"
 
 
 # Git blob hashes of the frozen m6 artifacts, recorded from `origin/main` at

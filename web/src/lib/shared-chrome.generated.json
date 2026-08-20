@@ -1,0 +1,150 @@
+{
+  "header": [
+    {
+      "id": "how-it-works",
+      "label": "How it works",
+      "target": "/#three-loops",
+      "kind": "internal"
+    },
+    {
+      "id": "use-cases",
+      "label": "Use cases",
+      "target": "/#use-cases",
+      "kind": "internal"
+    },
+    {
+      "id": "catalogue",
+      "label": "Catalogue",
+      "target": "/catalogue/",
+      "kind": "internal"
+    },
+    {
+      "id": "now",
+      "label": "Now",
+      "target": "/now/",
+      "kind": "internal"
+    },
+    {
+      "id": "docs",
+      "label": "Docs",
+      "target": "/docs/",
+      "kind": "internal"
+    },
+    {
+      "id": "try-the-build-loop",
+      "label": "Try the build loop",
+      "target": "/#install",
+      "kind": "internal"
+    }
+  ],
+  "footer": [
+    {
+      "id": "product",
+      "label": "Product",
+      "destinations": [
+        {
+          "id": "how-it-works",
+          "label": "How it works",
+          "target": "/#three-loops",
+          "kind": "internal"
+        },
+        {
+          "id": "use-cases",
+          "label": "Use cases",
+          "target": "/#use-cases",
+          "kind": "internal"
+        },
+        {
+          "id": "catalogue",
+          "label": "Catalogue",
+          "target": "/catalogue/",
+          "kind": "internal"
+        },
+        {
+          "id": "packs",
+          "label": "Packs",
+          "target": "/packs/",
+          "kind": "internal"
+        },
+        {
+          "id": "journeys",
+          "label": "Journeys",
+          "target": "/journeys/",
+          "kind": "internal"
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "label": "Docs",
+      "destinations": [
+        {
+          "id": "get-started",
+          "label": "Get started",
+          "target": "/docs/getting-started/",
+          "kind": "internal"
+        },
+        {
+          "id": "install",
+          "label": "Install",
+          "target": "/docs/getting-started/install/",
+          "kind": "internal"
+        },
+        {
+          "id": "three-loops",
+          "label": "The three loops",
+          "target": "/docs/getting-started/three-loops/",
+          "kind": "internal"
+        },
+        {
+          "id": "all-docs",
+          "label": "All docs",
+          "target": "/docs/",
+          "kind": "internal"
+        }
+      ]
+    },
+    {
+      "id": "project",
+      "label": "Project",
+      "destinations": [
+        {
+          "id": "now",
+          "label": "Now",
+          "target": "/now/",
+          "kind": "internal"
+        },
+        {
+          "id": "changelog",
+          "label": "Changelog",
+          "target": "/docs/changelog/",
+          "kind": "internal"
+        },
+        {
+          "id": "contributing",
+          "label": "Contributing",
+          "target": "/docs/contributing/",
+          "kind": "internal"
+        },
+        {
+          "id": "claude-plugins",
+          "label": "Claude plugins",
+          "target": "/plugins/",
+          "kind": "internal"
+        },
+        {
+          "id": "github",
+          "label": "GitHub",
+          "target": "https://github.com/eugenelim/agent-ready-repo",
+          "kind": "external"
+        },
+        {
+          "id": "pypi",
+          "label": "PyPI",
+          "target": "https://pypi.org/project/agentbundle/",
+          "kind": "external"
+        }
+      ]
+    }
+  ]
+}
