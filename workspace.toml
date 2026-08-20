@@ -534,6 +534,16 @@ open = [
   # toward deleting. Wire the job into build-check-windows's `needs` in the same
   # change that lands the lease, so the invariant is enforced once relied upon.
   {slug = "worktree-cooperative-lease", source = "spec/worktree-runtime-hygiene AC6", summary = "Re-spec and land the cooperative worktree lease, admission queue and with-lease wrapper: fix the Windows byte-range claim lock, reconcile the admission-role reclaim policy with AC6, re-publish a lost waiter ticket, recalibrate the memory clamp against usable-page reporting, scale the decision-lock budget with the wait budget, and forward the make jobserver"},
+  # RFC-0095 D3. 59 versioned entries sit nested under a `## [Unreleased]` heading and
+  # are permanently invisible to the `/now/` projection (it applies no date window; a
+  # nested entry simply never publishes). Not a mechanical level-shift: 48 genuinely
+  # unreleased bare `### Added`/`### Fixed` sections are interleaved across three
+  # `[Unreleased]` regions (12 / 5 / 31), and at least one — an `agentbundle pack evals
+  # run` fix directly below `[atlassian][0.9.0]` — would be republished under the wrong
+  # artifact by a uniform promotion. Needs per-section attribution. The ratchet in
+  # `tests/roster/test_workspace_status_projection.py` stops the count growing meanwhile,
+  # and should be lowered as entries are promoted.
+  {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
   # RFC-0092 D7 deferred direction. The canonical MCP primitive stays transport-first so
   # a typed acquisition descriptor stays possible; fetch-on-run launchers are already
   # refused at the build boundary, so this is a permit-something RFC, not a restrict one.

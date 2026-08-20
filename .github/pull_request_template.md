@@ -35,7 +35,9 @@ paragraph why this PR doesn't need one.
 - [ ] Self-review run via the relevant reviewer subagent (`adversarial-reviewer` always; `security-reviewer` if security boundary crossed; `quality-engineer` for non-trivial logic / new test surface) — or in-code review for spec-less changes; blockers addressed
 - [ ] Spec and code agree (or spec was updated in this PR)
 - [ ] Living docs match reality:
-  - [ ] `docs/product/changelog.md` updated for any user-visible behavior change
+  - [ ] `docs/product/changelog.md` updated if this bumps a released artifact's
+        version — a pack or a published package (repository tooling that ships in
+        no release needs no entry; see `docs/CONVENTIONS.md` § 5b)
   - [ ] `guides/` updated if user-facing behavior, config, or interfaces changed (right Diátaxis bucket — see [`guides/README.md`](../guides/README.md))
   - [ ] `docs/architecture/` updated if code structure changed materially
   - [ ] `docs/product/roadmap.md` updated if this completes a roadmap item

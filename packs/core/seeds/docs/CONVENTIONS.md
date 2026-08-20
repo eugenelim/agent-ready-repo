@@ -655,8 +655,17 @@ right now?"
   commitments. Reviewed quarterly. Items that haven't moved in two
   consecutive reviews are a drift signal.
 - `changelog.md` — user-visible changes by release, in
-  [Keep a Changelog](https://keepachangelog.com/) format. Updated in the
-  same PR as any user-visible behavior change.
+  [Keep a Changelog](https://keepachangelog.com/) format. One section per
+  release, naming every artifact that release covers:
+  `## [<artifact>][<version>] — YYYY-MM-DD`, where `<artifact>` is a pack or a
+  published package. An entry is required in the same PR that bumps a released
+  artifact's version — you know the version at write time because you are
+  setting it. Repository tooling that ships in no release needs no entry. The
+  heading level is load-bearing: a section carrying a version and a date is
+  released, so it sits at that top level directly beneath `[Unreleased]`, never
+  nested inside it. A published package also keeps its own `CHANGELOG.md`
+  beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
+  readers who get the package and not the repository.
 - `briefs/<slug>.md` (optional) — a received, externally-authored
   multi-feature product brief and its auto-rolled-up coverage map. Created by
   the `receive-brief` skill; one file per brief. See the brief altitude under
@@ -885,8 +894,10 @@ show no remaining references and green tests for bounded dead-code or
 unused-import removal. Tier 3 is hand-made: same-area, same-concern, visibly
 smaller mechanical work. Tier 1 and Tier 2 require their command or evidence.
 
-CI must be green. Specs must match implementation. Public-interface changes
-must be noted in `CHANGELOG.md`.
+CI must be green. Specs must match implementation. A released-artifact version
+bump carries its changelog entry (see *`docs/product/` — for maintainers*); if
+the repository publishes packages separately, each also updates its own
+`CHANGELOG.md`.
 
 ---
 
