@@ -104,6 +104,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed
 
+- **Local-scope install and uninstall ask git each structural question once.**
+  `git rev-parse` answers for the exclude-file path and worktree identity are
+  reused for the duration of a single command and dropped at its boundary, so
+  the same query is no longer paid for two or three times per operation.
+
 - **A repository-only test no longer ships to self-hosted catalogues.**
   `catalogue init --preset self-hosted` and both archive flavours copied
   `tests/conformance/` wholesale, which carried a test that resolves paths only

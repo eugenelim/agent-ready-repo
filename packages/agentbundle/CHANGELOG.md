@@ -19,6 +19,11 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Fixed
 
+- Local-scope install and uninstall reuse each structural `git rev-parse`
+  answer for the duration of one command, dropping the cache at the command
+  boundary. Measured on the engine unit suite: git child processes fell from
+  176 to 59.
+
 - `catalogue init --preset self-hosted` and both archive flavours no longer
   copy a repository-only conformance test into an adopter's catalogue. The
   shipped set is now derived from `tests/conformance/` in one place, so the
