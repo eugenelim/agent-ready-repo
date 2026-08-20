@@ -2653,6 +2653,32 @@ open = [
   {slug = "work-intake-surface-reanchor", type = "spec", source = "spec/work-intake-surface", summary = "Reanchor the intake-surface spec/plan on shipped Group 2/3 contracts before its build loop"},
   {slug = "tracker-intake-adapters-reanchor", type = "spec", source = "spec/tracker-intake-adapters", summary = "Reanchor the tracker-adapters spec/plan on the shipped normalized-intake contract"},
   {slug = "tracker-refresh-writeback-reanchor", type = "spec", source = "spec/tracker-refresh-writeback", summary = "Reanchor the refresh/write-back spec/plan on shipped lifecycle and authority rules"},
+  # Deferred: refresh has no trusted representation of which brief fields were
+  # materialized into children; adding one requires new trusted inputs.
+  {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
+  # Deferred: workspace-status receives only a profile id and version, not
+  # resolved capabilities, and the processor write path receives no trusted
+  # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
+  # and refresh availability can only report False or "unknown", never True.
+  # A defaulted parameter would be bypassable, which is worse than a documented
+  # gap; closing it means threading resolved capabilities through both surfaces.
+  {slug = "tracker-refresh-enforced-capability-state", type = "spec", source = "spec/tracker-refresh-writeback AC11", summary = "Enforce the lifecycle allowlist on remote write-back and report availability affirmatively"},
+  # Deferred: the guarded-write receipt check verifies status, action and target
+  # structurally, not by runtime class identity, so an in-process caller could
+  # present a receipt-shaped object. Making it exact needs a shared receipt
+  # runtime identity, the same design the cross-loaded store required.
+  {slug = "tracker-refresh-receipt-runtime-identity", type = "spec", source = "spec/tracker-refresh-writeback AC25", summary = "Verify the guarded-write receipt by runtime identity, not structurally"},
+  # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
+  # refresh-result.schema.json enum), but each processor returns its own
+  # WriteBackResult codes with no closed set, so a typo ships silently. A single
+  # shared frozenset would falsely authorize codes an adapter cannot return;
+  # closing it properly means one vocabulary per result type plus a deliberate
+  # shared base, which is a multi-file public-result-contract change. Deferred to
+  # avoid widening the reviewed surface after adversarial review round 2.
+  {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
+  # Deferred: projection repair needs its own confirmation contract; adding one
+  # requires a new trusted input rather than inferring authority from tracker data.
+  {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
   {slug = "work-intake-migration-docs-reanchor", type = "spec", source = "spec/work-intake-migration-docs", summary = "Reanchor the migration/docs spec/plan on shipped canonical routing and finding codes"},
   # Anchor-staleness fitness function. Nothing detected that Group 3 (#928) had
   # invalidated four unstarted Group 4-7 specs — it surfaced only because a human
@@ -3144,6 +3170,7 @@ milestone = "Wave 4 · Tracker adapters"
 # enforced contract, and a legacy path yields `invalid_artifact_path` and refuses
 # dispatch. Needs are typed objects — the canonical parser rejects bare strings.
 shipped = [
+  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
   # Group 2 — transient normalized-intake contract + structured workspace entry
   # schema (provenance, authority, summary, dependencies, lifecycle, validation).
   {path = "docs/specs/normalized-intake-workspace-contracts/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize intake and workspace contracts", needs = []},
@@ -3160,7 +3187,6 @@ active = []
 queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
-  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
   # Group 7 — reconcile legacy workspaces, publish the alias window and removal
   # criteria, finish cross-links, run the full evaluation matrix.
   {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},

@@ -16,6 +16,7 @@ Ask in your own words. The agent selects the right workflow, starts read-only, a
 Jump to what you need:
 
 - [Start repository work from Jira or Jira Align](#start-repository-work-from-jira-or-jira-align)
+- [Refresh registered Jira or Jira Align work](#refresh-registered-jira-or-jira-align-work)
 - [Review the whole team backlog](#review-the-whole-team-backlog)
 - [Find ready work](#find-ready-work)
 - [Find blockers and stale work](#find-blockers-and-stale-work)
@@ -60,6 +61,37 @@ confidentiality question, then continue with the named processor.
 
 → [Choose a tracker integration](/agent-ready-repo/docs/guides/_shared/how-to/choose-a-tracker-integration/)\
 → [Tracker vocabulary](/agent-ready-repo/docs/guides/_shared/reference/tracker-vocabulary/)
+
+---
+
+## Refresh registered Jira or Jira Align work
+
+Use refresh only after intake has created and registered a tracker-origin
+artifact:
+
+:::tip[YOU SAY]
+Refresh docs/specs/example/spec.md from its registered Jira source. Show every
+changed field and do not write back yet.
+:::
+
+The configured processor reads the latest source revision and presents a
+field-level comparison. Local requirements change only after the authorized
+decisions required by the artifact's lifecycle and source-authority record.
+Implementing specs and Executing briefs refuse requirement refresh; Shipped
+requirements remain locked.
+
+Jira's token path may offer comment, display-status transition, and closure as
+coordination actions. Each needs a separate fresh confirmation and pending
+receipt before one request, with no automatic retry. Jira SSO-cookie
+authentication refuses every non-GET/HEAD attempt before the transport records
+a request. Jira Align supports the reviewed local comparison but declares no
+remote write-back capability.
+
+**Likely follow-up:** run `workspace-status` to confirm the compared revision
+and any unresolved conflict, or request one supported Jira coordination action
+and review its exact target and payload.
+
+→ [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/)
 
 ---
 
@@ -280,3 +312,4 @@ Do not publish until I approve it.
 | [How the Atlassian pack works](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/) | Why the workflows are separate; composition model |
 | [Atlassian journey](/journeys/atlassian/) | Four-stage visual storyboard |
 | [Atlassian pack](/packs/atlassian/) | Pack overview, install, credentials |
+| [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared lifecycle, authority, receipt, and confirmation procedure |

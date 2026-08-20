@@ -50,5 +50,79 @@ Edit seeds under `packs/<pack>/.apm/...`, not these projections. See
 
 ## Subsystems
 
+One file per non-trivial subsystem:
+
+- [`workspace-mcp/design.md`](workspace-mcp/design.md) — the per-session MCP
+  server shipped with `core`: spawn forms (trusted / CI), session modes, ACP
+  adapter classes, notification contract, FSM observability, and security
+  constraints. Harness operators should read this alongside the operator
+  how-to guide at
+  [`guides/core/how-to/run-headless-session.md`](../../guides/core/how-to/run-headless-session.md).
+- [`pack-layout.md`](pack-layout.md) — the canonical shape of a single
+  pack: `pack.toml`, `.claude-plugin/`, `.apm/<primitive>/`, `seeds/`,
+  and how the bundler reads them.
+- [`agentbundle.md`](agentbundle.md) — the Python package: CLI verbs,
+  build pipeline (recipes → adapters → projections), the adapter contract
+  at v0.18 (Claude-plugin hook parity adds route-scoped hook-body and
+  hook-wiring fields; RFC-0052 added the shared-prefix registry and routed the
+  cursor/gemini/copilot skill cohort to the shared `.agents/skills/` home;
+  RFC-0031 carries the enriched-manifest projection at v0.14; RFC-0011
+  added `[adapter.codex.scope]` and the user-scope adapter resolver),
+  self-host overlay.
+- [`credentials.md`](credentials.md) — the credentialed-resolver model
+  (the `credbroker` library since RFC-0023, formerly the build-projected
+  `credentials_shim`, RFC-0013), three-tier storage
+  (env / OS keyring / `~/.agentbundle/credentials.env`), the four
+  brokers (`creds` / `env` / `cli` / `sso-cookie`), the
+  credentialed-primitive contract, and the substring trap.
+- [`knowledge-capture.md`](knowledge-capture.md) — the `core` pack's current
+  capture and read boundaries plus the target lifecycle: free-form scratch,
+  semantic-gate triage, typed observation journals, progressive capture,
+  topic distillation, file-based storage, explicit enquiry, and intentional
+  retirement.
+- [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
+  — the implemented architecture for separating source intake, canonical
+  intents/briefs/specs/defects, lifecycle membership in `workspace.toml`, and
+  processor dispatch. Jira, Jira Align, Linear, and GitHub adapters now converge
+  on its `normalized-intake.v1` boundary: acquisition and versioned profile
+  hints stay tracker-specific, while content classification and every repository
+  write stay in `work-intake`. Intake remains read-only. Reviewed refresh now
+  applies authorized local changes through execution locks and conflict-aware
+  compare-and-swap writes; configured tracker processors may perform separately
+  confirmed remote mutations within their declared capability boundaries.
+
+## Packages
+
+- [`packages/agentbundle/`](../../packages/agentbundle/) — the reference
+  CLI and build pipeline. Stdlib-only, distributed as a zipapp and as
+  an editable pip install. As of 0.2.0 it no longer ships a credential-
+  resolution module; credentialed primitives in the `atlassian` and
+  `figma` packs resolve credentials through the pip-installable
+  `credbroker` library (RFC-0023), not the agentbundle wheel. See
+  [`agentbundle.md`](agentbundle.md) and [`credentials.md`](credentials.md).
+- [`packages/_example/`](../../packages/_example/) — a minimal package
+  template the `new-package` skill (in `monorepo-extras`) copies when an
+  adopter scaffolds a new package.
+
+## Where to start
+
+1. Read [`docs/CHARTER.md`](../CHARTER.md) — mission, scope, four principles.
+2. Read this file.
+3. Pick a recent spec under [`docs/specs/`](../specs/) and read its
+   `spec.md` + `plan.md` next to the resulting code under
+   `packages/agentbundle/` or `packs/`. The
+   [`agent-spec-cli`](../specs/agent-spec-cli/spec.md),
+   [`distribution-adapters`](../specs/distribution-adapters/spec.md),
+   and [`skill-secrets`](../specs/skill-secrets/spec.md) specs are the
+   three load-bearing ones.
+4. Skim the two ADRs —
+   [ADR-0001](../adr/0001-adopt-agents-md-and-doc-hierarchy.md)
+   (AGENTS.md + the doc hierarchy this repo runs on) and
+   [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md)
+   (the per-pack default-plus-allowance install-scope model) — plus the
+   most recent accepted RFCs ([0008](../rfc/0008-claude-plugins-install-route-parity.md),
+   [0010](../rfc/0010-apm-install-route-parity.md)) for current direction.
+5. Run `make build-check` once — it's the self-host drift gate, and
+   tripping it explains the seed/projection split better than prose can.
 The subsystem index and deeper links are in
 [`ARCHITECTURE.md` § 8](../../ARCHITECTURE.md#8-deeper-current-state-pages).

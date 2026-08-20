@@ -11,7 +11,9 @@ Jira, Jira Align, and Confluence over their REST APIs, plus flow metrics and
 tracker-to-repository intake. `jira-brief-intake` and
 `jira-align-brief-intake` now read tracked content into the shared
 `work-intake` route; object types and hierarchy remain hints, and intake never
-writes back to either tracker.
+writes back to either tracker. Existing tracker-origin artifacts can later use
+reviewed refresh; Jira offers a narrow confirmed coordination write-back path,
+while Jira Align remains local-refresh only.
 
 New here? Read [The `atlassian` pack as a system](how-the-atlassian-pack-works.md) first — it's the map. Then [work with Jira](work-with-jira.md) to search and mutate issues.
 
@@ -23,6 +25,7 @@ Task-oriented recipes for a problem you already have.
 
 - [Work with Jira](work-with-jira.md) — JQL search with auto-pagination, plus fetch, create, and update issues through the `jira` skill. Includes the five-question story quality bar for writing actionable stories.
 - [Start repository work from Jira or Jira Align](work-with-jira.md#start-repository-work-from-jira-or-jira-align) — read bounded tracker content and review the shared content-based route without changing the tracker.
+- [Refresh registered Jira or Jira Align work](work-with-jira.md#refresh-registered-jira-or-jira-align-work) — review a field delta, preserve lifecycle locks, and confirm any supported Jira coordination write separately.
 - [Review a Jira backlog for readiness, or get a team status](work-with-jira.md#improve-stories-that-are-not-actionable) — ask *"which stories are not ready for engineering?"* or *"make these tickets actionable"* and `jira-story-triage` reviews and improves them; ask *"what can the team pick up next?"*, *"what is blocked?"*, or *"team status for stand-up"* and `jira-team-status` gives a read-only snapshot with a pick-up hand-off. Neither needs you to name the skill.
 - [Measure flow and DORA metrics](how-to/measure-flow-and-dora-metrics.md) — compute cycle time, throughput, and the rest over a Jira scope, then compare runs into a report.
 - [Report AI adoption as a delivery lead](how-to/report-ai-adoption-as-a-delivery-lead.md) — set up the labeling convention, run team-level and program-level adoption reports, and convert to a shareable format.

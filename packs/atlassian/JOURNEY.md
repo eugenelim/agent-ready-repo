@@ -7,13 +7,14 @@ scope: user
 tagline: "Run Jira and Confluence from a conversation"
 prerequisitePacks: []
 contract:
-  useItWhen: "You want to see what the team can work on, improve stories that are not actionable, apply approved Jira updates, or share a team summary — without writing JQL or selecting skills manually."
+  useItWhen: "You want to see what the team can work on, refresh registered Jira or Jira Align work, improve stories that are not actionable, apply approved Jira updates, or share a team summary — without writing JQL or selecting skills manually."
   youProvide: "Your team name, project keys, or a description of the scope you want reviewed. For writes: explicit confirmation of the exact fields to change."
   youReceive: "A grouped, annotated backlog — ready to pull, needs story work, blocked, in progress — with scope and completeness disclosed. Draft story improvements where requested. Exact write previews before any Jira change. A stand-up summary and optional Confluence draft on request."
   yourDecisions:
     - "Confirm or correct the resolved team scope before reading backlog results"
     - "Select which story drafts to approve for writing"
     - "Confirm the exact issue keys and fields before any Jira write"
+    - "Confirm each refresh write-back mutation separately"
     - "Approve the Confluence draft before publishing"
   decisionGateIds:
     - confirm-backlog-scope
@@ -44,7 +45,13 @@ skills:
     description: "Read and write Jira Align portfolio data — epics, features, stories, programs, teams."
     humanTouches: 1
   - name: jira-align-brief-intake
-    description: "Turn a Jira Align Feature into a product brief. One-way intake — never writes back to Jira Align."
+    description: "Read Jira Align work into shared repository intake. Intake is one-way; later reviewed local refresh remains available through the configured refresh processor."
+    humanTouches: 1
+  - name: jira-refresh
+    description: "Review Jira source changes through shared local authority rules. Token-authenticated comment, display-status, and closure actions each require a fresh exact confirmation; SSO-cookie writes remain zero-wire refusals."
+    humanTouches: 1
+  - name: jira-align-refresh
+    description: "Review Jira Align source changes through shared local authority rules. The profile declares no remote write-back actions and fails closed before payload construction."
     humanTouches: 1
   - name: flow-metrics
     description: "Compute DORA and Flow Framework metrics (cycle time, lead time, throughput, WIP, flow efficiency) from Jira changelogs. Read-only."

@@ -1,7 +1,7 @@
 # Linear
 
-Start repository work from a Linear Issue, Project, Cycle, or explicit
-selection without making a tracker change.
+Start repository work from Linear, then review later source changes and
+confirm narrow coordination write-back without surrendering local authority.
 
 Try:
 
@@ -16,8 +16,10 @@ or a view-only refusal. Linear object types, labels, and item counts are hints.
 
 Tracker intake never writes to Linear. Repository materialization belongs to
 `work-intake` and happens only after validation and any required human choice.
-The separate `linear-brief-sync` workflow can update an existing brief after
-showing a section-level diff and receiving approval.
+For an existing tracker-origin artifact, refresh shows a field-level delta and
+updates only approved local fields. A trace link, pull-request link,
+display-status update, comment, or closure is a separate remote mutation with
+its own fresh confirmation and pending local receipt.
 
 ## Install
 
@@ -34,6 +36,8 @@ Linear Personal API Key. The key never belongs in a request or repository file.
 | --- | --- |
 | Start from Linear work | Read-only acquisition, strict normalization, then content-based `work-intake` routing |
 | Inspect Linear directly | Credentialed `check`, `get-issue`, and `get-project` reads |
-| Catch up an existing brief | An approval-gated delta from `linear-brief-sync`; unavailable while the brief is executing |
+| Refresh an existing artifact | A reviewed delta through `work-intake`; requirement refresh is unavailable while the artifact is executing |
+| Write coordination back | One profile-declared action after one fresh exact confirmation; no automatic mutation retry |
 
 → [Choose intake or sync](../../guides/linear/how-to/linear-brief-intake-and-sync.md)
+→ [Refresh tracked work safely](../../guides/_shared/how-to/use-work-intake.md)

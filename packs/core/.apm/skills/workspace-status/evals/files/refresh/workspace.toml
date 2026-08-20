@@ -1,0 +1,15 @@
+["ini-001"]
+name = "Tracker-backed example"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  { path = "docs/specs/tracker-backed/spec.md", kind = "spec", source = { mode = "tracker-origin", ref = "example-service://ABC-123", revision = "remote-rev-2", tracker_profile = { id = "example-service", version = "1.0" } }, summary = "Reviewed tracker-backed example", needs = [] },
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []

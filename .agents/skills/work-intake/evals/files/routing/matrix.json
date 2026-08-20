@@ -55,7 +55,7 @@
       "artifact": "docs/specs/example/spec.md",
       "artifact_kind": "spec",
       "lifecycle_membership": "resolved-existing",
-      "processor": "new-spec",
+      "processor": "none",
       "authority_mode": "repo-origin",
       "mutation": "none",
       "signals": {

@@ -1,0 +1,21 @@
+{
+  "id": "github-refresh",
+  "name": "GitHub Refresh",
+  "version": "1.0.0",
+  "description": "Execute reviewed GitHub refresh coordination write-back through confirmed fixed-host gh commands.",
+  "category": "workflows",
+  "tags": ["github", "work-intake", "refresh", "write-back", "approved-cli"],
+  "license": "MIT",
+  "deps": {
+    "_runtime_contract": "Skills are addressed by registered name; source values are install guidance only.",
+    "skills": [
+      {"name": "work-intake", "source": "core pack", "purpose": "Shared refresh lifecycle, authority, confirmation, and receipt runtime."}
+    ],
+    "system": [
+      {"name": "gh", "minimum_version": "2.0", "purpose": "Approved fixed-host GitHub CLI boundary for acquisition and coordination write-back."}
+    ]
+  },
+  "input": {"arguments": "A resolved tracker-origin GitHub source, trusted configured host/repository, shared refresh policy, and exact confirmation."},
+  "output": {"artifacts": ["One redacted refresh write-back result and local remote-action receipt update."]},
+  "targets": {"default": {"file": "SKILL.md"}}
+}
