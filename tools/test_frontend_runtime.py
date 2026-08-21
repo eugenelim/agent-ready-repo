@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from tools.repo import coordination_lease
 from tools.repo import frontend_runtime as runtime
 
 
@@ -538,3 +539,80 @@ def test_empty_explicit_browser_cache_is_rejected_without_mutation(
         runtime.resolve_browser_cache("", environ={}, repo_root=tmp_path)
 
     assert not list(tmp_path.iterdir())
+
+
+def _port_reporting_gate(output: Path) -> tuple[str, ...]:
+    """A gate that tolerates an absent port, so the unleased path is observable."""
+    code = (
+        "import os,sys;"
+        "from pathlib import Path;"
+        "Path(sys.argv[1]).write_text(os.environ.get('ARR_PREVIEW_PORT','unset'))"
+    )
+    return (sys.executable, "-c", code, str(output))
+
+
+def test_an_unresolvable_worktree_warns_and_still_runs_the_gate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC9 names an unresolvable worktree a warn-and-run case, not an exit 2.
+
+    Resolution ran above the fail-open handler, so a missing git or a failing
+    rev-parse raised FrontendRuntimeError straight past it and failed a job the lease
+    is forbidden to fail. A temporary directory is not a Git repository, so this is
+    the real `git rev-parse` refusing rather than a patched one.
+    """
+    output = tmp_path / "reported-port"
+    assert runtime.run_gate(
+        environ={},
+        repo_root=tmp_path,
+        gate_command=_port_reporting_gate(output),
+    ) == 0
+
+    assert output.read_text(encoding="utf-8") == "unset"
+    captured = capsys.readouterr()
+    assert "unleased" in captured.err
+
+
+def test_an_explicit_port_survives_an_unresolvable_worktree(tmp_path: Path) -> None:
+    """Degrading the lease must not also discard the caller's own choice."""
+    output = tmp_path / "reported-port"
+    assert runtime.run_gate(
+        port="4399",
+        environ={},
+        repo_root=tmp_path,
+        gate_command=_port_reporting_gate(output),
+    ) == 0
+
+    assert output.read_text(encoding="utf-8") == "4399"
+
+
+def test_the_browser_gate_holds_activity_and_takes_no_run_slot(tmp_path: Path) -> None:
+    """The participant matrix's disposition for this entry point, made falsifiable.
+
+    The matrix says the browser gate publishes an `activity` claim and takes no
+    admission slot, and that removing the claim must redden its own test. Nothing
+    asserted it, so the disposition was a description. Observed from inside the
+    running child, because a claim released on exit is invisible afterwards.
+    """
+    common_dir = tmp_path / "common"
+    common_dir.mkdir()
+    observed = tmp_path / "claims-during-the-run"
+    lease_dir = common_dir / coordination_lease.LEASE_DIRECTORY
+    reporter = (
+        "import sys;"
+        "from pathlib import Path;"
+        "d = Path(sys.argv[1]);"
+        "names = sorted(p.name for p in d.glob('*.lease')) if d.is_dir() else [];"
+        "Path(sys.argv[2]).write_text('\\n'.join(names))"
+    )
+
+    assert runtime.run_gate(
+        environ={},
+        repo_root=tmp_path,
+        common_dir=common_dir,
+        gate_command=(sys.executable, "-c", reporter, str(lease_dir), str(observed)),
+    ) == 0
+
+    names = [line for line in observed.read_text(encoding="utf-8").splitlines() if line]
+    assert any(name.startswith("activity-") for name in names), names
+    assert not any(name.startswith("run-slot-") for name in names), names

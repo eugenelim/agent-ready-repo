@@ -16,7 +16,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr package sast print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test ci
+.PHONY: build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -129,6 +129,10 @@ endef
 # and the make-free Windows command one source of truth.
 # Windows contributors: python tools/repo/build_gate_chain.py build-check
 build-check:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) build-check-unleased
+	$(call gate_verdict,make build-check)
+
+build-check-unleased:
 	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
@@ -148,7 +152,6 @@ build-check:
 	else \
 		$(MAKE) sast; \
 	fi
-	$(call gate_verdict,make build-check)
 
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
@@ -227,6 +230,9 @@ SEMGREP_EXCLUDE := \
 	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
 
 sast:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) sast-unleased
+
+sast-unleased:
 	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
@@ -337,6 +343,9 @@ lint-mypy:
 # renderers. One process per skill test directory is a correctness requirement,
 # not a style choice; see catalogue-authoring-standards.md § 4.
 test:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
+
+test-unleased:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) tools/lint-conformance-portability.py --root .
@@ -396,8 +405,12 @@ test:
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+	$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 	$(PYTHON) -m pytest tools/test_managed_child.py -q
+	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
+	$(PYTHON) -m pytest tools/test_run_slot.py -q
+	$(PYTHON) -m pytest tools/test_with_lease_cli.py -q
 	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
 	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q

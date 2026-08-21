@@ -38,8 +38,9 @@ from typing import Any, Callable, Iterator, Mapping, Sequence
 # namespace package, which is how tools/test_frontend_runtime.py:16 imports it.
 # Dropping either branch breaks one of those callers at collection time.
 if __package__:
-    from . import managed_child, worktree_hygiene
+    from . import coordination_lease, managed_child, worktree_hygiene
 else:
+    import coordination_lease
     import managed_child
     import worktree_hygiene
 
@@ -56,6 +57,16 @@ SignalHandler = Callable[[int, FrameType | None], Any] | int | None
 
 
 FrontendRuntimeError = managed_child.ManagedChildError
+
+
+class FrontendLeaseRefusal(FrontendRuntimeError):
+    """A live worktree claim prevented the browser gate from starting."""
+
+    def __init__(
+        self, message: str, claims: tuple[coordination_lease.ClaimRecord, ...]
+    ) -> None:
+        super().__init__(message)
+        self.claims = claims
 
 
 def playwright_evidence_max_age(environ: Mapping[str, str]) -> int:
@@ -456,19 +467,77 @@ def run_gate(
     if gate_command is None:
         _require_npm()
 
-    lease = lease_preview_port(
-        git_common_dir(repo_root) if common_dir is None else common_dir,
-        requested,
-    )
+    activity: coordination_lease.WorktreeClaim | None = None
+    resolved_common: Path | None = None
+    # Read before the fail-open block on purpose: a malformed operator budget is a
+    # refusal AC6 requires, not one of AC9's degrade-and-run conditions.
+    _limit, lease_wait_seconds = coordination_lease.run_slot_budgets(values)
     try:
-        values["ARR_PREVIEW_PORT"] = str(lease.port)
-        values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
-        announce_browser_cache(cache)
-        print(f"Preview port lease: {lease.port}", flush=True)
-        with _release_lease_on_signals(lease):
-            returncode = _run_child(command, values, repo_root)
+        # Common-directory resolution is inside the fail-open path, not above it.
+        # AC9 names "an unresolvable worktree" as a warn-and-run case, and resolving
+        # it first meant a missing git or a failing rev-parse raised
+        # FrontendRuntimeError past this handler and exited 2 without running the
+        # browser gate at all -- the lease failing a job it may not fail.
+        resolved_common = (
+            git_common_dir(repo_root) if common_dir is None else common_dir
+        )
+        activity = coordination_lease.acquire_activity(
+            resolved_common,
+            repo_root.resolve(),
+            wait_seconds=lease_wait_seconds,
+        )
+    except coordination_lease.CoordinationLockContention as error:
+        # Held by a live peer: contention, which refuses. Classifying it as an
+        # unusable store is what let the limiter switch itself off under load.
+        raise FrontendLeaseRefusal(str(error), ()) from error
+    except coordination_lease.ClaimContentionError as error:
+        raise FrontendLeaseRefusal(str(error), error.claims) from error
+    except (coordination_lease.ClaimStoreUnavailable, FrontendRuntimeError) as error:
+        print(
+            f"WARNING: worktree lease unavailable; running browser gate unleased: {error}",
+            file=sys.stderr,
+            flush=True,
+        )
+    try:
+        # An unresolvable worktree leaves nowhere to record a port lease either. The
+        # gate still runs, because AC9 forbids the lease failing the job: it honours an
+        # explicitly requested port and otherwise leaves the child's own default alone.
+        lease = (
+            lease_preview_port(resolved_common, requested)
+            if resolved_common is not None
+            else None
+        )
+        try:
+            values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
+            announce_browser_cache(cache)
+            if lease is None:
+                if requested is not None:
+                    values["ARR_PREVIEW_PORT"] = str(requested)
+                print(
+                    "WARNING: preview port is unleased; the worktree scope could not "
+                    "be resolved",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                returncode = _run_child(command, values, repo_root)
+            else:
+                values["ARR_PREVIEW_PORT"] = str(lease.port)
+                print(f"Preview port lease: {lease.port}", flush=True)
+                with _release_lease_on_signals(lease):
+                    returncode = _run_child(command, values, repo_root)
+        finally:
+            if lease is not None:
+                lease.release()
     finally:
-        lease.release()
+        if activity is not None:
+            try:
+                activity.release()
+            except (coordination_lease.ClaimStoreUnavailable, OSError) as error:
+                print(
+                    f"WARNING: worktree lease release failed: {error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
     evidence = worktree_hygiene.manage_playwright_failure_evidence(
         repo_root,
         gate_returncode=returncode,
@@ -540,6 +609,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         cache = resolve_browser_cache(args.browsers_path)
         announce_browser_cache(cache)
         return 0
+    except FrontendLeaseRefusal as error:
+        detail = str(error)
+        if error.claims:
+            detail = f"{detail}; held by {coordination_lease._holder_names(error.claims)}"
+        print(
+            "\n".join(
+                worktree_hygiene.lease_refusal_lines("frontend gate", detail)
+            ),
+            file=sys.stderr,
+        )
+        return 75
     except FrontendRuntimeError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

@@ -1303,6 +1303,31 @@ def _current_worktree(repository: Path, runner: Runner) -> Path:
     return _registered_current_worktree(repository, runner) or repository.resolve()
 
 
+def _coordination_lease_module() -> Any:
+    """Import the optional lease participant without creating an import cycle."""
+    if __package__:
+        from . import coordination_lease
+    else:
+        import coordination_lease
+
+    return coordination_lease
+
+
+def _claim_holder_names(claims: Iterable[Any]) -> str:
+    """Render only the safe holder identity fields for a refusal receipt."""
+    holders = []
+    for claim in claims:
+        pid = claim.pid if isinstance(claim.pid, int) else "unknown"
+        worktree = claim.worktree.name if claim.worktree is not None else "unknown"
+        holders.append(f"pid {pid} in {worktree}")
+    return ", ".join(holders) or "unknown holder"
+
+
+def lease_refusal_lines(command: str, detail: str) -> list[str]:
+    """Render the reserved, greppable refusal contract for lease participants."""
+    return ["WORKTREE_LEASE_DID_NOT_RUN", f"{command} did not run: {detail}"]
+
+
 def _append_receipt_summary(
     lines: list[str],
     *,
@@ -1659,110 +1684,165 @@ def clean(
     if "dependencies" in categories:
         protected.add(invocation_root)
     common = Path(common_value).resolve()
-    in_use_locations = _installed_distribution_locations()
-    for worktree_data in report["worktrees"]:
-        root = Path(worktree_data["path"]).resolve()
-        candidates = [
-            _candidate_from_data(data)
-            for data in worktree_data["candidates"]
-            if data["category"] in categories
-        ]
-        if root in protected:
-            lines.append(f"skipped protected worktree: {root}")
-            lines.extend(
-                f"warning: skipped {candidate.path}: protected worktree"
-                for candidate in candidates
-            )
-            skipped_count += len(candidates)
-            remaining.extend(
-                (candidate.bytes, candidate.path, "protected worktree")
-                for candidate in candidates
-            )
-            continue
-        decisions: list[tuple[Candidate, Path | None, str]] = []
-        git_candidates: list[Candidate] = []
-        for candidate in candidates:
-            reason = _candidate_safety_reason(
-                candidate,
-                root,
-                common,
-                protected,
-                effective_mount_check,
-            )
-            if reason:
-                decisions.append((candidate, None, reason))
-                continue
-            relative = candidate.canonical_path.relative_to(root)
-            git_candidates.append(candidate)
-            decisions.append((candidate, relative, ""))
-        git_status = _mark_git_status(root, git_candidates, runner)
-        if git_status.error:
-            lines.append(f"warning: skipped worktree {root}: {git_status.error}")
-            lines.extend(
-                f"warning: skipped {candidate.path}: {git_status.error}"
-                for candidate in candidates
-            )
-            skipped_count += len(candidates)
-            remaining.extend(
-                (candidate.bytes, candidate.path, git_status.error)
-                for candidate in candidates
-            )
-            continue
-        for candidate, relative, reason in decisions:
-            if not reason and relative is not None:
-                if _is_tracked(relative, git_status.tracked):
-                    reason = "tracked"
-                elif relative not in git_status.ignored:
-                    reason = "not ignored"
-                elif _is_in_use(candidate, in_use_locations):
-                    reason = "installed distribution resolves into target"
-            if reason:
-                lines.append(f"warning: skipped {candidate.path}: {reason}")
-                skipped_count += 1
-                remaining.append((candidate.bytes, candidate.path, reason))
-                continue
-            lines.append(f"selected {candidate.path}: {candidate.bytes} bytes")
-            selected_count += 1
-            if not apply:
-                remaining.append((candidate.bytes, candidate.path, "dry run"))
-                continue
-            predelete_mount_check = mount_check or _default_mount_check()
-            recheck_reason = _candidate_safety_reason(
-                candidate,
-                root,
-                common,
-                protected,
-                predelete_mount_check,
-            )
-            if recheck_reason:
-                lines.append(
-                    f"aborted {candidate.path}: safety changed: {recheck_reason}"
-                )
-                skipped_count += 1
-                remaining.append(
-                    (candidate.bytes, candidate.path, recheck_reason)
-                )
-                continue
+    exclusive_claim: Any | None = None
+    try:
+        if apply:
+            lease = _coordination_lease_module()
             try:
-                if candidate.is_dir:
-                    shutil.rmtree(candidate.path)
-                else:
-                    candidate.path.unlink()
-            except OSError as exc:
-                lines.append(f"failure {candidate.path}: {exc}")
-                failure_count += 1
-                remaining.append((candidate.bytes, candidate.path, str(exc)))
+                exclusive_claim = lease.acquire_exclusive(common, clean_selection[0].resolve())
+            except lease.ClaimContentionError as error:
+                lines.extend(
+                    lease_refusal_lines(
+                        "clean",
+                        "live activity claim held by "
+                        f"{_claim_holder_names(error.claims)}",
+                    )
+                )
+                _append_receipt_summary(
+                    lines,
+                    selected=0,
+                    skipped=0,
+                    reclaimed=0,
+                    failures=0,
+                    remaining=[],
+                )
+                return 75, lines
+            except lease.ClaimStoreUnavailable:
+                # A participant unable to publish cannot trust its read of this store,
+                # and this is the one command that deletes. There is deliberately no
+                # override: the spec's first Never is "let a destructive command
+                # proceed on evidence it failed to obtain", and a flag that does
+                # exactly that is not made safe by being explicit. A claim that is
+                # merely stuck has a recovery path already -- `release-claim` -- and an
+                # unusable store is a fault to repair, not to delete through.
+                lines.extend(
+                    lease_refusal_lines(
+                        "clean",
+                        "exclusive claim store is unavailable; repair the store, or "
+                        "release a stuck claim with release-claim",
+                    )
+                )
+                _append_receipt_summary(
+                    lines,
+                    selected=0,
+                    skipped=0,
+                    reclaimed=0,
+                    failures=0,
+                    remaining=[],
+                )
+                return 75, lines
             else:
-                reclaimed += candidate.bytes
-    _append_receipt_summary(
-        lines,
-        selected=selected_count,
-        skipped=skipped_count,
-        reclaimed=reclaimed,
-        failures=failure_count,
-        remaining=remaining,
-    )
-    return 0, lines
+                lines.append("lease: acquired exclusive claim")
+        in_use_locations = _installed_distribution_locations()
+        for worktree_data in report["worktrees"]:
+            root = Path(worktree_data["path"]).resolve()
+            candidates = [
+                _candidate_from_data(data)
+                for data in worktree_data["candidates"]
+                if data["category"] in categories
+            ]
+            if root in protected:
+                lines.append(f"skipped protected worktree: {root}")
+                lines.extend(
+                    f"warning: skipped {candidate.path}: protected worktree"
+                    for candidate in candidates
+                )
+                skipped_count += len(candidates)
+                remaining.extend(
+                    (candidate.bytes, candidate.path, "protected worktree")
+                    for candidate in candidates
+                )
+                continue
+            decisions: list[tuple[Candidate, Path | None, str]] = []
+            git_candidates: list[Candidate] = []
+            for candidate in candidates:
+                reason = _candidate_safety_reason(
+                    candidate,
+                    root,
+                    common,
+                    protected,
+                    effective_mount_check,
+                )
+                if reason:
+                    decisions.append((candidate, None, reason))
+                    continue
+                relative = candidate.canonical_path.relative_to(root)
+                git_candidates.append(candidate)
+                decisions.append((candidate, relative, ""))
+            git_status = _mark_git_status(root, git_candidates, runner)
+            if git_status.error:
+                lines.append(f"warning: skipped worktree {root}: {git_status.error}")
+                lines.extend(
+                    f"warning: skipped {candidate.path}: {git_status.error}"
+                    for candidate in candidates
+                )
+                skipped_count += len(candidates)
+                remaining.extend(
+                    (candidate.bytes, candidate.path, git_status.error)
+                    for candidate in candidates
+                )
+                continue
+            for candidate, relative, reason in decisions:
+                if not reason and relative is not None:
+                    if _is_tracked(relative, git_status.tracked):
+                        reason = "tracked"
+                    elif relative not in git_status.ignored:
+                        reason = "not ignored"
+                    elif _is_in_use(candidate, in_use_locations):
+                        reason = "installed distribution resolves into target"
+                if reason:
+                    lines.append(f"warning: skipped {candidate.path}: {reason}")
+                    skipped_count += 1
+                    remaining.append((candidate.bytes, candidate.path, reason))
+                    continue
+                lines.append(f"selected {candidate.path}: {candidate.bytes} bytes")
+                selected_count += 1
+                if not apply:
+                    remaining.append((candidate.bytes, candidate.path, "dry run"))
+                    continue
+                predelete_mount_check = mount_check or _default_mount_check()
+                recheck_reason = _candidate_safety_reason(
+                    candidate,
+                    root,
+                    common,
+                    protected,
+                    predelete_mount_check,
+                )
+                if recheck_reason:
+                    lines.append(
+                        f"aborted {candidate.path}: safety changed: {recheck_reason}"
+                    )
+                    skipped_count += 1
+                    remaining.append(
+                        (candidate.bytes, candidate.path, recheck_reason)
+                    )
+                    continue
+                try:
+                    if candidate.is_dir:
+                        shutil.rmtree(candidate.path)
+                    else:
+                        candidate.path.unlink()
+                except OSError as exc:
+                    lines.append(f"failure {candidate.path}: {exc}")
+                    failure_count += 1
+                    remaining.append((candidate.bytes, candidate.path, str(exc)))
+                else:
+                    reclaimed += candidate.bytes
+        _append_receipt_summary(
+            lines,
+            selected=selected_count,
+            skipped=skipped_count,
+            reclaimed=reclaimed,
+            failures=failure_count,
+            remaining=remaining,
+        )
+        return 0, lines
+    finally:
+        if exclusive_claim is not None:
+            try:
+                exclusive_claim.release()
+            finally:
+                lines.append("lease: released exclusive claim")
 
 
 def main(argv: list[str] | None = None) -> int:

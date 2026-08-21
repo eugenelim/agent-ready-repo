@@ -64,15 +64,18 @@ state, and silently skipped tests unrelated to the actual space problem.
   `__pycache__` is a correctness cleanup because stale bytecode can violate CAT-V-014
   during a run.
 
-- [ ] **AC6 — round 2: concurrent operations are explicitly leased.** (deferred: worktree-cooperative-lease) The second
+- [x] **AC6 — round 2: concurrent operations are explicitly leased.** The second
   implementation task adds a caller-selected preview-port override and a gate wrapper
   that leases it without binding the shared default port. It also adds the cooperative
   worktree lease shared by cleanup and mutating build/test entry points; only that
   shared lease can close the remaining check-to-delete concurrency window completely.
-  The lease was built and then split out under review: three independent reviewers
-  found that it carries more failure modes than this criterion enumerates, including a
-  Windows byte-range defect that would let `clean --apply` delete under a live
-  mutator. It gets its own spec rather than a wider version of this one.
+  The lease was built, split out under review when three independent reviewers found
+  failure modes this criterion did not enumerate, re-specified with each of them as
+  an acceptance clause, and shipped by
+  [`worktree-cooperative-lease`](../worktree-cooperative-lease/spec.md). The decisive
+  finding was a Windows byte-range defect that would have let `clean --apply` delete
+  under a live mutator; it is now measured on a `windows-latest` runner rather than
+  reasoned about.
 
 - [x] **AC7 — round 2: bootstrap and browser cache choices remain explicit.** The
   second implementation task adds a browser-cache resolver and selective bootstrap
