@@ -96,6 +96,7 @@
 | [0094](0094-direct-light-execution-without-durable-planning-artifacts.md) | Direct-light execution without durable planning artifacts | Accepted | 2026-08-20 | 2026-08-20 |
 | [0092](0092-first-class-distribution-routes.md) | First-class distribution routes — portable Agent Plugins, native Claude/Codex packages, and Kiro Powers from one pack model | Accepted | 2026-08-19 | 2026-08-20 |
 | [0093](0093-intent-scoped-completion.md) | Intent-scoped completion | Accepted | 2026-08-19 | 2026-08-20 |
+| [0095](0095-changelog-entry-obligation.md) | Changelog entry obligation and the release publication path | Accepted | 2026-08-20 | 2026-08-20 |
 
 ## Adding a new RFC
 

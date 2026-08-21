@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.10.4"
+        }
+      ],
+      "date": "2026-08-20",
+      "heading": "[core][2.10.4] — 2026-08-20",
+      "changelogAnchor": "core2104--2026-08-20",
+      "highlights": [
+        {
+          "source": "**The changelog rule now says who \"user-visible\" means, so you can tell whether your change needs an entry.** An entry is required when a pull request bumps a released artifact's version — a pack or a published package — and repository tooling that ships in no release needs none. The old wording asked for an entry on \"any user-visible behavior change\", which read as covering maintainer-only tooling and offered no heading to write it under.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The changelog rule now says who \"user-visible\" means, so you can tell whether your change needs an entry."
+            },
+            {
+              "type": "text",
+              "value": " An entry is required when a pull request bumps a released artifact's version — a pack or a published package — and repository tooling that ships in no release needs none. The old wording asked for an entry on \"any user-visible behavior change\", which read as covering maintainer-only tooling and offered no heading to write it under."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "governance-extras",
           "version": "0.9.7"
         }

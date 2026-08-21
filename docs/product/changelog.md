@@ -5,9 +5,18 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Maintenance: this file is updated in the same PR that introduces the
-> change. CI will warn (configurable: block) when a PR touches code that
-> changes user-visible behavior but does not touch this file.
+> Maintenance: see [`CONVENTIONS.md` § 5b](../CONVENTIONS.md) for *when* an
+> entry is owed. This header covers *how* this file is written.
+>
+> **A released section is free-standing, directly beneath `[Unreleased]`.**
+> Write `## [<artifact>][<version>] — YYYY-MM-DD` at the top level, newest
+> first. `[Unreleased]` holds only work that has no version yet: its own
+> `### Added` / `### Changed` / `### Fixed` sections, never a versioned entry
+> nested inside it. The level is load-bearing rather than cosmetic — a
+> versioned entry nested under `[Unreleased]` is invisible to the `/now/`
+> projection permanently, not until some later release step, because nothing
+> ever moves it out. Writing it at the right level is the whole of the
+> obligation.
 >
 > Entries can be drafted from conventional commits: `git log --oneline`
 > filtered to `feat:` and `fix:` since the last tag is a starting point,
@@ -15,14 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 >
-> **Highlights (optional, feeds the public `/now/` page).** A release entry may
-> carry one `Highlights` subsection, one heading level below that entry. Its
-> bullets are the outcome-led, user-facing sentences that publish at `/now/`;
-> everything else in the entry stays technical. Three rules govern them:
+> **Highlights (feeds the public `/now/` page).** A release entry carries one
+> `Highlights` subsection, one heading level below that entry, when the release
+> changes what a consumer can do. Its bullets are the outcome-led, user-facing
+> sentences that publish at `/now/`; everything else in the entry stays
+> technical. Judge by the nature of the change, not the semver level: a patch
+> that changes an adopter's obligations earns one, a minor that only moves code
+> does not. A release that changes nothing a consumer acts on carries none — but
+> *none* is a verdict to record with its reason, not a step to skip. For a pack
+> release the decision is part of the release pipeline in
+> `packs/AGENTS.local.md`; nothing downstream makes it, because the projection is
+> a pure parser and no model runs in the build. Three rules govern them:
 >
-> - **Released only.** An entry beneath `[Unreleased]` never publishes, even
->   when it has a date and a `Highlights` block. Move the entry out of
->   `[Unreleased]` at release time and it publishes then — nothing else to do.
+> - **Released only.** An entry nested beneath `[Unreleased]` never publishes,
+>   even when it has a date and a `Highlights` block — see the free-standing
+>   rule above, which is why that case should not arise.
 > - **Reviewed like code.** Write them in the same PR as the implementation,
 >   grounded in that diff and its verification evidence. Ordinary PR review is
 >   the only approval gate; there is no separate editorial process. Drafting
@@ -31,9 +47,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - **Outcome, not activity.** Describe what someone can now do. Never plans,
 >   queue state, commits, pull requests, or what the team is working on.
 >
-> A released entry with no `Highlights` is perfectly normal — it stays in this
-> changelog and is simply absent from `/now/`.
+> A released entry with no `Highlights` stays in this changelog and is simply
+> absent from `/now/`.
 
+## [core][2.10.4] — 2026-08-20
+
+### Highlights
+
+- **The changelog rule now says who "user-visible" means, so you can tell
+  whether your change needs an entry.** An entry is required when a pull
+  request bumps a released artifact's version — a pack or a published package
+  — and repository tooling that ships in no release needs none. The old wording
+  asked for an entry on "any user-visible behavior change", which read as
+  covering maintainer-only tooling and offered no heading to write it under.
+
+### Changed
+
+- **`CONVENTIONS.md` states one changelog trigger, and the section shape now
+  carries its heading level.** The `docs/product/` layout entry for
+  `changelog.md` gives the shape (`## [<artifact>][<version>] — YYYY-MM-DD`),
+  the released-artifact trigger, the exemption for repository tooling, and the
+  per-package path. The `##` is load-bearing, not cosmetic — see the fix below.
+  Adopted from RFC-0095 D1 and D3.
+- **The two overlapping changelog obligations became two rules scoped by file.**
+  The pull-request checklist previously required public-interface changes to be
+  "noted in `CHANGELOG.md`" — a path that resolves per-package, not at the
+  repository root, and the only reference anywhere in `CONVENTIONS.md` to the
+  per-package changelog tier. It now reads as a released-artifact reminder that
+  also names the published-package duty, phrased so it still holds for a
+  repository that *is* one published package. Adopted from RFC-0095 D2.
+- **The shipped changelog template and the pull-request template now state the
+  same trigger as `CONVENTIONS.md`.** The template's maintenance header asked
+  for an entry when a PR "bumps `pack.toml`" — packs only, with no published
+  packages and no exemption — and the pull-request checklist still carried the
+  old "any user-visible behavior change" wording verbatim. Three documents, three
+  triggers. Adopted from RFC-0095 D1.
+
+- **Deciding whether a pack release earns a `/now/` highlight is now a step in
+  the release pipeline, not something to remember.** `Highlights` is the only
+  content that reaches the public `/now/` page, and by contract no model runs in
+  CI or site generation — so if nobody writes the block while authoring, the
+  release is simply never mentioned publicly. Nothing prompted for it, and 1 of
+  144 entries had one. The pack release pipeline now obliges the call on every
+  pack release: read the diff, answer whether a consumer can now do something
+  new, and either draft the bullets or record the *none* verdict with its reason
+  where a reviewer will see it. The test is the nature of the change, not the
+  semver level. Adopted from RFC-0095 D4.
+
+### Fixed
+
+- **The changelog no longer claims a CI gate that does not exist.** Its
+  maintenance header stated that CI "will warn (configurable: block)" when a
+  pull request changed user-visible behaviour without touching the file. No
+  workflow has ever implemented that. The sentence is removed rather than
+  implemented: `tools/repo/check_release_impact.py` remains the only mechanical
+  check in this area, and it deliberately treats `tools/repo/` and `packs/` as
+  non-impacting. Adopted from RFC-0095 D5.
+- **A release entry nested under `[Unreleased]` can never reach the public
+  `/now/` page, and a new test now stops that happening.** 59 entries carrying
+  real versions and dates are nested there, and the `/now/` projection excludes
+  them by structure — permanently, because it applies no date window and nothing
+  moves an entry out later. A released section is written free-standing at `##`,
+  directly in the released part of the file; `[Unreleased]` holds only work with
+  no version yet. `test_no_new_release_is_nested_under_unreleased` ratchets the
+  count so a new nested release fails the roster suite instead of silently going
+  unpublished. Promoting the existing 59 is separate, registered work — 48
+  genuinely-unreleased bare sections are interleaved with them across three
+  `[Unreleased]` regions, so it needs per-section attribution rather than a
+  level-shift. Adopted from RFC-0095 D3.
 
 ## [Unreleased]
 

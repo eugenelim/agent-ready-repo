@@ -27,7 +27,19 @@ For a non-engine change, the trailer accepts `n/a — <reason>`; never invent an
 
 1. Bump matching pack and plugin versions; see [Version bump rule](AGENTS.md#version-bump-rule).
 2. Run `FORCE=1 make build-self` to regenerate `marketplace.json`.
-3. Add the pack release entry to `docs/product/changelog.md`.
+3. Add the pack release entry to `docs/product/changelog.md`, free-standing at
+   `##` — never nested under `[Unreleased]`, where it could never publish.
+4. Decide the entry's `Highlights` disposition in the same step; do not leave it
+   to a human to remember. Read the release diff and its verification evidence
+   and answer one question: **does this change what a consumer of the pack can
+   do?** If yes, draft the outcome-led bullets under a `### Highlights`
+   subsection — those are what publish at `/now/`. If no, record that verdict
+   and its reason in the PR's *What did you not change that you considered?*
+   answer, so a reviewer sees a decision rather than an omission. Nothing
+   downstream will make this call for you: the `/now/` projection is a pure
+   parser over the file's bytes, and by contract no model runs in CI, release
+   automation, or site generation. An unwritten `Highlights` block is a release
+   the public page never mentions.
 
 Design against projected adopter state, not this checkout's internal corpus. Forks
 own their own publishing mechanism.

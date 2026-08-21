@@ -5,10 +5,13 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Maintenance: add a `## [pack-name][version] — YYYY-MM-DD` section in the same
-> PR that bumps `pack.toml`. You know the version at write time because you are
-> setting it. A PR that bumps two packs adds two sections. Keep this file
-> newest-first. Rewrite entries for users, not contributors — see the
+> Maintenance: add a `## [<artifact>][<version>] — YYYY-MM-DD` section in the
+> same PR that bumps a released artifact's version — a pack or a published
+> package. You know the version at write time because you are setting it. A PR
+> that releases two artifacts adds two sections. The heading level is
+> load-bearing: a section with a version and a date is released, so it sits at
+> this top level directly beneath `[Unreleased]`, never nested inside it. Keep
+> this file newest-first. Rewrite entries for users, not contributors — see the
 > [Common Changelog guidance](https://common-changelog.org/).
 
 ## [core][1.0.0] — 2026-07-31
