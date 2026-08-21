@@ -533,7 +533,16 @@ open = [
   # decision lock's ~1s retry budget is the first thing to exhaust under the contention it
   # exists to bound, and exhausting it degrades the limiter to a no-op; and the recursive
   # $(MAKE) through a Python wrapper loses the jobserver, so `make -j` warns and drops to
-  # -j1. The work is preserved on branch eugenelim/worktree-hygience-c-lease-wip.
+  # -j1. RESOLVED, with the operator: the jobserver is NOT forwarded. Measured on
+  # macOS/Make 3.81 -- a direct $(MAKE) reports --jobserver-fds=3,4 with those
+  # descriptors open, the same call through the wrapper reports an empty MAKEFLAGS
+  # and none, and make's own suggested `+` prefix does not restore them. Forwarding
+  # would mean version-sniffing three mechanisms (descriptors on 3.81-4.3, a fifo on
+  # 4.4+, a named semaphore on Windows where pass_fds is unsupported), its failure
+  # mode is a build that HANGS rather than warns, and this wrapper holds descriptors
+  # open for claim locks so it is the process most likely to hand a sub-make a lock
+  # instead of a token. No workflow passes -j. Recorded as a stated limitation.
+  # The work is preserved on branch eugenelim/worktree-hygience-c-lease-wip.
   # De-risked before the re-spec: tools/test_windows_lock_semantics.py runs on a
   # windows-latest job (build-check-windows.yml, lock-semantics-windows) that
   # REPORTS rather than gates, because nothing depends on it yet. It measures
@@ -544,7 +553,7 @@ open = [
   # report UNDETERMINABLE on that platform -- failing safe toward refusing, never
   # toward deleting. Wire the job into build-check-windows's `needs` in the same
   # change that lands the lease, so the invariant is enforced once relied upon.
-  {slug = "worktree-cooperative-lease", source = "spec/worktree-runtime-hygiene AC6", summary = "Re-spec and land the cooperative worktree lease, admission queue and with-lease wrapper: fix the Windows byte-range claim lock, reconcile the admission-role reclaim policy with AC6, re-publish a lost waiter ticket, recalibrate the memory clamp against usable-page reporting, scale the decision-lock budget with the wait budget, and forward the make jobserver"},
+  {slug = "worktree-cooperative-lease", source = "spec/worktree-runtime-hygiene AC6", summary = "Re-spec and land the cooperative worktree lease, admission queue and with-lease wrapper: fix the Windows byte-range claim lock, reconcile the admission-role reclaim policy with AC6, re-publish a lost waiter ticket, recalibrate the memory clamp against usable-page reporting, scale the decision-lock budget with the wait budget, and forward the makefile currently in use to the recursive sub-make (the jobserver is deliberately NOT forwarded: see docs/specs/worktree-cooperative-lease/spec.md Limitations for the measurement and the three reasons, decided with the operator)"},
   # RFC-0095 D3. 59 versioned entries sit nested under a `## [Unreleased]` heading and
   # are permanently invisible to the `/now/` projection (it applies no date window; a
   # nested entry simply never publishes). Not a mechanical level-shift: 48 genuinely
