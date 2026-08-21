@@ -15,7 +15,11 @@ used by this site. Do not edit generated inputs by hand.
   subpath deployment.
 - Keep pack `docsUrl` and `journeyUrl` populated when those materials exist.
 - Use the e2e gate command, not the unrestricted browser suite, for deploy checks.
-- Launch with `channel="chrome"`: no `ms-playwright` browser binaries are installed.
+- Gate browser: the Playwright-managed Chromium `playwright.config.ts` declares; never
+  substitute `channel="chrome"`, which is not the engine the deploy is judged on.
+- A missing browser is routine, not a finding — `tools/repo/frontend_runtime.py browsers`
+  reports the resolved cache, `install-browsers` provisions it. Never record install
+  state here: it is machine-local and inverts without warning.
 - Full Playwright runs rewrite tracked snapshots; stage files explicitly, never `git add -A`.
 - Check `allowScripts` against install-script entries by eye when the lockfile moves.
 - Define the viewport meta tag once in `src/components/layout/SiteLayout.astro`; never duplicate it.
