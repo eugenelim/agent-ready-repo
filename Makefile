@@ -441,7 +441,8 @@ ci: build-check pre-pr lint-ruff lint-mypy test
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────
-# Requires: npm ci --prefix docs-site (one-time setup)
+# Requires: make bootstrap-sites (one-time setup) — site-build builds web/ first,
+# so the web tree is needed here too, not only docs-site.
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
 # writes into build/docs/. These targets are the valid LOCAL full-generation
 # sequence — one build-site.py pass, then both builds. CI is NOT identical; see

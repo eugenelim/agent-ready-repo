@@ -1203,15 +1203,15 @@ open = [
   # keyed HMAC; across chains it remains operator-trusted, so this is bounded, not
   # closed.
   {slug = "rfc0088-privacy-term-identity-anchor", source = "round-12 security review"},
-  # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
-  # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
-  # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
-  # found`, which reads as a broken gate rather than missing setup. Found in RFC-0088
-  # round 11, where it was almost recorded as a pre-existing failure. Not fixed in
-  # that PR: the round's own scope boundary is evidence-only, and root AGENTS.md is
-  # not a sibling of docs/rfc so it falls outside the bundled-fixes carve-out.
-  # Unblocks when: any PR that legitimately touches root AGENTS.md adds the command.
-  {slug = "agents-md-missing-web-npm-ci", source = "spec/rfc0088-round11-binding-requirements drift"},
+  # Closed 2026-08-21. Root AGENTS.md § "Commands you'll need" now names
+  # `make bootstrap-sites`, the sanctioned target that installs BOTH npm trees
+  # (tools/repo/bootstrap.py profile_commands("sites")). Two corrections the entry
+  # text got wrong, recorded so a reader arriving from a stale reference is not
+  # misled: AGENTS.md listed NEITHER npm command, not "only docs-site"; and the
+  # Makefile's own § Site publishing header carried the same one-sided claim, which
+  # was corrected in the same change. `make test` needs the docs-site tree only;
+  # `site-build` / `site-link-check` need both. No `(deferred: …)` marker anchored
+  # this slug, so removing the entry reds no lint-spec-status invariant.
   # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
   # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
   # assertion in test_loop_concurrency.py — so bounding them is not a mechanical
