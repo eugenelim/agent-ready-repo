@@ -3311,3 +3311,88 @@ that mechanism rather than record the channel as inherently uncontrollable.
   authorised. Conversion was available to it because no frozen spec pins it with a
   deferral marker; a pinned slug cannot be removed from the register and is carried
   instead.
+
+- **2026-08-21 — approver rulings on open questions 3 and 4.** Two rulings, taken
+  after the round-13 decision surface was assembled and superseding what that section
+  records for these two questions. Nothing else changes: RFC-0088 remains
+  `Experimental`, open questions 1, 2, 5 and 6 remain outstanding, no blocker item
+  closes, and no follow-on artifact is created.
+
+  **Open question 3 — ruled. The bar is one independent consumer, not two.** The
+  recommended default in the open-question text required S5 to prove *two* independent
+  software-delivery provider consumers before acceptance. The approver lowers that to
+  **one**. This is a policy judgement about the charter's "used often enough" test, not
+  a measurement, and it is recorded here as the ruling the question asked for.
+
+  **What satisfies the lowered bar: nothing yet, and that is the finding.** The
+  satisfying consumer has to be one that drives **web page automation** — this RFC's
+  subject is a browser session, page-resident credentials, service-worker policy and
+  realm boundaries. Searched rather than assumed, and no such consumer exists in this
+  repository, built or planned:
+
+  - Nothing under `packs/` references `web-pilot`, `auth: browser-session`, or the
+    `provider-v1` conformance marker.
+  - The three packs that touch a browser at all do so for **credential capture**, not
+    page automation: the `atlassian` pack's `setup_sso.py`, and `credential-brokers`'
+    `_sso.py` and `sso-broker.py`. That is SSO-cookie auth governed by
+    [RFC-0035](0035-sso-cookie-auth-for-atlassian-pack.md), a different concern with a
+    different boundary, and counting it here would answer a question this RFC is not
+    asking.
+  - S5's own two providers were the synthetic fixtures `example-provider-a` and
+    `example-provider-b`. They demonstrated the pack/grant vertical mechanism and were
+    never independent consumers. They did not satisfy the two-consumer bar and do not
+    satisfy the one-consumer bar; recording that closes the reading in which the
+    original bar was already met.
+  - `web-automation` is not even an existing pack category — the RFC's own D8 resolves
+    discovery through `integrations` plus a namespaced conformance marker, so there is
+    no category a consumer could already be sitting in unnoticed.
+
+  So question 3 splits in two, and only the first half is ruled. **The bar is ruled at
+  one consumer.** **Satisfaction is outstanding**, and what satisfies it is a
+  page-automation consumer that has to be *built* — the example candidate the
+  foundation exists to serve.
+
+  **Consequence for acceptance, and it is not "question 3 is done".** The round-13
+  section presented question 3 as the choice between accepting a bar that blocks
+  acceptance and lowering it explicitly. This is the explicit lowering, and it changes
+  the *shape* of the blocker rather than removing it: acceptance no longer waits on two
+  independent adopters appearing, which nothing in the pilot's control could cause. It
+  waits on **one page-automation consumer being built**, which is work this project can
+  schedule. A bar that could only be met by other people's adoption becomes a bar met
+  by an artifact — and unlike the original, it is reachable.
+
+  Two things follow that the approver is accepting by taking this ruling. The consumer
+  cannot be the foundation's own fixtures, or the bar means nothing. And building it is
+  gated behind the same two doors as every other follow-on artifact: the RFC being
+  Accepted, and implementation being separately authorised. So question 3 stops being
+  the *first* blocker and becomes a consequence of the others.
+
+  **Open question 4 — the contradicted candidate is re-drafted, and the re-draft is
+  the ruling asked for.** The original candidate folded worker policy into the
+  destination constraint decision C established, so that one policy would decide both
+  where a session may talk and whether a worker may run there. Measurement contradicted
+  it: registration blocking is destination-scopable **only by partitioning destinations
+  into separate browser contexts**, and scoping within one shared session was not
+  demonstrated. A session-wide switch therefore still forces the choice between losing
+  a surface and losing the control, and the candidate as drafted did not remove that.
+
+  The amended requirement, superseding the session-wide reading of D / item 6:
+
+  > Worker policy is decided by the **destination group**, not by the session. A
+  > destination group is the unit at which decision C already constrains egress, and it
+  > is realised as a **separate browser context**. One policy per group decides both
+  > where that group may talk and whether a worker may run there. The session-wide
+  > reading of item 6 is withdrawn.
+
+  What the approver is accepting by adopting it, stated rather than discovered later: a
+  deployment needing opposite worker policies for two destinations must run them in
+  **separate contexts**, so those destinations do not share session state and each
+  group carries its own sign-in. That cost is real and unmeasured — it is the subject
+  of the carried `rfc0088-destination-group-split-cost` register slug, which remains
+  carried because measuring it needs an attended interactive sign-in per group that has
+  not been commissioned. Adopting the re-draft does not close that slug; it is why the
+  slug exists.
+
+  Question 4's status therefore moves from outstanding-with-a-contradicted-candidate to
+  **ruled**, with the per-group cost carried as a named residual rather than absorbed
+  silently.
