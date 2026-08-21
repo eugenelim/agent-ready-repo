@@ -12,6 +12,7 @@ default of five was that failing state. Two concurrent runs bounds memory pressu
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import errno
 import hashlib
@@ -19,6 +20,8 @@ import importlib
 import json
 import os
 import stat
+import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -26,12 +29,14 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterator, Mapping
+from typing import Any, Callable, Iterator, Mapping, Sequence
 
 if __package__:
-    from .worktree_hygiene import Candidate, _path_component_reason
+    from . import managed_child
+    from .worktree_hygiene import Candidate, _path_component_reason, lease_refusal_lines
 else:
-    from worktree_hygiene import Candidate, _path_component_reason
+    import managed_child
+    from worktree_hygiene import Candidate, _path_component_reason, lease_refusal_lines
 
 
 LEASE_DIRECTORY = "agent-ready-repo-worktree-leases"
@@ -785,7 +790,10 @@ def _release_ticket(
 
 
 def acquire_run_slot(
-    common_dir: Path, *, environ: Mapping[str, str] | None = None
+    common_dir: Path,
+    *,
+    environ: Mapping[str, str] | None = None,
+    on_wait: Callable[[tuple[int, ...]], None] | None = None,
 ) -> RunSlotClaim:
     """Fairly acquire one common-directory-wide run slot or raise on timeout.
 
@@ -820,6 +828,7 @@ def acquire_run_slot(
     ticket_descriptor: int | None = None
     registration_descriptor: int | None = None
     holders: tuple[int, ...] = ()
+    next_heartbeat: float | None = None
     try:
         while True:
             with coordination_lock(
@@ -874,9 +883,13 @@ def acquire_run_slot(
                     _unlock_and_close(registration_descriptor)
                     registration_descriptor = None
                     return RunSlotClaim(path, token, lease_dir, descriptor, os.getpid())
-            if time.monotonic() >= deadline:
+            now = time.monotonic()
+            if on_wait is not None and (next_heartbeat is None or now >= next_heartbeat):
+                on_wait(holders)
+                next_heartbeat = now + 60
+            if now >= deadline:
                 raise RunSlotAdmissionRefused(holders)
-            time.sleep(min(LEASE_RETRY_DELAY_SECONDS, max(0.0, deadline - time.monotonic())))
+            time.sleep(min(LEASE_RETRY_DELAY_SECONDS, max(0.0, deadline - now)))
     finally:
         if (
             ticket_token is not None
@@ -1017,3 +1030,233 @@ def acquire_activity(common_dir: Path, worktree: Path, *, wait_seconds: float) -
 def acquire_exclusive(common_dir: Path, worktree: Path) -> WorktreeClaim:
     """Immediately refuse if any activity claim's ownership lock is live."""
     return _acquire(common_dir, worktree, ClaimRole.EXCLUSIVE, None)
+
+
+def git_common_dir(repository: Path) -> Path:
+    """Resolve the Git common directory that scopes cooperative run slots."""
+    try:
+        result = subprocess.run(
+            ("git", "rev-parse", "--git-common-dir"),
+            cwd=repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as error:
+        raise ClaimStoreUnavailable("git is required to locate the claim store") from error
+    if result.returncode != 0:
+        detail = result.stderr.strip() or "not inside a Git worktree"
+        raise ClaimStoreUnavailable(f"could not resolve Git common directory: {detail}")
+    path = Path(result.stdout.strip())
+    return path.resolve() if path.is_absolute() else (repository / path).resolve()
+
+
+def _holder_names(claims: Sequence[ClaimRecord]) -> str:
+    """Render only process ids and worktree base names for user-facing output."""
+    names = []
+    for claim in claims:
+        pid = str(claim.pid) if claim.pid is not None else "unknown"
+        worktree = claim.worktree.name if claim.worktree is not None else "unknown"
+        names.append(f"pid {pid} in {worktree}")
+    return ", ".join(names) or "unknown holder"
+
+
+def _queue_notice(holder_pids: tuple[int, ...]) -> None:
+    """Expose admission queue progress at once and at least once a minute."""
+    holders = ", ".join(str(pid) for pid in holder_pids) or "unknown"
+    print(f"with-lease queued behind process ids: {holders}", file=sys.stderr, flush=True)
+
+
+def with_lease(
+    command: Sequence[str],
+    *,
+    repository: Path,
+    environ: Mapping[str, str] | None = None,
+) -> int:
+    """Run one verbatim child while holding an activity claim and a run slot."""
+    if not command:
+        raise ValueError("with-lease requires a command after --")
+    values = dict(os.environ if environ is None else environ)
+    worktree = repository.resolve()
+    # ONE call site, deliberately. An early `return managed_child.run_child(...)` on
+    # the lease-unavailable path made two, and the structural check that exactly one
+    # child runner is reachable cannot distinguish a second CALL from a second
+    # IMPLEMENTATION -- so the guard fired and it was right to. Fall through instead.
+    common: Path | None = None
+    try:
+        common = git_common_dir(repository)
+    except ClaimStoreUnavailable as error:
+        print(
+            f"WARNING: worktree lease unavailable; running child unleased: {error}",
+            file=sys.stderr,
+            flush=True,
+        )
+    activity: WorktreeClaim | None = None
+    slot: RunSlotClaim | None = None
+    try:
+        try:
+            if common is not None:
+                activity = acquire_activity(
+                    common, worktree, wait_seconds=DEFAULT_RUN_SLOT_WAIT_SECONDS
+                )
+                slot = acquire_run_slot(common, environ=values, on_wait=_queue_notice)
+        except RunSlotConfigurationError:
+            raise
+        except ClaimContentionError:
+            raise
+        except RunSlotAdmissionRefused:
+            raise
+        except ClaimStoreUnavailable as error:
+            print(
+                f"WARNING: worktree lease unavailable; running child unleased: {error}",
+                file=sys.stderr,
+                flush=True,
+            )
+        if slot is not None:
+            values[RUN_SLOT_NESTING_MARKER_ENV] = slot.nesting_marker
+        return managed_child.run_child(tuple(command), values, worktree)
+    finally:
+        # Teardown cannot rewrite a real child outcome. A failed release is still
+        # visible only as a warning, and a partially-acquired wrapper is unwound.
+        for claim in (slot, activity):
+            if claim is None:
+                continue
+            try:
+                claim.release()
+            except (ClaimStoreUnavailable, OSError) as error:
+                print(
+                    f"WARNING: worktree lease release failed: {error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+
+
+def _releasable_claim_path(lease_dir: Path, identifier: str) -> tuple[Path, ClaimRole]:
+    """Resolve a status-emitted worktree-claim identifier without path traversal."""
+    name = Path(identifier).name
+    if name != identifier or not name.endswith(".lease"):
+        raise ValueError("claim identifier must be a lease filename emitted by lease-status")
+    if name.startswith("activity-"):
+        role = ClaimRole.ACTIVITY
+    elif name.startswith("exclusive-"):
+        role = ClaimRole.EXCLUSIVE
+    else:
+        raise ValueError("only worktree activity or exclusive claims are releasable")
+    path = lease_dir / name
+    if not _confined_new(path, lease_dir):
+        raise ClaimStoreUnavailable("claim identifier escapes lease directory")
+    return path, role
+
+
+def release_claim(common_dir: Path, identifier: str) -> None:
+    """Release a free or uninspectable worktree claim; never a live lock holder."""
+    lease_dir = read_lease_directory(common_dir)
+    if lease_dir is None:
+        raise FileNotFoundError(identifier)
+    path, _role = _releasable_claim_path(lease_dir, identifier)
+    with coordination_lock(lease_dir, "coordination.lock"):
+        if not path.exists():
+            raise FileNotFoundError(identifier)
+        record = _read_record(path, _role, None)
+        if record.liveness is Liveness.LIVE:
+            raise ClaimContentionError("claim lock is observably held", claims=(record,))
+        path.unlink()
+
+
+def _status_lines(common_dir: Path, worktree: Path) -> list[str]:
+    """Report only existing claim state, without creating or pruning any records."""
+    claims = read_claims(common_dir, worktree, create=False)
+    slots = read_run_slots(common_dir)
+    records = (*claims.activity, *((claims.exclusive,) if claims.exclusive else ()))
+    lines = ["lease-status: claims"]
+    if not records:
+        lines.append("  none")
+    for record in records:
+        identifier = record.path.name
+        pid = record.pid if record.pid is not None else "unknown"
+        worktree_name = record.worktree.name if record.worktree is not None else "unknown"
+        lines.append(
+            f"  {identifier}: {record.role.value}, {record.liveness.value}, "
+            f"pid {pid} in {worktree_name}; release-claim --apply --claim {identifier}"
+        )
+    lines.append(f"lease-status: run-slot occupancy {len(slots)}")
+    for record in slots:
+        pid = record.pid if record.pid is not None else "unknown"
+        lines.append(f"  pid {pid}: {record.liveness.value}")
+    return lines
+
+
+def _parser() -> argparse.ArgumentParser:
+    """Build the command-line surface for cooperative lease participants."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    wrapped = subparsers.add_parser("with-lease", help="run one command under a lease")
+    wrapped.add_argument("child", nargs=argparse.REMAINDER)
+    subparsers.add_parser("lease-status", help="report claims without mutation")
+    release = subparsers.add_parser("release-claim", help="recover one unsafe claim")
+    release.add_argument("--apply", action="store_true", help="perform the recovery")
+    release.add_argument("--claim", required=True, help="identifier printed by lease-status")
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run a lease participant command and preserve the reserved refusal shape."""
+    args = _parser().parse_args(argv)
+    repository = Path.cwd().resolve()
+    try:
+        if args.command == "with-lease":
+            child = args.child[1:] if args.child[:1] == ["--"] else args.child
+            if not child:
+                print(
+                    "\n".join(
+                        lease_refusal_lines("with-lease", "no command was supplied after --")
+                    ),
+                    file=sys.stderr,
+                )
+                return 75
+            return with_lease(child, repository=repository)
+        common = git_common_dir(repository)
+        if args.command == "lease-status":
+            print("\n".join(_status_lines(common, repository)))
+            return 0
+        if not args.apply:
+            print(
+                "\n".join(
+                    lease_refusal_lines("release-claim", "--apply was not supplied")
+                ),
+                file=sys.stderr,
+            )
+            return 75
+        release_claim(common, args.claim)
+        print(
+            f"release-claim: released {args.claim}; this is an override of a claim "
+            "that may be live"
+        )
+        return 0
+    except RunSlotConfigurationError as error:
+        print("\n".join(lease_refusal_lines("with-lease", str(error))), file=sys.stderr)
+        return 75
+    except (ClaimContentionError, RunSlotAdmissionRefused) as error:
+        detail = str(error)
+        if isinstance(error, ClaimContentionError) and error.claims:
+            detail = f"{detail}; held by {_holder_names(error.claims)}"
+        print("\n".join(lease_refusal_lines(args.command, detail)), file=sys.stderr)
+        return 75
+    except ClaimStoreUnavailable as error:
+        if args.command == "with-lease":
+            # Common-directory discovery itself cannot be bypassed safely enough to
+            # spawn in an unknown scope; acquisition failures inside with_lease warn.
+            print("\n".join(lease_refusal_lines("with-lease", str(error))), file=sys.stderr)
+            return 75
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    except (FileNotFoundError, ValueError) as error:
+        print("\n".join(lease_refusal_lines(args.command, str(error))), file=sys.stderr)
+        return 75
+    except managed_child.ManagedChildError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1323,6 +1323,11 @@ def _claim_holder_names(claims: Iterable[Any]) -> str:
     return ", ".join(holders) or "unknown holder"
 
 
+def lease_refusal_lines(command: str, detail: str) -> list[str]:
+    """Render the reserved, greppable refusal contract for lease participants."""
+    return ["WORKTREE_LEASE_DID_NOT_RUN", f"{command} did not run: {detail}"]
+
+
 def _append_receipt_summary(
     lines: list[str],
     *,
@@ -1687,10 +1692,12 @@ def clean(
             try:
                 exclusive_claim = lease.acquire_exclusive(common, clean_selection[0].resolve())
             except lease.ClaimContentionError as error:
-                lines.append("WORKTREE_LEASE_DID_NOT_RUN")
-                lines.append(
-                    "clean did not run: live activity claim held by "
-                    f"{_claim_holder_names(error.claims)}"
+                lines.extend(
+                    lease_refusal_lines(
+                        "clean",
+                        "live activity claim held by "
+                        f"{_claim_holder_names(error.claims)}",
+                    )
                 )
                 _append_receipt_summary(
                     lines,
@@ -1704,10 +1711,12 @@ def clean(
             except lease.ClaimStoreUnavailable:
                 if not force_without_lease:
                     # A participant unable to publish cannot trust its read of this store.
-                    lines.append("WORKTREE_LEASE_DID_NOT_RUN")
-                    lines.append(
-                        "clean did not run: exclusive claim store is unavailable; "
-                        "use --force-without-lease only when cleanup must proceed"
+                    lines.extend(
+                        lease_refusal_lines(
+                            "clean",
+                            "exclusive claim store is unavailable; use "
+                            "--force-without-lease only when cleanup must proceed",
+                        )
                     )
                     _append_receipt_summary(
                         lines,
