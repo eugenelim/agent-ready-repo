@@ -497,14 +497,28 @@ def lint_pack(
     wiring_dir = pack_dir / ".apm" / "hook-wiring"
     if wiring_dir.is_dir():
         from agentbundle.build.hook_wiring_rules import claude_projection_paths
-        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.main import (
+            _load_distribution_route_contract,
+            _read_bundled,
+        )
         from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
 
         contract_data = contract
         if contract_data is None:
             contract_data = tomllib.loads(_read_bundled("adapter.toml"))
+        try:
+            route_data = _load_distribution_route_contract()
+        except (OSError, RuntimeError, ValueError) as exc:
+            findings.append(
+                f"{pack_dir.name}: distribution route contract is unusable: {exc}"
+            )
+            findings.sort(key=lambda f: f.rsplit(": ", 1)[-1])
+            return findings
+        component_capabilities = route_data["route"]["claude-plugins"][
+            "component-capabilities"
+        ]
         repo_prefix, plugin_prefix, hook_source, wiring_source = (
-            claude_projection_paths(contract_data)
+            claude_projection_paths(contract_data, component_capabilities)
         )
         try:
             compile_plugin_hooks(

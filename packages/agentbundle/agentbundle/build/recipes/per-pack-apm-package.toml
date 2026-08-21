@@ -3,5 +3,5 @@
 [recipe]
 name = "per-pack-apm-package"
 type = "per-pack"
-adapter = "apm"
+route = "apm"
 output-subdir = "apm"

@@ -38,6 +38,32 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.39.0"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[agentbundle][0.39.0] — 2026-08-21",
+      "changelogAnchor": "agentbundle0390--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Catalogue builders can now reason about package formats independently of runtime adapters.** The installed CLI exposes a validated contract for the existing APM and Claude-plugin routes, including their layouts, component support, admission, marketplace, and lifecycle behavior.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Catalogue builders can now reason about package formats independently of runtime adapters."
+            },
+            {
+              "type": "text",
+              "value": " The installed CLI exposes a validated contract for the existing APM and Claude-plugin routes, including their layouts, component support, admission, marketplace, and lifecycle behavior."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.10.4"
         }

@@ -136,7 +136,7 @@ def _build_dist_marketplace(tmp_path: Path) -> dict:
         '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\n',
         encoding="utf-8")
 
-    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+    recipe = Recipe(name="marketplace", type="aggregate", route="claude-plugins", adapter=None,
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)
@@ -338,27 +338,53 @@ def test_missing_source_names_the_cause(tmp_path: Path) -> None:
 def _contract_for(recipe_name: str) -> dict:
     import tomllib
 
-    from agentbundle.build.main import CONTRACT_PATH, Recipe, _resolve_contract_for_route
+    from agentbundle.build.main import (
+        CONTRACT_PATH,
+        ROUTE_CONTRACT_PATH,
+        _projection_contract_for_route,
+        _resolve_distribution_route,
+        load_recipe,
+    )
 
     contract = tomllib.loads(Path(CONTRACT_PATH).read_text(encoding="utf-8"))
-    recipe = Recipe(name=recipe_name, type="per-pack", adapter="claude-code",
-                    output_subdir="x", input_subdir=None, output_file=None,
-                    units=[], fragment_path=None, manifest_path=None)
-    return _resolve_contract_for_route(contract, recipe)
+    if recipe_name != "per-pack-claude-plugin":
+        return contract
+    route_contract = tomllib.loads(
+        Path(ROUTE_CONTRACT_PATH).read_text(encoding="utf-8")
+    )
+    resolved = _resolve_distribution_route(load_recipe(recipe_name), route_contract)
+    return _projection_contract_for_route(contract, resolved)
 
 
 def test_component_targets_differ_by_route() -> None:
     """# AC2 + AC3 — same source pack, different emitted paths per route."""
-    plugins = {e["primitive"]: e["target-path"]
-               for e in _contract_for("per-pack-claude-plugin")["adapter"]["claude-code"]["projection"]}
-    other = {e["primitive"]: e["target-path"]
-             for e in _contract_for("per-pack-overlay")["adapter"]["claude-code"]["projection"]}
+    plugins = {
+        entry["primitive"]: entry
+        for entry in _contract_for("per-pack-claude-plugin")["adapter"][
+            "claude-code"
+        ]["projection"]
+    }
+    other = {
+        entry["primitive"]: entry
+        for entry in _contract_for("per-pack-overlay")["adapter"]["claude-code"][
+            "projection"
+        ]
+    }
     assert (plugins["skill"], plugins["agent"], plugins["command"]) == (
-        "skills/", "agents/", "commands/")
+        {**other["skill"], "target-path": "skills/"},
+        {**other["agent"], "target-path": "agents/"},
+        {**other["command"], "target-path": "commands/"},
+    )
     assert (other["skill"], other["agent"], other["command"]) == (
-        ".claude/skills/", ".claude/agents/", ".claude/commands/")
-    # Hook wiring is out of scope and must NOT move.
-    assert plugins["hook-wiring"] == other["hook-wiring"] == ".claude/settings.local.json"
+        {**other["skill"], "target-path": ".claude/skills/"},
+        {**other["agent"], "target-path": ".claude/agents/"},
+        {**other["command"], "target-path": ".claude/commands/"},
+    )
+    assert plugins["hook-wiring"] == {
+        "primitive": "hook-wiring",
+        "mode": "dropped",
+    }
+    assert other["hook-wiring"]["target-path"] == ".claude/settings.local.json"
 
 
 def test_sweep_target_follows_the_route(tmp_path: Path) -> None:

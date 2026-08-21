@@ -191,6 +191,38 @@ def test_render_unknown_target_exits_nonzero(tmp_path, capsys):
         f"expected target name or 'unknown target' in stderr, got: {captured.err!r}"
 
 
+def test_render_claude_target_selects_only_claude_distribution_route(tmp_path):
+    """An explicit Claude target must not also emit the adapter-less APM route."""
+    out_dir = tmp_path / "out"
+    rc = run(
+        _args(
+            pack_path=str(FIXTURE_CORE),
+            output=str(out_dir),
+            target="claude-code",
+        )
+    )
+
+    assert rc == 0
+    tree = _tree(out_dir)
+    assert any(path.startswith("claude-plugins/core/") for path in tree)
+    assert not any(path.startswith("apm/") for path in tree)
+
+
+def test_render_non_claude_adapter_does_not_emit_distribution_routes(tmp_path):
+    """A direct-install adapter target must not inherit an unrelated package route."""
+    out_dir = tmp_path / "out"
+    rc = run(
+        _args(
+            pack_path=str(FIXTURE_CORE),
+            output=str(out_dir),
+            target="codex",
+        )
+    )
+
+    assert rc == 0
+    assert _tree(out_dir) == {}
+
+
 # ---------------------------------------------------------------------------
 # Test 7: Path-jail — malicious --output that itself escapes
 # ---------------------------------------------------------------------------

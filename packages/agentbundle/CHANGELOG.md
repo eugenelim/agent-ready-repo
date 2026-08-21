@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.39.0] — 2026-08-21
+
+### Added
+
+- The bundled public-contract inventory now exposes
+  `distribution-routes.toml` and its closed schema. The Phase 0 declaration
+  names the APM and Claude-plugin package layouts, manifest and marketplace
+  projectors, nine-primitive capability maps, admission policies, and lifecycle
+  trigger.
+
+### Changed
+
+- Catalogue builds resolve APM and Claude package recipes through explicit,
+  schema-validated route identities before writing output. Unsafe or
+  inconsistent route declarations fail closed; existing APM and Claude package
+  trees remain byte-for-byte unchanged.
+- Package-route fields no longer live in the direct-install adapter contract.
+  Direct `agentbundle install` behavior, adapter paths, scopes, seeds, and
+  marker identity are unchanged.
+
 ## [0.38.6] — 2026-08-20
 
 ### Fixed
