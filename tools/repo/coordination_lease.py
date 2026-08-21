@@ -41,9 +41,9 @@ LEASE_RETRY_DELAY_SECONDS = 0.05
 DEFAULT_MAX_CONCURRENT_RUNS = 2
 # Downward-only memory clamp. Calibrated to the single measurement point
 # available: this reference host has 32 GiB and is judged safe at 2 concurrent
-# heavy runs, so 16 GiB per run is the implied budget. Below that a machine gets
+# heavy runs, so 12 GiB per run leaves usable-memory headroom. Below that a machine gets
 # fewer, never more.
-MEMORY_PER_CONCURRENT_RUN_BYTES = 16 * 1024**3
+MEMORY_PER_CONCURRENT_RUN_BYTES = 12 * 1024**3
 # Age backstop for the ADMISSION roles only. An undeterminable probe counts as
 # live, which for `activity`/`exclusive` is the right conservative answer -- but a
 # run slot or waiter ticket that can never be reclaimed wedges every gate in every
@@ -52,6 +52,7 @@ MEMORY_PER_CONCURRENT_RUN_BYTES = 16 * 1024**3
 # having its own claim pruned mid-flight.
 RUN_CLAIM_MAX_AGE_SECONDS = 6 * 60 * 60
 DEFAULT_RUN_SLOT_WAIT_SECONDS = 5400
+MINIMUM_RUN_SLOT_DECISION_LOCK_SECONDS = 30
 MAX_CONCURRENT_RUNS_ENV = "WORKTREE_HYGIENE_MAX_CONCURRENT_RUNS"
 RUN_SLOT_WAIT_SECONDS_ENV = "WORKTREE_HYGIENE_RUN_SLOT_WAIT_SECONDS"
 RUN_SLOT_NESTING_MARKER_ENV = "WORKTREE_HYGIENE_RUN_SLOT_CLAIM"
@@ -142,7 +143,7 @@ class WorktreeClaim:
     path: Path
     token: str
     lease_dir: Path
-    descriptor: int
+    descriptor: int | None
 
     def release(self) -> None:
         """Remove only this token's claim, then release its lifetime lock."""
@@ -153,7 +154,9 @@ class WorktreeClaim:
                     with contextlib.suppress(FileNotFoundError):
                         self.path.unlink()
         finally:
-            _unlock_and_close(self.descriptor)
+            if self.descriptor is not None:
+                _unlock_and_close(self.descriptor)
+                self.descriptor = None
 
 
 @dataclass
@@ -192,6 +195,7 @@ class RunSlotClaim:
         finally:
             if self.descriptor is not None:
                 _unlock_and_close(self.descriptor)
+                self.descriptor = None
 
 
 def _is_junction(path: Path) -> bool:
@@ -305,7 +309,12 @@ def release_claim_lock(descriptor: int) -> None:
 
 
 @contextmanager
-def coordination_lock(lease_dir: Path, name: str) -> Iterator[None]:
+def coordination_lock(
+    lease_dir: Path,
+    name: str,
+    *,
+    acquisition_budget_seconds: float | None = None,
+) -> Iterator[None]:
     """Hold the short-lived shared decision lock around read-and-publish."""
     if Path(name).name != name or not name.endswith(".lock"):
         raise ClaimStoreUnavailable("coordination lock name is not safe")
@@ -315,19 +324,38 @@ def coordination_lock(lease_dir: Path, name: str) -> Iterator[None]:
     path = root / name
     if not _confined_new(path, root):
         raise ClaimStoreUnavailable("coordination lock path escapes lease directory")
+    if acquisition_budget_seconds is not None and acquisition_budget_seconds < 0:
+        raise ValueError("acquisition_budget_seconds must not be negative")
+    deadline = (
+        None
+        if acquisition_budget_seconds is None
+        else time.monotonic() + acquisition_budget_seconds
+    )
     try:
         with path.open("a+b") as handle:
             acquire, release = _lock_functions(handle.fileno())
-            for attempt in range(LEASE_RETRY_LIMIT):
+            while True:
                 try:
                     handle.seek(0)
                     acquire()
                     break
-                except OSError:
-                    if attempt + 1 < LEASE_RETRY_LIMIT:
-                        time.sleep(LEASE_RETRY_DELAY_SECONDS)
-            else:
-                raise ClaimStoreUnavailable("could not acquire coordination lock")
+                except OSError as error:
+                    if deadline is None:
+                        if LEASE_RETRY_LIMIT <= 1:
+                            raise ClaimStoreUnavailable(
+                                "could not acquire coordination lock"
+                            ) from error
+                        # Existing non-admission callers retain their bounded retry
+                        # behaviour; admissions pass their scaled time budget below.
+                        deadline = time.monotonic() + (
+                            LEASE_RETRY_LIMIT - 1
+                        ) * LEASE_RETRY_DELAY_SECONDS
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise ClaimStoreUnavailable(
+                            "could not acquire coordination lock"
+                        ) from error
+                    time.sleep(min(LEASE_RETRY_DELAY_SECONDS, remaining))
             try:
                 yield
             finally:
@@ -554,7 +582,8 @@ def memory_clamped_run_limit(requested: int, memory_bytes: int | None) -> int:
     is mostly WAITING -- a unit suite measured 178.9s wall against 56.4s CPU --
     so on this 10-core, 32 GiB host `cpu_count() // 2` gives 5, which is
     precisely the concurrency that exhausted swap at load 135, and `RAM / 2GiB`
-    gives 16.
+    gives 16. The measured clamp uses 12 GiB per run so usable-memory reporting
+    leaves the 32 GiB reference configuration at two runs.
     """
     if memory_bytes is None:
         return requested
@@ -580,6 +609,11 @@ def run_slot_budgets(environ: Mapping[str, str] | None = None) -> tuple[int, int
     )
 
 
+def run_slot_decision_lock_budget(wait_seconds: int) -> float:
+    """Return the admission decision-lock budget derived from its wait budget."""
+    return max(MINIMUM_RUN_SLOT_DECISION_LOCK_SECONDS, wait_seconds / 20)
+
+
 def _run_claim_path(lease_dir: Path, role: ClaimRole, token: str) -> Path:
     """Build one confined run-slot or run-ticket path from an opaque UUID token."""
     if role not in {ClaimRole.RUN_SLOT, ClaimRole.RUN_TICKET}:
@@ -589,6 +623,21 @@ def _run_claim_path(lease_dir: Path, role: ClaimRole, token: str) -> Path:
     path = lease_dir / f"{role.value}-{token}.lease"
     if not _confined_new(path, lease_dir):
         raise ClaimStoreUnavailable("run claim path escapes lease directory")
+    return path
+
+
+def _run_ticket_registration_path(lease_dir: Path, token: str) -> Path:
+    """Return the persistent, lock-backed position record for one waiter.
+
+    The removable ticket is the admission signal. This separate record preserves
+    the filesystem-derived registration time if an operator removes that ticket,
+    without trusting a caller-provided timestamp on re-registration.
+    """
+    if len(token) != 32 or any(character not in "0123456789abcdef" for character in token):
+        raise ClaimStoreUnavailable("run claim token is unsafe")
+    path = lease_dir / f"run-registration-{token}.lease"
+    if not _confined_new(path, lease_dir):
+        raise ClaimStoreUnavailable("run registration path escapes lease directory")
     return path
 
 
@@ -604,13 +653,42 @@ def _run_claim_payload(token: str, common_dir: Path) -> str:
     )
 
 
+def _ticket_position(
+    lease_dir: Path, ticket: ClaimRecord, common_dir: Path
+) -> float:
+    """Return an unforgeable initial position for a current ticket.
+
+    A registration record is retained only by its owning waiter's held lock and
+    has a filesystem-derived timestamp. A manually written ticket has no valid
+    registration record, so it receives its own file-derived timestamp instead.
+    """
+    if ticket.token is None:
+        return ticket.created_at
+    try:
+        registration_path = _run_ticket_registration_path(lease_dir, ticket.token)
+    except ClaimStoreUnavailable:
+        return ticket.created_at
+    if not registration_path.exists():
+        return ticket.created_at
+    registration = _read_record(registration_path, ClaimRole.RUN_TICKET, common_dir)
+    if registration.token != ticket.token or registration.liveness is not Liveness.LIVE:
+        return ticket.created_at
+    return registration.created_at
+
+
 def _live_run_claims(
     lease_dir: Path, role: ClaimRole, common_dir: Path
 ) -> tuple[ClaimRecord, ...]:
     """Prune dead or expired run records; retain live holders within the backstop.
 
+    The configured slot cap is deliberately soft across an admission expiry. An
+    expired owner may still be live, so reclaiming its record can over-admit by
+    the number of expired slots. That bounded memory pressure is recoverable;
+    leaving an unreclaimable slot would permanently wedge every gate.
+
     Unlike the worktree claim roles, an admission record is reclaimed once it
-    passes ``RUN_CLAIM_MAX_AGE_SECONDS`` even when its liveness is undeterminable.
+    passes ``RUN_CLAIM_MAX_AGE_SECONDS`` even when its owner is still live or its
+    liveness is undeterminable.
     Without that, a single unreadable `run-slot-*.lease` occupies the limit forever
     and a single unreadable `run-ticket-*.lease` is permanently the oldest waiter --
     starving admission with zero slots occupied. Both are reachable with no
@@ -622,14 +700,40 @@ def _live_run_claims(
     for record in _prune_not_live(
         _claim_paths(lease_dir, common_dir, role), role, common_dir
     ):
-        if record.liveness is not Liveness.LIVE and now - record.created_at > (
-            RUN_CLAIM_MAX_AGE_SECONDS
-        ):
+        # An invalid or unreadable payload receives `now` from `_read_record` so
+        # it cannot be ordered or identified. Its file timestamp is still an
+        # observable, non-resetting age backstop; otherwise every scan makes an
+        # undeterminable admission record look new and wedges the queue forever.
+        record_age = (
+            now - record.created_at
+            if record.token is not None
+            else lease_age_seconds(record.path, None)
+        )
+        if record_age > RUN_CLAIM_MAX_AGE_SECONDS:
             with contextlib.suppress(OSError):
                 record.path.unlink()
             continue
         retained.append(record)
     return tuple(retained)
+
+
+def _prune_run_registrations(lease_dir: Path, common_dir: Path) -> None:
+    """Reclaim dead or aged waiter-position records without counting them as slots."""
+    try:
+        paths = tuple(lease_dir.glob("run-registration-*.lease"))
+    except OSError as error:
+        raise ClaimStoreUnavailable("claim store cannot list registrations") from error
+    if any(not _confined_existing(path, lease_dir) for path in paths):
+        raise ClaimStoreUnavailable("registration path escapes lease directory")
+    now = time.time()
+    for path in paths:
+        record = _read_record(path, ClaimRole.RUN_TICKET, common_dir)
+        if (
+            record.liveness is Liveness.NOT_LIVE
+            or now - record.created_at > RUN_CLAIM_MAX_AGE_SECONDS
+        ):
+            with contextlib.suppress(OSError):
+                path.unlink()
 
 
 def _marker_slot(
@@ -650,17 +754,34 @@ def _marker_slot(
     return None
 
 
-def _release_ticket(lease_dir: Path, token: str, descriptor: int) -> None:
-    """Remove this waiter's ticket while retaining no lock beyond this call."""
+def _release_ticket(
+    lease_dir: Path,
+    token: str,
+    descriptor: int | None,
+    registration_descriptor: int,
+    decision_lock_budget: float,
+) -> None:
+    """Remove a waiter ticket and its persistent position record on exit."""
     try:
-        with coordination_lock(lease_dir, "coordination.lock"):
+        with coordination_lock(
+            lease_dir,
+            "coordination.lock",
+            acquisition_budget_seconds=decision_lock_budget,
+        ):
             path = _run_claim_path(lease_dir, ClaimRole.RUN_TICKET, token)
             record = _read_record(path, ClaimRole.RUN_TICKET, None)
             if record.token == token:
                 with contextlib.suppress(FileNotFoundError):
                     path.unlink()
+            registration_path = _run_ticket_registration_path(lease_dir, token)
+            registration = _read_record(registration_path, ClaimRole.RUN_TICKET, None)
+            if registration.token == token:
+                with contextlib.suppress(FileNotFoundError):
+                    registration_path.unlink()
     finally:
-        _unlock_and_close(descriptor)
+        if descriptor is not None:
+            _unlock_and_close(descriptor)
+        _unlock_and_close(registration_descriptor)
 
 
 def acquire_run_slot(
@@ -669,14 +790,20 @@ def acquire_run_slot(
     """Fairly acquire one common-directory-wide run slot or raise on timeout.
 
     Ticket pruning, oldest-ticket selection, slot pruning, and slot publication
-    happen under one decision lock. A ticket's descriptor is its identity: a
-    recycled PID cannot impersonate it or retain its place in the queue.
+    happen under one decision lock. A ticket's persistent registration record
+    retains its filesystem-derived original position if its removable ticket is
+    released, so a recycled PID cannot impersonate it or move it backwards.
     """
     limit, wait_seconds = run_slot_budgets(environ)
+    decision_lock_budget = run_slot_decision_lock_budget(wait_seconds)
     values = os.environ if environ is None else environ
     lease_dir = prepare_lease_directory(common_dir)
     scope = common_dir.resolve()
-    with coordination_lock(lease_dir, "coordination.lock"):
+    with coordination_lock(
+        lease_dir,
+        "coordination.lock",
+        acquisition_budget_seconds=decision_lock_budget,
+    ):
         inherited = _marker_slot(lease_dir, scope, values.get(RUN_SLOT_NESTING_MARKER_ENV))
         if inherited is not None:
             return RunSlotClaim(
@@ -691,22 +818,40 @@ def acquire_run_slot(
     deadline = time.monotonic() + wait_seconds
     ticket_token: str | None = None
     ticket_descriptor: int | None = None
+    registration_descriptor: int | None = None
     holders: tuple[int, ...] = ()
     try:
         while True:
-            with coordination_lock(lease_dir, "coordination.lock"):
+            with coordination_lock(
+                lease_dir,
+                "coordination.lock",
+                acquisition_budget_seconds=decision_lock_budget,
+            ):
                 if ticket_token is None:
                     ticket_token = uuid.uuid4().hex
-                    ticket_path = _run_claim_path(lease_dir, ClaimRole.RUN_TICKET, ticket_token)
+                    registration_path = _run_ticket_registration_path(lease_dir, ticket_token)
+                    registration_descriptor = publish_claim_candidate(
+                        lease_dir,
+                        registration_path,
+                        _run_claim_payload(ticket_token, scope),
+                    )
+                ticket_path = _run_claim_path(lease_dir, ClaimRole.RUN_TICKET, ticket_token)
+                if not ticket_path.exists():
+                    if ticket_descriptor is not None:
+                        _unlock_and_close(ticket_descriptor)
                     ticket_descriptor = publish_claim_candidate(
                         lease_dir, ticket_path, _run_claim_payload(ticket_token, scope)
                     )
 
+                _prune_run_registrations(lease_dir, scope)
                 tickets = _live_run_claims(lease_dir, ClaimRole.RUN_TICKET, scope)
                 slots = _live_run_claims(lease_dir, ClaimRole.RUN_SLOT, scope)
                 oldest = min(
                     tickets,
-                    key=lambda record: (record.created_at, record.token or ""),
+                    key=lambda record: (
+                        _ticket_position(lease_dir, record, scope),
+                        record.token or "",
+                    ),
                     default=None,
                 )
                 holders = tuple(sorted({record.pid for record in slots if record.pid is not None}))
@@ -723,13 +868,27 @@ def acquire_run_slot(
                         ticket_path.unlink()
                     _unlock_and_close(ticket_descriptor)
                     ticket_descriptor = None
+                    registration_path = _run_ticket_registration_path(lease_dir, ticket_token)
+                    with contextlib.suppress(FileNotFoundError):
+                        registration_path.unlink()
+                    _unlock_and_close(registration_descriptor)
+                    registration_descriptor = None
                     return RunSlotClaim(path, token, lease_dir, descriptor, os.getpid())
             if time.monotonic() >= deadline:
                 raise RunSlotAdmissionRefused(holders)
             time.sleep(min(LEASE_RETRY_DELAY_SECONDS, max(0.0, deadline - time.monotonic())))
     finally:
-        if ticket_token is not None and ticket_descriptor is not None:
-            _release_ticket(lease_dir, ticket_token, ticket_descriptor)
+        if (
+            ticket_token is not None
+            and registration_descriptor is not None
+        ):
+            _release_ticket(
+                lease_dir,
+                ticket_token,
+                ticket_descriptor,
+                registration_descriptor,
+                decision_lock_budget,
+            )
 
 
 def read_claims(common_dir: Path, worktree: Path, *, create: bool = True) -> WorktreeClaims:
