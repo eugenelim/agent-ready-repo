@@ -132,7 +132,7 @@ jobs:
     # lock makes every liveness probe read NOT_LIVE, so a live peer's claim is
     # reclaimed and `clean --apply` deletes under a live mutator. The synthetic
     # fixture measures Windows itself; the lease suite proves the publisher and
-    # prober use the measured-safe byte-zero protocol.
+    # prober use the measured-safe protocol: one agreed offset, past the payload.
     runs-on: windows-latest
     timeout-minutes: 5
     env:

@@ -96,6 +96,22 @@ def test_release_removes_only_callers_own_claim(tmp_path: Path) -> None:
     assert claim.path.exists()
 
 
+def _unhandleable_kill(holder: multiprocessing.Process) -> None:
+    """Kill a holder in a way it cannot intercept, so the KERNEL releases the lock.
+
+    POSIX `SIGKILL` cannot be caught. Windows has no `SIGKILL` at all --
+    `signal.SIGKILL` raises AttributeError there, which failed this suite on
+    windows-latest -- but `Process.terminate()` calls `TerminateProcess`, which is
+    likewise unhandleable. `SIGTERM` would be wrong on either platform: a holder that
+    catches it, cleans up and releases its own claim proves the opposite of what these
+    tests assert, which is that the operating system releases the lock on death.
+    """
+    if os.name == "nt":
+        holder.terminate()
+        return
+    os.kill(holder.pid, signal.SIGKILL)
+
+
 def test_sigkilled_holder_claim_is_reclaimed(
     tmp_path: Path, claim_holder_processes: list[multiprocessing.Process]
 ) -> None:
@@ -105,7 +121,7 @@ def test_sigkilled_holder_claim_is_reclaimed(
     worktree.mkdir()
     holder, ready = _start_claim_holder(claim_holder_processes, root, worktree)
     assert ready.wait(CHILD_START_BUDGET_SECONDS)
-    os.kill(holder.pid, signal.SIGKILL)
+    _unhandleable_kill(holder)
     holder.join(CHILD_START_BUDGET_SECONDS)
 
     second = coordination_lease.acquire_exclusive(root, worktree)
@@ -130,7 +146,7 @@ def test_live_identity_is_not_reclaimed_by_age_alone(
 
     with pytest.raises(coordination_lease.ClaimContentionError):
         coordination_lease.acquire_exclusive(root, worktree)
-    os.kill(holder.pid, signal.SIGKILL)
+    _unhandleable_kill(holder)
     holder.join(CHILD_START_BUDGET_SECONDS)
 
 
@@ -190,7 +206,7 @@ def test_recycled_pid_cannot_impersonate_lock_holder(
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     assert coordination_lease.read_claims(root, worktree).exclusive.liveness is coordination_lease.Liveness.LIVE
-    os.kill(holder.pid, signal.SIGKILL)
+    _unhandleable_kill(holder)
     holder.join(CHILD_START_BUDGET_SECONDS)
 
 
@@ -278,22 +294,39 @@ def test_claim_directory_symlink_is_refused(tmp_path: Path) -> None:
         )
 
 
-def test_claim_lock_operations_seek_to_byte_zero_structurally() -> None:
-    """Windows byte-range liveness needs both operations to overlap byte zero."""
+def test_claim_lock_operations_agree_on_one_offset_past_the_payload() -> None:
+    """Both Windows requirements, asserted structurally because POSIX cannot show them.
+
+    The publisher, the prober and the release must lock the SAME byte, or on Windows
+    they hold disjoint ranges and a live claim reads not-live. That byte must also lie
+    OUTSIDE the payload, because the Windows lock is mandatory rather than advisory,
+    and locking byte zero made `_read_record`'s payload read raise PermissionError for
+    every live claim on windows-latest. Byte zero satisfies the first and violates the
+    second, which is why an earlier revision of this test passed while the code was
+    broken on the only platform that can observe either property.
+    """
+    seek = "os.lseek(descriptor, CLAIM_LOCK_OFFSET, os.SEEK_SET)"
     publish_source = inspect.getsource(coordination_lease.publish_claim_candidate)
     probe_source = inspect.getsource(coordination_lease._probe_claim_lock)
     release_source = inspect.getsource(coordination_lease._unlock_and_close)
 
-    assert publish_source.index("os.lseek(descriptor, 0, os.SEEK_SET)") < publish_source.index(
+    # One agreed offset, and the seek precedes the lock operation in every path.
+    assert publish_source.index(seek) < publish_source.index(
         "_lock_functions(descriptor)[0]()"
     )
-    assert probe_source.index("os.lseek(descriptor, 0, os.SEEK_SET)") < probe_source.index(
-        "acquire()"
-    )
-    assert probe_source.count("os.lseek(descriptor, 0, os.SEEK_SET)") >= 2
-    assert release_source.index("os.lseek(descriptor, 0, os.SEEK_SET)") < release_source.index(
+    assert probe_source.index(seek) < probe_source.index("acquire()")
+    assert probe_source.count(seek) >= 2
+    assert release_source.index(seek) < release_source.index(
         "_lock_functions(descriptor)[1]()"
     )
+
+    # No claim path may lock byte zero: that is the offset inside the payload.
+    for source in (publish_source, probe_source, release_source):
+        assert "os.lseek(descriptor, 0, os.SEEK_SET)" not in source
+
+    # And the offset really is past any payload this module writes.
+    payload = coordination_lease._run_claim_payload("0" * 32, Path("/mnt/some/worktree"))
+    assert len(payload) * 100 < coordination_lease.CLAIM_LOCK_OFFSET
 
 
 def test_coordination_lock_serializes_two_real_processes(tmp_path: Path) -> None:

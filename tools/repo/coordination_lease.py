@@ -43,6 +43,28 @@ LEASE_DIRECTORY = "agent-ready-repo-worktree-leases"
 LEASE_DIRECTORY_MODE = 0o700
 LEASE_RETRY_LIMIT = 20
 LEASE_RETRY_DELAY_SECONDS = 0.05
+# The byte a claim's lifetime ownership lock is taken on. Two requirements pull in
+# opposite directions and BOTH are load-bearing:
+#
+#   1. The publisher and the prober must lock the SAME byte. `msvcrt.locking` locks
+#      one byte at the current file position, so a publisher that writes its payload
+#      and then locks holds byte len(payload) while a prober opening at zero holds
+#      byte 0 -- ranges that never overlap, making the lock invisible and every probe
+#      read NOT_LIVE. Measured on windows-latest:
+#      `write-then-lock, probe at position 0 -> NOT blocked (LOCK INVISIBLE)`.
+#
+#   2. The locked byte must lie OUTSIDE the payload. On Windows the lock is
+#      MANDATORY, not advisory as POSIX `flock` is, so no other handle may read a
+#      locked range. Locking byte 0 satisfied (1) and broke this: `_read_record`
+#      reads the payload to name a holder, and on windows-latest that read raised
+#      `PermissionError: [Errno 13] Permission denied` for every live claim.
+#
+# A fixed offset far beyond any payload satisfies both: both sides agree on it, and
+# it is past the JSON, which is a few hundred bytes. Locking beyond end-of-file is
+# permitted on both platforms. On POSIX `flock` covers the whole open file
+# description and position is irrelevant, so this is inert there -- which is exactly
+# why neither requirement is observable on macOS and both needed a Windows runner.
+CLAIM_LOCK_OFFSET = 1 << 20
 DEFAULT_MAX_CONCURRENT_RUNS = 2
 # Downward-only memory clamp. Calibrated to the single measurement point
 # available: this reference host has 32 GiB and is judged safe at 2 concurrent
@@ -312,9 +334,14 @@ def _lock_functions(descriptor: int) -> tuple[Any, Any]:
 
 
 def _unlock_and_close(descriptor: int) -> None:
-    """Best-effort end of a claim lock's lifetime."""
+    """Best-effort end of a claim lock's lifetime.
+
+    Releases at the same offset the publisher locked. Only claim, ticket and
+    registration descriptors reach here; the shared decision lock releases inline at
+    byte zero, because nothing ever reads that file.
+    """
     with contextlib.suppress(OSError):
-        os.lseek(descriptor, 0, os.SEEK_SET)
+        os.lseek(descriptor, CLAIM_LOCK_OFFSET, os.SEEK_SET)
         _lock_functions(descriptor)[1]()
     with contextlib.suppress(OSError):
         os.close(descriptor)
@@ -393,7 +420,8 @@ def publish_claim_candidate(lease_dir: Path, path: Path, payload: str) -> int:
     temporary = Path(temporary_name)
     try:
         os.write(descriptor, payload.encode("utf-8"))
-        os.lseek(descriptor, 0, os.SEEK_SET)
+        # Past the payload, so the payload stays readable while the lock is held.
+        os.lseek(descriptor, CLAIM_LOCK_OFFSET, os.SEEK_SET)
         _lock_functions(descriptor)[0]()
         os.link(temporary, path)
         return descriptor
@@ -425,7 +453,9 @@ def _probe_claim_lock(path: Path) -> Liveness:
     try:
         acquire, release = _lock_functions(descriptor)
         try:
-            os.lseek(descriptor, 0, os.SEEK_SET)
+            # The same byte the publisher holds; a prober at any other offset on
+            # Windows locks a disjoint range and reads a live claim as not-live.
+            os.lseek(descriptor, CLAIM_LOCK_OFFSET, os.SEEK_SET)
             acquire()
         except OSError as error:
             if getattr(error, "errno", None) in {
@@ -437,7 +467,7 @@ def _probe_claim_lock(path: Path) -> Liveness:
                 return Liveness.LIVE
             return Liveness.UNDETERMINABLE
         try:
-            os.lseek(descriptor, 0, os.SEEK_SET)
+            os.lseek(descriptor, CLAIM_LOCK_OFFSET, os.SEEK_SET)
             release()
         except OSError:
             return Liveness.UNDETERMINABLE

@@ -178,3 +178,96 @@ def test_a_dead_holder_releases_the_lock(claim_file: Path) -> None:
         "the OS did not release a killed holder's lock; a crashed run would wedge "
         "the lease permanently"
     )
+
+
+# The offset the shipped lease actually uses, imported rather than copied: a fixture
+# measuring a duplicate of the constant would keep passing after the real one moved.
+from tools.repo.coordination_lease import CLAIM_LOCK_OFFSET  # noqa: E402
+
+
+def _hold_and_report(path: Path, offset: int) -> tuple[bool, bool]:
+    """Hold a lock at `offset`, then report (probe_blocked, payload_readable)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(PAYLOAD)
+    with path.open("r+b") as holder:
+        holder.seek(offset)
+        _lock_one_byte_here(holder)
+        try:
+            with path.open("r+b") as probe:
+                probe.seek(offset)
+                try:
+                    _lock_one_byte_here(probe)
+                    blocked = False
+                    if WINDOWS:
+                        import msvcrt
+
+                        msvcrt.locking(probe.fileno(), msvcrt.LK_UNLCK, 1)
+                    else:
+                        import fcntl
+
+                        fcntl.flock(probe.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    blocked = True
+            try:
+                readable = path.read_bytes() == PAYLOAD
+            except OSError:
+                readable = False
+            return blocked, readable
+        finally:
+            if WINDOWS:
+                import msvcrt
+
+                holder.seek(offset)
+                msvcrt.locking(holder.fileno(), msvcrt.LK_UNLCK, 1)
+
+
+def test_the_shipped_offset_is_both_observable_and_leaves_the_payload_readable(
+    claim_file: Path,
+) -> None:
+    """The lease's actual protocol, measured: both requirements at once.
+
+    A claim lock has to satisfy two things that pull against each other. It must be
+    observable to a prober, or every liveness probe reads not-live and cleanup deletes
+    under a live mutator. And the payload must stay readable while it is held, because
+    `_read_record` reads it to name a holder in a refusal. Byte zero satisfies the
+    first and breaks the second on Windows, where the lock is mandatory rather than
+    advisory -- measured as 9 `PermissionError` failures on windows-latest.
+    """
+    blocked, readable = _hold_and_report(claim_file, CLAIM_LOCK_OFFSET)
+    print(
+        f"MEASURED [{sys.platform} / os.name={os.name}] lock at CLAIM_LOCK_OFFSET"
+        f"={CLAIM_LOCK_OFFSET} -> probe blocked={blocked}, payload readable={readable}",
+        flush=True,
+    )
+
+    assert blocked, "a held claim lock must be observable to a prober"
+    assert readable, "a held claim lock must not make the claim payload unreadable"
+
+
+def test_locking_byte_zero_is_the_hazard_this_offset_exists_to_avoid(
+    claim_file: Path,
+) -> None:
+    """Byte zero is inside the payload, and on Windows that makes it unreadable.
+
+    Recorded as a measurement rather than a comment because it is the reason the
+    offset is not zero, and because on POSIX it is invisible: `flock` is advisory, so
+    the payload stays readable there and this case cannot fail on macOS. That is
+    precisely why the byte-zero protocol passed a full local suite, sixteen mutation
+    proofs and an adversarial review before a Windows runner rejected it.
+    """
+    blocked, readable = _hold_and_report(claim_file, 0)
+    print(
+        f"MEASURED [{sys.platform} / os.name={os.name}] lock at byte 0 -> "
+        f"probe blocked={blocked}, payload readable={readable}",
+        flush=True,
+    )
+
+    assert blocked, "byte zero is at least observable; that was never the problem"
+    if WINDOWS:
+        assert not readable, (
+            "expected the mandatory Windows lock to deny the payload read; if this "
+            "now passes, the platform behaviour changed and CLAIM_LOCK_OFFSET's "
+            "rationale needs re-measuring rather than trusting"
+        )
+    else:
+        assert readable, "POSIX flock is advisory, so the payload stays readable"

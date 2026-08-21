@@ -26,24 +26,38 @@ below names the mutation that must redden it.
 per-claim *ownership* lock answers liveness. The decision lock is never a claim's
 own lock.
 
-**Liveness is a held lock, positioned at byte zero.** Both the publishing and
-probing paths seek to byte zero before locking. On POSIX `flock` covers the whole
-open file description and position is irrelevant; on Windows `msvcrt.locking`
-locks one byte at the current position, so a publisher that writes a payload then
-locks holds a different byte than a prober opening at zero.
+**Liveness is a held lock, positioned at one agreed offset past the payload.** The
+publish, probe and release paths all seek to `CLAIM_LOCK_OFFSET` before locking. On
+POSIX `flock` covers the whole open file description and position is irrelevant; on
+Windows `msvcrt.locking` locks one byte at the current position, so a publisher that
+writes a payload then locks holds a different byte than a prober opening at zero.
 
-Measured on `windows-latest` by `tools/test_windows_lock_semantics.py`, which
-landed ahead of this work for exactly this purpose:
+Measured on `windows-latest` by `tools/test_windows_lock_semantics.py`, which landed
+ahead of this work for exactly this purpose:
 
 ```
 MEASURED [win32 / os.name=nt] write-then-lock, probe at position 0
     -> NOT blocked (LOCK INVISIBLE)
 ```
 
-All four cases passed, so the seek-to-zero invariant holds on Windows and
-byte-range locking *can* carry liveness there. That measurement reversed the
-design: the previous intent was to report `UNDETERMINABLE` on Windows —
-surrendering the capability — purely because it could not be tested locally.
+That measurement reversed the design: the previous intent was to report
+`UNDETERMINABLE` on Windows — surrendering the capability — purely because it could
+not be tested locally.
+
+**The offset is not zero, and that correction came from CI on this PR.** Seeking both
+sides to byte zero makes the lock observable, which is what the measurement above
+demanded — but the Windows lock is **mandatory**, not advisory, and byte zero sits
+*inside* the payload. `_read_record` reads that payload to name a holder in a
+refusal, and on `windows-latest` the read raised
+`PermissionError: [Errno 13] Permission denied` for every live claim: **10 failed, 11
+passed**, while the synthetic fixture in the same job passed 4/4.
+
+That split is the whole argument for this plan's requirement that the Windows job run
+the *real* publisher and prober rather than the fixture alone. A fixture proves the
+platform; only the code proves the code. The two requirements — one agreed offset, and
+an offset outside the payload — are now both asserted, and both are invisible on
+POSIX, which is why neither a green local suite nor sixteen mutation proofs nor an
+adversarial review caught it.
 
 **Reclaim policy differs by role, and the difference is load-bearing.** Admission
 roles (slot, ticket) are throughput counters: over-admitting by one costs memory
@@ -72,9 +86,9 @@ out-of-window creation time each refused or clamped; digest keys do not collide 
 `/mnt/a/b-c` versus `/mnt/a-b/c`; a symlinked store is refused; a claim path
 escaping the store is refused; the decision lock serializes two real processes.
 
-`Done when:` both the publish and probe paths seek to byte zero — asserted
-structurally, because on POSIX the behaviour is identical either way and only
-Windows can falsify it behaviourally.
+`Done when:` the publish, probe and release paths all seek to one constant offset
+past the payload — asserted structurally, because on POSIX the behaviour is identical
+at any offset and only Windows can falsify either half behaviourally.
 
 ### Task 2 — the two worktree roles and their interlock
 
@@ -131,8 +145,8 @@ mutation.
 
 ### Clause-to-mutation ledger
 
-Structural clauses — "exactly one implementation", "single-homed", "positioned at
-byte zero" where the platform makes position irrelevant — take goal-based source
+Structural clauses — "exactly one implementation", "single-homed", "positioned past
+the payload" where the platform makes position irrelevant — take goal-based source
 checks, because a runtime assertion cannot falsify them. The ledger is a deliverable,
 not a description: a clause with no entry is an unfinished task. The previous revision
 of this section stated that rule and then listed nothing, which is how three AC
@@ -148,7 +162,8 @@ restored and verified byte-identical.
 | AC1 | the OS releases the lock on death | `SIGKILL` the holder | `test_sigkilled_holder_claim_is_reclaimed` |
 | AC1 | liveness is not inferred from age | age a live claim | `test_live_identity_is_not_reclaimed_by_age_alone` |
 | AC1 | a recycled pid cannot impersonate a holder | reuse the pid | `test_recycled_pid_cannot_impersonate_lock_holder` |
-| AC1 | the lock is taken at byte zero on every platform | drop the `lseek` | `test_windows_write_then_lock_hides_the_lock_from_a_probe` and `test_seeking_to_zero_in_both_paths_makes_a_held_lock_observable` on `windows-latest`; `test_claim_lock_operations_seek_to_byte_zero_structurally` is the POSIX source check, because position is unobservable there |
+| AC1 | publish, probe and release agree on one offset | point one path at a different offset | `test_claim_lock_operations_agree_on_one_offset_past_the_payload`; behaviourally `test_the_shipped_offset_is_both_observable_and_leaves_the_payload_readable` on `windows-latest` |
+| AC1 | that offset lies outside the payload, so a held claim stays readable | set `CLAIM_LOCK_OFFSET = 0` | `test_claim_lock_operations_agree_on_one_offset_past_the_payload` (value assertion); behaviourally `test_locking_byte_zero_is_the_hazard_this_offset_exists_to_avoid` on `windows-latest`, which cannot fail on POSIX because `flock` is advisory |
 | AC2 | read and publish inside one uninterrupted hold | publish outside the hold | `test_racing_participants_are_never_both_admitted`, `test_scan_and_slot_publish_share_one_decision_lock_hold` |
 | AC2 | exactly one participant is admitted (`== 1`) | admit both | `test_contended_roles_admit_exactly_one_participant` |
 | AC2 | the two roles interlock in both directions | drop either check | `test_sequential_interlock_refuses_exclusive_while_activity_is_held`, `test_activity_waits_for_an_exclusive_claim_to_clear` |

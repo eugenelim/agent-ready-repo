@@ -37,7 +37,10 @@ falsified by any test.
   determined as live.
 - Give a refusal a reserved exit code, a greppable marker, and wording that says
   the command did not run.
-- Seek a claim file to byte zero before locking or probing it, on every platform.
+- Seek a claim file to one agreed offset **past its payload** before locking or
+  probing it, on every platform. Both halves are load-bearing: an offset the two
+  paths disagree on is unobservable, and an offset inside the payload makes the
+  payload unreadable where the platform lock is mandatory.
 
 ### Ask first
 
@@ -65,18 +68,35 @@ falsified by any test.
   and a killed run's claim is reclaimable at once. The recorded identity exists
   only to name a holder in a refusal.
 
-  Both the publishing path and the probing path position the claim file at byte
-  zero before locking. This is measured, not assumed: on Windows
-  `msvcrt.locking` locks one byte at the current file position, so a publisher
-  that writes a payload and then locks holds a different byte than a prober that
-  opens at zero — and `tools/test_windows_lock_semantics.py` records on
-  `windows-latest` that such a lock is **not** observable
-  (`write-then-lock, probe at position 0 -> NOT blocked (LOCK INVISIBLE)`), while
-  seeking both sides to byte zero makes it observable. An unobservable held lock
-  is not a degradation: it makes every probe read not-live, so a live peer's claim
-  is reclaimed and cleanup deletes under a running mutator. That job is wired into
-  the Windows aggregate's required set by the change that satisfies this criterion,
-  because something now depends on it.
+  The publishing path, the probing path and the release path all position the claim
+  file at **one agreed offset past the payload** before locking, held as a single
+  constant. Two requirements pull against each other and both are measured on
+  `windows-latest` by `tools/test_windows_lock_semantics.py`, not assumed:
+
+  - **The offset must be agreed.** `msvcrt.locking` locks one byte at the current
+    file position, so a publisher that writes a payload and then locks holds byte
+    `len(payload)` while a prober opening at zero holds byte 0 — disjoint ranges.
+    Recorded: `write-then-lock, probe at position 0 -> NOT blocked (LOCK INVISIBLE)`.
+  - **The offset must be outside the payload.** The Windows lock is *mandatory*,
+    not advisory as POSIX `flock` is, so no other handle may read a locked range.
+    Byte zero satisfies the first requirement and violates this one: it sits inside
+    the payload, and the read in `_read_record` that names a holder in a refusal
+    raised `PermissionError: [Errno 13] Permission denied` for every live claim.
+
+  This criterion originally said "byte zero", was ticked, and was falsified by the
+  Windows job on the pull request that shipped it — the fixture passed 4/4 while the
+  real publisher and prober failed 10 of 21. It is amended rather than deferred
+  because the correction is a one-constant protocol change, and recorded rather than
+  quietly rewritten because "a criterion that omits a failure mode cannot be
+  falsified by any test" is this spec's own premise, and this is that premise working.
+
+  An unobservable held lock is not a degradation: it makes every probe read
+  not-live, so a live peer's claim is reclaimed and cleanup deletes under a running
+  mutator. Neither is an unreadable payload: it denies a refusal the holder's name.
+  That job is wired into the Windows aggregate's required set by the change that
+  satisfies this criterion, because something now depends on it — and it must run the
+  real publisher and prober, since the synthetic fixture proves the platform and not
+  the code.
 
 - [x] **AC2 — cleanup and mutating runs interlock, atomically.** A worktree carries
   an `activity` role held by mutating build and test entry points and an
