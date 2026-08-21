@@ -294,7 +294,7 @@ supply. Carried with the width correction landed.
 ### T5: Close mutation coverage by class
 
 **Depends on:** T3 · **Unit:** 2
-**Touches:** `r9-gates.sh` (self-test callers), `build-archive.py` (self-tests,
+**Touches:** `r9-gates.sh` (self-test callers, cross-document consistency control), `build-archive.py` (self-tests,
 staged-member plant/search/restore, sentinel), `r9-promote.sh`,
 `s3/r12-page-resident-token.mjs` (mutable-region boundary, `run()` uniqueness
 assertion, new cases)
