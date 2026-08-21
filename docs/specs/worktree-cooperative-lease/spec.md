@@ -306,6 +306,29 @@ No workflow passes `-j`, so nothing in CI is affected. A caller who needs
 parallelism should invoke the unwrapped target directly rather than have the
 wrapper forward a mechanism it cannot forward safely.
 
+### A repeatedly-invoked long-running consumer should use the unwrapped target
+
+The wait budget's default of ninety minutes suits a human or a CI job invoking a gate
+once. It suits worst a harness that invokes a wrapped target *repeatedly* and runs for
+a long time: each invocation takes a slot for its whole duration, so a peer's harness
+can saturate the machine-wide limit against itself, and a queued invocation waits the
+full budget before refusing with exit 75.
+
+Such a consumer exists — an out-of-repository evidence harness that calls
+`make build-check` in a loop, surfaced by the session running RFC-0088 round 13 while
+this change was in review. It is **not** a reason to change the wiring: the wrapped
+targets each expose an unwrapped sibling (`build-check-unleased`, `test-unleased`,
+`sast-unleased`) that runs the identical chain, takes no claim and no slot, and cannot
+queue or refuse. Only the `gate_verdict` banner is lost, because that prints on the
+outer target; the exit code is the chain's own either way. A caller that needs to
+bypass the limiter should invoke the unwrapped target directly rather than have the
+wrapper learn about it.
+
+Recorded here because the participant matrix enumerates entry points *in* this
+repository, and this consumer is outside it — so nothing in the matrix would have
+predicted it, and the next person to meet a serialised harness should not have to
+rediscover the sibling target.
+
 ### Over-admission by the soft cap is cumulative, and not bounded over time
 
 The soft cap admits a run past the limit when an existing slot's holder is older
