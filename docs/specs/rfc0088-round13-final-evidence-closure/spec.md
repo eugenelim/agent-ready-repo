@@ -108,8 +108,8 @@ archive members, so every unit trips that rule; the exception exists for exactly
 and requires the edits to be *declared* rather than discovered. Round 13 declares them:
 `r10-fact-negative-tests.py` and `run-r12.sh` and `r12-fact-negative-tests.py` (T0),
 `verify-note-figures-r7.py` and `r9-privacy-sweep.py` (T1), `build-archive.py` and the new
-shared reader (T2), `s3/r12-page-resident-token.mjs` (T3, T5), `r9-gates.sh` and
-`r9-promote.sh` (T5), one new `s3` driver (T6), and `corpus_docs.py` plus every consumer of that derivation as
+shared reader `privacy_terms.py` (T2), `s3/r12-page-resident-token.mjs` (T3, T5), `r9-gates.sh` and
+`r9-promote.sh` (T5, and T2's anchor capture step), one new `s3` driver (T6), and `corpus_docs.py` plus every consumer of that derivation as
 enumerated by search (T7). A digest is re-recorded **only** after a
 scan confirms that member's allowed occurrence count is unchanged; a changed count, a new
 member, or a widened set refuses and surfaces instead. The comparison is per member on

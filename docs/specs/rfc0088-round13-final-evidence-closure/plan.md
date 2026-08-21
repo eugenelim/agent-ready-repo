@@ -173,7 +173,10 @@ guard is recomputed over the derived portion alone.
 
 **Depends on:** T0 · **Unit:** 2
 **Touches:** `r9-privacy-sweep.py`, `build-archive.py` (shared reader, pattern
-authority, member-scan loop), a new shared reader module
+authority, member-scan loop), the new shared reader module `privacy_terms.py`,
+`r12-fact-negative-tests.py` (its two term-source cases asserted one merged message
+that splitting the refusal reasons correctly retired), and `r9-promote.sh` plus
+`r9-gates.sh` for the anchor capture step and its gate lines
 
 **Tests:** Visual/manual QA. Each of the four inherited refusal modes proved per
 consumer, **plus the two new ones** — a sanctioned-placeholder term and a
