@@ -66,6 +66,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keeps project-relative paths anchored at the repository root, and quotes the
   resolved script path as one argument in its POSIX command examples.
 
+## [agentbundle][0.39.0] — 2026-08-21
+
+### Highlights
+
+- **Catalogue builders can now reason about package formats independently of
+  runtime adapters.** The installed CLI exposes a validated contract for the
+  existing APM and Claude-plugin routes, including their layouts, component
+  support, admission, marketplace, and lifecycle behavior.
+
+### Added
+
+- `agentbundle catalogue contracts` now includes
+  `distribution-routes.toml` and its closed schema, with exactly the existing
+  APM and Claude-plugin routes and an exhaustive nine-primitive capability map.
+
+### Changed
+
+- Distribution recipes name their route explicitly and are validated before
+  output creation. Route-only package fields moved out of the direct-install
+  adapter contract; APM and Claude package bytes and direct install behavior are
+  unchanged.
+
 ## [core][2.10.4] — 2026-08-20
 
 ### Highlights

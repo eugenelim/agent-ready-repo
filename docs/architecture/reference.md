@@ -25,8 +25,9 @@
 ## Solution strategy
 
 - Author portable catalogue source in packs and profiles, then use
-  `agentbundle` to apply adapter contracts and projection modes for each target
-  runtime. Pack source remains independent of runtime adapters and targets.
+  `agentbundle` to resolve package builds through distribution routes and direct
+  installs through adapter contracts. Pack source remains independent of routes,
+  runtime adapters, and targets.
 - Keep reusable, portable contracts in `contracts/`, with TOML declarations
   validated by their JSON Schemas.
 - Use the Python standard library for `agentbundle` and `credbroker` so their
@@ -42,7 +43,11 @@
 - **Primitive.** A portable unit of one of five kinds: skill, agent,
   hook-body, hook-wiring, or command.
 - **Adapter.** A target-runtime implementation of the portable adapter
-  contract that selects projection modes.
+  contract that selects direct-install projection modes.
+- **Distribution route.** A package-format declaration with exactly six
+  concerns: identity, package layout, manifest projector, component
+  capabilities, marketplace projector, and lifecycle trigger. A route may name
+  an adapter projector without transferring package ownership to that adapter.
 - **Projection mode.** A build transformation that renders portable source as
   target-runtime files.
 - **Broker.** The credential boundary that resolves credentials through
@@ -57,14 +62,18 @@ Component stereotypes:
 - **New adapter:** declared in `contracts/adapter.toml`, implemented under
   `agentbundle/build/adapters/`, and selects projection modes implemented under
   `agentbundle/build/projections/`.
+- **New distribution route:** declared in `contracts/distribution-routes.toml`
+  and mapped to a named package projector. Generic registration remains
+  unavailable until the accepted route-registry phase.
 - **Credentialed primitive:** resolves through `credbroker`, using its public
   API and declared broker configuration; it exposes no secret material to
   repository source or agent context.
 
 Composition follows the allowed dependency edges in `ARCHITECTURE.md`: pack
 and profile declarations may depend on declared pack dependencies and
-`contracts/`; build orchestration flows through adapter contracts, adapters,
-and projection implementations; projections write target-runtime files. No
+`contracts/`; build orchestration flows through route contracts and named
+package projectors, while direct install and optional route adapter projection
+flow through adapter contracts and projection implementations. Projections write target-runtime files. No
 generated projection is an authoring dependency, packs do not infer
 dependencies from other pack directories, and target-runtime files do not
 depend on build internals.

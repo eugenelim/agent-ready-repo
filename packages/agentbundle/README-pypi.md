@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.0
+
+Catalogue builders can now inspect a first-class, schema-validated distribution
+route contract for the existing APM and Claude-plugin package formats. Recipes
+name their route explicitly and fail before writing on inconsistent route data;
+the emitted package trees and direct-install behavior are unchanged.
+
 ## What's new in 0.38.6
 
 Catalogue authors can now read the profile schema from initialized catalogues
@@ -124,10 +131,11 @@ agentbundle catalogue index . --output catalogue-index.json
 
 ## Contract discovery
 
-The bundled public contract inventory includes `catalogue-index.schema.json` as
-the closed contract for generated neutral indexes. It also includes the strict
-`knowledge-captured-observation.schema.json` contract used by the core pack's
-project-knowledge capture handoff.
+The bundled public contract inventory includes `distribution-routes.toml` and
+its closed schema for package-route semantics, plus
+`catalogue-index.schema.json` for generated neutral indexes. It also includes
+the strict `knowledge-captured-observation.schema.json` contract used by the
+core pack's project-knowledge capture handoff.
 
 You can inspect the exact public contracts bundled with the installed
 AgentBundle version without network access:

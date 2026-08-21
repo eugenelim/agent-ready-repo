@@ -153,7 +153,7 @@ def test_an_all_repo_scope_catalogue_warns_and_writes_rather_than_failing(
         '[pack.adapter-contract]\nversion = "0.3"\n'
         '[pack.install]\nallowed-scopes = ["repo"]\n', encoding="utf-8")
 
-    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+    recipe = Recipe(name="marketplace", type="aggregate", route="claude-plugins", adapter=None,
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)

@@ -6,9 +6,9 @@ This is the more defensive shape: the path-jail check fires on every write,
 not just as a pre-flight.
 
 The three default recipes are run when --target is absent. When
---target is given, only recipes whose adapter matches the target are run
-(the aggregate `marketplace` recipe has no adapter and is included unless
-filtered by a named target that doesn't match it).
+--target is given, distribution recipes are selected by explicit route:
+APM selects only its package route, Claude Code selects its package and
+marketplace route, and unrelated direct-install adapters select neither.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 from agentbundle import render as _render
-from agentbundle.build.main import DEFAULT_RECIPES, load_recipe
+from agentbundle.build.main import DEFAULT_RECIPES
 from agentbundle.commands._common import check_spec_version_gate
 from agentbundle.config import ConfigError, load_pack_toml
 from agentbundle.safety import PathJailError, write_jailed
@@ -152,13 +152,8 @@ def _select_recipes(target: str | None) -> list[str] | None:
     if canonical is None:
         return None
 
-    # Filter DEFAULT_RECIPES to those whose adapter matches, plus adapter-less recipes.
-    selected: list[str] = []
-    for recipe_name in DEFAULT_RECIPES:
-        try:
-            recipe = load_recipe(recipe_name)
-        except FileNotFoundError:
-            continue
-        if recipe.adapter is None or recipe.adapter == canonical:
-            selected.append(recipe_name)
-    return selected
+    if canonical == "apm":
+        return ["per-pack-apm-package"]
+    if canonical == "claude-code":
+        return ["per-pack-claude-plugin", "marketplace"]
+    return []

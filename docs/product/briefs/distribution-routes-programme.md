@@ -3,7 +3,7 @@
 - **Slug:** `distribution-routes-programme`
 - **Received:** 2026-08-20
 - **Owner:** Platform Core (`ini-002`)
-- **Status:** Draft
+- **Status:** Ready
 
 ## Outcome
 
@@ -14,6 +14,13 @@ declaring a route rather than by editing another vendor's adapter contract, and 
 route states honestly which canonical primitives it carries, which it drops, and
 whether it can trigger repository-aware adaptation at all.
 
+Canonical primitives added for a distribution route are not route-only features.
+The same delivery slice must add normalized pack-model support and direct
+`agentbundle` install parity for every runtime adapter that declares support for
+the primitive. A slice is incomplete if the plugin package can carry a canonical
+primitive but `agentbundle install` cannot project it through the applicable
+adapter and scope.
+
 ## Success metrics
 
 - `install-routes` is declared in a route-owned contract, not under
@@ -23,9 +30,18 @@ whether it can trigger repository-aware adaptation at all.
   by golden fixtures rather than asserted.
 - A conforming portable Agent Plugin package is emitted for every pack that has no
   portable-excluded primitive — 13 of the 21 buildable packs at time of writing.
+- Every newly added canonical primitive is validated once in the normalized pack
+  model and, in the same delivery slice, is supported by direct `agentbundle`
+  installation for each capable runtime adapter and by every distribution route
+  whose capability map claims it. Route-only support does not satisfy parity.
 - Every route's per-primitive status is machine-readable and drives both build
   diagnostics and the published support matrix; no route claims `runtime-verified`
   without a recorded per-client test naming client, version, surface, and OS.
+- Claude and Codex each publish a native marketplace manifest derived from the
+  same catalogue source. Their publication workflows share the route's
+  user-scope eligibility rule and do not schedule publication for unrelated
+  commits; changes to an eligible user-scope pack or to the marketplace
+  build/publication contract remain publication inputs.
 - A pack declaring a required semantic that a route cannot preserve **fails the build**
   for that route rather than emitting a silently degraded package.
 
@@ -34,11 +50,17 @@ whether it can trigger repository-aware adaptation at all.
 **In scope:**
 
 - The route contract and the minimal route resolver (Phase 0); the portable Agent Plugin
-  projection and the canonical MCP primitive (Phase 1); registry extraction once three
-  real routes exist (Phase 2); the native Codex route (Phase 3); the Kiro Power route
-  profile (Phase 4); Claude-manifest migration and public-matrix updates (Phase 5).
+  projection (Phase 1A); the canonical MCP primitive with direct `agentbundle` install
+  parity and route projections (Phase 1B); registry extraction once three real routes
+  exist (Phase 2); the native Codex route and its marketplace, plus user-scope
+  trigger parity for both Claude and Codex publishers (Phase 3); the Kiro Power
+  route profile (Phase 4); Claude-manifest migration and public-matrix updates
+  (Phase 5).
 - The hook semantic-compatibility model, and the support-claim and runtime-verification
   record that the matrix reads from.
+- A same-wave parity invariant for every new canonical primitive: source and schema,
+  normalized pack model, applicable direct-install adapter projections, claimed route
+  projections, diagnostics, and documentation ship together.
 - Carrying the Claude route *forward* through every phase — each phase records what the
   Claude route gains, rather than migrating it to a legacy path.
 
@@ -52,6 +74,9 @@ whether it can trigger repository-aware adaptation at all.
   everything; plugin routes are additive.
 - Moving seeds into portable packages, or claiming adaptation or seed parity on any route
   whose client documents no lifecycle trigger.
+- Treating route-specific manifest metadata or reverse-domain extension content as a
+  canonical primitive merely to force direct-install parity. The parity invariant applies
+  when the pack model promotes a component to a canonical primitive.
 - MCP servers acquired from package registries. Deferred to its own RFC, and **already
   closed at the build boundary** rather than merely postponed — see Rabbit holes.
 - Making any generated manifest an authoring source.
@@ -59,7 +84,9 @@ whether it can trigger repository-aware adaptation at all.
 ## Appetite
 
 A bounded, ordered programme of six phases, sequenced by dependency rather than by
-product. A phase that requires a new dependency, a new authoring surface, or a public
+product. Phase 1 contains two independently shippable slices: the portable package
+baseline (1A), followed by the canonical MCP primitive and its end-to-end install parity
+(1B). A phase that requires a new dependency, a new authoring surface, or a public
 compatibility break leaves this programme until an approved amendment moves the boundary.
 
 ## Rabbit holes
@@ -111,10 +138,43 @@ delivery; it does not reopen those decisions. RFC-0092 carries two owned open qu
 (the Claude-manifest deprecation window, and whether Kiro steering becomes a canonical
 authoring primitive) which their phases resolve.
 
+## Confirmed delivery slices
+
+The brief uses no user-story list; coverage is spec-granular. The confirmed cut is
+dependency-ordered, and each slice includes the guide and verification evidence needed
+to ship independently.
+
+| Slice | Ships | Hard predecessor |
+| --- | --- | --- |
+| Phase 0 — route contract | Route-owned contract, minimal resolver, APM re-parenting, unchanged Claude/APM golden output | — |
+| Phase 1A — portable projection | Vendored portable schemas, deterministic Agent Plugin manifest and skills projection, extension namespaces | Phase 0 |
+| Phase 1B — canonical MCP parity | Canonical MCP source/model, direct `agentbundle` install projections for capable adapters, portable and claimed native-route projections, fail-closed security controls | Phase 1A |
+| Phase 2 — registry extraction | Generic six-field route registry extracted from three real routes | Phase 1B |
+| Phase 3 — native Codex route | Native package and marketplace manifest, hook translation, shared user-scope publication eligibility with Claude, unrelated-commit trigger suppression, honest components-only claim until adaptation prerequisites exist | Phase 2 |
+| Phase 4 — Kiro Power profile | Portable-package route profile, Kiro admission and activation semantics, empty extension point unless separately approved | Phase 3 |
+| Phase 5 — migration and claims | Claude-manifest residue migration, public support matrices, compatibility-alias expiry and programme closeout | Phase 4 |
+
+The parity rule is evaluated in the slice that introduces a canonical primitive,
+not deferred to a later route or cleanup phase. Phase 1B is the first application:
+MCP must work through direct `agentbundle` installation and the routes that claim MCP
+support before that slice can ship.
+
+## Spec map
+
+Status is derived from each linked delivery spec rather than maintained
+independently here. Remaining confirmed slices stay as typed backlog intents until
+`new-spec` promotes them.
+
+| Spec | Status |
+| --- | --- |
+| `distribution-route-contract` | — |
+
 ## Derived work
 
-Each phase materializes its own spec through `new-spec`; none exist yet, which is why this
-brief is `Draft` and non-dispatchable. The follow-on artifacts RFC-0092 names are the
+Each confirmed slice materializes its own spec through `new-spec`; Phase 0 is the
+first such delivery contract and remains non-dispatchable until human approval.
+Phase 1 deliberately produces separate portable projection and canonical MCP
+parity specs. The follow-on artifacts RFC-0092 names are the
 distribution-route contract, the portable projection, the canonical MCP primitive, the
 Codex route, hook semantic compatibility, generalized project adaptation, marketplace
 projection, the Claude-manifest migration, and the runtime-verification/support-matrix

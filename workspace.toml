@@ -140,13 +140,14 @@ backlog = [
 executing = ""
 ready     = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
-]
-draft     = [
   {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
+draft     = []
 
 ["ini-002".work]
-active  = []
+active  = [
+  {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
+]
 shipped = [
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
@@ -502,6 +503,16 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # RFC-0092 distribution-routes programme. These confirmed downstream slices
+  # stay non-dispatchable until each is promoted through new-spec. Typed needs
+  # preserve the accepted dependency order without manufacturing placeholder
+  # specs. Phase 0 is already materialized at the canonical spec path.
+  {path = "docs/product/intents/portable-agent-plugin-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Project existing canonical skills into deterministic portable Agent Plugin packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},
+  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/portable-agent-plugin-projection.md"}]},
+  {path = "docs/product/intents/distribution-route-registry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Extract generic route dispatch after three real routes exist", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}]},
+  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
+  {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
+  {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
   # The cooperative worktree lease from spec/worktree-runtime-hygiene AC6. It was built
   # to completion across five layers and then SPLIT OUT under review rather than landed:
   # three independent reviewers found failure modes AC6 does not enumerate. The two that

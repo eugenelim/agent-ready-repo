@@ -8,7 +8,7 @@ Normative golden path: `docs/architecture/reference.md`.
 | System | Responsibility |
 | --- | --- |
 | Catalogue and pack authoring | Defines packs, profiles, primitives, seeds, and pack metadata. |
-| Pack projection and distribution | Renders pack sources into adapter-specific install artifacts and release outputs. |
+| Pack projection and distribution | Resolves declared distribution routes and renders pack sources into package artifacts and release outputs. |
 | Installation and upgrade | Installs, upgrades, reconciles, or removes projected content under the file-safety contract. |
 | Adapter and runtime integration | Applies the adapter contract to project primitives into each supported agent runtime. |
 | Repository governance and context | Holds contributor context, decisions, proposals, specifications, and current-state documentation. |
@@ -21,7 +21,8 @@ Normative golden path: `docs/architecture/reference.md`.
 ## 2. Responsibilities
 
 `packs/` owns portable authoring source. `profiles/` composes packs without
-adding primitives. `contracts/` defines portable schemas and adapter contracts.
+adding primitives. `contracts/` defines portable schemas, distribution-route
+contracts, and direct-install adapter contracts.
 
 `packages/agentbundle/` owns the catalogue CLI, build pipeline, adapters,
 projection modes, install commands, and install state. `packages/credbroker/`
@@ -37,8 +38,9 @@ work intake, knowledge capture, execution, and review in an installed repo.
 
 - Pack and profile declarations → declared pack dependencies and `contracts/`.
 - `agentbundle` commands → catalogue tooling and build orchestration.
-- Build orchestration → adapter contract → adapter implementations → projection
-  implementations.
+- Build orchestration → distribution-route contract → named package projectors.
+- Direct installation and an optional route adapter projector → adapter contract
+  → adapter implementations → projection implementations.
 - Install and upgrade commands → rendered artifacts and install-state writers.
 - Adapter projections → target-runtime files. Target-runtime files do not
   depend on build internals.
@@ -80,8 +82,9 @@ dependency of pack source or of a target runtime.
 
 1. **Pack source → projection → install.** A pack's `pack.toml`, `.apm/`,
    plugin metadata, and seeds are discovered by `agentbundle catalogue build`
-   or `agentbundle render`. The build pipeline applies recipes, adapters, and
-   projections. `agentbundle install`, APM, or a plugin route writes the
+   or `agentbundle render`. The build pipeline resolves explicit recipes against
+   `contracts/distribution-routes.toml`, then applies its named package projector
+   and any declared runtime-adapter projector. `agentbundle install`, APM, or a plugin route writes the
    projected content into its target scope.
 2. **Install marker → adaptation.** An install route writes
    `.adapt-install-marker.toml`. The `core` `session-start.py` hook reads it on
@@ -109,6 +112,10 @@ dependency of pack source or of a target runtime.
 - A profile composes existing packs without owning new primitives.
 - An adapter is declared in `contracts/adapter.toml` and implemented through
   the build adapter and projection interfaces.
+- A distribution route is declared in `contracts/distribution-routes.toml` with
+  package identity, layout, manifest projector, component capabilities,
+  marketplace projector, and lifecycle trigger. Until the route-registry phase,
+  each route maps to an existing named projector in build orchestration.
 - A projection mode is implemented under `agentbundle.build.projections` and
   selected by an adapter contract.
 - A credential broker implements the credentialed-primitive contract without
