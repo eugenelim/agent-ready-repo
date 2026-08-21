@@ -6,6 +6,7 @@ import contextlib
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -15,10 +16,21 @@ from types import FrameType
 from typing import Any, Callable, Mapping, Sequence
 
 PROCESS_TREE_EXIT_TIMEOUT_SECONDS = 5.0
-# Paid only when SIGTERM actually reached a live descendant -- the no-descendant
-# case returns before this -- so it costs nothing on a healthy gate run and buys a
-# real chance to flush for the one case this reap exists to clean up.
-PROCESS_TREE_REAP_GRACE_SECONDS = 2.0
+# A best-effort flush window before escalation, NOT a guarantee, and NOT free on
+# every platform.
+#
+# Measured on macOS, 6 runs of 6: with the child exited but deliberately unreaped,
+# `killpg` on its group answers EPERM, so the no-descendant case returns before
+# this sleep and a healthy run pays nothing. That is a macOS observation. On Linux
+# a zombie is a signalable member of its own group under the same uid, so `killpg`
+# is expected to SUCCEED there and this sleep to fire on every wrapped target --
+# which an earlier version of this comment wrongly claimed was impossible. It was
+# not verified on Linux; nothing here should be read as measured on that platform.
+#
+# The budget is therefore kept short. The descendants this reap exists to clean up
+# are servers still holding a leased port, so the trade is a brief flush window
+# against seconds added to every gate run, on a host that has run at load 160.
+PROCESS_TREE_REAP_GRACE_SECONDS = 0.5
 SignalHandler = Callable[[int, FrameType | None], Any] | int | None
 
 
@@ -229,7 +241,21 @@ def run_child(command: Sequence[str], env: Mapping[str, str], cwd: Path) -> int:
             reap_process_tree(child, tree_signals[-1])
             return 128 + interrupted[0]
         try:
-            reap_normal_exit_process_tree(child, process_group)
+            disposition = reap_normal_exit_process_tree(child, process_group)
+            if disposition is not ReapDisposition.REAPED:
+                # AC13 requires the runner to SAY SO rather than degrade silently.
+                # The return value used to be discarded, so every disposition test
+                # asserted an enum the only caller threw away -- and the ordinary
+                # fast-exit path (`query_process_group` returning None once the
+                # child has already gone) produced INCONCLUSIVE with no reap and no
+                # word of it.
+                print(
+                    "WARNING: normal-exit process-group reap did not complete "
+                    f"({disposition.value}); a descendant may still hold resources "
+                    "the child was using",
+                    file=sys.stderr,
+                    flush=True,
+                )
         except KeyboardInterrupt:
             tree_signal = signal_process_tree(child, signal.SIGINT)
             reap_process_tree(child, tree_signal)

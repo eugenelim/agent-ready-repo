@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from tools.repo import frontend_runtime, managed_child
+from tools.repo.managed_child import ReapDisposition
 
 
 @pytest.fixture
@@ -400,6 +401,41 @@ def test_an_empty_owned_group_is_a_silent_success(
         managed_child.reap_normal_exit_process_tree(signalable_child, group)
         is managed_child.ReapDisposition.REAPED
     )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX process groups are required")
+def test_a_non_reaped_disposition_is_reported_by_the_runner(
+    managed_cwd: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A degraded reap must be SAID, not swallowed.
+
+    `run_child` discarded the disposition, so every disposition test in this file
+    asserted an enum the only caller threw away -- and the ordinary fast-exit path
+    produced INCONCLUSIVE with no reap and no word of it. AC13 requires the runner
+    to say so, so the report is what this asserts, not the enum.
+    """
+    monkeypatch.setattr(managed_child, "query_process_group", lambda _child: None)
+
+    code = managed_child.run_child(
+        (sys.executable, "-c", "raise SystemExit(4)"), dict(os.environ), managed_cwd
+    )
+
+    assert code == 4, "the child's verdict must survive a degraded reap"
+    captured = capsys.readouterr()
+    assert "normal-exit process-group reap did not complete" in captured.err
+    assert ReapDisposition.INCONCLUSIVE.value in captured.err
+
+
+def test_a_clean_reap_reports_nothing(
+    managed_cwd: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The healthy path stays silent, so the warning above means something."""
+    code = managed_child.run_child(
+        (sys.executable, "-c", "raise SystemExit(0)"), dict(os.environ), managed_cwd
+    )
+
+    assert code == 0
+    assert "reap did not complete" not in capsys.readouterr().err
 
 
 def test_frontend_runtime_delegates_to_the_single_runner() -> None:

@@ -60,12 +60,21 @@ describe('warm-up contract', () => {
     expect(source).toMatch(/\}, *[0-9][0-9_]*\);/);
   });
 
+  it('stubs a known-valid port before importing, and restores after', () => {
+    // Deleting the stub failed nothing: the checks below match only the hook's
+    // shape, its import and its budget. `site-base.ts` throws at module load on an
+    // invalid ARR_PREVIEW_PORT, so an ambient value would replace eight readable
+    // per-case failures with one unreadable hook abort.
+    expect(source).toMatch(/beforeAll\([\s\S]*?vi\.stubEnv\('ARR_PREVIEW_PORT', '4321'\)/);
+    expect(source).toMatch(/beforeAll\([\s\S]*?vi\.unstubAllEnvs\(\)/);
+  });
+
   it('leaves every case on the default per-test budget', () => {
     // Any INDENTED `}, <number>);` is a case widening its own budget. The hook's
     // own budget sits at column 0, so requiring leading whitespace distinguishes
     // the two. An earlier version of this pattern demanded four spaces and would
     // have missed a real widening, since the cases close at two.
-    const widened = source.match(/^\s+\},\s*[0-9][0-9_]*\);\s*$/gm) ?? [];
+    const widened = source.match(/^[ \t]+\},[ \t]*[0-9][0-9_]*\);[ \t]*$/gm) ?? [];
     expect(widened).toEqual([]);
   });
 });
