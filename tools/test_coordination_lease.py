@@ -378,7 +378,7 @@ def test_racing_participants_are_never_both_admitted(
         if claim is not None:
             claim.release()  # type: ignore[union-attr]
 
-    assert len(admitted) <= 1, f"both roles admitted at once: {admitted}"
+    assert len(admitted) == 1, f"expected exactly one admitted role, observed {admitted}"
 
 
 def test_sequential_interlock_refuses_exclusive_while_activity_is_held(
