@@ -98,6 +98,7 @@
 | 0092 | [Direct-light execution is session-local outside workspace dispatch](0092-direct-light-execution-session-local-boundary.md) | Accepted |
 | 0090 | [Distribution routes are a layer separate from runtime adapters](0090-distribution-routes-separate-from-runtime-adapters.md) | Accepted |
 | 0091 | [A Kiro Power route is justified: superseding the Kiro-route rejection only](0091-kiro-power-route-supersedes-rejection.md) | Accepted |
+| 0093 | [OKF reference corpora remain governed build-time sources within their owning pack](0093-okf-reference-corpora-remain-governed-build-time-sources.md) | Accepted |
 
 ## Adding a new ADR
 

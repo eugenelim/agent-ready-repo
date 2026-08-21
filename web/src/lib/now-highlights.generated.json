@@ -4,6 +4,58 @@
     {
       "packages": [
         {
+          "name": "catalogue-curation",
+          "version": "0.4.1"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[catalogue-curation][0.4.1] — 2026-08-21",
+      "changelogAnchor": "catalogue-curation041--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Nested OKF corpora now compile and check consistently on Windows.** Generated index paths use the bundle’s portable POSIX form instead of inheriting the host path separator, so Windows no longer reports clean nested indexes as stale.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Nested OKF corpora now compile and check consistently on Windows."
+            },
+            {
+              "type": "text",
+              "value": " Generated index paths use the bundle’s portable POSIX form instead of inheriting the host path separator, so Windows no longer reports clean nested indexes as stale."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.0"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[architect][0.15.0] — 2026-08-21",
+      "changelogAnchor": "architect0150--2026-08-21",
+      "highlights": [
+        {
+          "source": "**You can now turn a broad “assess this repository’s architecture” request into a correctable current-state model, an evidence-backed attention map, focused drill-downs, and a sequenced action plan.** The assessment starts with a read-only survey, lets you correct its map before deeper investigation, and can progressively examine assurance, optimization, growth, transformation, or disposition without confusing repository conventions with architectural evidence.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can now turn a broad “assess this repository’s architecture” request into a correctable current-state model, an evidence-backed attention map, focused drill-downs, and a sequenced action plan."
+            },
+            {
+              "type": "text",
+              "value": " The assessment starts with a read-only survey, lets you correct its map before deeper investigation, and can progressively examine assurance, optimization, growth, transformation, or disposition without confusing repository conventions with architectural evidence."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.10.5"
         }

@@ -7,6 +7,11 @@ kind: tutorial
 
 # Create and use your `reference.md`
 
+This tutorial creates a normative foundation. It is separate from a descriptive
+architecture assessment: first ask “Assess architecture and provide an action
+plan” when you need evidence and hotspots; use this journey when you are ready
+to confirm a standard future work must follow.
+
 **What you'll build:** A committed `docs/architecture/reference.md` with one real architecture standard filled in, used to steer one design decision.
 **Prerequisites:** A repo with at least one settled architecture decision and the `adapt-to-project` skill available — see [Prerequisites](#prerequisites) below.
 **Time:** 20–30 minutes.
@@ -67,8 +72,13 @@ That's the whole point of the foundation: the decision was made once, written on
 
 You instantiated the arc42 template, filled one section with a real standard, committed it, and steered a decision by it. To fill the remaining sections and handle the brownfield and stack-pack routes, continue with [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md).
 
+To check whether the implemented repository actually follows the standard—and
+whether that matters for the decision—continue with [Assess a repository and
+turn evidence into action](../how-to/assess-a-repository.md).
+
 ## See also
 
 - [Foundation vs. map](../../core/explanation/foundation-vs-map.md) — why `reference.md` and `overview.md` are separate.
 - [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md) — the authoritative section list.
 - [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md) — the task recipe with all three routes.
+- [Assess a repository and turn evidence into action](../how-to/assess-a-repository.md) — compare the normative foundation with implemented and operational evidence.

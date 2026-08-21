@@ -44,8 +44,9 @@ Fixed section copy:
 | `product-engineering` | `G2` | `approve-decision-brief` | Approve the decision brief |
 | `product-engineering` | `G3` | `commit-to-build` | Commit to build |
 | `release-engineering` | `G5` | `approve-production-release` | Approve the production release |
-| `architect` | `G-concept` | `approve-architecture-concept` | Approve the architecture concept |
-| `architect` | `G-review` | `review-architecture-design` | Review the architecture design |
+| `architect` | `G-current-state` | `correct-current-state-map` | Correct the conceptual current state |
+| `architect` | `G-hotspots` | `choose-architecture-hotspots` | Choose the hotspot drill-downs |
+| `architect` | `G-action` | `accept-architecture-action` | Accept the evidence and action priority |
 | `experience-design` | `G-journey` | `approve-journey` | Approve the journey |
 | `experience-design` | `G-aesthetic` | `approve-aesthetic-direction` | Approve the aesthetic direction |
 | `experience-design` | `G-experience-review` | `review-experience-designs` | Review the experience designs |
@@ -162,7 +163,7 @@ Eyebrow: **From a clean build to a verified production release**
 
 ## Evidence contract
 
-- Validate all 34 IDs against the lowercase semantic-key contract, require
+- Validate all 35 IDs against the lowercase semantic-key contract, require
   uniqueness within each journey, and require every ordered decision reference
   to resolve exactly once.
 - Mutation tests prove that changing a label or reordering gates leaves every

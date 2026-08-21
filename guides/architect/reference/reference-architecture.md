@@ -48,13 +48,14 @@ A consequence of the first two clauses: **no bundler override field exists or is
 
 ## Where design docs land
 
-Each `architect-design` effort now lands in its own **per-effort folder**
-`<parent>/<topic-slug>/` — the design doc, diagrams, and notes all go inside it
-rather than as a loose file. The base `<parent>` defaults to `docs/design` and
-can be overridden by the `[architect]` table of an adopter-created
-`agentbundle-layout.toml` (repo-root overrides user-profile per table). When no
-`[architect]` section resolves, the skill falls back to scanning `docs/design/`,
-`design/`, `architecture/`, `docs/` in order and asking if none exists.
+Each design or assessment effort lands in its own **per-effort folder**
+`<parent>/<topic-slug>/`. Design docs, diagrams, assessments, and approved
+evidence outputs for one effort stay together. The base `<parent>` defaults to
+`docs/design` for a repo-scope pack layout and can be overridden by the
+`[architecture]` table of an adopter-created `agentbundle-layout.toml`.
+Repo-root configuration wins over user-profile configuration. When neither
+resolves, the workflow asks whether to use a repo path or an explicit
+personal/vault path; it never silently scans for or chooses a destination.
 
 For the full schema — two-location read, anchor rules, realpath/`..`-rejection,
 surface-before-write, and the untrusted-origin posture — see the

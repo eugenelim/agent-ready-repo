@@ -1,0 +1,84 @@
+{
+  "skill_name": "architect-assess",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Assess architecture and provide an action plan for this repository.",
+      "expected_output": "A standard progressive assessment that first frames the decision, maps the conceptual current state from multiple evidence surfaces, pauses for correction, builds an attention heat map whose raw dimensions are not severity, pauses again, investigates bounded hotspots and representative paths, then produces traced findings and dependency-aware action waves. It distinguishes target evidence, enterprise context, and pack knowledge and ends with coverage, confidence, and the next human decision.",
+      "assertions": [
+        "Defaults the generic architecture-and-action request to standard mode and states a bounded charter",
+        "Builds context/runtime/module/data/interaction/delivery/trust views rather than equating folders with architecture",
+        "Includes Map and Focus correction points and allows the user to say continue",
+        "Uses heat only to select drill-downs and keeps consequence, pressure, coupling, verification, exposure, and confidence separate",
+        "Findings trace evidence to mechanism and consequence; action waves trace to finding IDs and completion proof",
+        "Separately attributes target evidence, enterprise context, and pack knowledge and names coverage limits"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Give me a quick survey of this tiny library's architecture. Stop before detailed investigation and don't create files.",
+      "expected_output": "A survey-only Frame, Map, and Focus conversation for a library/SDK shape. It returns a correctable conceptual model, complete evidence ledger, attention heat map, hotspot hypotheses, and recommended drill-downs, explicitly states that no defect finding or remediation plan has been established, and ends chat-only.",
+      "assertions": [
+        "Selects survey mode and the library/SDK shape without applying irrelevant distributed-system ceremony",
+        "Stops after Focus with hypotheses and recommended drill-downs",
+        "Does not present completed findings or an action plan as established",
+        "Reports chat only and creates no file"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Do a deep high-stakes launch-readiness architecture assessment. We can provide runtime traces and stakeholder interviews, but ask before accessing either.",
+      "expected_output": "A deep assessment that completes the standard stages, names runtime and stakeholder evidence as separate boundaries, asks before each access, records what additional evidence changes, and does not interpret deep as permission for an unbounded repository or enterprise scan.",
+      "assertions": [
+        "Selects deep mode and names each extra operational/stakeholder evidence boundary",
+        "Requests authorization before runtime, stakeholder, experimental, or private enterprise access",
+        "Retains missing or denied evidence as visible coverage limits",
+        "Does not bulk-read or claim readiness from source inspection alone"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Assess this mixed monorepo containing applications, shared packages, infrastructure, generated clients, fixtures, and vendor code. We need growth-readiness, not a rewrite proposal.",
+      "expected_output": "A growth-readiness assessment that partitions the entity, distinguishes repositories/packages/deployables/runtimes, excludes or labels generated/vendor/fixture content, preserves the current-state observations, and requests growth-specific capacity, team, release, and ownership evidence before recommending bounded action.",
+      "assertions": [
+        "Partitions the monorepo and does not average unrelated areas into one architecture score",
+        "Labels generated, vendored, fixture, and example content so it cannot distort hotspots",
+        "Uses the growth-readiness decision lens without drifting into a generic rewrite backlog",
+        "Names uncovered areas and confidence rather than silently truncating"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Assess this repository even though its implementation language is not supported by your semantic analyzer. Give us an honest action plan.",
+      "expected_output": "A standard assessment that continues through language-neutral topology, manifests, tests, delivery, deployment, schemas, operations, history, and targeted reading; it names semantic dependency analysis as unavailable, lowers only those claims, and does not install an analyzer or fabricate code relationships.",
+      "assertions": [
+        "Completes using language-neutral evidence surfaces",
+        "Names the semantic intelligence limitation and affected confidence",
+        "Does not install or assume an analyzer",
+        "Does not fabricate imports, call paths, or component relationships"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Assess this agentic knowledge platform for production hardening. It has durable runs, model calls, tools, vector retrieval, memory, and background recovery.",
+      "expected_output": "A hardening assessment that applies the agentic and knowledge workload concepts in addition to the observed system shape. It traces run lifecycle/recovery, identity and model policy, tool authorization/credentials, knowledge provenance/isolation/deletion, memory, evaluation, and end-to-end observability, and refuses a readiness verdict while any material boundary remains uncovered.",
+      "assertions": [
+        "Does not collapse the assessment into backend layering or raw model-client compliance",
+        "Covers durable run state/recovery, model access, tools/credentials, knowledge provenance/isolation, and evaluation/observability",
+        "Traces happy, side-effect, and failure/recovery paths with identity, state, retries, cancellation, and audit evidence",
+        "Withholds or narrows readiness when a material agentic or knowledge boundary is not assessed"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Using the same current repository, compare what you would investigate for baseline understanding, hardening, optimization, growth readiness, modernization, and disposition.",
+      "expected_output": "A comparison that preserves one current-state fact set while changing the decision questions and minimum evidence for each of the six intent lenses. It does not generate six contradictory architectures or one identical action backlog.",
+      "assertions": [
+        "Preserves the same observed architecture facts across all six intents",
+        "Requests different operational/business evidence and decision tests for each intent",
+        "Keeps hardening, optimization, growth, transformation, and disposition actions distinct",
+        "Treats the six-intent taxonomy as a decision lens rather than an external maturity standard"
+      ]
+    }
+  ]
+}

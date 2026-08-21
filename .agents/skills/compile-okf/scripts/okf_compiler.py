@@ -13,7 +13,7 @@ import unicodedata
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -643,7 +643,7 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
     }
     by_directory: dict[str, list[Concept]] = {}
     for path, concept in active_concepts.items():
-        directory = str(Path(path).parent)
+        directory = str(PurePosixPath(path).parent)
         by_directory.setdefault("" if directory == "." else directory, []).append(concept)
 
     indexes: dict[str, bytes] = {}
@@ -656,10 +656,10 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
             title = str(concept.metadata.get("title") or concept.path)
             status = str(concept.metadata.get("status") or "Active")
             concept_type = str(concept.metadata.get("type") or "Concept")
-            filename = Path(concept.path).name
+            filename = PurePosixPath(concept.path).name
             entries.append(f"- [{title}]({filename}) - {status} {concept_type}\n")
         if entries:
-            name = Path(directory).name
+            name = PurePosixPath(directory).name
             indexes[f"{directory}/index.md"] = (
                 f"{MANAGED_INDEX_MARKER}\n"
                 f"# OKF index: {name}\n\n"

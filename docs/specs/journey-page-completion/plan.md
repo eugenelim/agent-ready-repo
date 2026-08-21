@@ -9,7 +9,7 @@
 ## Approach
 
 Establish the semantic-ID contract and failure cases first, migrate the exact
-34 approved mappings in canonical sources, and regenerate all derived copies.
+35 approved mappings in canonical sources, and regenerate all derived copies.
 Then add the three accepted editorial payloads and adapt rendering to keep IDs
 internal while labels, focus, and fragments behave predictably. Exhaustive
 emitted and browser tests close the work; source shape alone is insufficient.
@@ -30,7 +30,7 @@ emitted and browser tests close the work; source shape alone is insufficient.
 
 ## Construction tests
 
-**Integration tests:** validate all 34 mappings, regenerate every journey,
+**Integration tests:** validate all 35 mappings, regenerate every journey,
 build the marketing site, enumerate every emitted gate link and target across
 all 12 pages, prove no raw identifier is visible, then run the combined
 page-and-fragment checker.
@@ -106,14 +106,14 @@ browser tests.
 **Done when:** each invalid fixture fails for the intended reason and both
 identity-independence mutations pass.
 
-### T2: Canonical journeys adopt the exact 34-ID mapping
+### T2: Canonical journeys adopt the exact 35-ID mapping
 
 **Depends on:** T1
 
 **Touches:** packs/*/JOURNEY.md
 
 **Tests:**
-- Goal-based: enumerate all 34 ledger rows and prove every canonical source has
+- Goal-based: enumerate all 35 ledger rows and prove every canonical source has
   the exact ID, label, order, and reference (AC1, AC2).
 - Goal-based: prove visible source content contains no legacy gate code, raw
   semantic ID, slash-prefixed invocation, or internal governance citation
@@ -125,7 +125,7 @@ identity-independence mutations pass.
 - Replace visible legacy-code references with their approved labels.
 - Do not change pack/plugin versions, plugin descriptions, or changelogs.
 
-**Done when:** all 34 mappings validate, legacy identifiers are absent from
+**Done when:** all 35 mappings validate, legacy identifiers are absent from
 visible content, and installed-payload metadata is unchanged.
 
 ### T3: Generated journey copies reproduce canonical identity exactly
@@ -441,3 +441,8 @@ no version, dependency, migration, or infrastructure change.
   frontmatter to body H1, and the rendered-link checker verifies existence only.
   Nothing compares link text to destination title. Four other references still use
   the short form and are left for a follow-up.
+- 2026-08-21: post-ship correction authorized with the architecture-assessment
+  CI repair. Reconciled the live Architect journey's three assessment gates
+  with the accepted editorial ledger and updated the current contract from 34
+  to 35 mappings. The 2026-08-17 and 2026-08-18 entries retain 34 because they
+  describe the originally shipped state rather than the amended contract.

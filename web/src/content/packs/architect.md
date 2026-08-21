@@ -2,8 +2,9 @@
 name: Architect
 pluginInstallable: true
 scope: user
-tagline: "Design docs, diagrams, and reviews — workspace-agnostic."
+tagline: "Assess what exists, decide what to do next, design, diagram, and review."
 skills:
+  - architect-assess
   - architect-design
   - architect-diagram
   - architect-review
@@ -12,4 +13,13 @@ docsUrl: /docs/guides/architect/
 journeyUrl: /journeys/architect/
 ---
 
-Architect installs three solution-architecture skills: `architect-design` (Google-style design docs), `architect-diagram` (Mermaid diagrams — C4, sequence, state, ER), and `architect-review` (rubric-routed critique). A forked-context `design-reviewer` subagent gives every design an independent read — it does not review its own work. No required configuration; workspace-agnostic by default.
+Understand the architecture you have before you fund the change. Start with:
+
+> Assess architecture and provide an action plan.
+
+Architect returns a correctable current-state model, evidence coverage, an
+attention heat map, bounded hotspot drill-downs, and dependency-aware action
+waves. It can also shape a future-state design, draw Mermaid diagrams, or review
+an assessment or design artifact in a cold context. Repository inspection is
+read-only by default; private knowledge, executable checks, runtime evidence,
+experiments, and file writes require approval.

@@ -1,6 +1,6 @@
 """Archival record of the one-time guide blockquote conversion.
 
-**Deliberately not wired into a gate.** These assertions pin a frozen 165-row
+**Deliberately not wired into a gate.** These assertions pin a reviewed 172-row
 blockquote ledger across 193 `guides/**` files, plus that spec's release-handoff
 record. They fire on edits with nothing to do with the callout contract — adding one
 blockquote to any guide is enough — there is no regenerator, and an unrelated PR
@@ -74,7 +74,7 @@ def _load_ledger() -> list[dict[str, object]]:
 
 
 def _load_baseline() -> list[dict[str, object]]:
-    """Load the frozen inventory captured before the wrapper conversion."""
+    """Load the reviewed inventory, including later guide additions."""
     return [
         json.loads(line)
         for line in BASELINE_PATH.read_text(encoding="utf-8").splitlines()
