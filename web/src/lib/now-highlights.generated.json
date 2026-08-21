@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.10.5"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[core][2.10.5] — 2026-08-21",
+      "changelogAnchor": "core2105--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Work-loop commands now run from the project root without path discovery.** The skill resolves its own installed directory before invoking the loop engine, cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn searching for a repository-root `scripts/` directory that does not exist.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Work-loop commands now run from the project root without path discovery."
+            },
+            {
+              "type": "text",
+              "value": " The skill resolves its own installed directory before invoking the loop engine, cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn searching for a repository-root "
+            },
+            {
+              "type": "code",
+              "value": "scripts/"
+            },
+            {
+              "type": "text",
+              "value": " directory that does not exist."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.4"
         }
       ],
