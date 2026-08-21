@@ -87,11 +87,29 @@ falsified by any test.
   `clean --apply` publishes `exclusive` before its first deletion, refuses
   immediately while any live `activity` claim exists, and holds the claim across
   every deletion. `clean` without `--apply` mutates nothing, publishes no claim,
-  and does not create the store. When both roles contend at once **`activity` wins
-  and `exclusive` retries**: a queued build is holding a person's attention, while
-  cleanup is deferrable and can be re-run at no cost. A symmetric abort where
-  neither proceeds is a defect, not an acceptable outcome, and a test asserts which
-  participant won rather than that exactly one did.
+  and does not create the store.
+
+  **Contention resolves asymmetrically by consequence, not by winner.** An earlier
+  draft of this criterion required `activity` to win a simultaneous race. That is
+  not implementable over a single decision lock — whichever participant acquires the
+  lock first observes an empty field and proceeds — and making it deterministic
+  needs an arrival signal published before contending, which is additional
+  coordination state whose own stale-file failure mode wedges cleanup. That is a
+  worse outcome than the arbitrariness it removes, so the criterion states what is
+  both implementable and load-bearing:
+
+  - Exactly one participant is admitted per contended instant. A symmetric abort
+    where neither proceeds is a defect, and the decision lock is what forbids it.
+  - Which participant wins a genuinely simultaneous arrival is **arbitrary and
+    deliberately unspecified**. No test may assert a winner; asserting one would
+    pin an implementation accident.
+  - The *consequences* are asymmetric and favour the build. `exclusive` refuses
+    immediately and is cheap to re-run, so cleanup losing costs an operator one
+    re-invocation. `activity` waits a bounded budget before refusing, so a build
+    losing costs at most that budget and never a permanent loss to cleanup.
+
+  A test asserts exactly one admission — `== 1`, never `<= 1`, because `<= 1` passes
+  when both refuse, which is the outcome this criterion forbids.
 
 - [ ] **AC3 — the deletion safety proof is unchanged and unconditional.** The
   per-candidate predicate of `worktree-runtime-hygiene` AC5, and its re-assertion
