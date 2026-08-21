@@ -417,7 +417,10 @@ origins; today's corpus carries none, verified, and the detector keeps it that w
 
 **Depends on:** T1, T2, T3, T5, T6 · **Unit:** 4
 **Touches:** a new note under the notes tree, `corpus_docs.py`, and every consumer of
-that derivation as enumerated by search
+that derivation as enumerated by search; `figure_boundary.py` (new, so the prohibited
+apparatus-figure classes have one home rather than two once a second scope needs them);
+`r13-digest-coverage.py` (new); `r12-fact-negative-tests.py` (its note boundary now reads
+the shared class list); `build-archive.py` and `r9-gates.sh` for registration
 
 **Tests:** Goal-based. Both declared sets checked with a positive control each — delete
 one member, observe the mismatch. The apparatus-figure boundary check is proved over the
@@ -446,7 +449,9 @@ which is the same "a harness carried its own list" class this task's risk cites.
 ### T8: Assemble the approver's decision section
 
 **Depends on:** T4, T7 · **Unit:** 4
-**Touches:** the RFC amendment layer only — everything at or below `## Amendments`
+**Touches:** the RFC amendment layer only — everything at or below `## Amendments`;
+plus `r13-decision-surface.py` (new), which parses the section's records and checks the
+RFC-diff confinement and the follow-on-absence detector
 
 **Tests:** Goal-based. Six **unique** open-question records are parsed, each with a status
 drawn from the allowed vocabulary and a resolving evidence link; a missing-status control
@@ -483,7 +488,10 @@ Cite it as such.
 
 **Depends on:** T8 · **Unit:** 4
 **Touches:** `workspace.toml` (`[backlog].open`), the RFC's round-13 amendment entry,
-the digest's disposition block, the PR description
+the digest's disposition block, the PR description; `r13-disposition-partition.py`, which
+now reads the partition from the digest rather than a side JSON — a separate file beside
+the published block would be a second home for it — and tags every enumerated branch so
+a planted failure names which one fired
 
 **Tests:** Goal-based. Every failure branch the partition control enumerates is planted and
 observed to fire before the check is admitted; the branch list is obtained from the control

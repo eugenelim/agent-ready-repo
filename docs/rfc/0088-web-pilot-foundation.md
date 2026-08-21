@@ -3017,7 +3017,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (131 manifested files, round-7 archive SHA-256 `aee25007…0b1d`), reconstructed
+  (136 manifested files, round-7 archive SHA-256 `aaa69ecf…17d6`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
@@ -3199,3 +3199,115 @@ that mechanism rather than record the channel as inherently uncontrollable.
   been able to fail, while retaining the separate privacy sweep that had continued to run.
   Its results are controls and findings, not decisions. RFC-0088 remains `Experimental`.
   No candidate artifact was executed.
+
+- **2026-08-21 — thirteenth Experimental run.** Promoted the
+  [round-13 consolidated evidence digest](0088-notes/round13-consolidated-evidence-digest.md),
+  which carries every prior round and spike in one document. RFC-0088 remains
+  `Experimental`. **This round decides nothing.** It closes or explicitly disposes the
+  open register slugs, consolidates the evidence base, and assembles the decision
+  surface below so the approver can rule from one place. No blocker item closed, no
+  disposition was revised, and no follow-on artifact was created.
+
+  **Verdict: not final.** Round 13 was commissioned as the final evidence round and
+  does not reach that bar, which it states here rather than at the end. Most open
+  slugs end in a closing disposition; one becomes a named implementation concern; a
+  residue is carried — two because their own unblock conditions are unmet, two
+  because no single round can measure them, and one because measuring it would need a
+  toolchain that is a new dependency. The per-slug partition in its four declared
+  states lives in the digest's disposition block and is checked mechanically against a
+  committed pre-round snapshot.
+
+  ### The approver's decision surface
+
+  Every open question is named with a status and the registered document holding its
+  measured basis. The vocabulary is *ruled*, *outstanding*, or *not measurable*.
+
+  - **Open question 1 — outstanding.** Which operating systems and browser channels
+    enter the first supported release. A system channel has now been exercised by the
+    signing-identity arm rather than only the bundled one, so the Experimental exit
+    can admit it or record an explicit deferral on evidence instead of on assumption.
+    The choice remains the approver's. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 2 — outstanding.** Whether adapter packaging requires build-only
+    bundler tooling. The packaging spike exercised plain self-contained ESM, which is
+    the recommended default's precondition; the dependency-gate half of the original
+    spike remains blocked from the first run, so the default is supported but not
+    fully established. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 3 — not measurable.** Whether the pack clears the charter's
+    "used often enough" bar. This is presented **as the question**, not as a verdict:
+    the recommended default in the open-question text would require two independent
+    software-delivery provider consumers before acceptance, and on that reading
+    acceptance is blocked until they exist. The approver must either accept that bar
+    or lower it explicitly. It is not a measurement question and this round did not
+    attempt it. Basis: the open-question text itself, at
+    [Open questions](#open-questions).
+  - **Open question 4 — outstanding, and its recommended candidate is
+    contradicted.** The candidate folds worker policy into the destination constraint
+    so one policy decides both where a session may talk and whether a worker may run
+    there. Measurement shows registration blocking is destination-scopable **only by
+    partitioning destinations into separate contexts**; scoping within one shared
+    session was not demonstrated. So the candidate as drafted does not deliver a
+    per-destination policy inside a shared session. What the approver is asked to
+    re-draft is per **destination group**: a policy that names groups and accepts that
+    each group is a separate context, rather than one session-wide switch. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 5 — outstanding.** How a consumer that captures and replays a
+    scoped API token is accommodated. The recommended page-resident candidate was
+    exercised: the init script receives the token while the driver does not, and
+    removing the shim leaves the same page without it. Two things qualify it. The
+    issuing response's cache directive is a **construction requirement**, not an
+    observed property — without it the token is at rest in browser user-data, so any
+    adoption of this candidate must carry the directive as a requirement. And absence
+    on browser-written buffers where no planted decoy was recovered is
+    **unverifiable, not clean**: those buffers establish nothing either way. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 6 — outstanding, with update survival unmeasured and both
+    adoption costs now named.** Signing identity was measured to be an attributable
+    discriminator at the observed depth. Whether it **survives an update** is
+    unmeasured, and one installation cannot observe an update; closing it needs a
+    second dated observation across a real update.
+
+    The costs were not recorded anywhere in this RFC before now, and the approver is
+    choosing between two friction profiles rather than between friction and none.
+    **Signing identity** imposes a recurring per-adopter burden: each adopter pinning
+    a browser channel must express and maintain a requirement expression, and
+    re-derive it whenever a vendor rotates a team identifier. **Digest pinning**
+    imposes a per-update burden instead — and being unachievable for an
+    MDM-provisioned, auto-updating system browser is the reason this question exists
+    at all. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+
+  ### Accepted risks carried forward, restated at the width the code supports
+
+  There are two loopback listeners and the recorded claim is wrong about only one, so
+  they are stated separately and no phrase-level correction spans both.
+
+  The **synthetic issuer's** listener is already recorded as reachable by any local
+  process able to connect, so nothing is rewritten. The digest adds the widening the
+  code supports — its unauthenticated scan route is a live oracle answering for
+  caller-chosen bytes — and completes the bound by stating what the exposure is
+  *not*: the issuer's token is a synthetic per-run value with no meaning outside the
+  run, so what is bounded is **measurement validity**, not secrecy. Any reading in
+  which that fixture models a real credential boundary is abandoned explicitly.
+
+  The **browser's unconfined bind endpoint** is the subject of the same-uid
+  corrections, and its recorded bound is narrower than the exposure: that endpoint is
+  loopback TCP with no client authentication, and the platform grants no uid
+  restriction on loopback TCP. **Its historical wording is preserved verbatim and
+  deliberately.** That phrasing sits inside an accepted disposition's scope, and
+  widening an accepted actor set would retroactively treat a wider exposure as already
+  accepted — a ruling this round may not make. The wider factual bound is therefore
+  recorded as **new evidence requiring re-ruling**, and nothing in the accepted text
+  is edited.
+
+  ### Converted concern
+
+  Confined-removal time-of-check/time-of-use is a design property rather than a
+  measurable residual: it bounds the filesystem-policy contract rather than describing
+  an observation anyone can take. It therefore leaves the register as a **named
+  implementation concern** owned by the follow-on spec that will carry the
+  network/filesystem policy contracts, to be addressed when that artifact is
+  authorised. Conversion was available to it because no frozen spec pins it with a
+  deferral marker; a pinned slug cannot be removed from the register and is carried
+  instead.
