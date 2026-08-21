@@ -3017,7 +3017,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (136 manifested files, round-7 archive SHA-256 `aaa69ecf…17d6`), reconstructed
+  (136 manifested files, round-7 archive SHA-256 `f0438f80…a20c`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four

@@ -161,17 +161,27 @@ reviewer can reconstruct rather than trust.
 synthetic source inputs the fixtures consume. Makes the inputs auditable
 independently of the runs.
 
-**`spikes/experimental-rerun-evidence-archive.md`** — Preserves the rerun's
-manifested evidence. Pairs with the rerun note.
+**`spikes/experimental-rerun-evidence-archive.md`** — Asked whether the second run's
+received handoff could be audited rather than taken on trust. Preserved the received
+package as a manifested, redacted set, unchanged. Changed what the handoff's headline
+verdicts rest on: a reviewer can reconstruct the inputs instead of accepting a summary
+of them.
 
-**`spikes/round3-evidence-archive.md`** — Preserves round three's manifested
-evidence.
+**`spikes/round3-evidence-archive.md`** — Asked whether round three's re-measurement
+could be reproduced independently. Preserved its manifested, redacted artifacts and the
+manifest that binds them. Changed the standing of the round's verdicts from asserted to
+reconstructable, which is the property every later round's archive inherits.
 
-**`spikes/round4-evidence-archive.md`** — Preserves round four's manifested
-evidence.
+**`spikes/round4-evidence-archive.md`** — Asked the same reproducibility question for
+round four, the round that closed blocker items on measurement. Preserved its manifested,
+redacted artifacts. Changed what those closures rest on: the closure claims can be
+re-derived from the archive rather than read out of the note.
 
-**`spikes/round5-evidence-archive.md`** — Preserves the manifested evidence for
-rounds five and six.
+**`spikes/round5-evidence-archive.md`** — Asked the reproducibility question across
+rounds five and six together, one of which was a correction pass over the other.
+Preserved both rounds' manifested, redacted artifacts in one set. Changed how the
+correction is auditable: the corrected and correcting artifacts sit side by side, so a
+reader can see what moved rather than trusting that something did.
 
 **`spikes/round7-evidence-archive.md`** — Preserves the manifested evidence for
 rounds seven, eight and nine, and carries the archive digest the RFC's amendment
@@ -213,9 +223,10 @@ into a gate failure.
   blockers on measurement, and round seven did correct its predecessor — it reversed
   round six's profile-minimum claim. What holds is a narrower statement.
 - **Round seven's wider "shipping configuration" claim was withdrawn by round
-  eight.** Only two drivers were parameterised for the sandboxed comparison; the
-  lifecycle corpus and several rail drivers were not re-run sandboxed. What is
-  established is narrower than the original wording.
+  eight.** Only a minority of drivers were parameterised for the sandboxed comparison —
+  the lifecycle corpus and several rail drivers were not re-run sandboxed at all. What
+  is established is narrower than the original wording. The count is deliberately not
+  restated here; it lives in the round-seven note's own corrections table.
 - **A trust conclusion was reversed.** Trust is establishable without a store, but
   the mechanism suppresses errors rather than validating, the driver anchor is
   issuer-wide, the composition with method enforcement is unmeasured, and there is
