@@ -1169,6 +1169,10 @@ open = [
   # administrator authority, which the current Ask-first boundary forbids. Unblocks
   # when: an approver authorises a runnable second-uid mechanism or a suitable
   # non-administrative execution boundary exists.
+  # Unblocks when: an authorised second-uid mechanism or a non-administrative
+  # execution boundary exists. Round 13 corrected the claim's WIDTH in the evidence
+  # layer as new evidence requiring re-ruling, which is documentation rather than
+  # measurement, so the slug is carried rather than closed.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
   # Round 12 amended item 6's accepted risk from per-destination to per-GROUP,
   # derived from the BLOCK clause alone: blocking scopes only per context, contexts
@@ -1181,14 +1185,6 @@ open = [
   # group. That figure decides whether splitting is cheap or expensive.
   # Unblocks when: a spike measures the per-group sign-in cost.
   {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
-  # Round 12 measured that the persisted worker store is PROFILE-WIDE: both roles
-  # register beneath one shared store, so removing it for one role removes it for
-  # both and no role-specific store is retained. Round 13 adds only the
-  # removed/retained inventory over files and directories through the confined-removal
-  # helper; it must not infer credential location or survival. It remains bounded by
-  # rfc0088-confined-removal-toctou when a concurrent writer can alter the profile.
-  # Unblocks when: round 13 is commissioned with a synthetic-profile inventory arm.
-  {slug = "rfc0088-worker-purge-blast-radius", source = "rfc/0088 D/item 6 amendment"},
   # Open question 6 recommends signing identity as the browser-provenance anchor.
   # Round 12 AC5 measures present-run verification and tamper discrimination; it
   # cannot observe the deferred update-survival property. Unblocks when: the same
@@ -1198,20 +1194,15 @@ open = [
   # AC6 remains deferred only for its four unimplemented mutations: missing expected row,
   # token encodings, browser-store decoy, and staged-member decoy search. Unblocks when:
   # each named mutation is implemented and run in the gate chain.
-  {slug = "rfc0088-round12-mutation-coverage", source = "spec/rfc0088-round12-consumer-shaped-residuals AC6"},
+  {slug = "rfc0088-round12-mutation-coverage", summary = "Satisfied by RFC-0088 round 13 (mutation coverage closed by class); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC6"},
   # AC4 requires a T6 staged-member decoy search; no promoted-state implementation exists.
   # Unblocks when: promotion searches a published decoy in staged members and restores them.
-  {slug = "rfc0088-staged-member-decoy-search", source = "spec/rfc0088-round12-consumer-shaped-residuals AC4"},
+  {slug = "rfc0088-staged-member-decoy-search", summary = "Satisfied by RFC-0088 round 13 (staged-member decoy search implemented, positive control first); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC4"},
+  # Unblocks when: cross-round term identity is anchored by something other than
+  # operator trust. Round 13 closed same-file identity WITHIN a gate chain via a
+  # keyed HMAC; across chains it remains operator-trusted, so this is bounded, not
+  # closed.
   {slug = "rfc0088-privacy-term-identity-anchor", source = "round-12 security review"},
-  {slug = "rfc0088-confined-removal-toctou", source = "round-12 security review"},
-  {slug = "rfc0088-verifier-members-selector", source = "round-12 adversarial review"},
-  {slug = "rfc0088-evidence-tree-durability", source = "round-12 adversarial review"},
-  # The local measurement scan endpoint buffers a request body without a cap. Unblocks when:
-  # its fixture protocol bounds request bytes without weakening the byte-surface check.
-  {slug = "rfc0088-token-scan-body-bound", source = "round-12 final review"},
-  # Two fail-closed privacy-term readers can drift. Unblocks when: a separately reviewed
-  # shared reader replaces both consumers without changing their fail-closed contract.
-  {slug = "rfc0088-privacy-term-reader-deduplication", source = "round-12 final review"},
   # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
   # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
   # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
