@@ -320,10 +320,28 @@ that enumerates every self-test flag and asserts each is invoked, closing the cl
 rather than the two instances. The token-encoding mutation is unreachable because the
 encoding table sits above the region marker; widen the region to start after the
 harness function, admitting the table while still excluding the harness's own case
-literals, which is what the marker exists for. The browser-store decoy is in the
-region but untargeted; add a case. The staged-member decoy search does not exist and
-its per-run decoy is never published outside the issuing process, so nothing could
-have searched for it.
+literals, which is what the marker exists for. The staged-member decoy search does not
+exist and its per-run decoy is never published outside the issuing process, so nothing
+could have searched for it.
+
+**Measured during execution, and it changes two of those four.** The browser-store
+decoy is in the region but untargeted, and a case for it was written and run: removing
+both page-side decoy writes did **not** flip its row. The row asks whether the
+`user-data` surface kind has any buffer with the decoy recovered, and the run recovers
+it from two — the Local Storage log the write produces, and the cached page response,
+whose body carries the decoy independently. No assertion depends on the writes, so
+they are plant coverage rather than a control, and the round's own rule applies: ask
+whether the guard is redundant before writing a fixture for it. The case is dropped
+with that reasoning recorded beside the case list.
+
+Dropping one of the five encoded forms likewise did not flip the no-store row, because
+the live token sits in the cached token response as plain JSON and the raw form finds
+it. One entry of a defence-in-depth table is not load-bearing. That mutation is
+therefore re-aimed at the whole table, which is load-bearing and does flip the row —
+proving the at-rest finding rests on the scanner matching token bytes rather than on
+an assertion. Widening the region is what made either mutation *reachable*, which is
+what the criterion asks for; reachability and discrimination are separate properties
+and this task establishes both, separately, per case.
 
 Make uniqueness an assertion inside the runner, counting occurrences within the sliced
 region — the existing guard tests the whole source, so a needle living only above the
