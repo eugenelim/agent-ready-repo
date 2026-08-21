@@ -1,6 +1,6 @@
 # Spec: rfc0088-round13-final-evidence-closure
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
