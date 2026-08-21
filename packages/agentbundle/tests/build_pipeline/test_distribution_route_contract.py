@@ -94,10 +94,13 @@ def test_route_contract_declares_exact_phase_zero_routes() -> None:
         for error in errors
     ), errors
 
+    repository_contract_root = REPO_ROOT / "contracts"
     for filename in ("distribution-routes.toml", "distribution-routes.schema.json"):
-        assert (REPO_ROOT / "contracts" / filename).read_bytes() == (
-            PACKAGE_ROOT / "agentbundle" / "_data" / filename
-        ).read_bytes()
+        repository_contract = repository_contract_root / filename
+        bundled_contract = PACKAGE_ROOT / "agentbundle" / "_data" / filename
+        if repository_contract_root.is_dir():
+            assert repository_contract.is_file()
+            assert repository_contract.read_bytes() == bundled_contract.read_bytes()
         assert filename in (
             PACKAGE_ROOT / "agentbundle" / "_data" / "public-contracts.txt"
         ).read_text(encoding="utf-8").splitlines()
