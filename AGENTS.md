@@ -42,6 +42,7 @@ recovery, and completion. Commit conventions live in
 ## Commands you'll need
 
 ```bash
+make bootstrap-sites   # one-time npm deps for make test and site-link-check
 python3 -m pytest packages/<pkg>/tests/ -q
 make lint-ruff
 make build-self
