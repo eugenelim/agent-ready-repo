@@ -50,6 +50,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.5] — 2026-08-21
+
+### Highlights
+
+- **Work-loop commands now run from the project root without path discovery.**
+  The skill resolves its own installed directory before invoking the loop engine,
+  cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn
+  searching for a repository-root `scripts/` directory that does not exist.
+
+### Fixed
+
+- **Every work-loop Python invocation uses the installed skill directory.** The
+  skill defines `<skill-dir>` as the directory containing its active `SKILL.md`,
+  keeps project-relative paths anchored at the repository root, and quotes the
+  resolved script path as one argument in its POSIX command examples.
+
 ## [core][2.10.4] — 2026-08-20
 
 ### Highlights

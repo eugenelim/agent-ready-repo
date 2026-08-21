@@ -397,6 +397,18 @@
         "Does not treat three dependent changes as one bounded change"
       ],
       "id": "durability-dependent-task-sequencing"
+    },
+    {
+      "id": "script-invocation-from-repository-root",
+      "prompt": "You are running work-loop from the repository root. How do you invoke loop-engine.py when there is no repository-root scripts directory?",
+      "expected_output": "Resolve `<skill-dir>` as the directory containing the active work-loop SKILL.md, keep the working directory at the repository root, and run `python '<skill-dir>/scripts/loop-engine.py' ...`, replacing the placeholder with the actual installer- or harness-supplied skill directory. Pass the resolved script path as one discrete argument when the tool supports an argument vector; never run the bare-relative `python scripts/loop-engine.py` form.",
+      "assertions": [
+        "Defines `<skill-dir>` as the directory containing the active SKILL.md",
+        "Keeps the process working directory at the repository root",
+        "Uses the resolved `<skill-dir>/scripts/loop-engine.py` path",
+        "Does not use a bare-relative `python scripts/loop-engine.py` command",
+        "Passes the resolved script path as one argument when supported"
+      ]
     }
   ]
 }
