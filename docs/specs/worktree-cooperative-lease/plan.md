@@ -105,15 +105,10 @@ scales with the wait budget.
 
 **Depends on:** Task 2, Task 3
 
-Tests: `tools/test_with_lease_cli.py` — exit-code integrity in both directions;
-both claims released on every exit path; an unusable store warns and runs the
-child; a live `exclusive` claim refuses with the reserved code and marker; a
-missing command refused; verbatim argv with no shell; only the nesting marker
-added; a nested invocation through a **real recursive make** completes rather than
-deadlocking; a queued caller reports that it is queued; `lease-status` mutates
-nothing, prints no absolute path, and prints the identifier `release-claim`
-requires; `release-claim` refuses a live claim, has no override, and releases an
-undeterminable one — the success path asserted, not only the refusals.
+Tests: `tools/test_with_lease_cli.py`. The ledger below is the authoritative list;
+this task's entries are the ones naming that file. Every name in the ledger is a test
+that exists — the previous revision of this line described eight tests, of which three
+were never written, and the plan froze at `Done` with the description in it.
 
 Wire `lock-semantics-windows` into `build-check-windows`'s `needs` in this task,
 because from here something depends on it.
@@ -136,14 +131,66 @@ mutation.
 
 ### Clause-to-mutation ledger
 
-Task 4 does not close until every clause of every AC appears in this ledger with a
-named mutation and the check that catches it. Structural clauses — "exactly one
-implementation", "single-homed", "positioned at byte zero" where the platform makes
-position irrelevant — take goal-based source checks, because a runtime assertion
-cannot falsify them. AC3's clauses take predecessor-regression mutations
-(conditionalise a shipped guard, drop the pre-delete recheck, move the store, give
-it a deletable suffix). AC9's takes the mutated-makefile proof. The ledger is a
-deliverable, not a description: a clause with no entry is an unfinished task.
+Structural clauses — "exactly one implementation", "single-homed", "positioned at
+byte zero" where the platform makes position irrelevant — take goal-based source
+checks, because a runtime assertion cannot falsify them. The ledger is a deliverable,
+not a description: a clause with no entry is an unfinished task. The previous revision
+of this section stated that rule and then listed nothing, which is how three AC
+clauses reached `Done` with no test at all — AC7's exit-code integrity under a failing
+release, AC8's stale-marker rule, and AC9's unusable-store-still-runs rule. Each row
+below was run as a real mutation: the guard was confirmed green, the named clause was
+broken in the source, the named check was confirmed to redden, and the source was
+restored and verified byte-identical.
+
+| AC | Clause | Mutation | Check that catches it |
+|---|---|---|---|
+| AC1 | liveness is a held lock, never a payload | trust the payload's pid | `test_a_forged_claim_with_a_live_pid_is_not_live` |
+| AC1 | the OS releases the lock on death | `SIGKILL` the holder | `test_sigkilled_holder_claim_is_reclaimed` |
+| AC1 | liveness is not inferred from age | age a live claim | `test_live_identity_is_not_reclaimed_by_age_alone` |
+| AC1 | a recycled pid cannot impersonate a holder | reuse the pid | `test_recycled_pid_cannot_impersonate_lock_holder` |
+| AC1 | the lock is taken at byte zero on every platform | drop the `lseek` | `test_windows_write_then_lock_hides_the_lock_from_a_probe` and `test_seeking_to_zero_in_both_paths_makes_a_held_lock_observable` on `windows-latest`; `test_claim_lock_operations_seek_to_byte_zero_structurally` is the POSIX source check, because position is unobservable there |
+| AC2 | read and publish inside one uninterrupted hold | publish outside the hold | `test_racing_participants_are_never_both_admitted`, `test_scan_and_slot_publish_share_one_decision_lock_hold` |
+| AC2 | exactly one participant is admitted (`== 1`) | admit both | `test_contended_roles_admit_exactly_one_participant` |
+| AC2 | the two roles interlock in both directions | drop either check | `test_sequential_interlock_refuses_exclusive_while_activity_is_held`, `test_activity_waits_for_an_exclusive_claim_to_clear` |
+| AC2 | the decision lock actually serialises | release it early | `test_coordination_lock_serializes_two_real_processes` |
+| AC3 | the shipped deletion predicate is untouched | conditionalise it on holding a claim | `test_clean_apply_claim_spans_a_real_multi_file_deletion` plus the predecessor's own predicate tests. **Single-site mutations here are inert by design:** `.lease` is refused by both the traversal collector and `_subtree_safety_reason`, so only removing both reddens, and that is the property, not a coverage gap |
+| AC3 | the store is not deletable by the cleaner | give it a non-refused suffix | the suffix guard plus `test_clean_dry_run_never_creates_a_claim_store` |
+| AC4 | out-of-range, mislocated, and future payloads are refused or clamped | trust each field | `test_untrusted_payloads_are_rejected` |
+| AC4 | an unreadable payload blocks rather than passes | treat it as absent | `test_unreadable_payload_is_undeterminable_and_blocks` |
+| AC4 | the release command never removes a live claim | drop the liveness check | `test_release_claim_refuses_a_live_holder` |
+| AC4 | it does release an undeterminable one | refuse everything | `test_release_claim_releases_an_undeterminable_claim` |
+| AC4 | every state has a documented path back | render "pid unknown" for a live claim with a refused identity | `test_a_live_claim_with_a_refused_identity_is_still_actionable` |
+| AC4 | waiters are ordered by a value they cannot forge | backdate a ticket | `test_backdated_ticket_cannot_overtake_a_real_waiter` |
+| AC5 | re-registration keeps the original position | re-stamp on re-registration | `test_ticket_removal_reregisters_without_losing_original_position` |
+| AC5 | a live waiter's record is never aged out | prune on age alone | `test_an_observably_live_waiter_record_is_never_aged_out` |
+| AC6 | defaults are literal and host-independent | derive them from the host | `test_budget_defaults_and_strict_parsing_are_literal_and_host_independent` |
+| AC6 | the memory clamp is downward-only with headroom | raise the divisor to 16 GiB | `test_memory_clamp_uses_twelve_gib_and_preserves_reference_headroom` |
+| AC6 | the decision-lock budget scales and has a floor | fix it to a constant | `test_decision_lock_budget_scales_with_wait_budget_and_has_floor` |
+| AC6 | an invalid budget refuses before touching the store | coerce it | `test_entrypoint_refuses_invalid_budget_before_store_access` |
+| AC6 | the wait budget governs both waits | hardcode the default for the activity wait | `test_a_live_exclusive_claim_refuses_the_wrapper_with_the_reserved_code` — the mutant fails by *waiting ninety minutes*, so the harness treats its timeout as the detection |
+| AC6 | the cap is soft only for admission roles | expire a worktree claim | `test_admission_expiry_makes_limit_soft_but_worktree_claims_do_not_expire`, `test_old_undeterminable_admission_record_expires` |
+| AC6 | the real limit is never exceeded | admit past it | `test_real_concurrent_admission_never_exceeds_limit` |
+| AC7 | the child's exit code is forwarded verbatim | rewrite it | `test_main_strips_argparse_remainder_separator` (propagates 19) |
+| AC7 | a failing release cannot alter that code, either way | let the release exception escape | `test_a_failing_release_cannot_change_the_childs_exit_code`, parameterised over a passing and a failing child |
+| AC7 | one child runner, not a second copy | add a second call site | `test_wrapper_has_exactly_one_reachable_child_runner` (parsed tree, not substring) |
+| AC7 | only the nesting marker is added to the environment | add another key | `test_wrapper_only_adds_the_nesting_marker` (asserts a delta: macOS injects `LC_CTYPE` and `__CF_USER_TEXT_ENCODING`) |
+| AC7 | an empty command is refused, not spawned | spawn it | `test_main_refuses_a_missing_wrapped_command` |
+| AC7 | activity is held for the child's lifetime, not the queue wait | acquire activity before the slot | `test_admission_precedes_activity_so_a_queued_run_never_blocks_cleanup` |
+| AC7 | every refusal exits 75 with the marker, alone on its line | drop the marker | `test_main_refuses_malformed_slot_configuration`, `test_a_live_exclusive_claim_refuses_the_wrapper_with_the_reserved_code`, `test_clean_apply_refuses_an_unusable_store_with_no_override` |
+| AC7 | a queued caller says so, and behind whom | wait silently | `test_queued_wrapper_reports_its_holders` |
+| AC7 | status mutates nothing and leaks no path | mutate, or print the worktree path | `test_status_is_read_only_and_emits_recovery_identifier` |
+| AC8 | a nested acquisition and its release are no-ops | release the parent's slot | `test_nested_recursive_make_completes` |
+| AC8 | a marker naming no *live* claim counts as absent | drop the liveness half | `test_a_marker_naming_no_live_claim_cannot_disable_the_limiter` — the marker names a real leftover file, because a marker naming nothing is caught by the existence check alone |
+| AC8 | the receipt names the inherited holder, never the marker | suppress the receipt | `test_nested_receipt_names_the_holder_and_never_the_marker` |
+| AC9 | an unusable store warns and runs the child | re-raise instead | `test_an_unusable_store_warns_and_still_runs_the_wrapped_child` |
+| AC9 | an unresolvable worktree warns and runs the child | resolve above the handler | `test_an_unresolvable_worktree_warns_and_still_runs_the_gate`, `test_an_explicit_port_survives_an_unresolvable_worktree` |
+| AC9 | only genuine contention refuses | classify a held lock as an unusable store | `test_a_held_coordination_lock_refuses_rather_than_running_unleased` |
+| AC9 | a hard-link failure is a store fault, not a crash | re-raise the raw `OSError` | `test_a_publication_fault_becomes_an_unusable_store_not_a_raw_oserror` |
+| AC9 | the recursive sub-make keeps the makefile in use | drop `-f` | `assert-sast-chain-reachable.py` mutation 2, `test_wrapped_targets_keep_their_lease_and_forward_the_makefile` |
+| AC9 | each wrapped target is itself guarded | drop the wrapper | `test_wrapped_targets_keep_their_lease_and_forward_the_makefile`, parameterised over `test`, `build-check`, `sast` |
+| AC9 | `ci` is not wrapped | wrap it | `lint-ci-parity` (31 derived dispositions) |
+| matrix | the browser gate publishes activity and takes no slot | remove the claim | `test_the_browser_gate_holds_activity_and_takes_no_run_slot` |
+| matrix | `bootstrap.py` participates in no lease | import the lease module | `test_bootstrap_participates_in_no_lease` |
 
 ### Windows enforcement lands in Task 1
 

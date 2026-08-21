@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import inspect
 import json
 import multiprocessing
@@ -402,3 +403,105 @@ def test_sequential_interlock_refuses_exclusive_while_activity_is_held(
     with pytest.raises(coordination_lease.ClaimContentionError):
         coordination_lease.acquire_exclusive(root, worktree)
     first.release()
+
+
+def test_a_publication_fault_becomes_an_unusable_store_not_a_raw_oserror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A store that cannot hard-link must reach the fail-open path, not a traceback.
+
+    Raised raw, the error escaped every handler in the wrapper and the browser gate
+    -- both of which catch only ClaimStoreUnavailable -- and crashed a job AC9
+    promises to run. FileExistsError is deliberately excluded from this translation
+    and keeps its own meaning; that half is held by the atomic-publish test above.
+    """
+    root = tmp_path.resolve()
+    lease_dir = coordination_lease.prepare_lease_directory(root)
+    real_link = os.link
+
+    def refusing_link(source: object, target: object, **kwargs: object) -> None:
+        raise OSError(errno.EPERM, "hard links unsupported on this filesystem")
+
+    monkeypatch.setattr(os, "link", refusing_link)
+    with pytest.raises(coordination_lease.ClaimStoreUnavailable):
+        coordination_lease.publish_claim_candidate(
+            lease_dir, lease_dir / "claim.lease", "payload"
+        )
+
+    # The translation must not have leaked the temporary candidate either.
+    monkeypatch.setattr(os, "link", real_link)
+    assert not list(lease_dir.glob(".claim-*"))
+
+
+def test_an_observably_live_waiter_record_is_never_aged_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Age reclaims records whose owner died; a held lock proves it did not.
+
+    Unlinking a live waiter's record erased its queue position, and its next
+    publication took a fresh filesystem timestamp that let younger waiters overtake
+    it -- reachable whenever the wait budget is overridden past the age budget. The
+    age clause is proven still to work on the record whose liveness is unproven, so
+    this is not simply a disabled reclaim.
+    """
+    root = tmp_path.resolve()
+    lease_dir = coordination_lease.prepare_lease_directory(root)
+    live_token = "a" * 32
+    dead_token = "b" * 32
+    live_path = lease_dir / f"run-registration-{live_token}.lease"
+    dead_path = lease_dir / f"run-registration-{dead_token}.lease"
+
+    # A live record: published and still holding its own ownership lock.
+    descriptor = coordination_lease.publish_claim_candidate(
+        lease_dir, live_path, coordination_lease._run_claim_payload(live_token, root)
+    )
+    # A record whose owner is gone: published, then its lock released.
+    coordination_lease._unlock_and_close(
+        coordination_lease.publish_claim_candidate(
+            lease_dir, dead_path, coordination_lease._run_claim_payload(dead_token, root)
+        )
+    )
+    try:
+        # Everything is now older than the age budget.
+        monkeypatch.setattr(coordination_lease, "RUN_CLAIM_MAX_AGE_SECONDS", -1)
+        coordination_lease._prune_run_registrations(lease_dir, root)
+
+        assert live_path.exists(), "a live waiter's queue position was erased by age"
+        assert not dead_path.exists(), "age no longer reclaims an abandoned record"
+    finally:
+        coordination_lease._unlock_and_close(descriptor)
+
+
+def test_a_live_claim_with_a_refused_identity_is_still_actionable(
+    tmp_path: Path,
+) -> None:
+    """AC4's fifth state: no pid to name, so name the claim instead.
+
+    A claim can be observably live and simultaneously carry a payload refused as
+    untrusted. The release command then refuses it -- correctly, it is live -- while
+    the refusal said only "pid unknown", so AC4's documented recovery of terminating
+    the named holder could not be carried out on it. The claim's own identifier is
+    what an operating-system tool needs, and it is a base name, so naming it stays
+    inside AC7's disclosure limit.
+    """
+    root = tmp_path.resolve()
+    worktree = (root / "worktree").resolve()
+    worktree.mkdir()
+    claim = coordination_lease.acquire_exclusive(root, worktree)
+    try:
+        payload = json.loads(claim.path.read_text())
+        payload["pid"] = -1
+        claim.path.write_text(json.dumps(payload), encoding="utf-8")
+
+        record = coordination_lease.read_claims(root, worktree).exclusive
+        assert record is not None
+        assert record.liveness is coordination_lease.Liveness.LIVE
+        assert record.pid is None
+
+        rendered = coordination_lease._holder_names((record,))
+
+        assert claim.path.name in rendered
+        assert "pid unknown" not in rendered
+        assert str(worktree) not in rendered
+    finally:
+        claim.release()

@@ -71,6 +71,18 @@ class ClaimStoreUnavailable(CoordinationLeaseError):
     """The store cannot safely support a coordination decision."""
 
 
+class CoordinationLockContention(ClaimStoreUnavailable):
+    """The coordination lock stayed held by a live peer for the whole budget.
+
+    A subclass of `ClaimStoreUnavailable` so that every caller which already
+    tolerates an unusable store -- notably claim release, which may only warn --
+    keeps its behaviour unchanged. The wrapper, however, must distinguish the two:
+    a lock held by a live peer is genuine contention, and treating it as an unusable
+    store made the limiter switch itself off under exactly the load it exists for.
+    Order matters at the catch sites: this clause must precede its base class.
+    """
+
+
 class ClaimContentionError(CoordinationLeaseError):
     """A peer's claim lock is live or could not be inspected."""
 
@@ -347,7 +359,7 @@ def coordination_lock(
                 except OSError as error:
                     if deadline is None:
                         if LEASE_RETRY_LIMIT <= 1:
-                            raise ClaimStoreUnavailable(
+                            raise CoordinationLockContention(
                                 "could not acquire coordination lock"
                             ) from error
                         # Existing non-admission callers retain their bounded retry
@@ -357,7 +369,7 @@ def coordination_lock(
                         ) * LEASE_RETRY_DELAY_SECONDS
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
-                        raise ClaimStoreUnavailable(
+                        raise CoordinationLockContention(
                             "could not acquire coordination lock"
                         ) from error
                     time.sleep(min(LEASE_RETRY_DELAY_SECONDS, remaining))
@@ -385,6 +397,17 @@ def publish_claim_candidate(lease_dir: Path, path: Path, payload: str) -> int:
         _lock_functions(descriptor)[0]()
         os.link(temporary, path)
         return descriptor
+    except FileExistsError:
+        # A claim already exists at this path: contention, which callers resolve by
+        # probing the incumbent. It must stay distinguishable from a store fault.
+        _unlock_and_close(descriptor)
+        raise
+    except OSError as error:
+        # A filesystem that cannot hard-link, a full disk, or a locking failure is an
+        # unusable store, not a caller error. Raised raw it escaped every fail-open
+        # handler and crashed the wrapper on a platform AC9 promises to run on.
+        _unlock_and_close(descriptor)
+        raise ClaimStoreUnavailable("claim store cannot publish a claim") from error
     except BaseException:
         _unlock_and_close(descriptor)
         raise
@@ -733,9 +756,15 @@ def _prune_run_registrations(lease_dir: Path, common_dir: Path) -> None:
     now = time.time()
     for path in paths:
         record = _read_record(path, ClaimRole.RUN_TICKET, common_dir)
-        if (
-            record.liveness is Liveness.NOT_LIVE
-            or now - record.created_at > RUN_CLAIM_MAX_AGE_SECONDS
+        # An observably-live registration is never aged out. Age reclaims records whose
+        # owner died without releasing, and a held lock proves that did not happen; the
+        # age clause therefore applies only when liveness is unproven. Unlinking a live
+        # waiter's record erased its queue position, and its next publication took a
+        # fresh timestamp that let younger waiters overtake it -- reachable whenever the
+        # wait budget is overridden past the age budget.
+        aged = now - record.created_at > RUN_CLAIM_MAX_AGE_SECONDS
+        if record.liveness is Liveness.NOT_LIVE or (
+            aged and record.liveness is not Liveness.LIVE
         ):
             with contextlib.suppress(OSError):
                 path.unlink()
@@ -1052,12 +1081,21 @@ def git_common_dir(repository: Path) -> Path:
 
 
 def _holder_names(claims: Sequence[ClaimRecord]) -> str:
-    """Render only process ids and worktree base names for user-facing output."""
+    """Render only process ids, worktree base names, and claim identifiers.
+
+    A live claim whose payload was refused as untrusted has no pid to name, and
+    "pid unknown" left the operator with nothing to act on while the release command
+    correctly refused it as live. The claim's own identifier is named instead: it is a
+    base name rather than a path, so it stays inside AC7's disclosure limit, and it is
+    what an operating-system tool needs to find the process holding the lock.
+    """
     names = []
     for claim in claims:
-        pid = str(claim.pid) if claim.pid is not None else "unknown"
         worktree = claim.worktree.name if claim.worktree is not None else "unknown"
-        names.append(f"pid {pid} in {worktree}")
+        if claim.pid is None:
+            names.append(f"an unidentified holder of claim {claim.path.name}")
+        else:
+            names.append(f"pid {claim.pid} in {worktree}")
     return ", ".join(names) or "unknown holder"
 
 
@@ -1096,15 +1134,27 @@ def with_lease(
     try:
         try:
             if common is not None:
-                activity = acquire_activity(
-                    common, worktree, wait_seconds=DEFAULT_RUN_SLOT_WAIT_SECONDS
-                )
+                # The admission slot is taken first, and activity only once a slot is
+                # held. Activity is what `clean --apply` refuses on, and the slot wait
+                # is the long one: acquiring activity first made a merely queued run
+                # block cleanup for the whole wait budget with no child in existence,
+                # against AC7's "for exactly one child's lifetime". Cleanup takes no
+                # slot, so this order introduces no cycle.
                 slot = acquire_run_slot(common, environ=values, on_wait=_queue_notice)
+                # The operator's wait budget governs both waits. Hardcoding the
+                # default here meant a configured budget shortened the admission wait
+                # and silently left a ninety-minute wait on a live exclusive claim.
+                _limit, wait_seconds = run_slot_budgets(values)
+                activity = acquire_activity(common, worktree, wait_seconds=wait_seconds)
         except RunSlotConfigurationError:
             raise
         except ClaimContentionError:
             raise
         except RunSlotAdmissionRefused:
+            raise
+        except CoordinationLockContention:
+            # Must precede the base clause: a lock held by a live peer is contention,
+            # and running unleased here is the limiter disabling itself under load.
             raise
         except ClaimStoreUnavailable as error:
             print(
@@ -1114,11 +1164,23 @@ def with_lease(
             )
         if slot is not None:
             values[RUN_SLOT_NESTING_MARKER_ENV] = slot.nesting_marker
+            if slot.nested:
+                # AC8's receipt: an inert limiter must be visible. The inherited pid is
+                # named; the marker never is, because echoing it publishes a bypass.
+                inherited = slot.inherited_pid
+                holder = "an unidentified holder" if inherited is None else f"pid {inherited}"
+                print(
+                    "worktree lease: nested run — the concurrency limiter is inert "
+                    f"here; this run inherited the slot held by {holder}",
+                    file=sys.stderr,
+                    flush=True,
+                )
         return managed_child.run_child(tuple(command), values, worktree)
     finally:
         # Teardown cannot rewrite a real child outcome. A failed release is still
         # visible only as a warning, and a partially-acquired wrapper is unwound.
-        for claim in (slot, activity):
+        # Released in reverse acquisition order.
+        for claim in (activity, slot):
             if claim is None:
                 continue
             try:

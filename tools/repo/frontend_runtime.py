@@ -467,33 +467,67 @@ def run_gate(
     if gate_command is None:
         _require_npm()
 
-    resolved_common = git_common_dir(repo_root) if common_dir is None else common_dir
     activity: coordination_lease.WorktreeClaim | None = None
+    resolved_common: Path | None = None
+    # Read before the fail-open block on purpose: a malformed operator budget is a
+    # refusal AC6 requires, not one of AC9's degrade-and-run conditions.
+    _limit, lease_wait_seconds = coordination_lease.run_slot_budgets(values)
     try:
+        # Common-directory resolution is inside the fail-open path, not above it.
+        # AC9 names "an unresolvable worktree" as a warn-and-run case, and resolving
+        # it first meant a missing git or a failing rev-parse raised
+        # FrontendRuntimeError past this handler and exited 2 without running the
+        # browser gate at all -- the lease failing a job it may not fail.
+        resolved_common = (
+            git_common_dir(repo_root) if common_dir is None else common_dir
+        )
         activity = coordination_lease.acquire_activity(
             resolved_common,
             repo_root.resolve(),
-            wait_seconds=coordination_lease.DEFAULT_RUN_SLOT_WAIT_SECONDS,
+            wait_seconds=lease_wait_seconds,
         )
+    except coordination_lease.CoordinationLockContention as error:
+        # Held by a live peer: contention, which refuses. Classifying it as an
+        # unusable store is what let the limiter switch itself off under load.
+        raise FrontendLeaseRefusal(str(error), ()) from error
     except coordination_lease.ClaimContentionError as error:
         raise FrontendLeaseRefusal(str(error), error.claims) from error
-    except coordination_lease.ClaimStoreUnavailable as error:
+    except (coordination_lease.ClaimStoreUnavailable, FrontendRuntimeError) as error:
         print(
             f"WARNING: worktree lease unavailable; running browser gate unleased: {error}",
             file=sys.stderr,
             flush=True,
         )
     try:
-        lease = lease_preview_port(resolved_common, requested)
+        # An unresolvable worktree leaves nowhere to record a port lease either. The
+        # gate still runs, because AC9 forbids the lease failing the job: it honours an
+        # explicitly requested port and otherwise leaves the child's own default alone.
+        lease = (
+            lease_preview_port(resolved_common, requested)
+            if resolved_common is not None
+            else None
+        )
         try:
-            values["ARR_PREVIEW_PORT"] = str(lease.port)
             values["PLAYWRIGHT_BROWSERS_PATH"] = str(cache.path)
             announce_browser_cache(cache)
-            print(f"Preview port lease: {lease.port}", flush=True)
-            with _release_lease_on_signals(lease):
+            if lease is None:
+                if requested is not None:
+                    values["ARR_PREVIEW_PORT"] = str(requested)
+                print(
+                    "WARNING: preview port is unleased; the worktree scope could not "
+                    "be resolved",
+                    file=sys.stderr,
+                    flush=True,
+                )
                 returncode = _run_child(command, values, repo_root)
+            else:
+                values["ARR_PREVIEW_PORT"] = str(lease.port)
+                print(f"Preview port lease: {lease.port}", flush=True)
+                with _release_lease_on_signals(lease):
+                    returncode = _run_child(command, values, repo_root)
         finally:
-            lease.release()
+            if lease is not None:
+                lease.release()
     finally:
         if activity is not None:
             try:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import multiprocessing
 import os
 import signal
@@ -173,48 +174,47 @@ def test_clean_dry_run_never_creates_a_claim_store(worktree: Path) -> None:
     assert not any(line.startswith("lease:") for line in lines)
 
 
-def test_clean_help_documents_the_store_failure_override(
+def test_clean_offers_no_way_to_delete_without_a_lease(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """The only fail-closed-store override is discoverable before use."""
+    """No bypass may be reintroduced: deleting on absent evidence is a Never.
+
+    Asserted on both surfaces, because removing only the flag would leave a
+    parameter any in-repo caller could still pass.
+    """
     with pytest.raises(SystemExit) as exit_result:
         hygiene.main(["clean", "--help"])
 
     assert exit_result.value.code == 0
-    assert "--force-without-lease" in capsys.readouterr().out
+    help_text = capsys.readouterr().out
+    assert "--force-without-lease" not in help_text
+    assert "without-lease" not in help_text
+    assert "force_without_lease" not in inspect.signature(hygiene.clean).parameters
 
 
-def test_clean_apply_refuses_an_unusable_store_unless_explicitly_overridden(
+def test_clean_apply_refuses_an_unusable_store_with_no_override(
     worktree: Path,
 ) -> None:
-    """A cleaner fails closed when it cannot publish, with a deliberate escape hatch."""
+    """A cleaner that cannot publish fails closed, and nothing reopens it."""
     target = _candidate(worktree)
     unusable_common = worktree / "not-a-directory"
     unusable_common.write_text("not a claim store", encoding="utf-8")
 
-    def run(*, force_without_lease: bool) -> tuple[int, list[str]]:
-        return hygiene.clean(
-            worktree,
-            {"generated"},
-            apply=True,
-            include_dependencies=False,
-            protected=set(),
-            force_without_lease=force_without_lease,
-            runner=_Git(worktree, unusable_common),
-        )
-
-    code, lines = run(force_without_lease=False)
+    code, lines = hygiene.clean(
+        worktree,
+        {"generated"},
+        apply=True,
+        include_dependencies=False,
+        protected=set(),
+        runner=_Git(worktree, unusable_common),
+    )
 
     assert code == 75
     assert "WORKTREE_LEASE_DID_NOT_RUN" in lines
     assert "clean did not run" in "\n".join(lines)
     assert target.exists()
-
-    override_code, override_lines = run(force_without_lease=True)
-
-    assert override_code == 0
-    assert not target.exists()
-    assert "--force-without-lease" in "\n".join(override_lines)
+    # The refusal points at the recovery that does exist, rather than at a bypass.
+    assert "release-claim" in "\n".join(lines)
 
 
 def test_contended_roles_admit_exactly_one_participant(

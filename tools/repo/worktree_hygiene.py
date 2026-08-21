@@ -1599,7 +1599,6 @@ def clean(
     apply: bool,
     include_dependencies: bool,
     protected: set[Path],
-    force_without_lease: bool = False,
     selected: list[Path] | None = None,
     runner: Runner = _run,
     mount_check: MountCheck | None = None,
@@ -1709,28 +1708,29 @@ def clean(
                 )
                 return 75, lines
             except lease.ClaimStoreUnavailable:
-                if not force_without_lease:
-                    # A participant unable to publish cannot trust its read of this store.
-                    lines.extend(
-                        lease_refusal_lines(
-                            "clean",
-                            "exclusive claim store is unavailable; use "
-                            "--force-without-lease only when cleanup must proceed",
-                        )
+                # A participant unable to publish cannot trust its read of this store,
+                # and this is the one command that deletes. There is deliberately no
+                # override: the spec's first Never is "let a destructive command
+                # proceed on evidence it failed to obtain", and a flag that does
+                # exactly that is not made safe by being explicit. A claim that is
+                # merely stuck has a recovery path already -- `release-claim` -- and an
+                # unusable store is a fault to repair, not to delete through.
+                lines.extend(
+                    lease_refusal_lines(
+                        "clean",
+                        "exclusive claim store is unavailable; repair the store, or "
+                        "release a stuck claim with release-claim",
                     )
-                    _append_receipt_summary(
-                        lines,
-                        selected=0,
-                        skipped=0,
-                        reclaimed=0,
-                        failures=0,
-                        remaining=[],
-                    )
-                    return 75, lines
-                lines.append(
-                    "warning: proceeding without an exclusive claim because "
-                    "--force-without-lease was supplied"
                 )
+                _append_receipt_summary(
+                    lines,
+                    selected=0,
+                    skipped=0,
+                    reclaimed=0,
+                    failures=0,
+                    remaining=[],
+                )
+                return 75, lines
             else:
                 lines.append("lease: acquired exclusive claim")
         in_use_locations = _installed_distribution_locations()
@@ -1887,14 +1887,6 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete selected safe candidates; otherwise print a dry run.",
     )
     clean_parser.add_argument(
-        "--force-without-lease",
-        action="store_true",
-        help=(
-            "Proceed only when the exclusive claim store is unavailable; this may "
-            "delete while an uncoordinated peer is active."
-        ),
-    )
-    clean_parser.add_argument(
         "--include-dependencies",
         action="store_true",
         help="Acknowledge expensive dependency cleanup.",
@@ -1966,7 +1958,6 @@ def main(argv: list[str] | None = None) -> int:
         apply=args.apply,
         include_dependencies=args.include_dependencies,
         protected=protected,
-        force_without_lease=args.force_without_lease,
         selected=[args.worktree] if args.worktree else None,
     )
     print("\n".join(lines))

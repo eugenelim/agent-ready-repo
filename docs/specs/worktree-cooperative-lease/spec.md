@@ -159,6 +159,7 @@ falsified by any test.
   | Undeterminable (unreadable file, unmapped lock errno, network mount) | The operator command releases it — and this **is** an override, because the claim may in fact be live. It is offered because the alternative is a permanent wedge, and it is the operator accepting a risk the tool cannot evaluate |
   | Observably live, holder hung | **No tool-side recovery.** The command refuses it, correctly. Recovery is terminating the named holder and re-probing. The refusal names the holder so that is actionable |
   | Live, holder healthy | Not a fault. Wait, or use the status command to see who holds it |
+  | Observably live, identity refused as untrusted | **No tool-side recovery, and no name to act on.** The release command refuses it as live, correctly, and the payload that would have named its holder was refused as untrusted — so "terminate the named holder" does not apply. The refusal names the claim's own identifier instead, which is what an operating-system tool (`lsof` and equivalents) needs to find the process holding that lock. This is a fifth state, listed because omitting it left a claim whose documented recovery could not be carried out |
 
   So the honest contract is narrower than "no claim is unreleasable": every claim has
   a documented path back, but for one state that path leaves the tool, and for
@@ -304,6 +305,23 @@ handing a sub-make a claim lock instead of the jobserver.
 No workflow passes `-j`, so nothing in CI is affected. A caller who needs
 parallelism should invoke the unwrapped target directly rather than have the
 wrapper forward a mechanism it cannot forward safely.
+
+### Over-admission by the soft cap is cumulative, and not bounded over time
+
+The soft cap admits a run past the limit when an existing slot's holder is older
+than the admission age budget. Nothing keeps a tombstone for a holder forgotten this
+way, so a forgotten holder that is still alive is not counted again by the next
+admission. At a limit of one, a run lasting far beyond the age budget can therefore
+be joined by a second, then a third, without bound: each admission sees one aged
+slot and replaces it, while the earlier holders keep running.
+
+This is stated rather than fixed. Bounding it means retaining a record of every
+expired-but-live holder, which is a second liveness registry with its own reclaim
+policy — the machinery this design exists to avoid. The exposure is small in
+practice because the age budget is six hours and the wait budget is ninety minutes,
+so reaching it requires a run that has already outlived any gate in this repository
+by an order of magnitude. The limiter is a courtesy to a shared machine, not an
+isolation boundary; a genuinely unbounded run is the fault to fix.
 
 ## Testing Strategy
 

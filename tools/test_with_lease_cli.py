@@ -216,3 +216,254 @@ def test_wrapper_only_adds_the_nesting_marker(repository: Path, monkeypatch: pyt
         (sys.executable, "-c", inherited), repository=repository,
         environ={"CARRIED": "yes"},
     ) == 0
+
+
+def test_admission_precedes_activity_so_a_queued_run_never_blocks_cleanup(
+    repository: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nothing may hold the cleanup-blocking role while still waiting for a slot.
+
+    AC7 scopes the activity claim to "exactly one child's lifetime". Acquiring it
+    before the admission wait meant a merely queued run refused cleanup for the whole
+    wait budget with no child in existence. Observed at the moment the slot
+    acquisition is entered, because a claim released by the wrapper's own unwind is
+    invisible to any check made after the call returns -- which is why the ordering
+    survived a suite that only inspected the aftermath.
+    """
+    monkeypatch.chdir(repository)
+    common = coordination_lease.git_common_dir(repository)
+    lease_dir = common / coordination_lease.LEASE_DIRECTORY
+    claims_when_admission_began: list[list[str]] = []
+    real_acquire = coordination_lease.acquire_run_slot
+
+    def watching(*args: object, **kwargs: object) -> object:
+        existing = sorted(p.name for p in lease_dir.glob("*.lease")) if lease_dir.is_dir() else []
+        claims_when_admission_began.append(existing)
+        return real_acquire(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(coordination_lease, "acquire_run_slot", watching)
+    assert coordination_lease.main(
+        ["with-lease", "--", sys.executable, "-c", "raise SystemExit(0)"]
+    ) == 0
+    assert claims_when_admission_began == [[]], (
+        "a claim existed before admission was even attempted: "
+        f"{claims_when_admission_began}"
+    )
+
+
+def test_nested_receipt_names_the_holder_and_never_the_marker(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC8's receipt makes an inert limiter visible without publishing a bypass."""
+    monkeypatch.chdir(repository)
+    common = coordination_lease.git_common_dir(repository)
+    holder = coordination_lease.acquire_run_slot(common, environ={})
+    try:
+        monkeypatch.setenv(
+            coordination_lease.RUN_SLOT_NESTING_MARKER_ENV, holder.nesting_marker
+        )
+        assert coordination_lease.main(
+            ["with-lease", "--", sys.executable, "-c", "raise SystemExit(0)"]
+        ) == 0
+    finally:
+        holder.release()
+    captured = capsys.readouterr().err
+    assert "nested" in captured
+    assert "limiter is inert" in captured
+    assert f"pid {holder.pid}" in captured
+    # The marker is the bypass; naming the holder is the point, echoing the token is not.
+    assert holder.nesting_marker not in captured
+
+
+def test_a_held_coordination_lock_refuses_rather_than_running_unleased(
+    repository: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """Decision-lock exhaustion is contention, so the limiter may not switch off.
+
+    A lock still held by a live peer when the budget runs out was reported as an
+    unusable store, and the wrapper's fail-open branch then ran the child with no
+    slot at all -- the limiter disabling itself under exactly the load it exists for.
+    The child must not run.
+    """
+    monkeypatch.chdir(repository)
+    common = coordination_lease.git_common_dir(repository)
+    lease_dir = common / coordination_lease.LEASE_DIRECTORY
+    lease_dir.mkdir(mode=coordination_lease.LEASE_DIRECTORY_MODE, parents=True, exist_ok=True)
+    sentinel = tmp_path / "the-child-ran"
+    # The admission path passes a budget scaled from the wait budget with a 30s floor,
+    # so both must shrink for the exhaustion to be reachable inside a test.
+    monkeypatch.setenv(coordination_lease.RUN_SLOT_WAIT_SECONDS_ENV, "1")
+    monkeypatch.setattr(
+        coordination_lease, "MINIMUM_RUN_SLOT_DECISION_LOCK_SECONDS", 0.2
+    )
+
+    # A second open file description contends with this one even in-process, so the
+    # wrapper meets a genuinely held lock rather than a mocked failure.
+    with coordination_lease.coordination_lock(lease_dir, "coordination.lock"):
+        code = coordination_lease.main(
+            [
+                "with-lease",
+                "--",
+                sys.executable,
+                "-c",
+                f"open({str(sentinel)!r}, 'w').close()",
+            ]
+        )
+
+    assert code == 75
+    captured = capsys.readouterr().err
+    assert "WORKTREE_LEASE_DID_NOT_RUN" in captured
+    assert "did not run" in captured
+    assert not sentinel.exists(), "the child ran despite an unavailable slot decision"
+
+
+def test_bootstrap_participates_in_no_lease() -> None:
+    """The matrix's one non-participant, asserted so a future claim is deliberate.
+
+    The previous plan claimed `bootstrap.py` published a claim when it never did, and
+    froze at Done with that statement in it. The disposition is now falsifiable:
+    bootstrap runs `npm ci --prefix`, which is per-worktree and concurrently safe, so
+    it takes no claim. Adding one here should redden this test and force the matrix to
+    be updated with it.
+    """
+    source = Path(coordination_lease.__file__).resolve().parent / "bootstrap.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imported.add(node.module or "")
+            imported.update(f"{node.module or ''}.{alias.name}" for alias in node.names)
+
+    leasing = {name for name in imported if "coordination_lease" in name}
+    assert not leasing, f"bootstrap.py now imports a lease module: {sorted(leasing)}"
+    assert "coordination_lease" not in source.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("child_code", [0, 23])
+def test_a_failing_release_cannot_change_the_childs_exit_code(
+    repository: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    child_code: int,
+) -> None:
+    """AC7's exit-code integrity, in both directions.
+
+    Teardown may not rewrite a real child outcome: a failing release must not redden a
+    passing child, and it must not mask a failing one either. Both directions are
+    parameterised because a wrapper that swallowed every failure would satisfy the
+    first on its own.
+    """
+    monkeypatch.chdir(repository)
+
+    def exploding_release(self: object) -> None:
+        raise coordination_lease.ClaimStoreUnavailable("release refused")
+
+    monkeypatch.setattr(coordination_lease.RunSlotClaim, "release", exploding_release)
+    monkeypatch.setattr(coordination_lease.WorktreeClaim, "release", exploding_release)
+
+    assert coordination_lease.main(
+        ["with-lease", "--", sys.executable, "-c", f"raise SystemExit({child_code})"]
+    ) == child_code
+    assert "release failed" in capsys.readouterr().err
+
+
+def test_a_marker_naming_no_live_claim_cannot_disable_the_limiter(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC8: a stale export or a crashed run's leftover is not a free pass.
+
+    Nesting is recognised only when the inherited marker names a claim still live in
+    the same scope. The marker here names a claim file that really exists and whose
+    lock is free -- a crashed run's leftover, which is the case that matters: a marker
+    naming nothing at all is caught by the existence check alone, so a test using one
+    cannot tell whether the liveness half of this clause is implemented.
+    """
+    monkeypatch.chdir(repository)
+    budgets = {
+        coordination_lease.MAX_CONCURRENT_RUNS_ENV: "1",
+        coordination_lease.RUN_SLOT_WAIT_SECONDS_ENV: "1",
+    }
+    for name, value in budgets.items():
+        monkeypatch.setenv(name, value)
+    common = coordination_lease.git_common_dir(repository)
+    holder = coordination_lease.acquire_run_slot(common, environ=budgets)
+    lease_dir = coordination_lease.read_lease_directory(common)
+    assert lease_dir is not None
+    leftover_token = "f" * 32
+    leftover = coordination_lease._run_claim_path(
+        lease_dir, coordination_lease.ClaimRole.RUN_SLOT, leftover_token
+    )
+    coordination_lease._unlock_and_close(
+        coordination_lease.publish_claim_candidate(
+            lease_dir,
+            leftover,
+            coordination_lease._run_claim_payload(leftover_token, common),
+        )
+    )
+    assert leftover.exists()
+    try:
+        monkeypatch.setenv(
+            coordination_lease.RUN_SLOT_NESTING_MARKER_ENV, leftover_token
+        )
+        assert coordination_lease.main(
+            ["with-lease", "--", sys.executable, "-c", "raise SystemExit(0)"]
+        ) == 75
+    finally:
+        holder.release()
+    assert "WORKTREE_LEASE_DID_NOT_RUN" in capsys.readouterr().err
+
+
+def test_an_unusable_store_warns_and_still_runs_the_wrapped_child(
+    repository: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    """AC9: the lease may degrade, but it may not fail the job."""
+    monkeypatch.chdir(repository)
+    common = coordination_lease.git_common_dir(repository)
+    # A regular file where the lease directory belongs: unusable, not contended.
+    (common / coordination_lease.LEASE_DIRECTORY).write_text("not a directory", encoding="utf-8")
+    sentinel = tmp_path / "the-child-ran"
+
+    assert coordination_lease.main(
+        [
+            "with-lease",
+            "--",
+            sys.executable,
+            "-c",
+            f"open({str(sentinel)!r}, 'w').close()",
+        ]
+    ) == 0
+
+    assert sentinel.exists()
+    assert "running child unleased" in capsys.readouterr().err
+
+
+def test_a_live_exclusive_claim_refuses_the_wrapper_with_the_reserved_code(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A mutator may not run while cleanup holds the worktree.
+
+    The wait budget must reach this wait too: it was hardcoded to the default, so a
+    configured budget shortened only the admission wait and this case blocked for
+    ninety minutes instead of refusing. A one-second budget proves the plumbing.
+    """
+    monkeypatch.chdir(repository)
+    monkeypatch.setenv(coordination_lease.RUN_SLOT_WAIT_SECONDS_ENV, "1")
+    common = coordination_lease.git_common_dir(repository)
+    holder = coordination_lease.acquire_exclusive(common, repository)
+    try:
+        assert coordination_lease.main(
+            ["with-lease", "--", sys.executable, "-c", "raise SystemExit(0)"]
+        ) == 75
+    finally:
+        holder.release()
+    captured = capsys.readouterr().err
+    assert "WORKTREE_LEASE_DID_NOT_RUN" in captured
+    assert "did not run" in captured
