@@ -3,7 +3,11 @@
 # Python package; this file is the thin user surface spec § Boundaries
 # § Always do calls for.
 
-PYTHON ?= python3
+# Keep explicit environment/command-line overrides verbatim. The default stays
+# lazy so non-Python targets do not pay a pyenv-shim launch; its first use asks
+# isolated Python for the active executable, shell-quotes it, then replaces this
+# recursive value with the resolved simple value for the rest of the make run.
+PYTHON ?= $(eval PYTHON := $(shell python3 -I -B -c 'import shlex, sys; print(shlex.quote(sys.executable) if sys.executable else "")'))$(if $(PYTHON),$(PYTHON),$(error unable to resolve python3 executable))
 PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
 # Stale __pycache__ makes catalogue verify's fresh-output build (CAT-V-014)
 # fail mid-run, on a clean tree too. Overridable: PYTHONDONTWRITEBYTECODE= make ci
@@ -450,7 +454,10 @@ test-unleased:
 #
 # Skip SAST: SKIP_SAST=1 make ci — the run then ends with an INCOMPLETE banner,
 # because a run missing a leg CI will run must not read like a pass.
-ci: build-check pre-pr lint-ruff lint-mypy test
+# build-check already runs pre_pr_catalogue.py --skip-verify after its one
+# portable verification and persistent build. A direct pre-pr prerequisite here
+# would repeat both the aggregator and portable verification in the same CI run.
+ci: build-check lint-ruff lint-mypy test
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────
