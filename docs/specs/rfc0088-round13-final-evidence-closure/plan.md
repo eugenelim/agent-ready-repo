@@ -383,7 +383,8 @@ a fixture there would have manufactured coverage for a check doing nothing.
 ### T6: Inventory the worker-purge blast radius
 
 **Depends on:** T0 · **Unit:** 3
-**Touches:** a new `s3` driver; `r9-gates.sh` (arm registration)
+**Touches:** a new `s3` driver; `r9-gates.sh` (arm registration); `build-archive.py`
+(two `MEMBERS` entries and the origin-shaped-filename detector class AC8 requires)
 
 **Tests:** Visual/manual QA. Removed/retained inventory recorded through the
 confined-removal helper, with a control that fails when the purge is removed. Two further
