@@ -1,6 +1,6 @@
 # Spec: worktree-runtime-hygiene
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** repository maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Contract:** none <!-- no REST/event/RPC surface; the `scan --json` shape is a command-output contract held in code and tests, not a published interface -->
@@ -64,11 +64,15 @@ state, and silently skipped tests unrelated to the actual space problem.
   `__pycache__` is a correctness cleanup because stale bytecode can violate CAT-V-014
   during a run.
 
-- [ ] **AC6 — round 2: concurrent operations are explicitly leased.** The second
+- [ ] **AC6 — round 2: concurrent operations are explicitly leased.** (deferred: worktree-cooperative-lease) The second
   implementation task adds a caller-selected preview-port override and a gate wrapper
   that leases it without binding the shared default port. It also adds the cooperative
   worktree lease shared by cleanup and mutating build/test entry points; only that
   shared lease can close the remaining check-to-delete concurrency window completely.
+  The lease was built and then split out under review: three independent reviewers
+  found that it carries more failure modes than this criterion enumerates, including a
+  Windows byte-range defect that would let `clean --apply` delete under a live
+  mutator. It gets its own spec rather than a wider version of this one.
 
 - [x] **AC7 — round 2: bootstrap and browser cache choices remain explicit.** The
   second implementation task adds a browser-cache resolver and selective bootstrap
@@ -122,6 +126,38 @@ state, and silently skipped tests unrelated to the actual space problem.
   is safe. It also honours the existing repeatable `--protect-worktree` and
   `WORKTREE_HYGIENE_PROTECT_WORKTREES` input. No lifecycle command removes a
   worktree, directory, or branch.
+
+- [x] **AC11 — a gate child's process group is reaped on the normal-exit path.**
+  The shared child runner reaps the child's process group after an ordinary exit, not
+  only on its interrupt paths, so a gate command that backgrounds a preview server and
+  exits zero does not leave a descendant of that group holding the leased port after
+  the lease is released. Exactly one implementation of the spawn, forward, reap and
+  escalate sequence exists and both the gate wrapper and any future caller use it.
+
+  Ownership is proved before any group signal on the normal-exit path: the runner
+  waits for the child's exit without reaping it, so the identity it signals cannot
+  have been recycled, and it does not reap until after the final escalation. A process
+  the runner did not spawn is never signalled. The interrupt paths carry a different
+  and equally explicit argument — they signal while the child is still unreaped — and
+  no proof that blocks is ever attempted inside a signal handler: the handler only
+  sends, while escalation and every wait stay in the main flow.
+
+  The group is captured at spawn, while the child is certainly alive, and carried into
+  the reap as a parameter, because it cannot be looked up afterwards. Any outcome other
+  than a completed reap is reported on stderr rather than degrading silently.
+
+- [x] **AC12 — the preview-port unit test pays no cold module transform inside a
+  timed assertion.** `web/src/test/site-base.test.ts` imports its subject once in a
+  warm-up hook carrying an explicit budget sized for a cold transform, so no case pays
+  that cost. The warm-up sets a known-valid `ARR_PREVIEW_PORT` before importing and
+  restores the environment afterwards, because the module throws at load on an invalid
+  value and a hook abort would replace eight readable per-case failures with one
+  unreadable failure. Every case keeps the default per-test budget and no case carries
+  a timeout of its own: widening the budget of an assertion whose real cost does not
+  vary is what hides the defect. What the suite proves is unchanged — `PREVIEW_PORT`
+  stays a module-level constant exercised through `vi.resetModules()` and re-import.
+  The contract is checked mechanically, because a timing assertion cannot be the
+  contract for a flake.
 
 ## Limitations
 

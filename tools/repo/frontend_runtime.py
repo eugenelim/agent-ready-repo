@@ -38,8 +38,9 @@ from typing import Any, Callable, Iterator, Mapping, Sequence
 # namespace package, which is how tools/test_frontend_runtime.py:16 imports it.
 # Dropping either branch breaks one of those callers at collection time.
 if __package__:
-    from . import worktree_hygiene
+    from . import managed_child, worktree_hygiene
 else:
+    import managed_child
     import worktree_hygiene
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -49,13 +50,12 @@ LEASE_DIRECTORY = "agent-ready-repo-port-leases"
 LEASE_MAX_AGE_SECONDS = 24 * 60 * 60
 LEASE_RETRY_LIMIT = 20
 LEASE_RETRY_DELAY_SECONDS = 0.05
-PROCESS_TREE_EXIT_TIMEOUT_SECONDS = 5.0
+PROCESS_TREE_EXIT_TIMEOUT_SECONDS = managed_child.PROCESS_TREE_EXIT_TIMEOUT_SECONDS
 PLAYWRIGHT_EVIDENCE_MAX_AGE_ENV = "PLAYWRIGHT_FAILURE_EVIDENCE_MAX_AGE_SECONDS"
 SignalHandler = Callable[[int, FrameType | None], Any] | int | None
 
 
-class FrontendRuntimeError(RuntimeError):
-    """An actionable frontend-runtime configuration or execution error."""
+FrontendRuntimeError = managed_child.ManagedChildError
 
 
 def playwright_evidence_max_age(environ: Mapping[str, str]) -> int:
@@ -408,139 +408,11 @@ def _require_npm() -> None:
         )
 
 
-def _spawn_child(
-    command: Sequence[str], env: Mapping[str, str], cwd: Path
-) -> subprocess.Popen[Any]:
-    """Spawn the gate in a process group dedicated to its complete descendant tree."""
-    if os.name == "nt":
-        creation_flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-        return subprocess.Popen(
-            tuple(command),
-            cwd=cwd,
-            env=dict(env),
-            creationflags=creation_flags,
-        )
-    return subprocess.Popen(
-        tuple(command),
-        cwd=cwd,
-        env=dict(env),
-        start_new_session=True,
-    )
-
-
-@dataclass(frozen=True)
-class _ProcessTreeSignal:
-    """Information the main flow needs after a handler signals the process tree."""
-
-    process_group: int | None = None
-    taskkill: subprocess.Popen[Any] | None = None
-
-
-def _signal_process_tree(
-    child: subprocess.Popen[Any], signum: int
-) -> _ProcessTreeSignal:
-    """Signal the gate tree without waiting, polling, or sleeping."""
-    if os.name == "nt":
-        try:
-            taskkill = subprocess.Popen(
-                ("taskkill", "/T", "/F", "/PID", str(child.pid)),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return _ProcessTreeSignal(taskkill=taskkill)
-        except OSError:
-            pass
-    else:
-        try:
-            process_group = os.getpgid(child.pid)
-            os.killpg(process_group, signum)
-            return _ProcessTreeSignal(process_group=process_group)
-        except ProcessLookupError:
-            return _ProcessTreeSignal()
-        except OSError:
-            pass
-    with contextlib.suppress(OSError):
-        child.send_signal(signum)
-    return _ProcessTreeSignal()
-
-
-def _reap_process_tree(
-    child: subprocess.Popen[Any], tree_signal: _ProcessTreeSignal
-) -> None:
-    """Wait for a signalled tree and escalate from the main flow only."""
-    if tree_signal.taskkill is not None:
-        try:
-            tree_signal.taskkill.wait(timeout=PROCESS_TREE_EXIT_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired:
-            tree_signal.taskkill.kill()
-            tree_signal.taskkill.wait()
-    try:
-        child.wait(timeout=PROCESS_TREE_EXIT_TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired:
-        if tree_signal.process_group is not None:
-            with contextlib.suppress(ProcessLookupError):
-                os.killpg(tree_signal.process_group, signal.SIGKILL)
-        else:
-            with contextlib.suppress(OSError):
-                child.kill()
-        child.wait()
-
-    if tree_signal.process_group is None:
-        return
-    try:
-        os.killpg(tree_signal.process_group, 0)
-    except ProcessLookupError:
-        return
-    with contextlib.suppress(ProcessLookupError):
-        os.killpg(tree_signal.process_group, signal.SIGKILL)
-
-
-def _run_child(command: Sequence[str], env: Mapping[str, str], cwd: Path) -> int:
-    """Run a gate child, forwarding supported termination signals."""
-    interrupted: list[int] = []
-    tree_signals: list[_ProcessTreeSignal] = []
-    previous_handlers: dict[int, SignalHandler] = {}
-    child: subprocess.Popen[Any] | None = None
-
-    def forward(signum: int, _frame: FrameType | None) -> None:
-        interrupted.append(signum)
-        if child is not None:
-            tree_signals.append(_signal_process_tree(child, signum))
-
-    if threading.current_thread() is threading.main_thread():
-        for name in ("SIGINT", "SIGTERM"):
-            signum = getattr(signal, name, None)
-            if signum is not None:
-                previous_handlers[signum] = signal.getsignal(signum)
-                signal.signal(signum, forward)
-
-    try:
-        if interrupted:
-            return 128 + interrupted[0]
-        try:
-            child = _spawn_child(command, env, cwd)
-        except FileNotFoundError as error:
-            raise FrontendRuntimeError(
-                f"gate executable {command[0]!r} was not found"
-            ) from error
-        if interrupted:
-            if not tree_signals:
-                tree_signals.append(_signal_process_tree(child, interrupted[0]))
-            _reap_process_tree(child, tree_signals[-1])
-            return 128 + interrupted[0]
-        try:
-            returncode = child.wait()
-        except KeyboardInterrupt:
-            tree_signal = _signal_process_tree(child, signal.SIGINT)
-            _reap_process_tree(child, tree_signal)
-            return 130
-        if interrupted:
-            _reap_process_tree(child, tree_signals[-1])
-            return 128 + interrupted[0]
-        return returncode
-    finally:
-        for signum, handler in previous_handlers.items():
-            signal.signal(signum, handler)
+_spawn_child = managed_child.spawn_child
+_ProcessTreeSignal = managed_child.ProcessTreeSignal
+_signal_process_tree = managed_child.signal_process_tree
+_reap_process_tree = managed_child.reap_process_tree
+_run_child = managed_child.run_child
 
 
 @contextlib.contextmanager

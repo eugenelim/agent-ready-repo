@@ -502,6 +502,38 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The cooperative worktree lease from spec/worktree-runtime-hygiene AC6. It was built
+  # to completion across five layers and then SPLIT OUT under review rather than landed:
+  # three independent reviewers found failure modes AC6 does not enumerate. The two that
+  # decide it needs its own spec rather than a patch:
+  #   - Windows `msvcrt.locking` locks one byte at the CURRENT FILE POSITION. The publish
+  #     path writes the payload then locks (position = payload length) while the probe
+  #     opens at 0 and locks byte 0, so the ranges never overlap, every probe reads
+  #     NOT_LIVE, and `clean --apply` can delete under a live mutator -- the exact failure
+  #     the lease exists to prevent. The `_port_coordination_lock` it replaced handled
+  #     this deliberately (wrote a NUL, seeked to 0); the refactor dropped that.
+  #   - The remedies applied under review each introduced a further defect: an age
+  #     backstop for the admission roles contradicts AC6's "undeterminable counts as
+  #     live", and widening `release-claim` to run-tickets created a path where a removed
+  #     ticket is never re-published, turning a queued run into a 90-minute wait ending in
+  #     a refusal.
+  # Also open: the memory clamp's divisor sits exactly on its calibration point and
+  # SC_PHYS_PAGES reports USABLE pages, so a nominal-32GiB Linux host clamps to 1; the
+  # decision lock's ~1s retry budget is the first thing to exhaust under the contention it
+  # exists to bound, and exhausting it degrades the limiter to a no-op; and the recursive
+  # $(MAKE) through a Python wrapper loses the jobserver, so `make -j` warns and drops to
+  # -j1. The work is preserved on branch eugenelim/worktree-hygience-c-lease-wip.
+  # De-risked before the re-spec: tools/test_windows_lock_semantics.py runs on a
+  # windows-latest job (build-check-windows.yml, lock-semantics-windows) that
+  # REPORTS rather than gates, because nothing depends on it yet. It measures
+  # whether a claim lock held after writing a payload is observable by a prober,
+  # and whether seeking both sides to byte zero makes it observable. Read that job's
+  # log before designing the Windows branch: if the seek-to-zero invariant fails
+  # there, byte-range locking cannot carry liveness on Windows and the lease must
+  # report UNDETERMINABLE on that platform -- failing safe toward refusing, never
+  # toward deleting. Wire the job into build-check-windows's `needs` in the same
+  # change that lands the lease, so the invariant is enforced once relied upon.
+  {slug = "worktree-cooperative-lease", source = "spec/worktree-runtime-hygiene AC6", summary = "Re-spec and land the cooperative worktree lease, admission queue and with-lease wrapper: fix the Windows byte-range claim lock, reconcile the admission-role reclaim policy with AC6, re-publish a lost waiter ticket, recalibrate the memory clamp against usable-page reporting, scale the decision-lock budget with the wait budget, and forward the make jobserver"},
   # RFC-0092 D7 deferred direction. The canonical MCP primitive stays transport-first so
   # a typed acquisition descriptor stays possible; fetch-on-run launchers are already
   # refused at the build boundary, so this is a permit-something RFC, not a restrict one.

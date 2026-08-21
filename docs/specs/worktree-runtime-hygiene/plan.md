@@ -1,6 +1,6 @@
 # Plan: worktree-runtime-hygiene
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Task 1 — scan and safe clean (this implementation)
@@ -19,6 +19,11 @@
 
 1. Shipped: preview-port override and gate wrapper with a port lease.
 2. Shipped: browser-cache path resolution and selective bootstrap profiles.
+3. Split out: the cooperative worktree lease. It was built to completion and then
+   removed from this spec under review — see `spec.md` AC6's deferral note and
+   `docs/specs/worktree-cooperative-lease/`. What landed here instead are the two
+   residuals that were always independent of it: the normal-exit process-group reap
+   and the preview-port test's cold-transform flake.
 3. Open: add a cooperative worktree lease shared by cleanup and mutating build/test
    entry points to close the remaining check-to-delete concurrency window.
 
@@ -70,3 +75,49 @@ inside import success, shadowing refusal, and the existing protection channels.
    outside, absent, and inconclusive results, as well as existing protected worktrees.
 3. Kept every lifecycle command report-only: none removes a worktree, directory, or
    branch.
+
+## Task 6 — the two residuals (this layer)
+
+**Depends on:** Task 1, Task 2, Task 3, Task 4, Task 5 (all shipped)
+
+Owns AC11 and AC12. Both were documented residuals of earlier rounds and neither
+depends on the cooperative lease, which is why they land while it does not.
+
+Tests: `tools/test_managed_child.py` gets its own Makefile pytest invocation;
+`web/src/test/site-base.test.ts` extends the existing vitest suite. Additions to
+`tools/test_frontend_runtime.py` reuse its existing invocation.
+
+### Measured, so the design is evidence rather than assertion
+
+- `os.getpgid` on an unreaped zombie raises `ProcessLookupError`, 15 of 15, so the
+  group cannot be looked up after the child exits and is captured at spawn instead
+  (20 of 20, equal to the pid).
+- `killpg` on a group whose only member is the caller's own unreaped zombie answers
+  `EPERM` on macOS — 12 of 12 with signal 0, 8 of 8 with `SIGTERM`, 6 of 6 again
+  when re-measured — while it succeeds 4 of 4 with a live grandchild present. A
+  group-drain probe therefore cannot distinguish "empty but for my zombie" from
+  "not my group", so the design omits the probe: signal, grace, escalate, reap.
+  After a successful ownership proof the group is provably ours, so `EPERM` there
+  means no signalable live member, which is success.
+- That measurement is macOS only. On Linux a zombie is a signalable member of its
+  own group, so `killpg` is expected to succeed and the grace to fire on every run;
+  the grace is kept short for that reason and the comment says so rather than
+  claiming it is free.
+- `Popen.send_signal` calls `poll()`, and `poll()` reaps an exited child, after
+  which the ownership proof correctly refuses and signals nothing. Nothing may poll
+  or wait before the reap; a test pins it.
+- vitest: first case 1536 ms and 2247 ms across two runs, later cases 7-52 ms; an
+  instrumented probe put 1817.9 ms in the dynamic import and 0.1 ms in
+  `vi.resetModules()`. With the warm-up hook, first case 9-11 ms. The hook needs an
+  explicit budget because vitest's default hook timeout is 10000 ms and a loaded
+  full-suite run measured that import at ~114 s.
+
+### Tempted and declined
+
+- Landing the cooperative lease with this change. Declined: three independent
+  reviewers found failure modes AC6 does not enumerate, including a Windows
+  byte-range defect in the claim lock that would let `clean --apply` delete under a
+  live mutator. Shipping it behind a criterion that does not describe it would have
+  been worse than shipping nothing.
+- Widening AC6 to cover what was built. Declined: the operator asked for a split, and
+  a criterion amended to match its implementation stops being a contract.

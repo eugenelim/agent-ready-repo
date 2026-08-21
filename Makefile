@@ -397,6 +397,7 @@ test:
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
+	$(PYTHON) -m pytest tools/test_managed_child.py -q
 	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
 	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
