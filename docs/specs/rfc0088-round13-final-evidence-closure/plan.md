@@ -228,6 +228,26 @@ threshold** proves the cap counts bytes rather than code units, and a **concurre
 over-budget batch** proves the aggregate in-flight bound refuses rather than
 accumulating. Each has a mutation that makes the bound fail.
 
+**The aggregate byte bound needed a correction; the request-count bound is carried as a
+stated residual.** An aggregate byte bound is a claim about simultaneity, and a batch
+that merely *sums* past the budget proves nothing: the first form issued whole-string
+bodies through one dispatch, every one returned successfully, and the bound never fired.
+The bodies are therefore streamed in slices so several genuinely coexist, and that
+observation is asserted.
+
+The **request-count** bound gets the same over-subscription and the same read-back from
+the listener's own counter — a client out of sockets produces failures that look exactly
+like refusals, which would be a false pass — but it is **observed and not asserted**.
+Whether 385 requests are simultaneously inside the handler depends on how fast sockets
+open relative to how fast the handler drains them, which is scheduling rather than the
+bound: asserted, it passed standalone three times and failed twice inside the gate
+chain, once on the **unmutated** run. That is the shape of a flaky gate, and a gate that
+fails for reasons unrelated to what it guards gets weakened until it passes — worse than
+an honest residual. So the bound is in place, its refusals are recorded as evidence in
+the artifact, and the row does not depend on them. Closing it needs a mechanism that can
+hold the listener at saturation deterministically, and client-side concurrency is not
+that mechanism.
+
 **Approach:** The surface scan cap bounds what is *scanned*, not what is *received* —
 the scanner returns truncated for anything above it without inspecting. So the naive
 fix is doubly wrong: the driver deliberately posts one byte above that cap to prove
