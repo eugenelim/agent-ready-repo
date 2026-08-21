@@ -173,7 +173,10 @@ guard is recomputed over the derived portion alone.
 
 **Depends on:** T0 · **Unit:** 2
 **Touches:** `r9-privacy-sweep.py`, `build-archive.py` (shared reader, pattern
-authority, member-scan loop), a new shared reader module
+authority, member-scan loop), the new shared reader module `privacy_terms.py`,
+`r12-fact-negative-tests.py` (its two term-source cases asserted one merged message
+that splitting the refusal reasons correctly retired), and `r9-promote.sh` plus
+`r9-gates.sh` for the anchor capture step and its gate lines
 
 **Tests:** Visual/manual QA. Each of the four inherited refusal modes proved per
 consumer, **plus the two new ones** — a sanctioned-placeholder term and a
@@ -224,6 +227,26 @@ promised in the criterion but never tested: a **multibyte payload straddling the
 threshold** proves the cap counts bytes rather than code units, and a **concurrent
 over-budget batch** proves the aggregate in-flight bound refuses rather than
 accumulating. Each has a mutation that makes the bound fail.
+
+**The aggregate byte bound needed a correction; the request-count bound is carried as a
+stated residual.** An aggregate byte bound is a claim about simultaneity, and a batch
+that merely *sums* past the budget proves nothing: the first form issued whole-string
+bodies through one dispatch, every one returned successfully, and the bound never fired.
+The bodies are therefore streamed in slices so several genuinely coexist, and that
+observation is asserted.
+
+The **request-count** bound gets the same over-subscription and the same read-back from
+the listener's own counter — a client out of sockets produces failures that look exactly
+like refusals, which would be a false pass — but it is **observed and not asserted**.
+Whether 385 requests are simultaneously inside the handler depends on how fast sockets
+open relative to how fast the handler drains them, which is scheduling rather than the
+bound: asserted, it passed standalone three times and failed twice inside the gate
+chain, once on the **unmutated** run. That is the shape of a flaky gate, and a gate that
+fails for reasons unrelated to what it guards gets weakened until it passes — worse than
+an honest residual. So the bound is in place, its refusals are recorded as evidence in
+the artifact, and the row does not depend on them. Closing it needs a mechanism that can
+hold the listener at saturation deterministically, and client-side concurrency is not
+that mechanism.
 
 **Approach:** The surface scan cap bounds what is *scanned*, not what is *received* —
 the scanner returns truncated for anything above it without inspecting. So the naive
@@ -317,10 +340,28 @@ that enumerates every self-test flag and asserts each is invoked, closing the cl
 rather than the two instances. The token-encoding mutation is unreachable because the
 encoding table sits above the region marker; widen the region to start after the
 harness function, admitting the table while still excluding the harness's own case
-literals, which is what the marker exists for. The browser-store decoy is in the
-region but untargeted; add a case. The staged-member decoy search does not exist and
-its per-run decoy is never published outside the issuing process, so nothing could
-have searched for it.
+literals, which is what the marker exists for. The staged-member decoy search does not
+exist and its per-run decoy is never published outside the issuing process, so nothing
+could have searched for it.
+
+**Measured during execution, and it changes two of those four.** The browser-store
+decoy is in the region but untargeted, and a case for it was written and run: removing
+both page-side decoy writes did **not** flip its row. The row asks whether the
+`user-data` surface kind has any buffer with the decoy recovered, and the run recovers
+it from two — the Local Storage log the write produces, and the cached page response,
+whose body carries the decoy independently. No assertion depends on the writes, so
+they are plant coverage rather than a control, and the round's own rule applies: ask
+whether the guard is redundant before writing a fixture for it. The case is dropped
+with that reasoning recorded beside the case list.
+
+Dropping one of the five encoded forms likewise did not flip the no-store row, because
+the live token sits in the cached token response as plain JSON and the raw form finds
+it. One entry of a defence-in-depth table is not load-bearing. That mutation is
+therefore re-aimed at the whole table, which is load-bearing and does flip the row —
+proving the at-rest finding rests on the scanner matching token bytes rather than on
+an assertion. Widening the region is what made either mutation *reachable*, which is
+what the criterion asks for; reachability and discrimination are separate properties
+and this task establishes both, separately, per case.
 
 Make uniqueness an assertion inside the runner, counting occurrences within the sliced
 region — the existing guard tests the whole source, so a needle living only above the
