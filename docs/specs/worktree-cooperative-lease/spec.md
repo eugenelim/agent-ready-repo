@@ -1,6 +1,6 @@
 # Spec: worktree-cooperative-lease
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** repository maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -57,7 +57,7 @@ falsified by any test.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — a claim's liveness is a held lock, observable on every supported
+- [x] **AC1 — a claim's liveness is a held lock, observable on every supported
   platform.** A claim is live when its owner still holds the advisory lock it took
   for that claim's lifetime. Liveness is therefore an observation about a lock the
   operating system releases on the owner's death, never an inference from a
@@ -78,7 +78,7 @@ falsified by any test.
   the Windows aggregate's required set by the change that satisfies this criterion,
   because something now depends on it.
 
-- [ ] **AC2 — cleanup and mutating runs interlock, atomically.** A worktree carries
+- [x] **AC2 — cleanup and mutating runs interlock, atomically.** A worktree carries
   an `activity` role held by mutating build and test entry points and an
   `exclusive` role held by `clean --apply`. Each participant's read of the other
   role and the publication of its own claim occur inside one uninterrupted hold of
@@ -111,7 +111,7 @@ falsified by any test.
   A test asserts exactly one admission — `== 1`, never `<= 1`, because `<= 1` passes
   when both refuse, which is the outcome this criterion forbids.
 
-- [ ] **AC3 — the deletion safety proof is unchanged and unconditional.** The
+- [x] **AC3 — the deletion safety proof is unchanged and unconditional.** The
   per-candidate predicate of `worktree-runtime-hygiene` AC5, and its re-assertion
   immediately before each deletion, are untouched. No check becomes conditional on
   holding a claim. The claim narrows the concurrent-mutation window; it does not
@@ -119,7 +119,7 @@ falsified by any test.
   carry a suffix the deletion predicate already refuses, so no cleanup run can
   delete the coordination state it depends on.
 
-- [ ] **AC4 — claim payloads are untrusted, and no claim is unreleasable.** An
+- [x] **AC4 — claim payloads are untrusted, and no claim is unreleasable.** An
   out-of-range identity, a recorded worktree disagreeing with the claim's own
   location, and a creation time outside the file's own creation window are each
   refused or clamped rather than trusted. The scheduler orders waiters by a value a
@@ -169,7 +169,7 @@ falsified by any test.
   waiter's original queue position, which is what makes this escape hatch safe.
   Neither clause is complete without the other, and both name the coupling.
 
-- [ ] **AC5 — heavy runs are admitted against a common-directory-wide limit, and a
+- [x] **AC5 — heavy runs are admitted against a common-directory-wide limit, and a
   waiter is not overtaken.** At most a configured number of heavy build and test
   runs are admitted at once across every worktree sharing one Git common
   directory. Admission prunes, counts and publishes inside one hold of the shared
@@ -191,7 +191,7 @@ falsified by any test.
   scope, processes outside these worktrees hold no claim, and no output may imply
   that the machine is governed.
 
-- [ ] **AC6 — the budgets are strict, single-homed, and calibrated to a
+- [x] **AC6 — the budgets are strict, single-homed, and calibrated to a
   measurement.** The concurrency limit and the wait budget each parse as whole
   numbers, reject values below one, and refuse invalid input rather than falling
   back to a default, so a malformed value cannot silently disable the limiter —
@@ -220,7 +220,7 @@ falsified by any test.
   under exactly the contention the limiter exists to bound — and exhausting it
   must never degrade the limiter to a no-op.
 
-- [ ] **AC7 — one wrapper, one child runner, and a refusal no caller can mistake
+- [x] **AC7 — one wrapper, one child runner, and a refusal no caller can mistake
   for a verdict.** A wrapper command holds the worktree `activity` claim and one
   admission slot for exactly one child's lifetime, releasing both on normal exit,
   non-zero exit, interrupt and spawn failure, and forwarding termination signals to
@@ -252,7 +252,7 @@ falsified by any test.
   command reports claims and occupancy, mutates nothing, and prints the identifier
   the release command requires.
 
-- [ ] **AC8 — nesting is identity-bearing, and cannot be forged or leaked.** An
+- [x] **AC8 — nesting is identity-bearing, and cannot be forged or leaked.** An
   acquisition nested inside an already admitted run is a no-op, and so is its
   release, so an inner run cannot hand back a slot it never took. Nesting is
   recognised only when the inherited marker names a claim still live in the same
@@ -261,7 +261,7 @@ falsified by any test.
   echoed where it becomes a bypass anyone can copy. The receipt states when a run
   is nested and whose claim it inherited, so an inert limiter is visible.
 
-- [ ] **AC9 — the lease cannot fail a CI job, and the make wiring survives it.**
+- [x] **AC9 — the lease cannot fail a CI job, and the make wiring survives it.**
   An unusable store, an unresolvable worktree, or a platform that cannot lease
   warns and runs the child; only genuine contention refuses, and only
   `clean --apply` fails closed, because only it deletes.

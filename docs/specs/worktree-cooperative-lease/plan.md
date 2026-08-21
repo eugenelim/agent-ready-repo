@@ -1,6 +1,6 @@
 # Plan: worktree-cooperative-lease
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Why this plan exists separately from its predecessor
