@@ -221,7 +221,7 @@ Declared explicitly, because filenames cannot express it.
 | Twelfth | The round-12 note |
 | Thirteenth | This digest, and the round-13 amendment entry |
 
-Round fourteen is deliberately absent from this roster. The roster's one home is the coverage checker's declared tuple, and round fourteen has a dated note of its own, so set one already carries it; adding a row here would give the round two homes.
+Round fourteen is deliberately absent from this roster. The roster is a projection of the coverage checker's declared tuple, which stops at the thirteenth and which round fourteen did not extend; set one carries the round through its own dated note. Having a dated note is not itself the reason — the tenth through thirteenth each have one and a roster row both.
 
 ---
 

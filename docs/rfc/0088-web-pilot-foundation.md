@@ -3451,11 +3451,15 @@ that mechanism rather than record the channel as inherently uncontrollable.
   destination's state, and no aggregate health signal may collapse it into a
   session-wide verdict.
 
-  **AD-3 — credentials resolve through the broker, and no model-reachable process may
-  hold or obtain one.** Credential resolution is `credbroker`'s, in its declared order.
-  The boundary is stated as a **property, not a list of channels**: no LLM-reachable
-  process may hold, or be able to obtain, a resolved or destination-issued credential.
-  Nor is one committed. The reason it did not have before is that the credential
+  **AD-3 — credentials resolve through the broker, and no model-facing tool can reach
+  one.** Credential resolution is `credbroker`'s, in its declared order. The boundary is
+  stated as a **property, not a list of channels**, and the property is about *reach*
+  rather than about *possession*: no credential — resolved or destination-issued — is
+  reachable by a model-facing tool, and any credential a process does hold carries a
+  declared lifetime. Possession by some process is unavoidable; a browser holds a
+  session in order to be a browser. Reachability is the thing a design controls, and
+  writing the property as "no process may hold one" would forbid the architecture AD-1
+  and AD-4 are building. Nor is a credential committed. The reason it did not have before is that the credential
   boundary and the model boundary are different boundaries, and a design that lets them
   coincide has no way to say which one failed.
 
@@ -3467,8 +3471,9 @@ that mechanism rather than record the channel as inherently uncontrollable.
   tool obtains the credential without using any of the obvious three. Two derived
   obligations follow for the build, and they are consequences of this decision rather
   than criteria this round claims to have met: a browser user-data directory is a
-  credential-bearing artifact with a declared lifetime, and a page-resident token is
-  out of reach of every model-facing tool.
+  credential-bearing artifact whose lifetime is declared and enforced, and a
+  page-resident token is out of reach of every model-facing tool. Both are statements
+  about reach and lifetime, which is why the headline is written that way.
 
   **Scope.** AD-3 governs production packs, adapters and CLI surfaces. The
   out-of-repository evidence apparatus is outside it and reads its fixture credential

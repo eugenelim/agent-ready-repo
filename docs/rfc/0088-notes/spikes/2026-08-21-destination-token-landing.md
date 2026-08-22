@@ -149,11 +149,25 @@ scan runs twice, and the split is what makes the claim true rather than nearly t
 the row's own result is part of the artifact, so a single pass over the final bytes
 cannot produce the row it must contain. Pass one yields the row; pass two scans the
 exact bytes about to be written and **refuses the write** on a hit, emitting a
-counts-only refusal record instead. An earlier form scanned a prefix and then wrote the
-file regardless — a detected leak would still have landed on disk. The mutation plants
-a registered sentinel rather than the live credential, because a mutant that proves the
-row can fail by writing a real credential to disk has committed the exposure the row
-exists to prevent.
+refusal record instead — and the refusal is scanned too, because "this record cannot
+leak" is the kind of claim that stops being true the moment someone adds a field to it.
+An earlier form scanned a prefix and then wrote the file regardless; a detected leak
+would still have landed on disk.
+
+The redactor is built from the **same encoded forms** the detector uses, and it was not
+always. Measured while under review: a plain `page.goto: … at http://<origin>/login` was
+redacted, while the percent-encoded form of the same origin walked straight past a
+raw-substring redactor and was caught only by the write gate. Safe either way, but the
+outcome differed — a redacted line in one case, a refused run in the other — which is a
+redactor disagreeing with its own detector. They now share one definition.
+
+The mutation plants the **live token**, and the write gate is what makes that safe. An
+earlier form planted a synthetic sentinel to avoid writing a credential anywhere, but
+the sentinel is detected through the origin and user terms, so the credential detector
+itself was exercised by nothing: removing it left every case and the no-op still
+passing. That is a control that cannot fail. With the write gate refusing, the planted
+token reaches no file, so the stronger plant costs nothing — and the harness now asserts
+*which* term produced the refusal, not merely that something did.
 
 **Cleanup is symlink-safe, and a surviving profile is fatal.** Chromium plants
 `SingletonLock` and its siblings as symlinks in every profile root and removes them only
@@ -162,8 +176,24 @@ Handing it a browser profile directly therefore throws on any unclean exit, and 
 left behind is the profile holding the live token. Proven rather than reasoned: with a
 `SingletonLock` planted, the remover throws `refuse symlink` and the token-bearing file
 survives. Symlinks are now unlinked first with a mechanism that cannot follow one, a
-profile that survives cleanup is a fatal outcome rather than a field, and signal
-handlers cover the interrupt path, since a `finally` block does not run on a kill.
+forced removal backs that up so a fatal outcome means "could not be removed by any
+means" rather than "the confined path declined", a root that survives every path is
+fatal rather than a field, and signal handlers cover the interrupt path with the same
+verification, since a `finally` block does not run on a kill.
+
+**Confinement is established before anything is unlinked**, and the first version of
+this fix had that backwards. Reproduced: with a sibling directory outside the root
+holding a symlink, the removal unlinked it and only *then* threw `refuse path outside
+root` — a bypass of the blessed helper wearing the shape of a use of it. Both sides are
+now real-pathed before the check, which also caught a second defect on the first run
+after: comparing a real-pathed root against an unresolved target refuses its own
+legitimate caller on a platform where the temporary directory is itself a symlink.
+
+The sibling round-12 arms call the confined remover on browser profiles without this
+pre-unlink, and are **not** exposed by it: their runner sets the temporary directory
+inside the tree it cleans, and its own cleanup unlinks symlinks before the confined
+removal. The exposure is specific to a driver invoked **bare**, with no runner beneath
+it, which is how this arm runs.
 
 ## Reference consumer, and what it is not
 
@@ -174,9 +204,8 @@ an acceptance criterion. An acceptance criterion that cannot fire is worse than 
 honest observation, which is why one is not written.
 
 The service is described by shape rather than named, and the same applies to its
-endpoint vocabulary. A provider's API terminology identifies it as surely as its name
-does, and the observation below also records that the operator holds an account there —
-so naming it by either route would put an account relationship into a permanent record.
+endpoint vocabulary: a provider's API terminology identifies it as surely as its name
+does, so de-naming that left the vocabulary in place would not have de-named anything.
 Nothing below depends on which provider it is.
 
 **Probe, 2026-08-21, unauthenticated and read-only, four requests.** The observation is
@@ -213,3 +242,7 @@ sits between them and is unmeasured.
   origin is an ambient default, and none is persisted.
 - The reference-consumer probe is operator-run and has no results artifact. Its record
   is the table above, which is why the date and the status codes are in it.
+- The privacy bound on the results artifact is stated as a prohibition — no origin, no
+  credential, no fixture identity, no value read out of a storage entry or a cookie —
+  rather than as an allowlist of recorded field classes. An allowlist was tried and was
+  incomplete the first time it was checked against the artifact it described.

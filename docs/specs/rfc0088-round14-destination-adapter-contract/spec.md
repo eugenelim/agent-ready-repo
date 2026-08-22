@@ -24,10 +24,11 @@ shipped consumers. That count is unsatisfiable in principle, not merely unsatisf
 pack may bundle, so the count measures what the pack is *permitted to ship* rather than
 whether the foundation works.
 
-The bar is therefore re-denominated as a **destination adapter contract**, exercised by
-two independent fixtures of differing render and authentication shape, plus one
-documented reference consumer an adopter runs against their own account. The contract
-is asserted in CI; the reference consumer is a recorded observation.
+The bar is therefore re-denominated. Its canonical statement is the blockquote in
+RFC-0088's amendment layer, and this spec deliberately does not restate it — the same
+entry declares that a bar written twice is a bar that disagrees with itself at the first
+edit, and a spec that copies it would be the second copy. AC1 quotes its closing
+sentence, which is an assertion about the text rather than a second home for the bar.
 
 Two things follow that this round has to *establish* rather than assert.
 
@@ -80,8 +81,10 @@ is implied that did not happen.
   records live in the RFC's amendment layer, which the RFC already designates as the
   authoritative current contract, and graduate to ADRs on acceptance.
 - Change a production interface — no pack, no adapter, no CLI surface.
-- Create any path by which the repository or CI contacts a third party. Fixtures are
-  pinned containers reached over loopback; the reference consumer never runs in CI.
+- Create any path by which the repository or CI contacts a third party **beyond the
+  one allowlisted egress AD-4 names**. Fixtures are reached over loopback once pulled;
+  the digest-pinned registry pull is that egress, and calling it an absence of egress
+  would be the claim AD-4 explicitly withdraws. The reference consumer never runs in CI.
 - Capture a fixture from a live account. Every fixture is synthetic and created against
   the container at run time; a recorded response would place third-party content and
   personal data in the repository.
@@ -156,14 +159,23 @@ is implied that did not happen.
   needle set covers the issued token, the fixture credential, both destination origins
   and the fixture user name — origins included because a navigation timeout embeds the
   URL in the error text and that text reaches the failure record.
+- [x] **AC12a — No browser user-data directory survives any exit path, and a survivor
+  is fatal.** The temporary profile holds the live token, so its removal is the round's
+  highest-consequence control and is asserted rather than described: `R14-PROFILE-REMOVAL`
+  fails if either profile remains, symlinks are unlinked before the confined removal (a
+  browser that exits uncleanly leaves `SingletonLock` behind, and the confined remover
+  refuses a symlink-bearing tree by design), a forced removal backs that up, a root that
+  survives every path is a fatal outcome rather than a field, and signal handlers cover
+  the interrupt path because `finally` does not run on a kill. Confinement is established
+  before anything is unlinked, so the blessed helper is used rather than bypassed.
 - [x] **AC11 — The reference consumer is an observation with provenance, never an
   acceptance criterion.** Its unauthenticated surface is probed read-only; the
   probe date, the four surfaces and their observed status codes are recorded in a table
   in the note, so the observation can be re-run rather than taken on trust. The private
   variant is named as unmeasured with the one input that would close it. No identifier
   enumeration was performed against a third party, and the provider is described by
-  shape rather than named — its API vocabulary identifies it as surely as its name, and
-  the observation also records that the operator holds an account there.
+  shape rather than named — including its endpoint vocabulary, because a provider's API
+  terminology identifies it as surely as its name does.
 - [x] **AC12 — The round's governance controls stay green.** The digest covers the new
   note with exactly one entry; the decision surface still carries one record per open
   question; every RFC hunk sits below the `## Amendments` anchor; the follow-on-absence

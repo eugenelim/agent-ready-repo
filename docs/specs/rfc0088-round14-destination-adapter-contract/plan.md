@@ -75,6 +75,10 @@ reaches browser user-data at rest through the destination's own web-storage writ
 **Tests:** no stub (goal-based). *Done when:* the note records the probe date, each
 surface probed, and the status code observed for each.
 
+**Authorisation:** pre-authorised by the RFC approver, who commissioned this probe by
+name as one of the round's three named checks. Recorded here because an Ask-first tier
+whose only instance ran with no recorded ask is a tier that permits everything.
+
 **Approach:** a handful of unauthenticated read-only requests against documented public
 endpoints, to establish which surfaces need the session. This is the round's only
 third-party contact and it sits under the spec's **Ask first** tier: it is operator-run,
@@ -126,7 +130,7 @@ round contradicted outright was corrected in the same pass.
 
 ### T5 — Write the note and its digest entry
 
-**Depends on:** T3, T4
+**Depends on:** T2a, T3, T4
 **Verification mode:** goal-based check
 **Tests:** no stub (goal-based). *Done when:* `r13-digest-coverage.py` passes with the
 new note enumerated and covered by exactly one entry above its substance floor.
@@ -136,8 +140,8 @@ apparatus figures out of both the entry and the note's headline claims; the figu
 boundary module is the authority, not judgement about what reads like a headline.
 
 **Outcome:** done. The note describes the reference consumer by shape rather than by
-name — a provider's API vocabulary identifies it as surely as its name does, and the
-note also records an operator account relationship.
+name, endpoint vocabulary included — a provider's API terminology identifies it as
+surely as its name does.
 
 ### T6 — Register the spec and run the gate chain
 
