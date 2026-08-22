@@ -3318,14 +3318,23 @@ that mechanism rather than record the channel as inherently uncontrollable.
   `Experimental`, open questions 1, 2, 5 and 6 remain outstanding, no blocker item
   closes, and no follow-on artifact is created.
 
-  **Open question 3 — ruled. The bar is one independent consumer, not two.** The
+  **Open question 3 — ruled. The bar is amended: it is a contract, not a count.** The
   recommended default in the open-question text required S5 to prove *two* independent
-  software-delivery provider consumers before acceptance. The approver lowers that to
-  **one**. This is a policy judgement about the charter's "used often enough" test, not
-  a measurement, and it is recorded here as the ruling the question asked for.
+  software-delivery provider consumers before acceptance. That default is withdrawn
+  whole. It is replaced by, and this paragraph is question 3's ruling in full — no
+  count-based reading of the bar survives it:
 
-  **What satisfies the lowered bar: nothing yet, and that is the finding.** The
-  satisfying consumer has to be one that drives **web page automation** — this RFC's
+  > The bar is a **destination adapter contract**, exercised by **two independent
+  > fixtures of differing render and authentication shape**, plus **one documented
+  > reference consumer** an adopter runs against their own account. The original bar
+  > assumed the pack could ship its consumers; its legitimate destinations are
+  > predominantly operator-internal surfaces no pack can carry, so a shipped-consumer
+  > count measures what the pack is permitted to bundle rather than whether the
+  > foundation works. The contract is asserted in CI; the reference consumer is a
+  > recorded observation.
+
+  **Why a count was the wrong instrument, and the evidence for it is the search.** The
+  satisfying consumer would have had to drive **web page automation** — this RFC's
   subject is a browser session, page-resident credentials, service-worker policy and
   realm boundaries. Searched rather than assumed, and no such consumer exists in this
   repository, built or planned:
@@ -3347,25 +3356,41 @@ that mechanism rather than record the channel as inherently uncontrollable.
     discovery through `integrations` plus a namespaced conformance marker, so there is
     no category a consumer could already be sitting in unnoticed.
 
-  So question 3 splits in two, and only the first half is ruled. **The bar is ruled at
-  one consumer.** **Satisfaction is outstanding**, and what satisfies it is a
-  page-automation consumer that has to be *built* — the example candidate the
-  foundation exists to serve.
+  That list is not an argument for lowering the count. It is the evidence that a count
+  is measuring the wrong thing. Every entry on it is absent for the same reason: the
+  destinations this foundation exists to reach are operator-internal, so a consumer of
+  it is something an adopter builds inside their own boundary and never publishes here.
+  A bar denominated in shipped consumers reads that as failure indefinitely, however
+  well the foundation works, because the pack is not permitted to bundle the consumers
+  that would satisfy it.
 
   **Consequence for acceptance, and it is not "question 3 is done".** The round-13
   section presented question 3 as the choice between accepting a bar that blocks
-  acceptance and lowering it explicitly. This is the explicit lowering, and it changes
-  the *shape* of the blocker rather than removing it: acceptance no longer waits on two
-  independent adopters appearing, which nothing in the pilot's control could cause. It
-  waits on **one page-automation consumer being built**, which is work this project can
-  schedule. A bar that could only be met by other people's adoption becomes a bar met
-  by an artifact — and unlike the original, it is reachable.
+  acceptance and lowering it explicitly. Neither is taken. The bar is re-denominated:
+  acceptance no longer waits on independent adopters appearing, which nothing in the
+  pilot's control could cause, nor on a single consumer being built inside a boundary
+  that forbids publishing it. It waits on a **destination adapter contract holding
+  against two fixtures**, which is work this project can schedule and CI can assert.
 
-  Two things follow that the approver is accepting by taking this ruling. The consumer
-  cannot be the foundation's own fixtures, or the bar means nothing. And building it is
-  gated behind the same two doors as every other follow-on artifact: the RFC being
-  Accepted, and implementation being separately authorised. So question 3 stops being
-  the *first* blocker and becomes a consequence of the others.
+  Two things follow that the approver is accepting by taking this ruling. The fixtures
+  are the foundation's own, and that is deliberate rather than a concession: they are
+  the only destinations whose credentials the repository may hold, so they are the only
+  place the full login-to-frontend-API path can be mechanically asserted at all. What
+  they cannot supply is evidence that anyone wants this, and the reference consumer is
+  what carries that — as an observation with provenance, never as an acceptance
+  criterion. An acceptance criterion that cannot fire in CI is worse than an honest
+  observation, so it is not written as one.
+
+  **The fixture pair is measured, not proposed.** Both halves are pinned containers,
+  and the pair was selected by standing them up and observing them rather than from
+  documentation. The named candidate going in was an operator-internal delivery tool
+  whose documentation confirms the exact shape this question wants — username and
+  password exchanged for a JWT at a session endpoint, `Authorization: Bearer` on API
+  requests. It was rejected on measurement: its server refuses to start without a
+  cluster API, so it is not a pinned container but a control plane, and the ruling that
+  the fixture is a container is the thing that excluded it. The pair that replaced it,
+  and the at-rest finding that came out of measuring it, are recorded in
+  [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md).
 
   **Open question 4 — the contradicted candidate is re-drafted, and the re-draft is
   the ruling asked for.** The original candidate folded worker policy into the
@@ -3396,3 +3421,94 @@ that mechanism rather than record the channel as inherently uncontrollable.
   Question 4's status therefore moves from outstanding-with-a-contradicted-candidate to
   **ruled**, with the per-group cost carried as a named residual rather than absorbed
   silently.
+
+- **2026-08-21 — four architectural decisions, one scope residual, and the round-14
+  destination measurement.** These are decision records, and they are recorded *here*
+  rather than under `docs/adr/` deliberately: the Boundaries forbid creating a
+  follow-on artifact while this RFC is `Experimental`, and an ADR file is one. This
+  section is already the authoritative current contract, so it is where a decision
+  taken before acceptance belongs. Each one graduates to an ADR when the RFC is
+  Accepted and implementation is separately authorised — the follow-on list already
+  reserves a slot for the first of them. RFC-0088 remains `Experimental`; open
+  questions 1, 2, 5 and 6 remain outstanding; no blocker item closes.
+
+  **AD-1 — authentication is an optional layer, not a precondition of page driving.**
+  The foundation ships page driving without any authentication mechanism. Sign-in and
+  the human handoff are a layer composed *onto* it, and a deployment that never
+  authenticates is a supported configuration rather than a degraded one. The
+  consequence the approver accepts: the credential-free core and the live-session layer
+  are separately buildable and separately testable, and the core's tests may not depend
+  on a credential existing. That split is what keeps CI meaningful — see AD-4.
+
+  **AD-2 — per-destination degradation is first-class.** Any single destination may go
+  dark — unreachable, contract-changed, or policy-refused — without failing the pack or
+  the session that reaches its other destinations. This adds nothing new; it states the
+  degradation semantics that decision C's destination-scoped egress constraint and
+  question 4's per-group worker policy already imply, so that a reader does not have to
+  derive them. The consequence: a destination's failure is reported as that
+  destination's state, and no aggregate health signal may collapse it into a
+  session-wide verdict.
+
+  **AD-3 — credentials resolve through the broker, and never cross a process boundary
+  to a model.** Credential resolution is `credbroker`'s, in its declared order, and a
+  resolved secret is never placed in a prompt, a tool argument, a transcript, or any
+  other value an LLM process can read. Nor is one committed. This has been true in
+  practice; what it did not have was a stated reason, which is that the credential
+  boundary and the model boundary are different boundaries, and a design that lets them
+  coincide has no way to say which one failed.
+
+  **AD-4 — a pinned container is the CI fixture, and it is load-bearing.** The fixture
+  is not a convenience stand-in for a real destination. It is the *only* destination
+  whose credentials this repository may own, and therefore the only place the full
+  login → token → frontend-API path can be asserted mechanically rather than described.
+  Two consequences the approver accepts by taking it. Fixtures are **synthetic**, never
+  recorded from a live account: a captured response would put third-party content and
+  personal data in the repository, and both are prohibited, so no recorded transcript
+  may be used however convenient. And the fixture must be a *container* — an image
+  pinned by digest that CI can start — rather than a hosted demo instance, because a
+  hosted instance is a third party the repository would be contacting on every run.
+  That clause did real work this round: it is what excluded the leading candidate.
+
+  **Scope residual, carried from the withdrawn narrowing.** An earlier proposal would
+  have narrowed `web-pilot`'s scope to destinations offering no token mechanism at all.
+  That proposal is **withdrawn** — token unavailability is org-by-org and commonly
+  reflects process friction or IT maturity rather than a deliberate posture, so the
+  narrowing would have excluded the ordinary case while claiming to exclude an
+  exceptional one. One narrow constraint survives it, and it is the whole residual: the
+  pack must not be positioned as a substitute for a credential an operator *explicitly
+  refused* to a user who asked for it. That is a constraint on how the pack is
+  described and offered, not on which destinations it may technically reach.
+
+  **The round-14 destination measurement, and it is a finding against question 5.**
+  Question 5's recommended accommodation keeps a captured bearer token **page-resident**
+  so the broker never holds it. Round 12 established that accommodation against a
+  synthetic issuer, and established it *conditionally*: it held when the issuing
+  response was marked `no-store`, and the otherwise identical default-cache arm left
+  the live token at rest in browser user-data. Round 14 put that condition to a real
+  destination for the first time, and the condition does not hold.
+
+  Two pinned containers were stood up and driven through a real browser login, chosen
+  for opposite render and authentication shape. Measured, not read from documentation:
+
+  - The token-issuing response carries **no cache directive at all** — not `no-store`,
+    not `private`, nothing. The precondition round 12 identified is simply absent.
+  - The issued token is written by the destination's own frontend into a
+    **page-readable web-storage key**, from which it reaches browser user-data on disk.
+
+  The second observation is the sharper one, and it is why this is a finding rather
+  than a missing header. Even a destination that *did* send `no-store` would leave the
+  live token at rest here, because the exposure comes from the destination's storage
+  choice rather than from the response cache. Keeping the token page-resident does not
+  prevent it. **No consumer can fix either.** A consumer does not set the destination's
+  cache-control and does not choose where the destination's frontend stores its own
+  token, so question 5's recommended accommodation is conditional on behaviour that
+  sits entirely outside the boundary this RFC governs.
+
+  The contrast half of the pair shows the condition is not universal in the other
+  direction either: its credential is an `HttpOnly` cookie that page script cannot read
+  at all, so a page-resident replay consumer cannot capture it — the accommodation is
+  not *unsafe* there, it is *inapplicable*. Question 5 therefore stays **outstanding**,
+  and what it now needs is not a better accommodation but a decision about which
+  destination behaviours the pack will refuse to accommodate. Apparatus, row inventory,
+  mutation controls and the at-rest scan are recorded in
+  [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md).

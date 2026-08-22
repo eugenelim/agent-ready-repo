@@ -150,6 +150,7 @@ active  = [
 ]
 shipped = [
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
+  {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},

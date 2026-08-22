@@ -187,6 +187,16 @@ reader can see what moved rather than trusting that something did.
 rounds seven, eight and nine, and carries the archive digest the RFC's amendment
 entry cites. This is the archive the later rounds' apparatus continues to build.
 
+**`spikes/2026-08-21-destination-token-landing.md`** — Asked where a real
+destination's issued token actually lands, and whether the response that issues it is
+marked `no-store`. Measured against two pinned containers of deliberately opposite
+render and authentication shape, each driven through a real browser login: the
+issuing response carries no cache directive at all, and the destination's own frontend
+writes the token into a page-readable web-storage key from which it reaches browser
+user-data on disk. Changed open question 5 from an accommodation with an untested
+precondition into one whose precondition no consumer can establish, and supplied the
+measured fixture pair that the amended open-question-3 bar names.
+
 ---
 
 ## Set two — the rounds roster
