@@ -414,6 +414,7 @@ test-unleased:
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 	$(PYTHON) -m pytest tools/test_managed_child.py -q
 	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
+	$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
 	$(PYTHON) -m pytest tools/test_run_slot.py -q
 	$(PYTHON) -m pytest tools/test_with_lease_cli.py -q
 	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
