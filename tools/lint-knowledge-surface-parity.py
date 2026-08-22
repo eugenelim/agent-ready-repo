@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Guards every copy of the knowledge-surface taxonomy against silent drift.
 
-The `architect-design` reference
-(`packs/architect/.apm/skills/architect-design/references/knowledge-surfaces.md`)
-defines the **shared canonical core**: an eight-area MECE taxonomy. Other skills
+The architect pack's canonical OKF concept
+(`packs/architect/okf/architecture-lenses/concepts/enterprise-knowledge/`
+`source-detection-confidence-and-conflicts.md`) defines the **shared canonical
+core**: an eight-area MECE taxonomy. Other skills
 reuse it under their own lens by *duplicating* the core (Route B — a single
 shared file — was rejected), so the copies are anchored by a prose note, not a
 shared artifact. That makes them free to drift when the canonical core next
 changes. This lint is the mechanical guard the `architect-pe-knowledge-surface-drift`
 backlog item called for, generalized to every copy that exists today:
 
-  - `architect-review` reuses the full taxonomy as a verification lens ({1..8});
   - `architect-diagram` reuses the full taxonomy as an as-is-drawing lens ({1..8};
     the lens itself consults only the 2/3/4 facets, but the table carries all 8);
   - `frame-intent` reuses the problem-framing subset ({1, 2, 4, 8}); areas
@@ -30,8 +30,10 @@ deliberately).
 
 Exit 0 when every copy is in parity; exit 1 on any drift.
 
-Fixture mode (used by the paired self-test): set KS_CANONICAL_FILE,
-KS_REVIEW_FILE, KS_DIAGRAM_FILE, KS_PE_FILE to lint different files.
+`architect-design` and `architect-review` route directly to the generated
+same-pack reference and therefore carry no duplicate table. Fixture mode (used
+by the paired self-test): set KS_CANONICAL_FILE, KS_DIAGRAM_FILE, KS_PE_FILE to
+lint different files.
 """
 
 from __future__ import annotations
@@ -48,18 +50,12 @@ CANONICAL_AREAS = frozenset({1, 2, 3, 4, 5, 6, 7, 8})
 # first row is the canonical source; the rest are copies checked against it.
 # Changing a copy's expected set is a deliberate redesign that must update this
 # table *and* reconcile the files.
-CANONICAL_ROLE = "architect-design (canonical)"
+CANONICAL_ROLE = "architecture-lenses OKF (canonical)"
 LAYOUT: tuple[tuple[str, str, str, frozenset[int]], ...] = (
     (
         CANONICAL_ROLE,
         "KS_CANONICAL_FILE",
-        "packs/architect/.apm/skills/architect-design/references/knowledge-surfaces.md",
-        CANONICAL_AREAS,
-    ),
-    (
-        "architect-review",
-        "KS_REVIEW_FILE",
-        "packs/architect/.apm/skills/architect-review/references/knowledge-surfaces.md",
+        "packs/architect/okf/architecture-lenses/concepts/enterprise-knowledge/source-detection-confidence-and-conflicts.md",
         CANONICAL_AREAS,
     ),
     (

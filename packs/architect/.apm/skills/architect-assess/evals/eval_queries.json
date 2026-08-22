@@ -1,0 +1,19 @@
+[
+  {"query": "Assess architecture and provide an action plan", "should_trigger": true},
+  {"query": "Give me a quick architecture survey of this tiny library and show where we should look deeper", "should_trigger": true},
+  {"query": "Do a deep high-stakes architecture readiness assessment before this platform launch", "should_trigger": true},
+  {"query": "Map the current architecture of this mixed monorepo and identify evidence-backed hotspots", "should_trigger": true},
+  {"query": "Assess whether this service is ready to scale for ten times the traffic and team size", "should_trigger": true},
+  {"query": "Pressure-test this agentic knowledge platform's run state, model, tools, retrieval, and observability architecture", "should_trigger": true},
+  {"query": "Help us decide whether to harden, modernize, replace, or retire this application", "should_trigger": true},
+  {"query": "Review the architecture that exists in this unfamiliar-language repository and be explicit about evidence limits", "should_trigger": true},
+
+  {"query": "How should we architect the new notification service?", "should_trigger": false},
+  {"query": "Design a replacement for our legacy billing platform", "should_trigger": false},
+  {"query": "Draw the current system as a C4 diagram", "should_trigger": false},
+  {"query": "Show me a sequence diagram for checkout", "should_trigger": false},
+  {"query": "Review this attached architecture assessment and flag methodological gaps", "should_trigger": false},
+  {"query": "Is this design doc ready to approve?", "should_trigger": false},
+  {"query": "Fix the dependency cycle in the payments package", "should_trigger": false},
+  {"query": "Write an ADR for adopting Kafka", "should_trigger": false}
+]

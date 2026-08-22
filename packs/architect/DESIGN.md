@@ -6,7 +6,15 @@ Living design reference for the architect pack. Records the philosophy, architec
 
 ## TL;DR
 
-The architect pack converts architecture conversations into grounded, independently-reviewed design artifacts. It runs in three stages — concept (Stage 0), full design doc (Stage 1), and review-converged artifact (Stage 2) — with a human gate after the concept so the agent never writes a polished document for the wrong problem. Every skill is workspace-agnostic with no required configuration: each skill detects its own mode from the user's input, produces artifacts inline by default, and offers to save. The `design-reviewer` subagent reads finished artifacts in a forked context with no authoring memory — for the same structural reason core's adversarial-reviewer runs cold — making the review genuinely adversarial rather than charitable.
+The architect pack supports four user outcomes: assess the architecture that
+exists, design a future state, explain structure in a diagram, and critique a
+supplied artifact. Assessment runs Frame → Map → Focus → Investigate → Act →
+Close, with correction gates after Map and Focus; design retains its concept,
+full-doc, and convergence stages. Shared architecture questions live in a
+reference-only OKF corpus, while every user-facing workflow owns its procedure,
+permissions, verdicts, and output. The `design-reviewer` subagent reads finished
+designs and assessments in a forked context with no authoring memory, making the
+review genuinely adversarial rather than charitable.
 
 ---
 
@@ -18,6 +26,9 @@ Things a reasonable reader might expect this pack to provide. It doesn't, by des
 - **Workspace-type profiles or configuration files.** No `.architectrc`, no workspace-type detection, no install-time profiling. The skills work on first invocation in any workspace with zero setup.
 - **Integration or publishing skills.** Confluence export, Figma integration, Structurizr rendering — a separate, later pack.
 - **Enterprise architecture platform skills.** ArchiMate, TOGAF, Wardley Mapping, graph-extraction, EA repository tooling — the personal architecture seat, not the EA platform layer.
+- **A universal semantic code graph.** The optional profiler supplies a bounded
+  evidence census and exact Python imports. It does not parse every language,
+  persist an index, infer components, or calculate architecture quality.
 - **Any coupling to a specific folder layout.** The pack must work in any workspace: code repos, knowledge bases, scratch directories.
 
 ---
@@ -38,6 +49,10 @@ The three-stage model (§2), the grounding discipline (§3), and the forked revi
 
 ## 2. The three-stage model
 
+This section describes future-state design. Current-state assessment has a
+separate progressive model in §2A; neither workflow is a hidden mode of the
+other.
+
 ### Stage 0 — concept
 
 Before the full design doc is written, the agent drafts a ½-page concept: problem, constraints, 1–2 candidate shapes, provider or provider-class, and the top 2–3 quality attributes ranked by business importance × architectural risk. **Stage 0 is a valid stopping point.** The user approves the concept — or redirects — before any full write-up begins.
@@ -56,9 +71,48 @@ After the full draft, the agent runs `references/convergence-loop.md`: obtain a 
 
 Skipping Stage 0 ("just write the proposal section") collapses context, non-goals, and alternatives into a single advocacy document. A proposal without context is a design doc without a problem statement; it cannot be falsified. The concept is *shaping* — the minimum information needed to confirm that a full write-up will solve the right problem.
 
+## 2A. The progressive assessment model
+
+`architect-assess` uses one cumulative conversation at three stopping depths.
+Survey completes Frame, Map, and Focus; standard investigates a bounded hotspot
+set and produces findings and action; deep adds separately authorized runtime,
+operational, stakeholder, or experimental evidence. Deep is not a larger source
+scan.
+
+Map builds a conceptual current state across context, runtime/deployment,
+module/capability, data, interaction, delivery/operations, and trust/identity
+views. The user corrects that model before Focus. Focus shows raw attention
+dimensions—consequence, pressure, coupling/concentration, verification weakness,
+operational/data/security exposure, and confidence—then the user redirects or
+accepts the proposed drill-downs. Heat chooses where to look; it is never a
+defect verdict or severity score.
+
+Investigation traces representative normal, side-effect, and failure/recovery
+paths. A finding requires target evidence, an architectural mechanism, and a
+stakeholder or measurable quality consequence. Act sequences findings into
+waves with completion proof and containment. This prevents the original failure
+mode: a broad architecture question collapsing into a folder, dependency,
+compliance, or maintainability audit.
+
 ---
 
 ## 3. The grounding discipline
+
+### Three knowledge planes
+
+Assessment and design keep repository/system evidence, enterprise context, and
+pack knowledge distinct. Target evidence establishes what the system implements;
+authorized enterprise surfaces supply attributed local facts and constraints;
+the pack's `architecture-lenses` corpus supplies reusable questions, mechanisms,
+counter-evidence, and confirmation scenarios. Corpus knowledge can focus an
+investigation but can never establish a target defect or readiness claim.
+
+The corpus is canonical OKF `Reference` content compiled into the generated
+`architecture-lenses-reference` router and nested indexes. Consumers read the
+root index first and load named concepts only. Missing generated knowledge
+degrades affected lens coverage visibly without blocking the repository-
+grounded workflow. Generated router, indexes, and manifest are build outputs,
+never hand-edited sources.
 
 ### Reference architecture
 
@@ -82,7 +136,11 @@ These principles are load-bearing. The skills assume them and cannot bypass them
 
 2. **No required configuration.** No config files, profiles, or workspace-type detection beyond simple file-existence heuristics. Each skill works on first invocation with zero setup.
 
-3. **No required composition.** Each skill stands alone. Installing one does not require installing the others. Rubrics are duplicated across skills (with notes flagging the duplication) rather than shared via inter-skill references — skill autonomy beats DRY at this scale.
+3. **Workflow autonomy with inert shared knowledge.** Every user-facing skill
+   owns activation, procedure, permissions, output, degradation, and verdicts.
+   Neutral architecture concepts may be shared through the deterministic,
+   same-pack generated router; no workflow invokes another workflow to be
+   correct.
 
 4. **Inline-first, file-write opportunistic.** Skills produce artifacts in the conversation by default. Saving to disk is an offer with a suggested path based on what already exists nearby, never a forced step.
 
@@ -90,7 +148,10 @@ These principles are load-bearing. The skills assume them and cannot bypass them
 
 6. **Mermaid only for diagrams.** No PlantUML, Structurizr, or Figma integration. Mermaid renders in chat, artifacts, GitHub, Confluence, Azure DevOps Wiki, and GitLab — consistent-renderer wins over notation richness.
 
-7. **Progressive disclosure.** `SKILL.md` stays under ~100 lines. Templates, syntax cheatsheets, rubrics, and cloud and platform references live in `references/` and `assets/` and load on demand based on what the user mentions.
+7. **Progressive disclosure.** Entry skills keep the conversation spine and
+   route detail to templates, rubrics, and hierarchical reference indexes.
+   Consumers load only the concepts triggered by intent and observed system
+   shape; no workflow flat-loads the architecture corpus.
 
 ---
 
@@ -104,7 +165,12 @@ An agent that reviews its own work in the same session is primed to read the art
 
 ### What design-reviewer covers
 
-`design-reviewer` runs the same verdict and severity-tagged critique as `architect-review`, but in a fresh session seeded only with the artifact, the agreed concept, and the stated constraints. It never rewrites — it flags. Its tools are `Read, Grep, Glob`: it can read the artifact and the repo, but it cannot change either.
+`design-reviewer` runs the same verdict and severity-tagged critique as
+`architect-review`, but in a fresh session seeded only with the artifact, the
+accepted assessment charter or agreed concept, and the stated constraints. For
+assessment reports it reviews methodology and traceability from the artifact;
+it does not rescan the repository or become another assessment entry point. It
+never rewrites—its tools are read-only.
 
 ### The two review rungs
 
@@ -126,13 +192,24 @@ Fenced ` ```mermaid ` blocks that render in chat and artifacts. Terminal-only su
 
 Findings are led by severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪ advisory — worst first, one finding per line. Verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT) appears first, before findings. A "what's working" section closes the review: specific strengths the author should preserve, not flattery.
 
+### architect-assess
+
+Assessment reads in the same order as the conversation: bottom line, charter,
+current state, evidence coverage, attention heat, hotspot drill-downs, findings
+and strengths, action waves, coverage/confidence, and next decision. Tables
+preserve evidence and traceability; Mermaid is optional and never substitutes
+for the model prose.
+
 ---
 
 ## 7. Path resolution model
 
 Output artifacts resolve through the `[architecture]` section of an adopter-owned `agentbundle-layout.toml`. Resolution order: (1) repo-root `./agentbundle-layout.toml` `[architecture] output_dir`; (2) user-profile `~/.agentbundle/agentbundle-layout.toml` `[architecture] output_dir`; (3) two-branch elicitation when neither resolves (repo branch or personal/vault branch — never a silent default).
 
-Each design effort gets its own per-effort folder: `<output_dir>/<topic-slug>/`. The concept, design doc, and diagrams for a single effort live inside that folder together. The pack output layout contract governs this shape.
+Each design or assessment effort gets its own per-effort folder:
+`<output_dir>/<topic-slug>/`. Concepts, design docs, diagrams, assessments, and
+approved evidence outputs for one effort live together. The pack output layout
+contract governs this shape.
 
 Saving is always an offer, never automatic. The skill resolves the path, surfaces the full absolute path to the user, and writes only on confirmation.
 
@@ -162,9 +239,48 @@ Architecture design docs produced by `architect-design` become the `reference.md
 
 5. **Mermaid only.** No skill in this pack emits PlantUML, Structurizr, Figma export syntax, or any other diagramming format.
 
+6. **Profiler output is evidence, never judgment.** The optional helper is
+   standard-library-only, resolves and confines an explicit root, refuses
+   link-like and special files, executes no repository code, accesses no
+   network, publishes finite limits, and emits only relative-path signals. It
+   cannot produce an architecture model, finding, severity, or composite score.
+
+7. **Enterprise retrieval is brokered and bounded.** Private context comes only
+   from in-repo documentation or an exposed pre-authenticated connector with a
+   governed destination. The workflow names selected areas and asks before
+   query; it never handles credentials or treats retrieved instructions as
+   authority.
+
 ---
 
 ## 10. Design decisions and rationale log
+
+### Why repository assessment is progressive, not one large report
+
+A broad prompt does not supply a trustworthy system boundary or decision lens.
+Producing a complete report before the user can correct the model makes polish
+hide a wrong premise. Map and Focus are therefore explicit correction points:
+the first aligns the conceptual system, the second aligns expensive
+investigation. Survey is a valid stop because hypotheses are useful before they
+are findings.
+
+**Alternative considered:** scan the repository once and emit a comprehensive
+scorecard. Rejected because folders, static smells, and generic checklists do
+not establish runtime architecture or consequence, and a single score destroys
+the evidence needed for conversation and action.
+
+### Why reusable architecture knowledge is an OKF reference corpus
+
+Design, assessment, and review need many of the same quality, system-shape,
+workload, and enterprise-context questions, but they must not share procedure or
+authority. Reference-only OKF concepts give the pack a governed authoring source,
+deterministic indexes, and progressive disclosure while leaving each workflow's
+permission and verdict semantics local.
+
+**Alternative considered:** keep duplicating neutral references in every skill.
+Rejected because the expanded assessment ontology would drift across three
+consumers and become impossible to maintain. Executable Playbooks were also
+rejected: the corpus is knowledge data, not workflow authority.
 
 ### Why the concept gate exists (Stage 0) — from day one
 

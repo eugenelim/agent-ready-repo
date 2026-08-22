@@ -7,6 +7,11 @@ kind: how-to
 
 # Diagram a system
 
+Ask “Draw the current deployment topology” when the picture is the outcome. If
+you need evidence coverage, hotspot selection, findings, or an action plan, ask
+“Assess architecture and provide an action plan” and use the diagram only as one
+current-state view.
+
 **Use this when:** You know what you want drawn and need a Mermaid diagram of a system, flow, state machine, data model, or deployment topology.
 **Prerequisites:** The `architect` pack installed; optionally a `docs/architecture/reference.md` for document-mode diagrams grounded in your stack.
 **Result:** A self-checked Mermaid diagram in the right notation, with an offer to save it to the repo.
@@ -110,6 +115,7 @@ A diagram isn't always the answer. The skill will push back rather than draw:
 
 ## See also
 
+- [Assess a repository and turn evidence into action](assess-a-repository.md) — when the current-state picture must support findings and action.
 - [Review an architecture artifact](review-an-architecture-artifact.md) — get a severity-tagged critique of a diagram, design doc, RFC, or ADR.
 - [Establish your repo's reference architecture](establish-reference-architecture.md) — give the skills the golden path they design against.
 - [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md) — what the golden-path file holds.

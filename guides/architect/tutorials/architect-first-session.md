@@ -1,58 +1,94 @@
 ---
 title: Your first architecture session
-summary: Produce a first plain-language architecture snapshot of an existing codebase in a guided session.
+summary: Complete a bounded, read-only survey of an existing repository and choose the first evidence-backed drill-down.
 pack: architect
 kind: tutorial
 ---
 
 # Your first architecture session
 
-**What you'll build:** A `docs/architecture/reference.md` plain-language snapshot of your codebase's main components and structural decisions.
-**Prerequisites:** The `architect` pack installed in your repo.
-**Time:** 15–20 minutes.
+You will finish with a corrected current-state map, evidence coverage, an
+attention heat map, and one selected next investigation. Start with this exact
+request:
 
-:::note
-At the end of this tutorial you'll have asked the agent to describe your codebase's architecture and seen it produce a plain-language snapshot you can use to guide design decisions.
-:::
+> Assess architecture and provide an action plan. Begin in survey mode, stop
+> after the attention heat map, and do not create files.
 
-This is a learning walkthrough for a fresh start. It covers one complete first session: checking the pack is working, running your first architecture prompt, understanding what you'll see, and knowing what to do if something goes wrong.
+The survey reads the repository but does not run its code or change it. You make
+two decisions: whether the conceptual map is right, and which hotspot deserves
+deeper evidence.
 
-## Step 1 — Check the pack is working
+**Prerequisite:** the `architect` pack is installed.
 
-In your Claude Code chat, type:
+## 1. Read the assessment charter
 
-> What does the architecture of this project look like?
+The first response should bound the repository or system, name
+baseline/understanding as the primary intent, select survey mode, and list what
+the agent can read. It should say whether it found an in-repo or private
+enterprise knowledge surface.
 
-The agent should reply with a description of the codebase's structure — what the main components are, how they relate, what the key decisions appear to be. You might see a brief summary, a list of modules, or a short narrative.
+You should not see a score, defect list, or rewrite plan yet.
 
-If the response sounds like the agent is actually describing your project (not a generic answer), the pack is working and you're ready to continue.
+## 2. Correct the conceptual map
 
-## Step 2 — Run your first architecture prompt
+The agent inspects documentation, source, tests, manifests, CI/CD, deployment
+definitions, schemas, configuration, operations files, and current local
+history where available. It then describes context, runtime/deployables,
+modules/capabilities, data, interactions, delivery/operations, and trust or
+identity boundaries.
 
-Copy the following prompt exactly and paste it into the chat:
+At **Map checkpoint**, compare the model with what you know. Correct a boundary
+in plain language:
 
-> Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions.
+> The worker and API are separate deployables, but they share the same database.
 
-The agent will read your codebase and produce an architecture description. You don't need to know anything about the codebase in advance — the agent reads it directly.
+If the map is accurate, reply `continue`.
 
-## Step 3 — What you'll see
+The assessment must record your correction or acceptance before it focuses the
+investigation.
 
-When the session completes, you'll have a `docs/architecture/reference.md` file with your codebase's key components and structural decisions written in plain language. The agent will tell you where it wrote the file and offer a brief summary of what it captured.
+## 3. Choose where to look deeper
 
-Open the file in your editor and read through it. It should describe the real decisions your team has made — not invented standards. If something looks wrong or invented, you can simply tell the agent: "The section about X is not accurate" and ask it to revise.
+Next you see an attention heat map by system area. It keeps consequence,
+pressure, coupling or concentration, verification weakness,
+operational/data/security exposure, and confidence separate. The legend should
+say that heat selects drill-down priority; it is not proof of a defect or
+severity.
 
-## If it doesn't work
+Each proposed hotspot should explain its architectural role, raw signals,
+counter-evidence, affected journey or quality scenario, unknowns, and the next
+check. At **Focus checkpoint**, redirect the set or reply `continue`.
 
-If the agent says it cannot find architectural context, it will offer to create a `reference.md` from scratch — accept to begin. The agent will guide you through filling in the first section.
+Because this tutorial asked for survey mode, the agent now stops. It should call
+the hotspots hypotheses, not completed findings, and report:
 
-If the agent seems confused or gives a generic response unrelated to your project, the pack may not be installed. See [Installing the architect pack](../../_shared/) for installation steps.
+`Result: chat only; no file was created.`
 
-## What to do next
+## 4. Verify the result
 
-On your next design question, ask the agent:
+Your completed survey contains:
 
-> Does this approach align with our reference architecture?
+- a bounded assessment charter;
+- a conceptual model that reflects your correction;
+- a status for every required evidence surface, including missing ones;
+- an attention heat map with raw dimensions;
+- bounded hotspot cards and recommended drill-downs;
+- coverage limits and the next human decision.
 
-The reference.md you just created becomes the foundation the architect skills build on. Every subsequent design doc, diagram, and critique will measure against it.
+It fails this tutorial if it returns only a folder map, dependency list,
+compliance checklist, code-smell inventory, or confident action plan without
+investigation.
 
-To learn more about the three architect skills and what each one does, see the [architect guides home](../README.md).
+## 5. Continue with one hotspot
+
+Pick a hotspot and ask for standard depth:
+
+> Continue in standard mode. Investigate H-2, trace the normal, side-effect, and
+> failure/recovery paths, then propose only actions supported by findings.
+
+The agent asks before any executable check, private knowledge query, runtime
+access, experiment, or write. When the current-state evidence points to a
+future-state choice, move to [Shape an architecture concept](../how-to/shape-an-architecture-concept.md).
+If you want a durable normative foundation rather than an assessment, follow
+[Create and use your `reference.md`](create-your-reference-architecture.md) as a
+separate journey.

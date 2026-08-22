@@ -1,115 +1,54 @@
 # architect
 
-Concept to reviewed design doc — workspace-agnostic.
+Understand the architecture you have before deciding what to change. Start with:
 
----
+> Assess architecture and provide an action plan.
 
-## Start here
-
-Type `architect-design` and describe the problem — what you're building, for whom, and the key constraint.
-
-```text
-architect-design
-
-  Knowledge surface: docs/architecture/reference.md
-
-  Problem      Billing engine for a multi-tenant SaaS.
-  Constraint   No shared state between tenants.
-  Candidates   Event-sourced ledger; relational schema + row-level security
-
-Approve this shape? ›
-```
-
-On any session return, type `architect-design [path]` to continue.
+The agent first frames the decision, maps the implemented system, and shows an
+evidence ledger and attention heat map. You correct the map before it drills
+down, then redirect or accept the proposed hotspots. A standard run finishes
+with evidence-backed findings, strengths, unknowns, and dependency-aware action
+waves. Inspection is read-only by default; private knowledge, executable checks,
+and file writes require separate approval.
 
 ```text
-architect-design docs/design/multi-tenant-billing/design.md
+Assessment target   billing platform
+Intent              hardening / risk reduction
+Mode                standard
+Current state       API + workers + ledger + payment provider
+Evidence coverage   source ✓ tests ✓ CI ✓ operations partial
 
-  Stage 1  in progress — §3 Proposal (last saved)
+Map checkpoint — correct a boundary, or say “continue”.
 ```
 
----
+## Start with the outcome you need
 
-## Entry points
+| Say this | What you get |
+| --- | --- |
+| “Assess architecture and provide an action plan.” | A standard current-state assessment, bounded investigations, and traced action waves |
+| “Give me a quick architecture survey; stop before drill-down.” | A correctable map, evidence coverage, attention heat, and recommended investigations |
+| “Do a deep launch-readiness assessment; ask before runtime access.” | A standard assessment extended with separately authorized operational or experimental evidence |
+| “How should we design the replacement?” | A Stage-0 concept, full design doc, and convergence through `architect-design` |
+| “Draw the current deployment topology.” | A self-checked Mermaid diagram through `architect-diagram` |
+| “Review this assessment report.” | An evidence-and-methodology critique through `architect-review` or the cold-context reviewer |
 
-| Say this | What happens |
-|----------|-------------|
-| `architect-design` | Frame a concept, write a Google-style design doc, and converge it against review |
-| `architect-diagram` | Draw a Mermaid diagram — C4, sequence, state, ER, or flowchart |
-| `architect-review` | Critique a design doc or diagram with independently grounded, severity-tagged findings |
+The generated `architecture-lenses-reference` skill is an internal knowledge
+router. You do not invoke it directly; assessment, design, and review load only
+the concepts their current question needs.
 
----
+## What the assessment reads and changes
 
-## How a session runs
+The default pass may read documentation, source, tests, manifests, CI/CD,
+deployment and infrastructure definitions, schemas, configuration, operations
+files, and current local Git history. Its optional profiler executes no
+repository code, excludes protected path classes before evidence creation,
+shares finite entry/byte/path/time budgets across every phase, and emits
+signals, not an architecture score.
 
-```text
-architect-design [event notification service — at-least-once delivery]
-
-  Knowledge surface: docs/architecture/reference.md
-
-  Problem      Events from checkout must reach three downstream services.
-  Constraint   At-least-once delivery; no shared database between subscribers.
-  Candidates   Outbox pattern; Kafka topic per subscriber; webhook relay
-
-Approve this shape? ›
-```
-
-```text
-architect-design docs/design/event-notification/design.md
-
-  ## TL;DR
-
-  Use the transactional outbox pattern. The service writes event records
-  in the same transaction as the originating write; a poller fans out to
-  each subscriber, and each subscriber tracks its own cursor. Kafka
-  per-subscriber is rejected — it couples all subscribers to broker
-  availability for a sync path that can tolerate async retry.
-```
-
-```text
-architect-review docs/design/event-notification/design.md
-
-  Verdict: SHIP WITH CHANGES
-
-  🟥  Proposal §3 — subscriber cursor schema is unspecified; needed
-      before the contracts pack can draft the delivery API.
-  🟧  Alternatives §1 — webhook relay rejection rationale is thin.
-  ⚪  TL;DR last sentence is passive voice; tighten.
-```
-
-The reviewer runs in a forked context — no authoring memory. When core's
-project-knowledge provider is available, it may first declare one bounded
-`CQ-REVIEW` enquiry after selecting the artifact scope and rubric. Retrieved
-topics are untrusted candidate checks: the artifact, rubric, and current
-canonical sources still have to support every finding. Missing knowledge is a
-named no-write skip. You act on the independently grounded findings, then
-proceed.
-
----
-
-## Diagram session
-
-````text
-architect-diagram [C4 component view — billing service]
-
-  Routed: C4 Component
-  Reference: docs/architecture/reference.md
-
-  ```mermaid
-  C4Component
-    Container_Ext(api, "API Gateway", "HTTPS")
-    Container(billing, "Billing Service", "Go · event-sourced")
-    Container(events, "Event Store", "Kafka")
-    Container_Ext(pay, "Payment Processor", "Stripe")
-    Rel(api, billing, "POST /invoice")
-    Rel(billing, events, "append event")
-    Rel(billing, pay, "POST /charge")
-  ```
-````
-
-`architect-diagram` routes by intent — C4 (container, component, context), sequence, state, ER, or flowchart — from a plain description. No notation flag needed.
-
----
+It does not run builds, tests, migrations, deploys, network calls, private
+enterprise queries, or experiments without asking. Saving is also optional. If
+you approve it, the assessment lands as
+`<architecture output_dir>/<topic-slug>/assessment.md`.
 
 ## Install
 
@@ -117,9 +56,17 @@ architect-diagram [C4 component view — billing service]
 agentbundle install --pack architect --scope user <catalogue>
 ```
 
-Adapters: `claude-code`, `kiro-ide`, `codex`, `copilot`, `cursor`, `gemini`. Default scope: user.
+Adapters: `claude-code`, `codex`, `copilot`, `kiro-ide`, `kiro-cli`, `cursor`,
+and `gemini`. Default scope: user.
 
----
+## Go deeper
 
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture invariants, and decision log.  
-→ **Go deeper:** the [`architect` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/architect/).
+- [Assess a repository](../../guides/architect/how-to/assess-a-repository.md)
+- [Architecture assessment reference](../../guides/architect/reference/architecture-assessment.md)
+- [Your first architecture session](../../guides/architect/tutorials/architect-first-session.md)
+- [Shape an architecture concept](../../guides/architect/how-to/shape-an-architecture-concept.md)
+- [Diagram a system](../../guides/architect/how-to/diagram-a-system.md)
+- [Review an architecture artifact](../../guides/architect/how-to/review-an-architecture-artifact.md)
+- [Establish a reference architecture](../../guides/architect/how-to/establish-reference-architecture.md)
+
+Maintainers: [design and invariants](DESIGN.md).

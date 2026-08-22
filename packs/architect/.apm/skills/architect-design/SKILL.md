@@ -42,11 +42,23 @@ If any check fails, push back rather than proceeding.
    you detected (or "none")** in the concept. **If** you detect an *internal*
    knowledge-retrieval surface this session (an enterprise-knowledge MCP tool,
    an internal CLI, an in-repo doc set — public web search does **not** count),
-   load `references/knowledge-surfaces.md`, consult the design-relevant areas,
-   and treat a single unconfirmed source as lower-confidence. **If not**, ask
+   load `references/knowledge-surfaces.md` for the design-specific permission
+   and degradation rules. Then enter the generated architecture corpus through
+   `../architecture-lenses-reference/references/okf/index.md`, descend through
+   `concepts/enterprise-knowledge/index.md`, and consult only the areas this
+   decision turns on. Treat a single unconfirmed source as lower-confidence.
+   **If not**, ask
    the user for the missing context and lower the confidence of any proposal
    that leaned on it — as you degrade when `desk-research` is absent. **Either way,
    never fabricate** landscape/standards/in-flight facts.
+
+   The generated corpus is inert knowledge, not a nested workflow. Always read
+   its root index first, load only named child indexes and concepts, and cite the
+   selected normalized concept paths in your working receipt. If the router or
+   an expected concept is absent or invalid, state
+   `architecture lenses unavailable`, continue with the local design procedure,
+   and lower coverage;
+   never invent a path or flat-load the bundle.
 
    **Ground the platform-service contract.** The never-fabricate rule extends to
    the binding contract of any managed service the design depends on. For every
@@ -70,11 +82,14 @@ If any check fails, push back rather than proceeding.
    **wait for the user to agree the shape**. This is *shaping* (context +
    constraints + the choice), not the refused "just write the proposal
    section" advocacy (see Anti-patterns). Make it well-architected **by
-   construction**: a named provider → `references/well-architected-pillars.md`
-   (it routes a Hetzner-class **primitives** provider to
-   `references/cloud-primitives.md`'s capability gaps); a **local-first** start
+   construction**: load the applicable concepts from
+   `concepts/quality-lenses/`; a named provider also loads
+   `concepts/operating-model-patterns/provider-and-platform-operating-models.md`
+   (including a Hetzner-class **primitives** provider's capability gaps); a
+   **local-first** start
    → `references/local-dev.md`; in all cases name the tradeoff / sensitivity
-   points (`references/tradeoffs-and-sensitivity.md`). **No provider** → still
+   points using
+   `concepts/foundations/tradeoffs-sensitivity-and-evolution.md`. **No provider** → still
    produce the concept, forcing no provider/pillar scaffolding. **No shipped
    reference fits the domain** → the leading-edge method
    (`references/leading-edge-domains.md`): flag novelty, compose with `desk-research`
@@ -82,8 +97,10 @@ If any check fails, push back rather than proceeding.
    Routing has a second, **orthogonal axis — workload class**: when an LLM or
    agent is on the critical path — a **generative or agentic** workload (the
    design generates text on the path, calls tools, takes autonomous action, or
-   runs an agent loop) — additionally load `references/lens-genai-agentic.md` and
-   shape the concept against the tier(s) that apply. This is *additive to* the
+   runs an agent loop) — additionally descend through
+   `concepts/workload-lenses/genai-agentic/index.md` and load only the platform
+   contracts the proposed workload actually exercises. Shape the concept
+   against those selected concepts. This is *additive to* the
    provider axis, not either/or — an agentic system on a named cloud loads
    **both** the provider pillars and the agentic overlay; a plain generative
    design (RAG/chat that only produces text) loads the overlay at its baseline
@@ -115,6 +132,11 @@ If any check fails, push back rather than proceeding.
    - Alternatives are strawmen → load `references/alternatives.md` and
      redraft until each could have been chosen by a reasonable engineer.
    - No cross-cutting concerns named → load `references/nfr-checklist.md`.
+
+   For measurable quality claims also use
+   `concepts/foundations/quality-attribute-scenarios.md`; for unresolved
+   cross-cutting decisions use
+   `concepts/foundations/decisions-constraints-and-cross-cutting-concerns.md`.
 
 6. **Converge against review.** After the full draft, run
    `references/convergence-loop.md`: obtain a review pass (from

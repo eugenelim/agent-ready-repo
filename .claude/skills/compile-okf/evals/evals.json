@@ -14,12 +14,14 @@
       "files": [
         "evals/files/catalogue/packs/demo/pack.toml",
         "evals/files/catalogue/packs/demo/okf/demo/index.md",
-        "evals/files/catalogue/packs/demo/okf/demo/concepts/example.md"
+        "evals/files/catalogue/packs/demo/okf/demo/concepts/example.md",
+        "evals/files/catalogue/packs/demo/okf/demo/concepts/nested/windows.md"
       ],
       "expect": {
         "produces": [
           "catalogue/packs/demo/.okf-generated.json",
-          "catalogue/packs/demo/.apm/skills/demo-router/SKILL.md"
+          "catalogue/packs/demo/.apm/skills/demo-router/SKILL.md",
+          "catalogue/packs/demo/.apm/skills/demo-router/references/okf/concepts/nested/index.md"
         ],
         "output_contains": [
           "OKF000 wrote packs/demo",

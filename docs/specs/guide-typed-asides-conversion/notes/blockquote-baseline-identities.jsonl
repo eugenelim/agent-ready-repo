@@ -163,3 +163,10 @@
 {"item": 163, "path": "guides/product-strategy/how-to/set-ux-and-content-strategy.md", "line": 44, "content_sha256": "6c3e7e9dfbaf229d239547cca3926f48ae4c99815972d64e9de859c67286e449"}
 {"item": 164, "path": "guides/product-strategy/tutorials/run-your-first-swot.md", "line": 27, "content_sha256": "dec41a3fe3d998c479d2b3b08ff015849e50f637c3cd94de3a7adc657709a9c2"}
 {"item": 165, "path": "guides/release-engineering/tutorials/your-first-release.md", "line": 89, "content_sha256": "feb5f5bfa44fb95d4fbf0a6bfc7cd42c6f4989a615d89032554a4e22fa9cb3a5"}
+{"item": 166, "path": "guides/architect/README.md", "line": 14, "content_sha256": "f7ff8dd06fb8a6c0d8b5b36a14fa6b32f6977e8da46984e995fc0605f03c8835"}
+{"item": 167, "path": "guides/architect/how-to/assess-a-repository.md", "line": 13, "content_sha256": "f7ff8dd06fb8a6c0d8b5b36a14fa6b32f6977e8da46984e995fc0605f03c8835"}
+{"item": 168, "path": "guides/architect/how-to/assess-a-repository.md", "line": 173, "content_sha256": "fadba822f312bf7daf64e83155e4c123e768741481031fe1ee889596d04a029d"}
+{"item": 169, "path": "guides/architect/tutorials/architect-first-session.md", "line": 14, "content_sha256": "9163f65a0cf8b2f701911626a1e904b13293a5e76711b7d3b71e95bdd0fee926"}
+{"item": 170, "path": "guides/architect/tutorials/architect-first-session.md", "line": 43, "content_sha256": "d1c22d2e0c2616c7d4625ebb7b86584272f3f42ecfbd17ee0e4f191cbb662503"}
+{"item": 171, "path": "guides/architect/tutorials/architect-first-session.md", "line": 86, "content_sha256": "79d31d415b5f482c93948b25352cb93a397add8193140eff500c088f7ab2c637"}
+{"item": 172, "path": "guides/architect/how-to/review-an-architecture-artifact.md", "line": 14, "content_sha256": "525118965f6c367a3a2e1c77b903de0f17ec26634f94eaf472b79ec4c1144cf2"}

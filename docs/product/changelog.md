@@ -50,6 +50,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [catalogue-curation][0.4.1] — 2026-08-21
+
+### Highlights
+
+- **Nested OKF corpora now compile and check consistently on Windows.** Generated
+  index paths use the bundle’s portable POSIX form instead of inheriting the host
+  path separator, so Windows no longer reports clean nested indexes as stale.
+
+### Fixed
+
+- **The OKF compiler now distinguishes logical bundle paths from filesystem
+  paths.** Nested index names, links, and manifest entries are stable across
+  Windows, macOS, and Linux, with a Windows-path regression test and nested-corpus
+  eval fixture covering the failure.
+
+## [architect][0.15.0] — 2026-08-21
+
+### Highlights
+
+- **You can now turn a broad “assess this repository’s architecture” request
+  into a correctable current-state model, an evidence-backed attention map,
+  focused drill-downs, and a sequenced action plan.** The assessment starts
+  with a read-only survey, lets you correct its map before deeper investigation,
+  and can progressively examine assurance, optimization, growth,
+  transformation, or disposition without confusing repository conventions
+  with architectural evidence.
+
+### Added
+
+- **`architect-assess` provides survey, standard, and deep assessment depths.**
+  It separates observed repository evidence, optional attributed enterprise
+  context, and reusable architecture knowledge; reports confidence and coverage
+  limits; and uses heat as an investigation aid rather than a severity verdict.
+- **The architect pack now carries its own progressively disclosed architecture
+  lens corpus.** The pack-local OKF authoring source compiles into the ordinary
+  same-pack `architecture-lenses-reference` Skill. It has no dependency on a
+  core-pack knowledge surface and grants no runtime, retrieval, or execution
+  authority.
+- **A bounded optional profiler can census repository topology and basic
+  concentration signals without executing target code.** Unsupported languages
+  and unavailable Git history degrade visibly to manual evidence gathering.
+
+### Changed
+
+- **The first-session architecture journey now begins with a read-only survey.**
+  Creating a durable reference architecture remains an explicit follow-up, and
+  the new assessment how-to and reference guide explain correction points,
+  evidence levels, enterprise knowledge surfaces, drill-down selection, and
+  report review.
+- **Architecture design and review reuse neutral concepts from the architect
+  pack’s generated reference surface.** Their workflow instructions, activation,
+  permissions, and verdict semantics remain independently authored.
+
 ## [core][2.10.5] — 2026-08-21
 
 ### Highlights

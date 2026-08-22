@@ -1,18 +1,21 @@
 ---
 title: Review an architecture artifact
-summary: Obtain a severity-ranked architecture verdict, concrete findings, and an independent review for a finished-enough design artifact.
+summary: Obtain a severity-ranked verdict and independent review for a finished-enough assessment, design, or diagram artifact.
 pack: architect
 kind: how-to
 ---
 
 # Review an architecture artifact
 
-**Use this when:** You have a finished-enough artifact — design doc, diagram, RFC, or ADR — and want severity-tagged findings rather than a design conversation.
+**Use this when:** You have a finished-enough artifact — assessment report, design doc, diagram, RFC, or ADR — and want severity-tagged findings rather than a design or assessment conversation.
 **Prerequisites:** A concrete artifact to paste or point at; the `architect` pack installed.
 **Result:** A verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), findings ordered by severity with suggested fixes, and strengths to preserve.
 
 :::note
-Get a severity-tagged critique of a design doc, diagram, RFC, or ADR out of the `architect-review` skill. Assumes you have a finished-enough artifact and want findings, not a conversation. Want to *produce* an artifact instead? Reach for [`architect-design`](../../../packs/architect/.apm/skills/architect-design) or [`architect-diagram`](diagram-a-system.md).
+Get a severity-tagged critique of an assessment report, design doc, diagram,
+RFC, or ADR out of the `architect-review` skill. Want the repository assessed
+rather than the report reviewed? Ask “Assess architecture and provide an action
+plan” and follow [Assess a repository](assess-a-repository.md).
 :::
 
 You have an artifact and you want to know what's wrong with it. Paste it, ask for a review, and the [`architect-review`](../../../packs/architect/.apm/skills/architect-review) skill walks the right rubric for its type and hands back a verdict plus findings ordered by severity. Reviews render inline; they're throwaway by design.
@@ -22,15 +25,21 @@ You have an artifact and you want to know what's wrong with it. Paste it, ask fo
 Paste the artifact, or point at a known path, and ask:
 
 - "Review this design doc."
+- "Review this architecture assessment for evidence and action traceability."
 - "What's wrong with this RFC?"
 - "Is this C4 diagram any good?"
 
-The skill identifies the artifact type and routes to a matching rubric — design doc, C4 container/context diagram, sequence diagram, state diagram, ER diagram, or a generic rubric when it's none of those. It walks every check first, *then* writes the findings, so they come back ordered by severity rather than by the order it spotted them.
+The skill identifies the artifact type and routes to a matching rubric—
+assessment report, design doc, C4 container/context diagram, sequence diagram,
+state diagram, ER diagram, or a generic rubric. Assessment review checks scope,
+evidence, model coherence, heat use, lens coverage, claim calibration, and action
+traceability from the artifact; it does not rescan the repository.
 
 ```text
   artifact type          rubric                  verdict           review body
   ───────────────────────────────────────────────────────────────────────────
-  design doc        →  rubric-design-doc    ┐
+  assessment report →  rubric-assessment    ┐
+  design doc        →  rubric-design-doc    │
   C4 diagram        →  rubric-c4-diagram    │
   sequence diagram  →  rubric-sequence...   │   SHIP IT
   state diagram     →  rubric-state...      ├─► SHIP WITH CHANGES   ┐ verdict
@@ -89,7 +98,10 @@ If your repo has a `docs/architecture/reference.md`, the review measures the art
 
 The skill pushes back rather than reviewing when:
 
-- **Nothing concrete is attached.** "Review our architecture" with no artifact is a design conversation, not a review. Route to [`architect-design`](../../../packs/architect/.apm/skills/architect-design).
+- **Nothing concrete is attached.** “Review our architecture” with no artifact
+  is current-state assessment when the implemented system is the object; route
+  to [Assess a repository](assess-a-repository.md). Route to design only when the
+  user is choosing a future state.
 - **The artifact is too thin to critique.** A two-bullet outline is a discussion; the skill won't critique tumbleweeds.
 - **You want a conversation, not findings.** If you're still shaping the idea, switch to a design surface.
 - **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review--the-design-reviewer-subagent) to get that independent pass.

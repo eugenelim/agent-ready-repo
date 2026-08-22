@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 from agentbundle.catalogue_tooling.skill_spec_lint import lint_skill_spec
@@ -19,6 +19,7 @@ SCRIPT_ROOT = (
 )
 sys.path.insert(0, str(SCRIPT_ROOT))
 
+import okf_compiler  # noqa: E402
 from okf_compiler import (  # noqa: E402
     canonical_json_bytes,
     render_okf_bundle,
@@ -70,6 +71,26 @@ def test_render_stubs_compile_red_then_indexes_are_exact(tmp_path: Path) -> None
     )
     assert "references/okf/empty/index.md" not in result.files
     assert "references/okf/concepts/stale.md" in result.files
+
+
+def test_nested_index_paths_are_posix_on_windows_hosts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bundle-internal paths must not inherit the host path separator."""
+    concepts = {
+        "concepts/assessment-intents/baseline.md": okf_compiler.Concept(
+            path="concepts/assessment-intents/baseline.md",
+            metadata={"title": "Baseline", "status": "Active", "type": "Reference"},
+            body="",
+        )
+    }
+    monkeypatch.setattr(okf_compiler, "Path", PureWindowsPath)
+
+    indexes = okf_compiler._render_indexes("architecture-lenses", concepts)
+
+    assert "concepts/assessment-intents/index.md" in indexes
+    assert all("\\" not in path for path in indexes)
+    assert b"(concepts/assessment-intents/index.md)" in indexes["index.md"]
 
 
 def test_router_skill_is_deterministic_nested_and_has_no_tools(tmp_path: Path) -> None:

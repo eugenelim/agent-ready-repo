@@ -380,6 +380,7 @@ test-unleased:
 	$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+	$(PYTHON) -m pytest packs/architect/tests/skills/architect-assess/ -q
 	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
