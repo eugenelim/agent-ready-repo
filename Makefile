@@ -20,7 +20,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -323,9 +323,36 @@ release-preflight: lint-packs
 	@bash tools/repo/release_check.sh
 
 # ── Static analysis + tests ──────────────────────────────────────────────────
-# Requires: python -m pip install -e packages/agentbundle ruff mypy pytest
-#           python -m pip install -e 'packages/credbroker[crypto]'
-#           pip install -r tools/requirements-sast.txt  (for build-check SAST leg; or SKIP_SAST=1)
+# Do NOT install agentbundle or credbroker to work on this repository.
+#
+# Run things this way instead:
+#   python3 -m agentbundle <args>      the CLI, from this worktree, no install
+#   make test / make build-check       gates; PYTHONPATH (line 7) supplies both
+#   pytest <path>                      pyproject.toml's [tool.pytest.ini_options]
+#                                      pythonpath supplies both, no env prefix
+#
+# Why not install: an editable install is global to the interpreter, and several
+# worktrees share one here. `pip install -e` from this worktree changes what every
+# other worktree's subprocesses import, and doing it while a peer's gates are
+# running kills them mid-run. `make lint-editable-install` refuses the state where
+# that has already happened. See ADR-0094.
+#
+# A plain (wheel) install is fine and is how the `agentbundle` console script gets
+# onto PATH; an editable install pointing at THIS worktree is fine too. Neither is
+# what these targets use.
+#
+# Requires: ruff mypy pytest
+#           pip install -r tools/requirements.txt        (jsonschema>=4.0, PyYAML)
+#           cryptography argon2-cffi                     (credbroker's [crypto]
+#               extras; without them the vault tests skip instead of asserting)
+#           pip install -r tools/requirements-sast.txt   (build-check SAST leg;
+#               or SKIP_SAST=1)
+
+# Refuses an editable install of these packages that points at another worktree
+# — the state that makes this worktree's subprocesses import someone else's code.
+# Silent on a plain install and on an editable install pointing here.
+lint-editable-install:
+	$(PYTHON) tools/repo/editable_install_guard.py
 
 lint-ruff:
 	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }
@@ -335,8 +362,9 @@ lint-mypy:
 	@command -v mypy >/dev/null 2>&1 || { echo "make lint-mypy: mypy not found — run: pip install mypy" >&2; exit 1; }
 	$(PYTHON) tools/lint-mypy.py
 
-# Dev-time Python deps beyond agentbundle: jsonschema>=4.0, PyYAML  (see tools/requirements.txt)
 # Core package + tools tests. The full CI test matrix runs on GitHub Actions.
+# Dev-time Python deps are listed above; agentbundle and credbroker are not
+# among them, because these targets import both from source.
 #
 # Do NOT collapse the pack-test lines into `pytest packs/*/tests/`. Pack test
 # suites share basenames across skills (several `test_render.py`,
@@ -349,7 +377,7 @@ lint-mypy:
 test:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 
-test-unleased:
+test-unleased: lint-editable-install
 	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) tools/lint-conformance-portability.py --root .
@@ -412,6 +440,7 @@ test-unleased:
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 	$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
+	$(PYTHON) -m pytest tools/test_editable_install_guard.py -q
 	$(PYTHON) -m pytest tools/test_managed_child.py -q
 	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
 	$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
