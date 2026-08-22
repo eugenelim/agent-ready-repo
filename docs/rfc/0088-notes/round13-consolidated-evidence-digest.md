@@ -190,10 +190,12 @@ entry cites. This is the archive the later rounds' apparatus continues to build.
 **`spikes/2026-08-21-destination-token-landing.md`** — Asked where a real
 destination's issued token actually lands, and whether the response that issues it is
 marked `no-store`. Measured against two pinned containers of deliberately opposite
-render and authentication shape, each driven through a real browser login: the
-issuing response carries no cache directive at all, and the destination's own frontend
-writes the token into a page-readable web-storage key from which it reaches browser
-user-data on disk. Changed open question 5 from an accommodation with an untested
+render and authentication shape, each driven through a real browser login: on the half
+that issues a token, that response carries no cache directive at all, and the
+destination's own frontend writes the token into a page-readable web-storage key from
+which it reaches browser user-data on disk. The contrast half issues no token and its
+cookie arrives on a `private`-marked response, so it neither supports the precondition
+nor refutes it. Changed open question 5 from an accommodation with an untested
 precondition into one whose precondition no consumer can establish, and supplied the
 measured fixture pair that the amended open-question-3 bar names.
 
@@ -218,6 +220,8 @@ Declared explicitly, because filenames cannot express it.
 | Eleventh | The round-11 note |
 | Twelfth | The round-12 note |
 | Thirteenth | This digest, and the round-13 amendment entry |
+
+Round fourteen is deliberately absent from this roster. The roster's one home is the coverage checker's declared tuple, and round fourteen has a dated note of its own, so set one already carries it; adding a row here would give the round two homes.
 
 ---
 

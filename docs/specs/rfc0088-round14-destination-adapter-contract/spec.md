@@ -52,20 +52,43 @@ is implied that did not happen.
 
 ## Boundaries
 
-- **No follow-on artifact.** RFC-0088 is `Experimental`, so no ADR file, no `Spec 1/2/3`
-  and no `auth: browser-session` convention artifact is created. The four decision
+### Always do
+
+- Put every RFC hunk **below** the `## Amendments` anchor; the body above it is frozen.
+- Pin each fixture by image digest, and record the digest where a reader can re-derive
+  the measurement from it.
+- Record a residual that cannot be measured as a residual, naming the one input that
+  would close it — never as a weaker claim that can be met.
+- Re-run the inherited apparatus controls after touching anything shared, and the
+  privacy sweep with its detector self-test, so a clean result is not a vacuous one.
+
+### Ask first
+
+- **Probing any third-party surface**, even read-only and unauthenticated. The
+  reference-consumer probe in T2a is the only one this round performs; it is
+  operator-run, outside the repository's execution path, and bounded to a handful of
+  requests against documented public endpoints. Enumerating identifiers to find a
+  private one is refused outright, not asked about.
+- Registering a new note in the figure-verifier document corpus, which brings it under
+  claim accounting and changes what later rounds must maintain.
+- Adding any repository dependency, toolchain, or compile step.
+
+### Never do
+
+- **Create a follow-on artifact.** RFC-0088 is `Experimental`, so no ADR file, no
+  `Spec 1/2/3` and no `auth: browser-session` convention artifact. The four decision
   records live in the RFC's amendment layer, which the RFC already designates as the
   authoritative current contract, and graduate to ADRs on acceptance.
-- **No production interface changes.** No pack, no adapter, no CLI surface.
-- **No third-party contact from the repository.** Fixtures are pinned containers reached
-  over loopback. The reference consumer never runs in CI.
-- **No captured fixtures.** Every fixture is synthetic and created against the container
-  at run time. A recorded response would place third-party content and personal data in
-  the repository.
-- **No credential, personal identifier, or destination origin** in the repository or in
-  any results artifact. Generic placeholders only.
-- **No terms-of-service or case-law reasoning** in any repository artifact. The
-  amendment layer receives architectural statements only.
+- Change a production interface — no pack, no adapter, no CLI surface.
+- Create any path by which the repository or CI contacts a third party. Fixtures are
+  pinned containers reached over loopback; the reference consumer never runs in CI.
+- Capture a fixture from a live account. Every fixture is synthetic and created against
+  the container at run time; a recorded response would place third-party content and
+  personal data in the repository.
+- Put a credential, personal identifier, account relationship, or destination origin in
+  the repository or in any results artifact. Generic placeholders only.
+- Put terms-of-service or case-law reasoning in any repository artifact. The amendment
+  layer receives architectural statements only.
 
 ## Acceptance criteria
 
@@ -85,44 +108,62 @@ is implied that did not happen.
   boundary to a model; a pinned container as the load-bearing CI fixture. Plus the
   withdrawn scope narrowing's one surviving constraint. Each states what the approver
   accepts by taking it.
-- [x] **AC4 — The credential-free core and the live-session layer are separable, and
-  the fixture pair can tell them apart.** This is structural, not conventional: the
-  server-rendered half's credential is unreadable by page script, so a page-resident
-  consumer cannot operate against it *at all*, while page driving against it is
-  unaffected. A pair that could not distinguish the two layers would let a build
-  conflate them and still pass.
+- [x] **AC4 — The fixture pair discriminates the credential-free core from the
+  live-session layer, and a declared row fails if it does not.** This is structural, not
+  conventional, and it is checked rather than argued: `R14-SR-TOKEN-NOT-PAGE-READABLE`
+  asserts that the contrast half's credential is unreadable from page script — no
+  JS-visible cookie, no web-storage entry — on a session `R14-SR-AUTHENTICATED-SESSION`
+  has separately proven is authenticated. A page-resident consumer therefore cannot
+  operate against that half at all, which is what makes the live-session layer separable
+  from page driving rather than a precondition of it. Both rows carry mutations, and the
+  contrast row carries a second case aimed at the `HttpOnly` conjunct specifically, so
+  the property the criterion rests on is not the one conjunct nobody tests.
 - [x] **AC5 — The fixture pair is selected on measurement, and the rejection is
   recorded with its reason.** Both halves are pinned container images. Their render
   shapes are observed from the login document as delivered — one arrives without a
   `<form>` element or password input and acquires both under script; the other arrives
-  with each already present. The leading candidate's elimination (its server refuses to
-  start without a cluster API, so it is a control plane and not a pinned container) is
-  recorded as a measurement, not a preference.
+  with each already present. Both are pinned by image digest, recorded in the note. The
+  leading candidate's elimination is recorded as a measurement rather than a preference,
+  and is re-derivable: the note quotes the fatal startup line its server emits with no
+  cluster configuration, which is what makes it a control plane and not a container.
 - [x] **AC6 — The token-landing and cache-control observations are recorded as a
-  finding against open question 5, and question 5 stays outstanding.** The issuing
-  response carries no cache directive; the destination's own frontend writes the token
-  to a page-readable web-storage key from which it reaches browser user-data at rest.
+  finding against open question 5, and question 5 stays outstanding.** On the half that
+  issues a token, that response carries no cache directive; the destination's own
+  frontend writes the token to a page-readable web-storage key from which it reaches
+  browser user-data at rest. The claim is scoped to that half in every place it appears,
+  because the contrast half issues no token and its cookie arrives `private`-marked.
   The record states plainly that no consumer controls either, so the accommodation's
   precondition sits outside the boundary this RFC governs.
 - [x] **AC7 — The measurement arm carries a declared row inventory, in-region anchor
   uniqueness, and a mutation harness that fails on a stale anchor rather than
   skipping.** Every declared row has a mutation that changes that row's outcome, the
   harness asserts the flipped value, and the unmutated baseline is recorded immediately
-  before the harness runs so both directions are observed.
+  before the harness runs so both directions are observed. The harness's own summary is
+  persisted beside the results artifact, because the artifact's `coverage` block is
+  derived from the row inventory and would report clean whether the harness ran or not.
+  A row that is a conjunction carries a case per load-bearing conjunct, not one per row.
 - [x] **AC8 — Declared-failing rows mutate toward passing.** For a row whose recorded
   outcome is a finding, the risk is not a spurious failure but a row that could never
   have passed. Both declared-failing rows are mutated in the passing direction.
 - [x] **AC9 — Absence claims are decoy-verified.** The at-rest scan plants a labelled
   decoy and requires its recovery; a buffer with no recovered plant is recorded
   absence-unverifiable and supports no absence claim.
-- [x] **AC10 — No credential reaches the results artifact, asserted over serialized
-  bytes.** The privacy row scans the serialized artifact for every encoded form of the
-  issued token and the fixture credential, rather than trusting the construction code.
+- [x] **AC10 — No credential, origin or fixture identity reaches the results artifact,
+  and a detected leak blocks the write.** Two passes, because the row's own result is
+  part of the artifact and a single pass over the final bytes cannot produce the row it
+  must contain. Pass one yields the row; pass two scans the exact bytes about to be
+  written and refuses the write on a hit, emitting a counts-only refusal instead. The
+  needle set covers the issued token, the fixture credential, both destination origins
+  and the fixture user name — origins included because a navigation timeout embeds the
+  URL in the error text and that text reaches the failure record.
 - [x] **AC11 — The reference consumer is an observation with provenance, never an
   acceptance criterion.** Its unauthenticated surface is probed read-only; the
-  public-by-identifier case and the gated manager-scoped case are both recorded, and the
-  private-league case is named as unmeasured with the one input that would close it. No
-  identifier enumeration was performed against a third party.
+  probe date, the four surfaces and their observed status codes are recorded in a table
+  in the note, so the observation can be re-run rather than taken on trust. The private
+  variant is named as unmeasured with the one input that would close it. No identifier
+  enumeration was performed against a third party, and the provider is described by
+  shape rather than named — its API vocabulary identifies it as surely as its name, and
+  the observation also records that the operator holds an account there.
 - [x] **AC12 — The round's governance controls stay green.** The digest covers the new
   note with exactly one entry; the decision surface still carries one record per open
   question; every RFC hunk sits below the `## Amendments` anchor; the follow-on-absence
@@ -136,11 +177,18 @@ is implied that did not happen.
 Goal-based checks and one measurement arm; no production code changes, so no unit
 surface.
 
-- **Governance controls** — `r13-digest-coverage.py`, `r13-decision-surface.py` (and its
-  follow-on-detector self-test), and `r13-spec-consistency.py` are run against the
-  working tree. These are the checks that would catch a frozen-body edit, a missing or
-  duplicated digest entry, a prohibited apparatus figure, and a created follow-on
-  artifact.
+- **Governance controls** — `r13-digest-coverage.py` and `r13-decision-surface.py` (with
+  its follow-on-detector self-test) are run against the working tree. These are the
+  checks that would catch a frozen-body edit, a missing or duplicated digest entry, a
+  prohibited apparatus figure, and a created follow-on artifact.
+  `r13-spec-consistency.py` is deliberately **not** listed: it hard-codes round 13's spec
+  directory, so running it here exercises nothing of round 14's, and reporting its green
+  result as this round's evidence would be a skip dressed as a pass. It is still run, as
+  a regression check that round 14 did not disturb round 13.
+- **Inherited apparatus controls** — the archive self-tests and the privacy sweep with
+  its detector self-test, because extending a shared tree has previously disabled a
+  second harness silently. The detector self-test is what stops a clean sweep from being
+  a vacuous one.
 - **Measurement arm** — the driver is run unmutated to record the baseline, then run
   under its own mutation harness. A row that does not flip, or an anchor that is not
   unique within the mutable region, fails the harness loudly.

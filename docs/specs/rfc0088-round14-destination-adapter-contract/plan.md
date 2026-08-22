@@ -1,11 +1,11 @@
 # Plan: rfc0088-round14-destination-adapter-contract
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 ## Approach
 
-Six tasks in dependency order, delivered as one review unit. The ordering is forced by
+Seven tasks in dependency order, delivered as one review unit. The ordering is forced by
 a single fact: **the fixture pair cannot be specified before it is measured.** T1 and T2
 are candidate elimination and measurement; everything the spec says about the pair is
 downstream of what they observed. Writing the RFC amendment first would have meant
@@ -63,6 +63,28 @@ row inventory. Record the raw observation before designing the assertions around
 designing assertions first is how a measurement gets calibrated to the answer it
 expected.
 
+**Outcome:** pair selected. The SPA half's login document arrives with no `<form>` and
+no password input and acquires both under script; the contrast half's arrives with each
+already present. The token-issuing response carries no cache directive, and the token
+reaches browser user-data at rest through the destination's own web-storage write.
+
+### T2a — Probe the reference consumer's unauthenticated surface
+
+**Depends on:** none
+**Verification mode:** goal-based check
+**Tests:** no stub (goal-based). *Done when:* the note records the probe date, each
+surface probed, and the status code observed for each.
+
+**Approach:** a handful of unauthenticated read-only requests against documented public
+endpoints, to establish which surfaces need the session. This is the round's only
+third-party contact and it sits under the spec's **Ask first** tier: it is operator-run,
+outside the repository's execution path, and never enters CI. Probing identifiers until
+a private one is found is refused rather than asked about — that is enumeration against
+a third party.
+
+**Outcome:** the public variant is open, an account-scoped surface is gated, and the
+private variant is recorded as unmeasured with the one input that would close it.
+
 ### T3 — Build the measurement arm
 
 **Depends on:** T2
@@ -79,7 +101,12 @@ and the baseline results before the first mutation run: a harness killed mid-run
 the mutant in place, and an untracked file does not show up in `git status`.
 
 Two rows are declared failing and mutate *toward passing*. A privacy row asserts over
-the serialized artifact bytes rather than over the code that built them.
+the serialized artifact bytes rather than over the code that built them, in two passes,
+with the second gating the write.
+
+**Outcome:** eleven rows, twelve mutation cases — one row is a conjunction and carries a
+case per load-bearing conjunct. Baseline and harness both clean, no stale mutants, and
+the harness summary persisted beside the results artifact.
 
 ### T4 — Amend open question 3 and record the decision records
 
@@ -94,6 +121,9 @@ second one, so the RFC never carries two answers. Leave question 4's ruling unto
 Append the decision records as a new same-level amendment bullet, which also bounds the
 preceding section correctly for the decision-surface reader.
 
+**Outcome:** done, and a stale row in the Current Experimental state table that this
+round contradicted outright was corrected in the same pass.
+
 ### T5 — Write the note and its digest entry
 
 **Depends on:** T3, T4
@@ -105,6 +135,10 @@ new note enumerated and covered by exactly one entry above its substance floor.
 apparatus figures out of both the entry and the note's headline claims; the figure
 boundary module is the authority, not judgement about what reads like a headline.
 
+**Outcome:** done. The note describes the reference consumer by shape rather than by
+name — a provider's API vocabulary identifies it as surely as its name does, and the
+note also records an operator account relationship.
+
 ### T6 — Register the spec and run the gate chain
 
 **Depends on:** T5
@@ -112,6 +146,10 @@ boundary module is the authority, not judgement about what reads like a headline
 **Tests:** no stub (goal-based). *Done when:* the spec has a workspace entry, the
 governance controls pass, and the repository gate chain reports no new failure against
 its pre-round state.
+
+**Outcome:** registered in `["ini-002".work].shipped`; governance controls, inherited
+apparatus controls, the privacy sweep, `lint-spec-status`, the documentation-entry link
+tests and `SKIP_SAST=1 make build-check` all clean.
 
 ## Rollout and recovery
 
@@ -123,9 +161,11 @@ affects no other harness, since it extends no shared verifier and shares no corp
 
 ## Risks
 
-- **The fixture pair drifts.** Both halves are pinned by tag today. A digest pin is the
-  stronger form and belongs with the build that consumes them, not with this round,
-  which only selects them.
+- **The fixture pair drifts.** Closed: both halves are pinned by image digest in the
+  note, which is what AD-4 requires and what makes a re-run comparable. The tag is kept
+  beside the digest for readability only. What remains open is the registry the pull
+  contacts on a cold cache; AD-4 names it as an allowlisted egress rather than pretending
+  a pinned container has none.
 - **The measurement generalises further than it should.** Two destinations establish
   that the accommodation's precondition is not universal; they do not establish a
   population. The note and the amendment both say so.

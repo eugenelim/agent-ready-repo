@@ -968,7 +968,7 @@ bottom will meet all of these as live text; every one is superseded here:
 | "Live adapters reject loopback, private, link-local, multicast, and metadata destinations after DNS resolution and on every redirect/connection" | *Website-adapter artifact and runtime contract* | *Network corrections in force* — an invariant, not a capability of the route API |
 | Node permissions listed among the safety rails | *Native Playwright and trusted-code posture* | Correction 7 — one coarse `net` permission gates the transport too |
 | "S1, S2, S3, S4, and S5 remain open Experimental gates" | *Experimental run ledger — 2026-08-15* | The current-state table above; that sentence is dated commentary, not a live status |
-| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3 remains open and is unchanged |
+| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3's bar is amended by the 2026-08-21 entry below and the question stays open |
 
 The `Experimental run ledger — 2026-08-15` and the `Experiment / validation`
 tables are the **first** run's record. Where they and this section disagree,
@@ -3349,9 +3349,9 @@ that mechanism rather than record the channel as inherently uncontrollable.
     asking.
   - S5's own two providers were the synthetic fixtures `example-provider-a` and
     `example-provider-b`. They demonstrated the pack/grant vertical mechanism and were
-    never independent consumers. They did not satisfy the two-consumer bar and do not
-    satisfy the one-consumer bar; recording that closes the reading in which the
-    original bar was already met.
+    never independent consumers, so the reading in which the original bar was already
+    met does not survive either. Under the amended bar they are not consumers at all —
+    they are the wrong kind of object, which is the point.
   - `web-automation` is not even an existing pack category — the RFC's own D8 resolves
     discovery through `integrations` plus a namespaced conformance marker, so there is
     no category a consumer could already be sitting in unnoticed.
@@ -3369,8 +3369,10 @@ that mechanism rather than record the channel as inherently uncontrollable.
   acceptance and lowering it explicitly. Neither is taken. The bar is re-denominated:
   acceptance no longer waits on independent adopters appearing, which nothing in the
   pilot's control could cause, nor on a single consumer being built inside a boundary
-  that forbids publishing it. It waits on a **destination adapter contract holding
-  against two fixtures**, which is work this project can schedule and CI can assert.
+  that forbids publishing it. It waits on the bar as blockquoted above — which is work
+  this project can schedule, and whose contract half CI can assert. The blockquote is
+  the canonical statement of the bar; this paragraph does not restate it, because a bar
+  written twice is a bar that disagrees with itself at the first edit.
 
   Two things follow that the approver is accepting by taking this ruling. The fixtures
   are the foundation's own, and that is deliberate rather than a concession: they are
@@ -3383,7 +3385,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 
   **The fixture pair is measured, not proposed.** Both halves are pinned containers,
   and the pair was selected by standing them up and observing them rather than from
-  documentation. The named candidate going in was an operator-internal delivery tool
+  documentation. The leading candidate going in was an operator-internal delivery tool
   whose documentation confirms the exact shape this question wants — username and
   password exchanged for a JWT at a session endpoint, `Authorization: Bearer` on API
   requests. It was rejected on measurement: its server refuses to start without a
@@ -3429,7 +3431,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
   section is already the authoritative current contract, so it is where a decision
   taken before acceptance belongs. Each one graduates to an ADR when the RFC is
   Accepted and implementation is separately authorised — the follow-on list already
-  reserves a slot for the first of them. RFC-0088 remains `Experimental`; open
+  reserves an ADR slot that AD-3 graduates into. RFC-0088 remains `Experimental`; open
   questions 1, 2, 5 and 6 remain outstanding; no blocker item closes.
 
   **AD-1 — authentication is an optional layer, not a precondition of page driving.**
@@ -3449,13 +3451,30 @@ that mechanism rather than record the channel as inherently uncontrollable.
   destination's state, and no aggregate health signal may collapse it into a
   session-wide verdict.
 
-  **AD-3 — credentials resolve through the broker, and never cross a process boundary
-  to a model.** Credential resolution is `credbroker`'s, in its declared order, and a
-  resolved secret is never placed in a prompt, a tool argument, a transcript, or any
-  other value an LLM process can read. Nor is one committed. This has been true in
-  practice; what it did not have was a stated reason, which is that the credential
+  **AD-3 — credentials resolve through the broker, and no model-reachable process may
+  hold or obtain one.** Credential resolution is `credbroker`'s, in its declared order.
+  The boundary is stated as a **property, not a list of channels**: no LLM-reachable
+  process may hold, or be able to obtain, a resolved or destination-issued credential.
+  Nor is one committed. The reason it did not have before is that the credential
   boundary and the model boundary are different boundaries, and a design that lets them
   coincide has no way to say which one failed.
+
+  It is written as a property because this round's own measurement is a channel a list
+  would have missed. A prompt, a tool argument and a transcript are the obvious three;
+  the token this round found lands in **browser user-data on disk**, inside a profile
+  directory the agent process owns, and question 5's accommodation puts the same token
+  in a **DOM the agent reads**. An agent with an ordinary file-read or page-evaluate
+  tool obtains the credential without using any of the obvious three. Two derived
+  obligations follow for the build, and they are consequences of this decision rather
+  than criteria this round claims to have met: a browser user-data directory is a
+  credential-bearing artifact with a declared lifetime, and a page-resident token is
+  out of reach of every model-facing tool.
+
+  **Scope.** AD-3 governs production packs, adapters and CLI surfaces. The
+  out-of-repository evidence apparatus is outside it and reads its fixture credential
+  straight from the environment — deliberately, because it is not a credential the
+  broker mediates and not one any adopter holds, and routing a synthetic fixture secret
+  through the broker would exercise none of the boundary AD-3 is about.
 
   **AD-4 — a pinned container is the CI fixture, and it is load-bearing.** The fixture
   is not a convenience stand-in for a real destination. It is the *only* destination
@@ -3467,7 +3486,11 @@ that mechanism rather than record the channel as inherently uncontrollable.
   may be used however convenient. And the fixture must be a *container* — an image
   pinned by digest that CI can start — rather than a hosted demo instance, because a
   hosted instance is a third party the repository would be contacting on every run.
-  That clause did real work this round: it is what excluded the leading candidate.
+  What that does not remove is the registry: a digest-pinned pull still contacts one on
+  a cold cache, so the registry is a **named, allowlisted egress**, not an absence of
+  egress, and the difference between it and a demo instance is that a digest pin makes
+  what comes back immutable. That clause did real work this round: it is what excluded
+  the leading candidate.
 
   **Scope residual, carried from the withdrawn narrowing.** An earlier proposal would
   have narrowed `web-pilot`'s scope to destinations offering no token mechanism at all.
@@ -3490,8 +3513,11 @@ that mechanism rather than record the channel as inherently uncontrollable.
   Two pinned containers were stood up and driven through a real browser login, chosen
   for opposite render and authentication shape. Measured, not read from documentation:
 
-  - The token-issuing response carries **no cache directive at all** — not `no-store`,
-    not `private`, nothing. The precondition round 12 identified is simply absent.
+  - **On the token-issuing half** — the only half that issues a token — that response
+    carries **no cache directive at all**: not `no-store`, not `private`, nothing. The
+    precondition round 12 identified is simply absent. The contrast half issues no
+    token; its credential arrives as a cookie on a response marked `private`, which is
+    a different thing and is not evidence for or against the precondition.
   - The issued token is written by the destination's own frontend into a
     **page-readable web-storage key**, from which it reaches browser user-data on disk.
 
