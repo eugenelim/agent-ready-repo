@@ -187,6 +187,18 @@ reader can see what moved rather than trusting that something did.
 rounds seven, eight and nine, and carries the archive digest the RFC's amendment
 entry cites. This is the archive the later rounds' apparatus continues to build.
 
+**`spikes/2026-08-21-destination-token-landing.md`** — Asked where a real
+destination's issued token actually lands, and whether the response that issues it is
+marked `no-store`. Measured against two pinned containers of deliberately opposite
+render and authentication shape, each driven through a real browser login: on the half
+that issues a token, that response carries no cache directive at all, and the
+destination's own frontend writes the token into a page-readable web-storage key from
+which it reaches browser user-data on disk. The contrast half issues no token and its
+cookie arrives on a `private`-marked response, so it neither supports the precondition
+nor refutes it. Changed open question 5 from an accommodation with an untested
+precondition into one whose precondition no consumer can establish, and supplied the
+measured fixture pair that the amended open-question-3 bar names.
+
 ---
 
 ## Set two — the rounds roster
@@ -208,6 +220,8 @@ Declared explicitly, because filenames cannot express it.
 | Eleventh | The round-11 note |
 | Twelfth | The round-12 note |
 | Thirteenth | This digest, and the round-13 amendment entry |
+
+Round fourteen is deliberately absent from this roster. The roster is a projection of the coverage checker's declared tuple, which stops at the thirteenth and which round fourteen did not extend; set one carries the round through its own dated note. Having a dated note is not itself the reason — the tenth through thirteenth each have one and a roster row both.
 
 ---
 

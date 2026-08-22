@@ -150,6 +150,7 @@ active  = [
 ]
 shipped = [
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
+  {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
@@ -1172,6 +1173,15 @@ open = [
   # keyed HMAC; across chains it remains operator-trusted, so this is bounded, not
   # closed.
   {slug = "rfc0088-privacy-term-identity-anchor", source = "round-12 security review"},
+  # RFC-0088 round-14 pre-flight, not caused by round 14 and NOT fixed by it.
+  # r12-fact-negative-tests.py reports MISSED and NOT-RESTORED privacy cases.
+  # Verified pre-existing: against a clean detached checkout of origin/main, with
+  # no RFC-0088 work in the tree, it fails with MORE cases than against the round
+  # branch (privacy empty, privacy count-minus-one, absolute-tree-root member),
+  # so it is environment- or state-dependent rather than caused by any round. It
+  # references neither file round 14 edited. It is in the r9-gates.sh chain, so
+  # the full chain cannot be green until it is diagnosed.
+  {slug = "rfc0088-r12-fact-negative-tests-red", source = "pre-flight/2026-08-22"},
   # Closed 2026-08-21. Root AGENTS.md § "Commands you'll need" now names
   # `make bootstrap-sites`, the sanctioned target that installs BOTH npm trees
   # (tools/repo/bootstrap.py profile_commands("sites")). Two corrections the entry
