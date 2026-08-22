@@ -14,6 +14,7 @@ another's leftovers.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import os
 import pathlib
@@ -175,6 +176,203 @@ def _run_verdict_make(makefile: str, cli_vars: dict[str, str],
         argv += [f"{k}={v}" for k, v in cli_vars.items()]
         res = subprocess.run(argv, capture_output=True, text=True, check=False, env=env)
     return res.stdout + res.stderr
+
+
+def _test_local_ci_orchestration_stub(makefile: str) -> None:
+    """Pin the approved graph and lazy selector before changing the Makefile."""
+
+    # STUB: AC1-AC9 — single pre-PR route and lazy default-Python selection.
+    rules = {
+        name: (deps, recipe)
+        for names, deps, recipe in M.iter_makefile_rules(makefile)
+        for name in names
+    }
+    ci_deps = rules["ci"][0]
+    _check(
+        "local-ci-direct-prereqs",
+        ci_deps,
+        ["build-check", "lint-ruff", "lint-mypy", "test"],
+    )
+    _check("local-ci-pre-pr-not-direct", "pre-pr" in ci_deps, False)
+
+    reachable = M.derive_reachable_targets(makefile)
+    reachable_paths = M.makefile_recipe_targets(makefile, reachable)
+    _check("local-ci-pre-pr-target-not-reachable", "pre-pr" in reachable, False)
+    _check(
+        "local-ci-pre-pr-script-not-directly-reachable",
+        "tools/catalogue/pre_pr_catalogue.py" in reachable_paths,
+        False,
+    )
+    _check_true("local-ci-gate-chain-reachable", M.GATE_CHAIN in reachable_paths)
+    ci_recipe = "\n".join(rules["ci"][1])
+    for forbidden in (
+        "$(MAKE) pre-pr",
+        "$(MAKE) build-check",
+        "tools/catalogue/pre_pr_catalogue.py",
+        M.GATE_CHAIN,
+    ):
+        _check(
+            f"local-ci-recipe-has-no-duplicate-route[{forbidden}]",
+            forbidden in ci_recipe,
+            False,
+        )
+    build_check_reachable = M.derive_reachable_targets(
+        makefile, entrypoint="build-check"
+    )
+    build_check_gate_chain_count = sum(
+        "\n".join(rules[target][1]).count(M.GATE_CHAIN)
+        for target in build_check_reachable
+        if target in rules
+    )
+    ci_gate_chain_count = sum(
+        "\n".join(rules[target][1]).count(M.GATE_CHAIN)
+        for target in reachable
+        if target in rules
+    )
+    _check(
+        "local-ci-build-check-route-gate-chain-count",
+        build_check_gate_chain_count,
+        1,
+    )
+    _check(
+        "local-ci-no-gate-chain-route-outside-build-check",
+        ci_gate_chain_count,
+        build_check_gate_chain_count,
+    )
+    chain = (REPO_ROOT / M.GATE_CHAIN).read_text(encoding="utf-8")
+    pre_pr_calls = [
+        node
+        for node in ast.walk(ast.parse(chain))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_script_step"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "pre-pr-catalogue"
+    ]
+    _check("local-ci-pre-pr-chain-call-count", len(pre_pr_calls), 1)
+    if pre_pr_calls:
+        args_keywords = [
+            keyword for keyword in pre_pr_calls[0].keywords
+            if keyword.arg == "args"
+        ]
+        _check("local-ci-pre-pr-args-count", len(args_keywords), 1)
+        if args_keywords:
+            _check(
+                "local-ci-pre-pr-skips-second-verify",
+                ast.literal_eval(args_keywords[0].value),
+                ("--skip-verify",),
+            )
+
+    python_match = re.search(r"(?m)^PYTHON\s*\?=.*$", makefile)
+    _check_true("local-ci-python-default-exists", python_match is not None)
+    if python_match is None:
+        return
+    python_line = python_match.group(0)
+    _check_true("local-ci-python-selector-isolated", "python3 -I -B" in python_line)
+    _check_true("local-ci-python-empty-errors", "$(error" in python_line)
+
+    make = shutil.which("make")
+    if make is None or os.name != "posix":  # pragma: no cover — make-free Windows
+        print("… local CI selector cases skipped: POSIX `make` unavailable")
+        return
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = pathlib.Path(directory)
+        log = root / "selector.log"
+        selected = root / "python with spaces"
+        launcher = root / "python3"
+        launcher.write_text(
+            f"#!{sys.executable}\n"
+            "import os, pathlib, sys\n"
+            "with pathlib.Path(os.environ['SELECTOR_LOG']).open(\n"
+            "    'a', encoding='utf-8'\n"
+            ") as stream:\n"
+            "    stream.write(' '.join(sys.argv[1:]) + '\\n')\n"
+            "sys.executable = (\n"
+            "    '' if os.environ.get('SELECTOR_EMPTY')\n"
+            "    else os.environ['SELECTED_PYTHON']\n"
+            ")\n"
+            "code_index = sys.argv.index('-c') + 1\n"
+            "exec(sys.argv[code_index], {'__name__': '__main__'})\n",
+            encoding="utf-8",
+        )
+        launcher.chmod(0o755)
+        probe = root / "Makefile"
+        probe.write_text(
+            f"{python_line}\n"
+            "show:\n\t@$(PYTHON) first\n\t@$(PYTHON) second\n"
+            "plain:\n\t@echo plain\n",
+            encoding="utf-8",
+        )
+        env = dict(os.environ)
+        for inherited in (
+            "PYTHON", "MAKEFLAGS", "MAKEOVERRIDES", "MFLAGS", "MAKELEVEL"
+        ):
+            env.pop(inherited, None)
+        env.update({
+            "PATH": f"{root}{os.pathsep}{env['PATH']}",
+            "SELECTOR_LOG": str(log),
+            "SELECTED_PYTHON": str(selected),
+        })
+
+        shown = subprocess.run(
+            [make, "-n", "-f", str(probe), "show"],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        _check("local-ci-selector-show-exit", shown.returncode, 0)
+        selector_calls = (
+            log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+        )
+        _check("local-ci-selector-launch-count", len(selector_calls), 1)
+        if selector_calls:
+            _check_true("local-ci-selector-flags", "-I -B -c" in selector_calls[0])
+        _check("local-ci-selector-quotes-spaces", shown.stdout.count(f"'{selected}'"), 2)
+
+        log.unlink(missing_ok=True)
+        plain = subprocess.run(
+            [make, "-n", "-f", str(probe), "plain"],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        _check("local-ci-non-python-target-exit", plain.returncode, 0)
+        _check("local-ci-non-python-target-skips-selector", log.exists(), False)
+
+        for label, args, extra_env in (
+            ("command-line", ["PYTHON=operator-python"], {}),
+            ("environment", [], {"PYTHON": "operator-python"}),
+        ):
+            overridden = subprocess.run(
+                [make, "-n", "-f", str(probe), "show", *args],
+                env={**env, **extra_env},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            _check(f"local-ci-{label}-override-exit", overridden.returncode, 0)
+            _check_true(
+                f"local-ci-{label}-override-used",
+                "operator-python first" in overridden.stdout,
+            )
+            _check(f"local-ci-{label}-override-skips-selector", log.exists(), False)
+
+        empty = subprocess.run(
+            [make, "-n", "-f", str(probe), "show"],
+            env={**env, "SELECTOR_EMPTY": "1"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        _check_true("local-ci-empty-selector-fails", empty.returncode != 0)
+        _check_true(
+            "local-ci-empty-selector-is-actionable",
+            "unable to resolve python3" in empty.stderr,
+        )
 
 
 def _classified(steps=None, by_step=None, duplicates=None) -> dict:
@@ -498,7 +696,8 @@ def main() -> int:
     # coverage set byte-identical, so AC4d held only for the prerequisites whose
     # coverage came from a recipe line.
     real_makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-    for prereq in ("build-check", "pre-pr", "test", "lint-ruff"):
+    _test_local_ci_orchestration_stub(real_makefile)
+    for prereq in ("build-check", "test", "lint-ruff", "lint-mypy"):
         dropped = re.sub(rf"(?m)^(ci:.*) {re.escape(prereq)}\b", r"\1", real_makefile)
         _check(f"dropped-prereq-reachability[{prereq}]",
                prereq in M.derive_reachable_targets(dropped), False)
