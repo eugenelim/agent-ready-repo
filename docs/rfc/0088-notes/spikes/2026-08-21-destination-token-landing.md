@@ -242,13 +242,29 @@ sits between them and is unmeasured.
   origin is an ambient default, and none is persisted.
 - The reference-consumer probe is operator-run and has no results artifact. Its record
   is the table above, which is why the date and the status codes are in it.
-- **The decision-surface gate is red for a reason unrelated to this round, and stays
-  red.** Its follow-on-artifact check scopes "added" to paths added since a pinned base
-  commit, so an ADR merged by any team after that base trips it — one did, and the gate
-  now fails on a clean checkout of the default branch with no RFC-0088 work present.
-  Verified in a detached worktree rather than inferred. Round 14 does not rescope another
-  round's control; the condition is carried as `rfc0088-decision-surface-base-scoping`,
-  and the next round cannot get a green decision surface until it is fixed.
+- **The decision-surface gate's added-paths check was rescoped, because it had stopped
+  being usable.** It scoped "added" to paths added since a pinned base commit, which was
+  written to mean "paths this round created" but reads as "paths anyone created since".
+  An ADR merged by another team tripped it, and it failed on a clean checkout of the
+  default branch with no RFC-0088 work present — verified in a detached worktree, not
+  inferred. The two checks in that script need different bases and were sharing one: the
+  frozen-body check compares RFC text, where a pinned hash is right and a moving ref
+  would fabricate phantom hunks, while this one asks what the round created, which is the
+  merge-base with the upstream default branch. Upstream movement makes the second
+  *more* accurate, not less. A fallback to the pinned base remains for a checkout with no
+  upstream ref, and it says so in the output rather than silently restoring the defect.
+  A new self-test drives the production scan against a synthetic repository carrying the
+  exact history that broke it — a peer ADR on the default branch and a round branch that
+  created nothing — and asserts three things: the peer's artifact is excluded, the same
+  tree read against the pinned base still shows it (so the clean result is not a detector
+  matching nothing), and an artifact the round really did create is still caught. It runs
+  in the gate chain rather than on request.
+- **A different apparatus control is red, pre-existing, and not fixed here.**
+  `r12-fact-negative-tests.py` reports MISSED and NOT-RESTORED privacy cases, and fails
+  with *more* cases against a clean checkout of the default branch than against this
+  round's branch, so it is environment- or state-dependent rather than caused by a round.
+  Carried as `rfc0088-r12-fact-negative-tests-red`. The full gate chain cannot be green
+  until it is diagnosed; the individually-run controls this round depends on are.
 - The privacy bound on the results artifact is stated as a prohibition — no origin, no
   credential, no fixture identity, no value read out of a storage entry or a cookie —
   rather than as an allowlist of recorded field classes. An allowlist was tried and was

@@ -176,17 +176,22 @@ is implied that did not happen.
   enumeration was performed against a third party, and the provider is described by
   shape rather than named — including its endpoint vocabulary, because a provider's API
   terminology identifies it as surely as its name does.
-- [x] **AC12 — The round's governance controls hold, with one pre-existing failure
-  named rather than absorbed.** The digest covers the new note with exactly one entry;
-  the decision surface carries one record per open question; every RFC hunk sits below
-  the `## Amendments` anchor; the follow-on-absence detector's self-test passes and this
-  round created nothing matching a follow-on shape. The decision-surface gate itself is
-  **red for a reason this round did not cause**: its added-paths check is scoped to a
-  pinned base commit, so an ADR merged by another team after that base trips it. Verified
-  by running the gate against a clean checkout of the default branch, where it fails
-  identically with no RFC-0088 work present. Carried as
-  `rfc0088-decision-surface-base-scoping`; rescoping another round's control is that
-  round's decision, not this one's.
+- [x] **AC12 — The round's governance controls are green, and the one that was not is
+  fixed rather than carried.** The digest covers the new note with exactly one entry; the
+  decision surface carries one record per open question; every RFC hunk sits below the
+  `## Amendments` anchor; the follow-on-absence detector's self-test passes and this
+  round created nothing matching a follow-on shape.
+  The decision-surface gate's added-paths check was **rescoped** from a pinned base to
+  the merge-base with the upstream default branch, because against a pinned base it
+  answered "what has anyone created since" and had gone red on a clean default branch
+  through another team's ADR. Narrowed, not disabled: a planted ADR in this tree is still
+  caught, and a new self-test asserts the peer case is excluded, the pinned-base read
+  still shows it, and a round-created artifact is caught. It runs in the gate chain.
+- [x] **AC12b — A pre-existing apparatus failure is named rather than absorbed.**
+  `r12-fact-negative-tests.py` is red, fails with more cases against a clean checkout of
+  the default branch than against this branch, and references nothing this round edited.
+  Carried as `rfc0088-r12-fact-negative-tests-red`. This round does not claim a green
+  full gate chain; it claims the individually-run controls it depends on.
 - [x] **AC13 — The round's verdict remains NOT FINAL with its carried residuals
   unchanged.** No residual is relabelled, and no disposition moves. This round adds
   evidence and amends one bar; it does not shorten the tail.
