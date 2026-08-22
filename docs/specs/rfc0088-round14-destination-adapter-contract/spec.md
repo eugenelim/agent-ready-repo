@@ -176,10 +176,17 @@ is implied that did not happen.
   enumeration was performed against a third party, and the provider is described by
   shape rather than named — including its endpoint vocabulary, because a provider's API
   terminology identifies it as surely as its name does.
-- [x] **AC12 — The round's governance controls stay green.** The digest covers the new
-  note with exactly one entry; the decision surface still carries one record per open
-  question; every RFC hunk sits below the `## Amendments` anchor; the follow-on-absence
-  detector reports nothing created.
+- [x] **AC12 — The round's governance controls hold, with one pre-existing failure
+  named rather than absorbed.** The digest covers the new note with exactly one entry;
+  the decision surface carries one record per open question; every RFC hunk sits below
+  the `## Amendments` anchor; the follow-on-absence detector's self-test passes and this
+  round created nothing matching a follow-on shape. The decision-surface gate itself is
+  **red for a reason this round did not cause**: its added-paths check is scoped to a
+  pinned base commit, so an ADR merged by another team after that base trips it. Verified
+  by running the gate against a clean checkout of the default branch, where it fails
+  identically with no RFC-0088 work present. Carried as
+  `rfc0088-decision-surface-base-scoping`; rescoping another round's control is that
+  round's decision, not this one's.
 - [x] **AC13 — The round's verdict remains NOT FINAL with its carried residuals
   unchanged.** No residual is relabelled, and no disposition moves. This round adds
   evidence and amends one bar; it does not shorten the tail.

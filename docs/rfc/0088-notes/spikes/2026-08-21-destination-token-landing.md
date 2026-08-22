@@ -242,6 +242,13 @@ sits between them and is unmeasured.
   origin is an ambient default, and none is persisted.
 - The reference-consumer probe is operator-run and has no results artifact. Its record
   is the table above, which is why the date and the status codes are in it.
+- **The decision-surface gate is red for a reason unrelated to this round, and stays
+  red.** Its follow-on-artifact check scopes "added" to paths added since a pinned base
+  commit, so an ADR merged by any team after that base trips it — one did, and the gate
+  now fails on a clean checkout of the default branch with no RFC-0088 work present.
+  Verified in a detached worktree rather than inferred. Round 14 does not rescope another
+  round's control; the condition is carried as `rfc0088-decision-surface-base-scoping`,
+  and the next round cannot get a green decision surface until it is fixed.
 - The privacy bound on the results artifact is stated as a prohibition — no origin, no
   credential, no fixture identity, no value read out of a storage entry or a cookie —
   rather than as an allowlist of recorded field classes. An allowlist was tried and was
