@@ -216,11 +216,28 @@ def _test_local_ci_orchestration_stub(makefile: str) -> None:
             forbidden in ci_recipe,
             False,
         )
-    build_check_recipe = "\n".join(rules["build-check"][1])
+    build_check_reachable = M.derive_reachable_targets(
+        makefile, entrypoint="build-check"
+    )
+    build_check_gate_chain_count = sum(
+        "\n".join(rules[target][1]).count(M.GATE_CHAIN)
+        for target in build_check_reachable
+        if target in rules
+    )
+    ci_gate_chain_count = sum(
+        "\n".join(rules[target][1]).count(M.GATE_CHAIN)
+        for target in reachable
+        if target in rules
+    )
     _check(
-        "local-ci-build-check-gate-chain-count",
-        build_check_recipe.count(M.GATE_CHAIN),
+        "local-ci-build-check-route-gate-chain-count",
+        build_check_gate_chain_count,
         1,
+    )
+    _check(
+        "local-ci-no-gate-chain-route-outside-build-check",
+        ci_gate_chain_count,
+        build_check_gate_chain_count,
     )
     chain = (REPO_ROOT / M.GATE_CHAIN).read_text(encoding="utf-8")
     pre_pr_calls = [
