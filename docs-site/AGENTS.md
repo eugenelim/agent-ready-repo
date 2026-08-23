@@ -35,8 +35,10 @@ npm run build --prefix docs-site
   `markdown.remarkPlugins`/`rehypePlugins` fail config validation when the
   package is unresolvable. The declaration turns root placement from luck into
   a requirement. Two duties come with it: keep the pin equal to `astro`'s exact
-  optional-peer version, and expect an astro major to arrive alone and need
-  both moved together.
+  optional-peer version — `tools/test_browser_gate_subset.py` refuses from
+  `gate-main` when the manifest, the lockfile and that peer disagree, or when
+  Starlight's declared range stops accepting the pin — and expect an astro major
+  to arrive alone and need both moved together.
 - `markdown.remarkPlugins` and `markdown.rehypePlugins` are deprecated — every
   docs build prints so. The migration is `markdown.processor: unified({...})`
   from `@astrojs/markdown-remark`; until it happens, an astro major can drop
