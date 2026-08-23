@@ -23,7 +23,12 @@ used by this site. Do not edit generated inputs by hand.
 - Full Playwright runs rewrite tracked snapshots; stage files explicitly, never `git add -A`.
 - Check `allowScripts` against install-script entries by eye when the lockfile moves.
 - Under an agent, `astro dev` and `astro preview` fork a detached server and
-  return at once with JSON output. The gate is insulated (`playwright.config.ts`
+  return at once with JSON output. The corollary is the reason this gets closed
+  as "works for me": a human running the identical command in the identical
+  worktree will **not** reproduce it, because the fork is keyed on agent
+  detection rather than on anything about the command or the tree. Report it
+  with that stated, or the first reply is a screenshot of it working. The gate
+  is insulated (`playwright.config.ts`
   sets `ASTRO_PREVIEW_BACKGROUND`); a hand-run `npm run preview` is not, and
   leaves a *live* orphan recorded in `.astro/` that blocks the next start on
   *any* port. `preview`'s foreground path ignores `--force` despite its own

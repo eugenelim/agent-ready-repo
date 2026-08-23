@@ -440,7 +440,10 @@ main h1 {
 .mermaid-diagram {
   margin: 1.5rem 0;
   display: flex;
-  justify-content: center;
+  /* Aligned to the measure, not centred: every other block on a docs page —
+     prose, tables, rules, code — starts at the left edge of the prose column,
+     and a centred figure breaks that vertical rail. */
+  justify-content: flex-start;
 }
 .mermaid-diagram svg {
   max-width: 100%;
