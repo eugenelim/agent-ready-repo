@@ -526,6 +526,24 @@ open = [
   {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
   {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
   {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
+  # Hook-adapter audit follow-on. Direct Kiro IDE and CLI projection still targets
+  # superseded hook formats. Shape a coordinated adapter-contract migration to
+  # standalone `.kiro/hooks/*.json` v1 files, and separately prove how Kiro injects
+  # context before claiming session-start nudge parity. Unblocks when the current
+  # Kiro contract is reacquired and the migration receives its own approved spec.
+  {path = "docs/product/intents/kiro-hook-schema-v1.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Migrate direct Kiro hook projection to the standalone v1 schema", needs = []},
+  # Hook-adapter audit follow-on. Copilot, Cursor, and Gemini require distinct JSON
+  # context envelopes, while the portable core hook emits plain stdout; Kiro's
+  # command-output context channel remains unverified. Shape adapter-owned rendering
+  # or wrappers that preserve Claude/Codex plain-stdout behavior. Unblocks when each
+  # runtime contract is reacquired and the output boundary is approved.
+  {path = "docs/product/intents/adapter-hook-context-output.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Render session-start context through each adapter's documented output protocol", needs = []},
+  # Hook-adapter audit follow-on. Claude Code and Codex can execute repository hooks
+  # from a cwd where `python tools/hooks/session-start.py` does not resolve. Shape a
+  # cross-platform, root-stable dispatch design without weakening trust, hook review,
+  # or managed policy and without editing generated projections directly. Unblocks
+  # when runtime root semantics are reacquired and the command strategy is approved.
+  {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
   # RFC-0095 D3. 59 versioned entries sit nested under a `## [Unreleased]` heading and
   # are permanently invisible to the `/now/` projection (it applies no date window; a
   # nested entry simply never publishes). Not a mechanical level-shift: 48 genuinely

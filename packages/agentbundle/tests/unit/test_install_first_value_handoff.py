@@ -97,6 +97,25 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
         self.assertIn("Expected:", out)
         self.assertIn("Next:", out)
 
+    def test_level_b_emits_exact_block_in_order(self) -> None:
+        """Level B's whole block is pinned verbatim, order included.
+
+        AC2 promises Level B "retains prior output". Label-presence assertions
+        cannot see a reordering, and `Next:` is now emitted from a block outside
+        the `level-b` branch — so hoisting that block above the branch would
+        reorder Level B's output with every other case still green. This pins
+        the full stdout so that move fails here.
+        """
+        out = _capture_handoff(_LEVEL_B_DATA)
+        expected = (
+            "\n"
+            f"Verify:   {_LEVEL_B_DATA['verification']}\n"
+            f"Try:      {_LEVEL_B_DATA['starter-prompt']}\n"
+            f"Expected: {_LEVEL_B_DATA['expected-result']}\n"
+            f"Next:     {_LEVEL_B_DATA['next-action']}\n"
+        )
+        self.assertEqual(expected, out)
+
     def test_level_b_verify_contains_verification_text(self) -> None:
         """Verify: line contains the verification field value."""
         out = _capture_handoff(_LEVEL_B_DATA)
@@ -143,6 +162,19 @@ class EmitFirstValueHandoffUnitTests(unittest.TestCase):
         """Verify: line contains the verification field value."""
         out = _capture_handoff(_LEVEL_A_DATA)
         self.assertIn(_LEVEL_A_DATA["verification"], out)
+
+    def test_level_a_optional_next_action_follows_verify(self) -> None:
+        """Level A emits its optional next action without Level B prompts."""
+        data = {**_LEVEL_A_DATA, "next-action": "run readiness"}
+        out = _capture_handoff(data)
+        self.assertEqual(
+            out,
+            "\n"
+            f"Verify:   {_LEVEL_A_DATA['verification']}\n"
+            "Next:     run readiness\n",
+        )
+        self.assertNotIn("Try:", out)
+        self.assertNotIn("Expected:", out)
 
     def test_level_a_explicit_false_level_b_emits_verify_only(self) -> None:
         """Level-b = False (explicit) also shows Verify: only."""

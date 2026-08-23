@@ -50,6 +50,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.7] — 2026-08-23
+
+### Highlights
+
+- **Every successful direct core install now tells you how to reach the
+  read-only project-readiness check.** The instruction appears for repository
+  and local scope even when a lifecycle hook is disabled, unavailable, or not
+  trusted, and it tells you to start a new session if the skill is not yet
+  discoverable.
+
+### Changed
+
+- Core documentation now reflects current Codex `SessionStart` hook projection,
+  distinguishes projection from runtime execution and repository trust, and
+  separates the `adapt-to-project` skill from the deterministic
+  `agentbundle adapt` CLI.
+- Install-route guidance now documents the intentional local-scope omissions:
+  no seeds, adaptation marker, layout section, or chained CLI adaptation.
+
+## [agentbundle][0.39.2] — 2026-08-23
+
+### Highlights
+
+- **Pack installers can now provide a useful manual next step without forcing a
+  first-run prompt.** Level A packs may add an optional `Next:` instruction,
+  giving adopters a deterministic handoff when runtime hooks do not execute.
+
+### Changed
+
+- The first-value contract accepts and validates an optional Level A
+  `next-action`, prints it after `Verify:`, and retains the existing required
+  Level B behavior.
+
 ## [core][2.10.6] — 2026-08-23
 
 ### Highlights

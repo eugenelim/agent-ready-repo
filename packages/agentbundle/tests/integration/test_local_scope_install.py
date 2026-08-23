@@ -111,6 +111,7 @@ def git_repo(tmp_path: Path) -> Path:
 # T11a: Happy path install cycle
 # ---------------------------------------------------------------------------
 
+
 def test_install_local_happy_path(git_repo: Path) -> None:
     """Files appear in tree, git-invisible, list-installed shows local row."""
     import io

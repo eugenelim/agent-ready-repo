@@ -1,6 +1,6 @@
 # Spec: portfolio-pack-first-value-contract
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0095](../../adr/0095-level-a-first-value-optional-next-action.md) — the vocabulary table's classification of `next-action` as Level B-only; it is optional for Level A and remains required for Level B, and everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md) <!-- authored at EXECUTE start -->
 - **Constrained by:** RFC-0064 Amendment #4 (2026-07-21) — cross-pack first-value adoption overlay; RFC-0031 (pack.toml as source of truth + lossy projection model); RFC-0011 (optional `pack.toml` fields under a contract bump)

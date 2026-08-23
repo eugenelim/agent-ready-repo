@@ -5,6 +5,66 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.10.7"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[core][2.10.7] — 2026-08-23",
+      "changelogAnchor": "core2107--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Every successful direct core install now tells you how to reach the read-only project-readiness check.** The instruction appears for repository and local scope even when a lifecycle hook is disabled, unavailable, or not trusted, and it tells you to start a new session if the skill is not yet discoverable.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Every successful direct core install now tells you how to reach the read-only project-readiness check."
+            },
+            {
+              "type": "text",
+              "value": " The instruction appears for repository and local scope even when a lifecycle hook is disabled, unavailable, or not trusted, and it tells you to start a new session if the skill is not yet discoverable."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agentbundle",
+          "version": "0.39.2"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[agentbundle][0.39.2] — 2026-08-23",
+      "changelogAnchor": "agentbundle0392--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Pack installers can now provide a useful manual next step without forcing a first-run prompt.** Level A packs may add an optional `Next:` instruction, giving adopters a deterministic handoff when runtime hooks do not execute.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Pack installers can now provide a useful manual next step without forcing a first-run prompt."
+            },
+            {
+              "type": "text",
+              "value": " Level A packs may add an optional "
+            },
+            {
+              "type": "code",
+              "value": "Next:"
+            },
+            {
+              "type": "text",
+              "value": " instruction, giving adopters a deterministic handoff when runtime hooks do not execute."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.6"
         }
       ],

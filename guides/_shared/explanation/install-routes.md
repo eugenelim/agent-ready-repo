@@ -35,37 +35,66 @@ subdirectory, so installs succeeded but delivered nothing — check with
 count. A cached catalogue keeps serving the old entries until you update it.
 :::
 
-The same pack content lands every way; the differences are in mechanics (state tracking, where the marker drops, how upgrades work). This page explains *why* there are four and how to pick.
+The routes share canonical pack sources, but scope and route admission decide
+which files and follow-up state land. Local scope deliberately omits seeds,
+adaptation markers, layout sections, and chained CLI adaptation. This page
+explains why there are four routes and how to pick.
 
 :::caution
 **Caveat — route 3 still requires route 4's pip install today.** The release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
 :::
 
-## The install→adapt chain
+## The install-to-adapt handoff
 
-Every install route does the same thing in two phases:
+Projection and adaptation are separate steps, and the gap between them is why
+this page names one reliable handoff rather than four. Installing a pack writes
+files. Whether a projected lifecycle hook then *runs* is the runtime's decision,
+and it turns on the active runtime, its managed policy, repository and hook
+trust, command resolution, the output protocol, and the adaptation marker. Any
+one of those can be missing or mismatched. So the handoff cannot be the hook —
+it is the install's own printed output.
 
-1. **Project pack content** into the target — skills, agents, hooks, seed documents, projected `.claude/` artifacts.
-2. **Drop `.adapt-install-marker.toml`** at the install root.
+Routes 3 and 4 print it. Installing core with `agentbundle install`, at
+repository or local scope, ends with this line:
 
-The marker is what closes the loop with [the `adapt-to-project` skill](../../core/how-to/adapt-to-project.md). On the next agent session, `core`'s `session-start.py` hook reads the marker and nudges the agent into the adapt walk — substituting `<adapt:NAME>` placeholders, walking `*.upstream.<ext>` companions, asking about local conventions.
+```text
+Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
+```
 
-The mechanism is identical across routes:
+If the newly installed skill is not loaded yet, start a fresh agent session
+first — that fallback is the tail of the printed line, which a narrow terminal
+will have scrolled out of view. Routes 1 and 2 print nothing at all, which is
+exactly why their next step is to invoke `adapt-to-project` directly.
 
-| Route | Marker writer |
-| --- | --- |
-| Reference CLI | The `install` verb writes it in-process and chains to `agentbundle adapt`. |
-| Claude plugins | A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` runs the canonical writer on first session after install. Repo-scoped packs are not published to this route, so it does not reach them. |
-| APM | `.apm/hooks/install-marker.{json,py}`, projected via APM's `HookIntegrator`, runs the same canonical writer. |
-| Local clone | Same as Reference CLI — the clone route uses the same `install` verb. |
+A lifecycle hook may repeat that nudge. It is never the only path, and you never
+need to determine whether it fired. So the division is clean: the installer
+guarantees the projected files, the state and omissions specific to the scope you
+chose, and this stdout. It does not guarantee hook execution or context
+injection, because those are the runtime's to decide, not the installer's.
 
-The writer template at [`packages/agentbundle/templates/install-marker.py`](../../../packages/agentbundle/templates/install-marker.py) is the single source of truth; every route projects a copy of it. That's the unifying invariant: *one writer, one marker, one read-side*.
+| Route and scope | Seeds | Marker and CLI adaptation | What you do next |
+| --- | --- | --- | --- |
+| Reference CLI, repository scope | Yes, when declared by the pack | `install` writes `.adapt-install-marker.toml` and chains `agentbundle adapt` | Follow the printed `Next:` line |
+| Reference CLI, local scope | No | No marker, layout section, or chained `adapt` | Follow the printed `Next:` line; start a new agent session first if the skill is not yet available |
+| Claude plugin | Only content admitted to the user-scope plugin route | **Not for `core`**, which is repo-scoped and so is never published to this route. For published packs, a `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` can run the marker writer | Invoke `adapt-to-project` directly |
+| APM | Package content selected for the active target | HookIntegrator can project the package hook; whether it executes is the runtime's decision | Invoke `adapt-to-project` directly |
+| Local clone | Uses the selected Reference CLI scope | Same behavior as the corresponding Reference CLI row | Follow the printed `Next:` line |
+
+Where a route writes a marker, the template at
+[`packages/agentbundle/templates/install-marker.py`](../../../packages/agentbundle/templates/install-marker.py)
+owns its format. The marker lets the session-start hook find unresolved work; its
+presence says nothing about whether that hook ran.
 
 ## Pick by where you live
 
 **You're on Claude Code, you have a GitHub remote, and you don't mind auto-update.** Use the Claude-plugins route. One line of setup, one line per pack, and `/plugin update` keeps you current.
 
-**You're in another IDE (Cursor, Copilot, Gemini, Codex, Windsurf, OpenCode).** Use APM. The same `<owner>/<catalogue>/<pack>` target works; APM's `HookIntegrator` projects the hooks for whichever IDE you're in. The install→adapt chain works on the four hook-capable APM targets — Claude Code (asserted in CI), Cursor, Gemini, Copilot (deferred to manual QA). The other three targets — Codex, OpenCode, Windsurf — have no hook surface in APM, so the per-pack README documents `agentbundle adapt` as the explicit manual gesture instead.
+**You're in another IDE.** Use APM when it supports your target. Its
+HookIntegrator currently deploys hook bundles to Claude Code, Copilot, Cursor,
+Gemini, Codex, Antigravity, Windsurf, and Kiro. OpenCode remains unsupported.
+Deploying a hook bundle is projection, not execution — see
+[the handoff above](#the-install-to-adapt-handoff) for what that turns on. This
+route prints no `Next:` line, so invoke `adapt-to-project` directly.
 
 **You want pinned versions and full state tracking.** Use the reference CLI. `agentbundle install` hashes every projected file into `.agentbundle-state.toml` at install time, so upgrade-time safety is exact from day one. The other routes need a one-shot `agentbundle init-state` after install to reach the same baseline.
 

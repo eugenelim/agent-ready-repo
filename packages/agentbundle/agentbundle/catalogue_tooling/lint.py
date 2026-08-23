@@ -1625,6 +1625,13 @@ class _PackRules:
         elif len(recovery) > 300:
             _v(f"recovery: {len(recovery)} chars (max 300)")
 
+        next_action = fv.get("next-action")
+        if next_action is not None:
+            if not isinstance(next_action, str):
+                _v("next-action: must be a string")
+            elif len(next_action) > 120:
+                _v(f"next-action: {len(next_action)} chars (max 120)")
+
         if fv.get("level-b") is True:
             starter_task = fv.get("starter-task")
             if starter_task is None:
@@ -1654,13 +1661,8 @@ class _PackRules:
             elif len(expected_result) > 200:
                 _v(f"expected-result: {len(expected_result)} chars (max 200)")
 
-            next_action = fv.get("next-action")
             if next_action is None:
                 _v("next-action: missing (required when level-b = true)")
-            elif not isinstance(next_action, str):
-                _v("next-action: must be a string")
-            elif len(next_action) > 120:
-                _v(f"next-action: {len(next_action)} chars (max 120)")
 
         if fv.get("writes-to-repo") is True:
             safety_gate = fv.get("safety-gate")

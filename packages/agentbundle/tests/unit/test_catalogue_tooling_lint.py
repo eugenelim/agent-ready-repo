@@ -1571,6 +1571,75 @@ def test_check_first_value_clean(tmp_path, monkeypatch):
     assert not any(d.code == "CAT-L030" for d in result.diagnostics)
 
 
+def test_check_first_value_level_a_next_action_over_limit(tmp_path, monkeypatch):
+    """A present Level A next-action keeps the shared 120-character limit."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = _FV_SECTION + f'next-action = "{"x" * 121}"\n'
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert any("next-action: 121 chars (max 120)" in d.message for d in l030)
+
+
+def test_check_first_value_level_a_next_action_requires_string(tmp_path, monkeypatch):
+    """A present Level A next-action must use the shared string type."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = _FV_SECTION + "next-action = 42\n"
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert any("next-action: must be a string" in d.message for d in l030)
+
+
+def test_check_first_value_next_action_at_limit_is_accepted(tmp_path, monkeypatch):
+    """Exactly 120 characters is inside the limit, not on the wrong side of it.
+
+    Paired with the 121-character case above, this pins the boundary itself.
+    `packs/core/pack.toml` ships a next-action of exactly 120 characters, so an
+    off-by-one here (`>=` rather than `>`) would reject the real catalogue while
+    every other unit case stayed green.
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = _FV_SECTION + f'next-action = "{"x" * 120}"\n'
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    assert not any(d.code == "CAT-L030" for d in result.diagnostics)
+
+
+def test_check_first_value_level_b_still_requires_next_action(tmp_path, monkeypatch):
+    """Level B keeps next-action mandatory after the field went optional.
+
+    Hoisting the type/length checks out of the Level B cascade left the
+    required-field branch standing alone. The pre-existing Level B case omits
+    four fields at once and asserts on `starter-task`, so deleting this branch
+    kept the suite green — this case fails closed on that deletion by omitting
+    only `next-action`.
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    extra = (
+        _FV_SECTION
+        + "level-b = true\n"
+        + 'starter-task = "do the thing"\n'
+        + 'starter-prompt = "please do the thing"\n'
+        + 'expected-result = "the thing is done"\n'
+    )
+    _add_pack_fv(tmp_path, "pack-a", pack_toml_extra=extra)
+    result = lint_catalogue(tmp_path)
+    l030 = [d for d in result.diagnostics if d.code == "CAT-L030"]
+    assert any(
+        "next-action: missing (required when level-b = true)" in d.message
+        for d in l030
+    )
+
+
 # ---------------------------------------------------------------------------
 # Task 5 — _PackRules._check_credentialed_skills() (CAT-L031)
 # ---------------------------------------------------------------------------

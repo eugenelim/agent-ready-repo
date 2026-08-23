@@ -1,22 +1,36 @@
-# Wires the session-start.py hook body to Claude Code's SessionStart
-# event. The merge-json adapter rule
-# (packages/agentbundle/agentbundle/build/adapters/claude_code.py:84-109)
-# merges this under the `hooks` key of the adapter's target-path
-# `.claude/settings.local.json`. At self-host time the upstream build
-# writes the flat workspace path (`<workspace>/.claude/settings.local.json`,
-# gitignored). There is no `claude-plugins/core/` dist-tree copy: that route
-# publishes only packs whose `allowed-scopes` admits `user`, and this pack is
-# repo-scoped.
+# Portable hook-wiring source for the core session-start body. The source uses
+# the contract's Claude-shaped nested event form; each direct adapter decides
+# whether to transform, merge, or drop it and owns the target runtime path.
+# Claude Code merges it into `.claude/settings.local.json`; Codex merges it into
+# `.codex/hooks.json`. Other supported adapters apply their contract mappings.
 #
-# Shape: Claude Code's documented nested SessionStart schema
-# (code.claude.com/docs/en/hooks). Outer entry has no `matcher`
-# (fires on all session types: startup / resume / clear); inner
-# `hooks` array carries `type = "command"` and the command string.
+# Distribution scope is unchanged by that portability. The sentence below opens
+# with a contiguous literal — its clause up to and including "dist-tree copy" —
+# that tools/lint-plugin-route-docs.py requires verbatim. Keep that clause on a
+# single line: wrapping it stops the lint matching while the text still reads as
+# present, so the failure looks like a deletion that never happened.
+# There is no `claude-plugins/core/` dist-tree copy: that route publishes only
+# packs whose `allowed-scopes` admits `user`, and this pack is repo-scoped.
 #
-# No `id` field: repo-scope merge-json does not consume it (the field
-# is a user-scope concern in _merge_user_scope_hook_wiring). No
-# `attach-to-agent`: that's a Kiro-only field, and Kiro is out of
-# scope here.
+# Two absences below are deliberate, and both are easy to "helpfully" reinstate:
+#
+#   * No `matcher` on the outer entry. Omitting it is what makes the hook fire
+#     for every session type; the body's own list is the one home for which
+#     those are (see `.apm/hooks/session-start.py`). Adding a matcher narrows
+#     that silently.
+#   * No `id` field, and its effect is route-dependent rather than uniform.
+#     Repo-scope `merge-json` — `claude-code`'s repo mode per
+#     `contracts/adapter.toml` — copies this payload verbatim; it synthesizes
+#     nothing, so an `id` declared here would ship to adopters. User-scope
+#     `user-merge-json` and Kiro's `merge-into-agent-json` instead synthesize an
+#     id from the pack name and this file's basename
+#     (`agentbundle.build.projections.hook_id.synthesize_id`) and assign it over
+#     whatever the source carried. So declaring one is either leaked or
+#     discarded depending on the route — never harmless.
+#
+# The command string and plain-stdout hook body are intentionally unchanged in
+# this release. Runtime-specific root resolution and context-output differences
+# are tracked as separate follow-on work rather than hidden in source comments.
 [[hooks.SessionStart]]
 hooks = [
   { type = "command", command = "python tools/hooks/session-start.py" },

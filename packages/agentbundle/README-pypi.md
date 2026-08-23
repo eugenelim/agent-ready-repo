@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.2
+
+Level A packs can now provide an optional manual next step after installation.
+When present, `agentbundle install` prints it after `Verify:`, so packs can guide
+adopters even when a runtime hook does not execute. Existing packs without the
+field keep their current output, and Level B packs still require it.
+
 ## What's new in 0.39.1
 
 Catalogue seed lint now rejects generic directory-tree placeholders unless the

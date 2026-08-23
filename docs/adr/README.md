@@ -100,6 +100,7 @@
 | 0091 | [A Kiro Power route is justified: superseding the Kiro-route rejection only](0091-kiro-power-route-supersedes-rejection.md) | Accepted |
 | 0093 | [OKF reference corpora remain governed build-time sources within their owning pack](0093-okf-reference-corpora-remain-governed-build-time-sources.md) | Accepted |
 | 0094 | [Per-worktree virtual environments are declined; the packages are imported from source instead](0094-no-per-worktree-virtualenv-source-imports-instead.md) | Accepted |
+| 0095 | [Level A first-value handoffs may include an optional next action](0095-level-a-first-value-optional-next-action.md) | Accepted |
 
 ## Adding a new ADR
 
