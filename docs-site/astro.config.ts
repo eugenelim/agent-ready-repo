@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
@@ -7,6 +8,13 @@ import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
 // a client-side script renders the diagrams from the data-mermaid attribute.
+//
+// The placeholder stays EMPTY on purpose. Emitting the Mermaid source inside it
+// as a no-JavaScript fallback was tried and measured worse than the state it
+// replaced: 410 px of `subgraph PE["…"]` grammar, overflowing its column by
+// 236 px at a 375 px viewport. A diagram's scriptless reading belongs in prose
+// the author writes — the caption beside the fence — not in a dump of the
+// diagram's syntax. Author every fence with one.
 function remarkMermaid() {
   return (tree: any) => {
     visit(tree, 'code', (node: any, index: number, parent: any) => {
@@ -28,13 +36,24 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
-  // Standard registration — the previous `unified({...})` wrapper was
-  // silently ignored, so mermaid fences reached Expressive Code untouched
-  // and no placeholder was ever emitted (pre-existing defect, fixed by the
-  // docs-site-design-refresh spec's AC9 path).
+  // `unified({...})` is the registration astro 7 asks for. The legacy
+  // `markdown.remarkPlugins`/`rehypePlugins` keys are deprecated, and astro's
+  // shim for them (core/config/validate.js) builds exactly this processor on
+  // your behalf before Starlight appends its own plugins — so this is the same
+  // pipeline, minus the hop a major release removes.
+  //
+  // A `unified({...})` wrapper WAS silently ignored here once: mermaid fences
+  // reached Expressive Code untouched and no placeholder was emitted. Nothing
+  // caught it, because no published page carried a mermaid fence, so there was
+  // no output to be wrong. One now does — getting-started/three-loops — and
+  // web/src/test/rendered-output.test.ts asserts both halves of that failure
+  // (a missing `.mermaid-diagram[data-mermaid]`, and a fence that reached the
+  // code renderer as `data-language="mermaid"`). A repeat is red, not silent.
   markdown: {
-    remarkPlugins: [remarkMermaid],
-    rehypePlugins: [rehypeScrollableTables],
+    processor: unified({
+      remarkPlugins: [remarkMermaid],
+      rehypePlugins: [rehypeScrollableTables],
+    }),
   },
   integrations: [
     starlight({

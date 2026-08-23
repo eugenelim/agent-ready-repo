@@ -293,6 +293,72 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     expect(offenders, `unwrapped tables: ${offenders.join(', ')}`).toEqual([]);
   }, SCAN_TIMEOUT_MS);
 
+  /**
+   * The remark half of the same claim AC8 makes about rehype.
+   *
+   * `remarkMermaid` in docs-site/astro.config.ts replaces every ```mermaid fence
+   * with a `.mermaid-diagram[data-mermaid]` placeholder before Expressive Code
+   * sees it. Whether astro's configured processor actually RUNS that plugin is
+   * observable only here: not from the plugin, not from the config file, and not
+   * from any unit surface. A `unified({...})` wrapper was silently ignored on
+   * this site once already, and nothing noticed — because until now no published
+   * page carried a mermaid fence, so there was no output to be wrong.
+   *
+   * The corpus assertion is the load-bearing half. The per-element loop is
+   * vacuously satisfied by an empty corpus, which is exactly the state that let
+   * the original defect ship.
+   */
+  it('the remark mermaid plugin reaches the emitted site', () => {
+    const found: string[] = [];
+    const sourceless: string[] = [];
+    const unhandled: string[] = [];
+    const noCaption: string[] = [];
+    for (const p of docsPages) {
+      const where = relative(DOCS_ROOT, p);
+      const frag = mainFragment(p);
+      for (const el of frag.querySelectorAll('.mermaid-diagram')) {
+        found.push(where);
+        const raw = el.getAttribute('data-mermaid');
+        if (!raw || !decodeURIComponent(raw).trim()) sourceless.push(where);
+        // A diagram that names nothing is thirteen unordered strings to a
+        // screen reader. mermaid renders `accDescr:` into the SVG, but the SVG
+        // only exists once scripts run — so the durable, always-present naming
+        // is the author's caption, and that is what is asserted here.
+        const caption = el.nextElementSibling;
+        if (!caption?.querySelector('em')?.textContent?.trim()) noCaption.push(where);
+      }
+      // A fence that reached the code renderer is the *original* defect's
+      // signature, and it is not the same failure as emitting no placeholder:
+      // a half-run pipeline could do both at once.
+      if (frag.querySelector('[data-language="mermaid"], .language-mermaid')) {
+        unhandled.push(where);
+      }
+    }
+    expect(
+      sourceless,
+      `.mermaid-diagram placeholders carrying no source: ${sourceless.join(', ')}`
+    ).toEqual([]);
+    expect(
+      unhandled,
+      `mermaid fences rendered as code blocks — remarkMermaid did not run on ` +
+        `these pages: ${unhandled.join(', ')}`
+    ).toEqual([]);
+    expect(
+      noCaption,
+      `.mermaid-diagram with no italic caption immediately after it — the ` +
+        `diagram has no reading for a screen reader or a scriptless client ` +
+        `on: ${noCaption.join(', ')}`
+    ).toEqual([]);
+    expect(
+      found.length,
+      'no .mermaid-diagram placeholder anywhere in build/docs. Either the ' +
+        'published corpus lost its last mermaid fence — in which case this ' +
+        'plugin is unverifiable again and that is the thing to fix — or ' +
+        "astro is not running remarkMermaid, which is docs-site/astro.config.ts's " +
+        'recorded historical defect repeating.'
+    ).toBeGreaterThan(0);
+  }, SCAN_TIMEOUT_MS);
+
   it('wayfinding AC2–AC3: the landing has one flagship lead, six supporting outcomes, and one primary action', () => {
     const d = doc(DOCS_HOME);
     const leadCards = d.querySelectorAll('.docs-hub__lead .sl-link-card');

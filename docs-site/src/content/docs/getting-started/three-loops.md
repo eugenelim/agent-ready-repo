@@ -5,14 +5,6 @@ description: How discovery, build, and release compose into a complete AI operat
 
 The three loops form the **company operating model** — peer supervisors spanning the full software lifecycle. No loop is a mode of another; each is independent with its own agent, skill doctrine, and consent gates.
 
-```
-product-engineering              core                    release-engineering
-───────────────────              ────                    ───────────────────
-discovery-lead                   work-loop supervisor    release-lead
-Raw idea → Decision brief  ─G3─▶ Spec → Shipped code ─G4─▶ Built → Production
-         G0  G1.5  G2                                         G5
-```
-
 Each loop is **autonomous where the work is reversible** and surfaces to a human where it isn't.
 
 ---
@@ -89,6 +81,34 @@ Deploy credentials are broker-mediated and scoped to the ephemeral tier only. No
 ## How the loops connect
 
 The loops are **peers, not a hierarchy**. G3 is the handoff from discovery to build; G4 is the handoff from build to release. Each loop can run independently — a team can use `core` without `product-engineering`; a repo can use `release-engineering` without `core` (though it hard-depends on `core`).
+
+```mermaid
+flowchart TB
+  accTitle: The three loops, their consent gates, and the handoffs between them
+  accDescr: Three peer loops, each ending at a gate. product-engineering runs discovery-lead from a raw idea through G0, G1.5 and G2 to a decision brief, then hands off to core at G3. core runs the work-loop supervisor from a spec through its lint, typecheck and test gate to shipped code, then hands off to release-engineering at G4. release-engineering runs release-lead from a built artifact through the G5 prod-ship gate to production. Findings from production return inward to core as build tasks, closing the cycle.
+
+  subgraph PE["product-engineering · discovery-lead"]
+    direction TB
+    PE1["Raw idea"] --> PE2["G0 · value seed"]
+    PE2 --> PE3["G1.5 · MVP boundary"]
+    PE3 --> PE4["G2 · decision brief"]
+  end
+  subgraph CO["core · work-loop supervisor"]
+    direction TB
+    CO1["Spec"] --> CO2["Gate · lint, types, tests"]
+    CO2 --> CO3["Shipped code"]
+  end
+  subgraph RE["release-engineering · release-lead"]
+    direction TB
+    RE1["Built"] --> RE2["G5 · prod-ship consent"]
+    RE2 --> RE3["Production"]
+  end
+  PE4 -->|G3| CO1
+  CO3 -->|G4| RE1
+  RE3 -.->|findings| CO1
+```
+
+*Three peer loops, each ending at a consent gate no agent passes alone. `discovery-lead` hands a decision brief to `core` at G3 and `core` hands shipped code to `release-engineering` at G4 — but released findings return inward to `core` as build tasks, so the shape is a cycle rather than a line.*
 
 The inner/outer split:
 - **Inner loop** (build) — runs many times per day, per engineer

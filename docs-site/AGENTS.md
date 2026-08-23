@@ -26,23 +26,27 @@ npm run build --prefix docs-site
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
   both themes, and reduced-motion behavior.
 - Check `allowScripts` against install-script entries by eye when the lockfile moves.
-- `@astrojs/markdown-remark` is a direct dependency that nothing here imports,
-  and it must stay declared. Astro and Starlight have carried it as an
-  *optional* peer since before astro 7.2, and the build worked only because npm
-  hoisted `@astrojs/mdx`'s transitive copy to the root, where astro resolved it.
-  npm later placed that copy under `@astrojs/mdx/node_modules/` instead and
-  `astro build` exited 1, because `astro.config.ts`'s
-  `markdown.remarkPlugins`/`rehypePlugins` fail config validation when the
-  package is unresolvable. The declaration turns root placement from luck into
-  a requirement. Two duties come with it: keep the pin equal to `astro`'s exact
-  optional-peer version — `tools/test_browser_gate_subset.py` refuses from
-  `gate-main` when the manifest, the lockfile and that peer disagree, or when
-  Starlight's declared range stops accepting the pin — and expect an astro major
-  to arrive alone and need both moved together.
-- `markdown.remarkPlugins` and `markdown.rehypePlugins` are deprecated — every
-  docs build prints so. The migration is `markdown.processor: unified({...})`
-  from `@astrojs/markdown-remark`; until it happens, an astro major can drop
-  the legacy keys and break this build.
+- `astro.config.ts` imports `@astrojs/markdown-remark` directly — it builds the
+  site's Markdown processor with `unified({...})` and passes it as
+  `markdown.processor`. Astro and Starlight both carry the package as an
+  *optional* peer, so npm neither installs it nor warns when the versions
+  drift, and the build once worked only because npm hoisted `@astrojs/mdx`'s
+  transitive copy to the root. When npm later placed that copy under
+  `@astrojs/mdx/node_modules/` instead, `astro build` exited 1: config
+  validation fails when the package is unresolvable from the root. The
+  declaration in `package.json` is what makes root placement a requirement
+  rather than a hoisting accident. Two duties come with it — keep the pin equal
+  to astro's exact optional-peer version, which
+  `tools/test_browser_gate_subset.py` refuses from `gate-main` when the
+  manifest, the lockfile and that peer disagree or when Starlight's declared
+  range stops accepting the pin; and expect an astro major to arrive alone and
+  need both moved together.
+- The remark plugin that turns ```mermaid fences into placeholders is registered
+  through that processor, and it has silently no-opped before. Nothing caught
+  it, because no published page carried a fence. `getting-started/three-loops`
+  now does, and `web/src/test/rendered-output.test.ts` asserts the emitted
+  `.mermaid-diagram[data-mermaid]` — so keep at least one fence in the
+  published corpus, or the plugin becomes unverifiable again.
 - Under an agent, `astro dev` forks a detached server and returns at once with
   JSON output, leaving it recorded in `.astro/` — so the development server the
   § Build commands tell you to start is not the process you launched. A *live*
