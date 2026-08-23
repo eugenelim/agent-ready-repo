@@ -1115,9 +1115,36 @@ open = [
   # and test_marketplace_envelope_parity.py::test_resolved_layer_fails_loudly_when_the_package_is_unimportable.
   # Reproduced independently in two control worktrees with no branch commits
   # applied — at 0b7e5340 and at 3fc76067 — so it is environmental, not content.
-  # None are in `make build-check`; all are in `make test`. Unblocks when: the
-  # installed agentbundle is reconciled with the worktree source (editable
-  # install or uninstall), or the roster tests pin worktree source explicitly.
+  # None are in `make build-check`; all are in `make test`.
+  #
+  # 2026-08-22, re-measured under spec/repo-tests-worktree-source. The stated
+  # remedy "the roster tests pin worktree source explicitly" has now SHIPPED —
+  # pyproject.toml declares [tool.pytest.ini_options] pythonpath — and it does
+  # not close this entry. Current state of the three named tests:
+  #   - okf release-metadata and catalogue-wave4 live-contracts now PASS when
+  #     run on their own, and this change is what fixes them: they compare a
+  #     worktree literal against `agentbundle.version.CLI_VERSION`, an imported
+  #     MODULE attribute (not distribution metadata — grep for importlib.metadata
+  #     under tests/roster/ returns nothing), so putting the worktree on sys.path
+  #     is exactly the fix. Verified independent of the untracked *.egg-info: both
+  #     still pass with it removed.
+  #     Kept named here because their whole-suite behaviour is ORDER-DEPENDENT:
+  #     under `pytest tools/ tests/` they passed even BEFORE this change, while
+  #     failing in isolation at the same commit. Some earlier test in that run
+  #     leaves the worktree on sys.path; the exact source was not identified, and
+  #     it is a pre-existing property of the suite, not of this change. The
+  #     consequence worth keeping: a green `make test` can mask a resolution
+  #     failure that `pytest <file>` exposes.
+  #   - test_resolved_layer_fails_loudly_when_the_package_is_unimportable still
+  #     FAILS, and is now understood to be structurally out of reach of that
+  #     remedy: it resolves its constants in a child spawned with `-I`
+  #     (tools/test_marketplace_envelope_parity.py:227), and pytest's
+  #     `pythonpath` mutates sys.path in-process only — it never becomes a
+  #     PYTHONPATH environment variable, so no child of any flavour sees it.
+  # Unblocks when: the installed agentbundle is reconciled with the worktree
+  # source (editable install or uninstall — both out of scope for that spec, and
+  # neither is required of any maintainer), or the parity test resolves its
+  # constants without an isolated child.
   {slug = "pre-existing-roster-catalogue-index-and-okf-release-metadata", source = "pre-flight/2026-08-20"},
   # RFC-0088 round 11 measured that Node's permission model refuses
   # `process.dlopen` by POLICY when `--allow-addons` is absent
