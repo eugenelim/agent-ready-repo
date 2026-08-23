@@ -11,13 +11,14 @@
         "name": "eugenelim"
       },
       "category": "architecture",
-      "description": "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it.",
+      "description": "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence.",
       "displayName": "Architect",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
+        "architecture-assessment",
+        "modernization",
         "design-docs",
         "diagrams",
-        "mermaid",
         "critique"
       ],
       "license": "Apache-2.0 OR MIT",
@@ -29,7 +30,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.14.5"
+      "version": "0.15.0"
     },
     {
       "author": {

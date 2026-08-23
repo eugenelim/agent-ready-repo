@@ -1,7 +1,7 @@
 {
   "name": "architect",
-  "version": "0.14.5",
-  "description": "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it.",
+  "version": "0.15.0",
+  "description": "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence.",
   "hooks": {
     "SessionStart": [
       {
@@ -23,9 +23,10 @@
   "homepage": "https://github.com/eugenelim/agent-ready-repo",
   "repository": "https://github.com/eugenelim/agent-ready-repo",
   "keywords": [
+    "architecture-assessment",
+    "modernization",
     "design-docs",
     "diagrams",
-    "mermaid",
     "critique"
   ],
   "displayName": "Architect"

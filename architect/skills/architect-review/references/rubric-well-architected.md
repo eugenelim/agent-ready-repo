@@ -15,15 +15,20 @@ user's intent call for. Two orthogonal axes:
 - **Concern-lens** — security · cost/FinOps · reliability/SRE · DR · data/privacy
   · compliance · sustainability/green.
 - **Workload-class lens** — ML · **GenAI/agentic** · SaaS · **serverless**. For
-  GenAI/agentic, load `lens-genai-agentic.md`; for serverless, load
-  `lens-serverless.md`. ML and SaaS are named here but not yet backed by a lens
-  file.
+  GenAI/agentic, descend through
+  `../../architecture-lenses-reference/references/okf/concepts/workload-lenses/genai-agentic/index.md`;
+  for serverless, load the sibling `serverless.md` concept. Data/ML routes to
+  `data-analytics-and-ml.md`. SaaS is named here but does not yet have a
+  dedicated corpus concept.
 
 A full review is the union of the relevant passes — usually one or two lenses,
-not all of them. Load `well-architected-pillars.md` for the spine,
-`quality-attribute-scenarios.md` to anchor measurable claims,
-`tradeoffs-and-sensitivity.md` for the tradeoff/sensitivity checks, and
-`cross-cutting-questions.md` for the alignment / lock-in / assessability bank.
+not all of them. Enter through the generated root index first. Load the
+applicable `concepts/quality-lenses/` entries for the quality spine,
+`concepts/foundations/quality-attribute-scenarios.md` to anchor measurable
+claims, `concepts/foundations/tradeoffs-sensitivity-and-evolution.md` for the
+tradeoff/sensitivity checks, and
+`concepts/foundations/decisions-constraints-and-cross-cutting-concerns.md` for
+the alignment, lock-in, and assessability questions.
 
 ## The pillar checks (per selected lens)
 
@@ -45,8 +50,10 @@ not all of them. Load `well-architected-pillars.md` for the spine,
 - [ ] **Operational excellence** — observability (metrics/logs/traces),
       deploy/rollback, "debuggable at 3am."
 - [ ] **Sustainability** — utilization, region/placement levers (when material).
-- [ ] **Provider fit** — for a primitives provider, are the **capability gaps**
-      (`cloud-primitives.md`) the design must build itself named? For a
+- [ ] **Provider fit** — using
+      `concepts/operating-model-patterns/provider-and-platform-operating-models.md`,
+      for a primitives provider, are the **capability gaps** the design must
+      build itself named? For a
       hyperscaler, is each pillar tied to the managed service that carries it?
 - [ ] **Platform-contract grounding** — is every **load-bearing managed-service
       claim** (a binding limit, scaling floor, cold-start cost, or network /
@@ -102,7 +109,8 @@ escape surface it.
 Where a finding turns on a measurable claim, frame it as the
 quality-attribute scenario the design fails to meet
 (source/stimulus/artifact/environment/response/response-measure) so the fix
-target is unambiguous. See `quality-attribute-scenarios.md`.
+target is unambiguous. See
+`concepts/foundations/quality-attribute-scenarios.md` in the generated corpus.
 
 ## Reuse the existing verdict + severity vocabulary
 

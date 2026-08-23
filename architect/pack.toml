@@ -1,14 +1,15 @@
 [pack]
 name = "architect"
-version = "0.14.5"
-description = "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it."
+version = "0.15.0"
+description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"
 license = "Apache-2.0 OR MIT"
 categories = ["architecture", "documentation"]
-keywords = ["design-docs", "diagrams", "mermaid", "critique"]
+keywords = ["architecture-assessment", "modernization", "design-docs", "diagrams", "critique"]
 
-# Contract level v0.10 — pure-markdown skills, multi-adapter.
+# Contract level v0.10 — portable skills and one standard-library helper,
+# multi-adapter.
 # Bumped from v0.6 so listing `copilot` is honest: copilot's skill
 # primitive gained its user-scope target (`~/.copilot/instructions/`) at
 # v0.10, and architect is user-scope-default. Mirrors `desk-research`/`core`.
@@ -18,8 +19,8 @@ version = "0.10"
 [pack.install]
 default-scope = "user"
 allowed-scopes = ["user", "repo"]
-# Pure-markdown SKILL.md surface — no adapter-specific primitives, so it
-# travels with every shipped adapter that projects the skill primitive.
+# No adapter-specific primitives: Markdown Skills and the optional Python
+# evidence profiler travel with every shipped adapter that projects skills.
 # Current adapter names: `kiro` split into `kiro-ide`/`kiro-cli` (the bare
 # `kiro` alias is deprecated); `copilot` is user-scope-capable; `cursor` and
 # `gemini` reached full parity and project skills via existing modes — no
@@ -38,12 +39,20 @@ allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 [pack.layout.repo]
 output_dir = "docs/design"
 
-# Pack activation evals:
-# the Tier-A activation-eval coverage allowlist. Each listed skill ships
-# evals/eval_queries.json and is measured by tools/run-pack-evals.py. All three
-# architect skills are user-prompt-triggered, so none are excluded.
+# Pack activation evals: each user-facing workflow ships evals/eval_queries.json
+# and is measured by tools/run-pack-evals.py. The generated
+# architecture-lenses-reference router is intentionally excluded because it is
+# selected by the workflows rather than by user-prompt activation.
 [pack.evals]
-skills = ["architect-design", "architect-diagram", "architect-review"]
+skills = ["architect-assess", "architect-design", "architect-diagram", "architect-review"]
+
+[pack.metadata.okf]
+profile = "agentbundle-okf/v1"
+
+[[pack.metadata.okf.bundles]]
+id = "architecture-lenses"
+path = "okf/architecture-lenses"
+"router-skill" = "architecture-lenses-reference"
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
@@ -61,13 +70,13 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "non-technical"
 surfaces         = ["claude-code"]
 prerequisites    = []
-verification     = "Ask the agent 'What does the architecture of this project look like?' and confirm it replies with structural context."
-recovery         = "If the agent says it cannot find architectural context, it will offer to create a reference.md — accept to begin."
+verification     = "Ask 'Assess this repository's architecture' and confirm a bounded current-state map, evidence coverage, attention map, and drill-downs."
+recovery         = "If evidence is sparse, narrow the repository boundary or supply the missing architecture/operations context; the survey must show the limitation rather than guessing."
 level-b          = true
-starter-task     = "Get a plain-language map of how this codebase is organized"
-starter-prompt   = "Describe the architecture of this codebase and create a reference.md snapshot so I can guide future design decisions."
-expected-result  = "A docs/architecture/reference.md file with the codebase's key components and structural decisions described in plain language."
-next-action      = "On your next design question, ask: 'Does this approach align with our reference architecture?'"
+starter-task     = "Get a plain-language, evidence-backed map of the architecture and where to investigate next"
+starter-prompt   = "Assess the architecture of this repository in survey mode. Show me the current-state model, evidence coverage, attention heat map, and proposed drill-downs; do not write files yet."
+expected-result  = "A chat-only survey with a correctable conceptual model, evidence ledger, attention heat map, and bounded next investigations."
+next-action      = "Correct the map or say 'continue', choose a hotspot, and create a reference snapshot only when you want one."
 tutorial         = "guides/architect/tutorials/architect-first-session.md"
 
 [[pack.integrations]]
