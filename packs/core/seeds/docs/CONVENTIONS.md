@@ -440,12 +440,17 @@ mechanical rule.
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
-- **Deferral token.** A criterion that ships *unmet on purpose* is not left
-  unchecked and silent — it carries an inline `(deferred: <slug>)` marker whose
-  `<slug>` resolves to a `slug` field in `workspace.toml [backlog].open`, the
-  durable register of open work. Form: `- [ ] <outcome> (deferred: <slug>)`. A
-  deferral recorded only in a PR comment rots; the register is version-controlled
-  and greppable. Run `workspace-status` to see all open backlog items.
+- **Deferral token.** A criterion that ships *unmet on purpose* because
+  genuinely deferred in-scope work remains is not left unchecked and silent —
+  it carries an inline `(deferred: <slug>)` marker whose `<slug>` resolves to a
+  `slug` field in `workspace.toml [backlog].open`, the durable register of open
+  work. Form: `- [ ] <outcome> (deferred: <slug>)`. This is not the default
+  disposition for an excluded out-of-scope discovery: acknowledge that work in
+  the PR's *What did you not change that you considered?* answer instead. If
+  its owner explicitly asks to remember it, route that capture through
+  `work-intake`. A deferral recorded only in a PR comment rots; the register is
+  version-controlled and greppable. Run `workspace-status` to see all open
+  backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which
@@ -650,8 +655,17 @@ right now?"
   commitments. Reviewed quarterly. Items that haven't moved in two
   consecutive reviews are a drift signal.
 - `changelog.md` — user-visible changes by release, in
-  [Keep a Changelog](https://keepachangelog.com/) format. Updated in the
-  same PR as any user-visible behavior change.
+  [Keep a Changelog](https://keepachangelog.com/) format. One section per
+  release, naming every artifact that release covers:
+  `## [<artifact>][<version>] — YYYY-MM-DD`, where `<artifact>` is a pack or a
+  published package. An entry is required in the same PR that bumps a released
+  artifact's version — you know the version at write time because you are
+  setting it. Repository tooling that ships in no release needs no entry. The
+  heading level is load-bearing: a section carrying a version and a date is
+  released, so it sits at that top level directly beneath `[Unreleased]`, never
+  nested inside it. A published package also keeps its own `CHANGELOG.md`
+  beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
+  readers who get the package and not the repository.
 - `briefs/<slug>.md` (optional) — a received, externally-authored
   multi-feature product brief and its auto-rolled-up coverage map. Created by
   the `receive-brief` skill; one file per brief. See the brief altitude under
@@ -664,7 +678,7 @@ right now?"
   here because shaping artifacts are decisions, not corpora — they belong in
   the version-controlled tree alongside ADRs and specs.
 - `findings/` (optional) — structured governance registers: `rfc-candidates.md`
-  (candidate RFCs surfaced by work-loop scope-deferrals or `frame-situation`
+  (candidate RFCs surfaced by owner-requested capture or `frame-situation`
   escalations) and `roadmap-intents.md` (deferred roadmap items). `rfc-status`
   surfaces the candidate count at session start.
 - `initiatives/` (optional) — initiative brief artifacts and their
@@ -880,8 +894,10 @@ show no remaining references and green tests for bounded dead-code or
 unused-import removal. Tier 3 is hand-made: same-area, same-concern, visibly
 smaller mechanical work. Tier 1 and Tier 2 require their command or evidence.
 
-CI must be green. Specs must match implementation. Public-interface changes
-must be noted in `CHANGELOG.md`.
+CI must be green. Specs must match implementation. A released-artifact version
+bump carries its changelog entry (see *`docs/product/` — for maintainers*); if
+the repository publishes packages separately, each also updates its own
+`CHANGELOG.md`.
 
 ---
 
@@ -897,7 +913,7 @@ the `work-loop` skill; this section is the why.
 declare victory when they *feel* done. Mechanical gates (lint, typecheck,
 tests) plus an adversarial review pass replace "feel" with verifiable
 termination. The loop keeps going until both kinds of check are satisfied —
-or until it hits a hard cap.
+or it pauses for human replanning.
 
 **Why think before acting.** The cost of a wrong start is higher than the
 cost of thinking. For high-stakes changes (architectural choices, multi-file
@@ -912,21 +928,46 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — an unattended, fresh-session-per-iteration loop (see the
 work-loop skill).
 
-**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — stop, re-plan, or split.
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.
 
+### Intent-scoped completion
+
+Completion answers to the original accepted intent, not to the current pull
+request. A pull request is a review unit: one accepted intent may need more
+than one independently reviewed unit in the same session. Only the owner may
+narrow or waive that intent.
+
+For every implementation or review discovery, determine intent fit before the
+session decision:
+
+| Intent fit | Session decision | Disposition |
+| --- | --- | --- |
+| Matches | Include now | Add it to the current plan or session. |
+| Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
+| Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Do not include | Exclude it with no durable follow-on by default. |
+| Unclear | — | Ask the owner before acting. |
+
+An included discovery shares the current review unit only when the accepted
+contract authorizes it and it qualifies under the bundled-fixes tiers. A
+distinct design, behavior, or semantic change becomes the next review unit in
+the same session. An excluded discovery is acknowledged by the PR's *What did
+you not change that you considered?* answer; create a durable follow-on only
+when the owner explicitly requests capture, then route it through `work-intake`.
+Retry caps and review stasis pause for human replanning; they neither complete
+the accepted intent nor create backlog work automatically.
+
 ### Light and full modes
 
-**Rigor scales with risk, not file count.** `work-loop` has two modes —
-**light mode**, the default for low-risk work, and **full mode**, with every
-gate, reviewer iteration, and the state machine. The `work-loop` skill is the
-single owner of what each mode trims and how it runs. Work escalates to full
-mode the moment it trips a risk trigger; the enumerated trigger set lives in
-the `work-loop` skill.
+**Rigor scales with risk, not file count.** An eligible light request runs
+directly from the current session without a persisted spec; durable or
+risk-triggering work uses the spec-and-plan path. The `work-loop` skill is the
+single owner of mode mechanics and the enumerated trigger set.
 
 **Why risk, not file count.** A familiar two-file change is cheap to get right
 and cheap to undo; a one-file change to an auth path or a published interface is
@@ -1251,7 +1292,7 @@ loads or while it is running.
 | "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
 | "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
-| "I don't need a spec, I understand the task." | Light mode still writes a lean inline spec; if any risk trigger fires, run full `new-spec` first. The spec exists to surface what you don't know you don't know. |
+| "I don't need a spec, I understand the task." | An eligible direct-light request keeps its plan in the active session; it does not persist a spec. If the work needs durability or any risk trigger fires, use `new-spec` for the durable spec and plan. |
 | "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
 | "I'll match the surrounding code's pattern." | Check the [Source of truth](../AGENTS.md#source-of-truth) map first; local style may already conflict with the canonical convention. |
 

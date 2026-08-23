@@ -362,8 +362,10 @@ def collect_validated_claude_hooks(
     return result
 
 
-def claude_projection_paths(contract: dict) -> tuple[str, str, str, str]:
-    """Return hook prefixes/source paths from the adapter contract."""
+def claude_projection_paths(
+    contract: dict, component_capabilities: dict[str, dict[str, str]]
+) -> tuple[str, str, str, str]:
+    """Return direct-install and plugin hook paths from their owners."""
     entries = {
         item["primitive"]: item
         for item in contract["adapter"]["claude-code"].get("projection", [])
@@ -371,7 +373,7 @@ def claude_projection_paths(contract: dict) -> tuple[str, str, str, str]:
     body = entries["hook-body"]
     return (
         body["target-path"],
-        body["plugin-target-path"],
+        component_capabilities["hook-body"]["target-path"],
         contract["primitive"]["hook-body"]["source-path"],
         contract["primitive"]["hook-wiring"]["source-path"],
     )
@@ -390,9 +392,13 @@ def validate_pack_hook_wiring(pack_path: Path, contract: dict, pack_name: str) -
 
     if not pack_is_publishable(pack_path):
         return
-    repo_prefix, _plugin_prefix, hook_source, wiring_source = (
-        claude_projection_paths(contract)
-    )
+    entries = {
+        item["primitive"]: item
+        for item in contract["adapter"]["claude-code"].get("projection", [])
+    }
+    repo_prefix = entries["hook-body"]["target-path"]
+    hook_source = contract["primitive"]["hook-body"]["source-path"]
+    wiring_source = contract["primitive"]["hook-wiring"]["source-path"]
     collect_validated_claude_hooks(
         pack_path,
         repo_hook_prefix=repo_prefix,

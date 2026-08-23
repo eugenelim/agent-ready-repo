@@ -4,6 +4,144 @@
     {
       "packages": [
         {
+          "name": "catalogue-curation",
+          "version": "0.4.1"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[catalogue-curation][0.4.1] — 2026-08-21",
+      "changelogAnchor": "catalogue-curation041--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Nested OKF corpora now compile and check consistently on Windows.** Generated index paths use the bundle’s portable POSIX form instead of inheriting the host path separator, so Windows no longer reports clean nested indexes as stale.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Nested OKF corpora now compile and check consistently on Windows."
+            },
+            {
+              "type": "text",
+              "value": " Generated index paths use the bundle’s portable POSIX form instead of inheriting the host path separator, so Windows no longer reports clean nested indexes as stale."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.0"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[architect][0.15.0] — 2026-08-21",
+      "changelogAnchor": "architect0150--2026-08-21",
+      "highlights": [
+        {
+          "source": "**You can now turn a broad “assess this repository’s architecture” request into a correctable current-state model, an evidence-backed attention map, focused drill-downs, and a sequenced action plan.** The assessment starts with a read-only survey, lets you correct its map before deeper investigation, and can progressively examine assurance, optimization, growth, transformation, or disposition without confusing repository conventions with architectural evidence.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can now turn a broad “assess this repository’s architecture” request into a correctable current-state model, an evidence-backed attention map, focused drill-downs, and a sequenced action plan."
+            },
+            {
+              "type": "text",
+              "value": " The assessment starts with a read-only survey, lets you correct its map before deeper investigation, and can progressively examine assurance, optimization, growth, transformation, or disposition without confusing repository conventions with architectural evidence."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.10.5"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[core][2.10.5] — 2026-08-21",
+      "changelogAnchor": "core2105--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Work-loop commands now run from the project root without path discovery.** The skill resolves its own installed directory before invoking the loop engine, cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn searching for a repository-root `scripts/` directory that does not exist.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Work-loop commands now run from the project root without path discovery."
+            },
+            {
+              "type": "text",
+              "value": " The skill resolves its own installed directory before invoking the loop engine, cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn searching for a repository-root "
+            },
+            {
+              "type": "code",
+              "value": "scripts/"
+            },
+            {
+              "type": "text",
+              "value": " directory that does not exist."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agentbundle",
+          "version": "0.39.0"
+        }
+      ],
+      "date": "2026-08-21",
+      "heading": "[agentbundle][0.39.0] — 2026-08-21",
+      "changelogAnchor": "agentbundle0390--2026-08-21",
+      "highlights": [
+        {
+          "source": "**Catalogue builders can now reason about package formats independently of runtime adapters.** The installed CLI exposes a validated contract for the existing APM and Claude-plugin routes, including their layouts, component support, admission, marketplace, and lifecycle behavior.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Catalogue builders can now reason about package formats independently of runtime adapters."
+            },
+            {
+              "type": "text",
+              "value": " The installed CLI exposes a validated contract for the existing APM and Claude-plugin routes, including their layouts, component support, admission, marketplace, and lifecycle behavior."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.10.4"
+        }
+      ],
+      "date": "2026-08-20",
+      "heading": "[core][2.10.4] — 2026-08-20",
+      "changelogAnchor": "core2104--2026-08-20",
+      "highlights": [
+        {
+          "source": "**The changelog rule now says who \"user-visible\" means, so you can tell whether your change needs an entry.** An entry is required when a pull request bumps a released artifact's version — a pack or a published package — and repository tooling that ships in no release needs none. The old wording asked for an entry on \"any user-visible behavior change\", which read as covering maintainer-only tooling and offered no heading to write it under.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The changelog rule now says who \"user-visible\" means, so you can tell whether your change needs an entry."
+            },
+            {
+              "type": "text",
+              "value": " An entry is required when a pull request bumps a released artifact's version — a pack or a published package — and repository tooling that ships in no release needs none. The old wording asked for an entry on \"any user-visible behavior change\", which read as covering maintainer-only tooling and offered no heading to write it under."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "governance-extras",
           "version": "0.9.7"
         }

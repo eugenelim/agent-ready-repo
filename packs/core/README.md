@@ -87,7 +87,7 @@ new-spec streaming-csv-export
 ```text
 work-loop docs/specs/data-export/spec.md
 
-  mode: light — no risk triggers
+  mode: spec-driven light — no risk triggers
 
     Problem  Streaming export crashes above 50k rows.
     User     Engineer shipping the bulk-export feature.
@@ -95,6 +95,10 @@ work-loop docs/specs/data-export/spec.md
 
   Approve? ›
 ```
+
+This is a spec-driven light run, so its existing durable spec and plan remain
+governing. An eligible explicit direct-light request instead starts `work-loop`
+from the current request and keeps its plan in the active session.
 
 ```text
 work-loop execute spec/data-export

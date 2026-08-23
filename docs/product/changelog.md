@@ -5,9 +5,18 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Maintenance: this file is updated in the same PR that introduces the
-> change. CI will warn (configurable: block) when a PR touches code that
-> changes user-visible behavior but does not touch this file.
+> Maintenance: see [`CONVENTIONS.md` § 5b](../CONVENTIONS.md) for *when* an
+> entry is owed. This header covers *how* this file is written.
+>
+> **A released section is free-standing, directly beneath `[Unreleased]`.**
+> Write `## [<artifact>][<version>] — YYYY-MM-DD` at the top level, newest
+> first. `[Unreleased]` holds only work that has no version yet: its own
+> `### Added` / `### Changed` / `### Fixed` sections, never a versioned entry
+> nested inside it. The level is load-bearing rather than cosmetic — a
+> versioned entry nested under `[Unreleased]` is invisible to the `/now/`
+> projection permanently, not until some later release step, because nothing
+> ever moves it out. Writing it at the right level is the whole of the
+> obligation.
 >
 > Entries can be drafted from conventional commits: `git log --oneline`
 > filtered to `feat:` and `fix:` since the last tag is a starting point,
@@ -15,14 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 >
-> **Highlights (optional, feeds the public `/now/` page).** A release entry may
-> carry one `Highlights` subsection, one heading level below that entry. Its
-> bullets are the outcome-led, user-facing sentences that publish at `/now/`;
-> everything else in the entry stays technical. Three rules govern them:
+> **Highlights (feeds the public `/now/` page).** A release entry carries one
+> `Highlights` subsection, one heading level below that entry, when the release
+> changes what a consumer can do. Its bullets are the outcome-led, user-facing
+> sentences that publish at `/now/`; everything else in the entry stays
+> technical. Judge by the nature of the change, not the semver level: a patch
+> that changes an adopter's obligations earns one, a minor that only moves code
+> does not. A release that changes nothing a consumer acts on carries none — but
+> *none* is a verdict to record with its reason, not a step to skip. For a pack
+> release the decision is part of the release pipeline in
+> `packs/AGENTS.local.md`; nothing downstream makes it, because the projection is
+> a pure parser and no model runs in the build. Three rules govern them:
 >
-> - **Released only.** An entry beneath `[Unreleased]` never publishes, even
->   when it has a date and a `Highlights` block. Move the entry out of
->   `[Unreleased]` at release time and it publishes then — nothing else to do.
+> - **Released only.** An entry nested beneath `[Unreleased]` never publishes,
+>   even when it has a date and a `Highlights` block — see the free-standing
+>   rule above, which is why that case should not arise.
 > - **Reviewed like code.** Write them in the same PR as the implementation,
 >   grounded in that diff and its verification evidence. Ordinary PR review is
 >   the only approval gate; there is no separate editorial process. Drafting
@@ -31,11 +47,211 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - **Outcome, not activity.** Describe what someone can now do. Never plans,
 >   queue state, commits, pull requests, or what the team is working on.
 >
-> A released entry with no `Highlights` is perfectly normal — it stays in this
-> changelog and is simply absent from `/now/`.
+> A released entry with no `Highlights` stays in this changelog and is simply
+> absent from `/now/`.
 
+## [catalogue-curation][0.4.1] — 2026-08-21
+
+### Highlights
+
+- **Nested OKF corpora now compile and check consistently on Windows.** Generated
+  index paths use the bundle’s portable POSIX form instead of inheriting the host
+  path separator, so Windows no longer reports clean nested indexes as stale.
+
+### Fixed
+
+- **The OKF compiler now distinguishes logical bundle paths from filesystem
+  paths.** Nested index names, links, and manifest entries are stable across
+  Windows, macOS, and Linux, with a Windows-path regression test and nested-corpus
+  eval fixture covering the failure.
+
+## [architect][0.15.0] — 2026-08-21
+
+### Highlights
+
+- **You can now turn a broad “assess this repository’s architecture” request
+  into a correctable current-state model, an evidence-backed attention map,
+  focused drill-downs, and a sequenced action plan.** The assessment starts
+  with a read-only survey, lets you correct its map before deeper investigation,
+  and can progressively examine assurance, optimization, growth,
+  transformation, or disposition without confusing repository conventions
+  with architectural evidence.
+
+### Added
+
+- **`architect-assess` provides survey, standard, and deep assessment depths.**
+  It separates observed repository evidence, optional attributed enterprise
+  context, and reusable architecture knowledge; reports confidence and coverage
+  limits; and uses heat as an investigation aid rather than a severity verdict.
+- **The architect pack now carries its own progressively disclosed architecture
+  lens corpus.** The pack-local OKF authoring source compiles into the ordinary
+  same-pack `architecture-lenses-reference` Skill. It has no dependency on a
+  core-pack knowledge surface and grants no runtime, retrieval, or execution
+  authority.
+- **A bounded optional profiler can census repository topology and basic
+  concentration signals without executing target code.** Unsupported languages
+  and unavailable Git history degrade visibly to manual evidence gathering.
+
+### Changed
+
+- **The first-session architecture journey now begins with a read-only survey.**
+  Creating a durable reference architecture remains an explicit follow-up, and
+  the new assessment how-to and reference guide explain correction points,
+  evidence levels, enterprise knowledge surfaces, drill-down selection, and
+  report review.
+- **Architecture design and review reuse neutral concepts from the architect
+  pack’s generated reference surface.** Their workflow instructions, activation,
+  permissions, and verdict semantics remain independently authored.
+
+## [core][2.10.5] — 2026-08-21
+
+### Highlights
+
+- **Work-loop commands now run from the project root without path discovery.**
+  The skill resolves its own installed directory before invoking the loop engine,
+  cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn
+  searching for a repository-root `scripts/` directory that does not exist.
+
+### Fixed
+
+- **Every work-loop Python invocation uses the installed skill directory.** The
+  skill defines `<skill-dir>` as the directory containing its active `SKILL.md`,
+  keeps project-relative paths anchored at the repository root, and quotes the
+  resolved script path as one argument in its POSIX command examples.
+
+## [agentbundle][0.39.0] — 2026-08-21
+
+### Highlights
+
+- **Catalogue builders can now reason about package formats independently of
+  runtime adapters.** The installed CLI exposes a validated contract for the
+  existing APM and Claude-plugin routes, including their layouts, component
+  support, admission, marketplace, and lifecycle behavior.
+
+### Added
+
+- `agentbundle catalogue contracts` now includes
+  `distribution-routes.toml` and its closed schema, with exactly the existing
+  APM and Claude-plugin routes and an exhaustive nine-primitive capability map.
+
+### Changed
+
+- Distribution recipes name their route explicitly and are validated before
+  output creation. Route-only package fields moved out of the direct-install
+  adapter contract; APM and Claude package bytes and direct install behavior are
+  unchanged.
+
+## [core][2.10.4] — 2026-08-20
+
+### Highlights
+
+- **The changelog rule now says who "user-visible" means, so you can tell
+  whether your change needs an entry.** An entry is required when a pull
+  request bumps a released artifact's version — a pack or a published package
+  — and repository tooling that ships in no release needs none. The old wording
+  asked for an entry on "any user-visible behavior change", which read as
+  covering maintainer-only tooling and offered no heading to write it under.
+
+### Changed
+
+- **`CONVENTIONS.md` states one changelog trigger, and the section shape now
+  carries its heading level.** The `docs/product/` layout entry for
+  `changelog.md` gives the shape (`## [<artifact>][<version>] — YYYY-MM-DD`),
+  the released-artifact trigger, the exemption for repository tooling, and the
+  per-package path. The `##` is load-bearing, not cosmetic — see the fix below.
+  Adopted from RFC-0095 D1 and D3.
+- **The two overlapping changelog obligations became two rules scoped by file.**
+  The pull-request checklist previously required public-interface changes to be
+  "noted in `CHANGELOG.md`" — a path that resolves per-package, not at the
+  repository root, and the only reference anywhere in `CONVENTIONS.md` to the
+  per-package changelog tier. It now reads as a released-artifact reminder that
+  also names the published-package duty, phrased so it still holds for a
+  repository that *is* one published package. Adopted from RFC-0095 D2.
+- **The shipped changelog template and the pull-request template now state the
+  same trigger as `CONVENTIONS.md`.** The template's maintenance header asked
+  for an entry when a PR "bumps `pack.toml`" — packs only, with no published
+  packages and no exemption — and the pull-request checklist still carried the
+  old "any user-visible behavior change" wording verbatim. Three documents, three
+  triggers. Adopted from RFC-0095 D1.
+
+- **Deciding whether a pack release earns a `/now/` highlight is now a step in
+  the release pipeline, not something to remember.** `Highlights` is the only
+  content that reaches the public `/now/` page, and by contract no model runs in
+  CI or site generation — so if nobody writes the block while authoring, the
+  release is simply never mentioned publicly. Nothing prompted for it, and 1 of
+  144 entries had one. The pack release pipeline now obliges the call on every
+  pack release: read the diff, answer whether a consumer can now do something
+  new, and either draft the bullets or record the *none* verdict with its reason
+  where a reviewer will see it. The test is the nature of the change, not the
+  semver level. Adopted from RFC-0095 D4.
+
+### Fixed
+
+- **The changelog no longer claims a CI gate that does not exist.** Its
+  maintenance header stated that CI "will warn (configurable: block)" when a
+  pull request changed user-visible behaviour without touching the file. No
+  workflow has ever implemented that. The sentence is removed rather than
+  implemented: `tools/repo/check_release_impact.py` remains the only mechanical
+  check in this area, and it deliberately treats `tools/repo/` and `packs/` as
+  non-impacting. Adopted from RFC-0095 D5.
+- **A release entry nested under `[Unreleased]` can never reach the public
+  `/now/` page, and a new test now stops that happening.** 59 entries carrying
+  real versions and dates are nested there, and the `/now/` projection excludes
+  them by structure — permanently, because it applies no date window and nothing
+  moves an entry out later. A released section is written free-standing at `##`,
+  directly in the released part of the file; `[Unreleased]` holds only work with
+  no version yet. `test_no_new_release_is_nested_under_unreleased` ratchets the
+  count so a new nested release fails the roster suite instead of silently going
+  unpublished. Promoting the existing 59 is separate, registered work — 48
+  genuinely-unreleased bare sections are interleaved with them across three
+  `[Unreleased]` regions, so it needs per-section attribution rather than a
+  level-shift. Adopted from RFC-0095 D3.
 
 ## [Unreleased]
+
+### [core][2.10.3] — 2026-08-20
+
+#### Changed
+
+- **A small, low-risk change no longer has to write a spec first.** Ask the agent
+  to make one bounded change now and it plans, implements, runs your gates, takes
+  one adversarial review pass, repairs what that finds, and hands you the result —
+  without creating a spec directory, a plan, a queue entry, or any state file. The
+  rigor is unchanged; only the paperwork is gone. Work that genuinely needs to
+  outlive the session still gets the full treatment: anything that trips a risk
+  trigger, needs queueing or a second session, is handed to someone else, is
+  coordinated by an external system, needs an approval that survives a context
+  loss, or defines a durable published behavior — and, of course, asking for a
+  spec. Queue dispatch is untouched and still refuses to start anything that
+  lacks an approved spec and plan, so a direct run is never resumable from a cold
+  start; if it turns out to need durability, it stops at that boundary and moves
+  onto the durable path instead of pretending it had one all along. Specs and
+  plans you already have keep working exactly as before, with nothing to migrate.
+- **Briefs have one readiness checklist instead of two that disagreed.** Writing
+  a brief from an email or an issue now produces a draft that records what is
+  known and names what is missing — it no longer demands an appetite or a rabbit
+  hole up front, and it never marks a brief ready. Readiness is checked in one
+  place, against six things: the outcome, what is in scope, what is not, the
+  constraint or appetite, at least one named assumption or risk, and a durable
+  reference to where the brief came from. Metrics, instrumentation, user stories,
+  and design links are genuinely optional. A ready brief with no slices cut yet is
+  valid, and the bundled template now matches that checklist — including a place
+  to record the source, which it previously lacked.
+- **A spec means the behavior, and a plan means how it gets built.** Several pages
+  said or implied that a spec carries the implementation; it does not. The spec is
+  the durable behavior contract for one delivery slice, and its plan carries the
+  implementation and verification strategy.
+
+### [core][2.10.2] — 2026-08-20
+
+#### Changed
+
+- **Completion now follows the intent you accepted, not the size of one PR.**
+  Work that belongs to that intent can continue as a separately reviewed unit;
+  work outside it is acknowledged in the PR and remembered only when you ask.
+- **Intermediate review units can now reach the human gate honestly.** Declare an
+  incomplete accepted intent explicitly and the review guard requires
+  `Implementing`; the final `done` transition independently requires `Shipped`.
 
 ### [core][2.10.1] — 2026-08-20
 
@@ -79,6 +295,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   author to state that a package's tests do not import another package's
   internals, and — for a sensitive package — to list the change categories that
   require an architecture decision record.
+
+### [agentbundle][0.38.6] — 2026-08-20
+
+#### Fixed
+
+- **Profile authors can now reach the schema their instructions name.** New
+  catalogues direct them to the bundled profile contract through the installed
+  CLI, rather than a path that exists only in this repository.
+
+### [agentbundle][0.38.5] — 2026-08-20
+
+#### Changed
+
+- **The bundled authoring scaffold says how to write pack tests.** A skill's
+  modules load under a name that includes their pack and skill rather than by
+  putting `scripts/` on `sys.path` — independent skills may each ship a
+  `render.py`, and a bare `import render` binds whichever directory was reached
+  first. The standard also asks that a suite spend its time asserting rather
+  than spawning processes.
+
+#### Fixed
+
+- **Local-scope install and uninstall ask git each structural question once.**
+  `git rev-parse` answers for the exclude-file path and worktree identity are
+  reused for the duration of a single command and dropped at its boundary, so
+  the same query is no longer paid for two or three times per operation.
+
+- **A repository-only test no longer ships to self-hosted catalogues.**
+  `catalogue init --preset self-hosted` and both archive flavours copied
+  `tests/conformance/` wholesale, which carried a test that resolves paths only
+  this repository has; it failed on an adopter's first run. The shipped
+  conformance set is now derived from the directory in one place, so plain
+  init's manifest and self-hosted init's copy cannot describe different sets.
 
 ### [agentbundle][0.38.4] — 2026-08-20
 

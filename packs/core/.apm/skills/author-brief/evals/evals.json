@@ -12,6 +12,28 @@
         "No fallback storage is created when project-knowledge is unavailable",
         "Normative brief content remains in the brief and receive-brief owns the later stable gate"
       ]
+    },
+    {
+      "id": "draft-from-incomplete-safe-input",
+      "prompt": "Turn this stakeholder email into a brief. It names a multi-slice outcome but no appetite and no rabbit holes.",
+      "expected_output": "The agent normalizes the untrusted source, records safe provenance, writes a Draft brief with the identifiable multi-slice outcome, and clearly names the missing Ready fields. It does not require appetite or a rabbit hole to create the Draft, invents nothing, and leaves Status: Draft.",
+      "assertions": [
+        "Creates the Draft from incomplete input",
+        "Requires neither appetite nor a rabbit hole",
+        "Names the missing Ready fields instead of inventing them",
+        "Leaves Status: Draft and does not certify readiness",
+        "Proceeds only from the validated normalized envelope"
+      ]
+    },
+    {
+      "id": "single-bounded-change-is-not-a-brief",
+      "prompt": "Fix the off-by-one in the retention cutoff comparison. One file, existing regression test.",
+      "expected_output": "The agent does not create a brief. A brief requires a coherent multi-slice or cross-repository outcome; this is a single bounded change that belongs in direct-light execution.",
+      "assertions": [
+        "Refuses to create a brief for a single bounded change",
+        "Names the multi-slice or cross-repository requirement",
+        "Writes no artifact and no workspace entry"
+      ]
     }
   ]
 }

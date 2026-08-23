@@ -1500,10 +1500,12 @@ _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "98952b12f942d880ba40beb8ed928d197f2e884da66542b7200f595388164d22"
+    "69cc128c879bfb7c3eef2fb01da727f9a452b512ea9c578e3b8d16b554f52bee"
 )
+# Reconciled 2026-08-21: the finish-time lint now resolves from the installed
+# skill directory. Status ownership is unchanged, so the engine needs no edit.
 _WORK_LOOP_FINISH_HASH = (
-    "7a6ac4f28a6aeee56dc608867213efdc6b29646ceb35e090c60bf97a6b764baa"
+    "b242dbcb8a84a8e46b25f3be53ed47ebf6e4093b177ee2afb64ba9bab8b47104"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

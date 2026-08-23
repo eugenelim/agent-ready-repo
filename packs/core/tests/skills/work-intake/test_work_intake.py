@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 _PACK_ROOT = Path(__file__).resolve().parents[3]
 _ENGINE_PATH = (
     _PACK_ROOT
@@ -37,6 +39,14 @@ _GUARD_PATH = (
     / "scripts"
     / "intake_guard.py"
 )
+_ROUTER_PATH = (
+    _PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "work-intake"
+    / "scripts"
+    / "intake_router.py"
+)
 _REFRESH_PATH = (
     _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "refresh.py"
 )
@@ -54,6 +64,18 @@ def _load_guard():
     spec = importlib.util.spec_from_file_location("intake_guard", _GUARD_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules["intake_guard"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_router():
+    # Unique name including pack and skill, per packs/AGENTS.md § Writing pack
+    # tests: a bare `intake_router` would bind whichever skill's script reached
+    # sys.path first and cache it for every later importer.
+    name = "core_work_intake_intake_router"
+    spec = importlib.util.spec_from_file_location(name, _ROUTER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -85,6 +107,69 @@ def test_routes_canonical_inputs() -> None:
     assert "materialize" in body
     assert "register" in body
     assert "processor" in body
+
+
+def test_direct_light_start_routes_without_durable_artifact() -> None:
+    router = _load_router()
+
+    route = router.route_intake(
+        router.RoutingSignals(
+            action="start",
+            artifact="",
+            artifact_kind="",
+            authority_mode="repo-origin",
+            direct_light=True,
+        )
+    )
+
+    assert route.artifact == ""
+    assert route.artifact_kind == ""
+    assert (route.processor, route.mutation) == ("work-loop", "none")
+    assert route.lifecycle_membership == "none"
+    assert route.authority_mode == "repo-origin"
+
+
+@pytest.mark.parametrize("artifact_kind", ("intent", "brief", "spec", "defect"))
+def test_direct_light_rejects_durable_artifact_kinds(artifact_kind: str) -> None:
+    router = _load_router()
+
+    with pytest.raises(ValueError, match="direct-light"):
+        router.route_intake(
+            router.RoutingSignals(
+                action="start",
+                artifact=f"docs/{artifact_kind}.md",
+                artifact_kind=artifact_kind,
+                authority_mode="repo-origin",
+                direct_light=True,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    (
+        {"named_gaps": True},
+        {"ready_brief": True},
+        {"action": "remember"},
+        {"action": "refresh"},
+        {"action": "status"},
+    ),
+)
+def test_direct_light_rejects_non_direct_discriminants(
+    overrides: dict[str, bool | str],
+) -> None:
+    router = _load_router()
+    signals = {
+        "action": "start",
+        "artifact": "",
+        "artifact_kind": "",
+        "authority_mode": "repo-origin",
+        "direct_light": True,
+    }
+    signals.update(overrides)
+
+    with pytest.raises(ValueError, match="direct-light"):
+        router.route_intake(router.RoutingSignals(**signals))
 
 
 def test_minimal_intent_outputs_use_canonical_preamble() -> None:
@@ -180,17 +265,37 @@ def test_workspace_registration_maps_normalized_source_to_target_contract() -> N
         assert source == expected_source
 
 
-def test_published_start_example_routes_to_new_spec() -> None:
-    evals = json.loads(_EVALS_PATH.read_text(encoding="utf-8"))["evals"]
-    example = next(
-        case
-        for case in evals
-        if case["prompt"]
-        == "Start work on adding export retention controls for workspace owners."
-    )
+def test_published_start_examples_discriminate_direct_light_from_durable() -> None:
+    """The replaced rule is a *decision*, not an inversion.
 
-    assert "new-spec" in example["expected_output"]
-    assert "docs/specs/export-retention/spec.md" in example["expected_output"]
+    Retiring "one actor plus one bounded capability always enters new-spec" must
+    not teach that such a request is therefore direct-light. The published pair
+    has to show both sides: a bounded low-risk correction goes direct, while a
+    new user-facing capability is a durable product behavior contract and goes to
+    new-spec. Asserting only the direct side would let the durable trigger rot.
+    """
+
+    evals = json.loads(_EVALS_PATH.read_text(encoding="utf-8"))["evals"]
+    by_prompt = {case["prompt"]: case for case in evals}
+
+    direct = next(
+        case
+        for prompt, case in by_prompt.items()
+        if "off-by-one in the export retention cutoff" in prompt
+    )
+    assert "direct-light" in direct["expected_output"]
+    assert "artifact none" in direct["expected_output"]
+    assert "work-loop" in direct["expected_output"]
+
+    durable = by_prompt[
+        "Start work on adding export retention controls for workspace owners."
+    ]
+    assert "does not select direct-light" in durable["expected_output"]
+    assert "durable product behavior contract" in durable["expected_output"]
+    assert "new-spec" in durable["expected_output"]
+    assert "direct-light" not in " ".join(durable["assertions"]).replace(
+        "Refuses the direct-light route", ""
+    )
 
 
 def test_placeholder_shaped_source_values_remain_data() -> None:

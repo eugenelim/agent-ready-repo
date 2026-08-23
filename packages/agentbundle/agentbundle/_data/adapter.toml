@@ -180,38 +180,29 @@ source-path = ".apm/user-libs/"
 # entries remain authoritative; the new tables are declarative metadata.
 # ---------------------------------------------------------------------------
 
-# Install routes declared for this adapter ("claude-plugins" at v0.4;
-# "apm" added at v0.5).
-# Kiro, Copilot, and Codex do not declare install-routes; the field defaults to ["cli"]
-# on read for adapters that omit it.
 [adapter."claude-code"]
-install-routes = ["cli", "claude-plugins", "apm"]
 
 [[adapter."claude-code".projection]]
 primitive = "skill"
 mode = "direct-directory"
 target-path = ".claude/skills/"
-plugin-target-path = "skills/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
 primitive = "agent"
 mode = "direct-file"
 target-path = ".claude/agents/"
-plugin-target-path = "agents/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
 primitive = "hook-body"
 mode = "direct-file"
 target-path = "tools/hooks/"
-plugin-target-path = "hooks/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
 primitive = "hook-wiring"
 mode = "merge-json"
-plugin-mode = "dropped"
 target-path = ".claude/settings.local.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"
@@ -220,7 +211,6 @@ on-conflict = "merge-managed-key-only"
 primitive = "command"
 mode = "direct-file"
 target-path = ".claude/commands/"
-plugin-target-path = "commands/"
 on-conflict = "prompt-then-preserve"
 
 # hook-body — scope-conditional target.

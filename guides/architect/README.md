@@ -1,38 +1,55 @@
 ---
 title: "`architect` — guides"
-summary: Choose the architecture workflow for shaping a concept, drawing a system, reviewing an artifact, or establishing a repository reference architecture.
+summary: Assess what exists, choose the right next action, design a future state, draw it, or review the evidence.
 pack: architect
 kind: explanation
 ---
 
 # `architect` — guides
 
-Solution architecture as three skills plus one review subagent. `architect-design` frames a problem, weighs a technical choice, or designs a system without a diagram as the headline. `architect-diagram` draws the system, flow, state, data model, or deployment topology. `architect-review` critiques an existing design doc, diagram, RFC, or ADR **inline**, and its read-only sibling subagent `design-reviewer` runs the same critique in a **forked context** that hasn't seen the authoring — the independent pass you reach for after writing a design yourself. They lean on a repo's `reference.md` — the golden path that says how this codebase is built — when one is present.
+Get an evidence-backed view of the architecture before deciding whether to
+harden, optimize, scale, modernize, replace, or retain it. You can begin without
+knowing a skill name:
 
-All three are **knowledge-surface aware**. When an internal knowledge surface is reachable — an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set (public web doesn't count) — `architect-design` consults it before proposing and names what it drew from, `architect-diagram` grounds the beyond-repo parts of a document- or update-mode diagram against it, and `architect-review` flags claims about the world asserted with no cited surface. What can't be grounded becomes a named question or a flag, never a guess.
+> Assess architecture and provide an action plan.
 
-New here? [Establish your repo's reference architecture](how-to/establish-reference-architecture.md) gives the skills something to design against.
+The first result is a current-state model you can correct, not a verdict. After
+you accept the map, the agent shows attention hotspots and asks where to drill
+down. Inspection is read-only by default. You approve private enterprise
+retrieval, executable checks, runtime evidence, experiments, and file writes.
 
-## Tutorials
+## Choose your task
 
-- [Your first architecture session](tutorials/architect-first-session.md) — Start here — the guided first session from install verification to your first architecture artifact.
-- [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md) — stand up the golden-path file from scratch and put it to work.
+- [Assess a repository](how-to/assess-a-repository.md) when you need a map,
+  evidence coverage, hotspots, findings, and an action plan.
+- [Shape an architecture concept](how-to/shape-an-architecture-concept.md) when
+  the current-state evidence is clear and you need a future-state choice.
+- [Diagram a system](how-to/diagram-a-system.md) when the picture is the main
+  outcome.
+- [Review an architecture artifact](how-to/review-an-architecture-artifact.md)
+  when you already have an assessment, design doc, diagram, RFC, or ADR.
+- [Establish a reference architecture](how-to/establish-reference-architecture.md)
+  when the repository needs a normative golden path for future work.
 
-## How-to
+## Start here
 
-- [Establish your repo's reference architecture](how-to/establish-reference-architecture.md) — capture the stack, patterns, and constraints the architect skills design against.
-- [Shape an architecture concept](how-to/shape-an-architecture-concept.md) — get a ≤½-page Stage-0 concept agreed with `architect-design` before committing to a full design doc.
-- [Diagram a system](how-to/diagram-a-system.md) — draw a system, flow, state, data-model, or deployment-topology diagram with `architect-diagram`.
-- [Review an architecture artifact](how-to/review-an-architecture-artifact.md) — get a severity-tagged critique of a design doc, diagram, RFC, or ADR with `architect-review`, or an independent forked-context pass with the `design-reviewer` subagent.
+- [Your first architecture session](tutorials/architect-first-session.md) — run
+  a bounded survey and finish with a corrected current-state map, evidence
+  ledger, attention heat map, and selected next investigation.
+- [Create and use your `reference.md`](tutorials/create-your-reference-architecture.md)
+  — separately capture one real engineering standard and use it to steer design.
 
-## Reference
+## Look up behavior
 
-- [`reference.md` sections and the stack-pack contract](reference/reference-architecture.md) — every section of the golden-path file and how stack packs extend it.
+- [Architecture assessment reference](reference/architecture-assessment.md) —
+  modes, evidence surfaces, reads, permission gates, output, confidence, and
+  limits.
+- [`reference.md` sections and stack-pack contract](reference/reference-architecture.md)
+  — the normative repository foundation and delivery rules.
 
-## Explanation
+## Understand the choices
 
-- [Why the architect-diagram skill works the way it does](explanation/architect-diagram-skill-design.md) — the reasoning behind direction defaults, layout choices, visual encoding, notation routing, and the anti-pattern register.
-
----
+- [Why the diagram workflow works this way](explanation/architect-diagram-skill-design.md)
+  — notation, layout, encoding, grounding, and portability.
 
 Installing and upgrading live in [`../_shared/`](../_shared/).

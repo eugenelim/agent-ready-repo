@@ -1,6 +1,6 @@
 ---
 name: architect-review
-description: Use when the user pastes an architecture artifact (design doc, diagram, RFC, ADR) and asks for critique. Triggers on "review this", "what's wrong with", "is this any good", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing "what's working" section. Also runs a well-architected / lens review mode (concern + workload-class lenses incl. GenAI/agentic) emitting a risk register with mechanical/judgment-tagged findings. Inline only. Do NOT use to produce an artifact (use `architect-design` or `architect-diagram`).
+description: Use when the user supplies an architecture artifact (assessment report, design doc, diagram, RFC, ADR) and asks for critique. Triggers on "review this", "what's wrong with", "is this any good", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing "what's working" section. Also runs a well-architected / lens review mode (concern + workload-class lenses incl. GenAI/agentic) emitting a risk register with mechanical/judgment-tagged findings. Inline only. Do NOT assess a repository, produce an artifact, or redesign the system.
 ---
 
 # Skill: architect-review
@@ -32,6 +32,7 @@ If any check fails, push back rather than reviewing.
 ## Procedure
 
 1. **Identify the artifact type.** Read the paste; pick one:
+   - Architecture assessment report → `references/rubric-assessment.md`
    - Design doc (Google-style or close to it) → `references/rubric-design-doc.md`
    - C4 Container / Context diagram → `references/rubric-c4-diagram.md`
    - Sequence diagram → `references/rubric-sequence-diagram.md`
@@ -44,12 +45,25 @@ If any check fails, push back rather than reviewing.
    a design doc — flag it with the **WRONG ARTIFACT** verdict and
    route to the right skill.
 
+   An assessment report is still an artifact review. Apply its evidence and
+   traceability rubric to the report as supplied; do not rescan the repository,
+   reconstruct missing evidence, or become an alternate `architect-assess`
+   entry point.
+
 2. **Or — well-architected lens mode** (orthogonal to artifact type): when the
    ask is whether a *design* is well-architected (provider / pillar / a named
    concern- or workload-class lens, incl. GenAI/agentic), walk
    `references/rubric-well-architected.md` and write `assets/risk-register.md` —
    it tags each finding **🔧 mechanical / 🧭 judgment** + scenario, reuses the
    verdict/severity below, and does **not** auto-fix (a critique, not the loop).
+
+   The rubric enters the generated architecture corpus through
+   `../architecture-lenses-reference/references/okf/index.md`. Treat it as inert
+   knowledge: read the root index first, load only named child indexes and
+   concepts, and retain the selected normalized paths in the review receipt. If
+   the router or a selected concept is missing or invalid, state
+   `architecture lenses unavailable`, continue with the artifact rubric at
+   reduced lens coverage, and never fabricate a path or flat-load the corpus.
 
 3. **Declare one optional review-planning enquiry.** After eligibility,
    artifact type, well-architected mode, structural review scope, and selected
@@ -99,7 +113,9 @@ If any check fails, push back rather than reviewing.
    and to the WA-lens mode above). When the artifact asserts facts about the
    current landscape, mandated standards, external interfaces, or in-flight work
    — claims a reviewer can't take on faith — load
-   `references/knowledge-surfaces.md` and flag, as severity-tagged findings, (a)
+   `references/knowledge-surfaces.md` for review-side permission and degradation
+   behavior, then select the implicated concepts beneath
+   `concepts/enterprise-knowledge/index.md`. Flag, as severity-tagged findings, (a)
    any such claim asserted as fact with neither a cited surface nor an
    "unverified — confirm" marker, and (b) any available knowledge surface the
    design ignored. Exclude project-knowledge topics, envelopes, and the
@@ -178,3 +194,7 @@ review is not that gate and performs no knowledge write.
   author should preserve.
 - **Burying the verdict.** Verdict goes first. The reader should not
   have to scroll past 12 findings to learn the artifact is broken.
+- **Re-performing an assessment to review its report.** Judge scope fidelity,
+  evidence, calibration, lens coverage, and action traceability from the
+  artifact and its cited locators. Missing proof is a report finding, not an
+  invitation to silently gather replacement evidence.

@@ -968,7 +968,7 @@ bottom will meet all of these as live text; every one is superseded here:
 | "Live adapters reject loopback, private, link-local, multicast, and metadata destinations after DNS resolution and on every redirect/connection" | *Website-adapter artifact and runtime contract* | *Network corrections in force* — an invariant, not a capability of the route API |
 | Node permissions listed among the safety rails | *Native Playwright and trusted-code posture* | Correction 7 — one coarse `net` permission gates the transport too |
 | "S1, S2, S3, S4, and S5 remain open Experimental gates" | *Experimental run ledger — 2026-08-15* | The current-state table above; that sentence is dated commentary, not a live status |
-| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3 remains open and is unchanged |
+| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3's bar is amended by the 2026-08-21 entry below and the question stays open |
 
 The `Experimental run ledger — 2026-08-15` and the `Experiment / validation`
 tables are the **first** run's record. Where they and this section disagree,
@@ -3017,7 +3017,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (105 manifested files, round-7 archive SHA-256 `8b5c8338…d570`), reconstructed
+  (136 manifested files, round-7 archive SHA-256 `f0438f80…a20c`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
@@ -3172,3 +3172,374 @@ that mechanism rather than record the channel as inherently uncontrollable.
 
   No third-party candidate artifact was executed. RFC-0088 remains `Experimental`.
   No implementation or follow-on artifact is authorized.
+
+- **2026-08-19 — twelfth Experimental run.** The consumer-shaped residuals remain
+  measurements for the approver; no disposition changes here. The
+  [round-12 note](0088-notes/spikes/2026-08-19-experimental-round12.md) records a split
+  result for amended D/item 6: registration blocking is destination-scopable only by
+  partitioning destinations into separate contexts, which does not preserve one shared
+  session (`sharedSessionDemonstrated: false`). Two distinct origins both registered and
+  still shared one worker store, so the persisted worker-store purge is not destination-scopable. This
+  contradicts open question 4's recommended candidate.
+
+  The page-resident replay candidate holds only when the issuing response is marked
+  `no-store`. The otherwise identical default-cache control finds the live token at rest
+  in browser user-data, making that header a construction requirement for open question 5
+  rather than an optional implementation detail; browser-written buffers without a
+  recovered planted decoy remain absence-unverifiable rather than clean. The signing-identity measurement has a
+  requirement-attributable discriminator at the observed depth: an OS-signed control's requirement failure follows strict
+  verification success; the bundled comparison is not the discriminator because resource
+  sealing fails before requirement evaluation. Update survival remains deferred.
+
+  The approver-authorised attended post-authentication arm observed re-attach surviving
+  worker suppression with zero registrations under both policies. It is bounded to one
+  destination, one device, and one point in time, and closes the deleted post-auth register text.
+
+  Round 12 also repaired an inherited organisation-identifier archive gate that had never
+  been able to fail, while retaining the separate privacy sweep that had continued to run.
+  Its results are controls and findings, not decisions. RFC-0088 remains `Experimental`.
+  No candidate artifact was executed.
+
+- **2026-08-21 — thirteenth Experimental run.** Promoted the
+  [round-13 consolidated evidence digest](0088-notes/round13-consolidated-evidence-digest.md),
+  which carries every prior round and spike in one document. RFC-0088 remains
+  `Experimental`. **This round decides nothing.** It closes or explicitly disposes the
+  open register slugs, consolidates the evidence base, and assembles the decision
+  surface below so the approver can rule from one place. No blocker item closed, no
+  disposition was revised, and no follow-on artifact was created.
+
+  **Verdict: not final.** Round 13 was commissioned as the final evidence round and
+  does not reach that bar, which it states here rather than at the end. Most open
+  slugs end in a closing disposition; one becomes a named implementation concern; a
+  residue is carried — two because their own unblock conditions are unmet, two
+  because no single round can measure them, and one because measuring it would need a
+  toolchain that is a new dependency. The per-slug partition in its four declared
+  states lives in the digest's disposition block and is checked mechanically against a
+  committed pre-round snapshot.
+
+  ### The approver's decision surface
+
+  Every open question is named with a status and the registered document holding its
+  measured basis. The vocabulary is *ruled*, *outstanding*, or *not measurable*.
+
+  - **Open question 1 — outstanding.** Which operating systems and browser channels
+    enter the first supported release. A system channel has now been exercised by the
+    signing-identity arm rather than only the bundled one, so the Experimental exit
+    can admit it or record an explicit deferral on evidence instead of on assumption.
+    The choice remains the approver's. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 2 — outstanding.** Whether adapter packaging requires build-only
+    bundler tooling. The packaging spike exercised plain self-contained ESM, which is
+    the recommended default's precondition; the dependency-gate half of the original
+    spike remains blocked from the first run, so the default is supported but not
+    fully established. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 3 — not measurable.** Whether the pack clears the charter's
+    "used often enough" bar. This is presented **as the question**, not as a verdict:
+    the recommended default in the open-question text would require two independent
+    software-delivery provider consumers before acceptance, and on that reading
+    acceptance is blocked until they exist. The approver must either accept that bar
+    or lower it explicitly. It is not a measurement question and this round did not
+    attempt it. Basis: the open-question text itself, at
+    [Open questions](#open-questions).
+  - **Open question 4 — outstanding, and its recommended candidate is
+    contradicted.** The candidate folds worker policy into the destination constraint
+    so one policy decides both where a session may talk and whether a worker may run
+    there. Measurement shows registration blocking is destination-scopable **only by
+    partitioning destinations into separate contexts**; scoping within one shared
+    session was not demonstrated. So the candidate as drafted does not deliver a
+    per-destination policy inside a shared session. What the approver is asked to
+    re-draft is per **destination group**: a policy that names groups and accepts that
+    each group is a separate context, rather than one session-wide switch. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 5 — outstanding.** How a consumer that captures and replays a
+    scoped API token is accommodated. The recommended page-resident candidate was
+    exercised: the init script receives the token while the driver does not, and
+    removing the shim leaves the same page without it. Two things qualify it. The
+    issuing response's cache directive is a **construction requirement**, not an
+    observed property — without it the token is at rest in browser user-data, so any
+    adoption of this candidate must carry the directive as a requirement. And absence
+    on browser-written buffers where no planted decoy was recovered is
+    **unverifiable, not clean**: those buffers establish nothing either way. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+  - **Open question 6 — outstanding, with update survival unmeasured and both
+    adoption costs now named.** Signing identity was measured to be an attributable
+    discriminator at the observed depth. Whether it **survives an update** is
+    unmeasured, and one installation cannot observe an update; closing it needs a
+    second dated observation across a real update.
+
+    The costs were not recorded anywhere in this RFC before now, and the approver is
+    choosing between two friction profiles rather than between friction and none.
+    **Signing identity** imposes a recurring per-adopter burden: each adopter pinning
+    a browser channel must express and maintain a requirement expression, and
+    re-derive it whenever a vendor rotates a team identifier. **Digest pinning**
+    imposes a per-update burden instead — and being unachievable for an
+    MDM-provisioned, auto-updating system browser is the reason this question exists
+    at all. Basis:
+    [round-13 digest](0088-notes/round13-consolidated-evidence-digest.md).
+
+  ### Accepted risks carried forward, restated at the width the code supports
+
+  There are two loopback listeners and the recorded claim is wrong about only one, so
+  they are stated separately and no phrase-level correction spans both.
+
+  The **synthetic issuer's** listener is already recorded as reachable by any local
+  process able to connect, so nothing is rewritten. The digest adds the widening the
+  code supports — its unauthenticated scan route is a live oracle answering for
+  caller-chosen bytes — and completes the bound by stating what the exposure is
+  *not*: the issuer's token is a synthetic per-run value with no meaning outside the
+  run, so what is bounded is **measurement validity**, not secrecy. Any reading in
+  which that fixture models a real credential boundary is abandoned explicitly.
+
+  The **browser's unconfined bind endpoint** is the subject of the same-uid
+  corrections, and its recorded bound is narrower than the exposure: that endpoint is
+  loopback TCP with no client authentication, and the platform grants no uid
+  restriction on loopback TCP. **Its historical wording is preserved verbatim and
+  deliberately.** That phrasing sits inside an accepted disposition's scope, and
+  widening an accepted actor set would retroactively treat a wider exposure as already
+  accepted — a ruling this round may not make. The wider factual bound is therefore
+  recorded as **new evidence requiring re-ruling**, and nothing in the accepted text
+  is edited.
+
+  ### Converted concern
+
+  Confined-removal time-of-check/time-of-use is a design property rather than a
+  measurable residual: it bounds the filesystem-policy contract rather than describing
+  an observation anyone can take. It therefore leaves the register as a **named
+  implementation concern** owned by the follow-on spec that will carry the
+  network/filesystem policy contracts, to be addressed when that artifact is
+  authorised. Conversion was available to it because no frozen spec pins it with a
+  deferral marker; a pinned slug cannot be removed from the register and is carried
+  instead.
+
+- **2026-08-21 — approver rulings on open questions 3 and 4.** Two rulings, taken
+  after the round-13 decision surface was assembled and superseding what that section
+  records for these two questions. Nothing else changes: RFC-0088 remains
+  `Experimental`, open questions 1, 2, 5 and 6 remain outstanding, no blocker item
+  closes, and no follow-on artifact is created.
+
+  **Open question 3 — ruled. The bar is amended: it is a contract, not a count.** The
+  recommended default in the open-question text required S5 to prove *two* independent
+  software-delivery provider consumers before acceptance. That default is withdrawn
+  whole. It is replaced by, and this paragraph is question 3's ruling in full — no
+  count-based reading of the bar survives it:
+
+  > The bar is a **destination adapter contract**, exercised by **two independent
+  > fixtures of differing render and authentication shape**, plus **one documented
+  > reference consumer** an adopter runs against their own account. The original bar
+  > assumed the pack could ship its consumers; its legitimate destinations are
+  > predominantly operator-internal surfaces no pack can carry, so a shipped-consumer
+  > count measures what the pack is permitted to bundle rather than whether the
+  > foundation works. The contract is asserted in CI; the reference consumer is a
+  > recorded observation.
+
+  **Why a count was the wrong instrument, and the evidence for it is the search.** The
+  satisfying consumer would have had to drive **web page automation** — this RFC's
+  subject is a browser session, page-resident credentials, service-worker policy and
+  realm boundaries. Searched rather than assumed, and no such consumer exists in this
+  repository, built or planned:
+
+  - Nothing under `packs/` references `web-pilot`, `auth: browser-session`, or the
+    `provider-v1` conformance marker.
+  - The three packs that touch a browser at all do so for **credential capture**, not
+    page automation: the `atlassian` pack's `setup_sso.py`, and `credential-brokers`'
+    `_sso.py` and `sso-broker.py`. That is SSO-cookie auth governed by
+    [RFC-0035](0035-sso-cookie-auth-for-atlassian-pack.md), a different concern with a
+    different boundary, and counting it here would answer a question this RFC is not
+    asking.
+  - S5's own two providers were the synthetic fixtures `example-provider-a` and
+    `example-provider-b`. They demonstrated the pack/grant vertical mechanism and were
+    never independent consumers, so the reading in which the original bar was already
+    met does not survive either. Under the amended bar they are not consumers at all —
+    they are the wrong kind of object, which is the point.
+  - `web-automation` is not even an existing pack category — the RFC's own D8 resolves
+    discovery through `integrations` plus a namespaced conformance marker, so there is
+    no category a consumer could already be sitting in unnoticed.
+
+  That list is not an argument for lowering the count. It is the evidence that a count
+  is measuring the wrong thing. Every entry on it is absent for the same reason: the
+  destinations this foundation exists to reach are operator-internal, so a consumer of
+  it is something an adopter builds inside their own boundary and never publishes here.
+  A bar denominated in shipped consumers reads that as failure indefinitely, however
+  well the foundation works, because the pack is not permitted to bundle the consumers
+  that would satisfy it.
+
+  **Consequence for acceptance, and it is not "question 3 is done".** The round-13
+  section presented question 3 as the choice between accepting a bar that blocks
+  acceptance and lowering it explicitly. Neither is taken. The bar is re-denominated:
+  acceptance no longer waits on independent adopters appearing, which nothing in the
+  pilot's control could cause, nor on a single consumer being built inside a boundary
+  that forbids publishing it. It waits on the bar as blockquoted above — which is work
+  this project can schedule, and whose contract half CI can assert. The blockquote is
+  the canonical statement of the bar; this paragraph does not restate it, because a bar
+  written twice is a bar that disagrees with itself at the first edit.
+
+  Two things follow that the approver is accepting by taking this ruling. The fixtures
+  are the foundation's own, and that is deliberate rather than a concession: they are
+  the only destinations whose credentials the repository may hold, so they are the only
+  place the full login-to-frontend-API path can be mechanically asserted at all. What
+  they cannot supply is evidence that anyone wants this, and the reference consumer is
+  what carries that — as an observation with provenance, never as an acceptance
+  criterion. An acceptance criterion that cannot fire in CI is worse than an honest
+  observation, so it is not written as one.
+
+  **The fixture pair is measured, not proposed.** Both halves are pinned containers,
+  and the pair was selected by standing them up and observing them rather than from
+  documentation. The leading candidate going in was an operator-internal delivery tool
+  whose documentation confirms the exact shape this question wants — username and
+  password exchanged for a JWT at a session endpoint, `Authorization: Bearer` on API
+  requests. It was rejected on measurement: its server refuses to start without a
+  cluster API, so it is not a pinned container but a control plane, and the ruling that
+  the fixture is a container is the thing that excluded it. The pair that replaced it,
+  and the at-rest finding that came out of measuring it, are recorded in
+  [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md).
+
+  **Open question 4 — the contradicted candidate is re-drafted, and the re-draft is
+  the ruling asked for.** The original candidate folded worker policy into the
+  destination constraint decision C established, so that one policy would decide both
+  where a session may talk and whether a worker may run there. Measurement contradicted
+  it: registration blocking is destination-scopable **only by partitioning destinations
+  into separate browser contexts**, and scoping within one shared session was not
+  demonstrated. A session-wide switch therefore still forces the choice between losing
+  a surface and losing the control, and the candidate as drafted did not remove that.
+
+  The amended requirement, superseding the session-wide reading of D / item 6:
+
+  > Worker policy is decided by the **destination group**, not by the session. A
+  > destination group is the unit at which decision C already constrains egress, and it
+  > is realised as a **separate browser context**. One policy per group decides both
+  > where that group may talk and whether a worker may run there. The session-wide
+  > reading of item 6 is withdrawn.
+
+  What the approver is accepting by adopting it, stated rather than discovered later: a
+  deployment needing opposite worker policies for two destinations must run them in
+  **separate contexts**, so those destinations do not share session state and each
+  group carries its own sign-in. That cost is real and unmeasured — it is the subject
+  of the carried `rfc0088-destination-group-split-cost` register slug, which remains
+  carried because measuring it needs an attended interactive sign-in per group that has
+  not been commissioned. Adopting the re-draft does not close that slug; it is why the
+  slug exists.
+
+  Question 4's status therefore moves from outstanding-with-a-contradicted-candidate to
+  **ruled**, with the per-group cost carried as a named residual rather than absorbed
+  silently.
+
+- **2026-08-21 — four architectural decisions, one scope residual, and the round-14
+  destination measurement.** These are decision records, and they are recorded *here*
+  rather than under `docs/adr/` deliberately: the Boundaries forbid creating a
+  follow-on artifact while this RFC is `Experimental`, and an ADR file is one. This
+  section is already the authoritative current contract, so it is where a decision
+  taken before acceptance belongs. Each one graduates to an ADR when the RFC is
+  Accepted and implementation is separately authorised — the follow-on list already
+  reserves an ADR slot that AD-3 graduates into. RFC-0088 remains `Experimental`; open
+  questions 1, 2, 5 and 6 remain outstanding; no blocker item closes.
+
+  **AD-1 — authentication is an optional layer, not a precondition of page driving.**
+  The foundation ships page driving without any authentication mechanism. Sign-in and
+  the human handoff are a layer composed *onto* it, and a deployment that never
+  authenticates is a supported configuration rather than a degraded one. The
+  consequence the approver accepts: the credential-free core and the live-session layer
+  are separately buildable and separately testable, and the core's tests may not depend
+  on a credential existing. That split is what keeps CI meaningful — see AD-4.
+
+  **AD-2 — per-destination degradation is first-class.** Any single destination may go
+  dark — unreachable, contract-changed, or policy-refused — without failing the pack or
+  the session that reaches its other destinations. This adds nothing new; it states the
+  degradation semantics that decision C's destination-scoped egress constraint and
+  question 4's per-group worker policy already imply, so that a reader does not have to
+  derive them. The consequence: a destination's failure is reported as that
+  destination's state, and no aggregate health signal may collapse it into a
+  session-wide verdict.
+
+  **AD-3 — credentials resolve through the broker, and no model-facing tool can reach
+  one.** Credential resolution is `credbroker`'s, in its declared order. The boundary is
+  stated as a **property, not a list of channels**, and the property is about *reach*
+  rather than about *possession*: no credential — resolved or destination-issued — is
+  reachable by a model-facing tool, and any credential a process does hold carries a
+  declared lifetime. Possession by some process is unavoidable; a browser holds a
+  session in order to be a browser. Reachability is the thing a design controls, and
+  writing the property as "no process may hold one" would forbid the architecture AD-1
+  and AD-4 are building. Nor is a credential committed. The reason it did not have before is that the credential
+  boundary and the model boundary are different boundaries, and a design that lets them
+  coincide has no way to say which one failed.
+
+  It is written as a property because this round's own measurement is a channel a list
+  would have missed. A prompt, a tool argument and a transcript are the obvious three;
+  the token this round found lands in **browser user-data on disk**, inside a profile
+  directory the agent process owns, and question 5's accommodation puts the same token
+  in a **DOM the agent reads**. An agent with an ordinary file-read or page-evaluate
+  tool obtains the credential without using any of the obvious three. Two derived
+  obligations follow for the build, and they are consequences of this decision rather
+  than criteria this round claims to have met: a browser user-data directory is a
+  credential-bearing artifact whose lifetime is declared and enforced, and a
+  page-resident token is out of reach of every model-facing tool. Both are statements
+  about reach and lifetime, which is why the headline is written that way.
+
+  **Scope.** AD-3 governs production packs, adapters and CLI surfaces. The
+  out-of-repository evidence apparatus is outside it and reads its fixture credential
+  straight from the environment — deliberately, because it is not a credential the
+  broker mediates and not one any adopter holds, and routing a synthetic fixture secret
+  through the broker would exercise none of the boundary AD-3 is about.
+
+  **AD-4 — a pinned container is the CI fixture, and it is load-bearing.** The fixture
+  is not a convenience stand-in for a real destination. It is the *only* destination
+  whose credentials this repository may own, and therefore the only place the full
+  login → token → frontend-API path can be asserted mechanically rather than described.
+  Two consequences the approver accepts by taking it. Fixtures are **synthetic**, never
+  recorded from a live account: a captured response would put third-party content and
+  personal data in the repository, and both are prohibited, so no recorded transcript
+  may be used however convenient. And the fixture must be a *container* — an image
+  pinned by digest that CI can start — rather than a hosted demo instance, because a
+  hosted instance is a third party the repository would be contacting on every run.
+  What that does not remove is the registry: a digest-pinned pull still contacts one on
+  a cold cache, so the registry is a **named, allowlisted egress**, not an absence of
+  egress, and the difference between it and a demo instance is that a digest pin makes
+  what comes back immutable. That clause did real work this round: it is what excluded
+  the leading candidate.
+
+  **Scope residual, carried from the withdrawn narrowing.** An earlier proposal would
+  have narrowed `web-pilot`'s scope to destinations offering no token mechanism at all.
+  That proposal is **withdrawn** — token unavailability is org-by-org and commonly
+  reflects process friction or IT maturity rather than a deliberate posture, so the
+  narrowing would have excluded the ordinary case while claiming to exclude an
+  exceptional one. One narrow constraint survives it, and it is the whole residual: the
+  pack must not be positioned as a substitute for a credential an operator *explicitly
+  refused* to a user who asked for it. That is a constraint on how the pack is
+  described and offered, not on which destinations it may technically reach.
+
+  **The round-14 destination measurement, and it is a finding against question 5.**
+  Question 5's recommended accommodation keeps a captured bearer token **page-resident**
+  so the broker never holds it. Round 12 established that accommodation against a
+  synthetic issuer, and established it *conditionally*: it held when the issuing
+  response was marked `no-store`, and the otherwise identical default-cache arm left
+  the live token at rest in browser user-data. Round 14 put that condition to a real
+  destination for the first time, and the condition does not hold.
+
+  Two pinned containers were stood up and driven through a real browser login, chosen
+  for opposite render and authentication shape. Measured, not read from documentation:
+
+  - **On the token-issuing half** — the only half that issues a token — that response
+    carries **no cache directive at all**: not `no-store`, not `private`, nothing. The
+    precondition round 12 identified is simply absent. The contrast half issues no
+    token; its credential arrives as a cookie on a response marked `private`, which is
+    a different thing and is not evidence for or against the precondition.
+  - The issued token is written by the destination's own frontend into a
+    **page-readable web-storage key**, from which it reaches browser user-data on disk.
+
+  The second observation is the sharper one, and it is why this is a finding rather
+  than a missing header. Even a destination that *did* send `no-store` would leave the
+  live token at rest here, because the exposure comes from the destination's storage
+  choice rather than from the response cache. Keeping the token page-resident does not
+  prevent it. **No consumer can fix either.** A consumer does not set the destination's
+  cache-control and does not choose where the destination's frontend stores its own
+  token, so question 5's recommended accommodation is conditional on behaviour that
+  sits entirely outside the boundary this RFC governs.
+
+  The contrast half of the pair shows the condition is not universal in the other
+  direction either: its credential is an `HttpOnly` cookie that page script cannot read
+  at all, so a page-resident replay consumer cannot capture it — the accommodation is
+  not *unsafe* there, it is *inapplicable*. Question 5 therefore stays **outstanding**,
+  and what it now needs is not a better accommodation but a decision about which
+  destination behaviours the pack will refuse to accommodate. Apparatus, row inventory,
+  mutation controls and the at-rest scan are recorded in
+  [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md).

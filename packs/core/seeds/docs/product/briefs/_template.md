@@ -11,7 +11,8 @@
 - **Slug:** `<slug>` <!-- kebab-case; matches the filename. Derived specs back-link this brief by path (`docs/product/briefs/<slug>.md`), not by the bare slug -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
-- **Status:** Draft <!-- Draft | Ready | Executing | Shipped — set by hand at DoR gate and at ship; distinct from the auto-derived Spec map Status column -->
+- **Status:** Draft <!-- Draft | Ready | Executing | Shipped -->
+- **Source / provenance:** <!-- LOAD-BEARING. A safe, durable reference to the source and, for tracker-origin work, its reviewed revision. Retain a normalized summary; never copy raw external payload. -->
 - **Epic:** <!-- optional: id/link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. -->
 - **Parent intent:** <!-- optional: when this brief is one per-component slice of a larger product intent, the upstream `intent` it was projected from. Distinct from `Epic:` — `Epic:` names an external *coordinator*; this names the *product intent* upstream. Carried as provenance; never interpreted. Omit when there is none. -->
 
@@ -23,7 +24,7 @@ the brief cannot do without. -->
 
 <one paragraph: the problem and the outcome>
 
-## Success metrics
+## Success metrics (optional)
 
 <!-- How will we know the outcome landed? Name observable signals, not
 activities. "p95 checkout under 400ms"; "support tickets for password reset
@@ -45,7 +46,7 @@ scope — they stop the decomposition from sprawling. -->
 
 -
 
-## Appetite
+## Constraints / Appetite
 
 <!-- A *constraint*, not an estimate: how much time/effort this outcome is
 worth ("a few weeks, not a quarter"). It bounds the decomposition — slices
@@ -53,15 +54,29 @@ that don't fit the appetite get cut or flagged, not silently absorbed. -->
 
 <the appetite>
 
-## Rabbit holes
+## Assumptions / Risks
 
-<!-- Design traps, known uncertainties, and out-of-bound explorations to
-skip. At least one entry is required for the DoR gate (a brief with no named
-rabbit holes has not been shaped far enough to be Ready). -->
+<!-- LOAD-BEARING. Name known assumptions, risks, design traps, or out-of-bound
+explorations. -->
 
 -
 
-## Instrumentation
+## Ready gaps (Draft only)
+
+<!-- Name any missing Outcome, Scope, Non-goals, Constraints / Appetite,
+Assumptions / Risks, or Source / provenance detail without inventing it. Remove
+this note once the gap is resolved. -->
+
+-
+
+## Rabbit holes (optional)
+
+<!-- Optional prompt for design traps, known uncertainties, and out-of-bound
+explorations to skip. -->
+
+-
+
+## Instrumentation (optional)
 
 <!-- How the team will *measure* whether the outcome actually landed — the
 telemetry, events, dashboards, or signals that make the Success metrics
@@ -70,7 +85,7 @@ Instrumentation names the *measurement mechanism*). -->
 
 -
 
-## User stories
+## User stories (optional)
 
 <!-- OPTIONAL (Shape B). When product supplies stories, give each an id
 (`US-1`, `US-2`, …) and trace it to the satisfying spec's acceptance criteria
@@ -83,19 +98,15 @@ Outcome + Scope and coverage is spec-granular. -->
 
 ## Spec map
 
-<!-- Coverage table. The Status column is AUTO-DERIVED from each spec's own
-`Status:` field by the coverage lint — do not hand-edit it. Add one row per
-derived spec as `receive-brief` scaffolds it; each derived spec carries a
-`Brief: docs/product/briefs/<slug>.md` back-link naming this brief file. A
-brief is *delivered* only when every mapped spec
-is Shipped; an empty map is never delivered. (Shape B adds a `Story` column
-linking each row to the `US-n` it satisfies.) -->
+<!-- Mechanically present and empty-capable. Add a row only for a confirmed
+delivery slice; leave the table with its header only when there are zero such
+slices. `receive-brief` owns the coverage and Status-column mechanics. -->
 
 | Spec | Status |
 | --- | --- |
-| `<feature-slug>` | <auto> |
+|  |  |
 
-## Design artifacts
+## Design artifacts (optional)
 
 <!-- Links to upstream shaping artifacts (journey maps, screen flows, capability
 maps, opportunity assessments) that informed this brief. These are inputs that

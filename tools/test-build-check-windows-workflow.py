@@ -31,12 +31,15 @@ def main() -> int:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     agentbundle = job_block(workflow, "agentbundle-windows")
     credbroker = job_block(workflow, "credbroker-tests-windows")
+    lock_semantics = job_block(workflow, "lock-semantics-windows")
     aggregate = job_block(workflow, "build-check-windows")
 
     if "    runs-on: windows-latest\n" not in agentbundle:
         fail("AgentBundle compatibility job must run on windows-latest")
     if "    runs-on: windows-latest\n" not in credbroker:
         fail("CredBroker test job must run on windows-latest")
+    if "    runs-on: windows-latest\n" not in lock_semantics:
+        fail("lock semantics job must run on windows-latest")
     for job_name, block, expected_timeout in (
         ("AgentBundle", agentbundle, 15),
         ("CredBroker", credbroker, 10),
@@ -52,6 +55,9 @@ def main() -> int:
     )
     if credbroker.count(suite_step) != 1:
         fail("CredBroker job must run its complete package suite")
+    lease_suite_step = "        run: python -m pytest tools/test_coordination_lease.py -q\n"
+    if lock_semantics.count(lease_suite_step) != 1:
+        fail("lock semantics job must run the real coordination lease suite")
 
     if "    name: make build-check (windows)\n" not in aggregate:
         fail("aggregate must preserve the required check name")
@@ -59,19 +65,25 @@ def main() -> int:
         "    needs:\n"
         "      - agentbundle-windows\n"
         "      - credbroker-tests-windows\n"
+        "      - lock-semantics-windows\n"
     )
     if required_needs not in aggregate:
-        fail("aggregate must depend on both Windows jobs")
+        fail("aggregate must depend on all Windows jobs")
     if "    if: ${{ always() }}\n" not in aggregate:
         fail("aggregate must run even when a dependency fails or is cancelled")
 
     for result in (
         "needs.agentbundle-windows.result",
         "needs.credbroker-tests-windows.result",
+        "needs.lock-semantics-windows.result",
     ):
         if result not in aggregate:
             fail(f"aggregate does not check {result}")
-    for result_variable in ("AGENTBUNDLE_RESULT", "CREDBROKER_RESULT"):
+    for result_variable in (
+        "AGENTBUNDLE_RESULT",
+        "CREDBROKER_RESULT",
+        "LOCK_SEMANTICS_RESULT",
+    ):
         comparison = f'[ "${result_variable}" != "success" ]'
         if comparison not in aggregate:
             fail(f"aggregate does not require {result_variable} to succeed")

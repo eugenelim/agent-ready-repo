@@ -1,0 +1,21 @@
+{
+  "authorization": "explicit-fixture-approval",
+  "destination": "governed-engineering-knowledge",
+  "retrieved_at": "2026-08-21",
+  "results": [
+    {
+      "area": "local patterns and reference architectures",
+      "locator": "engineering/patterns/agent-execution-context",
+      "authority": "approved",
+      "freshness": "reviewed 2026-07-15",
+      "claim": "Every model, knowledge, and tool boundary receives tenant, actor or service principal, run, trace, and privilege scope."
+    },
+    {
+      "area": "current system landscape",
+      "locator": "landscape/shared-knowledge-platform",
+      "authority": "catalogue-owner",
+      "freshness": "reviewed 2026-06-30",
+      "claim": "Vector retrieval is provided by a shared tenant-scoped knowledge service; applications must not query the index directly."
+    }
+  ]
+}

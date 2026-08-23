@@ -213,6 +213,11 @@ def run(args: argparse.Namespace) -> int:
     Returns 0 on success, non-zero on any failure. See module docstring
     for the dual-scope contract.
     """
+    # Structural git answers are cached for this invocation only.
+    from agentbundle.local_exclude import reset_git_query_cache
+
+    reset_git_query_cache()
+
     from agentbundle import safety
     from agentbundle import scope as scope_mod
     from agentbundle.build import scope_rails

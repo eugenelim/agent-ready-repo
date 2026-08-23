@@ -18,7 +18,8 @@ not.
 - Is there a performance budget committed up front — a latency,
   throughput, or resource target the design must meet? "Fast enough"
   left undefined can be neither met nor missed. State it as a testable
-  claim (`quality-attribute-scenarios.md`).
+  claim (the generated
+  `concepts/foundations/quality-attribute-scenarios.md`).
 
 ### Optimizing — earn each optimization against the budget
 

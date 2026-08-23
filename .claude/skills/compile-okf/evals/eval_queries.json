@@ -12,6 +12,10 @@
     "should_trigger": true
   },
   {
+    "query": "A nested OKF corpus reports stale indexes on Windows; compile and check it",
+    "should_trigger": true
+  },
+  {
     "query": "Review this product spec for missing edge cases",
     "should_trigger": false
   },

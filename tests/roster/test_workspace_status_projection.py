@@ -115,9 +115,68 @@ def _sha256_file(path: Path) -> str:
 
 
 def _product_release_heading_version(text: str, name: str) -> str:
-    match = re.search(rf"^### \[{re.escape(name)}\]\[([^\]]+)\]", text, re.MULTILINE)
+    # Version correspondence only. Either heading level is accepted because the
+    # 59 pre-RFC-0095 nested entries include some artifacts' CURRENT release
+    # (agentbundle 0.38.5 among them), so a `##`-only match would read a stale
+    # free-standing heading. RFC-0095 D3 is enforced by the ratchet in
+    # `test_no_new_release_is_nested_under_unreleased`, not here.
+    match = re.search(
+        rf"^#{{2,3}} \[{re.escape(name)}\]\[([^\]]+)\]", text, re.MULTILINE
+    )
     assert match, f"missing {name} changelog heading"
     return match.group(1)
+
+
+# RFC-0095 D3 baseline. 59 versioned entries were nested under a `## [Unreleased]`
+# heading when D3 was accepted; every one is invisible to the `/now/` projection
+# permanently, because nothing ever moves an entry out. Their promotion needs
+# per-section artifact attribution (48 genuinely-unreleased bare sections are
+# interleaved across three `[Unreleased]` regions) and is tracked in
+# `workspace.toml [backlog].open` as `changelog-promote-marooned-entries`.
+#
+# This is a RATCHET, not a floor: it may only ever go DOWN. It is the mechanical
+# enforcement of D3 — the correspondence check in
+# `_product_release_heading_version` deliberately accepts either level.
+_MAROONED_RELEASE_BASELINE = 59
+
+
+def _nested_release_entries(text: str) -> list[str]:
+    """Versioned changelog entries nested under an `[Unreleased]` heading."""
+    nested: list[str] = []
+    unreleased_level: int | None = None
+    for line in text.splitlines():
+        heading = re.match(r"^(#{1,6})\s+(.*)", line)
+        if not heading:
+            continue
+        level, title = len(heading.group(1)), heading.group(2)
+        if unreleased_level is not None and level <= unreleased_level:
+            unreleased_level = None
+        if re.search(r"unreleased", title, re.IGNORECASE) and not re.match(
+            r"\[[a-z0-9-]+\]\[", title
+        ):
+            unreleased_level = level
+            continue
+        if unreleased_level is not None and re.match(
+            r"^\[.*\]\[.*\].*\d{4}-\d{2}-\d{2}", title
+        ):
+            nested.append(title)
+    return nested
+
+
+def test_no_new_release_is_nested_under_unreleased() -> None:
+    """RFC-0095 D3: a released section is free-standing, never nested.
+
+    Ratchet — this count may only decrease. A new release written as
+    `### [artifact][version]` under `[Unreleased]` increments it and fails here.
+    """
+    changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    nested = _nested_release_entries(changelog)
+    assert len(nested) <= _MAROONED_RELEASE_BASELINE, (
+        f"{len(nested)} versioned entries are nested under `[Unreleased]`, above the "
+        f"RFC-0095 D3 baseline of {_MAROONED_RELEASE_BASELINE}. A release carries a "
+        f"version and a date, so it is written free-standing at `##` — nested entries "
+        f"never publish to `/now/`. Newest nested entries: {nested[:3]}"
+    )
 
 
 def test_t3_work_loop_step0_requires_canonical_preflight() -> None:

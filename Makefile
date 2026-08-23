@@ -3,7 +3,11 @@
 # Python package; this file is the thin user surface spec § Boundaries
 # § Always do calls for.
 
-PYTHON ?= python3
+# Keep explicit environment/command-line overrides verbatim. The default stays
+# lazy so non-Python targets do not pay a pyenv-shim launch; its first use asks
+# isolated Python for the active executable, shell-quotes it, then replaces this
+# recursive value with the resolved simple value for the rest of the make run.
+PYTHON ?= $(eval PYTHON := $(shell python3 -I -B -c 'import shlex, sys; print(shlex.quote(sys.executable) if sys.executable else "")'))$(if $(PYTHON),$(PYTHON),$(error unable to resolve python3 executable))
 PYTHONPATH := packages/agentbundle:packages/credbroker:$(PYTHONPATH)
 # Stale __pycache__ makes catalogue verify's fresh-output build (CAT-V-014)
 # fail mid-run, on a clean tree too. Overridable: PYTHONDONTWRITEBYTECODE= make ci
@@ -16,7 +20,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: build build-self build-self-dry-run build-check build-scaffold lint-packs pre-pr package sast print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -129,6 +133,10 @@ endef
 # and the make-free Windows command one source of truth.
 # Windows contributors: python tools/repo/build_gate_chain.py build-check
 build-check:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) build-check-unleased
+	$(call gate_verdict,make build-check)
+
+build-check-unleased:
 	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
@@ -148,7 +156,6 @@ build-check:
 	else \
 		$(MAKE) sast; \
 	fi
-	$(call gate_verdict,make build-check)
 
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
@@ -227,6 +234,9 @@ SEMGREP_EXCLUDE := \
 	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
 
 sast:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) sast-unleased
+
+sast-unleased:
 	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
@@ -313,9 +323,36 @@ release-preflight: lint-packs
 	@bash tools/repo/release_check.sh
 
 # ── Static analysis + tests ──────────────────────────────────────────────────
-# Requires: python -m pip install -e packages/agentbundle ruff mypy pytest
-#           python -m pip install -e 'packages/credbroker[crypto]'
-#           pip install -r tools/requirements-sast.txt  (for build-check SAST leg; or SKIP_SAST=1)
+# Do NOT install agentbundle or credbroker to work on this repository.
+#
+# Run things this way instead:
+#   python3 -m agentbundle <args>      the CLI, from this worktree, no install
+#   make test / make build-check       gates; PYTHONPATH (line 7) supplies both
+#   pytest <path>                      pyproject.toml's [tool.pytest.ini_options]
+#                                      pythonpath supplies both, no env prefix
+#
+# Why not install: an editable install is global to the interpreter, and several
+# worktrees share one here. `pip install -e` from this worktree changes what every
+# other worktree's subprocesses import, and doing it while a peer's gates are
+# running kills them mid-run. `make lint-editable-install` refuses the state where
+# that has already happened. See ADR-0094.
+#
+# A plain (wheel) install is fine and is how the `agentbundle` console script gets
+# onto PATH; an editable install pointing at THIS worktree is fine too. Neither is
+# what these targets use.
+#
+# Requires: ruff mypy pytest
+#           pip install -r tools/requirements.txt        (jsonschema>=4.0, PyYAML)
+#           cryptography argon2-cffi                     (credbroker's [crypto]
+#               extras; without them the vault tests skip instead of asserting)
+#           pip install -r tools/requirements-sast.txt   (build-check SAST leg;
+#               or SKIP_SAST=1)
+
+# Refuses an editable install of these packages that points at another worktree
+# — the state that makes this worktree's subprocesses import someone else's code.
+# Silent on a plain install and on an editable install pointing here.
+lint-editable-install:
+	$(PYTHON) tools/repo/editable_install_guard.py
 
 lint-ruff:
 	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }
@@ -325,8 +362,9 @@ lint-mypy:
 	@command -v mypy >/dev/null 2>&1 || { echo "make lint-mypy: mypy not found — run: pip install mypy" >&2; exit 1; }
 	$(PYTHON) tools/lint-mypy.py
 
-# Dev-time Python deps beyond agentbundle: jsonschema>=4.0, PyYAML  (see tools/requirements.txt)
 # Core package + tools tests. The full CI test matrix runs on GitHub Actions.
+# Dev-time Python deps are listed above; agentbundle and credbroker are not
+# among them, because these targets import both from source.
 #
 # Do NOT collapse the pack-test lines into `pytest packs/*/tests/`. Pack test
 # suites share basenames across skills (several `test_render.py`,
@@ -337,6 +375,9 @@ lint-mypy:
 # renderers. One process per skill test directory is a correctness requirement,
 # not a style choice; see catalogue-authoring-standards.md § 4.
 test:
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
+
+test-unleased: lint-editable-install
 	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) tools/lint-conformance-portability.py --root .
@@ -367,6 +408,7 @@ test:
 	$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+	$(PYTHON) -m pytest packs/architect/tests/skills/architect-assess/ -q
 	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
@@ -396,6 +438,16 @@ test:
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+	$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
+	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
+	$(PYTHON) -m pytest tools/test_editable_install_guard.py -q
+	$(PYTHON) -m pytest tools/test_managed_child.py -q
+	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
+	$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
+	$(PYTHON) -m pytest tools/test_run_slot.py -q
+	$(PYTHON) -m pytest tools/test_with_lease_cli.py -q
+	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
+	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
 	$(PYTHON) -m pytest tools/test_bootstrap.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
@@ -433,11 +485,15 @@ test:
 #
 # Skip SAST: SKIP_SAST=1 make ci — the run then ends with an INCOMPLETE banner,
 # because a run missing a leg CI will run must not read like a pass.
-ci: build-check pre-pr lint-ruff lint-mypy test
+# build-check already runs pre_pr_catalogue.py --skip-verify after its one
+# portable verification and persistent build. A direct pre-pr prerequisite here
+# would repeat both the aggregator and portable verification in the same CI run.
+ci: build-check lint-ruff lint-mypy test
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────
-# Requires: npm ci --prefix docs-site (one-time setup)
+# Requires: make bootstrap-sites (one-time setup) — site-build builds web/ first,
+# so the web tree is needed here too, not only docs-site.
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
 # writes into build/docs/. These targets are the valid LOCAL full-generation
 # sequence — one build-site.py pass, then both builds. CI is NOT identical; see

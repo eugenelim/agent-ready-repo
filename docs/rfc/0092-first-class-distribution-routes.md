@@ -1003,3 +1003,19 @@ collisions are all fixture-pinned.
 
 Deliberately **not** required by acceptance: a Copilot route spec, a Kiro steering primitive,
 or a marketplace projection spec beyond what the Codex route needs.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections found during implementation are appended here and signed by
+the approver.
+
+- **2026-08-21 (Approver: eugenelim) — P6 corrects three Claude-plugin
+  capability cells to `dropped`.** The accepted matrix labels `shared-libs`,
+  `user-libs`, and `adapter-root-bins` as native on `claude-plugins`, but the
+  pre-migration writer emits none of those primitives. Their Claude-plugin
+  status is therefore `dropped`; APM remains native for all three. The lossless
+  pre-migration oracle at
+  `packages/agentbundle/tests/fixtures/distribution-routes/golden.json` and its
+  mutation-sensitive construction test provide the implementation evidence.
+  This correction changes no output and adds no projector.

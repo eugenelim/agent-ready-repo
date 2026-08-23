@@ -740,9 +740,26 @@ def _guard_check_phase_review(spec_dir: Path, engine_state: dict, _) -> str | No
     )
 
 
-def _guard_check_spec_status(spec_dir: Path, engine_state: dict, _) -> str | None:
+def _guard_check_spec_status(
+    spec_dir: Path, engine_state: dict, event_args: dict
+) -> str | None:
+    """Require the status declared by the review unit's intent boundary."""
+    expect = "Implementing" if event_args.get("intent_incomplete", False) else "Shipped"
     return _guard_reason(
         "check-spec-status failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect=expect),
+    )
+
+
+def _guard_done(spec_dir: Path, engine_state: dict, _) -> str | None:
+    """Guard done: the accepted intent's spec must be Shipped.
+
+    Before intent-scoped completion this held transitively — the only route into
+    CODE-HUMAN-GATE required Shipped. An intermediate unit may now enter that
+    state at Implementing, so DONE asserts completion explicitly instead.
+    """
+    return _guard_reason(
+        "check-spec-status --expect Shipped failed",
         _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Shipped"),
     )
 
@@ -829,6 +846,7 @@ _GUARDS: dict[tuple[str, str], object] = {
     ("code", "gates-clean"): _guard_wave_check_last,
     ("code", "findings-remain"): _guard_check_phase_review_on_code_review,
     ("code", "reviewers-clean"): _guard_check_spec_status_on_code_review,
+    ("code", "done"): _guard_done,
 }
 
 # ── engine-state.json helpers ──────────────────────────────────────────────
@@ -1149,6 +1167,7 @@ def cmd_transition(args: argparse.Namespace) -> int:
 
     event = args.event
     wave_index = args.wave_index
+    intent_incomplete = args.intent_incomplete
 
     # Validate --wave-index usage
     if event == "wave-passed":
@@ -1157,6 +1176,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
     else:
         if wave_index is not None:
             return stop(f"transition {event!r} does not accept --wave-index")
+    if intent_incomplete and event != "reviewers-clean":
+        return stop("transition --intent-incomplete requires reviewers-clean")
 
     # recover at command start — before any early-exit check.
     # _recover_engine_state_tmp promotes crash-left .tmp → engine-state.json.
@@ -1191,6 +1212,9 @@ def cmd_transition(args: argparse.Namespace) -> int:
     current_state = state["state"]
     run_id = state["run_id"]
 
+    if intent_incomplete and current_state != "CODE-REVIEW":
+        return stop("transition --intent-incomplete requires CODE-REVIEW")
+
     # Step 0: run_id preflight (all transitions)
     err = _run_id_preflight(spec_dir, run_id)
     if err:
@@ -1217,6 +1241,8 @@ def cmd_transition(args: argparse.Namespace) -> int:
         event_args = {}
         if wave_index is not None:
             event_args["wave_index"] = wave_index
+        if intent_incomplete:
+            event_args["intent_incomplete"] = True
         err = guard_fn(spec_dir, state, event_args)
         if err:
             return stop(err)
@@ -1304,6 +1330,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("spec_dir")
     sp.add_argument("event")
     sp.add_argument("--wave-index", type=int, dest="wave_index", default=None)
+    sp.add_argument(
+        "--intent-incomplete",
+        action="store_true",
+        help="declare reviewers-clean is an intermediate unit of an incomplete intent",
+    )
     sp.set_defaults(func=cmd_transition)
 
     sp = sub.add_parser("status", help="read engine-state.json + pending_human_wait")

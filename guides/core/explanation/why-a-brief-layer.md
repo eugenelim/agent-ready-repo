@@ -33,7 +33,7 @@ roadmap   forward-looking themes        →  references briefs
       AC   the testable unit
 ```
 
-The roadmap names themes. A brief records *one received outcome* and the specs that deliver it. A spec is the contract for one feature. An acceptance criterion is the testable unit. Each layer cites the one above it; none knows about the layer below. The brief carries the *what/why* of the handoff; the spec stays the *how*.
+The roadmap names themes. A brief records *one received outcome* and the specs that deliver it. A spec is the durable behavior contract for one delivery slice. An acceptance criterion is the testable unit. Each layer cites the one above it; none knows about the layer below. The brief carries the *what/why* of the handoff; the spec carries the delivery behavior, and the plan carries the implementation and verification strategy.
 
 ## Why these design choices
 
@@ -51,7 +51,7 @@ The roadmap names themes. A brief records *one received outcome* and the specs t
 
 - **Not a portfolio layer.** One received brief is the ceiling. Rolling many briefs up into an initiative is a tracker's job, not this layer's.
 - **Not a replacement for the roadmap or backlog.** The brief slots between them; both keep their jobs. The roadmap references briefs; backlog items roll up to them.
-- **Not a new design tier.** The brief is *what/why*. The engineering *how* — including any low-level design — stays in the spec and its plan.
+- **Not a new design tier.** The brief is *what/why*. The spec defines one delivery slice's behavior; its plan carries the engineering *how*, including any low-level design.
 
 ## See also
 

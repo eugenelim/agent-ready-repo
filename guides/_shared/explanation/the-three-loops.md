@@ -60,7 +60,7 @@ The inner loop. Every change — feature, bug fix, refactor, migration, dependen
 
 **Key mechanics:**
 
-- **Risk-scaled modes.** Light mode for low-risk work (lean inline spec, single adversarial pass). Full mode when any risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work, destructive operation. The mode is chosen by the work's risk profile, not by file count.
+- **Risk-scaled modes.** Eligible low-risk work runs direct-light from the current request with one bounded adversarial pass and no persisted spec. Full mode uses a durable spec and plan when a risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work, destructive operation. The mode is chosen by the work's risk profile, not by file count.
 - **Hard gates.** Lint, typecheck, and tests run as mechanical gates. No path through the loop lets the agent claim success on a red gate.
 - **Cold-eyed review.** Three specialist reviewers — adversarial (spec/plan/impl drift), security (OWASP 2025 + ASVS + STRIDE), quality (testability, observability, reliability) — each read every diff in a fresh context with no sunk cost in the design. The loop iterates on findings until reviewers say `Clean — ready to commit.`
 - **Progressive disclosure.** The security checklist pulls only the depth relevant to the boundaries a change crosses — current without bloating the prompt. Depth is added on demand per security boundary type (auth, secrets, user input, deserialization, file I/O, LLM code).

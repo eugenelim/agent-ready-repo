@@ -32,6 +32,7 @@ import {
   expectNoSeriousAxeViolations,
   expectOutlineContrast,
   expectSkipLinkFirst,
+  expectVisibleFocusIndicator,
   expectTextContrast,
   gotoSettled,
   label,
@@ -404,12 +405,108 @@ test.describe('docs routes at every approved width in both themes', () => {
           await expectFragmentsResolve(page, ctx);
           await expectSkipLinkFirst(page, ctx);
           await expectDocsChromeIsWellPlaced(page, ctx);
+          await expectDocsChromeIsKeyboardOperable(page, ctx);
           expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
         });
       }
     }
   }
 });
+
+/**
+ * spec/site-shared-chrome AC8 and AC12 — the docs chrome is keyboard-operable
+ * with a visible focus indicator, at every approved width and theme.
+ *
+ * Split out because the matrix above asserted overflow, axe, fragments and
+ * skip-order but never operated a control, so a Product disclosure that could
+ * only be opened with a pointer, or a focus ring that never rendered, would
+ * have passed every case the criteria cite.
+ */
+async function expectDocsChromeIsKeyboardOperable(
+  page: Page,
+  ctx: { route: string; width: number; theme?: string }
+): Promise<void> {
+  const where = `${label(ctx)}: docs chrome keyboard`;
+  const band = page.locator('nav[aria-label="Product orientation"] a').first();
+  const productSummary = page.locator('nav[aria-label="Product navigation"] summary');
+
+  // Which affordance each breakpoint owes is DECIDED here, not discovered from the
+  // page. Guarding every block behind `isVisible()` meant a regression that hid
+  // the phone disclosure turned this helper into a no-op that still reported
+  // green — a skip is not a pass. 50rem is the docs breakpoint: the band is
+  // desktop-only, the Product disclosure phone-only.
+  const isPhone = ctx.width < 800;
+  const bandVisible = await band.isVisible();
+  const productVisible = await productSummary.isVisible();
+  expect(bandVisible, `${where}: the desktop band must render iff wide`).toBe(!isPhone);
+  expect(productVisible, `${where}: the phone Product disclosure must render iff narrow`).toBe(
+    isPhone
+  );
+
+  if (bandVisible) {
+    // Reached by Tab, not by a programmatic focus() — `tabindex="-1"` would still
+    // accept .focus() and every assertion after it, proving nothing about
+    // keyboard reachability.
+    await tabToAndAssertFocus(page, 'nav[aria-label="Product orientation"] a', ctx, 'derive');
+    await expectVisibleFocusIndicator(page, ctx);
+  }
+
+  if (productVisible) {
+    await tabToAndAssertFocus(page, 'nav[aria-label="Product navigation"] summary', ctx, 'derive');
+    await expect(productSummary, `${where}: Product trigger takes focus`).toBeFocused();
+    await expectVisibleFocusIndicator(page, ctx);
+
+    const isOpen = () =>
+      page
+        .locator('nav[aria-label="Product navigation"] details')
+        .evaluate((el: HTMLDetailsElement) => el.open);
+
+    // A <summary> opens on Enter and on Space. Both are asserted because a
+    // custom trigger that intercepted one of them would still look operable.
+    expect(await isOpen(), `${where}: starts closed`).toBe(false);
+    await page.keyboard.press('Enter');
+    expect(await isOpen(), `${where}: Enter opens the Product disclosure`).toBe(true);
+
+    // Focus stays on the trigger, and the disclosed links come next in tab order.
+    await expect(productSummary, `${where}: focus stays on the trigger`).toBeFocused();
+    await page.keyboard.press('Tab');
+    const focusedInPanel = await page.evaluate(() => {
+      const panel = document.querySelector('nav[aria-label="Product navigation"]');
+      return !!panel && !!document.activeElement && panel.contains(document.activeElement);
+    });
+    expect(focusedInPanel, `${where}: disclosed links follow the trigger in tab order`).toBe(true);
+    await expectVisibleFocusIndicator(page, ctx);
+
+    await productSummary.focus();
+    await page.keyboard.press('Enter');
+    expect(await isOpen(), `${where}: Enter closes it again`).toBe(false);
+    await page.keyboard.press('Space');
+    expect(await isOpen(), `${where}: Space also operates the trigger`).toBe(true);
+    await page.keyboard.press('Enter');
+  }
+
+  // The Docs menu trigger is Starlight's and must remain keyboard-operable too.
+  // It is a phone affordance, so on a phone width its absence is a failure rather
+  // than a reason to skip.
+  const docsMenu = page.locator('starlight-menu-button button');
+  const docsMenuVisible = await docsMenu.isVisible();
+  if (isPhone) {
+    expect(docsMenuVisible, `${where}: the Docs menu trigger must render at phone widths`).toBe(
+      true
+    );
+  }
+  if (docsMenuVisible) {
+    await tabToAndAssertFocus(page, 'starlight-menu-button button', ctx, 'derive');
+    await expect(docsMenu, `${where}: Docs menu trigger takes focus`).toBeFocused();
+    await expectVisibleFocusIndicator(page, ctx);
+    await page.keyboard.press('Enter');
+    expect(
+      await page.locator('starlight-menu-button').getAttribute('aria-expanded'),
+      `${where}: Enter opens the Docs menu`
+    ).toBe('true');
+    await page.keyboard.press('Enter');
+  }
+}
 
 /**
  * spec/site-shared-chrome AC5, AC6, AC9.
@@ -456,19 +553,143 @@ async function expectDocsChromeIsWellPlaced(
   });
 
   const where = `${label(ctx)}: docs chrome`;
+  // AC5 says the band sits ABOVE the Starlight header. Querying each separately
+  // proves both exist, not that one precedes the other, so assert the relation:
+  // DOM order, and — when the band is displayed — geometry too.
+  const ordering = await page.evaluate(() => {
+    const band = document.querySelector('nav[aria-label="Product orientation"]');
+    const starlightHeader = document.querySelector('header.header > div.header');
+    if (!band || !starlightHeader) return null;
+    const relation = band.compareDocumentPosition(starlightHeader);
+    return {
+      bandPrecedesHeader: Boolean(relation & Node.DOCUMENT_POSITION_FOLLOWING),
+      bandTop: band.getBoundingClientRect().top,
+      headerTop: starlightHeader.getBoundingClientRect().top,
+      bandDisplayed: getComputedStyle(band).display !== 'none',
+    };
+  });
+  expect(ordering, `${where}: band and Starlight header must both be present`).not.toBeNull();
+  expect(
+    ordering!.bandPrecedesHeader,
+    `${where}: the band must precede the Starlight header in DOM order`
+  ).toBe(true);
+  if (ordering!.bandDisplayed) {
+    expect(
+      ordering!.bandTop,
+      `${where}: the band must render above the Starlight header`
+    ).toBeLessThan(ordering!.headerTop);
+  }
   expect(measured.nativeHeaders, `${where}: Starlight header must stay singular`).toBe(1);
   expect(measured.menuButtons, `${where}: Docs menu trigger must stay singular`).toBe(1);
   expect(measured.sidebars, `${where}: Starlight sidebar must stay singular`).toBe(1);
   expect(measured.headerPosition, `${where}: Starlight header must stay sticky`).toBe('sticky');
   expect(measured.bandPresent, `${where}: the product band must be emitted`).toBe(true);
+  // Rejecting `fixed` alone is not the contract: `sticky` would also keep the
+  // band pinned, which is exactly what "scrolls away" forbids. Reject both, then
+  // prove the behaviour by scrolling — the band must leave the viewport while the
+  // Starlight header stays put.
   expect(
     measured.bandPosition,
     `${where}: the band must scroll away, so it must not be pinned itself`
   ).not.toBe('fixed');
+  expect(
+    measured.bandPosition,
+    `${where}: the band must scroll away, so it must not be sticky either`
+  ).not.toBe('sticky');
+
+  if (ordering!.bandDisplayed) {
+    const scrolled = await page.evaluate(async () => {
+      const band = document.querySelector('nav[aria-label="Product orientation"]')!;
+      const starlightHeader = document.querySelector('header.header > div.header')!;
+      window.scrollTo(0, 600);
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      const bandRect = band.getBoundingClientRect();
+      const headerRect = starlightHeader.getBoundingClientRect();
+      window.scrollTo(0, 0);
+      return {
+        scrollY: window.scrollY,
+        bandBottom: bandRect.bottom,
+        headerTop: headerRect.top,
+        headerBottom: headerRect.bottom,
+      };
+    });
+    expect(
+      scrolled.bandBottom,
+      `${where}: the band must scroll out of the viewport, not stay pinned`
+    ).toBeLessThanOrEqual(0);
+    expect(
+      scrolled.headerBottom,
+      `${where}: the Starlight header must stay pinned while the band scrolls away`
+    ).toBeGreaterThan(0);
+  }
   expect(measured.productTriggerIsLink, `${where}: the Product trigger must not be a link`).toBe(
     false
   );
   expect(measured.productNavs, `${where}: Product navigation landmark must be singular`).toBe(1);
+
+  // AC7's "visually hidden" half, which a DOM-only test cannot see: the word
+  // "external" must stay in the accessible name while being invisible on screen.
+  // Each renderer hides it with its own CSS, so this is measured rather than
+  // asserted against a shared class name.
+  //
+  // Targeted by EXACT destination, and required rather than skipped. Selecting
+  // `footer a[href^="https://"]` picked Starlight's own "Edit page" link — the
+  // first https link in the docs footer — so the check silently measured nothing
+  // and stayed green when the text was made visible.
+  const externals = await page.evaluate(() => {
+    const targets = [
+      'https://github.com/eugenelim/agent-ready-repo',
+      'https://pypi.org/project/agentbundle/',
+    ];
+    return targets.map((href) => {
+      const link = document.querySelector(`footer a[href="${href}"]`);
+      if (!link) return { href, found: false as const };
+      const hidden = [...link.querySelectorAll('span')].find(
+        (span) => span.getAttribute('aria-hidden') !== 'true'
+      );
+      if (!hidden) return { href, found: true as const, hiddenSpan: false as const };
+      const style = getComputedStyle(hidden);
+      const rect = hidden.getBoundingClientRect();
+      return {
+        href,
+        found: true as const,
+        hiddenSpan: true as const,
+        text: (hidden.textContent ?? '').trim(),
+        width: rect.width,
+        height: rect.height,
+        clip: style.clip,
+        clipPath: style.clipPath,
+        display: style.display,
+        visibility: style.visibility,
+      };
+    });
+  });
+
+  for (const external of externals) {
+    expect(external.found, `${where}: ${external.href} must be in the docs footer`).toBe(true);
+    expect(
+      external.hiddenSpan,
+      `${where}: ${external.href} must carry a visually hidden "external"`
+    ).toBe(true);
+    if (!external.hiddenSpan) continue;
+    expect(external.text, `${where}: ${external.href} hidden text`).toBe('external');
+    // Still exposed to assistive technology — `display:none` or
+    // `visibility:hidden` would drop it from the accessible name entirely.
+    expect(external.display, `${where}: ${external.href} stays in the a11y tree`).not.toBe('none');
+    expect(external.visibility, `${where}: ${external.href} stays in the a11y tree`).not.toBe(
+      'hidden'
+    );
+    // …but clipped away visually.
+    const clipped =
+      external.clip !== 'auto' ||
+      external.clipPath !== 'none' ||
+      (external.width <= 1 && external.height <= 1);
+    expect(
+      clipped,
+      `${where}: ${external.href} "external" must be visually hidden, measured ` +
+        `${external.width}x${external.height} clip=${external.clip} clip-path=${external.clipPath}`
+    ).toBe(true);
+  }
 
   if (measured.tocBottom !== null && measured.contentTop !== null) {
     expect(

@@ -106,7 +106,10 @@ def self_test() -> int:
         # Mutation 2: the branch survives textually but is made UNREACHABLE — the
         # case a grep for `$(MAKE) sast` cannot distinguish from a healthy chain.
         neutered = src.replace(
-            "build-check:\n", "build-check: SKIP_SAST := 1\nbuild-check:\n", 1)
+            "build-check-unleased:\n",
+            "build-check-unleased: SKIP_SAST := 1\nbuild-check-unleased:\n",
+            1,
+        )
         if neutered == src:
             failures.append("mutation 2: no-op transform — proves nothing")
         mk2 = pathlib.Path(td) / "neutered.mk"

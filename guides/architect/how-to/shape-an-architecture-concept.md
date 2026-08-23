@@ -7,6 +7,11 @@ kind: how-to
 
 # Shape an architecture concept
 
+Use this after you understand the current constraints and need a future-state
+choice. If the repository itself is still unclear, start with “Assess
+architecture and provide an action plan,” then bring the accepted current-state
+map and findings here.
+
 **Use this when:** You have a product feature or strategy and a real technical choice to make, and you want the architecture shape agreed cheaply before committing to a full design doc.
 **Prerequisites:** The `architect` pack installed; a clear product bet or feature brief; optionally a `reference.md` golden path.
 **Result:** An agreed ≤½-page concept naming the problem, constraints, candidate shapes, provider, and key tradeoff — optionally converged into a full design doc.
@@ -55,6 +60,7 @@ You have a usable architecture concept when:
 
 ## See also
 
+- [Assess a repository and turn evidence into action](assess-a-repository.md) — establish current-state evidence before proposing the future.
 - [Establish your repo's reference architecture](establish-reference-architecture.md) — the golden path the concept measures against.
 - [Diagram a system](diagram-a-system.md) — when the concept needs a picture to reason about.
 - [Review an architecture artifact](review-an-architecture-artifact.md) — get a severity-tagged critique of the concept or the design doc.

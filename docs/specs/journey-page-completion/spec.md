@@ -24,7 +24,7 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 
 ### Always do
 
-- Apply the 34 exact identifier and label mappings, fixed section copy, three
+- Apply the 35 exact identifier and label mappings, fixed section copy, three
   priority eyebrows, and three transcripts in
   [`editorial-decisions.md`](editorial-decisions.md).
 - Treat `(journey_id, humanGate.id)` as identity and
@@ -33,6 +33,13 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
   derived output.
 - Keep pack versions and Claude-plugin descriptions unchanged because this
   migration does not change installed functional behavior.
+- **Amendment, 2026-08-21, authorized.** Reconcile the Architect journey with
+  the architecture-assessment gates that replaced its two former design-only
+  gates. The accepted ledger now contains 35 mappings: Architect contributes
+  `correct-current-state-map`, `choose-architecture-hotspots`, and
+  `accept-architecture-action`. The exact ledger remains authoritative; this
+  amendment corrects the aggregate count and does not reopen other journey
+  labels or identifiers.
 - **Amendment, 2026-08-19, authorized (third).** Fix the regression the second
   amendment introduced on `/journeys/atlassian/`, whose `goodOutputDescription` is
   spec-permitted prose rather than a session, and remove the duplicate focus ring
@@ -86,7 +93,7 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 
 ## Testing Strategy
 
-- Journey-schema rules, the complete 34-ID mapping, uniqueness, and reference
+- Journey-schema rules, the complete 35-ID mapping, uniqueness, and reference
   integrity use TDD with invalid, mutation, and valid fixtures.
 - Projection parity, stable anchors, routes, labels, and absence of leaked
   identifiers use exhaustive generated-output and full-site integration checks.
@@ -100,7 +107,7 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 - [x] Every canonical journey source represents contract decisions as ordered
   `decisionGateIds`, and every referenced ID resolves to exactly one human gate
   in that journey.
-- [x] All 34 human gates use the exact internal IDs and adopter-facing labels in
+- [x] All 35 human gates use the exact internal IDs and adopter-facing labels in
   `editorial-decisions.md`; IDs satisfy the lowercase semantic-key contract and
   are unique within their journey.
 - [x] Identity is exactly `(journey_id, humanGate.id)`, independent of the gate
@@ -169,7 +176,7 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
 - Technical: the current renderer displays legacy gate codes but does not use
   them as fragment identities, so no pre-existing gate deep-link contract must
   be migrated (source: repository inspection on 2026-08-17).
-- Product: the exact 34 mappings, three priority journeys, copy, interaction,
+- Product: the exact 35 mappings, three priority journeys, copy, interaction,
   and evidence contract are accepted in `editorial-decisions.md` (source: user
   approvals 2026-08-17).
 - Product: internal IDs solve referential integrity and stable-link needs but

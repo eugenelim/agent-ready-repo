@@ -1,6 +1,6 @@
 ---
 name: author-brief
-description: Use this skill when the user has unstructured external input (an email thread, a prose description, an issue body, a stakeholder message) and needs to produce a DoR-compliant Draft product brief and register it in workspace.toml. Triggers on "author a brief", "write a brief from this email", "create a brief from this issue", "intake this brief", "turn this into a brief". Do NOT use to decompose an existing brief into specs (use receive-brief) or to author a single feature from scratch (use new-spec).
+description: Use this skill when the user has unstructured external input (an email thread, a prose description, an issue body, a stakeholder message) and needs to produce a Draft product brief and register it in workspace.toml. Triggers on "author a brief", "write a brief from this email", "create a brief from this issue", "intake this brief", "turn this into a brief". Do NOT use to decompose an existing brief into specs (use receive-brief) or to author a single feature from scratch (use new-spec).
 allowed-tools: Read Write Edit
 metadata:
   type: skill
@@ -11,8 +11,9 @@ metadata:
 
 # Skill: author-brief
 
-Turn any unstructured external input into a DoR-compliant Draft product brief,
-then register it so `workspace-status` can surface it immediately.
+Turn safe, unstructured external input into a Draft product brief, then register
+it so `workspace-status` can surface it immediately. A Draft records what is
+known and what is missing; it does not certify readiness.
 
 `author-brief` stops at **draft** — it does not decompose the brief into specs
 and does not set `Status: Ready`. After the Draft artifact and workspace
@@ -27,7 +28,8 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 - The user has an email thread, a prose description, a Linear Issue body, or
   a stakeholder message they want to turn into a brief.
-- The unit of work is larger than one feature (otherwise use `new-spec`).
+- The unit of work is a coherent multi-slice or cross-repository outcome,
+  rather than a single direct-light change (otherwise use `new-spec`).
 - The brief does not yet exist as a file in `docs/product/briefs/`.
 
 If the input is already a well-formed brief file, go directly to `receive-brief`.
@@ -47,40 +49,44 @@ destination configuration. If confidentiality is mismatched or redaction is
 uncertain, stop before any artifact or `workspace.toml` write and ask for
 sanitized input or an approved destination.
 
-Continue this skill only with the validated normalized envelope. Do not copy
-the raw source payload into the brief. Partial or messy input may still proceed
-after normalization — the brief template is a guide, not a form. The goal is
-to extract enough bounded signal to elicit what is missing.
+Continue this skill only with the validated normalized envelope, after that
+terminal confidentiality and redaction refusal. Do not copy the raw source
+payload into the brief. This containment gate remains in force even though
+Appetite and Rabbit holes are no longer Draft-creation preconditions: those
+fields inform later readiness, not source containment. Partial or messy input
+may still proceed after normalization — the brief template is a guide, not a
+form. The goal is to extract enough bounded signal to elicit what is missing.
 
 ### 2. Identify
 
-Scan the input for DoR fields already present:
+Scan the input for Draft fields already present:
 
 - **Outcome** — a user-facing or system change the input is trying to
   achieve; often in the subject or opening sentence.
-- **Appetite** — a time or effort constraint ("this needs to ship before
-  the conference", "a sprint, not a quarter").
-- **Rabbit holes** — named design traps, constraints, or things to avoid
-  ("don't touch the billing system", "not the API redesign").
+- **Constraints or appetite** — a time, effort, or delivery constraint
+  ("this needs to ship before the conference", "a sprint, not a quarter").
+- **Assumptions or risks** — named uncertainty, design trap, or exploration to
+  avoid ("don't touch the billing system", "not the API redesign").
+- **Source provenance** — a safe, durable reference to where the input came
+  from; retain only the normalized summary, never the raw payload.
 
 Name what you found and what is missing. Be specific: "I found an Outcome
 ('reduce checkout abandonment by surfacing error messages inline') but no
-Appetite and no Rabbit holes."
+constraints, assumptions or risks, or durable source provenance."
 
 ### 3. Elicit
 
-Ask for each missing DoR field conversationally. Rules:
+Ask for missing fields conversationally. Rules:
 
-- **Insist on Outcome.** If the input contains no clear outcome, ask for it
-  before proceeding. Do not fabricate an outcome.
-- **Offer defaults for the rest.** If no Appetite is stated, offer a default
-  ("no Appetite stated — shall I default to 'a few weeks, not a quarter'?")
-  rather than blocking.
-- **Surface the Rabbit holes gap.** ≥1 Rabbit hole is required for the DoR
-  gate. If the input contains none, ask the user to name at least one design
-  trap or out-of-bound exploration before proceeding.
-- **Do not invent.** Never fabricate missing fields. Do not silently derive
-  a Rabbit hole from the problem description without confirmation.
+- **Identify the multi-slice outcome or name its blocking gap.** Proceed when
+  the intended multi-slice outcome is identifiable, or when the missing outcome
+  is explicitly recorded as a blocking gap. Do not fabricate an outcome.
+- **Record provenance and Ready gaps.** A safe source reference is required;
+  clearly name every missing field that a later Ready review must resolve.
+- **Offer, never require, readiness detail.** Offer constraints or appetite and
+  assumptions or risks when useful, but neither is required to create a Draft.
+- **Do not invent.** Never fabricate missing fields or silently derive an
+  assumption or risk from the problem description without confirmation.
 
 ### 4. Create
 
@@ -90,8 +96,10 @@ Ask for each missing DoR field conversationally. Rules:
    overwrite an existing brief.
 3. Write the brief file at `docs/product/briefs/<slug>.md` using the
    updated template (`_template.md` in that directory). Populate all fields
-   gathered in steps 1–3. Set `Status: Draft`. Leave the Spec map empty; do
-   not create placeholder slices or run decomposition.
+   gathered in steps 1–3, including safe source provenance and a clearly
+   labelled Ready-gaps note for fields still missing. Set `Status: Draft`.
+   Leave the Spec map empty; do not create placeholder slices or run
+   decomposition.
 
 ### 5. Queue
 
@@ -129,7 +137,7 @@ Tell the user:
 `Status: Draft` completion is not a stable semantic gate. This skill does not call
 `project-knowledge --capture`, does not persist scratch, and does not
 attempt enquiry or distillation. Abandoned work is likewise a no-op.
-`receive-brief` owns the first stable gate after the DoR check, Ready
+`receive-brief` owns the first stable gate after the Ready check, Ready
 write-back, and durable workspace transition. That gate may pass with zero
 specs and without a confirmed slice cut.
 
@@ -146,8 +154,11 @@ human confirmation.
 - **Running decomposition.** That is `receive-brief`'s job. Stop at draft.
 - **Setting `Status: Ready`.** That is `receive-brief`'s write-back step.
 - **Inventing a slug the user did not confirm.** Confirm it in step 4.
-- **Fabricating missing DoR fields.** If Outcome is absent, ask. Do not derive
-  it silently from the problem description.
+- **Creating a brief for a single direct-light change.** A brief requires a
+  coherent multi-slice or cross-repository outcome; route a single change to
+  `new-spec` or direct-light execution as appropriate.
+- **Fabricating missing fields.** Record an identifiable outcome or its
+  blocking gap, and do not derive it silently from the problem description.
 - **Silently overwriting an existing brief file.** Prompt before proceeding if
   `docs/product/briefs/<slug>.md` already exists.
 - **Guessing the target initiative** when multiple active ones exist in

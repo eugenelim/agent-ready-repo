@@ -1,3 +1,20 @@
+[tool.pytest.ini_options]
+# Both packages live in this worktree and need no install: these entries put
+# them on sys.path for a bare `pytest`, which — unlike `python3 -m pytest` and
+# unlike `make` (Makefile:7) — supplies neither the working directory nor a
+# PYTHONPATH of its own. Entries are rootdir-relative and prepended in order.
+#
+# "." is load-bearing, not tidiness: eight modules under tools/ import repo code
+# by package name (`from tools.repo import ...`), and without it a bare
+# `pytest tools/` fails at COLLECTION with ModuleNotFoundError: No module
+# named 'tools'.
+#
+# This affects in-process imports only. It does not set the PYTHONPATH
+# environment variable, so no child process a test spawns is affected. The two
+# packages/*/ suites are also unaffected: each has its own
+# [tool.pytest.ini_options], which is the nearer configfile for its own run.
+pythonpath = [".", "packages/agentbundle", "packages/credbroker"]
+
 [tool.ruff]
 line-length = 99
 target-version = "py311"

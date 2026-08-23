@@ -4,6 +4,7 @@ byte-identical to the repo-root scaffold sources.
 Also verifies:
 - scaffold_root() returns a readable directory.
 - packs/AGENTS.md in the _data copy is the portable version (no `make build-self`).
+- packs/AGENTS.md and profiles/AGENTS.md cite only paths the scaffold ships.
 - profiles/AGENTS.md is present and non-empty.
 """
 
@@ -14,6 +15,10 @@ from pathlib import Path
 
 _DATA_SCAFFOLD = (
     Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "catalogue-scaffold"
+)
+_ROOTED_CITATION = re.compile(
+    r"(?<![\w/])((?:\.\./|\./)?(?:tools|docs|contracts|guides|packs|profiles)/"
+    r"(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+/?(?:#[A-Za-z0-9_.-]+)?)"
 )
 
 
@@ -47,7 +52,7 @@ def test_packs_agents_md_is_portable():
     )
 
 
-def test_packs_agents_md_cites_only_paths_it_ships():
+def _assert_cites_only_shipped_paths(relative_path: str) -> None:
     """Every path this file points an adopter at must exist in their tree.
 
     The scaffold is what `catalogue init` writes, so a reference to a
@@ -56,8 +61,7 @@ def test_packs_agents_md_cites_only_paths_it_ships():
     do not have, or a pointer to a file they cannot open. The rule itself has to
     carry its own weight in the shipped copy.
     """
-    agents_md = _DATA_SCAFFOLD / "packs" / "AGENTS.md"
-    text = agents_md.read_text(encoding="utf-8")
+    text = (_DATA_SCAFFOLD / relative_path).read_text(encoding="utf-8")
     shipped = {
         str(p.relative_to(_DATA_SCAFFOLD)).replace("\\", "/")
         for p in _DATA_SCAFFOLD.rglob("*")
@@ -70,9 +74,8 @@ def test_packs_agents_md_cites_only_paths_it_ships():
     # and every reference to it is conditional on the adopter having created one.
     optional_by_design = {"packs/AGENTS.local.md"}
     cited = {
-        ref.split("#")[0].lstrip("./").removeprefix("../")
-        for ref in re.findall(r"`([^`\n]+?\.(?:py|md|json|toml|sh|yml))`", text)
-        + re.findall(r"\]\(([^)]+)\)", text)
+        ref.split("#", 1)[0].rstrip("/").lstrip("./").removeprefix("../")
+        for ref in _ROOTED_CITATION.findall(text)
     }
     dangling = sorted(
         ref for ref in cited
@@ -82,10 +85,18 @@ def test_packs_agents_md_cites_only_paths_it_ships():
         and ref not in optional_by_design
     )
     assert not dangling, (
-        "packs/AGENTS.md points an adopter at paths the scaffold does not ship: "
+        f"{relative_path} points an adopter at paths the scaffold does not ship: "
         + ", ".join(dangling)
         + "\nState the rule without the citation, or ship the file."
     )
+
+
+def test_packs_agents_md_cites_only_paths_it_ships():
+    _assert_cites_only_shipped_paths("packs/AGENTS.md")
+
+
+def test_profiles_agents_md_cites_only_paths_it_ships():
+    _assert_cites_only_shipped_paths("profiles/AGENTS.md")
 
 
 def test_profiles_agents_md_present_and_non_empty():

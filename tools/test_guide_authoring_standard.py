@@ -62,7 +62,7 @@ def test_authoring_standard_defines_the_fixed_aside_contract() -> None:
 def test_the_archival_conversion_record_stays_unwired() -> None:
     """The blockquote-ledger file must not be added to a gated pytest list.
 
-    It pins a frozen 165-row ledger across 193 `guides/**` files with no regenerator,
+    It pins a reviewed 172-row ledger across `guides/**` with no regenerator,
     and `build-check.yml` has no `paths:` filter — so gating it would redden a required
     check when someone adds a blockquote to an unrelated guide. Asserted rather than
     left to a hand-run grep, so re-wiring it is detected rather than discovered.

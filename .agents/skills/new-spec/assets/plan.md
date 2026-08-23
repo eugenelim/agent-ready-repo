@@ -10,12 +10,11 @@
 > and the spec is `Shipped`, the directory freezes as a unit
 > (`docs/CONVENTIONS.md` § Document lifecycle).
 
-<!-- **Light-mode lean fill.** For low-risk work running the `work-loop`
-skill's light mode, only Approach + a short Tasks list are required.
-**Constraints**, **Risks**, **Changelog**, and the whole `## Design (LLD)`
-section are optional — keep them only if they earn their place. Any risk
-trigger (see the `work-loop` skill) escalates to full mode, where every
-section is filled. -->
+<!-- **Durable-plan fill.** This template is the implementation and verification
+strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
+Design, Tasks, and Changelog to the depth the durable work requires. Its sibling
+spec is the durable behavior contract. Eligible direct-light work does not
+create this artifact. -->
 
 ## Approach
 

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Reject catalogue conformance tests that name a shipped pack."""
+"""Reject catalogue conformance tests that cannot run in another catalogue.
+
+Two classes are rejected: a test that names a shipped pack, and a test that
+reaches a repository-only directory. A shipped conformance test must be
+rule-shaped -- it asserts that *any* catalogue is well-formed -- so a path only
+this repository has makes it fail on an adopter's first run.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +24,53 @@ def _pack_names(catalogue_root: Path) -> list[str]:
         if isinstance(name, str) and name:
             names.append(name)
     return names
+
+
+# Top-level directories this repository has and a catalogue built from
+# `catalogue init` does not. A conformance test that reaches one of them is
+# repository-only by construction, whatever its filename suggests, and belongs
+# with its real owner rather than in the shipped set.
+_REPO_ONLY_SEGMENTS = ("packages", "tools", "docs", "contracts")
+# `contracts` is here even though a shipped pack shares the name. The
+# pack-name check below deliberately exempts `CATALOGUE_ROOT / "contracts"`
+# as a path rather than a pack reference; for portability that expression is
+# exactly the defect, because a catalogue from `catalogue init` has only
+# tests/, packs/, guides/ and profiles/ at its root. The two checks read the
+# same expression for opposite reasons, which is why neither can cover both.
+
+# `CATALOGUE_ROOT / "packages"` and a bare `"packages/agentbundle"` literal are
+# the two ways the reach is written; neither is visible to a pack-name search.
+_ROOT_JOIN = re.compile(
+    r"/\s*[\"'](" + "|".join(_REPO_ONLY_SEGMENTS) + r")[\"']"
+)
+_PATH_LITERAL = re.compile(
+    r"[\"'](?:" + "|".join(_REPO_ONLY_SEGMENTS) + r")/"
+)
+
+
+def find_repo_only_references(catalogue_root: Path) -> list[str]:
+    """Return line-addressed repository-only path reaches in conformance tests.
+
+    Bound worth stating: this reads text, so it catches the two spellings that
+    appear in practice -- a literal join and a bare path literal -- and cannot
+    see a segment assembled from a variable or split across lines. It is a
+    barrier against the accident, not a proof of portability.
+    """
+    violations: list[str] = []
+    for path in sorted((catalogue_root / "tests" / "conformance").rglob("*.py")):
+        for line_number, line in enumerate(
+            path.read_text(encoding="utf-8").splitlines(), start=1
+        ):
+            match = _ROOT_JOIN.search(line) or _PATH_LITERAL.search(line)
+            if not match:
+                continue
+            segment = match.group(0).strip("/\"' ")
+            relative = path.relative_to(catalogue_root)
+            violations.append(
+                f"{relative}:{line_number}: reaches repository-only "
+                f"{segment.split('/')[0]!r}"
+            )
+    return violations
 
 
 def find_violations(catalogue_root: Path) -> list[str]:
@@ -56,10 +109,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
-    violations = find_violations(args.root.resolve())
+    root = args.root.resolve()
+    violations = find_violations(root)
     if violations:
         print("conformance-portability: specific pack references found:", file=sys.stderr)
         for violation in violations:
+            print(f"  {violation}", file=sys.stderr)
+        return 1
+    repo_only = find_repo_only_references(root)
+    if repo_only:
+        print(
+            "conformance-portability: repository-only references found "
+            "(move the test to its owner, e.g. tests/roster/):",
+            file=sys.stderr,
+        )
+        for violation in repo_only:
             print(f"  {violation}", file=sys.stderr)
         return 1
     print("conformance-portability: passed")

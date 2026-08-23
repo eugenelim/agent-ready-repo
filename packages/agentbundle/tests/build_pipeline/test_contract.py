@@ -472,112 +472,59 @@ class ContractV05Tests(unittest.TestCase):
             item["primitive"]: item
             for item in self.contract["adapter"]["claude-code"]["projection"]
         }
-        self.assertEqual(entries["hook-body"]["plugin-target-path"], "hooks/")
-        self.assertEqual(entries["hook-wiring"]["plugin-mode"], "dropped")
+        for entry in entries.values():
+            self.assertNotIn("plugin-target-path", entry)
+            self.assertNotIn("plugin-mode", entry)
 
-    def test_claude_code_install_routes_includes_apm(self) -> None:
-        """[adapter."claude-code"] carries install-routes == ["cli", "claude-plugins", "apm"]."""
-        routes = self.contract["adapter"]["claude-code"].get("install-routes")
+        route_path = CONTRACT_PATH.with_name("distribution-routes.toml")
+        route_contract = tomllib.loads(route_path.read_text(encoding="utf-8"))
+        capabilities = route_contract["route"]["claude-plugins"][
+            "component-capabilities"
+        ]
+        self.assertEqual(capabilities["hook-body"]["target-path"], "hooks/")
         self.assertEqual(
-            routes,
-            ["cli", "claude-plugins", "apm"],
-            f"expected install-routes=['cli', 'claude-plugins', 'apm'], got {routes!r}",
+            capabilities["hook-wiring"],
+            {
+                "status": "native",
+                "mode": "compiled-manifest",
+                "target-path": ".claude-plugin/plugin.json",
+            },
         )
 
+    def test_distribution_routes_are_absent_from_adapters(self) -> None:
+        """Package-route identity belongs only to distribution-routes.toml."""
+        for adapter_name, adapter in self.contract["adapter"].items():
+            self.assertNotIn(
+                "install-routes",
+                adapter,
+                f"adapter {adapter_name!r} must not own package routes",
+            )
+
     def test_other_adapters_have_no_install_routes(self) -> None:
-        """kiro-family, Copilot, and Codex do not declare install-routes (regression
-        guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
-        those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
-        Kiro-ide and kiro-cli added to the checked set; cursor added at v0.11."""
+        """Keep the historical non-Claude adapter regression coverage."""
         for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
                 "install-routes",
                 adapter_block,
-                f"adapter '{adapter_name}' must not carry install-routes (only claude-code does)",
+                f"adapter '{adapter_name}' must not carry install-routes",
             )
 
-    def test_adapter_schema_accepts_apm_enum_value(self) -> None:
-        """Round-trip: the v0.5 contract validates; "apm" is admitted; a value
-        outside the three-value enum is rejected."""
+    def test_adapter_schema_excludes_distribution_route_fields(self) -> None:
+        """The adapter schema validates direct-install data only."""
         from agentbundle.build.validate import validate
 
-        # Full contract validates (includes "apm" on install-routes).
         errors = validate(self.contract, self.schema)
         self.assertEqual(
             errors,
             [],
-            "adapter.toml with apm install-route failed schema validation:\n"
+            "route-free adapter contract failed schema validation:\n"
             + "\n".join(errors),
         )
-
-        # Omitting install-routes is also valid (field is optional).
-        minimal_contract = {
-            "contract": {"version": "0.5"},
-            "primitive": {
-                "skill": {"source-path": ".apm/skills/"},
-                "agent": {"source-path": ".apm/agents/"},
-                "hook-body": {"source-path": ".apm/hooks/"},
-                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
-                "command": {"source-path": ".apm/commands/"},
-            },
-            "adapter": {
-                "claude-code": {}
-            },
-        }
-        errors = validate(minimal_contract, self.schema)
-        self.assertEqual(
-            errors,
-            [],
-            "adapter without install-routes (optional) should validate:\n"
-            + "\n".join(errors),
-        )
-
-        # install-routes value outside the enum must be rejected (regression guard
-        # for the enum extension: adding "apm" must not have widened the field to
-        # any string).
-        bad_contract = {
-            "contract": {"version": "0.5"},
-            "primitive": {
-                "skill": {"source-path": ".apm/skills/"},
-                "agent": {"source-path": ".apm/agents/"},
-                "hook-body": {"source-path": ".apm/hooks/"},
-                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
-                "command": {"source-path": ".apm/commands/"},
-            },
-            "adapter": {
-                "claude-code": {
-                    "install-routes": ["foo"],
-                }
-            },
-        }
-        errors = validate(bad_contract, self.schema)
-        self.assertTrue(
-            errors,
-            "schema must reject install-routes value outside the three-value enum",
-        )
-
-        # install-routes as a string (not array) must still be rejected.
-        bad_contract_str = {
-            "contract": {"version": "0.5"},
-            "primitive": {
-                "skill": {"source-path": ".apm/skills/"},
-                "agent": {"source-path": ".apm/agents/"},
-                "hook-body": {"source-path": ".apm/hooks/"},
-                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
-                "command": {"source-path": ".apm/commands/"},
-            },
-            "adapter": {
-                "claude-code": {
-                    "install-routes": "cli",
-                }
-            },
-        }
-        errors = validate(bad_contract_str, self.schema)
-        self.assertTrue(
-            errors,
-            "schema must reject install-routes as a string (must be an array)",
-        )
+        schema_text = json.dumps(self.schema, sort_keys=True)
+        self.assertNotIn("install-routes", schema_text)
+        self.assertNotIn("plugin-target-path", schema_text)
+        self.assertNotIn("plugin-mode", schema_text)
 
 
 class TestCodexSkillDirectDirectory(unittest.TestCase):

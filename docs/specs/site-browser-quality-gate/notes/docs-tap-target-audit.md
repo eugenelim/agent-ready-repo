@@ -364,6 +364,64 @@ by `site-shared-chrome`'s approved three-group footer, and the product-orientati
 band that spec introduces does not exist yet. Both need re-measuring when that
 slice lands.
 
+**That re-measurement is done — see § Re-measurement after site-shared-chrome.**
+It demonstrates no target-size defect on either surface, so nothing returns to an
+owning spec from it either.
+
+## Re-measurement after site-shared-chrome
+
+- **Measured:** 2026-08-20, against `main` at `fe26b042`, Google Chrome for
+  Testing driven through Playwright, the same two routes at 360, 375, 390, 414
+  and 1440 in both themes — 20 cases, 790 observations.
+- **Why:** § Defect register deferred two groups to this slice. `site-shared-chrome`
+  has now replaced the docs footer's three-link strip with the approved three-group
+  footer, and added the product-orientation band and the phone Product disclosure.
+
+**No demonstrated non-exempt failure.** Every candidate on all three
+`site-shared-chrome` surfaces conforms through SC 2.5.8's Spacing clause on measured
+geometry:
+
+| Surface | Candidates | Box (px) | Centre clearance (px) | Classification |
+| --- | ---: | --- | --- | --- |
+| Product-orientation band | 6 | 25.8–73.7 × 21 | 38.2–69.8 | Spacing (SC 2.5.8) |
+| Phone Product disclosure trigger | 1 | 50.1 × 22.8 | 49.3 | Spacing (SC 2.5.8) |
+| Docs footer destinations | 15 | 34.5–118.5 × 20 | 35.2–44.9 | Spacing (SC 2.5.8) |
+
+The threshold is 24: SC 2.5.8's Spacing clause asks whether 24 CSS-pixel diameter
+circles centred on each undersized target intersect, so the measure is
+centre-to-centre and the minimum observed clearance, 35.2px, clears it by 11.2px.
+The band's Product entry keeps its own clearance at every width; the footer's
+tightest pair is two stacked column links whose centres sit 35.2px apart.
+
+### What this re-measurement does and does not replace
+
+It does **not** restate or replace § Final shaping classification's frozen totals,
+and those remain the 2026-08-18 record. The re-run is a re-derived implementation of
+the target-set definition and the three corrections above, not the original script,
+and its candidate *keying* differs: it collapses same-surface candidates that share a
+description and accessible text, so Starlight's twelve heading anchors — which carry
+no text — key as one. Its own distinct count is therefore not comparable to the
+frozen figure and is deliberately not written into that table.
+
+Two independent checks that the re-derived method is sound:
+
+- On **breadcrumbs**, a surface this slice did not touch, it reaches the frozen
+  audit's classification — Spacing exception, clearance far above 24 — measuring
+  53.1 / 53.1 / 74.1px against the frozen pass's 33.2 / 38.5 / 49–61.5px. The
+  figures differ because this run reports the minimum across all 20 contexts where
+  the frozen pass reports per-context ranges; the classification is the same.
+- Two measurement errors in the re-derived script were caught and corrected before
+  these numbers, both of the kind § Three measurement traps exists to record.
+  Measuring adjacency edge-to-edge rather than centre-to-centre put breadcrumbs in
+  conflict with the frozen audit on an unchanged surface, which is what exposed it.
+  Hit-testing each candidate after `scrollIntoView` and then keeping the
+  viewport-relative box compared geometry captured at different scroll offsets, and
+  manufactured nine false footer failures with impossible sub-pixel clearances;
+  rule 4 needs the scroll, so the box is now converted to document coordinates.
+  Both are stated here because the corrected method is the load-bearing part.
+
+No site source was changed as part of this re-measurement.
+
 ## Acceptance bar
 
 The audit moves to **Accepted** only when:

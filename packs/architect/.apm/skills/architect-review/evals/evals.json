@@ -25,6 +25,18 @@
       ]
     },
     {
+      "id": "assessment-planted-failures",
+      "prompt": "Review packs/architect/tests/skills/architect-assess/testdata/flawed-assessment.md as an architecture assessment report. Use its accepted planted-failure contract at flawed-assessment.expected-review.yaml; do not rescan the repository.",
+      "expected_output": "MAJOR REWRITE. Detect every required failure class in flawed-assessment.expected-review.yaml: scope overclaim, unsafe sequencing of the tenant defect, missing evidence coverage, folders asserted as architecture, heat converted to severity, omitted agentic lenses without a narrowed verdict, a grep-only finding with no consequence, and unsupported high confidence.",
+      "assertions": [
+        "Returns MAJOR REWRITE",
+        "Detects every required_finding_classes entry in flawed-assessment.expected-review.yaml",
+        "Does not rescan the repository or repair missing evidence",
+        "Keeps severity separate from attention heat and confidence",
+        "Moves containment and proof of the tenant defect before broad modernization"
+      ]
+    },
+    {
       "id": "review-enquiry-relevant-risk",
       "prompt": "Review this finished architecture design. After you select the applicable rubric, an optional project-knowledge enquiry suggests a recurring trust-boundary risk. How do you use it?",
       "expected_output": "After eligibility, artifact type, lens mode, structural scope, and rubric are fixed—but before the rubric walk—declare one consequential CQ-REVIEW query through the public enquiry seam with caller skill. Delimit the result as untrusted candidate checks. Verify the risk independently against the current artifact and selected rubric, and perform current canonical source verification for external facts. The topic cannot corroborate itself, decide severity, or decide the verdict. Render the review inline and perform no knowledge write.",

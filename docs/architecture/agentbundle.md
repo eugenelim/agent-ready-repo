@@ -3,8 +3,8 @@
 ## 1. Purpose and boundary
 
 `agentbundle` is the reference CLI and build runtime for catalogue packs. It
-reads pack source, validates contracts, projects adapter-specific artifacts, and
-installs them into an adopter target.
+reads pack source, validates route and adapter contracts, builds package-route
+artifacts, and installs adapter projections into an adopter target.
 
 It does not make generated projections authoring source. Pack source remains
 under `packs/`; generated output is rebuilt from it.
@@ -40,8 +40,11 @@ from both outputs.
 
 ## 4. Dependencies and allowed edges
 
-Commands call catalogue tooling and the build runtime. The build runtime reads
-`contracts/adapter.toml`, then runs adapters and projection modes.
+Commands call catalogue tooling and the build runtime. Package builds read
+`contracts/distribution-routes.toml`, select an existing named package
+projector, and optionally invoke the route's declared adapter projector. Direct
+installation reads `contracts/adapter.toml`, then runs adapters and projection
+modes.
 
 The adapter layer contains Claude Code, Codex, Copilot, Cursor, Gemini, Kiro,
 Kiro CLI, and Kiro IDE adapters. Projection implementations write target-runtime
@@ -52,8 +55,9 @@ configuration. The catalogue source is read-only to consumer commands.
 
 ## 5. Primary flows
 
-1. Catalogue build discovers pack manifests, validates them, and renders
-   adapter-specific artifacts into `dist/` or the self-host overlay.
+1. Catalogue build discovers pack manifests, validates explicit recipe route
+   identity, and renders APM or Claude package artifacts through the named route
+   projector into `dist/`. Self-host and direct install remain adapter-owned.
 2. Install projects selected pack content into the resolved target and records
    install state.
 3. Every install route writes an adaptation marker. Core session start reads it
@@ -86,6 +90,8 @@ the durable evidence record.
   `CAT-V-014` for generated `dist/` drift.
 - `tools/catalogue/check_contract_parity.py` requires portable contract schemas
   and TOML to match their `agentbundle/_data/` counterparts.
+- Distribution-route golden tests pin complete APM and Claude package trees by
+  path, bytes, link target, and mode across the route/adapter ownership split.
 - `agentbundle lint packs` (`make lint-packs`) checks pack conformance.
 - `tools/lint-adapter-layer-boundary.py` holds the adapter/projection edge
   direction: a projection may not import an adapter, and neither layer may be

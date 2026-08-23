@@ -126,6 +126,25 @@ class LintPackTests(unittest.TestCase):
         self.assertIn("command", "\n".join(results["alpha"]))
         self.assertIn("command", "\n".join(results["beta"]))
 
+    def test_hook_lint_fails_closed_on_invalid_route_contract(self) -> None:
+        """Never compile route-owned hook paths from unvalidated TOML."""
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = Path(tmp) / "route-contract"
+            _write_minimal_pack(pack, name="route-contract")
+            (pack / ".apm" / "hook-wiring").mkdir(parents=True)
+            with patch(
+                "agentbundle.build.main._load_distribution_route_contract",
+                side_effect=ValueError("schema mismatch"),
+            ):
+                findings = lint_pack(pack)
+
+        self.assertTrue(
+            any("distribution route contract is unusable" in f for f in findings),
+            findings,
+        )
+
     @unittest.skipIf(
         sys.platform == "win32",
         "NTFS refuses to materialise seeds/CON.md; lint logic is OS-agnostic "
