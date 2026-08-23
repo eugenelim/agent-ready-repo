@@ -3136,6 +3136,65 @@ open = [
   # names public visibility as evidence only. An ADR after experimentation is
   # the right record for the execution boundary.
   { slug = "agentbundle-catalogue-test-command", source = "spec/pytest-resource-optimization (adopter gap)", summary = "Give catalogue adopters a canonical way to execute the tests they receive, discovering pack and conformance suites from the ADR-0071 layout while preserving one process per skill and keeping test dependencies development-only" },
+  # pages.yml's `build` job is where BOTH site builds, `npm run test:plugins
+  # --prefix docs-site`, web/'s rendered-output invariants and the browser gate
+  # (60 pinned matrix cases — see tools/test_browser_gate_subset.py's
+  # test_the_approved_matrix_is_exactly_sixty_cases; cited by symbol because a
+  # line number in that file has already gone stale once — plus
+  # quality-assertions.spec.ts) actually execute, and it is not a required check.
+  # Required contexts on main are the five from build-check.yml alone:
+  # `make build-check`, `gate-main`, `gate-sast`, `gate-export-boundary`,
+  # `gate-credbroker` (API read 2026-08-23, strict = true; unchanged from the
+  # 2026-08-18 read recorded under ci-gate-credbroker-branch-protection-widening).
+  #
+  # NOT THEORETICAL — measured on #1036. At head 6990d3d7 (2026-08-20) all five
+  # required checks were `success` and `build` was `failure`. That PR was
+  # mergeable green with the Pages deploy broken; only a human noticing the
+  # non-required red stopped it. `gh api repos/OWNER/REPO/commits/6990d3d7/
+  # check-runs` still shows the pair.
+  #
+  # WHY THE OBVIOUS FIX IS THE TRAP, and why this entry exists rather than a
+  # one-line instruction to the owner: pages.yml carries a `paths:` filter on
+  # `pull_request` — fourteen entries covering web/**, docs-site/**, guides/**,
+  # several tools/*.py and more; `.github/workflows/pages.yml`'s own
+  # `on.pull_request.paths` is the canonical set and the only place to read it.
+  # GitHub treats a required context that never reports as PERPETUALLY PENDING, not as
+  # passed. Ticking `build` in branch protection would therefore permanently wedge
+  # every PR touching none of those paths — most PRs in this repo. build-check.yml
+  # can carry required contexts precisely because it has NO paths filter; that is
+  # the property, not a coincidence.
+  #
+  # OPTION TO EVALUATE: a companion always-runs job in a filter-free workflow that
+  # reports the same `build` context and exits 0 when the filtered paths did not
+  # change. The job-level shape is ALREADY IN TREE and is the closest precedent:
+  # build-check.yml:913's aggregator carries `if: ${{ always() }}`, sits in a
+  # workflow with no `paths:` filter, and itself wears one of the five required
+  # contexts (`make build-check`); build-check-windows.yml:162 is the same shape.
+  # Read those before designing anything. The genuinely unprecedented part is
+  # narrower: whether two workflows may report ONE context name without either
+  # masking the other. Settle that first — it decides whether the companion can
+  # reuse the name `build` or must take a new one and be required instead.
+  # (Note the spelling when searching: `if: ${{ always() }}`, not `if: always()`.
+  # Grepping only the bare form finds pack-evals.yml:72 alone and reads as "no
+  # job-level precedent exists", which is how this entry first recorded it.)
+  #
+  # REJECTED, recorded so it is not re-proposed: moving the assertions into
+  # build-check.yml. pages.yml's own comments state that the required workflow
+  # deliberately carries no Node and must carry no paths filter; adding them makes
+  # every PR in the repo wait on two `npm ci` runs.
+  #
+  # THE BRANCH-PROTECTION WRITE IS THE OWNER'S, NOT AN AGENT'S, and it MUST NOT be
+  # done before the companion job exists and has reported once on main — a required
+  # check cannot precede the job that reports it, and the Settings UI only offers
+  # contexts seen on main recently (same constraint as
+  # ci-gate-credbroker-branch-protection-widening; read its FORBIDDEN block before
+  # touching the API instead). main uses CLASSIC branch protection — the repo's only
+  # ruleset is the separate "claude-plugins-dist publisher-only" branch rule — so
+  # the click-path is:
+  #   https://github.com/eugenelim/agent-ready-repo/settings/branches
+  #   -> Branch protection rules -> Edit on `main` -> Require status checks to pass
+  #   -> search `build` -> select -> Save changes
+  { slug = "pages-build-job-not-a-required-check", source = "CI observation 2026-08-23, PR #1036", summary = "pages.yml's `build` job carries both site builds, the plugin suite, the rendered-output invariants and the browser gate but is not a required status check, and its `paths:` filter means it cannot simply be ticked as one" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
