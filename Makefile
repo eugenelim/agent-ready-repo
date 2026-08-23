@@ -443,6 +443,7 @@ test-unleased: lint-editable-install
 	$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 	$(PYTHON) -m pytest tools/test_editable_install_guard.py -q
+	$(PYTHON) -m pytest tools/test_import_time_path_leaks.py -q
 	$(PYTHON) -m pytest tools/test_managed_child.py -q
 	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
 	$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
