@@ -7,9 +7,13 @@ kind: how-to
 
 # How to ship your organization's standard stack as a reusable pack
 
-**Use this when:** You want every team in your organization to start from the same reference architecture, conventions, and internal framework knowledge, installed in one command.
+**Use this when:** You want every team in your organization to start from the same architecture, conventions, and internal framework knowledge, installed in one command.
 **Prerequisites:** A forked catalogue your organization owns, your real stack documented, and a chosen pack name; see "Before you start".
-**Result:** A distributable org-stack pack with a filled `reference.md` seed, framework-library skills, and a one-command profile install for your teams.
+**Result:** A distributable org-stack pack with organization-owned standards, optional root or scoped guidance deltas, framework-library skills, and a one-command profile install.
+
+> "Help me package our backend standards as an organization-owned stack pack.
+> Preserve the files we already use, and route backend-only commands from the
+> backend subtree."
 
 This guide is for a platform or tooling lead who wants every team in the
 organization to start from the same golden path — your real reference
@@ -24,11 +28,16 @@ It assumes you already know how packs and profiles install (see
 you are composing seeds, framework-library skills, a profile, and the
 editable-install path that already ship.
 
-If you're standardizing a single repo rather than a whole organization, you
-don't need a pack at all — fill in that repo's `docs/architecture/reference.md`
-and the `AGENTS.md` command block directly (see
-[adapt to project](../../core/how-to/adapt-to-project.md)). A pack is worth the
-effort once two or more repos should share the same golden path.
+This walkthrough reads your existing standards and creates files in the
+organization-owned catalogue fork. It does not rewrite an adopter repository.
+Installation may preserve a colliding seed as a companion; the approval-gated
+[adapt to project](../../core/how-to/adapt-to-project.md) workflow reconciles
+that content afterward.
+
+If you're standardizing one repository, you do not need a pack. Keep its
+architecture and contribution sources where they already live and let
+`adapt-to-project` route them from root or scoped `AGENTS.md`. A pack earns its
+cost when two or more repositories share the same golden path.
 
 ## Before you start
 
@@ -57,8 +66,8 @@ You need:
    packs/acme-stack/
    ├── pack.toml                       # the manifest
    ├── .apm/skills/                    # framework-library skills (step 3)
-   └── seeds/                          # filled-in standards (step 2)
-       └── docs/architecture/reference.md
+   └── seeds/                          # organization-owned standards (step 2)
+       └── docs/standards/backend.md   # example; use your established path
    ```
 
    In `pack.toml`, declare the pack at **repo scope** and make it depend on your
@@ -95,32 +104,40 @@ You need:
    unenforced by `lint-catalogue-seeds`, by construction. Step 5 covers why this
    matters.
 
-2. **Ship a filled-in `reference.md` seed.** This is the heart of the pack. Take
-   the arc42 golden-path template at
-   `packs/core/.apm/skills/adapt-to-project/assets/reference.md`, copy it to
-   `packs/acme-stack/seeds/docs/architecture/reference.md`, and **replace every
-   prompt with your organization's real answer** — not the placeholder. On
-   install this lands at the adopter repo's `docs/architecture/reference.md`.
+2. **Ship standards in the locations your organization owns.** Use the same
+   paths and terminology that teams already recognize. A repository using
+   `ARCHITECTURE.md`, `engineering/decisions/`, or
+   `docs/standards/backend.md` does not need a duplicate
+   `docs/architecture/reference.md`. When no equivalent architecture source
+   exists, you may fill the core pack's reference template and adopt its path as
+   an organization default.
 
-   Fill the slots the work-loop reads as grounding:
+   Whichever source you choose, record the coordinates the work-loop needs:
 
-   - **Constraints → Technical constraints** — name the managed runtime or
-     deployment platform your teams target. The work-loop infra preflight reads
-     this as a starting coordinate instead of rediscovering it cold.
-   - **Solution strategy → Key technology decisions** — name each
-     framework- or library-level contract new work must honour (the entrypoint
-     model, a required base class or decorator, a config-loading convention), so
-     a design conforms to it instead of guessing it.
-   - **Crosscutting concepts → Observability and Testing standards** — name
-     where logs and metrics surface, and **where the verification tooling lives**
-     (the smoke / verify-status check, the deploy and teardown harness, the
-     test-data seeding).
+   - managed runtimes and deployment platforms;
+   - load-bearing framework or library contracts, such as entrypoints, required
+     base classes, annotations, factories, or registration paths;
+   - verification tooling: build, test, lint, deploy, smoke, teardown, and test
+     data commands where applicable.
 
-   Add optional deltas the same way when your org diverges from the defaults:
-   `seeds/docs/CONVENTIONS.md` and `seeds/AGENTS.md` (including the
-   "Commands you'll need" infra/verification block — deploy, smoke, teardown,
-   seed). Ship only the parts you actually change; a seed the adopter would have
-   written identically is noise.
+   Contribute agent guidance according to scope:
+
+   - **Repository-wide:** ship a small `seeds/AGENTS.md` delta that links the
+     organization-owned sources. Do not copy the core scaffold. If installation
+     preserves it as `AGENTS.upstream.md`, `adapt-to-project` proposes a
+     selective merge into the existing conventional sections; it never uses raw
+     concatenation.
+   - **One stable subtree:** when every adopter uses the same subtree, ship a
+     delta-only scoped `AGENTS.md` there with only the relevant development,
+     build/test, and convention guidance. If repository layouts differ, do not
+     guess the folder; let the doctor offer a scoped file after discovery.
+   - **Existing contributor guidance:** link the repository's root
+     `CONTRIBUTING.md` or equivalent. Put action-changing directory deltas in
+     the relevant scoped `AGENTS.md`.
+
+   Compatible links from core, the org pack, and the adopter fold into one
+   section by concern even when their source headings differ. Conflicting
+   sources stay attributed and require a maintainer decision.
 
 3. **Add a framework-library skill for each internal framework.** This is the
    detect target the work-loop's EXECUTE contract-grounding gate looks for when
@@ -208,16 +225,16 @@ Real rollouts branch. Cover the cases you're likely to hit:
 - **Multiple stacks under one org:** if teams run genuinely different stacks
   (a Go services stack and a data-platform stack, say), ship one org pack per
   stack and one profile per stack, rather than one pack that tries to cover
-  both. A profile is cheap; an over-broad `reference.md` that fits no team is
-  not.
+  both. A profile is cheap; an over-broad standards document that fits no team
+  is not.
 - **You only need framework skills, no architecture seed yet:** ship the
   `.apm/skills/<framework>/` skills and skip the `seeds/` directory entirely.
-  The pack is still valid; add the `reference.md` seed when the golden path is
-  real enough to hold a pull request to.
+  The pack is still valid; add organization-owned standards when the golden
+  path is real enough to hold a pull request to.
 
 ## Common pitfalls
 
-- **The seed lint rejects your filled-in `reference.md`** — you copied
+- **The seed lint rejects your filled-in standards** — you copied
   `lint-seeds = true` from a first-party `pack.toml`. Delete that line.
   `lint-catalogue-seeds` enforces a placeholder-only contract, which is the
   inverse of what your pack ships; org packs opt out by simply not declaring the

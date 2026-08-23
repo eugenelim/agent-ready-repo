@@ -50,6 +50,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.6] — 2026-08-23
+
+### Highlights
+
+- **Core now adapts to a repository's own development context instead of
+  expecting the repository to adopt the pack's document layout.** The doctor
+  finds existing architecture, contributor, command, and scoped guidance,
+  labels inference honestly, and proposes only approved root or subtree deltas.
+
+### Changed
+
+- The portable `AGENTS.md` seed strongly recommends four ordinary minimum
+  topics and offers documentation, security, scoped guidance, and a structure
+  map only when evidence makes them useful.
+- `adapt-to-project` runs its repository-anchoring diagnosis without an install
+  marker and preserves adopter-owned files and filenames. The bundled reference
+  architecture is now explicitly optional enrichment.
+- `new-spec` and `work-loop` record bounded repository anchors for structural
+  plans, while pre-execute and delivery reviewers flag only load-bearing
+  mechanism differences—not cosmetic variation or one incidental example.
+
+## [architect][0.15.1] — 2026-08-23
+
+### Highlights
+
+- **Architecture design now starts from the repository's existing sources and
+  implementation idioms, wherever they live.** A custom `DESIGN.md`, scoped
+  guidance, or repository-owned framework primitive can steer the design
+  without first being copied into `docs/architecture/reference.md`.
+
+### Changed
+
+- `architect-design` follows effective root/scoped guidance, uses a bounded
+  one-or-two-example fallback for structural choices, and asks before inventing
+  an unanchored load-bearing mechanism.
+
+## [agentbundle][0.39.1] — 2026-08-23
+
+### Changed
+
+- Catalogue seed lint now requires the optional architecture-overview seed to
+  describe area, responsibility, and change guidance rather than shipping a
+  generic application/package directory tree.
+
 ## [catalogue-curation][0.4.1] — 2026-08-21
 
 ### Highlights

@@ -354,7 +354,7 @@ _SEEDS_BLOCKLIST_RE = [(re.compile(p), name) for p, name in _SEEDS_BLOCKLIST_PAT
 _SEEDS_REQUIRED_PLACEHOLDERS: dict[str, tuple[str, ...]] = {
     "docs/CHARTER.md": ("<replace with one sentence>", "<bullet>", "<principle>"),
     "docs/architecture/overview.md": (
-        "<list your packs and packages here>", "<app-name>", "<package-name>",
+        "<area>", "<responsibility>", "<change guidance>",
     ),
     "docs/specs/README.md": ("<!-- no specs yet -->",),
     "docs/knowledge/patterns.jsonl": (),
@@ -429,7 +429,16 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
         return violations
 
     required = _SEEDS_REQUIRED_PLACEHOLDERS[relative]
-    if required and not any(token in content for token in required):
+    if relative == "docs/architecture/overview.md":
+        missing = [token for token in required if token not in content]
+        if missing:
+            violations.append(
+                f"{path}: responsibility-map placeholder missing — expected: "
+                f"{', '.join(repr(token) for token in missing)}. "
+                "Architecture seeds must preserve area, responsibility, and "
+                "change-guidance slots without imposing a directory tree."
+            )
+    elif required and not any(token in content for token in required):
         violations.append(
             f"{path}: required placeholder missing — expected at least "
             f"one of: {', '.join(repr(t) for t in required)}. "

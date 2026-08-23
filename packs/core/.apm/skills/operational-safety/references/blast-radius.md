@@ -7,7 +7,7 @@
 > **Grounded in:** F3.1 (parse the plan structurally; gate on destroy/replace
 > counts), F3.2 (decouple proposer identity from approver identity).
 > Operational taxonomy: the destructive-op-needs-human-approval rule already in
-> AGENTS.md "Check before acting".
+> the repository guidance's destructive/irreversible action rules.
 > **Delegation legend:** `tool` = scanner / CI-gate-owned · `hybrid` = gate
 > surfaces the signal, you judge the fix · `reason` = reviewer-only judgment.
 

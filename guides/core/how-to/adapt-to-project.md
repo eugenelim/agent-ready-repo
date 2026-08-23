@@ -1,22 +1,26 @@
 ---
 title: "How to adapt a freshly installed pack to your project"
-summary: "Tailor a newly installed pack's seed content and merge companion files without losing project-specific conventions."
+summary: "Diagnose repository guidance or tailor installed seed content without losing project-specific conventions."
 pack: core
 kind: how-to
 ---
 
 # How to adapt a freshly-installed pack to your project
 
-**Use this when:** You have just installed a pack and need to tailor its seed content (AGENTS.md, CHARTER.md, conventions) to your project's name, stack, and existing conventions.
-**Prerequisites:** `core` pack installed and an `.adapt-install-marker.toml` present at the install scope root; see Prerequisites below.
-**Result:** Foundational files tailored — project name, stack commands, charter, and any companion files merged for your install route.
+**Use this when:** You want a read-only diagnosis of the repository context agents can reach, or you have just installed a pack and need to tailor its seed content to the repository.
+**Prerequisites:** The `core` pack installed. Post-install adaptation also uses an `.adapt-install-marker.toml` when one is present; repository diagnosis does not require it.
+**Result:** A repository-context diagnosis first, followed only with your approval by a minimal root/scoped guidance proposal or post-install seed and companion changes.
 
-A just-installed pack ships *seed* content — generic `AGENTS.md`, generic `docs/CHARTER.md`, generic governance shapes — that needs to be tailored to your actual project's name, stack, and existing conventions. The `adapt-to-project` skill (shipped in `core`) walks you through the tailoring with per-item approval. This page explains what the skill does, what answers it asks of you, and how greenfield and brownfield repos differ.
+The `adapt-to-project` skill first finds and respects the repository's existing
+sources of authority wherever they live. It can then tailor newly installed seed
+content with per-item approval. It links to repository-owned guidance instead of
+moving or duplicating it merely to match the pack.
 
 ## Prerequisites
 
 - The `core` pack installed in your target repo (or under user scope for user-scope packs).
-- An `.adapt-install-marker.toml` at the install's scope root — written automatically by every supported install route. The next session-start hook surfaces a nudge to run the skill.
+- For post-install work, an `.adapt-install-marker.toml` may be present at the
+  install scope root. It is not required for a read-only repository diagnosis.
 
 ## Run the skill
 
@@ -26,9 +30,31 @@ In Claude Code or any agent harness that loads skills:
 /adapt-to-project
 ```
 
-The skill is the LLM-judgment layer on top of the deterministic `agentbundle adapt` CLI; the two work together — the CLI handles substitution and companion bookkeeping, the skill handles the non-mechanical decisions (which existing file matches which pack-canonical path, what to do with overlapping shapes, etc.).
+For repository diagnosis, ask it to inspect the repository without changing
+files. For post-install work, the skill is the judgment layer on top of the
+deterministic `agentbundle adapt` CLI: the CLI handles substitution and companion
+bookkeeping, while the skill presents non-mechanical decisions for approval.
 
 Re-invoke any time. The skill dedupes against prior declines, surfaces only what's unresolved, and exits clean when nothing remains.
+
+## Start with repository anchoring
+
+The doctor reads effective root and scoped `AGENTS.md`, follows existing
+architecture and contributor links, verifies real commands, and labels evidence
+as explicit, framework-owned, convergent, tentative, contradictory, or absent.
+Only documented rules and repository-owned primitives bind without confirmation.
+
+Its minimum recommendation covers project overview, development workflow,
+verified build/test commands, and coding conventions across the effective
+guidance chain. It offers documentation, security, repository structure, or
+scoped guidance only when the repository has evidence that makes the section
+useful. A scoped `AGENTS.md` is appropriate for a stable subtree delta; root
+guidance remains the home for repository-wide concerns.
+
+The diagnosis is read-only. If you approve changes, the doctor merges links into
+the existing root or scoped file without overwriting unrelated guidance. When no
+equivalent source exists, it may offer the core pack's conventional location as
+an optional starting point.
 
 ## Greenfield repo
 
@@ -46,7 +72,9 @@ Your repo already has conventions, so the skill walks **four classes of change**
 
 1. **Substitution.** Same `<adapt:NAME>` markers as greenfield, but the values usually already exist in your `README`, `package.json`, or `Makefile`; the skill proposes pulling them in.
 2. **Companion merges.** For each `*.upstream.<ext>` file the install left on disk, the skill proposes a merged result against your existing file. Per-file accept, edit, skip, or decline.
-3. **Discovery + restructuring.** Non-canonical primitives elsewhere in your tree — a `DESIGN.md` at root, a stray `docs/architecture.md` — get matched against pack-canonical paths (`docs/CHARTER.md`, `docs/architecture/overview.md`). Per-finding accept, edit, or decline.
+3. **Discovery + restructuring.** The skill surfaces genuine consolidation or
+   restructuring opportunities while preserving adopter-owned guidance such as
+   root `DESIGN.md`. It does not relocate files to match pack conventions.
 4. **Within-layout consolidation.** Overlapping shapes — your `docs/howto/` vs. the diátaxis pack's `guides/how-to/` — get folded together per your call.
 
 ### Companion availability by install route
@@ -59,7 +87,9 @@ The skill's class-2 *Companion merges* walk depends on `*.upstream.<ext>` files 
 | `apm install` | Not at install. Run `agentbundle init-state` to record a baseline; the next `agentbundle upgrade` produces companions on Tier-2 collisions. |
 | `/plugin install` (Claude Code) | Same as APM — `agentbundle init-state` first, then companions surface on `agentbundle upgrade`. Not a route for `core` itself, which is repo-scoped; this row covers user-scope packs you installed as plugins. |
 
-The class-2 walk is a no-op if no companions are on disk; the other three classes (substitution, discovery, consolidation) run on every invocation regardless.
+The class-2 walk is a no-op if no companions are on disk. Repository anchoring
+still runs without companions or install markers; post-install classes run only
+when their state is present.
 
 ## Pitfalls
 

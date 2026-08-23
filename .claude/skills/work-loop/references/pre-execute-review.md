@@ -23,9 +23,22 @@ the plan must honour. If `Boundaries` is empty, that's the finding to surface
 first — an empty Boundaries section is a spec-stage gap, **not** a fallback cue.
 Only when the spec has no Boundaries section at all (an unmigrated template, say)
 fall back, in order, to: the PLAN step's **declined-pattern register**, and the
-AGENTS.md **"Check before acting"** list (when installed elsewhere this slug
-arrives as a fragment under `docs/AGENTS.fragments/`; merge the items the adopter
-wants into their own AGENTS.md).
+effective repository guidance's approval and action rules (when installed
+elsewhere, follow the adopter's own headings and mapped sources).
+
+Apply a focused repository-idiom delta only when the plan introduces a
+load-bearing structural mechanism: a module or component boundary, framework
+extension/composition mechanism, persistence or messaging pattern,
+construction/registration path, or cross-cutting abstraction. Use this finding
+shape exactly: **This proposal introduces X. A mapped repository source or
+canonical production example uses Y for the same responsibility. Confirm or
+justify the deviation.**
+
+Do not derive Y from one incidental neighboring file, demand cosmetic
+uniformity, turn repetition into an invariant, expand product scope, or require
+the core pack's file layout. Tentative or contradictory evidence is an
+assurance gap, not a repository rule. The check asks for confirmation or a
+reasoned deviation; it does not silently redesign the proposal.
 
 ## Mid-EXECUTE re-plan — Phase-1 note
 

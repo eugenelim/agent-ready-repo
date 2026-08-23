@@ -240,9 +240,9 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
         for target in re.findall(r"\]\(([^)]+)\)", body + footer)
         if not target.startswith(("#", "http://", "https://"))
     }
-    assert relative_links == {
-        "docs/architecture/overview.md",
-        "docs/CONVENTIONS.md",
-    }
+    # The seed no longer links the architecture overview: that section is
+    # conditional, and the seed tells adopters to delete the file when it would
+    # duplicate a source they already have. Core still ships it.
+    assert relative_links == {"docs/CONVENTIONS.md"}
     assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
     assert (_SEEDS / "docs" / "CONVENTIONS.md").is_file()

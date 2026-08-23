@@ -4,6 +4,74 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.10.6"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[core][2.10.6] — 2026-08-23",
+      "changelogAnchor": "core2106--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Core now adapts to a repository's own development context instead of expecting the repository to adopt the pack's document layout.** The doctor finds existing architecture, contributor, command, and scoped guidance, labels inference honestly, and proposes only approved root or subtree deltas.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Core now adapts to a repository's own development context instead of expecting the repository to adopt the pack's document layout."
+            },
+            {
+              "type": "text",
+              "value": " The doctor finds existing architecture, contributor, command, and scoped guidance, labels inference honestly, and proposes only approved root or subtree deltas."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.1"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[architect][0.15.1] — 2026-08-23",
+      "changelogAnchor": "architect0151--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Architecture design now starts from the repository's existing sources and implementation idioms, wherever they live.** A custom `DESIGN.md`, scoped guidance, or repository-owned framework primitive can steer the design without first being copied into `docs/architecture/reference.md`.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Architecture design now starts from the repository's existing sources and implementation idioms, wherever they live."
+            },
+            {
+              "type": "text",
+              "value": " A custom "
+            },
+            {
+              "type": "code",
+              "value": "DESIGN.md"
+            },
+            {
+              "type": "text",
+              "value": ", scoped guidance, or repository-owned framework primitive can steer the design without first being copied into "
+            },
+            {
+              "type": "code",
+              "value": "docs/architecture/reference.md"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "catalogue-curation",
           "version": "0.4.1"
         }

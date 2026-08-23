@@ -1,6 +1,11 @@
-# Reference architecture
+# Optional reference architecture
 
-> **Normative.** This document is your repo's *golden path* — the stack, the
+> Use this only when no existing architecture source covers the concern and the
+> repository wants fuller architecture documentation. Preserve an adopter's
+> existing architecture source, location, terminology, and authority. Do not
+> create this file merely to match the core pack.
+>
+> Once accepted, this document records the repo's *golden path* — the stack, the
 > internal building blocks, the component stereotypes, and the cross-cutting
 > standards that new work is expected to **conform to**. A feature's low-level
 > design (in its plan) reads this as steering: it names which building blocks it

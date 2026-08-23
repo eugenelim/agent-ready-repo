@@ -1275,6 +1275,31 @@ def test_check_seeds_missing_placeholder(tmp_path, monkeypatch):
     assert any("required placeholder missing" in d.message for d in l029)
 
 
+def test_architecture_seed_requires_responsibility_map_placeholders(
+    tmp_path, monkeypatch
+):
+    """Portable architecture seeds describe responsibilities, not a fixed tree."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack_with_seeds(
+        tmp_path,
+        "pack-a",
+        lint_seeds=True,
+        seeds={
+            "docs/architecture/overview.md": (
+                "<area>\n<responsibility>\nmissing change guidance\n"
+            )
+        },
+    )
+
+    result = lint_catalogue(tmp_path)
+
+    l029 = [d for d in result.diagnostics if d.code == "CAT-L029"]
+    assert l029, "expected CAT-L029 for incomplete responsibility-map seed"
+    assert any("<change guidance>" in d.message for d in l029)
+
+
 def test_check_seeds_sentinel_exemption(tmp_path, monkeypatch):
     """Seed with sentinel above blocklist hit → no CAT-L029."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])

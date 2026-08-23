@@ -1,7 +1,9 @@
 # Architecture Overview
 
-> The directory map of this monorepo. For its systems, boundaries, flows, and
-> state ownership, read [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
+> The ownership and change map for this monorepo. Keep it because generated
+> projections, multiple package roots, and separate public/internal doc trees
+> make ownership non-obvious. For systems, boundaries, flows, and state
+> ownership, read [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
 ## Layout
 
@@ -45,7 +47,8 @@ set. The adopter-facing equivalents are produced by `make build` into
 `dist/claude-plugins/<pack>/.claude-plugin/` and
 `dist/apm/<pack>/`; the install routes project equivalent content
 straight into the adopter's own repo without needing to expose `dist/`.
-Edit seeds under `packs/<pack>/.apm/...`, not these projections. See
+Edit portable primitives under `packs/<pack>/.apm/` and seeds under
+`packs/<pack>/seeds/`, not these projections. See
 [`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
 
 ## Subsystems
@@ -104,25 +107,15 @@ One file per non-trivial subsystem:
   template the `new-package` skill (in `monorepo-extras`) copies when an
   adopter scaffolds a new package.
 
-## Where to start
+## Using this map
 
-1. Read [`docs/CHARTER.md`](../CHARTER.md) — mission, scope, four principles.
-2. Read this file.
-3. Pick a recent spec under [`docs/specs/`](../specs/) and read its
-   `spec.md` + `plan.md` next to the resulting code under
-   `packages/agentbundle/` or `packs/`. The
-   [`agent-spec-cli`](../specs/agent-spec-cli/spec.md),
-   [`distribution-adapters`](../specs/distribution-adapters/spec.md),
-   and [`skill-secrets`](../specs/skill-secrets/spec.md) specs are the
-   three load-bearing ones.
-4. Skim the two ADRs —
-   [ADR-0001](../adr/0001-adopt-agents-md-and-doc-hierarchy.md)
-   (AGENTS.md + the doc hierarchy this repo runs on) and
-   [ADR-0002](../adr/0002-install-scope-per-pack-default-and-allowance.md)
-   (the per-pack default-plus-allowance install-scope model) — plus the
-   most recent accepted RFCs ([0008](../rfc/0008-claude-plugins-install-route-parity.md),
-   [0010](../rfc/0010-apm-install-route-parity.md)) for current direction.
-5. Run `make build-check` once — it's the self-host drift gate, and
-   tripping it explains the seed/projection split better than prose can.
-The subsystem index and deeper links are in
+- Start with the root [`AGENTS.md`](../../AGENTS.md) documentation table, then
+  read the nearest scoped `AGENTS.md` for the area you will change.
+- Use the subsystem and package entries above to find ownership; use current
+  accepted ADRs, RFCs, and feature specs only when the task depends on their
+  decisions.
+- Run `make build-check` before handoff. Its self-host drift checks exercise the
+  source-versus-projection boundary described here.
+
+The complete subsystem index is in
 [`ARCHITECTURE.md` § 8](../../ARCHITECTURE.md#8-deeper-current-state-pages).

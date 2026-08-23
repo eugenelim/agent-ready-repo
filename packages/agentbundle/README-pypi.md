@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.1
+
+Catalogue seed lint now rejects generic directory-tree placeholders unless the
+architecture overview also explains each area's responsibility and change
+guidance. This keeps generated starter repositories useful without assuming a
+particular application layout.
+
 ## What's new in 0.39.0
 
 Catalogue builders can now inspect a first-class, schema-validated distribution

@@ -63,9 +63,10 @@ an incomplete or interrupted report is not that gate.
 
 Always read, in this order. Skipping this step makes you guess. Don't guess.
 
-1. `AGENTS.md` and `docs/CONVENTIONS.md` — project conventions, the
-   verification-mode discipline (TDD / goal-based / visual-manual), and any
-   anti-patterns listed there. These are first-class checks.
+1. The effective root and scoped `AGENTS.md`, then the architecture,
+   convention, workflow, and command sources they map for the target. These are
+   first-class checks; no specific convention filename or pack layout is
+   required.
 2. The targeted spec at `docs/specs/<feature>/spec.md`. The spec is the
    standard.
 3. The targeted plan at `docs/specs/<feature>/plan.md`.
@@ -219,10 +220,23 @@ checklists; verification-mode awareness applies to every review.
    the function level belongs to `quality-engineer`; this is the larger
    sibling — patterns that shape future work without an ADR or RFC to
    back them.
+   Apply the repository-idiom delta only to a load-bearing structural
+   mechanism. Use this finding shape exactly: **This proposal introduces X. A
+   mapped repository source or canonical production example uses Y for the same
+   responsibility. Confirm or justify the deviation.** Do not infer Y from one
+   incidental neighboring file, demand cosmetic uniformity, turn every repeated
+   pattern into an invariant, expand product scope, or require the core pack's
+   file layout.
+
+   When the plan's mechanism evidence is Convergent, Tentative, Contradictory,
+   unavailable, or outcome-critical, independently inspect the smallest
+   relevant production example set and its tests/construction path instead of
+   trusting the citation alone. Strong Explicit or Framework-owned evidence can
+   bound that inspection to the cited source unless the diff contradicts it.
 8. **Backward compatibility.** If this changes existing behavior, is the
    migration path explicit?
-9. **Project-specific anti-patterns.** The lists in `AGENTS.md` and
-   `docs/CONVENTIONS.md` are first-class checks. Cite the convention by
+9. **Project-specific anti-patterns.** The effective guidance chain and its
+   mapped convention sources are first-class checks. Cite the owning source by
    name when you flag a violation.
 
 ### Verification-mode awareness (every review)

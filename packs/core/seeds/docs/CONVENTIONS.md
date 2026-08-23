@@ -1287,14 +1287,14 @@ loads or while it is running.
 
 | The lie | The rebuttal |
 | --- | --- |
-| "We'll update the spec after the PR." | Spec drift is a bug, not follow-up work — update spec and code in the same PR. See [`AGENTS.md` § How we work](../AGENTS.md#how-we-work) and the spec lifecycle rule in § 4 above. |
+| "We'll update the spec after the PR." | Spec drift is a bug, not follow-up work — update spec and code in the same PR. See [`AGENTS.md` § Development workflow](../AGENTS.md#development-workflow) and the spec lifecycle rule in § 4 above. |
 | "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in the `work-loop` skill. |
-| "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
+| "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Development workflow](../AGENTS.md#development-workflow). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
 | "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
 | "I don't need a spec, I understand the task." | An eligible direct-light request keeps its plan in the active session; it does not persist a spec. If the work needs durability or any risk trigger fires, use `new-spec` for the durable spec and plan. |
 | "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
-| "I'll match the surrounding code's pattern." | Check the [Source of truth](../AGENTS.md#source-of-truth) map first; local style may already conflict with the canonical convention. |
+| "I'll match the surrounding code's pattern." | Check the root `AGENTS.md` guidance first; local style may already conflict with the repository's documented convention. |
 
 ---
 
