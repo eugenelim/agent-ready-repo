@@ -1,46 +1,28 @@
 # AGENTS.md
 
-> This is the canonical agent context file. Adapt the marked identity and command
-> sections to this repository; keep universal rules here and scoped deltas nearby.
+> This is the canonical agent context file. Replace the marked project and
+> command details with verified repository facts. Preserve equivalent existing
+> sources and keep subtree-specific deltas in the nearest scoped `AGENTS.md`.
 
-## What this repo is
+## Project overview
 
-This is <project-name> — a <one-line description of what it does and for whom>.
+This is <project-name>—<one-line description of what it does and for whom>.
 
-Read [the architecture overview](docs/architecture/overview.md) before exploring unfamiliar areas, if it exists.
+Link the repository's existing architecture or design source here when one
+exists. Do not relocate it to match a pack convention.
 
-## Keeping changes minimal
+## Development workflow
 
-- Scope changes precisely to the request; defer unrelated cleanup.
-- Surface assumptions before building, and stop for conflicting requirements.
-- Push back when warranted; record disagreement rather than complying silently.
-- Prefer the simplest obvious solution; add an option, abstraction, or dependency only when needed.
-- Add types and docstrings to code you change; validate boundaries the change crosses, trusting internal callers and framework guarantees.
-- Inline a single-use operation; extract a helper once a second caller appears.
-- Do not silently work around a source-of-truth conflict; state the evidence and trade-off.
+Follow the repository's existing contributor workflow. Use the `work-loop`
+skill for repository changes when installed; it owns planning, verification,
+review, and recovery.
 
-## Source of truth
+If the repository has `CONTRIBUTING.md` or equivalent guidance, link to it here.
+If it has none, the seeded [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) is an
+optional starting point to adopt with maintainer approval, not an authority that
+outranks existing guidance.
 
-| Question | Home |
-| --- | --- |
-| Project scope | `docs/CHARTER.md` |
-| Decisions and proposals | `docs/adr/` and `docs/rfc/` |
-| Durable feature contract, when one exists | `docs/specs/<feature>/` |
-| Current architecture | `docs/architecture/` |
-| Product direction and history | `docs/product/` |
-| User and maintainer guidance | `docs/guides/` or `guides/` |
-| Repeating agent workflow | its `SKILL.md` |
-| Mechanically knowable fact | code, schema, manifest, test, or linter |
-
-## How we work
-
-Use the `work-loop` skill for repository changes as its instructions require.
-It owns mode selection, required artifacts, planning, verification, review,
-recovery, and completion. Keep repository-specific process detail in its owning
-workflow or reference documentation; commit and pull-request conventions live in
-[docs/CONVENTIONS.md](docs/CONVENTIONS.md).
-
-## Commands you'll need
+## Build and test commands
 
 ```bash
 <install command>
@@ -49,31 +31,33 @@ workflow or reference documentation; commit and pull-request conventions live in
 <build command>
 ```
 
-<!-- Optional infrastructure hooks for work-loop: deploy; smoke (post-deploy verify-status / end-to-end); teardown; seed-test-data. Add applicable commands here. -->
+Use commands verified from repository guidance, manifests, task runners, or CI.
+Do not guess them from the detected language alone.
 
-## Check before acting
+## Coding conventions
 
-- Get user confirmation before destructive commands or irreversible operations.
-- Grep to verify a function exists before importing it.
-- Propose a new top-level directory through the repository's decision process.
-- Record a new dependency in the owning package instructions or an ADR before adding it.
+Follow documented repository conventions and the nearest scoped `AGENTS.md`.
+When no documented rule exists, use repository-owned framework primitives as
+the strongest evidence. Two matching production examples may guide a proposal;
+one nearby example must not become a rule.
 
-## Security and privacy
+<!--
+Recommended additional guidance — add only after verifying its trigger. Each
+option should link to the owning source instead of copying its rules.
 
-Never commit personal information or credentials. Use generic placeholders in
-repository artifacts and follow the security workflow for security-boundary changes.
-The complete privacy convention is in [docs/CONVENTIONS.md](docs/CONVENTIONS.md#privacy).
+- `Documentation` — trigger: two or more authoritative sources need routing.
+  Benefit: agents can find architecture, decisions, and contributor guidance
+  without imposing a new document layout.
+- `Security considerations` — trigger: security/privacy boundaries, sanctioned
+  helpers, sensitive-data rules, or an external quality gate change behavior.
+  Benefit: agents use the repository's approved controls.
+- `Scoped instructions` — trigger: existing scoped files or a subtree has
+  materially different commands, ownership, generated sources, or rules.
+  Benefit: agents load action-changing deltas only where they apply.
+- `Repository structure` — trigger: ownership or change boundaries are not
+  obvious, such as generated projections, multiple build roots, or unusual test
+  ownership. Benefit: agents see responsibility and change guidance without a
+  generic directory tree.
 
-**blessed security tools/helpers:** list this repository's sanctioned helpers by
-boundary here. This declaration takes precedence over inferred alternatives.
-External quality gate: none declared; declare one here when applicable.
-
-## Scoped instructions
-
-The nearest `AGENTS.md` above the file being edited applies. Read it before acting
-in that directory; use scoped files only for action-changing directory deltas.
-
-## When this file is wrong
-
-Report stale or conflicting instructions rather than silently working around them.
-Update the owning source, not a generated projection.
+Omit every additional section whose content is not verified.
+-->

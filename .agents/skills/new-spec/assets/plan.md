@@ -2,13 +2,19 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Repository anchors:** <task-relevant architecture/convention source;
+  one or two analogous production implementations; corresponding tests or
+  construction path; named uncertainty/deviation — or `none — non-structural`>
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`
 > or `Executing`. When it changes substantially (a different approach, not just
 > a re-ordering), note why in the changelog at the bottom. Once it is `Done`
 > and the spec is `Shipped`, the directory freezes as a unit
-> (`docs/CONVENTIONS.md` § Document lifecycle).
+> (or the adopter repository's equivalent document-lifecycle guidance).
+
+<!-- Existing plans without this field remain valid. Treat its absence as a
+named assurance gap during structural review, not a universal lint failure. -->
 
 <!-- **Durable-plan fill.** This template is the implementation and verification
 strategy for a durable delivery slice. Fill Approach, Constraints, Risks,
@@ -70,10 +76,10 @@ anchored to something verifiable.
 
 Stack-neutral by construction: these are the *kinds* of design decision every
 build makes, never a framework. Name your actual stack *inside* each sub-section
-— derived from `docs/architecture/reference.md` when that file is present (use
-its components, stereotypes, and standards by name), otherwise from the
-established repo (lockfiles, build files, imports) or elicited when unclear. The
-headings themselves stay universal.
+from the repository's mapped architecture and convention sources. If none are
+usable, use manifests/build files and, for structural work, one or two analogous
+production implementations with their tests or construction path; elicit any
+unresolved load-bearing choice. The headings themselves stay universal.
 
 <!-- Shape → sub-sections (a guide, not a gate):
   ui          → decomposition, state & control flow, behavior & rules, quality attributes

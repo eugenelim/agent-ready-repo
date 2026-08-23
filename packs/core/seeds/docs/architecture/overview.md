@@ -1,81 +1,28 @@
 # Architecture Overview
 
-> The map of this monorepo. Read this first when exploring. Updated whenever
-> the directory layout or major dependencies change.
+Keep this file only when the repository has non-obvious ownership or change
+boundaries that the root and scoped `AGENTS.md` files cannot route concisely.
+Delete this file if it would only repeat an existing architecture source or a
+generic directory tree.
 
-## Layout
+Preserve an equivalent adopter-owned document wherever it already lives. Do not
+move or duplicate it to satisfy this seed's path.
 
-```
-.
-├── AGENTS.md             # canonical agent context (CLAUDE.md is a symlink)
-├── apps/                 # deployable applications
-│   └── <app-name>/       # one directory per app
-├── packages/             # shared libraries (consumed by apps and other packages)
-│   └── <package-name>/
-├── tools/                # build, dev, and ops tooling — not shipped to users
-├── docs/
-│   ├── CHARTER.md        # mission, scope, principles (one page)
-│   ├── CONVENTIONS.md    # how we work
-│   ├── adr/              # architecture decisions (frozen history)
-│   ├── rfc/              # proposals (governance)
-│   ├── specs/            # feature specs and plans
-│   ├── architecture/     # this directory — current code structure (for contributors)
-│   ├── product/          # current product state (roadmap, changelog) — for maintainers
-│   └── guides/           # user-facing docs (Diátaxis: tutorials, how-to, reference, explanation)
-├── .claude/
-│   ├── skills/           # agent workflows for repeating tasks (each skill owns its templates under `assets/`)
-│   ├── agents/           # subagent definitions
-│   └── commands/         # custom slash commands
-└── .github/              # CI, issue and PR templates
-```
+## Areas and change guidance
 
-## Apps and packages
+Replace the placeholders with the few boundaries that change how a contributor
+works. Name responsibility and the first place to inspect, not every directory.
 
-<!--
-Replace this section with a real listing of your apps and packages.
-The ideal entry tells an agent: what is this, what does it depend on, and
-where do I look first?
+| Area | Responsibility | Change guidance |
+| --- | --- | --- |
+| `<area>` | `<responsibility>` | `<change guidance>` |
 
-- `apps/web/` — the public-facing web app (Next.js). Depends on `packages/api-client`,
-  `packages/ui`. Entry point: `app/page.tsx`.
-- `packages/api-client/` — typed HTTP client for the API. Generated from
-  the OpenAPI spec in `apps/api/openapi.yaml`.
-- ...
--->
+Useful entries include generated projections, independent build roots,
+cross-package ownership, unusual test locations, and source directories whose
+outputs must be regenerated elsewhere.
 
-<!--
-Optional section. If this project ships skill/agent packs, list them
-here with a one-line purpose each. Delete this section if you don't
-ship packs.
+## Entry points
 
-Example:
-
-- `<pack-name>` — <one-line purpose>. <scope: repo-only / user-scope / both>.
--->
-<list your packs and packages here>
-
-## Conventions you'll see across packages
-
-<!--
-Things that are true of every package in the monorepo. Example:
-
-- Every package has its own `AGENTS.md` describing package-specific rules.
-- Every package exports a `package.json` with `main`, `module`, and `types`.
-- Every package has a `README.md` aimed at human consumers.
-
-Add yours here.
--->
-
-## Where to start
-
-<!--
-A short, opinionated path for someone new to the repo. Example:
-
-1. Read [`docs/CHARTER.md`](../CHARTER.md) — the project's mission and scope.
-2. Read this file (architecture overview).
-3. Skim [`docs/product/roadmap.md`](../product/roadmap.md) for current direction.
-4. Pick a recent feature in `docs/specs/` and read its `spec.md` and `plan.md`
-   side by side with the resulting code in `apps/` or `packages/`.
-5. Look at the latest 3 ADRs in `docs/adr/` to see the kinds of decisions
-   we record.
--->
+Link the repository's existing system model, decisions, and contributor guide
+when they help a newcomer choose the correct area. Omit this section when those
+links already fit in root `AGENTS.md`.

@@ -82,6 +82,14 @@ expensive part. The gate is for the *unfamiliar-contract* case, not every
 import — it does not fire on framework code whose contract the agent already
 holds.
 
+Repository coding dialect, file layout, and local implementation idioms belong
+to repository anchoring in `adapt-to-project`, `new-spec`, and `work-loop`, not
+to this skill. This skill retains actual platform and library API contracts:
+signatures, lifecycle, version-specific behavior, schemas, packaging, and
+toolchain oracles. A repository-owned framework primitive may be an anchor for
+local design; invoke this skill only when its unfamiliar API contract must be
+acquired.
+
 ## The protocol (tiered, tool-keyed, increasing cost)
 
 Run the tiers in order, stopping when you have the contract slice the change

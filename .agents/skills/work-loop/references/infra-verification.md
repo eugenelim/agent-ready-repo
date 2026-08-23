@@ -82,7 +82,7 @@ contract-grounding gate, do one cheap thing first: **check recorded
 coordinates → acquire via oracles**. The adopter may already have written down
 where they deploy and how they verify, in files they own:
 
-- the **`AGENTS.md` "Commands you'll need"** optional infra/verification block —
+- the effective guidance's mapped **build, deploy, and verification commands** —
   the `<deploy>` / `<smoke / verify-status>` / `<teardown>` / `<seed-test-data>`
   one-liners; and
 - the **`reference.md`** platform/verification slots — the
@@ -108,7 +108,7 @@ still smokes the **real** deployed system. When a recorded value **contradicts**
 the oracle (the `reference.md` names a runtime the `plan` output disputes, a
 recorded smoke command targets an endpoint the deploy no longer exposes), that
 contradiction is a **surfaced drift signal**, not a fact to trust — exactly the
-AGENTS.md *"When this file is wrong"* posture: flag the drift, don't silently
+repository guidance's conflict/staleness posture: flag the drift, don't silently
 work around it.
 
 ## PLAN — the multi-artifact preflight (each its own task-zero)
