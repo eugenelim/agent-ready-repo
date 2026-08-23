@@ -1294,7 +1294,7 @@ loads or while it is running.
 | "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
 | "I don't need a spec, I understand the task." | An eligible direct-light request keeps its plan in the active session; it does not persist a spec. If the work needs durability or any risk trigger fires, use `new-spec` for the durable spec and plan. |
 | "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
-| "I'll match the surrounding code's pattern." | Check the [Documentation](../AGENTS.md#documentation) routes first; local style may already conflict with the canonical convention. |
+| "I'll match the surrounding code's pattern." | Check the root `AGENTS.md` guidance first; local style may already conflict with the repository's documented convention. |
 
 ---
 
