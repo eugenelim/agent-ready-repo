@@ -3823,3 +3823,90 @@ that mechanism rather than record the channel as inherently uncontrollable.
   artifact is created. The five binding requirements stand exactly as the 2026-08-22 entry
   restated them, including the first-browser-digest-pin requirement, which remains **not
   measurable**.
+
+- **2026-08-23 — `rfc0088-native-addon-confinement-bypass` is re-scoped, not closed. A
+  disposition, not a measurement.** This is the second entry dated 2026-08-23. It relabels
+  one carried residual, which the preceding entry's closing line said it was not doing —
+  that line was accurate for the entry carrying it.
+
+  **This entry establishes a reading convention: per-entry "nothing else moves" clauses are
+  self-scoped to the entry that carries them.** It is established here rather than claimed
+  as settled practice, because nobody recorded it. One prior instance is consistent with it:
+  the 2026-08-22 *rulings-on-questions-1/5/6* entry closes with an unqualified "no residual
+  is relabelled", and the 2026-08-23 *deferrals* entry then relabelled
+  `rfc0088-signing-identity-update-survival` without superseding it — but a single silence is
+  equally readable as an omission, so it is offered as consistency rather than as proof.
+  Three such clauses already run in sequence before this one, which is why the convention is
+  worth stating.
+
+  This does not weaken the explicit-supersession rule this section states elsewhere. That
+  rule governs cross-entry *decisions* — a later ruling displacing an earlier one — whereas a
+  closing "nothing else moves" clause is a scope statement about its own entry's reach, and a
+  scope statement cannot bind acts it never contemplated.
+
+  **What is measured, and what is not.** Round 11 measured the *gate*: Node's permission
+  model refuses `process.dlopen` by **policy** when `--allow-addons` is absent
+  (`ERR_DLOPEN_DISABLED`) and lets it through to a non-policy failure when the flag is
+  granted (`ERR_DLOPEN_FAILED`), so "denied" cannot be satisfied by a file that merely fails
+  to load. What has never been measured is whether a genuinely compiled `.node` addon,
+  loaded through a granted gate, defeats the filesystem confinement round 10 established —
+  the correction-9 session-theft path, reading the live browser profile off disk. Measuring
+  it needs `node-gyp` and a C++ toolchain in the evidence tree.
+
+  **Why the question arose now.** "Deny `--allow-addons`" is one of the five binding
+  requirements, and the 2026-08-22 *binding-requirements* entry restates it as holding. In the pilot the flag is
+  therefore never granted, and the bypass has no gate to come through.
+
+  **The ruling: re-scope to configurations that grant the flag, and keep it carried.** The
+  slug's second unblock condition read "an approver rules that the pilot's unconditional
+  addon denial makes it moot **and re-scopes the slug accordingly**". Both conjuncts are
+  answered, and they are answered differently: the **moot half is rejected** — the pilot's
+  denial makes the bypass *unreachable*, which is not the same as *measured* — and the
+  **re-scope half is taken**.
+
+  **Where the unmeasured half is and is not already recorded, stated precisely because an
+  earlier draft of this entry overstated it.** The distinction is recorded in the evidence
+  layer in several places: § *Approver dispositions — 2026-08-18*'s round-11 layer calls it
+  "bounded, not closed", the
+  round-11 note and the round-11 spec's AC7 both name it, and this section's blocker item 5
+  states the argv half as "a bound, not an all-clear … which round 10 did not test". So the
+  register entry is **not** the only record of the distinction. What it is the only record
+  of is the distinction **as a live open item an approver must dispose of** — and that is
+  the reason to keep it rather than close it. Blocker item 5's *filesystem* half is the text
+  that would be left misleading by a closure: it reads "closed by composition … both
+  permission-model arms deny it", with no compiled-addon caveat attached.
+
+  **Two alternatives were put to the approver and declined.** Commissioning the toolchain
+  was declined. The same reason is on the record twice already, and neither instance was an
+  approver ruling: round 11 recorded it on 2026-08-18 as a *product* decision in its spec's
+  Assumptions ("stays an unmeasured named residual rather than adding node-gyp and a C++
+  toolchain … source: user confirmation"), and round 13 carried the reason forward on
+  2026-08-21. **This is the first approver ruling on it.** It adds
+  a dependency to measure a path the pilot forbids, and recording a new dependency would
+  ordinarily want a decision record, which the Boundaries forbid while this RFC is
+  `Experimental`. Closing outright was declined for the reason above.
+
+  **A mechanical fact that narrows what any of the three options could have meant.** The
+  slug is pinned by a `(deferred: …)` marker in a **frozen** predecessor spec, and the
+  deferral lint resolves markers against the open register only. So the entry cannot leave
+  `[backlog].open` under any disposition — closing it would have meant `closed_retained`
+  with a satisfaction summary, on the retained-frozen-anchor precedent this repository has
+  already settled for several slugs. The practical difference between closing and
+  re-scoping was therefore what the entry *says*, not whether it exists.
+
+  **What the approver gives up by taking this**, stated rather than discovered later: a
+  carried residual that no pilot work will close. Nothing in the pilot grants the flag, so
+  nothing in the pilot can measure the bypass.
+
+  **What moves, and what does not.** A third thing moves and it is deliberately not on the
+  register entry: **this entry records the per-entry self-scoping convention for the
+  amendment layer**, stated above. The other two are on the register entry and nowhere else —
+  its **scope**, now configurations that grant `--allow-addons`; and its
+  **unblock condition**, whose rejected moot-ness clause is replaced by "a configuration
+  outside the pilot needs the flag granted and commissions the measurement". The unblock
+  condition is part of a `carried` disposition's content, so its replacement is named here
+  rather than left to a diff. Nothing else: no blocker item closes, no other residual is
+  relabelled, no disposition is withdrawn, the status field does not move, no follow-on
+  artifact is created, and the five binding requirements are unchanged. The slug stays
+  `carried` in the round-13 disposition partition, so no slug-set comparison against the
+  pinned base moves.
