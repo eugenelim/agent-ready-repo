@@ -968,7 +968,7 @@ bottom will meet all of these as live text; every one is superseded here:
 | "Live adapters reject loopback, private, link-local, multicast, and metadata destinations after DNS resolution and on every redirect/connection" | *Website-adapter artifact and runtime contract* | *Network corrections in force* — an invariant, not a capability of the route API |
 | Node permissions listed among the safety rails | *Native Playwright and trusted-code posture* | Correction 7 — one coarse `net` permission gates the transport too |
 | "S1, S2, S3, S4, and S5 remain open Experimental gates" | *Experimental run ledger — 2026-08-15* | The current-state table above; that sentence is dated commentary, not a live status |
-| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3's bar is amended by the 2026-08-21 entry below and the question stays open |
+| The six *Open questions* | *Open questions* | All six carry answers in the amendment entries below. Q3 and Q4 ruled 2026-08-21 — Q3's amended bar is **unmet and still gates acceptance**. Q1, Q5 and Q6 ruled and Q2 resolved 2026-08-22. Q2's reading in this section — answered by S2, plain self-contained ESM, no bundler — is the correct one; see that entry for why |
 
 The `Experimental run ledger — 2026-08-15` and the `Experiment / validation`
 tables are the **first** run's record. Where they and this section disagree,
@@ -3315,8 +3315,9 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-21 — approver rulings on open questions 3 and 4.** Two rulings, taken
   after the round-13 decision surface was assembled and superseding what that section
   records for these two questions. Nothing else changes: RFC-0088 remains
-  `Experimental`, open questions 1, 2, 5 and 6 remain outstanding, no blocker item
-  closes, and no follow-on artifact is created.
+  `Experimental`, open questions 1, 2, 5 and 6 remain outstanding *(superseded by the
+  2026-08-22 entry below, which rules or resolves all four)*, no blocker item closes, and
+  no follow-on artifact is created.
 
   **Open question 3 — ruled. The bar is amended: it is a contract, not a count.** The
   recommended default in the open-question text required S5 to prove *two* independent
@@ -3432,7 +3433,8 @@ that mechanism rather than record the channel as inherently uncontrollable.
   taken before acceptance belongs. Each one graduates to an ADR when the RFC is
   Accepted and implementation is separately authorised — the follow-on list already
   reserves an ADR slot that AD-3 graduates into. RFC-0088 remains `Experimental`; open
-  questions 1, 2, 5 and 6 remain outstanding; no blocker item closes.
+  questions 1, 2, 5 and 6 remain outstanding *(superseded by the 2026-08-22 entry below)*;
+  no blocker item closes.
 
   **AD-1 — authentication is an optional layer, not a precondition of page driving.**
   The foundation ships page driving without any authentication mechanism. Sign-in and
@@ -3543,3 +3545,138 @@ that mechanism rather than record the channel as inherently uncontrollable.
   destination behaviours the pack will refuse to accommodate. Apparatus, row inventory,
   mutation controls and the at-rest scan are recorded in
   [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md).
+
+- **2026-08-22 — approver rulings on open questions 1, 5 and 6; question 2 resolved on
+  investigation; and blocker item 1 settled.** With the 2026-08-21 rulings on questions 3
+  and 4, every open question now carries an answer, and **blocker item 1's accepted
+  OS/browser support matrix is recorded below**. **The RFC's status does not move.** It
+  remains `Experimental`, and the questions no longer wait on a *ruling* — which is not
+  the same as the exit no longer waiting on them. Question 3's amended bar is **ruled but
+  unmet**: no destination adapter contract, no two fixtures in CI and no documented
+  reference consumer exist yet, and that bar continues to gate acceptance. No follow-on
+  artifact is created.
+
+  **Open question 1 — ruled. The accepted matrix confirms disposition B; it does not
+  narrow it.** This ruling adopts the recommended candidate as the *pilot* platform and
+  leaves the channel set disposition B already accepted intact. Both macOS channels
+  remain admitted. Item 1 asked the exit to admit or defer on evidence rather than leave
+  the question unstated, and the evidence is the S1 lifecycle corpus, run on **bundled
+  Chromium 151.0.7922.34 and system Chrome 151.0.7922.138**, together with round 13's
+  signing-identity arm.
+
+  | Platform | Channel | Disposition |
+  | --- | --- | --- |
+  | macOS 26.5.2 arm64 | bundled Chromium | **Supported** |
+  | macOS 26.5.2 arm64 | system Chrome | **Supported** |
+  | Linux Ubuntu 24.04.4 arm64 | either | **Deferred** — measured, not admitted |
+  | Windows, any channel | — | **Untested in every respect; a blocker on admission** |
+  | Any `x86_64`, either OS | — | **Unmeasured; deferred** |
+
+  Three things the matrix says that were previously only implied. **`x86_64` is nowhere
+  in this RFC's evidence** — every measurement is arm64 — so an Intel Mac is deferred
+  rather than quietly included in "macOS". **Deferring Linux is not a judgement about
+  Linux**: it removes the `0700` relay condition and the `SYS_ADMIN`-dependent namespace
+  boundary from pilot scope, and disposition B already recorded that it does **not**
+  remove the failing endpoint-confinement row, which round 10 measured failing on macOS
+  too. And the matrix inherits disposition B's two accepted exposures on the pilot
+  platform: Playwright's own bind endpoint remains unconfined and reachable by any
+  same-uid process, and the sandbox-off design choice stands, under which site content
+  achieving renderer code execution becomes a same-uid actor.
+
+  **What this closes, and what it does not.** Item 1's *accepted matrix* is now on the
+  record, which is the half the item's title names. Its measurement residual is **not**
+  closed: four manifested drivers remain unmeasured sandboxed —
+  `s1/r4-attachment-authorization.mjs`, `s2/r5-deny-default-boundary.mjs`,
+  `s2/r5-linux-os-boundary.mjs` and `s3/r5-linux.mjs` — and the macOS sandbox read-back
+  remains weaker than the Linux one, inferring the sandbox from the absence of
+  `--no-sandbox` rather than observing it. Deferring Linux moves two of those four out of
+  pilot scope; the other two do not move.
+
+  **Open question 2 — not ruled; resolved, and the RFC was contradicting itself.** The
+  current-state table recorded question 2 as answered by S2, while the round-13 decision
+  surface recorded it as outstanding because "the dependency-gate half of the original
+  spike remains blocked". Both were in force. Investigated rather than picked between:
+  **the blocked half was never question 2's.** Question 2 asks whether packaging requires
+  build-only bundler tooling, and its precondition was dependency *isolation*, which S2
+  closed. What S2 left open was vulnerability-database access — a Node lockfile scanner
+  and blocking policy — which is **D17's** requirement. The round-13 record conflated the
+  two, and that conflation is the whole of the apparent contradiction. Question 2 needs
+  no ruling; the current-state table's reading is the correct one.
+
+  **D17 is advanced, not closed, and the distinction matters.** [ADR-0083](../adr/0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md)'s
+  npm SCA leg satisfies exactly one D17 clause — *the scanner is wired into the build
+  check* — via `tools/audit-npm.py`, which discovers every project lockfile beneath the
+  repository root rather than a named pair, and which runs as the required `gate-sast`
+  job established by [ADR-0086](../adr/0086-split-the-sast-gate-into-its-own-ci-job.md).
+  Correction 5's acceptance policy asks for more, and these clauses are **unmet**: database
+  freshness and source integrity, a separate nonblocking all-severity inventory, and a
+  recorded scanned-lock digest. Correction 5 also states that browser installation must
+  verify the exact browser-revision digest or signature, and that a clean Node lock does
+  not cover the browser payload — which remains blocker item 2's subject. The
+  current-state row's "D17 blocking policy is met on 16 of 18 checks" is not withdrawn
+  here.
+
+  **Open question 5 — ruled. The accommodation is required where the destination's
+  behaviour requires it, and the residual exposure is disclosed rather than designed
+  away.** Round 14 measured that the recommended accommodation's precondition is absent
+  at a real destination, and that the destination's own frontend puts the token at rest
+  by a path the response cache has nothing to do with. Neither is a consumer's to fix.
+  The approver does not refuse the pattern:
+
+  > A destination whose issued credential can come to rest outside the browser session —
+  > because its issuing response is uncached, because its frontend persists the token to
+  > page-readable storage, or both — is supported. The adapter must **declare that
+  > property for that destination**, and the adopter accepts the exposure knowingly. The
+  > pack must not present such a destination as equivalent to one whose credential stays
+  > confined, and must not imply that keeping a token page-resident prevents an at-rest
+  > copy the destination itself creates. **AD-3's two derived obligations continue to
+  > apply unchanged to this admitted class**: the browser user-data directory is a
+  > credential-bearing artifact whose lifetime is declared and enforced, and a
+  > page-resident token stays out of reach of every model-facing tool. The adopter accepts
+  > an exposure; the adopter does not discharge those obligations.
+
+  This **supersedes the round-13 decision surface's construction requirement** that any
+  adoption of the page-resident candidate "must carry the directive as a requirement" —
+  a destination that never sends the directive is admitted, with declaration in place of
+  the requirement. The declaration has no carrier yet: this entry creates no blocker item
+  and no binding-requirement row, so the obligation is **carried into Spec 1's contract
+  list** and is not enforceable until that spec exists. Recorded as an open edge rather
+  than left to be discovered.
+
+  What the approver accepts by taking this: the credential boundary is weaker in practice
+  than **AD-3's reach property and decision C's framing** together imply, for a class of
+  destination the pack will not refuse. A deliberate reduction, taken because refusing the
+  class would refuse the use case the foundation exists to serve.
+
+  **Open question 6 — ruled. Signing identity is the provenance anchor** for system
+  channels, with digest pinning retained for bundled ones. Its support, with the measured
+  and unmeasured halves kept apart as round 13 kept them: signing identity **was measured**
+  to be an attributable discriminator, and it survives updates **by construction** in a way
+  a digest pin cannot — that survival is *unmeasured*, and one installation cannot observe
+  an update. It also blocks a code-injection class a digest pin never addressed.
+
+  **Both anchors are live in the pilot**, because the matrix above admits both channels:
+  bundled Chromium is anchored by digest pinning, system Chrome by signing identity.
+  Digest pinning carries item 2's recorded caveats into the pilot — it remains
+  trust-on-first-use, its binding requirement that the first pin be established from an
+  independently verified channel *and that channel recorded* is **not measurable** and
+  unmet, and it is distinct from the bundled payload's DSSE signer identity, which item 2
+  keeps on the critical path and which this ruling does not retire.
+
+  Because the system channel is admitted rather than deferred,
+  `rfc0088-signing-identity-update-survival` **remains an acceptance blocker**. It is not
+  demoted by this ruling. Closing it needs a second dated observation across a real
+  update, which no single installation can supply.
+
+  Both friction profiles round 13 named still hold, and the pilot carries both at once:
+  signing identity imposes a recurring per-adopter burden — express and maintain a
+  requirement expression, re-derive it when a vendor rotates a team identifier — while
+  digest pinning imposes a per-update burden and is unachievable for an MDM-provisioned
+  auto-updating browser.
+
+  **Supersessions this entry makes explicit**, because this RFC treats the amendment layer
+  as needing explicit supersession rather than chronological inference: the round-13
+  decision-surface records for questions 1, 2, 5 and 6 are superseded by this entry, as is
+  its cache-directive construction requirement for the page-resident candidate. Blocker
+  item 1's matrix half is settled here; its sandbox-measurement residual is not. No other
+  blocker item closes, no residual is relabelled, and no disposition is withdrawn.
