@@ -125,9 +125,9 @@
 The environment deferral recorded under T5 was **not** used. On 2026-08-23 the
 three gates that could not finish under the managed runtime — `catalogue
 verify`, `catalogue self-host --write`, and `SKIP_SAST=1 make build-check` —
-all ran to completion here with no `EPERM`. Running them found three real
-defects that the deferral had concealed. Each is fixed in this change; none was
-waived.
+all ran to completion here with no `EPERM`. Running them, plus the wider test
+suites CI runs, found six real defects that the deferral had concealed. Each is
+fixed in this change; none was waived.
 
 1. **Release-surface pins were not moved.** `tests/roster/`'s two
    release-synchronization tests hard-pin the previous core and `agentbundle`
@@ -144,6 +144,28 @@ waived.
    `architect-design` were discovered rather than declared, which rule
    `every-suite-dir-has-a-runner` treats as unrun by default. Both are now named
    in the `Makefile` test target.
+4. **A roster slice pinned the old Class-3 heading.**
+   `tests/roster/test_adapt_reference_architecture.py` anchors on
+   `**Reference-architecture harvest.**`, which this change renamed to
+   `**Optional reference-architecture enrichment.**`. The guard failed loudly
+   with "update this slice", which is the behavior it was designed for. The
+   slice now follows the rename.
+5. **The same slice asserted a canonical destination.** It required
+   `docs/architecture/reference.md` inside the subsection — exactly the fixed
+   destination this change removes. It now asserts the new contract instead:
+   the shipped template is an optional starting point and the adopter chooses
+   the location.
+6. **A seed link inventory was pinned exactly.**
+   `test_installed_agents_guidance_has_no_dangling_relative_links` asserted the
+   seed `AGENTS.md` links both `docs/CONVENTIONS.md` and
+   `docs/architecture/overview.md`. The architecture link is gone by design —
+   that section is conditional and the seed tells adopters to delete the file
+   when it duplicates a source they already have. Core still ships the file, and
+   that assertion is retained.
+
+Defects 4-6 sit outside the spec's targeted suite, in tests owned by other
+features. That is the general lesson: a targeted suite cannot see the contracts
+other suites pinned against the prose this change rewrote.
 
 The version surface also moved: `main` released architect `0.15.0` while this
 change was in review, so the architect bump is `0.15.1`, not the `0.14.6`
