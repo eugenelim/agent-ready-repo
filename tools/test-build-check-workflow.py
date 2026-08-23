@@ -319,6 +319,10 @@ PINNED_SITE_BUILD_PYTEST = (
     # pages.yml, which is not a required merge context; its construction test —
     # the spec allowlist, the matrix's route/width/theme contract, and the
     # DOCS_BASE agreement — runs HERE so the wiring is proven in a required one.
+    # That module has since become the home for the site manifests' other
+    # must-stay-in-relation pairs too, which are here for the same reason and not
+    # for a browser-gate one: the `@astrojs/markdown-remark` version that
+    # docs-site's manifest, its lockfile and astro's optional peer must agree on.
     "tools/test_browser_gate_subset.py"
 )
 PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"

@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
-"""The browser gate's spec allowlist, checked against the filesystem.
+"""The browser gate's spec allowlist, plus the site files' must-stay-in-relation values.
 
 `site-browser-quality-gate` AC11: required CI must leave the tracked tree clean,
 and two of the e2e specs write PNGs into tracked `docs/specs/**/notes/screenshots/`.
+
+A further resident class — alongside the AC1/AC2 matrix contract, the
+unbound-helper-identifier check and the tap-target audit arithmetic below — is a
+value that tracked site files must keep in a fixed relation, where nothing else
+would notice them diverging: the `base` the docs config must derive from the
+marketing one, and the `@astrojs/markdown-remark` version that
+`docs-site/package.json`, the lockfile and astro's optional peer must agree on.
+They live here because this module runs from `gate-main`, a required context;
+`pages.yml` is not one, so a pin gate placed there could not block the merge that
+broke it.
 
 Scope is deliberately narrow. `pages.yml` posture — that the gate step exists by
 statement equality, is not advisory/conditional/redirected, runs after both builds
@@ -155,6 +165,167 @@ def test_the_docs_base_agrees_with_the_docs_site_config() -> None:
         f"docs-site base is {docs_base.group(1)!r} but site-base.ts derives "
         f"{expected!r} from the marketing base — update site-base.ts to read the "
         "docs config, or realign the two"
+    )
+
+
+MARKDOWN_REMARK = "@astrojs/markdown-remark"
+EXACT_VERSION = re.compile(r"\d+\.\d+\.\d+")
+CARET_RANGE = re.compile(r"\^(\d+)\.(\d+)\.(\d+)")
+
+
+def _docs_site_versions() -> dict[str, str | None]:
+    """Every recorded copy of the `@astrojs/markdown-remark` version, and astro's.
+
+    Missing values come back as ``None`` rather than raising. The drift shape this
+    guards has already occurred in the exact form of an ABSENT key — at #1036's
+    head 6990d3d7, `docs-site/package.json` declared no `@astrojs/markdown-remark`
+    at all — and a `KeyError` traceback would replace the remediation text the
+    assertions exist to deliver.
+
+    `@astrojs/mdx` is a fifth recorder and is deliberately absent: it requires
+    `@astrojs/markdown-remark` through its own `dependencies`, not a peer, so an
+    mdx divergence nests a private copy under `@astrojs/mdx/node_modules/` and
+    leaves the ROOT slot — the only placement `astro.config.ts` can import from —
+    untouched. Comparing it would fail on a difference that cannot break this
+    build. Do not add it back without re-deriving that argument.
+    """
+    site = REPO_ROOT / "docs-site"
+    manifest = json.loads((site / "package.json").read_text(encoding="utf-8"))
+    packages = json.loads((site / "package-lock.json").read_text(encoding="utf-8"))
+    packages = packages.get("packages", {})
+    deps = manifest.get("dependencies", {})
+    root = packages.get("", {}).get("dependencies", {})
+    astro = packages.get("node_modules/astro", {})
+    starlight = packages.get("node_modules/@astrojs/starlight", {})
+    return {
+        "manifest_pin": deps.get(MARKDOWN_REMARK),
+        "lock_root_pin": root.get(MARKDOWN_REMARK),
+        "installed": packages.get(f"node_modules/{MARKDOWN_REMARK}", {}).get("version"),
+        "astro_peer": astro.get("peerDependencies", {}).get(MARKDOWN_REMARK),
+        "manifest_astro": deps.get("astro"),
+        "installed_astro": astro.get("version"),
+        "starlight_peer": starlight.get("peerDependencies", {}).get(MARKDOWN_REMARK),
+        "starlight_version": starlight.get("version"),
+    }
+
+
+def test_the_markdown_remark_pin_equals_astros_optional_peer() -> None:
+    """One `@astrojs/markdown-remark` version, agreed by all four files recording it.
+
+    astro declares it an *optional* peer at an exact version, so npm neither
+    installs it nor complains when the two drift — but `astro.config.ts` needs it
+    resolvable at the root, and a mismatched copy is a resolution failure at build
+    time, not an install-time warning. The duty to move both together was prose in
+    `docs-site/AGENTS.md` that no gate read.
+
+    Read from the lockfile rather than `node_modules/astro/package.json`: this
+    module runs in `gate-main`, which installs no Node, and a check that skips
+    itself in the job most PRs actually run is not a check.
+
+    All four recorded copies are compared, not just the manifest against the peer.
+    `npm ci` would refuse a lockfile that disagrees with the manifest — but `npm
+    ci` runs in `build`, which is not a required context, and that is the same
+    argument that puts this test here rather than in `node_modules`. It cannot be
+    used to justify reading the lockfile and then to excuse trusting it.
+    """
+    v = _docs_site_versions()
+
+    # The two absences mean opposite things and need opposite first moves.
+    assert v["manifest_pin"] is not None, (
+        f"docs-site/package.json declares no `{MARKDOWN_REMARK}`. The declaration "
+        "is what makes root placement a requirement rather than a hoisting "
+        "accident (docs-site/AGENTS.md § Action-changing traps) — restore it, or "
+        "delete this test with a reason if the duty genuinely ended."
+    )
+    assert v["astro_peer"] is not None, (
+        f"astro {v['installed_astro']} no longer declares `{MARKDOWN_REMARK}` as a "
+        "peer. This is the arrival docs-site/AGENTS.md predicts, and it is NOT a "
+        "signal to delete this test: run `npm run build --prefix docs-site` and "
+        "check whether astro.config.ts's markdown configuration still validates "
+        "before concluding anything about the duty."
+    )
+
+    # Exact equality is the whole contract. A range on any of the three means the
+    # premise changed, and "make them equal" would be the wrong instruction.
+    for key, what in (
+        ("manifest_pin", "the markdown-remark pin"),
+        ("astro_peer", "astro's declared peer"),
+        ("manifest_astro", "the astro pin"),
+    ):
+        assert EXACT_VERSION.fullmatch(v[key] or ""), (
+            f"{what} is {v[key]!r}, not an exact version. This test asserts exact "
+            "equality because astro declared an exact optional peer; a range means "
+            "that premise no longer holds and the check needs re-deriving, not "
+            "loosening."
+        )
+
+    # The peer range is evidence about the pinned astro only if the lockfile still
+    # describes that astro.
+    assert v["installed_astro"] == v["manifest_astro"], (
+        f"docs-site/package.json pins astro {v['manifest_astro']!r} but the lockfile "
+        f"resolves {v['installed_astro']!r} — regenerate docs-site/package-lock.json"
+    )
+
+    agreed = {
+        "docs-site/package.json": v["manifest_pin"],
+        "package-lock.json root dependencies": v["lock_root_pin"],
+        "package-lock.json resolved version": v["installed"],
+        f"astro {v['installed_astro']} optional peer": v["astro_peer"],
+    }
+    assert len(set(agreed.values())) == 1, (
+        f"the four recorded `{MARKDOWN_REMARK}` versions disagree: "
+        + ", ".join(f"{where} = {ver!r}" for where, ver in agreed.items())
+        + " — they move together, or `astro build` fails to resolve the package "
+        "astro.config.ts imports"
+    )
+
+
+def test_starlight_also_accepts_the_markdown_remark_pin() -> None:
+    """astro is not the only optional-peer consumer; Starlight is the other.
+
+    Starlight declares a *range* where astro declares an exact version, so a
+    Starlight bump can move its floor while astro stays put — leaving the pin
+    equal to astro's peer, this site's other guard green, and Starlight's
+    requirement unsatisfied. Checking only astro would miss it.
+
+    Caret satisfaction is computed here rather than pulled from a semver library:
+    this module is stdlib-only by construction, it runs in a required job, and a
+    test that can fail on a missing import is one someone import-guards under
+    pressure. Any range shape other than a caret on a non-zero major fails loudly
+    instead of being approximated.
+    """
+    v = _docs_site_versions()
+    # Guard the early return: "Starlight is installed and stopped declaring the
+    # peer" is the only world that may pass vacuously. A missing Starlight entry,
+    # or a changed key shape, would otherwise retire this check silently.
+    assert v["starlight_version"] is not None, (
+        "docs-site/package-lock.json records no `node_modules/@astrojs/starlight` "
+        "— either Starlight is gone, in which case delete this test, or the "
+        "lockfile's key shape changed and this check is reading the wrong place."
+    )
+    spec = v["starlight_peer"]
+    if spec is None:
+        return  # Starlight stopped declaring it; astro's exact peer is the contract.
+
+    caret = CARET_RANGE.fullmatch(spec)
+    assert caret, (
+        f"Starlight {v['starlight_version']} declares `{MARKDOWN_REMARK}` as "
+        f"{spec!r}, which is not the `^X.Y.Z` shape this check understands — "
+        "re-derive the comparison rather than widening it to pass."
+    )
+    floor = tuple(int(g) for g in caret.groups())
+    assert floor[0] != 0, (
+        f"Starlight's range {spec!r} is a caret on major 0, where caret semantics "
+        "pin the minor instead of the major — re-derive this comparison."
+    )
+    pin = v["manifest_pin"] or ""
+    assert EXACT_VERSION.fullmatch(pin), f"the pin is {pin!r}, not an exact version"
+    got = tuple(int(part) for part in pin.split("."))
+    assert got[0] == floor[0] and got >= floor, (
+        f"docs-site pins `{MARKDOWN_REMARK}` {pin!r}, which does not satisfy "
+        f"Starlight {v['starlight_version']}'s declared range {spec!r} — a "
+        "Starlight bump moved the floor and the pin has to follow it too, not "
+        "only astro's exact peer"
     )
 
 
