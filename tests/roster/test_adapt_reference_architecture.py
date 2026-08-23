@@ -8,8 +8,8 @@ not a dependency on the architect pack.
 Covers, per the spec's Testing Strategy:
   - T1: the arc42 template asset exists, is arc42-shaped, stack-neutral,
     carries the fill-only guidance, and is adopter-clean.
-  - T3: the `adapt-to-project` SKILL.md documents the Class-3
-    reference-architecture harvest, and the harvest subsection is adopter-clean.
+  - T3: the `adapt-to-project` SKILL.md documents the Class-3 optional
+    reference-architecture enrichment, and that subsection is adopter-clean.
   - T4: the CONVENTIONS seed seats `reference.md` in the document-hierarchy
     diagram, and the lines this feature added are adopter-clean.
   - T5: the four user guides exist, every intra-repo relative link in them
@@ -122,7 +122,7 @@ def test_template_is_adopter_clean() -> None:
 
 def _harvest_subsection() -> str:
     body = SKILL.read_text(encoding="utf-8")
-    start_marker = "**Reference-architecture harvest.**"
+    start_marker = "**Optional reference-architecture enrichment.**"
     end_marker = "## Class 4"
     assert start_marker in body, (
         f"harvest heading {start_marker!r} moved — update this slice"
@@ -142,7 +142,11 @@ def test_skill_documents_reference_architecture_harvest() -> None:
     # per-finding accept/edit/decline, never authoritative pre-confirmation.
     assert "detect" in lowered
     assert "instantiate" in lowered
-    assert "docs/architecture/reference.md" in section
+    # The template is a starting point, not a destination: the adopter picks
+    # where their architecture source lives, so no fixed path is asserted here.
+    assert "assets/reference.md" in section
+    assert "optional starting template, not a canonical" in section
+    assert "let the adopter choose its location" in section
     assert "repo-scope path-jail" in section
     assert "accept / edit / decline" in section.lower() or "accept/edit/decline" in lowered
     assert "never" in lowered and "confirm" in lowered
