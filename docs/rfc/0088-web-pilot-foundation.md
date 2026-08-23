@@ -3764,3 +3764,62 @@ that mechanism rather than record the channel as inherently uncontrollable.
   the first browser-digest pin be established from an independently verified channel and
   that channel recorded — remains **not measurable**: it is a process requirement, and no
   experiment closes trust-on-first-use. It is unchanged by this entry.
+
+- **2026-08-23 — two deferrals that unblock the Experimental exit, and neither is a
+  measurement.** Both were taken because the thing being waited on could not be produced
+  inside the Experimental phase — one for a structural reason, one for a temporal one.
+  Recording them as deferrals rather than closures, because neither underlying obligation
+  goes away.
+
+  **Question 3's contract clause is deferred OUT of this RFC.** The amended bar reads "a
+  destination adapter contract, exercised by two independent fixtures … The contract is
+  asserted in CI." Building that contract is *implementation*, and the Boundaries forbid
+  creating a follow-on artifact while this RFC is `Experimental` — so the bar required
+  something acceptance has to precede. **That is a circularity, not a high bar**, and it
+  would have held the RFC open indefinitely with no experiment able to resolve it.
+
+  The approver rules that **the contract clause is not an Experimental-phase experiment**.
+  It is post-acceptance implementation work, and its home already exists: the follow-on
+  list's **Spec 1**, whose scope covers the synthetic foundation/provider vertical and its
+  authorization-order fixtures. No new artifact is created here — the clause moves to a
+  slot the follow-on list already reserves.
+
+  What the bar therefore asks of the Experimental exit, and this is the whole of it: **two
+  independent fixtures of differing render and authentication shape** — measured in round
+  14 and recorded in [the destination token-landing note](0088-notes/spikes/2026-08-21-destination-token-landing.md)
+  — and **one documented reference consumer** an adopter runs against their own account,
+  as a recorded observation.
+
+  **What is given up, stated rather than discovered later.** At acceptance, nothing will
+  have asserted the full login → token → frontend-API path **mechanically in CI**. Round
+  14 measured that path by hand against two pinned containers; a CI contract that re-asserts
+  it on every change does not exist and will not before acceptance. The exit therefore rests
+  on measurement plus observation rather than on a standing gate. That is a genuine
+  reduction in what "clears the bar" means, and it is accepted deliberately in exchange for
+  an exit that is reachable at all.
+
+  **`rfc0088-signing-identity-update-survival` is deferred, and downgraded from acceptance
+  blocker to a post-acceptance observation.** Question 6 ruled signing identity as the
+  provenance anchor for system channels, and the 2026-08-22 matrix admits the macOS system
+  channel — so on 2026-08-22 this slug was correctly recorded as an acceptance blocker.
+
+  It is deferred now for a reason that is temporal rather than evidential: closing it needs
+  **two dated observations of the same system browser across a real vendor update**, and no
+  amount of work brings the second one forward. Holding acceptance for it means holding it
+  for an event outside anyone's control. **An earlier draft demoted this slug on a factual
+  error** — a bundled-only reading of the matrix that the approver corrected. This deferral
+  is not that: both channels remain admitted, signing identity remains live in the pilot,
+  and the deferral is a deliberate disposition rather than a consequence of a mistake. The
+  distinction is recorded because the two look identical in a diff and are not.
+
+  **It observes rather than gates.** The first dated observation is taken during pilot
+  operation and recorded; when a real update occurs, the second observation is carried by
+  an **RFC update**, not by re-opening the Experimental phase. The register entry stays
+  carried, with its unblock condition unchanged — what changes is that acceptance no longer
+  waits on it.
+
+  **Nothing else is deferred by this entry.** No blocker item closes, no other residual is
+  relabelled, no disposition is withdrawn, the status field does not move, and no follow-on
+  artifact is created. The five binding requirements stand exactly as the 2026-08-22 entry
+  restated them, including the first-browser-digest-pin requirement, which remains **not
+  measurable**.
