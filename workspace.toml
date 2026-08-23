@@ -1193,16 +1193,20 @@ open = [
   # session-theft path). Measuring it needs node-gyp and a C++ toolchain in the
   # evidence tree, which is a new dependency and outside a pre-acceptance spike.
   # Node itself warns `--allow-addons` "could invalidate the permission model".
-  # STATUS CHANGE, needs an approver call: the second unblock condition below now appears
-  # MET. "Deny `--allow-addons`" is a binding requirement that round 11 measured as holding,
-  # and the 2026-08-22 entry restates all five requirements with that one still holding -- so
-  # in the pilot the flag is never granted and the bypass has no gate to come through. What
-  # survives is the bypass in any configuration that DOES grant the flag. Closing versus
-  # re-scoping this slug to that narrower case is a disposition, not a measurement, so it is
-  # carried unchanged until an approver takes it.
-  # Unblocks when: an approver accepts a C++ toolchain in the evidence tree so the bypass can
-  # be measured directly, OR an approver rules that the pilot's unconditional addon denial
-  # makes it moot and re-scopes the slug accordingly.
+  # RE-SCOPED by approver ruling 2026-08-23. SCOPE IS NOW: configurations that DO grant
+  # `--allow-addons`. NOT closed. The pilot never grants the flag ("deny `--allow-addons`"
+  # is a binding requirement measured as holding), so the bypass is unreachable there --
+  # unreachable is not measured.
+  # The full rationale and the two declined alternatives live in ONE place: the second
+  # 2026-08-23 entry in rfc/0088's amendment layer. Restating them
+  # here would give a load-bearing rationale two homes that drift at the first edit.
+  # ACCEPTED COST: a carried residual no pilot work will close, because nothing in the
+  # pilot grants the flag.
+  # Unblocks when: an approver accepts a C++ toolchain in the evidence tree so the bypass
+  # can be measured directly, OR a configuration outside the pilot needs the flag granted
+  # and commissions the measurement.
+  # (Replaces the previous second condition, whose "the pilot's denial makes it moot" half
+  # the ruling rejected while taking its re-scope half.)
   {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
   # Round 11 accepted, and no measured control closes, the exposure that any same-uid
   # process can attach to the browser's unconfined bind endpoint. The 2026-08-22 matrix
