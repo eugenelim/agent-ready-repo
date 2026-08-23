@@ -48,14 +48,25 @@ backlog = [
   # Shape: how should a broker accommodate a consumer that must replay a scoped API
   # token? The RFC's credential posture assumes the session stays in the browser;
   # a realistic consumer intercepts a scoped token and replays it. RFC open
-  # question 5 carries the recommended candidate (keep the token page-resident);
-  # round 12 measures whether that candidate works. This item shapes what the
-  # broker CONTRACT should say once it does.
+  # question 5 carried the recommended candidate (keep the token page-resident). ANSWERED:
+  # round 12 showed it holds only when the issuing response is `no-store`, and round 14
+  # measured a real destination that sends no cache directive AND persists the token to
+  # page-readable storage, so the token reaches disk regardless. Question 5 was RULED on
+  # 2026-08-22 -- the pattern is supported and the exposure is DECLARED per destination.
+  # What remains for this shaping item is narrower than when it was written: not whether to
+  # accommodate replay, but what the declaration looks like in the broker contract. The
+  # obligation is already carried into Spec 1's contract list, so this item shapes the
+  # wording, not the decision.
   {slug = "rfc0088-token-replay-consumer-contract", type = "shape"},
-  # Shape: destination-scoped constraint as a single axis. Decision C constrains
-  # egress by destination; measurement shows worker policy needs the same scoping
-  # because real surfaces have opposite needs. Should destination become the one
-  # place a session's per-destination policy lives (egress + worker + more)?
+  # Shape: destination-scoped constraint as a single axis. Decision C constrains egress by
+  # destination; worker policy needed the same scoping because real surfaces have opposite
+  # needs. PARTLY ANSWERED: question 4 was ruled on 2026-08-21 -- worker policy is decided by
+  # destination GROUP, realised as a separate browser context, and the session-wide reading is
+  # withdrawn. So the axis exists, but its unit is the group, not the destination, because
+  # contexts isolate sessions and destinations sharing a sign-in must share a context.
+  # What this item still shapes: whether egress and worker policy should collapse onto that one
+  # group axis together, and what else belongs on it. Note the two constraints do not obviously
+  # share a unit -- egress can scope per destination, worker policy cannot.
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape"},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
@@ -1182,44 +1193,59 @@ open = [
   # session-theft path). Measuring it needs node-gyp and a C++ toolchain in the
   # evidence tree, which is a new dependency and outside a pre-acceptance spike.
   # Node itself warns `--allow-addons` "could invalidate the permission model".
-  # Unblocks when: an approver accepts a toolchain in the evidence tree, or the
-  # pilot commits to denying addons unconditionally so the bypass is moot.
+  # STATUS CHANGE, needs an approver call: the second unblock condition below now appears
+  # MET. "Deny `--allow-addons`" is a binding requirement that round 11 measured as holding,
+  # and the 2026-08-22 entry restates all five requirements with that one still holding -- so
+  # in the pilot the flag is never granted and the bypass has no gate to come through. What
+  # survives is the bypass in any configuration that DOES grant the flag. Closing versus
+  # re-scoping this slug to that narrower case is a disposition, not a measurement, so it is
+  # carried unchanged until an approver takes it.
+  # Unblocks when: an approver accepts a C++ toolchain in the evidence tree so the bypass can
+  # be measured directly, OR an approver rules that the pilot's unconditional addon denial
+  # makes it moot and re-scopes the slug accordingly.
   {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
-  # Round 11 accepted, and no measured control closes, the exposure that any
-  # same-uid process can attach to the browser's unconfined bind endpoint. Round 13
-  # may measure whether a second OS user closes it once authorised. On this platform an unprivileged
-  # process cannot execute as another uid; the available switching mechanisms require
-  # administrator authority, which the current Ask-first boundary forbids. Unblocks
-  # when: an approver authorises a runnable second-uid mechanism or a suitable
+  # Round 11 accepted, and no measured control closes, the exposure that any same-uid
+  # process can attach to the browser's unconfined bind endpoint. The 2026-08-22 matrix
+  # inherits it as an accepted pilot exposure. On this platform an unprivileged process
+  # cannot execute as another uid, and every available switching mechanism requires
+  # administrator authority, which the Ask-first boundary forbids. Round 13 corrected the
+  # claim's WIDTH in the evidence layer as new evidence requiring re-ruling -- documentation,
+  # not measurement -- so the slug is carried rather than closed.
+  # Unblocks when: an approver authorises a runnable second-uid mechanism, or a suitable
   # non-administrative execution boundary exists.
-  # Unblocks when: an authorised second-uid mechanism or a non-administrative
-  # execution boundary exists. Round 13 corrected the claim's WIDTH in the evidence
-  # layer as new evidence requiring re-ruling, which is documentation rather than
-  # measurement, so the slug is carried rather than closed.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
-  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP,
-  # derived from the BLOCK clause alone: blocking scopes only per context, contexts
-  # isolate sessions, so destinations sharing a sign-in share one worker policy and
-  # the weakest member sets it. The purge half is WITHDRAWN pending re-measurement
-  # and the amendment does not rest on it. What is NOT
-  # measured is whether a group can be split without costing an additional
-  # interactive sign-in -- spike A showed profile-bound re-attach works and spike E
-  # showed a fresh profile needs a real sign-in, which suggests one sign-in per
-  # group. That figure decides whether splitting is cheap or expensive.
-  # Unblocks when: a spike measures the per-group sign-in cost.
+  # Item 6's accepted risk is per-GROUP, derived from the BLOCK clause alone: blocking
+  # scopes only per context, contexts isolate sessions, so destinations sharing a sign-in
+  # share one worker policy and the weakest member sets it. The 2026-08-22 restatement of
+  # the item-6 binding requirement rests on that unit and NOT on purge scope, deliberately.
+  # Round 13's blast-radius arm measured the purge mechanics -- store removed, removals
+  # inventoried, unknown label refused, symlink tree refused. Whether purge scopes BELOW
+  # the profile is still open, an earlier claim having been withdrawn by its author.
+  # THIS SLUG IS THE ONE THAT DECIDES WHETHER ITEM-6 PROTECTION IS PRACTICAL. Drawing fine
+  # groups is how a worker-dependent destination stops forcing workers on everything sharing
+  # its session; if each extra group costs an interactive sign-in, fine grouping is
+  # theoretical. Spike A showed profile-bound re-attach works and spike E showed a fresh
+  # profile needs a real sign-in, which suggests one sign-in per group -- suggests, not measures.
+  # Unblocks when: a spike measures the per-group interactive sign-in cost.
   {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
-  # Open question 6 recommends signing identity as the browser-provenance anchor.
-  # Round 12 AC5 measures present-run verification and tamper discrimination; it
-  # cannot observe the deferred update-survival property. Unblocks when: the same
-  # system browser can be read before and after a real update in a second dated
-  # observation.
+  # Open question 6 was RULED on 2026-08-22: signing identity is the provenance anchor for
+  # system channels. The same day's matrix admits the macOS system channel, so this is an
+  # ACCEPTANCE BLOCKER rather than a later-admission precondition -- an earlier draft demoted
+  # it on a bundled-only reading that the approver corrected. Round 12 AC5 measured present-run
+  # verification and tamper discrimination; neither can observe update survival, and one
+  # installation cannot observe an update at all.
+  # Unblocks when: the same system browser is read before and after a real update, as a second
+  # dated observation.
   {slug = "rfc0088-signing-identity-update-survival", source = "spec/rfc0088-round12-consumer-shaped-residuals AC5"},
-  # AC6 remains deferred only for its four unimplemented mutations: missing expected row,
-  # token encodings, browser-store decoy, and staged-member decoy search. Unblocks when:
-  # each named mutation is implemented and run in the gate chain.
+  # SATISFIED -- do not plan work against this. Round 13 closed mutation coverage by class.
+  # The entry is retained ONLY because a frozen spec pins the slug with a deferral marker and
+  # a pinned slug cannot be removed from the register; the lint resolves the marker here.
+  # Nothing unblocks it, because nothing is blocked. Remove only if that marker is ever
+  # unpinned.
   {slug = "rfc0088-round12-mutation-coverage", summary = "Satisfied by RFC-0088 round 13 (mutation coverage closed by class); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC6"},
-  # AC4 requires a T6 staged-member decoy search; no promoted-state implementation exists.
-  # Unblocks when: promotion searches a published decoy in staged members and restores them.
+  # SATISFIED -- do not plan work against this. Round 13 implemented the staged-member decoy
+  # search, positive control first. Retained ONLY as the frozen deferred-reference lint anchor,
+  # exactly as the mutation-coverage slug above. Nothing unblocks it, because nothing is blocked.
   {slug = "rfc0088-staged-member-decoy-search", summary = "Satisfied by RFC-0088 round 13 (staged-member decoy search implemented, positive control first); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC4"},
   # Unblocks when: cross-round term identity is anchored by something other than
   # operator trust. Round 13 closed same-file identity WITHIN a gate chain via a

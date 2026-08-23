@@ -3680,3 +3680,87 @@ that mechanism rather than record the channel as inherently uncontrollable.
   its cache-directive construction requirement for the page-resident candidate. Blocker
   item 1's matrix half is settled here; its sandbox-measurement residual is not. No other
   blocker item closes, no residual is relabelled, and no disposition is withdrawn.
+
+- **2026-08-22 — the two binding requirements that did not hold as written are restated,
+  and both now hold.** Round 11 measured the four measurable binding requirements and
+  found two holding and two not holding *as written*. Neither failure was a measurement
+  failure: in both cases the round found what closes the requirement and the requirement's
+  wording had not caught up. The approver restates both. **No disposition is withdrawn**,
+  the RFC remains `Experimental`, no blocker item closes, and no follow-on artifact is
+  created.
+
+  **D / item 3 — "one consumer per connection" holds, because the residue boundary is
+  redrawn.** Round 11 found the requirement covers two of the three surviving residue
+  classes: a foreign init script and origin-scoped storage do not cross an unshared
+  connection, while a committed download does — it is a filesystem artifact rather than a
+  browser-connection one, and clearing it would need job-root partitioning, a different
+  control from the one item 3 binds.
+
+  The approver rules that **a downloaded artifact has crossed to the user and is no longer
+  the pack's residue to clear**. A download is a deliberate delivery into the user's own
+  filesystem, requested through the session; treating it as connection residue would make
+  the pack responsible for a file the user asked for and may already be using. The residue
+  boundary ends where the artifact leaves the browser connection.
+
+  With that boundary, item 3's surviving classes are the two the requirement already
+  covers, and **the requirement holds as written**. Job-root partitioning is not required
+  and is not deferred — it is not needed for this boundary.
+
+  What the approver accepts, and it is a transfer rather than a closure: a downloaded
+  artifact **persists after the session ends, outside anything the pack tears down**, and
+  it may carry destination content. The pack must not imply otherwise. The approval surface
+  already has to state that every consumer sharing a connection inherits the connection
+  residue; it must **additionally** state that downloaded artifacts are the user's, are not
+  cleared on teardown, and outlive the session. Disclosure is the whole of what replaces
+  the control here, and saying so is the point.
+
+  **D / item 6 — "service workers disabled" is restated as a per-group composed control,
+  and the tension it carried is dissolved structurally rather than measured away.** Round
+  11 found the requirement under-specified: `serviceWorkers: 'block'` is a *context*
+  option, so it refuses new registrations but does not reach a worker already persisted in
+  a profile — a restored profile reported a controller at document start and emitted
+  traffic identically under `block` and under `allow`. Composing the block with a purge of
+  the profile's service-worker storage **does** close it: controller `false`, zero packets,
+  zero registrations. Round 13's blast-radius arm measured the purge itself — the worker
+  store is removed, an inventory of what was removed is recorded, an unknown store label is
+  refused rather than guessed, and a symlink-bearing tree is refused rather than escaped.
+
+  The requirement as restated, superseding the 2026-08-18 wording:
+
+  > Worker policy is decided **per destination group**, the unit question 4's ruling
+  > established, and a group is realised as a separate browser context. For a group whose
+  > policy is *no workers*, the control is **`serviceWorkers: 'block'` composed with a
+  > purge of that profile's persisted service-worker storage** — the block clause alone
+  > does not reach an already-registered worker, and the requirement is not met by it.
+  > Within a group, **the weakest member sets the policy**: if any destination in the group
+  > requires a worker, the group runs with workers permitted, because one context cannot
+  > both block and permit. Groups are drawn by **which destinations genuinely must share a
+  > sign-in**, not by product or vendor.
+
+  **Why the tension is gone.** The 2026-08-18 requirement carried a live one: some
+  authentication and SSO flows depend on service workers, and the pilot exists to hand an
+  interactively-authenticated session to an agent, so a session-wide disable could break
+  the very use case the control protects. That was an inference, and the RFC flagged it as
+  one. It does not survive the per-group unit: a worker-dependent destination goes in its
+  own group with workers permitted, and every other group keeps full item-6 protection.
+  The choice between losing a surface and losing the control was an artefact of the
+  session-wide reading, and question 4 withdrew that reading. Round 12 separately observed
+  post-authentication re-attach surviving worker suppression with zero registrations under
+  both policies, bounded to one destination, one device and one point in time.
+
+  **Two residuals survive this restatement and are named rather than absorbed.** Whether a
+  group can be split without costing an additional interactive sign-in is **unmeasured** —
+  that is the carried `rfc0088-destination-group-split-cost` slug, and it decides whether
+  drawing fine groups is cheap or expensive, which is what makes item-6 protection
+  practical or theoretical. And whether the purge clause scopes **below** the profile
+  remains open: an earlier measurement claiming it cannot was withdrawn by its author
+  pending re-measurement. The restated requirement deliberately **does not depend on that
+  answer** — the block clause alone forces the group unit, so purge scope changes how
+  finely the control can be applied, not whether the requirement is met.
+
+  **Where the five binding requirements now stand.** Composing the OS profile with the Node
+  permission model holds. Denying `--allow-addons` holds. One consumer per connection holds,
+  on the redrawn boundary above. Worker policy holds, as restated above. The fifth — that
+  the first browser-digest pin be established from an independently verified channel and
+  that channel recorded — remains **not measurable**: it is a process requirement, and no
+  experiment closes trust-on-first-use. It is unchanged by this entry.
