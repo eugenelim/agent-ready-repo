@@ -183,17 +183,22 @@ Record the results under the matching task headings in
   semantic-portability fixture, then make it reject the concrete catalogue
   leakage patterns fixed here. (AC13)
 - **Goal-based:**
-  `packs/core/tests/pack/test_repository_context_seed.py` asserts conventional
-  root/seed headings and absence of a mandatory `Source of truth` taxonomy.
+  `tests/roster/test_repository_context_root_guidance.py` asserts conventional
+  root headings and absence of a mandatory `Source of truth` taxonomy;
+  `packs/core/tests/pack/test_repository_context_seed.py` asserts the matching
+  seed headings. The split is required: a pack test may not climb above its
+  owning pack, so this checkout's own root guidance is roster-owned coverage.
   (AC7-AC9)
 - **Goal-based:**
   `packs/core/tests/pack/test_repository_context_seed.py` asserts no prefilled
   generic monorepo tree, no real core release entry in adopter seeds, and that
   `docs/CONVENTIONS.md` is conditional rather than adopter-preempting.
   (AC10-AC12)
-- **Goal-based:** that test also asserts organization-pack guidance contributes
-  root links or scoped deltas without prescribing a second full root scaffold
-  or nested `CONTRIBUTING.md`. (AC35-AC36)
+- **Goal-based:**
+  `tests/roster/test_repository_context_root_guidance.py` also asserts
+  organization-pack guidance contributes root links or scoped deltas without
+  prescribing a second full root scaffold or nested `CONTRIBUTING.md`.
+  (AC35-AC36)
 - **Manual QA:** render and compare root and seed files; under `T1 — scaffold
   parity` in `notes/manual-qa.md`, record why each retained optional root
   section meets AC2-AC5. (AC1-AC9)
@@ -368,6 +373,7 @@ pack changelog/docs/evals, generated self-host projections
 **Tests:**
 - **Goal-based:** `python3 -m pytest
   packs/core/tests/pack/test_repository_context_seed.py
+  tests/roster/test_repository_context_root_guidance.py
   packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py
   packs/core/tests/skills/new-spec/test_repository_anchors.py
   packs/core/tests/skills/work-loop/test_work_loop_repository_anchors.py

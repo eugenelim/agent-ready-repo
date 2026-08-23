@@ -119,3 +119,32 @@
 - Final adversarial, security, and whole-spec quality re-reviews each returned
   `Clean — ready to commit.` after the security controls, behavioral goldens,
   test-path correction, and approved gate deferral were applied.
+
+## T6 — deferred gates, retried in a supported environment
+
+The environment deferral recorded under T5 was **not** used. On 2026-08-23 the
+three gates that could not finish under the managed runtime — `catalogue
+verify`, `catalogue self-host --write`, and `SKIP_SAST=1 make build-check` —
+all ran to completion here with no `EPERM`. Running them found three real
+defects that the deferral had concealed. Each is fixed in this change; none was
+waived.
+
+1. **Release-surface pins were not moved.** `tests/roster/`'s two
+   release-synchronization tests hard-pin the previous core and `agentbundle`
+   versions, so the version bump left them red. Both pins now name the shipped
+   versions.
+2. **A pack test reached above its owning pack.** The seed contract file
+   asserted against this checkout's root `AGENTS.md`, root
+   `docs/architecture/overview.md`, and an adopter-facing how-to. Rule
+   `pack-tests-stay-in-pack` rejects that climb. The repository-level half moved
+   to `tests/roster/test_repository_context_root_guidance.py`; the seed half
+   stays pack-owned and now anchors at its own pack root. `tests/conformance/`
+   is the wrong home — its portability lint rejects any reach into `docs/`.
+3. **Two new suite directories had no runner.** `contract-acquisition` and
+   `architect-design` were discovered rather than declared, which rule
+   `every-suite-dir-has-a-runner` treats as unrun by default. Both are now named
+   in the `Makefile` test target.
+
+The version surface also moved: `main` released architect `0.15.0` while this
+change was in review, so the architect bump is `0.15.1`, not the `0.14.6`
+planned against the older base.
