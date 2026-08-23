@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/work-intake-migration-manifest.schema.json",
+  "title": "Work-intake migration ledger",
+  "description": "Repository-root ordered ledger of reversible legacy workspace migration operations.",
+  "type": "object",
+  "contract_version": "work-intake-migration-ledger.v1",
+  "x-spec": ["docs/specs/work-intake-migration-docs/"],
+  "x-semantic-invariants": [
+    {
+      "code": "ledger_invalid",
+      "rule": "each operation_digest binds its immutable operation material to the ledger repository_identity and effect-time recomputation rejects a changed identity"
+    },
+    {
+      "code": "ledger_invalid",
+      "rule": "operation_id is globally unique within the ledger"
+    },
+    {
+      "code": "confirmation_reused",
+      "rule": "confirmation_id and authorization_subject are each globally unique across all operation receipts"
+    },
+    {
+      "code": "confirmation_binding_mismatch",
+      "rule": "every receipt operation_id and operation_digest equals its containing operation"
+    },
+    {
+      "code": "operation_state_conflict",
+      "rule": "receipt actions are ordered apply before rollback and justify pending/applied/rollback_pending/rolled_back state without skipped or reversed transitions"
+    }
+  ],
+  "additionalProperties": false,
+  "required": ["contract_version", "repository_identity", "operations"],
+  "properties": {
+    "contract_version": {
+      "const": "work-intake-migration-ledger.v1"
+    },
+    "repository_identity": {
+      "$ref": "#/$defs/sha256"
+    },
+    "operations": {
+      "type": "array",
+      "maxItems": 10000,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "operationId": {
+      "type": "string",
+      "pattern": "^migration-[a-f0-9]{64}$"
+    },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "processor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "artifactReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "fingerprint", "existed_before_apply", "processor"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/sha256"
+        },
+        "existed_before_apply": {
+          "const": true
+        },
+        "processor": {
+          "$ref": "#/$defs/processor"
+        }
+      }
+    },
+    "confirmationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirmation_id",
+        "action",
+        "operation_id",
+        "operation_digest",
+        "authorization_subject",
+        "authorization_role_digest",
+        "confirmed_at",
+        "authorization_source",
+        "consumed_before_effect"
+      ],
+      "properties": {
+        "confirmation_id": {
+          "type": "string",
+          "pattern": "^confirmation-[a-f0-9]{32}$"
+        },
+        "action": {
+          "enum": ["apply", "rollback"]
+        },
+        "operation_id": {
+          "$ref": "#/$defs/operationId"
+        },
+        "operation_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authorization_subject": {
+          "type": "string",
+          "pattern": "^subject-[a-f0-9]{32}$"
+        },
+        "authorization_role_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "authorization_source": {
+          "const": "current-human-session"
+        },
+        "consumed_before_effect": {
+          "const": true
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_digest",
+        "workspace_path",
+        "pre_apply_workspace_fingerprint",
+        "selection_digest",
+        "source_membership",
+        "legacy_slice",
+        "target_entry",
+        "target_membership",
+        "owning_processor",
+        "artifact_receipt",
+        "state",
+        "confirmation_receipts"
+      ],
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/operationId"
+        },
+        "operation_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "workspace_path": {
+          "const": "workspace.toml"
+        },
+        "pre_apply_workspace_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_membership": {
+          "$ref": "work-intake-migration-selection.schema.json#/$defs/sourceMembership"
+        },
+        "legacy_slice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000000
+        },
+        "target_entry": {
+          "$ref": "workspace-entry.schema.json"
+        },
+        "target_membership": {
+          "$ref": "work-intake-migration-selection.schema.json#/$defs/targetMembership"
+        },
+        "owning_processor": {
+          "$ref": "#/$defs/processor"
+        },
+        "artifact_receipt": {
+          "$ref": "#/$defs/artifactReceipt"
+        },
+        "state": {
+          "enum": ["pending", "applied", "rollback_pending", "rolled_back"]
+        },
+        "applied_workspace_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        },
+        "rolled_back_workspace_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        },
+        "confirmation_receipts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "contains": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "const": "apply"
+              }
+            },
+            "required": ["action"]
+          },
+          "minContains": 1,
+          "items": {
+            "$ref": "#/$defs/confirmationReceipt"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": ["applied", "rollback_pending", "rolled_back"]
+              }
+            },
+            "required": ["state"]
+          },
+          "then": {
+            "required": ["applied_workspace_fingerprint"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "rolled_back"
+              }
+            },
+            "required": ["state"]
+          },
+          "then": {
+            "required": ["rolled_back_workspace_fingerprint"]
+          }
+        }
+      ]
+    }
+  }
+}

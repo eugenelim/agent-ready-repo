@@ -308,4 +308,4 @@ no payload or transport call.
 | [How the Atlassian pack works](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/) | Composition model and why the workflows are separate |
 | [Atlassian journey](/journeys/atlassian/) | Four-stage visual storyboard |
 | [Atlassian pack](/packs/atlassian/) | Pack overview, install, credentials |
-| [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared refresh lifecycle and confirmation contract |
+| [Use work intake](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared intake, refresh lifecycle, and confirmation contract |

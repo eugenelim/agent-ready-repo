@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.39.3] — 2026-08-23
+
+### Changed
+
+- The bundled workspace-status engine recognizes reviewed legacy work-intake
+  migrations, validates durable operation digests, and refuses linked or
+  aliased workspace input before projecting exact legacy bytes.
+
 ## [0.39.2] — 2026-08-23
 
 ### Changed

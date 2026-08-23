@@ -13,6 +13,7 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "contracts/jsonschema/normalized-intake.schema.json"
 ROUTER = ROOT / "packs/core/.apm/skills/work-intake/scripts/intake_router.py"
+ROUTING_EVALUATOR = ROOT / "tools/work_intake_routing_evaluation.py"
 MATRICES = (
     ROOT / "packs/atlassian/.apm/skills/jira-brief-intake/evals/files/intake/matrix.json",
     ROOT / "packs/atlassian/.apm/skills/jira-align-brief-intake/evals/files/intake/matrix.json",
@@ -194,3 +195,91 @@ def test_profile_budgets_are_deterministic() -> None:
         assert budget["max_retries"] >= 0
         assert len(budget["backoff_seconds"]) == budget["max_retries"]
         assert budget["exhaustion"] in {"marked-incomplete", "view-only-refusal"}
+
+
+# STUB: AC19
+def test_integrated_matrix_projects_acquisition_through_routing() -> None:
+    matrix = _load_json(
+        ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json"
+    )
+    assert matrix["contract_version"] == "work-intake-routing-evals.v1"
+    profile_matrices = {_load_json(path)["profile"]["id"]: _load_json(path) for path in MATRICES}
+    assert {
+        (profile["id"], profile["version"])
+        for profile in matrix["supported_profiles"]
+    } == {(profile_id, "1.0") for profile_id in profile_matrices}
+    common_source_ids = {
+        "direct-spec",
+        "multi-spec-brief",
+        "cross-repo-brief",
+        "incoherent-collection",
+        "defect",
+        "claimed-defect-without-evidence",
+    }
+    for profile_id, profile_matrix in profile_matrices.items():
+        evaluation = profile_matrix["routing_evaluation"]
+        assert set(evaluation["source_case_ids"]) == common_source_ids
+        assert evaluation["refresh_profile"] == {"id": profile_id, "version": "1.0"}
+    for case in matrix["cases"]:
+        assert {
+            "profile_id",
+            "profile_version",
+            "dispatchable",
+            "next_action",
+        } <= case.keys()
+        if case.get("mode") == "tracker-route":
+            assert case["profile_id"] == "all-supported"
+            for profile_matrix in profile_matrices.values():
+                assert any(
+                    source_case["id"] == case["id"]
+                    for source_case in profile_matrix["cases"]
+                )
+
+
+# STUB: AC20
+def test_integrated_matrix_runs_byte_identically_in_two_clean_roots(
+    tmp_path: Path,
+) -> None:
+    module_spec = importlib.util.spec_from_file_location(
+        "roster_routing_evaluation", ROUTING_EVALUATOR
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    assert callable(getattr(module, "evaluate_in_clean_root", None))
+
+    first_root = tmp_path / "first"
+    second_root = tmp_path / "second"
+    first = module.evaluate_in_clean_root(first_root, source_root=ROOT)
+    second = module.evaluate_in_clean_root(second_root, source_root=ROOT)
+    assert first == second
+    assert first_root != second_root
+
+    projection = json.loads(first)
+    results = projection["results"]
+    assert projection["contract_version"] == (
+        "work-intake-routing-evaluation-result.v1"
+    )
+    assert len(results) == 63
+    assert all(
+        set(result)
+        == {
+            "case_id",
+            "profile_id",
+            "profile_version",
+            "artifact_kind",
+            "artifact_path",
+            "lifecycle_membership",
+            "processor",
+            "authority_mode",
+            "dispatchable",
+            "result_code",
+            "next_action",
+        }
+        for result in results
+    )
+    assert {
+        result["profile_id"]
+        for result in results
+        if result["case_id"] == "direct-spec"
+    } == {"jira-default", "jira-align-default", "linear-default", "github-default"}

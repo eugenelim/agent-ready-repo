@@ -211,6 +211,9 @@ pinned dependency.
 | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
 | `repair-plan` | Build a deterministic repair plan for Type 2 queue findings | Yes | `.workspace-repair-plan.json` |
 | `repair-apply` | Apply a previously generated repair plan atomically | No | `workspace.toml` |
+| `repair-plan --migration-selection <path>` | Validate one human-selected legacy route and emit a deterministic migration proposal | No | — |
+| `repair-apply --migration-selection <path> --operation-id <id> --confirmation-file <path>` | Apply one authorized ledger-first legacy migration | No | `.workspace-migrations.json`, `workspace.toml` |
+| `repair-rollback --operation-id <id> --confirmation-file <path>` | Restore one exact legacy representation without deleting its artifact | No | `.workspace-migrations.json`, `workspace.toml` |
 
 **`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
 
@@ -219,6 +222,29 @@ pinned dependency.
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 
 **`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Immediately before replacing `workspace.toml`, it revalidates every spec whose operation would be applied and aborts the whole write if any status or status-line fingerprint changed. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
+
+**Legacy migration planning** — when a retained legacy membership includes a
+`migration` finding, show its exact observed source representation, lifecycle
+membership, candidate route classes, and `next_action`. Never choose among the
+candidates. A human must author the closed selection JSON out of band and pass
+its repository-relative path with `--migration-selection`. Do not create,
+edit, prefill, or suggest substantive values for a selection or confirmation
+file. Migration planning is read-only and rejects `--plan-file`; a missing
+canonical artifact returns the selected owning processor as `next_action`
+without writing an artifact, ledger, repair plan, or workspace change.
+
+**Legacy migration effects** — pause while the human authors each confirmation
+file out of band. Never create, edit, or prefill it. The confirmation must be
+fresh, single-use, and bound to the exact action, operation ID, and digest shown
+by the reviewed plan or ledger. If the human needs opaque test-safe identifiers,
+tell them to run `python3 -c 'import secrets; print("confirmation-" +
+secrets.token_hex(16)); print("subject-" + secrets.token_hex(16))'` themselves;
+do not run it for them. Apply requires all three migration arguments and rejects
+`--plan-file` or `--yes`. Rollback requires a new confirmation and never reads,
+changes, or deletes the canonical artifact. A `pending` or `rollback_pending`
+ledger operation is recoverable only with another fresh confirmation. Surface
+the closed migration result code and `next_action`; never echo source content on
+credential, unsafe-context, authorization, or write refusals.
 
 ### 1d. Repair workflow
 

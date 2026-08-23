@@ -6,29 +6,38 @@ specs — they're the published interface this catalogue exposes to consumers
 
 **Authority model:** `contracts/` is the canonical authored source for all
 contracts listed below. `packages/agentbundle/agentbundle/_data/` carries
-byte-identical copies of every contract the CLI bundles; AGENTS.md and README
-files carry concise operational guidance only. When these disagree, `contracts/`
-is authoritative, and every contract listed here must be bundled byte-identically
-in `agentbundle/_data/`.
+byte-identical copies only of contracts explicitly marked **yes** in the CLI
+data column; repository-public contracts marked **no** remain authoritative here
+without implying a second CLI copy. AGENTS.md and README files carry concise
+operational guidance only. When an authored contract and a declared copy
+disagree, `contracts/` is authoritative.
 
 ## Files
 
-| File | What it pins |
-| --- | --- |
-| `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule |
-| `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape |
-| `distribution-routes.toml` | Package-route identity, layout, projector, capability, marketplace, and lifecycle concerns |
-| `distribution-routes.schema.json` | Closed JSON Schema for the Phase 0 distribution-route contract |
-| `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests |
-| `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` |
-| `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge |
-| `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests |
-| `profile.schema.json` | JSON Schema for profile TOML files |
-| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index |
-| `guide.schema.json` | JSON Schema for guide frontmatter |
-| `skill.schema.json` | JSON Schema for skill frontmatter and body |
-| `skill-manifest.schema.json` | JSON Schema for skill manifest files |
-| `target-vocab.toml` | Vocabulary constraint for adapter target names |
+| File | What it pins | CLI data |
+| --- | --- | --- |
+| `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule | yes |
+| `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape | yes |
+| `distribution-routes.toml` | Package-route identity, layout, projector, capability, marketplace, and lifecycle concerns | yes |
+| `distribution-routes.schema.json` | Closed JSON Schema for the Phase 0 distribution-route contract | yes |
+| `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests | yes |
+| `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` | yes |
+| `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge | yes |
+| `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests | yes |
+| `profile.schema.json` | JSON Schema for profile TOML files | yes |
+| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index | yes |
+| `marketplace-entry.schema.json` | JSON Schema for one generated marketplace entry | yes |
+| `guide.schema.json` | JSON Schema for guide frontmatter | yes |
+| `skill.schema.json` | JSON Schema for skill frontmatter and body | yes |
+| `skill-manifest.schema.json` | JSON Schema for skill manifest files | yes |
+| `target-vocab.toml` | Vocabulary constraint for adapter target names | yes |
+| `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
+| `jsonschema/normalized-intake.schema.json` | Transient normalized work-intake envelope | no |
+| `jsonschema/workspace-entry.schema.json` | Target structured `workspace.toml` entry | no |
+| `jsonschema/work-intake-migration-selection.schema.json` | Human-reviewed legacy-route selection | no |
+| `jsonschema/work-intake-migration-confirmation.schema.json` | Human-authored, single-use apply/rollback confirmation | no |
+| `jsonschema/work-intake-migration-manifest.schema.json` | Repository-root reversible migration ledger | no |
+| `jsonschema/work-intake-migration-result.schema.json` | Closed workspace-status migration result object | no |
 
 ## Which design governs which file
 
@@ -51,6 +60,10 @@ in `agentbundle/_data/`.
   and `skill-manifest.schema.json` — implement the
   [agentskills.io standard](../guides/_shared/reference/agentskills-io-standard.md),
   which travels with this catalogue.
+- **The work-intake JSON Schemas** under `jsonschema/` come from the
+  [normalized intake/workspace contract][work-intake-contracts] and
+  [migration contract][work-intake-migration]. They are public authored
+  repository contracts, not declared AgentBundle CLI data copies.
 
 The authority model stated above comes from the
 [contracts composition, semantics, and discovery design][composition]. The
@@ -70,3 +83,5 @@ Future contracts land here too, each in its own PR.
 [cli]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0003-spec-and-cli.md
 [composition]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md
 [routes]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0092-first-class-distribution-routes.md
+[work-intake-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/normalized-intake-workspace-contracts/spec.md
+[work-intake-migration]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/work-intake-migration-docs/spec.md

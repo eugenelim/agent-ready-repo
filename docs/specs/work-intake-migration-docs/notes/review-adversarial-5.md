@@ -1,0 +1,5 @@
+# Adversarial implementation review — round 5
+
+## Blockers
+
+**1. Pending apply can classify stale legacy bytes as the applied target.** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py:1582`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py:1743`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:4643`. `_migration_workspace_state()` checks the mutable `applied_workspace_fingerprint` before the immutable `pre_apply_workspace_fingerprint`, and the ledger shape permits `applied_workspace_fingerprint` on a `pending` operation. Changing only that ledger field to the pre-apply fingerprint therefore makes stale workspace bytes classify as `target`; pending apply can then skip conversion and artifact verification, append a receipt, and mark the operation `applied` without changing `workspace.toml`. Fix: make apply/recovery classification state-specific so pending operations treat exact pre-apply bytes as `pre_apply`, recompute and verify the expected applied fingerprint before any ledger write, and add a schema-valid tamper regression for the shadowed-fingerprint case.

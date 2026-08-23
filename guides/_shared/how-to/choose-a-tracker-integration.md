@@ -84,12 +84,12 @@ tools, routing, or authority.
 After reviewing the route, answer any named gap or confidentiality question.
 Then continue with the selected processor, such as `new-spec`, `author-brief`,
 or `bug-fix`. For an existing artifact whose tracker source changed, follow
-[Refresh tracked work safely](use-work-intake.md).
+[Use work intake](use-work-intake.md).
 
 ## See also
 
 - [Tracker vocabulary](../reference/tracker-vocabulary.md)
-- [Refresh tracked work safely](use-work-intake.md)
+- [Use work intake](use-work-intake.md)
 - [Start or remember work](../../core/how-to/start-or-remember-work.md)
 - [GitHub intake](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
 - [Linear intake and sync](../../linear/how-to/linear-brief-intake-and-sync.md)

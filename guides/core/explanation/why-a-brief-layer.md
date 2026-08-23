@@ -13,7 +13,9 @@ This page explains the edge, why a **brief** sits above the spec to cover it, an
 
 ## The gap: there's no inbox for a handoff
 
-Not every team authors all its own work. Where the product and engineering functions are separate — most enterprises — engineering *receives* work: someone hands over a product brief, a PRD, a solution document that spans several features and months of effort.
+Not every team authors all its own work. Engineering may receive a product
+brief, PRD, or solution document that spans several features and months of
+effort.
 
 A spec can't hold that. A spec is one feature, days to weeks, and `work-loop` runs per spec. A multi-feature brief provably cannot be a single spec without breaking both the sizing rule and the build loop. So a multi-feature handoff *structurally forces* a layer above the spec — and without one, you're left with two bad options:
 
@@ -43,7 +45,10 @@ The roadmap names themes. A brief records *one received outcome* and the specs t
 
 - **It elicits; it doesn't mandate a schema.** Real briefs arrive half-formed. Rejecting them for missing a section would just push the friction back onto the person handing over the work. The skill insists only on the load-bearing fields (outcome, scope), offers the rest, and surfaces gaps.
 
-- **It owns one repo's slice, not a coordination hub.** Coordinating an epic across repos is a tracker's job (a project board, an integration repo). The brief integrates with that via an optional `Epic:` pointer and stops there — building a hub would duplicate tools you already have and break the single-repo model.
+- **It owns one repo's slice, not a coordination hub.** A tracker, integration
+  repo, or value-stream meta-repo may coordinate the wider outcome. The local
+  brief records parent and coordination provenance, then stops at this
+  repository's boundary.
 
 - **Linkage is by reference, not nesting.** A spec names its brief with a `Brief:` field rather than living inside a brief directory. Specs stay flat, a spec can predate its brief, and one brief can gather specs authored over time — the same way many specs can reference one shared contract.
 

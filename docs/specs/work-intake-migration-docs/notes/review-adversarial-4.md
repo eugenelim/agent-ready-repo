@@ -1,0 +1,7 @@
+# Adversarial implementation review — round 4
+
+## Blockers
+
+**1. Idempotent apply/rollback can report success without validating workspace bytes.** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py:1730`, `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py:1852`. The `already_applied` and `already_rolled_back` branches return from ledger state alone before `_migration_workspace_state(...)` runs, so an external workspace edit after the ledger reached `applied` or `rolled_back` is reported as a safe no-op instead of failing closed against the recorded fingerprints. Fix: classify guarded `workspace.toml` bytes before these state-only returns; return `already_applied` only for exact `target`, `already_rolled_back` only for exact `rolled_back`, and otherwise return `recovery_conflict`.
+
+**2. Product Engineering design docs still route feature leaves through briefs.** `packs/product-engineering/DESIGN.md:148`, `docs/specs/work-intake-migration-docs/spec.md:295`. The current pack design still says the G3 handoff is `receive-brief` → `new-spec` → `work-loop` and that app-scale leaf briefs are ordinary Core briefs, contradicting AC17's repository-wide stale feature-to-brief audit and the updated direct-`new-spec` routing. Fix: update the design doc so one independently shippable feature routes directly to `new-spec`, reserving briefs/`receive-brief` for multi-spec or cross-repository coordination.

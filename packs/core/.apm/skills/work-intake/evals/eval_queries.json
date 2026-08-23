@@ -9,6 +9,9 @@
   {"query": "Record this ambiguous request as draft with gaps", "should_trigger": true},
   {"query": "Start this bounded low-risk change directly in the current session", "should_trigger": true},
   {"query": "Route this request to durable planning because it must resume tomorrow", "should_trigger": true},
+  {"query": "Triage the current workspace status before choosing work", "should_trigger": true},
+  {"query": "Refresh this registered brief from its declared tracker authority", "should_trigger": true},
+  {"query": "Intake this cited regression and route it as a defect", "should_trigger": true},
 
   {"query": "Write an architecture decision record for this choice", "should_trigger": false},
   {"query": "Generate a slide deck from this outline", "should_trigger": false},
@@ -17,5 +20,8 @@
   {"query": "Create a new reusable skill", "should_trigger": false},
   {"query": "Search the web for current pricing", "should_trigger": false},
   {"query": "Render this Mermaid diagram", "should_trigger": false},
-  {"query": "Open the spreadsheet and format column B", "should_trigger": false}
+  {"query": "Open the spreadsheet and format column B", "should_trigger": false},
+  {"query": "Plan migration of this legacy workspace entry from the reviewed selection", "should_trigger": false},
+  {"query": "Apply the approved workspace migration operation", "should_trigger": false},
+  {"query": "Diagnose this already-routed defect against its expected behavior", "should_trigger": false}
 ]

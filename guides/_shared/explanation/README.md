@@ -43,3 +43,7 @@ The same topic might appear in all three with different framing. The ADR records
 ## Maintenance
 
 Explanation rots slower than tutorials and how-tos but faster than reference. Pieces become wrong when the underlying design changes; they become *misleading* even before they become wrong. Review on each major release.
+
+## Pages
+
+- [`work-artifact-responsibilities.md`](work-artifact-responsibilities.md) — how source evidence, canonical artifacts, workspace state, processors, and migration history divide responsibility.

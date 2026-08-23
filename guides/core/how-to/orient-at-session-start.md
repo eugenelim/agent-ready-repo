@@ -88,6 +88,7 @@ You now have enough context to start. The common cases:
 | You've noticed something new mid-session | `work-intake` — see [Start or remember work without choosing a skill](start-or-remember-work.md) |
 | Nothing is ready; everything is blocked | Surface the blocking dependency — resolve it or capture a follow-on |
 | A tracker-origin artifact has a newer source revision | Ask `work-intake` to refresh it and review the field delta |
+| A legacy entry is visible | Review its exact source slice and candidate routes, then use the read-only migration planner |
 
 ## Related
 
@@ -96,4 +97,5 @@ You now have enough context to start. The common cases:
 - [How to start working on a project](start-a-project.md) — if this is your first session on the repo
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — every field explained
 - [Your first workspace session](../tutorials/your-first-workspace.md) — an end-to-end walkthrough
-- [Refresh tracked work safely](../../_shared/how-to/use-work-intake.md) — review a tracker delta and confirm write-back separately
+- [Use work intake](../../_shared/how-to/use-work-intake.md) — start, remember, inspect, or review a tracker delta
+- [Migrate a legacy workspace entry safely](migrate-capture-work.md) — convert one reviewed compatibility entry with rollback

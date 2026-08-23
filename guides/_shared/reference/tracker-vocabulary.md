@@ -98,4 +98,4 @@ coordination-only write-back.
 
 - [Choose a tracker integration](../how-to/choose-a-tracker-integration.md)
 - [Work intake routing reference](../../core/reference/work-intake-routing-and-lifecycle.md)
-- [Refresh tracked work safely](../how-to/use-work-intake.md)
+- [Use work intake](../how-to/use-work-intake.md)

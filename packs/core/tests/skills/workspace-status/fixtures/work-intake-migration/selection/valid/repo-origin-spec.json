@@ -1,0 +1,22 @@
+{
+  "contract_version": "work-intake-migration-selection.v1",
+  "legacy_finding_id": "legacy-entry:ini-legacy:work.queue:0",
+  "workspace_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_membership": {
+    "ini_slug": "ini-legacy",
+    "collection": "work.queue",
+    "entry_index": 0,
+    "legacy_slice_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "target_entry": {
+    "path": "docs/specs/example/spec.md",
+    "kind": "spec",
+    "source": {"mode": "repo-origin"},
+    "summary": "Example migration fixture",
+    "needs": []
+  },
+  "target_membership": {"ini_slug": "ini-legacy", "collection": "work.queue"},
+  "owning_processor": "new-spec",
+  "provenance_reference": "docs/specs/example/spec.md",
+  "legacy_content_approved_for_ledger": true
+}

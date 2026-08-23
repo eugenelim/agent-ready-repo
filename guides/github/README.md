@@ -7,10 +7,12 @@ kind: explanation
 
 # `github` — guides
 
-GitHub integration for this catalogue. The pack ships one skill:
+GitHub integration for this catalogue. The pack ships two connected skills:
 
 - **`github-brief-intake`** — read a GitHub Issue, Milestone, or selection via
   trusted fixed-host `gh` commands, normalize it, and hand it to `work-intake`.
+- **`github-refresh`** — compare an existing tracker-origin artifact and, after
+  separate confirmation, perform only the declared coordination action.
 
 New here? Start with the how-to guide below.
 

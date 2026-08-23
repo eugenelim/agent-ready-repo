@@ -46,3 +46,8 @@ The artifact must exist before its schema-valid workspace entry is registered.
 See [Start or remember work without choosing a skill](start-or-remember-work.md)
 for the main workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for exact routes and boundaries.
+
+If the repository already contains legacy queue, shaping, brief, or backlog
+representations, changing the prompt is not enough. Follow
+[Migrate a legacy workspace entry safely](migrate-capture-work.md) to convert
+one reviewed entry with ledger-backed rollback.

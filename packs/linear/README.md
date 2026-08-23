@@ -39,5 +39,5 @@ Linear Personal API Key. The key never belongs in a request or repository file.
 | Refresh an existing artifact | A reviewed delta through `work-intake`; requirement refresh is unavailable while the artifact is executing |
 | Write coordination back | One profile-declared action after one fresh exact confirmation; no automatic mutation retry |
 
-→ [Choose intake or sync](../../guides/linear/how-to/linear-brief-intake-and-sync.md)
-→ [Refresh tracked work safely](../../guides/_shared/how-to/use-work-intake.md)
+→ [Choose intake or reviewed refresh](../../guides/linear/how-to/linear-brief-intake-and-sync.md)
+→ [Use work intake](../../guides/_shared/how-to/use-work-intake.md)

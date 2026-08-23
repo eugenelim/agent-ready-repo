@@ -185,5 +185,6 @@ for the route and scope differences.
 - **Go deeper:** the `core` guides in `guides/core/`.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
+- **Migrate legacy workspace entries:** [plan, apply, recover, and roll back one reviewed entry](../../guides/core/how-to/migrate-capture-work.md).
 - **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
 - **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

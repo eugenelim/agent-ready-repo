@@ -1,16 +1,16 @@
 ---
-title: Choose Linear intake or brief sync
-summary: Choose first-time intake or controlled brief synchronization and receive the corresponding validated route or update preview.
+title: Choose Linear intake or reviewed refresh
+summary: Choose first-time intake or controlled refresh and receive the corresponding validated route or field-level preview.
 pack: linear
 kind: how-to
 ---
 
-# Choose Linear intake or brief sync
+# Choose Linear intake or reviewed refresh
 
 Use intake when Linear work should enter the repository for the first time. Use
 refresh when an existing tracker-origin artifact needs an approval-gated
-catch-up from Linear. `linear-brief-sync` preserves the older brief-specific
-request language but delegates to that same refresh authority.
+comparison with Linear. `linear-brief-sync` preserves older brief-specific
+request language but delegates to the same refresh authority.
 
 For intake, say:
 
@@ -87,5 +87,5 @@ After intake, review the selected route and answer any named gap. After refresh,
 review the proposed sections and approve only those you want changed.
 
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
-shared terms and [Refresh tracked work safely](../../_shared/how-to/use-work-intake.md)
+shared terms and [Use work intake](../../_shared/how-to/use-work-intake.md)
 for the common lifecycle and confirmation procedure.

@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/work-intake-migration-result.schema.json",
+  "title": "Work-intake migration command result",
+  "description": "Closed migration result object embedded in the workspace-status schema-version 1 CLI envelope.",
+  "type": "object",
+  "contract_version": "work-intake-migration-result.v1",
+  "x-spec": ["docs/specs/work-intake-migration-docs/"],
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "result_code",
+    "applicable",
+    "mutated",
+    "next_action"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "work-intake-migration-result.v1"
+    },
+    "result_code": {
+      "enum": [
+        "planned",
+        "artifact_missing",
+        "manual_routing_required",
+        "applied",
+        "already_applied",
+        "rolled_back",
+        "already_rolled_back",
+        "workspace_absent",
+        "invalid_selection",
+        "unsafe_path",
+        "legacy_finding_missing",
+        "selection_mismatch",
+        "target_invalid",
+        "privacy_review_required",
+        "sensitive_legacy_content",
+        "artifact_changed",
+        "migration_policy_invalid",
+        "confirmation_invalid",
+        "confirmation_stale",
+        "confirmation_reused",
+        "confirmation_binding_mismatch",
+        "unauthorized_approver",
+        "ledger_invalid",
+        "ledger_changed",
+        "operation_missing",
+        "operation_state_conflict",
+        "workspace_changed",
+        "lock_busy",
+        "write_failed",
+        "recovery_conflict",
+        "dependency_unavailable"
+      ]
+    },
+    "applicable": {
+      "type": "boolean"
+    },
+    "mutated": {
+      "type": "boolean"
+    },
+    "operation_id": {
+      "type": "string",
+      "pattern": "^migration-[a-f0-9]{64}$"
+    },
+    "operation_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "ledger_state": {
+      "enum": ["absent", "pending", "applied", "rollback_pending", "rolled_back"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "planned"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["operation_id", "operation_digest", "ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": true
+          },
+          "mutated": {
+            "const": false
+          },
+          "ledger_state": {
+            "const": "absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "workspace_absent"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": false
+          },
+          "mutated": {
+            "const": false
+          },
+          "next_action": {
+            "const": "create-workspace"
+          },
+          "ledger_state": {
+            "const": "absent"
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": ["operation_id"]
+            },
+            {
+              "required": ["operation_digest"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "enum": ["artifact_missing", "manual_routing_required"]
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "properties": {
+          "applicable": {
+            "const": false
+          },
+          "mutated": {
+            "const": false
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": ["operation_id"]
+            },
+            {
+              "required": ["operation_digest"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "applied"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["operation_id", "operation_digest", "ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": true
+          },
+          "mutated": {
+            "const": true
+          },
+          "ledger_state": {
+            "const": "applied"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "already_applied"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["operation_id", "operation_digest", "ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": true
+          },
+          "mutated": {
+            "const": false
+          },
+          "ledger_state": {
+            "const": "applied"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "rolled_back"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["operation_id", "operation_digest", "ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": true
+          },
+          "mutated": {
+            "const": true
+          },
+          "ledger_state": {
+            "const": "rolled_back"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "const": "already_rolled_back"
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "required": ["operation_id", "operation_digest", "ledger_state"],
+        "properties": {
+          "applicable": {
+            "const": true
+          },
+          "mutated": {
+            "const": false
+          },
+          "ledger_state": {
+            "const": "rolled_back"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_code": {
+            "not": {
+              "enum": [
+                "planned",
+                "artifact_missing",
+                "manual_routing_required",
+                "applied",
+                "already_applied",
+                "rolled_back",
+                "already_rolled_back",
+                "workspace_absent"
+              ]
+            }
+          }
+        },
+        "required": ["result_code"]
+      },
+      "then": {
+        "properties": {
+          "applicable": {
+            "const": false
+          },
+          "mutated": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}

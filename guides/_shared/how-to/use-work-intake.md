@@ -1,30 +1,90 @@
 ---
-title: Refresh tracked work safely
-summary: Compare a registered tracker-origin artifact with its source, review each field, and confirm any coordination write-back separately.
+title: Start, remember, inspect, or refresh repository work
+summary: Use one content-based front door for new work, deferred work, workspace status, and reviewed tracker refresh.
 pack: core
 kind: how-to
 ---
 
-# Refresh tracked work safely
+# Start, remember, inspect, or refresh repository work
 
-Use refresh when a canonical repository artifact already exists and its Jira,
-Jira Align, Linear, or GitHub source has changed. Start with a request such as:
+Use work intake when you know what you want to accomplish but should not have
+to choose an internal skill or workspace collection first. Start with ordinary
+language:
+
+```text
+Start work on export-retention controls. Keep the existing API route compatible.
+```
+
+The agent validates the request, selects one artifact from its content, writes
+that artifact before registering it, and names the next processor. Ambiguous
+or incoherent input remains non-dispatchable until you answer the smallest
+missing question.
+
+## Start work
+
+Describe the outcome, constraints, evidence, and any source reference you
+already have. Intake distinguishes these common shapes:
+
+| What the content supports | Result |
+| --- | --- |
+| A minimal opportunity | Draft intent; stop for shaping |
+| One independently shippable behavior | Spec route through `new-spec` |
+| One coherent outcome needing several specs | Draft brief through `author-brief` |
+| A cross-repository outcome | One linked local brief per repository |
+| Unrelated items or an incoherent view | Separate units, view-only, or one clarification |
+| A regression with durable expected-behavior evidence | Defect context through `bug-fix` |
+
+Tracker object type, list size, comments, labels, and hierarchy do not select
+the route. A claimed defect without durable expected-behavior evidence remains
+unresolved or follows the spec path.
+
+Core-only intake uses no network. A tracker adapter acquires a bounded source
+record through its exact configured profile, treats its content as untrusted,
+and passes the same normalized fields to the core route.
+
+## Remember work for later
+
+Say:
+
+```text
+Remember that export retries need idempotent replay. Do not implement it now.
+```
+
+The agent creates the smallest safe Draft artifact, registers a
+non-dispatchable entry, and stops. Use `work-intake` in new prompts.
+`capture-work` remains a forwarding compatibility alias and produces the same
+result plus a deprecation notice.
+
+## Inspect or triage the workspace
+
+Say:
+
+```text
+Show workspace status and triage anything that is not safe to dispatch.
+```
+
+Work intake delegates to `workspace-status` and returns its lifecycle,
+findings, and next actions unchanged. This path is read-only. It does not
+classify a new artifact or repair a finding automatically.
+
+Canonical entries, accepted legacy forms, duplicates, missing artifacts or
+plans, authority problems, and refresh conflicts remain visible. When status
+reports `legacy_entry`, follow [Migrate a legacy workspace entry safely](../../core/how-to/migrate-capture-work.md);
+migration is a separate workspace-status repair surface, not ordinary intake.
+
+## Refresh tracked requirements
+
+Use refresh only when a canonical repository artifact already exists and is
+registered as tracker-origin. Ask for the comparison before any write:
 
 ```text
 Refresh docs/specs/export-retention/spec.md from its registered tracker source.
-Show me every changed field and do not write back yet.
+Show every changed field and do not write back yet.
 ```
 
-You receive a field-level comparison. The tracker remains unchanged, and no
-local requirement changes until an authorized approver chooses what to keep,
-accept, or revise.
-
-## Before you start
-
-The artifact must be registered in `workspace.toml`, use `tracker-origin`
-authority, and contain one valid `source-authority` record. Its exact profile
-version must have a configured refresh processor. The repository-owned
-`workspace.toml` must also declare the closed refresh authorization policy:
+The artifact must carry one valid source-authority record and an exact profile
+version with a configured processor. The repository must also declare its
+closed role policy:
 
 ```toml
 [authorization.refresh]
@@ -34,23 +94,11 @@ accepted_approver_roles = ["maintainer"]
 remote_mutation_approver_roles = ["maintainer"]
 ```
 
-Replace the example role with the repository's actual authorized roles. Each
-array must contain one or more unique, non-empty role names: Draft decisions
-use `draft_approver_roles`, Accepted/Ready/Approved decisions use
-`accepted_approver_roles`, and every separately confirmed tracker mutation uses
-`remote_mutation_approver_roles`. Unknown or missing policy keys fail closed;
-the table stores roles only, never identities or tracker-supplied evidence.
+Replace the example role with repository-authorized roles. The policy stores
+roles, not identities or tracker-supplied evidence; missing, unknown, or empty
+role sets fail closed.
 
-`workspace-status` shows the origin mode, profile, compared and accepted
-revisions, conflict state, and known availability without copying the authority
-record into workspace state.
-
-Tracker content is untrusted. It can supply candidate field values, but it
-cannot choose the processor, lifecycle, destination, command, approval, or
-write payload.
-
-A tracker-origin artifact carries its provenance in one closed authority fence;
-the ordinary prose source section is not a substitute:
+The canonical artifact carries provenance and ownership in one closed fence:
 
 ```toml source-authority
 contract_version = "source-authority.v1"
@@ -61,91 +109,65 @@ source_revision = "rev-7"
 [owned_fields]
 ```
 
-Before the first refresh, populate `owned_fields` with every profile-mapped
-field and whether it is `source` or `local`; an empty map refuses with
-`ownership_map_missing` rather than guessing ownership.
+Before the first refresh, assign every profile-mapped field in `owned_fields`
+to `source` or `local`. An empty or incomplete ownership map refuses rather
+than guessing. The ordinary prose source section is not a substitute for this
+record.
 
-For Jira and Jira Align, set the installed refresh profile's destination to
-the same approved host as the local client before refresh. Profiles are trusted
-adopter configuration; tracker content cannot supply or alter them.
+Tracker text can supply candidate field values. It cannot choose the profile,
+destination, lifecycle, decisions, confirmation, or write payload.
 
-## Review the comparison
+### Review the field delta
 
-Ask for the delta without a write:
+For a Draft artifact, approved source-owned fields may change while local-owned
+fields remain locked. Accepted intents, Ready briefs, and Approved specs need
+an authorized `keep-local`, `accept-source`, or `revise-both` decision for each
+changed local field.
 
-```text
-Compare the latest source revision with the accepted artifact. Keep local
-fields unchanged and show the decision needed for each difference.
-```
-
-For a Draft artifact, refresh can update approved source-owned fields; local
-fields remain unchanged. For an Accepted intent, Ready brief, or Approved
-spec, each changed local requirement needs an authorized `keep-local`,
-`accept-source`, or `revise-both` decision. The decision records the approver,
-role, time, and authorization source.
-
-An Implementing spec or Executing brief refuses requirement refresh. Shipped
-requirements are also locked. A failed acquisition or comparison advances no
+Implementing specs and Executing briefs refuse requirement refresh. Shipped
+requirements are locked. Failed acquisition or comparison advances no source
 revision.
 
-## Apply the reviewed local update
-
-After reviewing the complete delta, state the decisions explicitly:
+After review, state the local decisions explicitly:
 
 ```text
-Keep the local Outcome, accept the source Constraint, and record the Scope
-difference as revise-both.
+Keep the local Outcome, accept the source Constraint, and record Scope as
+revise-both.
 ```
 
-The artifact authority record and the small `workspace.toml` revision mirror
-advance through one guarded local operation. A stale fingerprint, missing
-processor, profile-version mismatch, or unresolved ambiguity leaves both files
-at their pre-refresh values. A staging or replacement failure restores the
-pair; if the rollback replacement itself fails, `local_write_inconsistent`
-reports a possibly torn pair that requires operator repair.
+The artifact authority record and the small workspace revision mirror advance
+through one fingerprint-guarded write. A stale fingerprint, invalid authority,
+missing processor, or profile mismatch leaves both at their prior values.
 
-## Confirm coordination write-back separately
+### Confirm coordination write-back separately
 
-A local refresh decision never authorizes a tracker mutation. Ask for one
-coordination action, inspect its exact target and payload, then confirm it:
+A local field decision never authorizes a tracker mutation. Request one
+coordination action and inspect its exact target and payload:
 
 ```text
 Add the reviewed pull-request link to the linked tracker item. Show the exact
-target and payload, then wait for my confirmation.
+target and payload, then wait for confirmation.
 ```
 
-Each comment, trace link, pull-request link, display-status change, or closure
-uses its own fresh confirmation. The confirmation is bound to the approver,
-artifact, source revision, profile, destination, action, target, and payload
-digest. A pending local receipt is recorded before the command or request. A
-failed mutation is not retried automatically; retrying requires a new
-confirmation. `receipt_update_failed` means the adapter effect is unknown and
-the receipt remains pending; require operator repair rather than a new
-confirmation.
+Each supported comment, trace link, pull-request link, display-status change,
+or closure uses its own fresh confirmation. A pending local receipt is written
+before the remote call. Failures are not retried automatically.
 
-## Know the active profile limits
-
-| Profile | Reviewed local refresh | Coordination write-back |
+| Profile | Reviewed local refresh | Confirmed coordination actions |
 | --- | --- | --- |
+| Jira token | Yes | Display status, comment, closure |
+| Jira SSO cookie | Yes, read acquisition only | None; non-GET/HEAD is refused |
+| Jira Align | Yes | None |
 | Linear | Yes | Trace link, pull-request link, display status, comment, closure |
 | GitHub | Yes | Trace link, pull-request link, display-status label, comment, closure |
-| Jira with token credentials | Yes | Display status, comment, closure |
-| Jira with SSO cookies | Yes, read acquisition only | Refused before any non-GET/HEAD request |
-| Jira Align | Yes | None; unsupported actions fail before payload or transport |
 
-Capabilities come from the exact versioned profile. Missing actions do not
-fall back to a raw API or generic update command.
+## Verify and continue
 
-## Next request
+Run `workspace-status`. Confirm the artifact path, lifecycle membership,
+processor, authority mode, compared and accepted revisions, conflict state,
+and next action.
 
-Run `workspace-status` to confirm the compared revision and any unresolved
-conflict. If a remote action returns `receipt_update_failed`, the effect is
-unknown and its pending receipt requires operator repair rather than another
-confirmation. For another failed action, inspect its receipt before requesting
-a new confirmation for that action only.
-
-## See also
-
-- [Choose a tracker integration](choose-a-tracker-integration.md)
-- [Tracker vocabulary](../reference/tracker-vocabulary.md)
-- [Work-intake routing and lifecycle](../../core/reference/work-intake-routing-and-lifecycle.md)
+Then continue with the named processor, resolve the one reported gap, or stop
+with the Draft recorded for later. Use [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+for exact routes and [Tracker vocabulary](../reference/tracker-vocabulary.md)
+for profile terminology.

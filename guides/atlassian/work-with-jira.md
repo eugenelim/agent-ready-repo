@@ -91,7 +91,7 @@ remote write-back capability.
 and any unresolved conflict, or request one supported Jira coordination action
 and review its exact target and payload.
 
-→ [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/)
+→ [Use work intake](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/)
 
 ---
 
@@ -312,4 +312,4 @@ Do not publish until I approve it.
 | [How the Atlassian pack works](/agent-ready-repo/docs/guides/atlassian/explanation/atlassian-pack/) | Why the workflows are separate; composition model |
 | [Atlassian journey](/journeys/atlassian/) | Four-stage visual storyboard |
 | [Atlassian pack](/packs/atlassian/) | Pack overview, install, credentials |
-| [Refresh tracked work safely](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared lifecycle, authority, receipt, and confirmation procedure |
+| [Use work intake](/agent-ready-repo/docs/guides/_shared/how-to/use-work-intake/) | Shared start, remember, status, refresh, authority, and confirmation procedure |

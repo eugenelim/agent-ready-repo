@@ -817,6 +817,15 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     const dates = groups.map((g) => g.querySelector('time')?.getAttribute('datetime') ?? '');
     expect([...dates]).toEqual([...dates].sort().reverse());
 
+    // Parsed ONCE, outside the loop. The emitted changelog is ~1 MB, so
+    // re-parsing it per release group is O(groups x page) and timed this test
+    // out at 5000ms in CI once the changelog reached 12 groups. The document is
+    // only read below, so one parse is equivalent to one parse per iteration.
+    const changelogPage = join(DOCS_ROOT, 'changelog', 'index.html');
+    const emitted = existsSync(changelogPage)
+      ? new JSDOM(readFileSync(changelogPage, 'utf8')).window.document
+      : null;
+
     groups.forEach((group, i) => {
       const expected = projection.groups[i];
       expect(group.querySelector('time')?.getAttribute('datetime')).toBe(expected.date);
@@ -836,9 +845,7 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       // on the page and match, and this assertion would agree with the mistake.
       // Verified by seeding `does-not-exist-anchor`, which passes the
       // projection-only comparison and fails this one.
-      const changelogPage = join(DOCS_ROOT, 'changelog', 'index.html');
-      if (existsSync(changelogPage)) {
-        const emitted = new JSDOM(readFileSync(changelogPage, 'utf8')).window.document;
+      if (emitted) {
         expect(
           emitted.getElementById(expected.changelogAnchor),
           `Now links #${expected.changelogAnchor}, absent from the emitted changelog`

@@ -8,8 +8,8 @@ kind: explanation
 # `linear` — guides
 
 Linear integration for this catalogue. Read Linear work into the shared
-content-based repository route, or keep an existing brief's imported sections
-in sync through a separate approval-gated workflow.
+content-based repository route, or compare an existing tracker-origin
+artifact through a separate approval-gated refresh workflow.
 
 The API key never reaches the model. `linear` is a credentialed skill: it
 invokes a CLI that resolves your Personal API Key in-process and makes the

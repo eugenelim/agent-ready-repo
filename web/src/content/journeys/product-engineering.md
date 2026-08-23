@@ -308,11 +308,13 @@ de-risk-intent
 What `decompose-intent` produces depends on your level:
 
 - **At `capability` or above** — child intents at the next level down (e.g. a capability intent produces feature intents). Each child re-enters the loop at its own level and is de-risked independently.
-- **At `feature`** — a spec/slice: the shippable, agent-buildable unit handed to the delivery loop via `receive-brief`.
+- **At `feature`** — one independently shippable feature goes directly to a
+  spec/slice through `new-spec`. Use a brief and `receive-brief` only when the
+  result coordinates multiple specs or repositories.
 
 A child whose riskiest assumption is killed bubbles back up — the parent must re-decompose or reframe. That feedback edge keeps the tree honest.
 
-- **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition one level down — child intents or, at the leaf, delivery briefs.
+- **Output:** a de-risked candidate with a predeclared kill condition and a named validation hook; then a decomposition one level down — child intents or, at the leaf, a direct spec unless multi-spec or cross-repository coordination requires a brief.
 - **State:** draft
 
 ---
@@ -334,5 +336,9 @@ Reconcile? ›
 ```
 
 - **You decide:** approve the decision brief — is the brief complete? Then commit to build — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
-- **Output:** a ratified decision brief with a connected hypothesis and validation hooks. At `feature` level this hands off to the delivery loop via `receive-brief`. At `capability` or above it produces ratified child intents — each re-enters the loop independently at its own level.
+- **Output:** a ratified decision record with a connected hypothesis and
+  validation hooks. One independently shippable `feature` hands off directly to
+  `new-spec`; a multi-spec or cross-repository result uses a coordinating brief
+  and `receive-brief`. At `capability` or above it produces ratified child
+  intents — each re-enters the loop independently at its own level.
 - **State:** confirmed-write

@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.3
+
+The bundled workspace-status engine now recognizes reviewed legacy work-intake
+migrations, validates durable operation digests, and refuses linked or aliased
+workspace input before projecting exact legacy bytes.
+
 ## What's new in 0.39.2
 
 Level A packs can now provide an optional manual next step after installation.

@@ -27,7 +27,11 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 The `intent` is the single recursive artifact of this pack. A product-vision intent, a product-strategy intent, a capability intent, and a feature intent are the same data structure at different altitudes — outcome + opportunity + assumptions + decomposition pointer. A PRD is a feature intent written as a long-form document; a strategy doc is a product-strategy intent. Nothing changes about the artifact as you descend the tree; only the altitude field changes.
 
-This means decomposition is recursive by construction: `decompose-intent` produces the next level down from whatever level it receives, and stops when the leaf is a unit the delivery loop can build — at `app` Scale, that leaf is an ordinary `core` brief.
+This means decomposition is recursive by construction: `decompose-intent`
+produces the next level down from whatever level it receives, and stops when the
+leaf is a unit the delivery loop can build — at `app` Scale, one independently
+shippable leaf becomes a `core` spec directly, while a multi-spec or
+cross-repository result first becomes a coordinating brief.
 
 ### Level is an open recognized set
 
@@ -145,7 +149,13 @@ The `product-strategy` pack is the strategic anchor this pack builds on. Before 
 
 ### Downstream: core (the G3 handoff)
 
-At G3, `discovery-loop` hands the ratified decision brief to the delivery loop unchanged. The hand-off interface is `receive-brief` → `new-spec` → `work-loop`. No new machinery. At `app` Scale each leaf brief is an ordinary `core` brief; at `business-unit` Scale each leaf brief is a per-component slice that crosses into its component repo where the same delivery loop takes over.
+At G3, `discovery-loop` hands one independently shippable feature directly to
+the delivery loop through `new-spec` → `work-loop`. A coordinating brief and
+`receive-brief` are used only when the result spans multiple specs or
+repositories. At `app` Scale a single leaf is ordinarily a direct `core` spec;
+at `business-unit` Scale the coordinating brief maps per-component slices that
+cross into their component repositories, where each selected slice enters the
+same delivery loop.
 
 ### Downstream: experience-design
 

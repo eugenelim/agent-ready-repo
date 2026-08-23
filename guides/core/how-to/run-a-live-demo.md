@@ -23,7 +23,7 @@ see where human judgment controlled it.
 | --- | --- | --- | --- | --- |
 | One bounded, independently testable feature | **Technical** | Core at repo scope | `new-spec` | No brief; one Draft spec/plan pair |
 | A structured multi-feature handoff | **Enterprise** | Core at repo scope | `receive-brief` → selected slice → `new-spec` | Source brief `Ready`; one Draft spec/plan pair |
-| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `receive-brief` → `new-spec` | Draft intent, Ready leaf brief, one Draft spec/plan pair |
+| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec` | Draft intent and one Draft spec/plan pair; add `receive-brief` only for multi-spec or cross-repository coordination |
 
 The labels name likely audiences; the **input shape chooses the workflow**. A
 technical participant with a multi-feature handoff still uses the enterprise
@@ -360,14 +360,15 @@ outside the repository, stop before starting the timer.
 ### Pre-flight — 4 min maximum
 
 **Say:** “We will shape a feature in user-scoped Product Engineering, then hand
-its leaf brief to repo-scoped Core. You retain the meaning and quality bar.”
+one independently shippable leaf directly to repo-scoped Core as a spec. You
+retain the meaning and quality bar.”
 
 **Reads:** only the named guide/process file, sanitized observations,
 repository layout configuration, architecture, and conventions.
 
-**Writes:** one intent under the configured Product Engineering output,
-`docs/product/briefs/<demo-slug>.md`, and one Draft spec/plan pair.
-`workspace.toml` is excluded.
+**Writes:** one intent under the configured Product Engineering output and one
+Draft spec/plan pair. `workspace.toml` is excluded. A brief is added only if the
+session discovers multi-spec or cross-repository coordination.
 
 **You see:** both installed packs and scopes, the resolved intent output path,
 the Core handoff paths, and `External mutation: none` on the card.
@@ -392,10 +393,10 @@ source interpretation.
 Use user-scoped Product Engineering to frame [workflow problem] at feature
 level and app scale from [source paths]. Pause at G0 for my framing decision,
 test the one riskiest assumption against a predeclared kill condition, and
-project the surviving intent to one Core brief. Then use repo-scoped Core to
-receive that brief and draft one spec/plan pair. Do not decide user meaning or
-craft quality for me; do not implement, approve, register work, or change an
-external system.
+project one independently shippable surviving intent directly to a Core spec
+and plan. Use a brief and `receive-brief` only if the result coordinates
+multiple specs or repositories. Do not decide user meaning or craft quality for
+me; do not implement, approve, register work, or change an external system.
 ```
 
 **Reads:** the declared sources and configured Product Engineering output path.
@@ -420,42 +421,49 @@ sources.
 
 **Say:** “Name the single riskiest assumption, declare what result would kill
 the bet before considering evidence, and record the real-world validation hook.
-If it survives, project this feature leaf to a Core brief and show its Ready
-fields.”
+If one independently shippable feature survives, project it directly to a Core
+spec. Use a brief first only when the result coordinates multiple specs or
+repositories.”
 
 **Reads:** the ratified intent and named source evidence.
 
 **Writes:** the assumption result and validation hook on the intent, then a Core
-brief containing Outcome, Appetite, at least one Rabbit hole, and a one-row Spec
-map skeleton.
+spec for one independently shippable feature. For multi-spec or cross-repository
+coordination, it writes a Core brief containing the shared outcome, boundaries,
+constraint, risks, provenance, and spec map before selecting a slice.
 
 **You see:** reversibility, the predeclared kill condition, survive/kill verdict,
 and any desk-grounded claim marked `to-validate`; after a survive verdict, the
-leaf brief preserves intent provenance and all four Ready fields.
+direct spec preserves intent provenance, or a coordination brief records why
+more than one spec or repository is involved.
 
-**You decide:** accept or correct the kill condition and verdict; confirm the
-leaf projection. Core then verifies the four Ready fields and the one-slice cut
-before marking the brief `Ready`.
+**You decide:** accept or correct the kill condition and verdict; confirm that
+the leaf is one independently shippable spec. If it is not, confirm the
+coordination brief's readiness before selecting a slice.
 
 **Narrate:** desk grounding is not real-world validation. A killed assumption
 stops here; it never gets decomposed into work.
 
-**Stop if:** the assumption is killed, the validation hook is missing, a Ready
-field is absent, or the brief loses the participant's correction.
+**Stop if:** the assumption is killed, the validation hook is missing, the
+direct spec is not independently shippable, or a required coordination brief
+loses the participant's correction.
 
 ### Draft delivery handoff — 9 min maximum
 
-**Say:** “Use Core's `receive-brief` to confirm the one-slice cut, then
-`new-spec` to draft one spec/plan pair. Preserve the intent and brief provenance
-and show where my correction appears. Do not implement.”
+**Say:** “Use Core's `new-spec` to draft one spec/plan pair from this
+independently shippable intent. If coordination required a brief, use
+`receive-brief` to confirm the one-slice cut first. Preserve provenance and show
+where my correction appears. Do not implement.”
 
-**Reads:** the Ready leaf brief, source-backed intent, architecture, and
-conventions.
+**Reads:** the source-backed intent, architecture, and conventions, plus a Ready
+coordination brief only when one was required.
 
-**Writes:** one Draft spec/plan pair with the brief and discovery provenance.
+**Writes:** one Draft spec/plan pair with discovery provenance and, when
+applicable, coordination-brief provenance.
 
-**You see:** source → corrected intent → Ready brief → Draft acceptance-criterion
-trace, plus the unresolved validation hook.
+**You see:** source → corrected intent → Draft acceptance-criterion trace, plus
+the unresolved validation hook. A coordination run inserts the Ready brief
+between intent and spec.
 
 **You decide:** confirm the Core decomposition and `new-spec` assumptions, then
 decide only whether the Draft pair is ready to circulate.

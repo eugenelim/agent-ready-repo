@@ -205,3 +205,15 @@ def test_refresh_profile_matches_production_registration(processor, refresh) -> 
     assert frozenset(profile["capabilities"]) == registration.capabilities
     assert profile["destination"]["redirects"] is False
     assert profile["destination"]["dns_policy"] == "pinned-address"
+
+
+# STUB: AC19
+def test_jira_align_profile_is_in_the_integrated_routing_matrix() -> None:
+    matrix = json.loads(
+        (ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert any(
+        case.get("profile_id") == "jira-align-default" for case in matrix["cases"]
+    )

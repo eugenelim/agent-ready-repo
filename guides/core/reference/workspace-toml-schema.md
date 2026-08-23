@@ -5,6 +5,8 @@ pack: core
 kind: reference
 ---
 
+# workspace.toml schema reference
+
 `workspace.toml` is the repository coordination index. It points to canonical
 artifacts, records lifecycle membership, stores minimal source provenance, and
 names hard dependencies. It is not a requirements document.
@@ -34,7 +36,7 @@ requirement-bearing artifacts, and decides how to migrate a legacy entry.
 
 Repositories that enable tracker refresh also carry a global
 `[authorization.refresh]` role policy outside initiative entries. See
-[Refresh tracked work safely](../../_shared/how-to/use-work-intake.md) for
+[Use work intake](../../_shared/how-to/use-work-intake.md) for
 the exact required keys and confirmation boundaries. The policy contains roles
 only; artifact authority, approver identities, decisions, conflicts, and
 receipts remain in the canonical artifact.
@@ -320,6 +322,43 @@ non-dispatchable, and readers do not reconstruct requirements from comments.
 Migration requires a human to choose the canonical artifact route and write a
 target entry.
 
+### Migration authorization and ledger
+
+Repositories that apply or roll back legacy-entry migrations declare one
+closed global policy outside initiative tables:
+
+```toml
+[authorization.migration]
+contract_version = "work-intake-migration-authorization.v1"
+approver_roles = ["migration-approver"]
+```
+
+`approver_roles` is a non-empty unique subset of the public roles accepted by
+the confirmation contract: `migration-approver`, `repository-maintainer`, and
+`security-approver`. Unknown keys or roles fail closed.
+
+Planning consumes a closed, human-authored selection and is read-only. It binds
+the canonical legacy finding ID, workspace fingerprint, source
+collection/index/exact-slice digest, selected five-field target entry and
+membership, owning processor, provenance, and positive privacy attestation.
+The agent may show candidates but must not author or edit that selection.
+
+Apply creates `.workspace-migrations.json` at the repository root. The ledger
+stores repository identity and ordered operations with:
+
+- operation ID and immutable digest;
+- exact legacy TOML slice and original membership;
+- selected target entry and membership;
+- artifact path, confined fingerprint, and proof that it existed before apply;
+- `pending`, `applied`, `rollback_pending`, or `rolled_back` state;
+- consumed single-use confirmation receipts with opaque identifiers, action and
+  operation binding, role digest, timestamp, and authorization source.
+
+The ledger excludes requirements, raw tracker payloads, credentials, and raw
+role labels. It is written and synced before the workspace effect so an
+interrupted operation can recover. Rollback restores the exact legacy slice
+and never deletes the canonical artifact.
+
 ## Compaction
 
 Shipped entries may be removed from the active index only when no live `needs`
@@ -338,3 +377,5 @@ non-finite values.
 
 - [The two-room model](../explanation/two-room-model.md)
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md)
+- [Migrate a legacy workspace entry safely](../how-to/migrate-capture-work.md)
+- [How work records divide responsibility](../../_shared/explanation/work-artifact-responsibilities.md)

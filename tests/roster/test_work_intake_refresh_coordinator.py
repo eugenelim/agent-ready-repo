@@ -23,6 +23,20 @@ _ROUTER_PATH = (
 _CONTRACT_ROOT = _ROOT / "contracts/jsonschema"
 
 
+# STUB: AC20
+def test_integrated_matrix_has_a_read_only_migration_planner_row() -> None:
+    matrix = json.loads(
+        (
+            _ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json"
+        ).read_text(encoding="utf-8")
+    )
+    migration = next(
+        case for case in matrix["cases"] if case["id"] == "migration-read-only-plan"
+    )
+    assert migration["mutation"] == "none"
+    assert migration["result_code"] == "planned"
+
+
 def _load_refresh():
     spec = importlib.util.spec_from_file_location("work_intake_refresh", _REFRESH_PATH)
     module = importlib.util.module_from_spec(spec)

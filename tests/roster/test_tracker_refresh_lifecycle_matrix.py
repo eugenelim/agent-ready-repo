@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,6 +32,30 @@ LIFECYCLE_EXPECTATIONS = {
     "Executing": "refused",
     "Shipped": "refused",
 }
+
+
+# STUB: AC19
+def test_integrated_matrix_versions_every_refresh_lifecycle_row() -> None:
+    matrix = json.loads(
+        (
+            ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json"
+        ).read_text(encoding="utf-8")
+    )
+    refresh_rows = [case for case in matrix["cases"] if case.get("action") == "refresh"]
+    supported = {
+        (profile["id"], profile["version"])
+        for profile in matrix["supported_profiles"]
+    }
+    assert {
+        (case["profile_id"], case["profile_version"]) for case in refresh_rows
+    } == supported
+    for profile_id, profile_version in supported:
+        assert {
+            case["lifecycle"]
+            for case in refresh_rows
+            if (case["profile_id"], case["profile_version"])
+            == (profile_id, profile_version)
+        } == set(LIFECYCLE_EXPECTATIONS)
 
 
 def _load(path: Path, name: str):

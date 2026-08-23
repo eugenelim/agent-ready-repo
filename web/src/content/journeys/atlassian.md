@@ -40,13 +40,13 @@ skills:
     description: "Handle a Jira defect end-to-end — pull the ticket, fix the code, open a PR, comment and transition the ticket."
     humanTouches: 2
   - name: jira-brief-intake
-    description: "Turn a Jira epic and its child issues into a product brief for receive-brief."
+    description: "Read bounded Jira content into the shared route; content may select an intent, brief, spec, defect, separate units, or view-only result."
     humanTouches: 1
   - name: jira-align
     description: "Read and write Jira Align portfolio data — epics, features, stories, programs, teams."
     humanTouches: 1
   - name: jira-align-brief-intake
-    description: "Read Jira Align work into shared repository intake. Intake is one-way; later reviewed local refresh remains available through the configured refresh processor."
+    description: "Read bounded Jira Align content into shared repository intake. Intake is tracker-read-only; a later profile-bound refresh may update reviewed local fields."
     humanTouches: 1
   - name: jira-refresh
     description: "Review Jira source changes through shared local authority rules. Token-authenticated comment, display-status, and closure actions each require a fresh exact confirmation; SSO-cookie writes remain zero-wire refusals."

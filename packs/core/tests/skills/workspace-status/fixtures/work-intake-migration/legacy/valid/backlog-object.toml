@@ -1,0 +1,5 @@
+[backlog]
+open = [
+  # Captured prose remains comment-rich until a human selects its route.
+  { slug = "captured-prose", source = "capture-work", summary = "Follow up on the accepted intake", needs = [], type = "spec" },
+]

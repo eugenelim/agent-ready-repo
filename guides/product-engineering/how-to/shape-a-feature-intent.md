@@ -1,6 +1,6 @@
 ---
 title: How to shape a feature intent in an app repo
-summary: Turn an application-scale idea into a de-risked feature intent and a delivery-ready core brief.
+summary: Turn an application-scale idea into a de-risked feature intent and the smallest delivery-ready contract.
 pack: product-engineering
 kind: how-to
 ---
@@ -9,7 +9,10 @@ kind: how-to
 
 **Use this when:** You have an idea or request at app scale (one repo, one feature) and want to turn it into a spec your delivery loop can build — without skipping framing, de-risking, and decomposition.
 **Prerequisites:** `product-engineering` pack installed; an app-scale repo with app code; a feature idea, request, or brownfield context to shape.
-**Result:** A de-risked feature intent decomposed into a `core` brief at `docs/product/briefs/<slug>.md`, ready for `receive-brief`, `new-spec`, and `work-loop`.
+**Result:** A de-risked feature intent routed directly to one `core` spec when
+it is independently shippable, or to a coordinating brief when several specs
+or repositories need a shared envelope, ready for `new-spec`, `receive-brief`,
+and `work-loop`.
 
 :::note
 **Diátaxis: how-to.** A goal-oriented walk through the `product-engineering` loop at **app scale** (one repo, one feature). For the why, see the explanation *The intent tree*; for fields, the reference *Intent fields and modes*. For business-unit / cross-component shaping (a capability across many component repos), see the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
@@ -62,13 +65,21 @@ Invoke **`de-risk-intent`**. It triages reversibility (one-way vs two-way door),
 
 You get a **survive/kill** verdict. Killed → reframe. Survived → decompose.
 
-## 3. Decompose to a brief
+## 3. Decompose to the smallest delivery contract
 
-Invoke **`decompose-intent`**. At app scale a single feature intent is the leaf, so it projects to an ordinary `core` **brief** at `docs/product/briefs/<slug>.md` — same outcome, success metrics, scope/non-goals, appetite. No new fields, no slicing.
+Invoke **`decompose-intent`**. At app scale, one independently shippable feature
+routes directly to a `core` **spec** at `docs/specs/<slug>/spec.md`. Use a
+**brief** only when the intent coordinates multiple specs or crosses repository
+boundaries; the brief carries the shared outcome, success metrics,
+scope/non-goals, and appetite while the child specs own their delivery
+contracts.
 
 ## 4. Hand off to delivery
 
-From here it's the loop you already have: **`receive-brief`** decomposes the brief into specs, **`new-spec`** authors each (and pins the detailed contract at *that* stage, via the `Contract:` seam), and **`work-loop`** builds them. A worked end-to-end example ships with the pack at `frame-intent/examples/feature-intent-to-brief.md`.
+From here it's the loop you already have: **`new-spec`** authors a direct
+single-feature contract, while **`receive-brief`** decomposes a coordinating
+brief into specs. In both routes, **`work-loop`** builds the approved spec and
+the `Contract:` seam pins the detailed contract at spec authoring time.
 
 ---
 

@@ -32,4 +32,4 @@ that require access. Host selection must come from trusted repository or
 administrator configuration, never Issue or Milestone text.
 
 → [Intake GitHub work](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md)
-→ [Refresh tracked work safely](../../guides/_shared/how-to/use-work-intake.md)
+→ [Use work intake](../../guides/_shared/how-to/use-work-intake.md)

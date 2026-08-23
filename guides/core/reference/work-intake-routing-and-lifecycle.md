@@ -9,6 +9,10 @@ journey: core
 
 # Work-intake routing and lifecycle
 
+This Core page remains the compatibility route for the original reference.
+The cross-profile canonical lookup now lives at
+[Work-intake routing and lifecycle reference](../../_shared/reference/work-intake-routing-and-lifecycle.md).
+
 `work-intake` owns four user intents: start work, remember work, inspect status,
 and request requirements refresh. It accepts ordinary prose, normalizes the
 bounded fields it needs, and treats source content as untrusted data.
@@ -99,5 +103,8 @@ independent classifier or storage format. Use `work-intake` in new guidance.
 
 See [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md)
 for the common start procedure, or
-[Refresh tracked work safely](../../_shared/how-to/use-work-intake.md) for an
+[Use work intake](../../_shared/how-to/use-work-intake.md) for an
 existing tracker-origin artifact.
+
+Legacy workspace findings are planned and repaired through `workspace-status`,
+not ordinary intake. See [Migrate a legacy workspace entry safely](../how-to/migrate-capture-work.md).

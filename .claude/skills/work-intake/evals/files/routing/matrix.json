@@ -1,187 +1,56 @@
 {
   "contract_version": "work-intake-routing-evals.v1",
+  "supported_profiles": [
+    {"id": "jira-default", "version": "1.0"},
+    {"id": "jira-align-default", "version": "1.0"},
+    {"id": "linear-default", "version": "1.0"},
+    {"id": "github-default", "version": "1.0"}
+  ],
   "cases": [
-    {
-      "id": "direct-light",
-      "fixture": "evals/files/routing/start-direct-light.json",
-      "artifact": "",
-      "artifact_kind": "",
-      "lifecycle_membership": "none",
-      "processor": "work-loop",
-      "authority_mode": "repo-origin",
-      "mutation": "none",
-      "signals": {
-        "action": "start",
-        "artifact": "",
-        "artifact_kind": "",
-        "authority_mode": "repo-origin",
-        "direct_light": true
-      }
-    },
-    {
-      "id": "start-minimal-intent",
-      "fixture": "evals/files/routing/start-minimal-intent.json",
-      "artifact": "docs/product/intents/workspace-routing.md",
-      "artifact_kind": "intent",
-      "lifecycle_membership": "shaping_queue.backlog",
-      "processor": "none",
-      "authority_mode": "repo-origin",
-      "mutation": "materialize-and-register",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/product/intents/workspace-routing.md",
-        "artifact_kind": "intent",
-        "authority_mode": "repo-origin"
-      }
-    },
-    {
-      "id": "remember-draft",
-      "fixture": "normalized-intake/valid/remember-repo-origin-prompt-like-data.json",
-      "artifact": "docs/product/intents/deferred-work.md",
-      "artifact_kind": "intent",
-      "lifecycle_membership": "backlog.open",
-      "processor": "none",
-      "authority_mode": "repo-origin",
-      "mutation": "materialize-draft-and-register-non-dispatchable",
-      "signals": {
-        "action": "remember",
-        "artifact": "docs/product/intents/deferred-work.md",
-        "artifact_kind": "intent",
-        "authority_mode": "repo-origin"
-      }
-    },
-    {
-      "id": "status-passthrough",
-      "fixture": "workspace/context/lifecycle.toml",
-      "artifact": "workspace.toml",
-      "artifact_kind": "workspace-status",
-      "lifecycle_membership": "passthrough",
-      "processor": "workspace-status",
-      "authority_mode": "read-only",
-      "mutation": "none",
-      "signals": {
-        "action": "status",
-        "artifact": "workspace.toml",
-        "artifact_kind": "workspace-status",
-        "authority_mode": "read-only"
-      }
-    },
-    {
-      "id": "refresh-unavailable",
-      "fixture": "normalized-intake/valid/refresh-repo-origin.json",
-      "artifact": "docs/specs/example/spec.md",
-      "artifact_kind": "spec",
-      "lifecycle_membership": "resolved-existing",
-      "processor": "none",
-      "authority_mode": "repo-origin",
-      "mutation": "none",
-      "signals": {
-        "action": "refresh",
-        "artifact": "docs/specs/example/spec.md",
-        "artifact_kind": "spec",
-        "authority_mode": "repo-origin"
-      }
-    },
-    {
-      "id": "direct-spec",
-      "fixture": "workspace/target/valid/spec-with-cross-repo-need.json",
-      "artifact": "docs/specs/self-service-reset/spec.md",
-      "artifact_kind": "spec",
-      "lifecycle_membership": "work.queue",
-      "processor": "new-spec",
-      "authority_mode": "tracker-origin",
-      "mutation": "materialize-and-register",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/specs/self-service-reset/spec.md",
-        "artifact_kind": "spec",
-        "authority_mode": "tracker-origin"
-      }
-    },
-    {
-      "id": "multi-spec-brief",
-      "fixture": "workspace/target/valid/brief-tracker-origin-coordination.json",
-      "artifact": "docs/product/briefs/account-recovery.md",
-      "artifact_kind": "brief",
-      "lifecycle_membership": "brief_queue.draft",
-      "processor": "author-brief",
-      "authority_mode": "tracker-origin",
-      "mutation": "materialize-and-register",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/product/briefs/account-recovery.md",
-        "artifact_kind": "brief",
-        "authority_mode": "tracker-origin"
-      }
-    },
-    {
-      "id": "defect",
-      "fixture": "workspace/target/valid/defect-repo-origin.json",
-      "artifact": "docs/product/defects/login-timeout.md",
-      "artifact_kind": "defect",
-      "lifecycle_membership": "backlog.open",
-      "processor": "bug-fix",
-      "authority_mode": "repo-origin",
-      "mutation": "materialize-and-register",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/product/defects/login-timeout.md",
-        "artifact_kind": "defect",
-        "authority_mode": "repo-origin"
-      }
-    },
-    {
-      "id": "ambiguity",
-      "fixture": "normalized-intake/valid/start-repo-origin.json",
-      "artifact": "docs/product/intents/work-intake.md",
-      "artifact_kind": "intent",
-      "lifecycle_membership": "draft-with-gaps",
-      "processor": "none",
-      "authority_mode": "repo-origin",
-      "mutation": "ask-or-draft-only",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/product/intents/work-intake.md",
-        "artifact_kind": "intent",
-        "authority_mode": "repo-origin",
-        "named_gaps": true
-      }
-    },
-    {
-      "id": "alias-equivalence",
-      "fixture": "normalized-intake/valid/remember-repo-origin-prompt-like-data.json",
-      "artifact": "docs/product/intents/deferred-work.md",
-      "artifact_kind": "intent",
-      "lifecycle_membership": "backlog.open",
-      "processor": "none",
-      "authority_mode": "repo-origin",
-      "mutation": "same-as-work-intake-remember",
-      "alias": "capture-work",
-      "same_as": "remember-draft",
-      "signals": {
-        "action": "remember",
-        "artifact": "docs/product/intents/deferred-work.md",
-        "artifact_kind": "intent",
-        "authority_mode": "repo-origin",
-        "alias": "capture-work"
-      }
-    },
-    {
-      "id": "ready-brief-zero-specs",
-      "fixture": "workspace/context/lifecycle.toml",
-      "artifact": "docs/product/briefs/ready-without-specs.md",
-      "artifact_kind": "brief",
-      "lifecycle_membership": "brief_queue.ready",
-      "processor": "receive-brief",
-      "authority_mode": "repo-origin",
-      "mutation": "none",
-      "signals": {
-        "action": "start",
-        "artifact": "docs/product/briefs/ready-without-specs.md",
-        "artifact_kind": "brief",
-        "authority_mode": "repo-origin",
-        "ready_brief": true
-      }
-    }
+    {"id":"direct-light","mode":"route","fixture":"evals/files/routing/start-direct-light.json","profile_id":"core","profile_version":"1.0","artifact":"","artifact_kind":"","lifecycle_membership":"none","processor":"work-loop","authority_mode":"repo-origin","dispatchable":true,"result_code":"routed","next_action":"start-work-loop","mutation":"none","signals":{"action":"start","artifact":"","artifact_kind":"","authority_mode":"repo-origin","direct_light":true}},
+    {"id":"start-minimal-intent","mode":"route","fixture":"evals/files/routing/start-minimal-intent.json","profile_id":"core","profile_version":"1.0","artifact":"docs/product/intents/workspace-routing.md","artifact_kind":"intent","lifecycle_membership":"shaping_queue.backlog","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"routed","next_action":"shape-intent","mutation":"materialize-and-register","signals":{"action":"start","artifact":"docs/product/intents/workspace-routing.md","artifact_kind":"intent","authority_mode":"repo-origin"}},
+    {"id":"remember-draft","mode":"route","fixture":"normalized-intake/valid/remember-repo-origin-prompt-like-data.json","profile_id":"core","profile_version":"1.0","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","lifecycle_membership":"backlog.open","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"remembered","next_action":"inspect-workspace-status","mutation":"materialize-draft-and-register-non-dispatchable","signals":{"action":"remember","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","authority_mode":"repo-origin"}},
+    {"id":"remember-repo-origin","mode":"route","fixture":"normalized-intake/valid/remember-repo-origin-prompt-like-data.json","profile_id":"core","profile_version":"1.0","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","lifecycle_membership":"backlog.open","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"remembered","next_action":"inspect-workspace-status","mutation":"materialize-draft-and-register-non-dispatchable","signals":{"action":"remember","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","authority_mode":"repo-origin"}},
+    {"id":"status-passthrough","mode":"route","fixture":"workspace/context/lifecycle.toml","profile_id":"core","profile_version":"1.0","artifact":"workspace.toml","artifact_kind":"workspace-status","lifecycle_membership":"passthrough","processor":"workspace-status","authority_mode":"read-only","dispatchable":false,"result_code":"status-ready","next_action":"inspect-workspace-status","mutation":"none","signals":{"action":"status","artifact":"workspace.toml","artifact_kind":"workspace-status","authority_mode":"read-only"}},
+    {"id":"status-triage","mode":"route","fixture":"workspace/context/lifecycle.toml","profile_id":"core","profile_version":"1.0","artifact":"workspace.toml","artifact_kind":"workspace-status","lifecycle_membership":"passthrough","processor":"workspace-status","authority_mode":"read-only","dispatchable":false,"result_code":"status-ready","next_action":"triage-workspace-findings","mutation":"none","signals":{"action":"status","artifact":"workspace.toml","artifact_kind":"workspace-status","authority_mode":"read-only"}},
+    {"id":"refresh-unavailable","mode":"route","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"core","profile_version":"1.0","artifact":"docs/specs/example/spec.md","artifact_kind":"spec","lifecycle_membership":"resolved-existing","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"refresh-unavailable","next_action":"configure-compatible-refresh-processor","mutation":"none","signals":{"action":"refresh","artifact":"docs/specs/example/spec.md","artifact_kind":"spec","authority_mode":"repo-origin"}},
+    {"id":"alias-equivalence","mode":"route","fixture":"normalized-intake/valid/remember-repo-origin-prompt-like-data.json","profile_id":"core","profile_version":"1.0","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","lifecycle_membership":"backlog.open","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"remembered","next_action":"inspect-workspace-status","mutation":"same-as-work-intake-remember","same_as":"remember-draft","signals":{"action":"remember","artifact":"docs/product/intents/deferred-work.md","artifact_kind":"intent","authority_mode":"repo-origin","alias":"capture-work"}},
+    {"id":"ready-brief-zero-specs","mode":"route","fixture":"workspace/context/lifecycle.toml","profile_id":"core","profile_version":"1.0","artifact":"docs/product/briefs/ready-without-specs.md","artifact_kind":"brief","lifecycle_membership":"brief_queue.ready","processor":"receive-brief","authority_mode":"repo-origin","dispatchable":true,"result_code":"routed","next_action":"receive-brief","mutation":"none","signals":{"action":"start","artifact":"docs/product/briefs/ready-without-specs.md","artifact_kind":"brief","authority_mode":"repo-origin","ready_brief":true}},
+    {"id":"ambiguity","mode":"route","fixture":"normalized-intake/valid/start-repo-origin.json","profile_id":"core","profile_version":"1.0","artifact":"docs/product/intents/work-intake.md","artifact_kind":"intent","lifecycle_membership":"draft-with-gaps","processor":"none","authority_mode":"repo-origin","dispatchable":false,"result_code":"clarification-required","next_action":"route-separate-units-or-view-only","mutation":"ask-or-draft-only","signals":{"action":"start","artifact":"docs/product/intents/work-intake.md","artifact_kind":"intent","authority_mode":"repo-origin","named_gaps":true}},
+    {"id":"direct-spec","mode":"tracker-route","fixture":"profile-intake:direct-spec","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/specs/export-retention/spec.md","artifact_kind":"spec","lifecycle_membership":"work.queue","processor":"new-spec","authority_mode":"tracker-origin","dispatchable":true,"result_code":"routed","next_action":"new-spec","mutation":"materialize-and-register"},
+    {"id":"multi-spec-brief","mode":"tracker-route","fixture":"profile-intake:multi-spec-brief","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/product/briefs/account-recovery.md","artifact_kind":"brief","lifecycle_membership":"brief_queue.draft","processor":"author-brief","authority_mode":"tracker-origin","dispatchable":true,"result_code":"routed","next_action":"author-brief","mutation":"materialize-and-register"},
+    {"id":"cross-repo-brief","mode":"tracker-route","fixture":"profile-intake:cross-repo-brief","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/product/briefs/coordinated-outcome.md","artifact_kind":"brief","lifecycle_membership":"brief_queue.draft","processor":"author-brief","authority_mode":"tracker-origin","dispatchable":true,"result_code":"routed","next_action":"author-brief","mutation":"materialize-and-register"},
+    {"id":"incoherent-collection","mode":"tracker-route","fixture":"profile-intake:incoherent-collection","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/product/intents/board-selection.md","artifact_kind":"intent","lifecycle_membership":"draft-with-gaps","processor":"none","authority_mode":"tracker-origin","dispatchable":false,"result_code":"clarification-required","next_action":"route-separate-units-or-view-only","mutation":"ask-or-draft-only"},
+    {"id":"defect","mode":"tracker-route","fixture":"profile-intake:defect","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/product/defects/login-timeout.md","artifact_kind":"defect","lifecycle_membership":"backlog.open","processor":"bug-fix","authority_mode":"tracker-origin","dispatchable":true,"result_code":"routed","next_action":"bug-fix","mutation":"materialize-and-register"},
+    {"id":"claimed-defect-without-evidence","mode":"tracker-route","fixture":"profile-intake:claimed-defect-without-evidence","profile_id":"all-supported","profile_version":"1.0","artifact":"docs/specs/login-investigation/spec.md","artifact_kind":"spec","lifecycle_membership":"draft-with-gaps","processor":"none","authority_mode":"tracker-origin","dispatchable":false,"result_code":"clarification-required","next_action":"supply-expected-behavior-evidence","mutation":"ask-or-draft-only"},
+    {"id":"migration-read-only-plan","mode":"migration","fixture":"evals/files/routing/migration-selection.json","profile_id":"core","profile_version":"1.0","artifact":"docs/specs/target/spec.md","artifact_kind":"spec","lifecycle_membership":"work.queue","processor":"new-spec","authority_mode":"repo-origin","dispatchable":false,"result_code":"planned","next_action":"review-migration-plan","mutation":"none"},
+    {"id":"refresh-draft","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Draft","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-accepted","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Accepted","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-ready","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Ready","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-approved","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Approved","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-implementing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Implementing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"implementing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-executing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Executing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"executing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-shipped","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-default","profile_version":"1.0","action":"refresh","lifecycle":"Shipped","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"shipped_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-jira-align-draft","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Draft","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-jira-align-accepted","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Accepted","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-jira-align-ready","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Ready","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-jira-align-approved","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Approved","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-jira-align-implementing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Implementing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"implementing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-jira-align-executing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Executing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"executing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-jira-align-shipped","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"jira-align-default","profile_version":"1.0","action":"refresh","lifecycle":"Shipped","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"jira-align-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"shipped_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-linear-draft","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Draft","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-linear-accepted","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Accepted","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-linear-ready","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Ready","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-linear-approved","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Approved","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-linear-implementing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Implementing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"implementing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-linear-executing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Executing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"executing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-linear-shipped","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"linear-default","profile_version":"1.0","action":"refresh","lifecycle":"Shipped","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"linear-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"shipped_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-github-draft","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Draft","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-github-accepted","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Accepted","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-github-ready","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Ready","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-github-approved","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Approved","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":true,"result_code":"ready","next_action":"review-refresh-diff","mutation":"pending"},
+    {"id":"refresh-github-implementing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Implementing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"implementing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-github-executing","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Executing","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"executing_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"},
+    {"id":"refresh-github-shipped","mode":"refresh","fixture":"normalized-intake/valid/refresh-repo-origin.json","profile_id":"github-default","profile_version":"1.0","action":"refresh","lifecycle":"Shipped","artifact":"docs/product/briefs/example.md","artifact_kind":"brief","lifecycle_membership":"resolved-existing","processor":"github-refresh","authority_mode":"tracker-origin","dispatchable":false,"result_code":"shipped_requirements_locked","next_action":"preserve-local-requirements","mutation":"refused"}
   ]
 }

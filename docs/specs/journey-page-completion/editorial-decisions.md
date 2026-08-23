@@ -35,6 +35,10 @@ Fixed section copy:
 
 ## Approved migration mapping
 
+A journey introduced after this migration has no legacy `G…` code to carry, so
+its `Legacy value` is `none`. Inventing a retired code would assert a display
+value adopters never saw.
+
 | Journey | Legacy value | Internal ID | Adopter-facing label |
 | --- | --- | --- | --- |
 | `core` | `G-plan` | `approve-plan` | Approve the plan |
@@ -54,6 +58,10 @@ Fixed section copy:
 | `atlassian` | `G-draft-review` | `review-story-drafts` | Review the story drafts |
 | `atlassian` | `G-write-confirm` | `confirm-jira-writes` | Confirm the Jira changes |
 | `atlassian` | `G-publish` | `approve-confluence-publish` | Approve publishing to Confluence |
+| `github` | `none` | `review-github-route` | Review the repository route |
+| `github` | `none` | `confirm-github-action` | Confirm one GitHub coordination action |
+| `linear` | `none` | `review-linear-route` | Review the repository route |
+| `linear` | `none` | `confirm-linear-action` | Confirm one Linear coordination action |
 | `desk-research` | `G-scope` | `set-research-scope-and-depth` | Set the research scope and depth |
 | `desk-research` | `G-synthesis` | `review-research-synthesis` | Review the research synthesis |
 | `frontend-engineering` | `G-mode` | `choose-frontend-operating-mode` | Choose the frontend operating mode |

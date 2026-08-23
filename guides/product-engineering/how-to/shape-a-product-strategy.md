@@ -40,7 +40,7 @@ Invoke `de-risk-intent`. A strategy bet is still **market-existence** in kind �
 
 ## 4. Decompose toward capabilities
 
-Invoke `decompose-intent` on the survived strategy. It produces the **next level down** — `capability` intents, each of which re-enters the loop (`frame → de-risk → decompose`) until the leaf is a `core` brief your delivery loop can build. Don't skip the capability rung: it's where the architectural and adoption bets live, distinct from the market bet you tested up top.
+Invoke `decompose-intent` on the survived strategy. It produces the **next level down** — `capability` intents, each of which re-enters the loop (`frame → de-risk → decompose`) until one independently shippable leaf can go directly to a `core` spec. Use a coordinating brief first only when the result spans multiple specs or repositories. Don't skip the capability rung: it's where the architectural and adoption bets live, distinct from the market bet you tested up top.
 
 Before you commit to *how* the capabilities get built, shape the [architecture concept](../../architect/how-to/shape-an-architecture-concept.md) against this strategy — the strategy's bets are its inputs.
 

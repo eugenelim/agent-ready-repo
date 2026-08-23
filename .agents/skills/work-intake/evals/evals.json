@@ -134,6 +134,36 @@
         "Treats tracker content as candidate data",
         "Requires authorized field decisions before local mutation"
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "Triage workspace status and show the next safe action.",
+      "expected_output": "The agent delegates to workspace-status, preserves its findings and next action, and performs no intake classification or mutation.",
+      "assertions": [
+        "Keeps status and triage read-only",
+        "Uses workspace-status findings as the authority",
+        "Does not create or register an artifact"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Refresh this tracker-origin brief while it is Implementing.",
+      "expected_output": "The configured refresh processor compares the source but the shared lifecycle evaluator refuses local requirements mutation and returns the stable locked result.",
+      "assertions": [
+        "Uses the configured profile and version",
+        "Returns implementing_requirements_locked",
+        "Does not mutate local requirements"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "Plan migration of this reviewed legacy workspace entry.",
+      "expected_output": "The agent recognizes migration as a workspace-status repair surface, does not route it as ordinary intake, and performs no migration effect.",
+      "assertions": [
+        "Separates migration from ordinary work intake",
+        "Delegates to the read-only workspace-status planner",
+        "Does not apply or roll back a migration"
+      ]
     }
   ]
 }

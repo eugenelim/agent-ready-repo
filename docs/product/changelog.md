@@ -50,6 +50,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.8] — 2026-08-23
+
+### Highlights
+
+- **You can migrate a legacy workspace entry through a reviewed, reversible
+  path.** `workspace-status` shows the exact retained representation and
+  candidate routes, plans only from a human-authored selection, applies only
+  with fresh repository-authorized confirmation, and records a durable ledger
+  that can restore the old workspace bytes without deleting the canonical
+  artifact.
+- **Starting, deferring, checking, refreshing, and migrating work now follow one
+  documented route.** The shared guides distinguish source evidence, canonical
+  artifacts, lifecycle membership, processors, local refresh decisions, and
+  separately confirmed tracker coordination.
+
+### Added
+
+- Four closed migration contracts cover the reviewed selection, current-session
+  confirmation, repository ledger, and stable command result. Acceptance-pinned
+  fixtures cover every released legacy workspace shape, invalid/private
+  extensions, privacy refusal, failure seams, recovery, and exact rollback.
+- The integrated work-intake evaluator runs the real normalized-intake, routing,
+  profile, refresh-lifecycle, and migration-planning seams in two clean roots
+  and compares byte-identical results and next actions.
+
+### Changed
+
+- `workspace-status` now exposes deterministic migration planning plus
+  ledger-first apply, recovery, and rollback under the shared repair lock.
+  Selection and confirmation files remain human-authored out-of-band inputs;
+  neither the skill nor tooling creates or prefills their decisions.
+- `capture-work` remains installed as a deprecation-emitting forwarding alias,
+  and the accepted legacy reader remains installed for the compatibility
+  window. New writers and the workspace seed emit only target structured
+  entries.
+
+## [agentbundle][0.39.3] — 2026-08-23
+
+### Highlights
+
+- **Installed workspace-status engines now understand reviewed legacy work-intake
+  migrations.** The bundled engine recognizes exact legacy workspace slices,
+  validates human-selected target routes and durable migration ledgers, and keeps
+  planning deterministic and non-mutating. Repository status refuses linked or
+  aliased workspace input before projecting legacy bytes, and ledger validation
+  rejects any operation whose immutable material no longer matches its digest.
+
+## [atlassian][0.9.1] — 2026-08-23
+
+### Changed
+
+- Jira and Jira Align intake fixtures now participate in the shared integrated
+  acquisition-to-route evaluation, and their journey guidance distinguishes
+  read-only intake, reviewed local refresh, and separately confirmed remote
+  coordination.
+
+## [github][0.2.1] — 2026-08-23
+
+### Changed
+
+- GitHub intake fixtures now participate in the shared integrated
+  acquisition-to-route evaluation. A new pack journey shows content-based Issue
+  and Milestone routing plus the separate confirmation boundary for supported
+  coordination actions.
+
+## [linear][0.3.1] — 2026-08-23
+
+### Changed
+
+- Linear intake fixtures now participate in the shared integrated
+  acquisition-to-route evaluation. A new pack journey shows content-based
+  routing, lifecycle-aware local refresh, and separately confirmed remote
+  coordination.
+
 ## [core][2.10.7] — 2026-08-23
 
 ### Highlights
