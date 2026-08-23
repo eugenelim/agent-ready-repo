@@ -2,7 +2,7 @@
 
 <!-- Mode: light (no risk trigger fired) -->
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0095](../../adr/0095-level-a-first-value-optional-next-action.md) — AC2's prohibition on a Level A `Next:` line; Level A may now emit optional `next-action`, and everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0064 Amendment #4 — cross-pack first-value adoption overlay; spec/portfolio-pack-first-value-contract (the `[pack.first-value]` schema this spec consumes)

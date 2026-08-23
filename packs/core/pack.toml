@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "2.10.6"
+version = "2.10.7"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -72,6 +72,7 @@ surfaces         = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "
 prerequisites    = ["Python 3.11+"]
 verification     = "Run workspace-status and confirm your workspace.toml queue state is displayed."
 recovery         = "If workspace-status does not activate, re-run adapt-to-project to refresh your repo's skill index."
+next-action      = "Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable."
 
 [[pack.integrations]]
 id        = "frontend-preflight-augment"

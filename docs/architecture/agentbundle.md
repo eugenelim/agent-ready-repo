@@ -59,9 +59,13 @@ configuration. The catalogue source is read-only to consumer commands.
    identity, and renders APM or Claude package artifacts through the named route
    projector into `dist/`. Self-host and direct install remain adapter-owned.
 2. Install projects selected pack content into the resolved target and records
-   install state.
-3. Every install route writes an adaptation marker. Core session start reads it
-   and routes the next session to adaptation.
+   scope-specific install state. Repository scope may also deliver seeds;
+   local scope deliberately does not.
+3. Direct repository-scope install writes an adaptation marker and chains the
+   deterministic `adapt` command. Local scope writes neither. Package-route
+   hooks may write the same marker only when the active runtime projects and
+   executes them. A successful direct core install emits an explicit manual
+   `adapt-to-project` next action independently of hook execution.
 4. Upgrade, uninstall, diff, reconcile, and init-state operate against recorded
    install state and target content.
 

@@ -5,10 +5,10 @@ pack: core
 kind: how-to
 ---
 
-# How to adapt a freshly-installed pack to your project
+# How to adapt a freshly installed pack to your project
 
-**Use this when:** You want a read-only diagnosis of the repository context agents can reach, or you have just installed a pack and need to tailor its seed content to the repository.
-**Prerequisites:** The `core` pack installed. Post-install adaptation also uses an `.adapt-install-marker.toml` when one is present; repository diagnosis does not require it.
+**Use this when:** You want a read-only diagnosis of the repository context agents can reach, or you have just installed `core` and need to tailor its seed content to the repository.
+**Prerequisites:** The `core` pack installed. Post-install adaptation also uses an `.adapt-install-marker.toml` when one is present; repository diagnosis does not require it, and a local-scope install intentionally has none.
 **Result:** A repository-context diagnosis first, followed only with your approval by a minimal root/scoped guidance proposal or post-install seed and companion changes.
 
 The `adapt-to-project` skill first finds and respects the repository's existing
@@ -16,15 +16,35 @@ sources of authority wherever they live. It can then tailor newly installed seed
 content with per-item approval. It links to repository-owned guidance instead of
 moving or duplicating it merely to match the pack.
 
+Ask your agent:
+
+```text
+Run adapt-to-project for a read-only readiness check. Do not change files until I approve adaptation.
+```
+
+At repository scope, a newly installed pack may ship *seed* content such as a
+generic `AGENTS.md`, `docs/CHARTER.md`, or governance shape. Local scope ships
+projected primitives without those seeds.
+
 ## Prerequisites
 
-- The `core` pack installed in your target repo (or under user scope for user-scope packs).
+- The `core` pack installed in your target repo (or under user scope for user-scope packs). Fresh user-scope `core` installation is not supported.
 - For post-install work, an `.adapt-install-marker.toml` may be present at the
   install scope root. It is not required for a read-only repository diagnosis.
+- For a direct repository-scope install, that marker normally records unresolved
+  adaptation work, and the installer chains the deterministic CLI adaptation
+  step.
+- A local-scope install deliberately writes no seeds, marker, layout section,
+  or chained CLI adaptation result. Run the skill directly. Start a new agent
+  session first if the newly installed skill is not yet available.
+- For APM and plugin routes, a marker depends on the target runtime actually
+  projecting and executing the package hook. Do not wait for a hook nudge when
+  you can invoke the skill directly.
 
 ## Run the skill
 
-In Claude Code or any agent harness that loads skills:
+In any agent harness that loads skills, use the prompt from the top of this page
+— including its approval clause, which is what keeps the first pass read-only.
 
 ```
 /adapt-to-project
@@ -33,7 +53,9 @@ In Claude Code or any agent harness that loads skills:
 For repository diagnosis, ask it to inspect the repository without changing
 files. For post-install work, the skill is the judgment layer on top of the
 deterministic `agentbundle adapt` CLI: the CLI handles substitution and companion
-bookkeeping, while the skill presents non-mechanical decisions for approval.
+bookkeeping, while the skill presents readiness, inferred project conventions,
+companion merges, and the non-mechanical decisions you approve. They are
+separate surfaces; `agentbundle adapt` does not accept a `--scope` option.
 
 Re-invoke any time. The skill dedupes against prior declines, surfaces only what's unresolved, and exits clean when nothing remains.
 

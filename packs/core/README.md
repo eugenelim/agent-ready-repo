@@ -150,15 +150,34 @@ named skip with no fallback file.
 
 ---
 
-## Adapters
+## Post-install adaptation, and the hooks that only repeat it
 
-APM's HookIntegrator projects the install-marker hook to `Claude Code`, `Copilot`, `Cursor`, and `Gemini`. The remaining three — `Codex`, `OpenCode`, and `Windsurf` — lack the hook surface; their adopters run the manual fallback once after install:
+A successful direct core install at repository or local scope ends by printing a
+verification step and a next action. Follow them, even if a hook also runs — you
+do not need the hook and should not wait for it:
 
+```text
+Verify:   Run workspace-status and confirm your workspace.toml queue state is displayed.
+Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
 ```
-agentbundle adapt --scope <project|user>
-```
 
-HookIntegrator-covered adopters can also run this to opt out of hooks.
+`adapt-to-project` is the agent-led workflow for readiness, inferred project
+conventions, companion merges, and approved adaptation. `agentbundle adapt` is
+the separate deterministic CLI for substitutions and companion bookkeeping; it
+has no `--scope` option.
+
+If the skill is not loaded yet, start a fresh agent session first.
+
+Direct `agentbundle` adapters project portable hook wiring into each runtime's
+native files; for Codex that means repository `.codex/hooks.json` and a
+`SessionStart` entry. A projected file does not prove execution: the active
+runtime, managed policy, repository and hook trust, command resolution, output
+protocol, and adaptation marker can each affect whether a nudge appears.
+
+APM's HookIntegrator currently deploys hook bundles to Claude Code, Copilot,
+Cursor, Gemini, Codex, Antigravity, Windsurf, and Kiro. OpenCode remains
+unsupported. See [Install routes](../../guides/_shared/explanation/install-routes.md)
+for the route and scope differences.
 
 ---
 

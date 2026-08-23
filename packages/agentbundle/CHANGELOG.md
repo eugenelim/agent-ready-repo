@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.39.2] — 2026-08-23
+
+### Changed
+
+- Level A packs may declare an optional post-install next action. When present,
+  `agentbundle install` prints it after the verification step; Level B packs
+  still require one, and packs that omit it keep their existing output.
+
 ## [0.39.1] — 2026-08-23
 
 ### Changed

@@ -1570,9 +1570,9 @@ def run(args: argparse.Namespace) -> int:
         # be precise.
         if plan.scope == "user":
             # Record the resolved adapter unconditionally for
-            # every user-scope install (lifted out of the kiro-hook-only
-            # branch below). Without this, codex / non-hook claude-code
-            # installs silently default the state field, breaking the
+            # every user-scope install (lifted out of the Kiro-specific
+            # branch below). Without this, installs without user-scope hook
+            # wiring silently default the state field, breaking the
             # state-shape assertions and the upgrade-side state-hint
             # short-circuit on subsequent upgrades.
             new_pack_state.adapter = user_target_adapter
@@ -1723,10 +1723,11 @@ def run(args: argparse.Namespace) -> int:
                     user_state=user_state,
                 )
 
-    # ── Step 11: Write install marker(s) per scope ───────────────────────────
-    # After every successful install, append a
-    # `[[packs-installed]]` entry to `.adapt-install-marker.toml` at the
-    # install's scope root. The file's *path* encodes the scope.
+    # ── Step 11: Write install marker(s) per non-local scope ─────────────────
+    # After a successful repo or user install, append a `[[packs-installed]]`
+    # entry to `.adapt-install-marker.toml` at the install's scope root. The
+    # file's *path* encodes the scope. Local scope deliberately skips marker
+    # and layout writes below.
     pack_version = pack_toml.get("pack", {}).get("version", "")
     # Markers are repo-only, so unresolved-markers is computed
     # off the **repo-scope** projection regardless of which scopes the
@@ -1887,7 +1888,8 @@ def _emit_first_value_handoff(first_value: dict) -> None:
     Step 14 of :func:`run`. Reads from the pack's ``[pack.first-value]`` dict:
 
     - Empty dict (no section): no output.
-    - Level A (``level-b`` absent or false): blank line + ``Verify:`` label.
+    - Level A (``level-b`` absent or false): blank line + ``Verify:`` and an
+      optional ``Next:`` label.
     - Level B (``level-b = true``): blank line + ``Verify:`` / ``Try:`` /
       ``Expected:`` / optional ``Next:`` labels.
 
@@ -1901,8 +1903,8 @@ def _emit_first_value_handoff(first_value: dict) -> None:
     if first_value.get("level-b"):
         print(f"Try:      {first_value['starter-prompt']}")
         print(f"Expected: {first_value['expected-result']}")
-        if first_value.get("next-action"):
-            print(f"Next:     {first_value['next-action']}")
+    if first_value.get("next-action"):
+        print(f"Next:     {first_value['next-action']}")
 
 
 # ---------------------------------------------------------------------------

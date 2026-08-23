@@ -109,7 +109,7 @@ Two well-known spec-driven workflows exist; the core pack overlaps with both but
 | State-machine discipline with iteration cap and stasis detection | — | ✓ (`state.json` + `loop-cohort` tool) |
 | Specialist review lenses (security, quality) | — | ✓ |
 | Supervisor-mode parallelism for independent tasks | — | ✓ |
-| Cross-harness reach | partial (multiple agent harnesses supported) | ✓ (four adapters: Claude Code, Codex, Copilot, Kiro — plus broader IDE coverage via APM's `HookIntegrator`) |
+| Cross-harness reach | partial (multiple agent harnesses supported) | ✓ (direct adapters for Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro — plus APM's `HookIntegrator` for the targets it covers) |
 
 Spec Kit's spec-driven loop terminates at `/implement` — there's no state-machine loop around it that re-fires until an adversarial reviewer returns clean. The core pack treats `/implement` as step 5 of 10. The extra five steps — gates, adversarial review, fingerprint stasis, specialist reviewers, learning capture — are the ones that catch the failures spec-shape alone can't.
 
@@ -129,7 +129,7 @@ Spec Kit's spec-driven loop terminates at `/implement` — there's no state-mach
 
 Kiro's "do" mode is one-shot per task: if the generated code is wrong, the user re-prompts. The core pack's loop iterates *within* the task — failing gates send you back to FIX, reviewer findings send you back to FIX, fingerprint stasis sends you to a human. The user isn't the retry loop; the tool is.
 
-Kiro is also IDE-coupled — the spec-driven mode only fires inside Kiro's planning panel. The core pack ships through the adapter contract today (the Claude Code, Codex, Copilot, and Kiro adapters) plus APM's `HookIntegrator` for IDEs that consume the APM compile target (Cursor, Gemini, and others); install it once and the same loop runs wherever the install route reaches.
+Kiro is also IDE-coupled — the spec-driven mode only fires inside Kiro's planning panel. The core pack ships through the adapter contract today (direct adapters for Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro, the last in both its IDE and CLI forms) plus APM's `HookIntegrator` for other targets that consume the APM compile target; install it once and the same loop runs wherever the install route reaches.
 
 ## When the overhead isn't worth it
 
