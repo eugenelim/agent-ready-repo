@@ -36,6 +36,8 @@ The [`core`](core/) build loop is the catalogue's flagship and its strongest sta
 
 Pack directories contain task guidance for that pack. [`_shared/`](_shared/) contains cross-catalogue guidance that applies regardless of which packs you install:
 
+- [Start, remember, inspect, or refresh repository work](_shared/how-to/use-work-intake.md), then use the [routing and lifecycle reference](_shared/reference/work-intake-routing-and-lifecycle.md) when you need the exact boundary.
+
 - [Get from zero to the three-loop operating model](_shared/explanation/the-three-loops.md).
 - [Understand packs, profiles, adapters, composition, and catalogue ownership](_shared/explanation/pack-catalogue.md).
 - [Choose an install route](_shared/explanation/install-routes.md) and [check adapter support](_shared/reference/adapter-support.md).

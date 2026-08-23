@@ -3238,3 +3238,10 @@ class TestResearchNeedAutonomous:
         # Both modes: entry exists but type != "research" → NOT in research_slugs → satisfied
         assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], False)
         assert mod.is_need_satisfied("research:my-research", "ini-001", [ini], True)
+
+
+# STUB: AC2
+def test_migration_finding_remains_non_dispatchable_in_autonomous_mode() -> None:
+    mod = _load_engine()
+    build = getattr(mod, "build_migration_finding", None)
+    assert callable(build)

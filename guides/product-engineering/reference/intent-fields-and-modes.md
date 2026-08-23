@@ -93,19 +93,22 @@ The detailed wire contract is pinned at the **spec** stage, not at intent.
 | **spec** | **detailed wire contract** (the existing `Contract:` seam) |
 | build | implement + verify |
 
-## Tracker projection profiles (one-way)
+## Tracker projection profiles
 
 :::note
 The canonical profile table lives in the pack at `decompose-intent/references/tracker-projection.md` (with the tier annotations); this is a summary — when they disagree, the skill reference wins.
 :::
 
-The intent tree is deeper than any tracker; trackers are one-way renders of it.
+The intent tree is deeper than any tracker. A repository may use a tracker as
+an outbound projection, or declare tracker-origin authority for mapped fields
+and use the configured refresh processor. The profile and artifact authority
+record decide the direction; tracker object names do not.
 
 | Canonical | `none` | Linear (lean) | Jira Align (deep) |
 | --- | --- | --- | --- |
 | capability intent | markdown | Initiative | Epic |
 | feature intent | markdown | Project | Feature |
-| spec / slice (leaf) | a `core` brief | Issue | Story |
+| spec / slice (leaf) | a direct `core` spec; coordinating brief only for multi-spec or cross-repository work | Issue | Story |
 | story-as-trace | AC checklist | sub-issue | Story / sub-task |
 
 v1 ships the **mapping**, not a live API; a story is a *trace* of a spec, never the decomposition unit. Live tracker sync is a later pack.

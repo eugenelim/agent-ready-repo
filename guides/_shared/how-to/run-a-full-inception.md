@@ -78,9 +78,11 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 
 - **Skills:** `frame-intent` (idea → outcome plus opportunity),
   `de-risk-intent` (test the riskiest assumption against a predeclared kill
-  condition), `decompose-intent` (cut it into a `core` brief). At app scale the
-  leaf intent *is* the brief. The `frame → de-risk → decompose` loop hands its
-  leaf into `init-project`'s value gate — an `intent` from `frame-intent` is one
+  condition), `decompose-intent` (cut it into one independently shippable leaf,
+  or a coordinating brief for multi-spec or cross-repository work). At app
+  scale a single leaf goes directly to a `core` spec. The
+  `frame → de-risk → decompose` loop hands its leaf into `init-project`'s value
+  gate — an `intent` from `frame-intent` is one
   of `init-project`'s four recognized discovery sources (alongside `desk-research`, a
   PRD, and a `receive-brief` brief), named as **optional upstream**: present when
   this pack is installed.

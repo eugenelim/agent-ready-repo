@@ -1,6 +1,6 @@
 [pack]
 name = "atlassian"
-version = "0.9.0"
+version = "0.9.1"
 description = "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back."
 readme = "README.md"
 display_name = "Atlassian"

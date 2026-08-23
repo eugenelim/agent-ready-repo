@@ -1,0 +1,8 @@
+{
+  "contract_version": "work-intake-migration-result.v1",
+  "result_code": "workspace_absent",
+  "applicable": false,
+  "mutated": false,
+  "next_action": "create-workspace",
+  "ledger_state": "absent"
+}

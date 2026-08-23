@@ -13,7 +13,12 @@ kind: explanation
 
 ## The problem it solves
 
-A repo set up for engineering agents can take a *brief* and build it (`receive-brief` → `new-spec` → `work-loop`). But where does the brief come from? The expensive product failures live *upstream* of the brief — building the wrong thing, un-validated bets, requirements with no outcome. The `product-engineering` pack is that upstream, expressed as habits rather than infrastructure.
+A repo set up for engineering agents can take one independently shippable
+feature directly into `new-spec` → `work-loop`, or decompose a coordinating
+brief through `receive-brief` first. The expensive product failures live
+upstream of either handoff — building the wrong thing, unvalidated bets, and
+requirements with no outcome. The `product-engineering` pack is that upstream,
+expressed as habits rather than infrastructure.
 
 ## One artifact, every level
 
@@ -24,9 +29,9 @@ The pack has a single artifact: the **`intent`** — a level-tagged statement of
       └── intent (product-strategy)       the path: challenge, policy, actions
               └── intent (capability)
                       ├── intent (feature)
-                      │       └── spec / slice (leaf) ──► core: receive-brief → new-spec → work-loop
+                      │       └── spec / slice (leaf) ──► core: new-spec → work-loop
                       └── intent (feature)
-                              └── spec / slice (leaf) ──► core: receive-brief → new-spec → work-loop
+                              └── spec / slice (leaf) ──► core: new-spec → work-loop
 
   same artifact at every level — it just stops recursing when the leaf is
   a spec your delivery loop can build.
@@ -44,7 +49,9 @@ The three skills are the three moves of shaping, in order:
 
 1. **`frame-intent`** — name the outcome (a steerable input, a lagging result, a guardrail) and the solution-independent opportunity. Resolve **Scale** once.
 2. **`de-risk-intent`** — test the riskiest assumption against a **predeclared kill condition**, under a **prototype-approach** you choose by reversibility. This is the guard against shipping confident, un-validated bets.
-3. **`decompose-intent`** — break the survived intent into the next level, until the leaf is a spec. At app scale that leaf *is* a `core` brief.
+3. **`decompose-intent`** — break the survived intent into the next level, until
+   one independently shippable leaf can become a `core` spec directly. A
+   multi-spec or cross-repository result becomes a coordinating brief first.
 
 Every node in the tree runs the same three moves before it splits:
 
@@ -63,4 +70,9 @@ Every node in the tree runs the same three moves before it splits:
 
 ## What it deliberately is *not*
 
-It is **habits, not infrastructure** — no engine, no hooks, no validators, no subagents. It does not model work in a tracker; trackers are one-way *projections* of the intent tree (the tree is deeper than any of them). It does not author wire contracts; those are pinned later, at the spec stage. And the business-unit, cross-component layer — a coordinating meta-repo and cross-repo contracts — is a later phase. v1 keeps the whole loop in one repo, where it earns its place first.
+It is **habits, not infrastructure** — no engine, hooks, validators, or
+subagents. It does not model work in a tracker; the intent tree is deeper than
+tracker hierarchy. Repositories can project to a tracker or declare
+tracker-origin authority for mapped fields through a configured refresh
+profile. It does not author wire contracts; those are pinned later, at the spec
+stage.

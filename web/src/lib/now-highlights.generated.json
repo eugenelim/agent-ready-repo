@@ -5,6 +5,79 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.10.8"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[core][2.10.8] — 2026-08-23",
+      "changelogAnchor": "core2108--2026-08-23",
+      "highlights": [
+        {
+          "source": "**You can migrate a legacy workspace entry through a reviewed, reversible path.** `workspace-status` shows the exact retained representation and candidate routes, plans only from a human-authored selection, applies only with fresh repository-authorized confirmation, and records a durable ledger that can restore the old workspace bytes without deleting the canonical artifact.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can migrate a legacy workspace entry through a reviewed, reversible path."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "workspace-status"
+            },
+            {
+              "type": "text",
+              "value": " shows the exact retained representation and candidate routes, plans only from a human-authored selection, applies only with fresh repository-authorized confirmation, and records a durable ledger that can restore the old workspace bytes without deleting the canonical artifact."
+            }
+          ]
+        },
+        {
+          "source": "**Starting, deferring, checking, refreshing, and migrating work now follow one documented route.** The shared guides distinguish source evidence, canonical artifacts, lifecycle membership, processors, local refresh decisions, and separately confirmed tracker coordination.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Starting, deferring, checking, refreshing, and migrating work now follow one documented route."
+            },
+            {
+              "type": "text",
+              "value": " The shared guides distinguish source evidence, canonical artifacts, lifecycle membership, processors, local refresh decisions, and separately confirmed tracker coordination."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agentbundle",
+          "version": "0.39.3"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[agentbundle][0.39.3] — 2026-08-23",
+      "changelogAnchor": "agentbundle0393--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Installed workspace-status engines now understand reviewed legacy work-intake migrations.** The bundled engine recognizes exact legacy workspace slices, validates human-selected target routes and durable migration ledgers, and keeps planning deterministic and non-mutating. Repository status refuses linked or aliased workspace input before projecting legacy bytes, and ledger validation rejects any operation whose immutable material no longer matches its digest.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Installed workspace-status engines now understand reviewed legacy work-intake migrations."
+            },
+            {
+              "type": "text",
+              "value": " The bundled engine recognizes exact legacy workspace slices, validates human-selected target routes and durable migration ledgers, and keeps planning deterministic and non-mutating. Repository status refuses linked or aliased workspace input before projecting legacy bytes, and ledger validation rejects any operation whose immutable material no longer matches its digest."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.7"
         }
       ],

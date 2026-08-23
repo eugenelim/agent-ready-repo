@@ -10,13 +10,13 @@ initiative_links:
     name: Platform Core
     milestones: M1 (delivered); M2–M6 (ongoing improvements)
     role: primary
-updated: 2026-07-19
+updated: 2026-08-21
 ---
 
 # Journey: Engineer runs the work-loop
 
-**Use it when:** you're picking up a unit of work — a spec, ticket, issue, or the next ready item from `workspace-status`.
-**You provide:** the spec or task to implement, and your judgment at the plan and gate-failure moments.
+**Use it when:** you're starting one explicit bounded change now or picking up a canonical ready/active spec from `workspace-status`.
+**You provide:** the current request or registered spec, and your judgment at the plan and gate-failure moments.
 **You receive:** a shipped spec, a PR passing its gates, and the next ready item surfaced.
 **Your decisions:** approve the plan; handle gate failures; approve PR submission.
 
@@ -26,7 +26,7 @@ updated: 2026-07-19
 
 **Surface:** cross-platform — CLI/terminal. The engineer invokes skills; the agent handles the structured work under the engineer's direction.
 
-**Trigger:** Engineer wants to pick up a unit of work — from a GitHub issue, a Linear ticket, a brief, a team discussion, or from `workspace-status` surfacing the next ready spec.
+**Trigger:** An engineer makes an explicit current request or selects a canonical ready/active spec surfaced by `workspace-status`. Tracker items enter through `work-intake`; their object names do not authorize execution.
 
 **End state:** Spec in `[work].shipped` (or equivalent for non-initiative work). PR submitted and passing. Next item surfaced. Engineer exits with a clear picture of what comes next.
 
@@ -36,7 +36,7 @@ updated: 2026-07-19
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-loop`, `new-spec`, `workspace-status` (M1.5+) |
+| core | repo | current | `work-intake`, `work-loop`, `new-spec`, `workspace-status` |
 
 **One-time setup:**
 1. Install core pack at repo scope.
@@ -48,14 +48,14 @@ updated: 2026-07-19
 
 ## Two approaches
 
-`work-loop` supports two usage patterns that differ in how the engineer orients and what state is updated on ship:
+`work-loop` supports two usage patterns that differ in durability and how the engineer orients:
 
-| | Initiative path | Ad-hoc path |
+| | Durable registered path | Direct-light path |
 |---|---|---|
-| **Orient** | `workspace-status` — DAG-resolved queue, parallel candidates, blocked reasons | Memory, ticket, issue, or team message |
-| **Step 0** | `work-loop` reads `workspace.toml` for initiative context, milestone, DAG constraints | `work-loop` reads spec file in isolation |
-| **Ship** | Spec marked `active → shipped` in `workspace.toml`; next item surfaced; `roadmap.md` prompt | PR submitted; no queue state updated |
-| **When to use** | Coordinated initiative work; multiple engineers or agents on same queue | One-off tasks — bug fixes, quick features, housekeeping |
+| **Orient** | `workspace-status` — canonical ready/active specs and blocked findings | The explicit current request, after `work-intake` confirms direct-light eligibility |
+| **Step 0** | `work-loop` accepts only the matching registered spec and sibling plan | `work-loop` records scope, non-goals, assumptions, risk, and verification in the active session |
+| **Ship** | Spec and workspace lifecycle close together; next item is surfaced | Requested result is handed back; no durable queue state exists |
+| **When to use** | Durable, coordinated, multi-session, public-contract, or otherwise full-mode work | One bounded, low-risk, independently verifiable change expected to finish in this session |
 
 Both paths share the same plan → build → verify → review loop (Stages 3–4). The paths diverge at Orient, Start, and Ship.
 
@@ -100,7 +100,7 @@ sequenceDiagram
 
 ## Stage 1: Orient — What Should I Work On?
 
-### Initiative path
+### Durable registered path
 
 | Row | Content |
 |-----|---------|
@@ -108,30 +108,30 @@ sequenceDiagram
 | **Emotions** | Oriented immediately (positive). One command, committed state. |
 | **Remaining pains** | "I see a parallel candidate but if another engineer also runs workspace-status at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
 
-### Ad-hoc path
+### Direct-light path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Decides what to work on from memory, a Linear ticket, a GitHub issue, or a message from a teammate. |
-| **Emotions** | Comfortable (neutral). For a well-defined one-off task, memory and tickets are sufficient. |
+| **Actions** | States one explicit current request. `work-intake` checks direct-light eligibility against scope, risk, durability, and any conflicting registered work. Tracker content remains untrusted context. |
+| **Emotions** | Comfortable (neutral). The request is enough only when every direct-light condition holds. |
 
 ---
 
 ## Stage 2: Start the Work-Loop
 
-### Initiative path
+### Durable registered path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `work-loop [spec-slug]`. At step 0, `work-loop` reads `workspace.toml` — loads initiative context, milestone, and DAG constraints. Plan is contextualised; dependency violations surfaced before build begins. |
+| **Actions** | Runs `work-loop [spec-path]`. At step 0, `work-loop` uses canonical reconciliation to require the matching ready or active entry, then reads the Approved spec and sibling plan. Dependency or provenance findings stop before build. |
 | **Emotions** | Immediately productive (positive). The plan knows what this spec is part of. |
 
-### Ad-hoc path
+### Direct-light path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `work-loop [description]` or `work-loop [spec-slug]`. The skill reads the spec file in isolation. No initiative context loaded. |
-| **Emotions** | Immediately productive (positive). For a one-off task, isolation is fine. |
+| **Actions** | Continues from the explicit request. The skill writes a session-only decision record and bounded plan, then runs the same execute → gates → review spine. If a durability trigger emerges, it stops and moves to a spec/plan rather than leaving untracked resumable work. |
+| **Emotions** | Immediately productive (positive). The lighter path is explicit about what it cannot outlive. |
 
 ---
 
@@ -163,14 +163,14 @@ sequenceDiagram
 
 ## Stage 5: Ship and Hand Off
 
-### Initiative path
+### Durable registered path
 
 | Row | Content |
 |-----|---------|
 | **Actions** | Reviews the final diff. Approves PR creation. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces the next ready item; prompts `roadmap.md` update. |
 | **Emotions** | Complete (positive). The spec is shipped and the queue reflects it. The next person or agent can orient in one `workspace-status` call. |
 
-### Ad-hoc path
+### Direct-light path
 
 | Row | Content |
 |-----|---------|
@@ -198,17 +198,17 @@ sequenceDiagram
 
 Highest point: **Stage 3 (Plan Review)** — engaged — the engineer is visibly in control and the agent is doing the structured work under their direction.
 
-**Initiative path:** Stage 5 (Ship and Hand Off) is now complete — spec ships, queue updates, next item surfaces. The engineer ends the session with committed state visible to whoever comes next.
+**Durable registered path:** Stage 5 (Ship and Hand Off) is complete when the spec and queue agree. The engineer ends the session with committed state visible to whoever comes next.
 
-**Ad-hoc path:** Stage 5 is lighter — PR submitted, done. No queue to update. The tradeoff is that the next session has no committed record of what shipped.
+**Direct-light path:** Stage 5 is lighter — the requested result is handed back and there is no queue to update. The tradeoff is that the run is not resumable from a fresh session.
 
 ---
 
 ## Choosing between paths
 
-Use the initiative path any time a spec lives in `[work].queue` — the coordination overhead is near-zero and the post-ship write-back makes the next session (by you, a colleague, or an agent) free. Use the ad-hoc path for tasks that are genuinely standalone — one-off fixes, experiments, housekeeping that would never appear in a brief.
+Use the durable registered path whenever a spec is already registered or the work must survive this session, crosses a full-mode risk boundary, changes a public contract, or needs coordination or approval. Use direct-light only when the explicit current request satisfies every direct-light condition.
 
-If you're unsure, run `workspace-status` first. If the task overlaps a queued spec, use the initiative path. If it's not in the queue and wouldn't belong there, go ad-hoc.
+If you're unsure, run `workspace-status` first. A matching or conflicting entry blocks an untracked parallel start. Tracker-origin work enters through `work-intake` before either path is selected.
 
 ---
 

@@ -38,10 +38,11 @@ import json
 import math
 import os
 import re
+import stat
 import sys
 import time
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 # ── Data types ────────────────────────────────────────────────────────────────
@@ -199,6 +200,7 @@ class WorkspaceMembership:
     ini_slug: str
     collection: str
     initiative_status: str
+    entry_index: int = 0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -209,6 +211,31 @@ class LegacyWorkspaceMembership:
     ini_slug: str
     collection: str
     initiative_status: str
+    entry_index: int = 0
+
+
+@dataclasses.dataclass(frozen=True)
+class MigrationSelection:
+    """Closed human-selected binding from one legacy finding to one target."""
+
+    legacy_finding_id: str
+    workspace_fingerprint: str
+    source_membership: dict[str, object]
+    target_entry: WorkspaceEntry
+    target_entry_raw: dict[str, object]
+    target_membership: dict[str, str]
+    owning_processor: str
+    provenance_reference: str
+    legacy_content_approved_for_ledger: bool
+
+
+@dataclasses.dataclass(frozen=True)
+class MigrationPlan:
+    """Deterministic read-only migration planning result."""
+
+    result: dict[str, object]
+    finding: dict[str, object] | None = None
+    proposed_operation: dict[str, object] | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1867,7 +1894,7 @@ def _extract_canonical_memberships(
                 findings.append(_finding("invalid_workspace", detail="invalid lifecycle list"))
                 continue
             collection = _collection_label(section_name, list_name)
-            for raw_entry in entries:
+            for entry_index, raw_entry in enumerate(entries):
                 (
                     membership,
                     legacy_membership,
@@ -1875,9 +1902,13 @@ def _extract_canonical_memberships(
                     blocked_path,
                 ) = _parse_membership_entry(raw_entry, collection, "", "")
                 if membership is not None:
-                    memberships.append(membership)
+                    memberships.append(
+                        dataclasses.replace(membership, entry_index=entry_index)
+                    )
                 if legacy_membership is not None:
-                    legacy_memberships.append(legacy_membership)
+                    legacy_memberships.append(
+                        dataclasses.replace(legacy_membership, entry_index=entry_index)
+                    )
                 if blocked_path is not None:
                     parse_blocked_path_counts[blocked_path] = (
                         parse_blocked_path_counts.get(blocked_path, 0) + 1
@@ -1918,7 +1949,7 @@ def _extract_canonical_memberships(
                     findings.append(_finding("invalid_workspace", detail="invalid lifecycle list"))
                     continue
                 collection = _collection_label(section_name, list_name)
-                for raw_entry in entries:
+                for entry_index, raw_entry in enumerate(entries):
                     (
                         membership,
                         legacy_membership,
@@ -1926,9 +1957,13 @@ def _extract_canonical_memberships(
                         blocked_path,
                     ) = _parse_membership_entry(raw_entry, collection, ini_slug, status)
                     if membership is not None:
-                        memberships.append(membership)
+                        memberships.append(
+                            dataclasses.replace(membership, entry_index=entry_index)
+                        )
                     if legacy_membership is not None:
-                        legacy_memberships.append(legacy_membership)
+                        legacy_memberships.append(
+                            dataclasses.replace(legacy_membership, entry_index=entry_index)
+                        )
                     if blocked_path is not None:
                         parse_blocked_path_counts[blocked_path] = (
                             parse_blocked_path_counts.get(blocked_path, 0) + 1
@@ -3721,6 +3756,1013 @@ def compute_type2_cleanup(
         "authoritative": False,
         "next_action": "repair-plan",
     }
+
+
+# ── Legacy migration planning ────────────────────────────────────────────────
+
+_MIGRATION_SELECTION_FIELDS = frozenset({
+    "contract_version",
+    "legacy_finding_id",
+    "workspace_fingerprint",
+    "source_membership",
+    "target_entry",
+    "target_membership",
+    "owning_processor",
+    "provenance_reference",
+    "legacy_content_approved_for_ledger",
+})
+_MIGRATION_SOURCE_COLLECTIONS = frozenset({
+    "work.queue",
+    "work.active",
+    "work.shipped",
+    "shaping_queue.active",
+    "shaping_queue.backlog",
+    "brief_queue.draft",
+    "brief_queue.ready",
+    "brief_queue.executing",
+    "brief_queue.shipped",
+    "backlog.open",
+})
+_MIGRATION_TARGET_COLLECTIONS = _MIGRATION_SOURCE_COLLECTIONS | {"backlog.closed"}
+_MIGRATION_RESULT_CODES = frozenset({
+    "planned",
+    "artifact_missing",
+    "manual_routing_required",
+    "applied",
+    "already_applied",
+    "rolled_back",
+    "already_rolled_back",
+    "workspace_absent",
+    "invalid_selection",
+    "unsafe_path",
+    "legacy_finding_missing",
+    "selection_mismatch",
+    "target_invalid",
+    "privacy_review_required",
+    "sensitive_legacy_content",
+    "artifact_changed",
+    "migration_policy_invalid",
+    "confirmation_invalid",
+    "confirmation_stale",
+    "confirmation_reused",
+    "confirmation_binding_mismatch",
+    "unauthorized_approver",
+    "ledger_invalid",
+    "ledger_changed",
+    "operation_missing",
+    "operation_state_conflict",
+    "workspace_changed",
+    "lock_busy",
+    "write_failed",
+    "recovery_conflict",
+    "dependency_unavailable",
+})
+_MIGRATION_PROCESSOR_RE = re.compile(r"^[a-z][a-z0-9-]{0,99}$")
+_MIGRATION_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+_MIGRATION_CREDENTIAL_PATTERNS = (
+    re.compile(
+        rb"\b(password|passwd|pwd|secret|client_secret|api_key|apikey|"
+        rb"access_token|refresh_token|auth_token|bearer|private_key)\b"
+        rb"\s*[:=]\s*[^\s#]+",
+        re.IGNORECASE,
+    ),
+    re.compile(rb"\bauthorization\s*[:=]\s*(basic|bearer)\s+\S+", re.IGNORECASE),
+    re.compile(
+        rb"[?&](access_token|api_key|private_token|auth|token)=[^&#\s]+",
+        re.IGNORECASE,
+    ),
+    re.compile(rb"-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----"),
+    re.compile(rb"gh[pousr]_[A-Za-z0-9_]{20,}"),
+    re.compile(rb"xox[baprs]-[A-Za-z0-9-]{10,}"),
+    re.compile(rb"(?:AKIA|ASIA)[A-Z0-9]{16}"),
+)
+
+
+def _migration_canonical_json(value: object) -> bytes:
+    """Serialize deterministic runtime-neutral migration identity input."""
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode("ascii")
+
+
+def _migration_entry_dict(entry: WorkspaceEntry) -> dict[str, object]:
+    """Project a typed Group 2 entry back to its closed JSON shape."""
+    return {
+        "path": entry.path,
+        "kind": entry.kind,
+        "source": {
+            key: value
+            for key, value in dataclasses.asdict(entry.source).items()
+            if value is not None and key not in {"locator", "object_type"}
+        },
+        "summary": entry.summary,
+        "needs": [dataclasses.asdict(need) for need in entry.needs],
+    }
+
+
+def _migration_membership_valid(raw: object, *, target: bool) -> bool:
+    """Validate a closed source or target lifecycle membership object."""
+    required = {"ini_slug", "collection"}
+    if not target:
+        required |= {"entry_index", "legacy_slice_digest"}
+    if not isinstance(raw, dict) or set(raw) != required:
+        return False
+    ini_slug = raw.get("ini_slug")
+    if not isinstance(ini_slug, str) or len(ini_slug) > 200:
+        return False
+    if re.fullmatch(r"[a-z0-9-]*", ini_slug) is None:
+        return False
+    collections = _MIGRATION_TARGET_COLLECTIONS if target else _MIGRATION_SOURCE_COLLECTIONS
+    if raw.get("collection") not in collections:
+        return False
+    if target:
+        return True
+    return (
+        isinstance(raw.get("entry_index"), int)
+        and not isinstance(raw.get("entry_index"), bool)
+        and raw["entry_index"] >= 0
+        and isinstance(raw.get("legacy_slice_digest"), str)
+        and _MIGRATION_SHA256_RE.fullmatch(raw["legacy_slice_digest"]) is not None
+    )
+
+
+def _migration_target_membership_possible(kind: str, collection: str) -> bool:
+    """Return whether a selected target kind can inhabit the lifecycle collection."""
+    if collection.startswith("work."):
+        return kind in {"spec", "defect"}
+    if collection.startswith("brief_queue."):
+        return kind == "brief"
+    if collection.startswith("shaping_queue."):
+        return kind in {"intent", "research", "design"}
+    if collection.startswith("backlog."):
+        return kind in WORKSPACE_ARTIFACT_KINDS
+    return False
+
+
+def validate_migration_selection(
+    raw: object,
+) -> tuple[MigrationSelection | None, str | None]:
+    """Validate the closed reviewed selection without reading repository state."""
+    if not isinstance(raw, dict) or set(raw) != _MIGRATION_SELECTION_FIELDS:
+        return None, "invalid_selection"
+    if raw.get("contract_version") != "work-intake-migration-selection.v1":
+        return None, "invalid_selection"
+    finding_id = raw.get("legacy_finding_id")
+    fingerprint = raw.get("workspace_fingerprint")
+    if (
+        not isinstance(finding_id, str)
+        or not 1 <= len(finding_id) <= 500
+        or "\n" in finding_id
+        or "\r" in finding_id
+        or not isinstance(fingerprint, str)
+        or _MIGRATION_SHA256_RE.fullmatch(fingerprint) is None
+    ):
+        return None, "invalid_selection"
+    source_membership = raw.get("source_membership")
+    target_membership = raw.get("target_membership")
+    if not _migration_membership_valid(source_membership, target=False):
+        return None, "invalid_selection"
+    if not _migration_membership_valid(target_membership, target=True):
+        return None, "invalid_selection"
+    target_entry_raw = raw.get("target_entry")
+    target_entry, findings = parse_workspace_entry(target_entry_raw)
+    if findings or target_entry is None:
+        return None, "target_invalid"
+    if not _migration_target_membership_possible(
+        target_entry.kind, str(target_membership["collection"])
+    ):
+        return None, "target_invalid"
+    processor = raw.get("owning_processor")
+    provenance = raw.get("provenance_reference")
+    if not isinstance(processor, str) or _MIGRATION_PROCESSOR_RE.fullmatch(processor) is None:
+        return None, "invalid_selection"
+    if (
+        not isinstance(provenance, str)
+        or not 1 <= len(provenance) <= 1000
+        or "\n" in provenance
+        or "\r" in provenance
+    ):
+        return None, "invalid_selection"
+    if raw.get("legacy_content_approved_for_ledger") is not True:
+        return None, "privacy_review_required"
+    expected_provenance = {
+        target_entry.path,
+        target_entry.source.ref,
+        target_entry.source.parent,
+    }
+    if provenance not in expected_provenance:
+        return None, "selection_mismatch"
+    return MigrationSelection(
+        legacy_finding_id=finding_id,
+        workspace_fingerprint=fingerprint,
+        source_membership=dict(source_membership),
+        target_entry=target_entry,
+        target_entry_raw=dict(target_entry_raw),
+        target_membership=dict(target_membership),
+        owning_processor=processor,
+        provenance_reference=provenance,
+        legacy_content_approved_for_ledger=True,
+    ), None
+
+
+def migration_selection_digest(selection: MigrationSelection) -> str:
+    """Bind every closed reviewed-selection field to one stable digest."""
+    content = {
+        "contract_version": "work-intake-migration-selection.v1",
+        "legacy_finding_id": selection.legacy_finding_id,
+        "workspace_fingerprint": selection.workspace_fingerprint,
+        "source_membership": selection.source_membership,
+        "target_entry": selection.target_entry_raw,
+        "target_membership": selection.target_membership,
+        "owning_processor": selection.owning_processor,
+        "provenance_reference": selection.provenance_reference,
+        "legacy_content_approved_for_ledger": (
+            selection.legacy_content_approved_for_ledger
+        ),
+    }
+    return hashlib.sha256(_migration_canonical_json(content)).hexdigest()
+
+
+def migration_candidate_routes(entry: LegacyWorkspaceEntry) -> list[dict[str, object]]:
+    """Return explicit candidate route classes without selecting among them."""
+    kinds: tuple[str, ...]
+    collections: tuple[str, ...]
+    if entry.collection.startswith("work."):
+        kinds = ("spec", "defect")
+        collections = ("work.queue", "work.active", "work.shipped")
+    elif entry.collection.startswith("brief_queue."):
+        kinds = ("brief",)
+        collections = (
+            "brief_queue.draft",
+            "brief_queue.ready",
+            "brief_queue.executing",
+            "brief_queue.shipped",
+        )
+    elif entry.collection.startswith("shaping_queue."):
+        kinds = ("intent", "research", "design")
+        collections = ("shaping_queue.active", "shaping_queue.backlog")
+    else:
+        kinds = WORKSPACE_ARTIFACT_KINDS
+        collections = ("backlog.open", "backlog.closed")
+    return [
+        {"kind": kind, "target_collections": list(collections)}
+        for kind in kinds
+    ]
+
+
+def _migration_legacy_context_safe(entry: LegacyWorkspaceEntry) -> bool:
+    """Reject untrusted legacy dependency prose from exact CLI projection."""
+    patterns = (
+        re.compile(r"^work:spec/[a-z0-9][a-z0-9-]*$"),
+        re.compile(r"^(?:shape|research|strategy|backlog):[a-z0-9][a-z0-9-]*$"),
+        re.compile(r"^brief:docs/product/briefs/[a-z0-9][a-z0-9-]*\.md$"),
+        re.compile(r"^ini-[0-9]{3}:work:spec/[a-z0-9][a-z0-9-]*$"),
+    )
+    return all(any(pattern.fullmatch(need) for pattern in patterns) for need in entry.needs)
+
+
+def _toml_without_comments(value: str) -> str:
+    """Remove TOML comments from a small array element for span classification."""
+    output: list[str] = []
+    quote = ""
+    escaped = False
+    in_comment = False
+    for char in value:
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+                output.append(char)
+            continue
+        if quote:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\" and quote == '"':
+                escaped = True
+            elif char == quote:
+                quote = ""
+            continue
+        if char in {'"', "'"}:
+            quote = char
+            output.append(char)
+        elif char == "#":
+            in_comment = True
+        else:
+            output.append(char)
+    return "".join(output)
+
+
+def extract_legacy_source_slice(
+    workspace_bytes: bytes,
+    ini_slug: str,
+    collection: str,
+    entry_index: int,
+) -> str | None:
+    """Return the exact UTF-8 TOML element slice, including comments and comma."""
+    try:
+        text = workspace_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    section_name, key = collection.split(".", 1)
+    if ini_slug:
+        escaped_ini = re.escape(ini_slug)
+        escaped_section = re.escape(section_name)
+        header = re.compile(
+            rf"(?m)^\[(?:\"{escaped_ini}\"|{escaped_ini})\.{escaped_section}\]\s*$"
+        )
+    else:
+        header = re.compile(rf"(?m)^\[{re.escape(section_name)}\]\s*$")
+    match = header.search(text)
+    if match is None:
+        return None
+    next_header = re.search(r"(?m)^\[[^\n]+\]\s*$", text[match.end():])
+    block_end = match.end() + next_header.start() if next_header else len(text)
+    assignment = re.search(
+        rf"(?m)^[ \t]*{re.escape(key)}[ \t]*=[ \t]*",
+        text[match.end():block_end],
+    )
+    if assignment is None:
+        return None
+    value_start = match.end() + assignment.end()
+    if value_start >= len(text):
+        return None
+    if text[value_start] != "[":
+        line_end = text.find("\n", value_start)
+        line_end = len(text) if line_end < 0 else line_end + 1
+        return text[value_start:line_end] if entry_index == 0 else None
+
+    body_start = value_start + 1
+    segments: list[str] = []
+    segment_start = body_start
+    square_depth = 0
+    brace_depth = 0
+    quote = ""
+    escaped = False
+    in_comment = False
+    index = body_start
+    while index < block_end:
+        char = text[index]
+        if in_comment:
+            if char == "\n":
+                in_comment = False
+            index += 1
+            continue
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\" and quote == '"':
+                escaped = True
+            elif char == quote:
+                quote = ""
+            index += 1
+            continue
+        if char in {'"', "'"}:
+            quote = char
+        elif char == "#":
+            in_comment = True
+        elif char == "[":
+            square_depth += 1
+        elif char == "]":
+            if square_depth == 0 and brace_depth == 0:
+                tail = text[segment_start:index]
+                if _toml_without_comments(tail).strip():
+                    segments.append(tail)
+                elif segments:
+                    segments[-1] += tail
+                break
+            square_depth -= 1
+        elif char == "{":
+            brace_depth += 1
+        elif char == "}":
+            brace_depth -= 1
+        elif char == "," and square_depth == 0 and brace_depth == 0:
+            segment = text[segment_start:index + 1]
+            if _toml_without_comments(segment).strip().rstrip(",").strip():
+                segments.append(segment)
+            segment_start = index + 1
+        index += 1
+    if not 0 <= entry_index < len(segments):
+        return None
+    return segments[entry_index]
+
+
+def _legacy_finding_id(
+    ini_slug: str, collection: str, entry_index: int, slice_digest: str
+) -> str:
+    """Return a stable identifier for one exact legacy membership."""
+    identity = {
+        "ini_slug": ini_slug,
+        "collection": collection,
+        "entry_index": entry_index,
+        "legacy_slice_digest": slice_digest,
+    }
+    return "legacy-" + hashlib.sha256(_migration_canonical_json(identity)).hexdigest()
+
+
+def legacy_slice_contains_sensitive_content(legacy_slice: bytes) -> bool:
+    """Apply the frozen no-echo credential detector to an exact raw slice."""
+    return any(
+        pattern.search(legacy_slice) is not None
+        for pattern in _MIGRATION_CREDENTIAL_PATTERNS
+    )
+
+
+def scan_legacy_slice_for_sensitive_content(legacy_slice: bytes) -> bool:
+    """Compatibility name for the frozen, non-echoing credential detector."""
+    return legacy_slice_contains_sensitive_content(legacy_slice)
+
+
+def build_migration_finding(
+    workspace_bytes: bytes,
+    membership: LegacyWorkspaceMembership,
+) -> dict[str, object]:
+    """Build a non-dispatchable review finding bound to the exact TOML slice."""
+    legacy_slice = extract_legacy_source_slice(
+        workspace_bytes,
+        membership.ini_slug,
+        membership.collection,
+        membership.entry_index,
+    )
+    if legacy_slice is None:
+        return {
+            "code": "manual_routing_required",
+            "dispatchable": False,
+            "next_action": "route-manually",
+        }
+    encoded = legacy_slice.encode("utf-8")
+    slice_digest = hashlib.sha256(encoded).hexdigest()
+    source_membership = {
+        "ini_slug": membership.ini_slug,
+        "collection": membership.collection,
+        "entry_index": membership.entry_index,
+        "legacy_slice_digest": slice_digest,
+    }
+    sensitive = legacy_slice_contains_sensitive_content(encoded)
+    unsafe_context = not _migration_legacy_context_safe(membership.entry)
+    return {
+        "code": (
+            "sensitive_legacy_content"
+            if sensitive
+            else "manual_routing_required" if unsafe_context else "legacy_entry"
+        ),
+        "legacy_finding_id": _legacy_finding_id(
+            membership.ini_slug,
+            membership.collection,
+            membership.entry_index,
+            slice_digest,
+        ),
+        "source_membership": source_membership,
+        "source_representation": None if sensitive or unsafe_context else legacy_slice,
+        "candidate_routes": migration_candidate_routes(membership.entry),
+        "dispatchable": False,
+        "next_action": (
+            "sanitize-legacy-source"
+            if sensitive
+            else "route-manually" if unsafe_context else "review-migration-selection"
+        ),
+    }
+
+
+def confine_migration_path(
+    root: Path,
+    relative_path: str,
+    *,
+    require_file: bool = False,
+) -> Path | None:
+    """Resolve a repository-relative path while refusing link and alias escapes."""
+    if not _is_repository_relative_path(relative_path):
+        return None
+    try:
+        resolved_root = root.resolve(strict=True)
+        if not resolved_root.is_dir() or root.is_symlink():
+            return None
+        candidate = resolved_root.joinpath(*relative_path.split("/"))
+        cursor = resolved_root
+        for part in relative_path.split("/"):
+            cursor = cursor / part
+            if cursor.exists() or cursor.is_symlink():
+                info = cursor.lstat()
+                if stat.S_ISLNK(info.st_mode):
+                    return None
+                reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+                if reparse and getattr(info, "st_file_attributes", 0) & reparse:
+                    return None
+        resolved = candidate.resolve(strict=require_file)
+        resolved.relative_to(resolved_root)
+        if require_file:
+            before = resolved.stat()
+            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                return None
+        return resolved
+    except (FileNotFoundError, NotADirectoryError, OSError, RuntimeError, ValueError):
+        return None
+
+
+def _migration_file_bytes(root: Path, relative_path: str) -> bytes | None:
+    """Read a confined regular single-link file with pre/post identity checks."""
+    path = confine_migration_path(root, relative_path, require_file=True)
+    if path is None:
+        return None
+    descriptor: int | None = None
+    try:
+        before = path.stat()
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1:
+            return None
+        if (before.st_dev, before.st_ino) != (opened.st_dev, opened.st_ino):
+            return None
+        chunks: list[bytes] = []
+        while True:
+            chunk = os.read(descriptor, 65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        after = path.stat()
+        if (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns) != (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+        ):
+            return None
+        return b"".join(chunks)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _migration_file_fingerprint(root: Path, relative_path: str) -> str | None:
+    """Fingerprint a guarded migration file without a second path-based read."""
+    content = _migration_file_bytes(root, relative_path)
+    return hashlib.sha256(content).hexdigest() if content is not None else None
+
+
+def build_migration_result(
+    result_code: str,
+    *,
+    next_action: str,
+    operation_id: str | None = None,
+    operation_digest: str | None = None,
+    ledger_state: str | None = None,
+) -> dict[str, object]:
+    """Build one closed migration-result object with stable applicability flags."""
+    if result_code not in _MIGRATION_RESULT_CODES:
+        raise ValueError("unknown migration result code")
+    if _MIGRATION_PROCESSOR_RE.fullmatch(next_action) is None:
+        raise ValueError("invalid migration next action")
+    applicable = result_code in {
+        "planned",
+        "applied",
+        "already_applied",
+        "rolled_back",
+        "already_rolled_back",
+    }
+    mutated = result_code in {"applied", "rolled_back"}
+    result: dict[str, object] = {
+        "contract_version": "work-intake-migration-result.v1",
+        "result_code": result_code,
+        "applicable": applicable,
+        "mutated": mutated,
+        "next_action": next_action,
+    }
+    if operation_id is not None:
+        result["operation_id"] = operation_id
+    if operation_digest is not None:
+        result["operation_digest"] = operation_digest
+    if ledger_state is not None:
+        result["ledger_state"] = ledger_state
+    return result
+
+
+def _migration_operation_digest(
+    operation: dict[str, object], repository_identity: str
+) -> str:
+    """Bind immutable reviewed operation material to its ledger repository."""
+    content = {
+        "repository_identity": repository_identity,
+        **{
+            key: operation[key]
+            for key in (
+            "workspace_path",
+            "pre_apply_workspace_fingerprint",
+            "selection_digest",
+            "source_membership",
+                "legacy_slice",
+                "target_entry",
+                "target_membership",
+                "owning_processor",
+                "artifact_receipt",
+            )
+        },
+    }
+    return hashlib.sha256(_migration_canonical_json(content)).hexdigest()
+
+
+def compute_migration_plan(
+    root: Path,
+    workspace_path: Path,
+    selection_raw: object,
+) -> MigrationPlan:
+    """Build a deterministic migration operation without creating durable state."""
+    selection, error = validate_migration_selection(selection_raw)
+    if selection is None:
+        return MigrationPlan(
+            result=build_migration_result(
+                error or "invalid_selection", next_action="revise-selection"
+            )
+        )
+    confined_workspace = confine_migration_path(root, "workspace.toml", require_file=True)
+    if confined_workspace is None:
+        return MigrationPlan(
+            result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
+        )
+    try:
+        if workspace_path.resolve(strict=True) != confined_workspace:
+            return MigrationPlan(
+                result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
+            )
+        workspace_bytes = _migration_file_bytes(root, "workspace.toml")
+        if workspace_bytes is None:
+            raise OSError("guarded workspace read failed")
+        workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    except (OSError, RuntimeError, UnicodeDecodeError, tomllib.TOMLDecodeError, ValueError):
+        return MigrationPlan(
+            result=build_migration_result("unsafe_path", next_action="repair-repository-paths")
+        )
+    workspace_fingerprint = hashlib.sha256(workspace_bytes).hexdigest()
+    if selection.workspace_fingerprint != workspace_fingerprint:
+        return MigrationPlan(
+            result=build_migration_result(
+                "selection_mismatch", next_action="review-current-workspace"
+            )
+        )
+    canonical = run_canonical_reconciliation(workspace, root)
+    matches = [
+        membership
+        for membership in canonical.legacy_memberships
+        if membership.ini_slug == selection.source_membership["ini_slug"]
+        and membership.collection == selection.source_membership["collection"]
+        and membership.entry_index == selection.source_membership["entry_index"]
+    ]
+    if len(matches) != 1:
+        return MigrationPlan(
+            result=build_migration_result(
+                "legacy_finding_missing", next_action="review-current-workspace"
+            )
+        )
+    finding = build_migration_finding(workspace_bytes, matches[0])
+    if finding.get("code") == "sensitive_legacy_content":
+        return MigrationPlan(
+            result=build_migration_result(
+                "sensitive_legacy_content", next_action="sanitize-legacy-source"
+            ),
+            finding=finding,
+        )
+    if finding.get("code") == "manual_routing_required":
+        return MigrationPlan(
+            result=build_migration_result(
+                "manual_routing_required", next_action="route-manually"
+            ),
+            finding=finding,
+        )
+    source = finding.get("source_membership")
+    if (
+        finding.get("legacy_finding_id") != selection.legacy_finding_id
+        or source != selection.source_membership
+    ):
+        return MigrationPlan(
+            result=build_migration_result("selection_mismatch", next_action="revise-selection"),
+            finding=finding,
+        )
+    target_ini = selection.target_membership["ini_slug"]
+    target_collection = selection.target_membership["collection"]
+    target_section, target_list = target_collection.split(".", 1)
+    if target_section == "backlog":
+        target_container = workspace.get("backlog") if target_ini == "" else None
+    else:
+        initiative = workspace.get(target_ini)
+        target_container = (
+            initiative.get(target_section) if isinstance(initiative, dict) else None
+        )
+    if not isinstance(target_container, dict) or target_list not in target_container:
+        return MigrationPlan(
+            result=build_migration_result("target_invalid", next_action="revise-selection"),
+            finding=finding,
+        )
+    target_path = selection.target_entry.path
+    target = confine_migration_path(root, target_path, require_file=False)
+    if target is None:
+        return MigrationPlan(
+            result=build_migration_result("unsafe_path", next_action="repair-repository-paths"),
+            finding=finding,
+        )
+    if not target.exists():
+        return MigrationPlan(
+            result=build_migration_result(
+                "artifact_missing", next_action=selection.owning_processor
+            ),
+            finding=finding,
+        )
+    artifact_fingerprint = _migration_file_fingerprint(root, target_path)
+    if artifact_fingerprint is None:
+        return MigrationPlan(
+            result=build_migration_result("unsafe_path", next_action="repair-repository-paths"),
+            finding=finding,
+        )
+    if selection.target_entry.kind == "spec":
+        plan_path = str(PurePosixPath(target_path).with_name("plan.md"))
+        if _migration_file_fingerprint(root, plan_path) is None:
+            return MigrationPlan(
+                result=build_migration_result(
+                    "artifact_missing", next_action=selection.owning_processor
+                ),
+                finding=finding,
+            )
+    duplicates = [
+        membership
+        for membership in canonical.memberships
+        if membership.entry.path == target_path
+    ]
+    if duplicates:
+        return MigrationPlan(
+            result=build_migration_result("target_invalid", next_action="resolve-duplicate-route"),
+            finding=finding,
+        )
+    operation_content = {
+        "workspace_path": "workspace.toml",
+        "pre_apply_workspace_fingerprint": workspace_fingerprint,
+        "selection_digest": migration_selection_digest(selection),
+        "source_membership": dict(selection.source_membership),
+        "legacy_slice": finding["source_representation"],
+        "target_entry": dict(selection.target_entry_raw),
+        "target_membership": dict(selection.target_membership),
+        "owning_processor": selection.owning_processor,
+        "artifact_receipt": {
+            "path": target_path,
+            "fingerprint": artifact_fingerprint,
+            "existed_before_apply": True,
+            "processor": selection.owning_processor,
+        },
+    }
+    repository_identity = canonical_repository_identity(workspace, canonical, root)
+    operation_digest = _migration_operation_digest(
+        operation_content, repository_identity
+    )
+    operation_id = f"migration-{operation_digest}"
+    operation = {
+        "operation_id": operation_id,
+        "operation_digest": operation_digest,
+        **operation_content,
+        "state": "pending",
+        "confirmation_receipts": [],
+    }
+    return MigrationPlan(
+        result=build_migration_result(
+            "planned",
+            next_action="confirm-migration",
+            operation_id=operation_id,
+            operation_digest=operation_digest,
+            ledger_state="absent",
+        ),
+        finding=finding,
+        proposed_operation=operation,
+    )
+
+
+def validate_migration_ledger_invariants(ledger: object) -> str | None:
+    """Return the exact semantic-invariant refusal code, or ``None`` when valid."""
+    if not isinstance(ledger, dict) or not isinstance(ledger.get("operations"), list):
+        return "ledger_invalid"
+    repository_identity = ledger.get("repository_identity")
+    if (
+        not isinstance(repository_identity, str)
+        or _MIGRATION_SHA256_RE.fullmatch(repository_identity) is None
+    ):
+        return "ledger_invalid"
+    operation_ids: set[str] = set()
+    confirmation_ids: set[str] = set()
+    subjects: set[str] = set()
+    for operation in ledger["operations"]:
+        if not isinstance(operation, dict):
+            return "ledger_invalid"
+        operation_id = operation.get("operation_id")
+        operation_digest = operation.get("operation_digest")
+        if not isinstance(operation_id, str) or operation_id in operation_ids:
+            return "ledger_invalid"
+        operation_ids.add(operation_id)
+        receipts = operation.get("confirmation_receipts")
+        if not isinstance(receipts, list):
+            return "operation_state_conflict"
+        actions: list[str] = []
+        for receipt in receipts:
+            if not isinstance(receipt, dict):
+                return "operation_state_conflict"
+            confirmation_id = receipt.get("confirmation_id")
+            subject = receipt.get("authorization_subject")
+            if confirmation_id in confirmation_ids or subject in subjects:
+                return "confirmation_reused"
+            if not isinstance(confirmation_id, str) or not isinstance(subject, str):
+                return "confirmation_reused"
+            confirmation_ids.add(confirmation_id)
+            subjects.add(subject)
+            if (
+                receipt.get("operation_id") != operation_id
+                or receipt.get("operation_digest") != operation_digest
+            ):
+                return "confirmation_binding_mismatch"
+            action = receipt.get("action")
+            if action not in {"apply", "rollback"}:
+                return "operation_state_conflict"
+            actions.append(action)
+        if not actions or actions[0] != "apply":
+            return "operation_state_conflict"
+        rollback_at = next((i for i, action in enumerate(actions) if action == "rollback"), None)
+        if rollback_at is not None and any(action == "apply" for action in actions[rollback_at:]):
+            return "operation_state_conflict"
+        state = operation.get("state")
+        expected_states = {
+            "pending": rollback_at is None,
+            "applied": rollback_at is None,
+            "rollback_pending": rollback_at is not None,
+            "rolled_back": rollback_at is not None,
+        }
+        if state not in expected_states or not expected_states[state]:
+            return "operation_state_conflict"
+    for operation in ledger["operations"]:
+        try:
+            expected_digest = _migration_operation_digest(
+                operation, repository_identity
+            )
+        except (KeyError, TypeError, ValueError):
+            return "ledger_invalid"
+        if operation.get("operation_digest") != expected_digest:
+            return "ledger_invalid"
+    return None
+
+
+def validate_migration_ledger_shape(ledger: object) -> str | None:
+    """Validate the closed ledger shape before cross-record invariant checks."""
+    if not isinstance(ledger, dict) or set(ledger) != {
+        "contract_version",
+        "repository_identity",
+        "operations",
+    }:
+        return "ledger_invalid"
+    if ledger.get("contract_version") != "work-intake-migration-ledger.v1":
+        return "ledger_invalid"
+    repository_identity = ledger.get("repository_identity")
+    operations = ledger.get("operations")
+    if (
+        not isinstance(repository_identity, str)
+        or _MIGRATION_SHA256_RE.fullmatch(repository_identity) is None
+        or not isinstance(operations, list)
+        or len(operations) > 10000
+    ):
+        return "ledger_invalid"
+    required_operation = {
+        "operation_id",
+        "operation_digest",
+        "workspace_path",
+        "pre_apply_workspace_fingerprint",
+        "selection_digest",
+        "source_membership",
+        "legacy_slice",
+        "target_entry",
+        "target_membership",
+        "owning_processor",
+        "artifact_receipt",
+        "state",
+        "confirmation_receipts",
+    }
+    optional_operation = {
+        "applied_workspace_fingerprint",
+        "rolled_back_workspace_fingerprint",
+    }
+    receipt_fields = {
+        "confirmation_id",
+        "action",
+        "operation_id",
+        "operation_digest",
+        "authorization_subject",
+        "authorization_role_digest",
+        "confirmed_at",
+        "authorization_source",
+        "consumed_before_effect",
+    }
+    for operation in operations:
+        if (
+            not isinstance(operation, dict)
+            or not required_operation.issubset(operation)
+            or set(operation) - required_operation - optional_operation
+        ):
+            return "ledger_invalid"
+        operation_id = operation.get("operation_id")
+        operation_digest = operation.get("operation_digest")
+        if (
+            not isinstance(operation_id, str)
+            or re.fullmatch(r"migration-[a-f0-9]{64}", operation_id) is None
+            or not isinstance(operation_digest, str)
+            or _MIGRATION_SHA256_RE.fullmatch(operation_digest) is None
+            or operation.get("workspace_path") != "workspace.toml"
+            or not isinstance(operation.get("pre_apply_workspace_fingerprint"), str)
+            or _MIGRATION_SHA256_RE.fullmatch(
+                operation["pre_apply_workspace_fingerprint"]
+            ) is None
+            or not isinstance(operation.get("selection_digest"), str)
+            or _MIGRATION_SHA256_RE.fullmatch(operation["selection_digest"]) is None
+            or not _migration_membership_valid(
+                operation.get("source_membership"), target=False
+            )
+            or not _migration_membership_valid(
+                operation.get("target_membership"), target=True
+            )
+        ):
+            return "ledger_invalid"
+        legacy_slice = operation.get("legacy_slice")
+        if not isinstance(legacy_slice, str) or not 1 <= len(legacy_slice) <= 1_000_000:
+            return "ledger_invalid"
+        target_entry, target_findings = parse_workspace_entry(operation.get("target_entry"))
+        if target_entry is None or target_findings:
+            return "ledger_invalid"
+        if not _migration_target_membership_possible(
+            target_entry.kind, str(operation["target_membership"]["collection"])
+        ):
+            return "ledger_invalid"
+        processor = operation.get("owning_processor")
+        artifact = operation.get("artifact_receipt")
+        if (
+            not isinstance(processor, str)
+            or _MIGRATION_PROCESSOR_RE.fullmatch(processor) is None
+            or not isinstance(artifact, dict)
+            or set(artifact) != {
+                "path", "fingerprint", "existed_before_apply", "processor"
+            }
+            or artifact.get("path") != target_entry.path
+            or artifact.get("existed_before_apply") is not True
+            or artifact.get("processor") != processor
+            or not isinstance(artifact.get("fingerprint"), str)
+            or _MIGRATION_SHA256_RE.fullmatch(artifact["fingerprint"]) is None
+        ):
+            return "ledger_invalid"
+        state = operation.get("state")
+        if state not in {"pending", "applied", "rollback_pending", "rolled_back"}:
+            return "ledger_invalid"
+        if state in {"applied", "rollback_pending", "rolled_back"}:
+            applied = operation.get("applied_workspace_fingerprint")
+            if not isinstance(applied, str) or _MIGRATION_SHA256_RE.fullmatch(applied) is None:
+                return "ledger_invalid"
+        if state == "rolled_back":
+            rolled_back = operation.get("rolled_back_workspace_fingerprint")
+            if (
+                not isinstance(rolled_back, str)
+                or _MIGRATION_SHA256_RE.fullmatch(rolled_back) is None
+            ):
+                return "ledger_invalid"
+        receipts = operation.get("confirmation_receipts")
+        if not isinstance(receipts, list) or not 1 <= len(receipts) <= 100:
+            return "ledger_invalid"
+        for receipt in receipts:
+            if not isinstance(receipt, dict) or set(receipt) != receipt_fields:
+                return "ledger_invalid"
+            if (
+                re.fullmatch(
+                    r"confirmation-[a-f0-9]{32}", str(receipt.get("confirmation_id"))
+                ) is None
+                or receipt.get("action") not in {"apply", "rollback"}
+                or re.fullmatch(
+                    r"migration-[a-f0-9]{64}", str(receipt.get("operation_id"))
+                ) is None
+                or _MIGRATION_SHA256_RE.fullmatch(
+                    str(receipt.get("operation_digest"))
+                ) is None
+                or re.fullmatch(
+                    r"subject-[a-f0-9]{32}", str(receipt.get("authorization_subject"))
+                ) is None
+                or _MIGRATION_SHA256_RE.fullmatch(
+                    str(receipt.get("authorization_role_digest"))
+                ) is None
+                or not isinstance(receipt.get("confirmed_at"), str)
+                or receipt.get("authorization_source") != "current-human-session"
+                or receipt.get("consumed_before_effect") is not True
+            ):
+                return "ledger_invalid"
+            try:
+                confirmed = datetime.datetime.fromisoformat(
+                    receipt["confirmed_at"].replace("Z", "+00:00")
+                )
+            except ValueError:
+                return "ledger_invalid"
+            if confirmed.tzinfo is None:
+                return "ledger_invalid"
+    return validate_migration_ledger_invariants(ledger)
 
 
 # ── Repair planning ───────────────────────────────────────────────────────────

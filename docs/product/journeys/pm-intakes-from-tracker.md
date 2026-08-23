@@ -10,7 +10,7 @@ initiative_links:
     name: Work Intake and Artifact Routing
     milestones: Wave 4
     role: primary
-updated: 2026-08-16
+updated: 2026-08-21
 ---
 
 # Journey: Start repository work from a tracker
@@ -137,6 +137,11 @@ non-dispatchable until its gaps are resolved.
 Tracker intake remains read-only throughout the journey. Refresh conflict
 handling, execution locks, delta synchronization, and tracker write-back are
 separate capabilities. They cannot be inferred from the intake request.
+
+A later refresh request returns through `work-intake`, resolves the artifact's
+exact configured profile and authority record, and presents field decisions.
+Any declared tracker coordination action is still a separate effect requiring a
+fresh exact confirmation; local acceptance never implies remote write-back.
 
 If `work-intake` is unavailable, the adapter returns
 `missing dependency: work-intake` and stops without a local fallback.

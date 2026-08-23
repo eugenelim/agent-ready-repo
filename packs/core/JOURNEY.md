@@ -14,6 +14,7 @@ contract:
     - "Approve the plan"
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
+    - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
     - "Merge the PR"
   decisionGateIds:
     - approve-plan
@@ -51,7 +52,7 @@ skills:
     description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
     humanTouches: 0
   - name: workspace-status
-    description: "Reads workspace.toml and surfaces ready-to-start items, blocked items, parallel candidates, and active signals — the cold-start orient for every session."
+    description: "Reads workspace.toml, surfaces canonical and legacy findings, and provides the explicit plan/apply/rollback repair surface for reviewed migrations."
     humanTouches: 0
   - name: project-knowledge
     description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."
@@ -155,6 +156,19 @@ continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
+
+#### Optional compatibility path — migrate one legacy entry
+
+When status reports `legacy_entry`, review its exact source slice and candidate
+routes. A person authors the closed selection; `repair-plan` remains read-only.
+Apply or rollback only with the repository migration policy and one fresh,
+single-use confirmation bound to the exact operation.
+
+- **You decide:** the target artifact, lifecycle membership, provenance, and
+  whether to apply or roll back.
+- **Output:** a canonical workspace entry or the restored exact legacy slice,
+  plus the durable `.workspace-migrations.json` recovery record.
+- **State:** confirmed-write
 
 #### Optional return path — refresh tracked work
 

@@ -1,6 +1,6 @@
 [pack]
 name = "github"
-version = "0.2.0"
+version = "0.2.1"
 description = "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back."
 readme = "README.md"
 display_name = "GitHub"

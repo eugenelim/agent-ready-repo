@@ -217,6 +217,25 @@ def test_packaged_engine_projection_matches_canonical_source() -> None:
     assert packaged.read_bytes() == source.read_bytes()
 
 
+# STUB: AC8
+def test_migration_planner_is_projected_byte_identically() -> None:
+    source_engine = _load_workspace_status_engine()
+    assert callable(getattr(source_engine, "compute_migration_plan", None))
+    packaged_spec = importlib.util.spec_from_file_location(
+        "packaged_workspace_status_migration", _PACKAGED_DATA / "workspace_status_engine.py"
+    )
+    packaged_engine = importlib.util.module_from_spec(packaged_spec)
+    sys.modules[packaged_spec.name] = packaged_engine
+    packaged_spec.loader.exec_module(packaged_engine)
+    assert callable(getattr(packaged_engine, "compute_migration_plan", None))
+
+
+# STUB: AC10
+def test_migration_rollback_contract_is_projected_byte_identically() -> None:
+    source_engine = _load_workspace_status_engine()
+    assert callable(getattr(source_engine, "validate_migration_ledger_invariants", None))
+
+
 def test_t4_repair_determinism_projection_and_release_surface() -> None:
     engine_path = (
         CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"

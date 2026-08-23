@@ -1,0 +1,10 @@
+{
+  "contract_version": "work-intake-migration-result.v1",
+  "result_code": "planned",
+  "applicable": true,
+  "mutated": false,
+  "operation_id": "migration-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "operation_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "next_action": "confirm-migration",
+  "ledger_state": "absent"
+}

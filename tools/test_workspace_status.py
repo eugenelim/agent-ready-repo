@@ -3473,9 +3473,61 @@ shipped = []
         )
 
 
+# ── Work-intake migration PLAN stubs ─────────────────────────────────────────
+
+
+def _migration_surface(name: str):
+    """Return one planned migration engine surface, failing red until it exists."""
+    value = getattr(_engine_mod, name, None)
+    expect(callable(value), f"[migration stub] missing callable {name}")
+    return value
+
+
+# STUB: AC2
+def case_migration_finding_projects_exact_legacy_context() -> None:
+    _migration_surface("build_migration_finding")
+
+
+# STUB: AC3
+def case_migration_selection_is_closed_and_human_selected() -> None:
+    _migration_surface("validate_migration_selection")
+
+
+# STUB: AC4
+def case_migration_missing_artifact_returns_processor_handoff() -> None:
+    _migration_surface("compute_migration_plan")
+
+
+# STUB: AC7
+def case_migration_plan_confines_every_repository_path() -> None:
+    _migration_surface("confine_migration_path")
+
+
+# STUB: AC8
+def case_migration_plan_is_read_only_and_deterministic() -> None:
+    _migration_surface("compute_migration_plan")
+
+
+# STUB: AC20
+def case_migration_candidate_routes_are_explicit_and_non_dispatchable() -> None:
+    _migration_surface("migration_candidate_routes")
+
+
+# STUB: AC27
+def case_migration_result_uses_the_closed_result_contract() -> None:
+    _migration_surface("build_migration_result")
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
+    ("migration AC2 finding projection", case_migration_finding_projects_exact_legacy_context),
+    ("migration AC3 reviewed selection", case_migration_selection_is_closed_and_human_selected),
+    ("migration AC4 processor handoff", case_migration_missing_artifact_returns_processor_handoff),
+    ("migration AC7 path confinement", case_migration_plan_confines_every_repository_path),
+    ("migration AC8 deterministic plan", case_migration_plan_is_read_only_and_deterministic),
+    ("migration AC20 candidate routes", case_migration_candidate_routes_are_explicit_and_non_dispatchable),
+    ("migration AC27 result contract", case_migration_result_uses_the_closed_result_contract),
     ("AC2a multiple_active_initiatives", case_multiple_active_initiatives),
     ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
     ("AC2c ordered_queues", case_ordered_queues),

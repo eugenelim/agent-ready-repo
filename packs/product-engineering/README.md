@@ -76,12 +76,14 @@ de-risk-intent
 decompose-intent
 
   onboarding-activation
-  ├─ onboarding/step-1-welcome      (app — brief ready)
-  ├─ onboarding/step-2-connect      (app — brief ready)
-  └─ onboarding/step-3-first-action (app — brief ready)
+  ├─ onboarding/step-1-welcome      (app — spec ready to draft)
+  ├─ onboarding/step-2-connect      (app — spec ready to draft)
+  └─ onboarding/step-3-first-action (app — spec ready to draft)
 ```
 
-The agent writes a brief for each leaf. Pass any brief to `receive-brief` → `work-loop` to begin the delivery loop.
+The agent hands each independently shippable leaf directly to `new-spec` →
+`work-loop`. It writes a coordinating brief first only when a result spans
+multiple specs or repositories.
 
 ---
 
@@ -109,7 +111,10 @@ The base paths are configurable — `[product] output_dir` and `[discovery] outp
 
 **Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `frame-intent` as strategic anchors. Absent means both skills degrade gracefully.
 
-**Downstream — `core`:** Each brief produced by `decompose-intent` is a `core` brief — hand it to `receive-brief` → `new-spec` → `work-loop` to begin the delivery loop unchanged.
+**Downstream — `core`:** One independently shippable result from
+`decompose-intent` goes directly to `new-spec` → `work-loop`. A multi-spec or
+cross-repository result uses a `core` brief and `receive-brief` before the
+selected slice enters that loop.
 
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 

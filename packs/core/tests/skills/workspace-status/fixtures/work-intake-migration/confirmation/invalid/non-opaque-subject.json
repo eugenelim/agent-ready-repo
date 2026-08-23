@@ -1,0 +1,11 @@
+{
+  "contract_version": "work-intake-migration-confirmation.v1",
+  "confirmation_id": "confirmation-11111111111111111111111111111111",
+  "action": "apply",
+  "operation_id": "migration-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "operation_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "authorization_subject": "person@example.com",
+  "role": "migration-approver",
+  "confirmed_at": "2026-08-21T12:00:00Z",
+  "authorization_source": "current-human-session"
+}

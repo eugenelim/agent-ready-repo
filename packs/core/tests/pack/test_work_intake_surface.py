@@ -49,6 +49,9 @@ _FIXTURE_PATHS = {
     "evals/files/routing/start-direct-light.json": (
         _WORK_INTAKE / "evals" / "files" / "routing" / "start-direct-light.json"
     ),
+    "evals/files/routing/migration-selection.json": (
+        _WORK_INTAKE / "evals" / "files" / "routing" / "migration-selection.json"
+    ),
     "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
         _CONTRACT_FIXTURES
         / "normalized-intake"
@@ -144,7 +147,7 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
     matrix = json.loads(raw)
     cases = matrix["cases"]
     assert matrix["contract_version"] == "work-intake-routing-evals.v1"
-    assert {case["id"] for case in cases} == {
+    assert {
         "direct-light",
         "start-minimal-intent",
         "remember-draft",
@@ -156,12 +159,24 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         "ambiguity",
         "alias-equivalence",
         "ready-brief-zero-specs",
-    }
+        "cross-repo-brief",
+        "incoherent-collection",
+        "claimed-defect-without-evidence",
+        "migration-read-only-plan",
+    } <= {case["id"] for case in cases}
 
     for case in cases:
-        fixture = _fixture_path(case["fixture"])
+        fixture_name = case["fixture"]
+        if fixture_name.startswith("profile-intake:"):
+            continue
+        if fixture_name == "evals/files/routing/migration-selection.json":
+            selection = json.loads(_fixture_path(fixture_name).read_text())
+            parsed, error = engine.validate_migration_selection(selection)
+            assert parsed is not None and error is None
+            continue
+        fixture = _fixture_path(fixture_name)
         assert fixture.is_file(), case["id"]
-        if "normalized-intake/" in case["fixture"] or case["fixture"].startswith("evals/"):
+        if "normalized-intake/" in fixture_name or fixture_name.startswith("evals/"):
             parsed, findings = engine.validate_normalized_intake(
                 json.loads(fixture.read_text(encoding="utf-8"))
             )
@@ -174,6 +189,8 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
             assert parsed is not None, case["id"]
             assert findings == [], case["id"]
 
+        if case["mode"] != "route":
+            continue
         route = router.route_intake(router.RoutingSignals(**case["signals"]))
         for field in (
             "artifact",
@@ -246,3 +263,39 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
     assert relative_links == {"docs/CONVENTIONS.md"}
     assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
     assert (_SEEDS / "docs" / "CONVENTIONS.md").is_file()
+
+
+# STUB: AC19
+def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> None:
+    cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())[
+        "cases"
+    ]}
+    required = {
+        "cross-repo-brief",
+        "incoherent-collection",
+        "remember-repo-origin",
+        "status-triage",
+        "refresh-draft",
+        "refresh-implementing",
+        "refresh-shipped",
+        "migration-read-only-plan",
+    }
+    assert required <= cases.keys()
+    for case in cases.values():
+        assert {
+            "dispatchable",
+            "next_action",
+            "authority_mode",
+            "mutation",
+        } <= case.keys()
+
+
+# STUB: AC19
+def test_ac19_migration_matrix_row_invokes_only_the_read_only_planner() -> None:
+    cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())[
+        "cases"
+    ]}
+    migration = cases["migration-read-only-plan"]
+    assert migration["mutation"] == "none"
+    assert migration["dispatchable"] is False
+    assert migration["next_action"] == "review-migration-plan"

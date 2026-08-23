@@ -43,7 +43,10 @@ Vision → strategy → concept is the order when you're carrying all three unce
 
 - **Not a waterfall.** The stages are keyed to uncertainty, not arranged as phase gates. Running all of them on an engagement whose value and shape are already clear is ceremony, and ceremony is its own kind of risk.
 - **The concept is not the design doc.** The concept is the shape; the design doc is the depth that follows once the shape is agreed. Collapsing the two loses the cheap-to-change window the concept exists to hold open.
-- **The intent tree is not a tracker.** Vision, strategy, and the capabilities below them form a tree that's deeper than any board. Trackers are a one-way projection of it, never the model itself.
+- **The intent tree is not a tracker.** Vision, strategy, and the capabilities
+  below them form a tree deeper than any board. A tracker may be an outbound
+  projection or the declared origin for selected mapped fields; it is not the
+  repository's artifact model.
 
 ## See also
 

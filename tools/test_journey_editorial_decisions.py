@@ -72,7 +72,7 @@ def test_editorial_mapping_matches_every_canonical_human_gate() -> None:
     """The approved ledger is the single source for canonical IDs and labels."""
     expected = _ledger_mapping()
 
-    assert sum(len(gates) for gates in expected.values()) == 35
+    assert sum(len(gates) for gates in expected.values()) == 39
     assert set(expected) == {path.parent.name for path in PACKS.glob("*/JOURNEY.md")}
 
     actual = {journey: _pack_mapping(journey) for journey in expected}

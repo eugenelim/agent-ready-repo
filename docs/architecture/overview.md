@@ -89,10 +89,13 @@ One file per non-trivial subsystem:
   processor dispatch. Jira, Jira Align, Linear, and GitHub adapters now converge
   on its `normalized-intake.v1` boundary: acquisition and versioned profile
   hints stay tracker-specific, while content classification and every repository
-  write stay in `work-intake`. Intake remains read-only. Reviewed refresh now
+  write stay in `work-intake`. Tracker acquisition remains read-only. Reviewed refresh now
   applies authorized local changes through execution locks and conflict-aware
   compare-and-swap writes; configured tracker processors may perform separately
-  confirmed remote mutations within their declared capability boundaries.
+  confirmed remote mutations within their declared capability boundaries. The
+  same boundary now includes ledger-first migration and exact rollback for
+  accepted legacy workspace entries; see the
+  [maintainer reference](../guides/reference/work-intake-maintenance.md).
 
 ## Packages
 

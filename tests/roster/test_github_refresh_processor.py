@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import subprocess
 import sys
@@ -759,3 +760,13 @@ def test_github_metadata_is_least_privilege() -> None:
     assert "auth: gh" not in body
     assert "namespace:" not in body
     assert "keys:" not in body
+
+
+# STUB: AC19
+def test_github_profile_is_in_the_integrated_routing_matrix() -> None:
+    matrix = json.loads(
+        (ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert any(case.get("profile_id") == "github-default" for case in matrix["cases"])

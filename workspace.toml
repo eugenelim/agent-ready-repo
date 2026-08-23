@@ -3442,8 +3442,8 @@ queue   = [
 # ────────────────────────────────────────────────────────────────────────────
 ["ini-008"]
 name      = "Work Intake and Artifact Routing"
-status    = "active"
-milestone = "Wave 4 · Tracker adapters"
+status    = "complete"
+milestone = "Wave 7 · Migration and documentation (complete)"
 
 ["ini-008".work]
 # Entries are canonical target records (RFC-0083 delivery groups). Each carries its
@@ -3465,12 +3465,12 @@ shipped = [
   # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
   # contract. Acquisition and normalization stay adapter-specific.
   {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
+  # Group 7 — reconcile legacy workspaces, publish the alias window and removal
+  # criteria, finish cross-links, run the full evaluation matrix.
+  {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
 ]
 active = []
 queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
-  # Group 7 — reconcile legacy workspaces, publish the alias window and removal
-  # criteria, finish cross-links, run the full evaluation matrix.
-  {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
 ]

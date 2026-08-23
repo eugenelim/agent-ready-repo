@@ -98,4 +98,4 @@ Accept the proposed spec route and start new-spec.
 
 See [tracker vocabulary](../../_shared/reference/tracker-vocabulary.md) for the
 shared route terms. For an existing artifact, see
-[Refresh tracked work safely](../../_shared/how-to/use-work-intake.md).
+[Use work intake](../../_shared/how-to/use-work-intake.md).

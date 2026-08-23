@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/work-intake-migration-selection.schema.json",
+  "title": "Reviewed work-intake migration selection",
+  "description": "Human-authored, read-only selection of one canonical route for one legacy workspace finding.",
+  "type": "object",
+  "contract_version": "work-intake-migration-selection.v1",
+  "x-spec": ["docs/specs/work-intake-migration-docs/"],
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "legacy_finding_id",
+    "workspace_fingerprint",
+    "source_membership",
+    "target_entry",
+    "target_membership",
+    "owning_processor",
+    "provenance_reference",
+    "legacy_content_approved_for_ledger"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "work-intake-migration-selection.v1"
+    },
+    "legacy_finding_id": {
+      "$ref": "#/$defs/boundedIdentifier"
+    },
+    "workspace_fingerprint": {
+      "$ref": "#/$defs/sha256"
+    },
+    "source_membership": {
+      "$ref": "#/$defs/sourceMembership"
+    },
+    "target_entry": {
+      "$ref": "workspace-entry.schema.json"
+    },
+    "target_membership": {
+      "$ref": "#/$defs/targetMembership"
+    },
+    "owning_processor": {
+      "$ref": "#/$defs/processor"
+    },
+    "provenance_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "legacy_content_approved_for_ledger": {
+      "const": true
+    }
+  },
+  "$defs": {
+    "boundedIdentifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "processor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "sourceMembership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ini_slug", "collection", "entry_index", "legacy_slice_digest"],
+      "properties": {
+        "ini_slug": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[a-z0-9-]*$"
+        },
+        "collection": {
+          "enum": [
+            "work.queue",
+            "work.active",
+            "work.shipped",
+            "shaping_queue.active",
+            "shaping_queue.backlog",
+            "brief_queue.draft",
+            "brief_queue.ready",
+            "brief_queue.executing",
+            "brief_queue.shipped",
+            "backlog.open"
+          ]
+        },
+        "entry_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "legacy_slice_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "targetMembership": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ini_slug", "collection"],
+      "properties": {
+        "ini_slug": {
+          "type": "string",
+          "maxLength": 200,
+          "pattern": "^[a-z0-9-]*$"
+        },
+        "collection": {
+          "enum": [
+            "work.queue",
+            "work.active",
+            "work.shipped",
+            "shaping_queue.active",
+            "shaping_queue.backlog",
+            "brief_queue.draft",
+            "brief_queue.ready",
+            "brief_queue.executing",
+            "brief_queue.shipped",
+            "backlog.open",
+            "backlog.closed"
+          ]
+        }
+      }
+    }
+  }
+}

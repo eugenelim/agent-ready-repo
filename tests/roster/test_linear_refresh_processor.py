@@ -646,3 +646,13 @@ class TestLinearRefreshProcessor:
             (store.repository_root / store.artifact_path).read_text()
         ).remote_actions
         assert durable[-1]["status"] == "succeeded"
+
+
+# STUB: AC19
+def test_linear_profile_is_in_the_integrated_routing_matrix() -> None:
+    matrix = json.loads(
+        (ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert any(case.get("profile_id") == "linear-default" for case in matrix["cases"])

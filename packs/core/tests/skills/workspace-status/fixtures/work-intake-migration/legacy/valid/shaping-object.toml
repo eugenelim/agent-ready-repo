@@ -1,0 +1,3 @@
+backlog = [
+  {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
+]

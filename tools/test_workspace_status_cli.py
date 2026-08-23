@@ -11,6 +11,8 @@ Never shell=True. Tests are independent of the source checkout CWD.
 
 from __future__ import annotations
 
+import datetime
+import hashlib
 import json
 import shutil
 import subprocess
@@ -1122,7 +1124,7 @@ class CLIImportPurityTests(unittest.TestCase):
     _STDLIB_MODULES = frozenset({
         "argparse", "dataclasses", "datetime", "hashlib", "importlib", "json",
         "math", "os", "pathlib", "re", "stat", "sys", "tempfile", "time", "tomllib",
-        "typing", "unittest", "__future__", "collections", "functools",
+        "typing", "unittest", "__future__", "collections", "functools", "secrets",
         "itertools", "abc", "contextlib", "io", "shutil", "traceback",
     })
 
@@ -3426,6 +3428,326 @@ class TomlkitUnavailableTests(_CliBase):
         data = _json.loads(result.stdout)
         self.assertEqual(data.get("reason"), "tomlkit_unavailable")
         self.assertFalse(data.get("applied"))
+
+
+class WorkIntakeMigrationCliStubTests(unittest.TestCase):
+    """Migration CLI and transaction contract assertions."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.source = _CLI.read_text(encoding="utf-8")
+
+    # STUB: AC3
+    def test_ac3_apply_requires_human_confirmation_file(self) -> None:
+        self.assertIn("--confirmation-file", self.source)
+
+    # STUB: AC6
+    def test_ac6_apply_owns_the_repository_migration_ledger(self) -> None:
+        self.assertIn(".workspace-migrations.json", self.source)
+
+    # STUB: AC7
+    def test_ac7_cli_has_redacted_privacy_and_confinement_refusals(self) -> None:
+        self.assertIn("sensitive_legacy_content", self.source)
+        self.assertIn("unsafe_path", self.source)
+
+    def test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            private_marker = "do-not-project-this-legacy-value"
+            target = root / "workspace-source.toml"
+            target.write_text(
+                _MINIMAL_TOML + f"\n# {private_marker}\n",
+                encoding="utf-8",
+            )
+            try:
+                (root / "workspace.toml").symlink_to(target.name)
+            except OSError as exc:
+                self.skipTest(f"symlinks unavailable: {exc}")
+
+            status = _run_cli("status", "--root", str(root))
+
+            self.assertEqual(status.returncode, 2, status.stderr)
+            self.assertEqual(status.stderr, "")
+            payload = json.loads(status.stdout)
+            self.assertEqual(payload["canonical"]["findings"][0]["code"], "unsafe_path")
+            self.assertNotIn(private_marker, status.stdout)
+
+    # STUB: AC8
+    def test_ac8_repair_plan_accepts_only_reviewed_migration_selection(self) -> None:
+        result = _run_cli("repair-plan", "--help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--migration-selection", result.stdout)
+
+    def test_ac27_migration_plan_is_json_only_read_only_and_non_applicable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "workspace.toml").write_text(_MINIMAL_TOML, encoding="utf-8")
+            status = _run_cli("status", "--root", str(root))
+            self.assertEqual(status.returncode, 0, status.stderr)
+            legacy = json.loads(status.stdout)["canonical"]["legacy_memberships"][0]
+            finding = legacy["migration"]
+            selection = {
+                "contract_version": "work-intake-migration-selection.v1",
+                "legacy_finding_id": finding["legacy_finding_id"],
+                "workspace_fingerprint": hashlib.sha256(
+                    (root / "workspace.toml").read_bytes()
+                ).hexdigest(),
+                "source_membership": finding["source_membership"],
+                "target_entry": {
+                    "path": "docs/specs/target/spec.md",
+                    "kind": "spec",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Reviewed target",
+                    "needs": [],
+                },
+                "target_membership": {
+                    "ini_slug": "ini-001",
+                    "collection": "work.queue",
+                },
+                "owning_processor": "new-spec",
+                "provenance_reference": "docs/specs/target/spec.md",
+                "legacy_content_approved_for_ledger": True,
+            }
+            selection_path = root / "selection.json"
+            selection_path.write_text(json.dumps(selection), encoding="utf-8")
+
+            planned = _run_cli(
+                "repair-plan",
+                "--root",
+                str(root),
+                "--migration-selection",
+                "selection.json",
+            )
+
+            self.assertEqual(planned.returncode, 0, planned.stderr)
+            self.assertEqual(planned.stderr, "")
+            payload = json.loads(planned.stdout)
+            self.assertEqual(payload["schema_version"], 1)
+            self.assertEqual(payload["mode"], "repair-plan")
+            self.assertEqual(payload["migration"]["result_code"], "artifact_missing")
+            self.assertEqual(payload["migration"]["next_action"], "new-spec")
+            self.assertFalse(payload["migration"]["mutated"])
+            self.assertFalse((root / ".workspace-migrations.json").exists())
+
+    def test_ac27_migration_apply_and_rollback_use_exact_argument_surfaces(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            authorized = """\
+[authorization.migration]
+contract_version = "work-intake-migration-authorization.v1"
+approver_roles = ["migration-approver"]
+
+""" + _MINIMAL_TOML
+            (root / "workspace.toml").write_text(authorized, encoding="utf-8")
+            target = root / "docs/specs/target"
+            target.mkdir(parents=True)
+            artifact = target / "spec.md"
+            artifact.write_text("# Target\n\n**Status:** Approved\n", encoding="utf-8")
+            (target / "plan.md").write_text(
+                "# Plan\n\n**Status:** Approved\n", encoding="utf-8"
+            )
+            status = json.loads(
+                _run_cli("status", "--root", str(root)).stdout
+            )
+            finding = status["canonical"]["legacy_memberships"][0]["migration"]
+            selection = {
+                "contract_version": "work-intake-migration-selection.v1",
+                "legacy_finding_id": finding["legacy_finding_id"],
+                "workspace_fingerprint": hashlib.sha256(
+                    (root / "workspace.toml").read_bytes()
+                ).hexdigest(),
+                "source_membership": finding["source_membership"],
+                "target_entry": {
+                    "path": "docs/specs/target/spec.md",
+                    "kind": "spec",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Reviewed target",
+                    "needs": [],
+                },
+                "target_membership": {
+                    "ini_slug": "ini-001",
+                    "collection": "work.queue",
+                },
+                "owning_processor": "new-spec",
+                "provenance_reference": "docs/specs/target/spec.md",
+                "legacy_content_approved_for_ledger": True,
+            }
+            (root / "selection.json").write_text(
+                json.dumps(selection), encoding="utf-8"
+            )
+            planned = _run_cli(
+                "repair-plan",
+                "--root",
+                str(root),
+                "--migration-selection",
+                "selection.json",
+            )
+            self.assertEqual(planned.returncode, 0, planned.stderr)
+            operation = json.loads(planned.stdout)["proposed_operation"]
+            now = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
+            apply_confirmation = {
+                "contract_version": "work-intake-migration-confirmation.v1",
+                "confirmation_id": "confirmation-11111111111111111111111111111111",
+                "action": "apply",
+                "operation_id": operation["operation_id"],
+                "operation_digest": operation["operation_digest"],
+                "authorization_subject": "subject-11111111111111111111111111111111",
+                "role": "migration-approver",
+                "confirmed_at": now,
+                "authorization_source": "current-human-session",
+            }
+            (root / "apply-confirmation.json").write_text(
+                json.dumps(apply_confirmation), encoding="utf-8"
+            )
+            applied = _run_cli(
+                "repair-apply",
+                "--root",
+                str(root),
+                "--migration-selection",
+                "selection.json",
+                "--operation-id",
+                operation["operation_id"],
+                "--confirmation-file",
+                "apply-confirmation.json",
+            )
+            self.assertEqual(applied.returncode, 0, applied.stderr)
+            self.assertEqual(json.loads(applied.stdout)["migration"]["result_code"], "applied")
+
+            rollback_confirmation = dict(apply_confirmation)
+            rollback_confirmation.update({
+                "confirmation_id": "confirmation-22222222222222222222222222222222",
+                "authorization_subject": "subject-22222222222222222222222222222222",
+                "action": "rollback",
+            })
+            (root / "rollback-confirmation.json").write_text(
+                json.dumps(rollback_confirmation), encoding="utf-8"
+            )
+            rolled_back = _run_cli(
+                "repair-rollback",
+                "--root",
+                str(root),
+                "--operation-id",
+                operation["operation_id"],
+                "--confirmation-file",
+                "rollback-confirmation.json",
+            )
+            self.assertEqual(rolled_back.returncode, 0, rolled_back.stderr)
+            self.assertEqual(
+                json.loads(rolled_back.stdout)["migration"]["result_code"],
+                "rolled_back",
+            )
+            self.assertTrue(artifact.exists())
+
+    # STUB: AC9
+    def test_ac9_apply_exposes_pending_recovery_without_artifact_writes(self) -> None:
+        self.assertIn("rollback_pending", self.source)
+        self.assertNotIn("create_migration_artifact", self.source)
+
+    # STUB: AC10
+    def test_ac10_repair_rollback_is_a_first_class_subcommand(self) -> None:
+        result = _run_cli("--help")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("repair-rollback", result.stdout)
+
+    # STUB: AC25
+    def test_ac25_apply_and_rollback_reject_yes_as_authority(self) -> None:
+        self.assertIn("confirmation_reused", self.source)
+        self.assertIn("authorization_role_digest", self.source)
+
+    # STUB: AC25
+    def test_ac25_opaque_evidence_uses_only_os_backed_randomness(self) -> None:
+        self.assertNotIn("import random", self.source)
+        self.assertIn("import secrets", self.source)
+
+    # STUB: AC27
+    def test_ac27_migration_cli_surface_uses_exact_operation_arguments(self) -> None:
+        for option in (
+            "--migration-selection",
+            "--operation-id",
+            "--confirmation-file",
+        ):
+            self.assertIn(option, self.source)
+
+    def test_ac27_mixed_migration_arguments_return_json_refusals(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "workspace.toml").write_text(_MINIMAL_TOML, encoding="utf-8")
+            operation_id = f"migration-{'a' * 64}"
+            cases = (
+                (
+                    "repair-plan",
+                    ("--operation-id", operation_id),
+                    "invalid_selection",
+                ),
+                (
+                    "repair-plan",
+                    ("--yes",),
+                    "invalid_selection",
+                ),
+                (
+                    "repair-apply",
+                    (
+                        "--operation-id",
+                        operation_id,
+                        "--plan-file",
+                        ".workspace-repair-plan.json",
+                    ),
+                    "confirmation_invalid",
+                ),
+                (
+                    "repair-rollback",
+                    ("--migration-selection", "selection.json"),
+                    "confirmation_invalid",
+                ),
+            )
+
+            for mode, extra_args, expected_code in cases:
+                with self.subTest(mode=mode, extra_args=extra_args):
+                    result = _run_cli(mode, "--root", str(root), *extra_args)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertEqual(result.stderr, "")
+                    payload = json.loads(result.stdout)
+                    self.assertEqual(payload["mode"], mode)
+                    self.assertEqual(
+                        payload["migration"]["result_code"], expected_code
+                    )
+
+    @unittest.skipIf(sys.platform == "win32", "symlink needs elevated privileges")
+    def test_ac27_migration_workspace_symlink_escape_uses_result_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp = Path(temp_dir)
+            root = temp / "root"
+            root.mkdir()
+            escaped = temp / "escaped.toml"
+            escaped.write_text(_MINIMAL_TOML, encoding="utf-8")
+            (root / "workspace.toml").symlink_to(escaped)
+            operation_id = f"migration-{'a' * 64}"
+            cases = (
+                (
+                    "repair-plan",
+                    ("--migration-selection", "selection.json"),
+                ),
+                (
+                    "repair-rollback",
+                    (
+                        "--operation-id",
+                        operation_id,
+                        "--confirmation-file",
+                        "confirmation.json",
+                    ),
+                ),
+            )
+
+            for mode, extra_args in cases:
+                with self.subTest(mode=mode):
+                    result = _run_cli(mode, "--root", str(root), *extra_args)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertEqual(result.stderr, "")
+                    payload = json.loads(result.stdout)
+                    self.assertEqual(payload["mode"], mode)
+                    self.assertEqual(
+                        payload["migration"]["result_code"], "unsafe_path"
+                    )
 
 
 if __name__ == "__main__":

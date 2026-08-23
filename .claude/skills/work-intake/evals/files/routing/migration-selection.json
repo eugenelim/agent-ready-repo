@@ -1,0 +1,22 @@
+{
+  "contract_version": "work-intake-migration-selection.v1",
+  "legacy_finding_id": "legacy-17586a8edc0006f310c6c52a4e62118128a55fe8d850a3d5bcb2dc714242ed18",
+  "workspace_fingerprint": "316f6ce65aa0be39c17fdda0c6c00c970101f807d70e3a06461a6970952c8378",
+  "source_membership": {
+    "ini_slug": "ini-001",
+    "collection": "work.queue",
+    "entry_index": 0,
+    "legacy_slice_digest": "8a69ba09ce6b52a7cb72796402d892d4407787e9ee6b679b5e5cb041ed8bff24"
+  },
+  "target_entry": {
+    "path": "docs/specs/target/spec.md",
+    "kind": "spec",
+    "source": {"mode": "repo-origin"},
+    "summary": "Reviewed evaluation migration",
+    "needs": []
+  },
+  "target_membership": {"ini_slug": "ini-001", "collection": "work.queue"},
+  "owning_processor": "new-spec",
+  "provenance_reference": "docs/specs/target/spec.md",
+  "legacy_content_approved_for_ledger": true
+}

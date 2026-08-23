@@ -1,0 +1,4 @@
+["ini-legacy".work]
+queue = [
+  {path = "spec/example", private_owner = "team-a", punctuation = "keep: exactly"}, # private extension
+]
