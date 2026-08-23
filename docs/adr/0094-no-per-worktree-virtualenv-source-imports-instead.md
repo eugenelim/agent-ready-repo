@@ -154,7 +154,7 @@ the shared environment — the write that caused the original hazard.
 
 ## References
 
-- `tools/repo/build_gate_chain.py:60-72` — records that both packages are
+- `tools/repo/build_gate_chain.py:70-82` — records that both packages are
   importable from source, so neither needs `pip install -e`.
 - `tools/repo/worktree_hygiene.py:862-870`, `:1161`, `:1736` — the in-use guard
   that resolves distributions from the interpreter running the cleaner.

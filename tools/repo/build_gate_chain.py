@@ -36,9 +36,19 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 # tools/repo/ → tools/ → repo root
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-# Make packages/agentbundle importable in-process (for any future in-process use).
+# Used to build a child's PYTHONPATH (`_agentbundle_env`), never inserted on this
+# process's sys.path. Doing that at import time made a combined
+# `pytest tools/ tests/` run order-dependent: two collected test modules import
+# this one, `tools/` is walked before `tests/`, so the insert landed before any
+# test ran and the first `import agentbundle` cached the worktree copy in
+# sys.modules for the whole session. Tests that failed on their own passed in that
+# combined run. (Not `make test`, which never puts the two trees in one process —
+# Makefile:394 runs `tests/` alone, in its own invocation. There the exported
+# PYTHONPATH on Makefile:11 is what resolves these packages.) pyproject.toml's
+# [tool.pytest.ini_options] pythonpath is the declared way to put them on
+# sys.path; tools/test_import_time_path_leaks.py fails if an import-time insert
+# comes back.
 _AGENTBUNDLE_PATH = str(REPO_ROOT / "packages" / "agentbundle")
-sys.path.insert(0, _AGENTBUNDLE_PATH)
 
 # A chain step: a human label plus a zero-arg thunk returning an exit code.
 Step = tuple[str, Callable[[], int]]

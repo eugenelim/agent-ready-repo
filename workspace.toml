@@ -1128,13 +1128,39 @@ open = [
   #     under tests/roster/ returns nothing), so putting the worktree on sys.path
   #     is exactly the fix. Verified independent of the untracked *.egg-info: both
   #     still pass with it removed.
-  #     Kept named here because their whole-suite behaviour is ORDER-DEPENDENT:
+  #     Kept named here because their whole-suite behaviour WAS ORDER-DEPENDENT:
   #     under `pytest tools/ tests/` they passed even BEFORE this change, while
-  #     failing in isolation at the same commit. Some earlier test in that run
-  #     leaves the worktree on sys.path; the exact source was not identified, and
-  #     it is a pre-existing property of the suite, not of this change. The
-  #     consequence worth keeping: a green `make test` can mask a resolution
-  #     failure that `pytest <file>` exposes.
+  #     failing in isolation at the same commit. The consequence worth keeping:
+  #     a green combined run could mask a resolution failure that `pytest <file>`
+  #     exposes. Note the frame: `make test` is not that run — Makefile:394
+  #     collects `tests/` alone and the tools modules run in separate
+  #     invocations, so the two trees never share a process there, and
+  #     Makefile:11's exported PYTHONPATH is what resolves these packages
+  #     under make.
+  #
+  #     2026-08-22, later the same day: the source, recorded above as not
+  #     identified, has now been identified and removed. It was
+  #     `tools/repo/build_gate_chain.py`, whose module scope ran
+  #     `sys.path.insert(0, <repo>/packages/agentbundle)` for an in-process use
+  #     it never had. Two collected modules import it
+  #     (tools/test_build_gate_chain.py and
+  #     tools/catalogue/tests/test_verify_host_checks.py), pytest imports every
+  #     collected module before running any test, and `tools/` is walked before
+  #     `tests/` — so the insert landed first and the next `import agentbundle`
+  #     cached the worktree copy in sys.modules for the session. Bisected, not
+  #     inferred: prepending that one `tools/catalogue/tests` file to the two
+  #     roster files flips them 2-failed to 21-passed under `-o pythonpath=`.
+  #     The insert is deleted; the real (subprocess) need was already served by
+  #     `build_gate_chain._agentbundle_env`. tools/test_import_time_path_leaks.py
+  #     collects the suite in a child under the declared pyproject.toml
+  #     configuration and fails, naming the leaf collector, when a packages/*
+  #     entry's occurrence count moves during collection, or when the finder
+  #     resolves agentbundle or credbroker somewhere different at the end of
+  #     collection than at session start. It does NOT run with the pin removed:
+  #     the Makefile tells contributors not to install either package, so that
+  #     frame would redden at collection on the documented setup. So the
+  #     order-dependence is closed on its own terms, not only masked by the
+  #     pythonpath declaration.
   #   - test_resolved_layer_fails_loudly_when_the_package_is_unimportable still
   #     FAILS, and is now understood to be structurally out of reach of that
   #     remedy: it resolves its constants in a child spawned with `-I`
