@@ -56,10 +56,14 @@ on:
 permissions:
   contents: read
 
-# Allow only one concurrent deployment; cancel in-flight runs on new push.
+# AC12's ratified shape: PR runs key on server-assigned github.ref
+# (refs/pull/<n>/merge), so only the same PR supersedes itself and forks cannot
+# influence the key. Non-PR runs key on github.run_id and cannot be cancelled.
+# The former unkeyed "pages" group let every Pages run cancel another (18 of 40,
+# including a PR cancelling a main deploy); see deploy below for the production lane.
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: pages-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -72,14 +76,27 @@ jobs:
       # ── Astro marketing site FIRST (RFC-0061) ───────────────────────────
       # `astro build` cleans its outDir (build/) on every run, so it must run
       # BEFORE the `docs-site/` Starlight build writes into build/docs/.
+      # One setup-node for both npm projects. The job installed `web/` and
+      # `docs-site/` from two separate setup-node steps pinned to the same
+      # node-version; the second only re-keyed the npm cache. BOTH lock files
+      # must stay listed — nothing in `tools/test-pages-workflow.py` asserts the
+      # cache paths, so dropping one degrades silently into an uncached install.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            docs-site/package-lock.json
 
       - name: Install web dependencies
         run: npm ci --prefix web
+
+      # Hoisted here from beside the docs build below, so both installs sit
+      # under the one setup-node. `tools/test-pages-workflow.py` pins this step
+      # NAME as the ordering anchor for the plugin suite — do not rename it.
+      - name: Install docs-site dependencies
+        run: npm ci --prefix docs-site
 
       # Provisioned HERE, beside the deps install, rather than beside the gate that
       # uses it. `--with-deps` pulls an apt layer, and that is the step's common
@@ -123,14 +140,7 @@ jobs:
       # ── Starlight reference docs SECOND — writes into build/docs/ ──────────
       # Build order is load-bearing: web/ Astro build (above) cleans build/
       # on every run, so it MUST run before docs-site/ writes into build/docs/.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: docs-site/package-lock.json
-
-      - name: Install docs-site dependencies
-        run: npm ci --prefix docs-site
+      # The deps for this half are installed up top, beside the web install.
 
       # spec/docs-site-build-contract-hardening AC7. The rehype plugin's focused
       # suite, after the docs deps install (it imports the plugin's declared runtime
@@ -214,6 +224,15 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
+    # Production writers must not be terminated mid-write; environments do not
+    # serialize deployments. GitHub permits one running and one pending entry, so
+    # a third queued deployment can displace the pending entry. This group must be
+    # bare "pages" for rollout ordering; the workflow group must retain its keyed
+    # "pages-" prefix and never become bare "pages", or matching job/workflow
+    # groups deadlock and GitHub skips this job.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages

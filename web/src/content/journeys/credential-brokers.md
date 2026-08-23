@@ -43,7 +43,7 @@ relatedJourneys:
 
 - **You provide:** the name of the service and the credential type it requires — API key, personal access token, or SSO cookie.
 - **Agent does:** walks you through identifying what credential type the service requires and which resolution path to use.
-- **You decide:** confirm credential type and storage location at the G-setup gate — choose where the credential will live: environment variable (CI-friendly), OS keyring (secure, persistent), or dotfile (portable); for most developer workstations, the OS keyring is the right choice.
+- **You decide:** confirm credential type and storage location at the credential setup gate — choose where the credential will live: environment variable (CI-friendly), OS keyring (secure, persistent), or dotfile (portable); for most developer workstations, the OS keyring is the right choice.
 - **Output:** an agreed credential type and resolution path.
 
 ---

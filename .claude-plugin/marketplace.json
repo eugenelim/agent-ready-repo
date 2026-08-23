@@ -11,13 +11,14 @@
         "name": "eugenelim"
       },
       "category": "architecture",
-      "description": "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it.",
+      "description": "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence.",
       "displayName": "Architect",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
+        "architecture-assessment",
+        "modernization",
         "design-docs",
         "diagrams",
-        "mermaid",
         "critique"
       ],
       "license": "Apache-2.0 OR MIT",
@@ -29,7 +30,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.14.5"
+      "version": "0.15.0"
     },
     {
       "author": {
@@ -37,7 +38,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route.",
+      "description": "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -55,7 +56,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.8.4"
+      "version": "0.9.0"
     },
     {
       "author": {
@@ -160,7 +161,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "1.1.4"
+      "version": "1.1.5"
     },
     {
       "author": {
@@ -248,7 +249,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub.",
+      "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -267,7 +268,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.1.4"
+      "version": "0.2.0"
     },
     {
       "author": {
@@ -293,7 +294,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.4"
+      "version": "0.3.0"
     },
     {
       "author": {

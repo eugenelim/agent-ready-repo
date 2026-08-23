@@ -3,15 +3,9 @@
 > Design for `binder-publishing`: a portable pack that compiles selected Markdown
 > artifacts into a coherent, reader-oriented static HTML binder.
 >
-> **Status:** Draft — pre-RFC, and **no live verification gate is outstanding**.
-> Ten cold-review rounds ran; the tree is internally consistent and a specification
-> can be written from any file in it. Z1–Z4 executed 2026-08-06, Z5 and Z6 on
-> 2026-08-07, and V6 — the last renderer-independent gate — was answered the same
-> day. (`verified-findings.md` still carries unrun **V2** and **V5** rows and a
-> part-run **V4**; all three are retained *Quarto* evidence for a future PDF adapter,
-> and none gates anything here.) Between them the gates corrected several specified controls, the last of
-> which — the diagram accessible name (Z6d/Z6e) — **would have passed CI while the
-> feature was broken**, and is replaced by **D46**. [`history.md`](history.md) records what changed and why.
+> **STATUS: PLANNED** — This subtree is not current state and is not implemented;
+> no binder pack exists in `packs/`. [ADR-0073](../../adr/0073-zensical-as-the-v1-binder-renderer.md)
+> governs the renderer decision. [`history.md`](history.md) holds the review history.
 
 ## The one-paragraph version
 
@@ -74,20 +68,15 @@ fixed rather than patched:
 
 ## Load-bearing invariants
 
-The invariants this tree restates and amends are #3, #8, #10, #12, #13, #18, #21
-and #22, in [`overview.md`](overview.md#architectural-invariants); the original
-twenty come from the brief. Three carry most of the weight:
+The complete invariant set is in [`overview.md`](overview.md#architectural-invariants).
+Three carry most of the weight:
 
-- **3 — the adapter cannot re-select.** Every source read goes through a single
+- **8 — the adapter cannot re-select.** Every source read goes through a single
   `read_node_source(node)` accessor that rejects any path not enumerated in the
   index. Renderer neutrality is mechanical rather than declared.
-- **21 — `binder-index.json` is byte-reproducible for identical inputs.** No
+- **15 — `binder-index.json` is byte-reproducible for identical inputs.** No
   timestamps, run IDs, host names, or absolute paths. This makes ceremonial fields
   structurally impossible rather than merely discouraged.
-- **22 — `binder build` writes no field of `binder-index.json`.** Anything an
+- **16 — `binder build` writes no field of `binder-index.json`.** Anything an
   adapter must invent goes in that adapter's own plan file — and this was checked
   rather than asserted: the renderer changed and the index did not.
-
-> There is no invariant 23. An earlier draft added *"every input is classified by
-> origin before it is trusted"* to serve the authority lattice; D39 deleted the
-> lattice, and origin classification with it.

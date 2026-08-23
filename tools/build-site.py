@@ -34,6 +34,12 @@ SITE_BASE = "/agent-ready-repo/docs"
 NOW_PROJECTION = (
     REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
 )
+MARKETING_SHARED_CHROME_PROJECTION = (
+    REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+)
+DOCS_SHARED_CHROME_PROJECTION = (
+    REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+)
 # Seven calendar days ending on launch day, inclusive (brief decision 19): the
 # launch date itself plus the six dates before it.
 NOW_WINDOW_DAYS = 7
@@ -44,6 +50,363 @@ _GUIDE_ONLY_FIELDS = frozenset({
     "pack", "kind", "summary", "slug", "aliases", "status", "journey", "order",
 })
 _GUIDE_SLUG_PART_RE = re.compile(r"^[a-z0-9_][a-z0-9_-]*$")
+
+
+# ---------------------------------------------------------------------------
+# Shared chrome contract
+# ---------------------------------------------------------------------------
+
+_SHARED_CHROME_KINDS = frozenset({"internal", "external"})
+_SHARED_CHROME_FIELDS = frozenset({
+    "header", "docs_band", "docs_product_navigation", "destinations", "groups",
+})
+_SHARED_DESTINATION_FIELDS = frozenset({"id", "label", "target", "kind", "group"})
+_SHARED_GROUP_FIELDS = frozenset({"id", "label", "destinations"})
+
+
+def _shared_chrome_string(value: object, field: str, identifier: str) -> str:
+    """Require a non-empty shared-chrome string field with its owning ID named."""
+    if not isinstance(value, str) or not value:
+        raise ValueError(
+            f"shared chrome {identifier} has invalid '{field}'; expected a non-empty string"
+        )
+    return value
+
+
+def _validate_internal_shared_target(target: str, destination_id: str) -> None:
+    """Require a safe root-relative page target or non-empty fragment target."""
+    identifier = f"destination '{destination_id}'"
+    if not target.startswith("/"):
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "expected a root-relative target"
+        )
+    if target.startswith("//"):
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "protocol-relative targets are not allowed"
+        )
+    if "\\" in target:
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "backslashes are not allowed"
+        )
+    if ".." in target:
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "parent-directory segments are not allowed"
+        )
+    if any(character.isspace() for character in target):
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "whitespace is not allowed"
+        )
+
+    path, separator, fragment = target.partition("#")
+    if separator:
+        if "#" in fragment:
+            raise ValueError(
+                f"shared chrome {identifier} has invalid internal target {target!r}; "
+                "expected at most one fragment"
+            )
+        if not fragment:
+            raise ValueError(
+                f"shared chrome {identifier} has invalid internal target {target!r}; "
+                "fragment must be non-empty"
+            )
+        return
+    if not path.endswith("/"):
+        raise ValueError(
+            f"shared chrome {identifier} has invalid internal target {target!r}; "
+            "expected a '/'-terminated path or '#fragment' form"
+        )
+
+
+def _reject_shared_chrome_fields(
+    record: dict, allowed: frozenset[str], identifier: str
+) -> None:
+    """Reject renderer presentation or state from the shared destination contract."""
+    for field in record:
+        if field not in allowed:
+            raise ValueError(
+                f"shared chrome {identifier} has unsupported field '{field}'; "
+                "presentation and state belong to renderer-local components"
+            )
+
+
+def _validate_shared_chrome_destination_list(
+    raw_destination_ids: object, field: str, destinations_by_id: dict[str, dict]
+) -> list[str]:
+    """Validate an ordered, duplicate-free list of declared destination IDs."""
+    if not isinstance(raw_destination_ids, list):
+        raise ValueError(
+            f"site.toml shared_chrome.{field} must be an ordered destination ID array"
+        )
+
+    destination_ids: list[str] = []
+    for raw_destination_id in raw_destination_ids:
+        destination_id = _shared_chrome_string(raw_destination_id, field, field)
+        if destination_id not in destinations_by_id:
+            raise ValueError(
+                f"shared chrome {field} references missing destination '{destination_id}'"
+            )
+        if destination_id in destination_ids:
+            raise ValueError(
+                f"shared chrome {field} repeats destination '{destination_id}'"
+            )
+        destination_ids.append(destination_id)
+    return destination_ids
+
+
+def validate_shared_chrome_contract(contract: object) -> dict:
+    """Validate and normalize the renderer-neutral shared-chrome contract.
+
+    The result contains only the fields a renderer may receive. Validation is
+    deliberately complete before projection so malformed source cannot produce
+    partial renderer data.
+    """
+    if not isinstance(contract, dict):
+        raise ValueError("site.toml shared_chrome must be a table")
+    _reject_shared_chrome_fields(contract, _SHARED_CHROME_FIELDS, "contract")
+
+    raw_destinations = contract.get("destinations")
+    raw_groups = contract.get("groups")
+    raw_header = contract.get("header")
+    raw_docs_band = contract.get("docs_band")
+    raw_docs_product_navigation = contract.get("docs_product_navigation")
+    if not isinstance(raw_destinations, list):
+        raise ValueError("site.toml shared_chrome.destinations must be an ordered table array")
+    if not isinstance(raw_groups, list):
+        raise ValueError("site.toml shared_chrome.groups must be an ordered table array")
+
+    destinations: list[dict] = []
+    destinations_by_id: dict[str, dict] = {}
+    for index, raw_destination in enumerate(raw_destinations):
+        if not isinstance(raw_destination, dict):
+            raise ValueError(f"shared chrome destination at position {index + 1} must be a table")
+        raw_id = raw_destination.get("id")
+        identifier = (
+            f"destination '{raw_id}'"
+            if isinstance(raw_id, str) and raw_id
+            else f"destination at position {index + 1}"
+        )
+        _reject_shared_chrome_fields(
+            raw_destination, _SHARED_DESTINATION_FIELDS, identifier
+        )
+        destination_id = _shared_chrome_string(raw_id, "id", identifier)
+        if destination_id in destinations_by_id:
+            raise ValueError(f"shared chrome duplicate destination ID '{destination_id}'")
+        label = _shared_chrome_string(raw_destination.get("label"), "label", identifier)
+        target = _shared_chrome_string(raw_destination.get("target"), "target", identifier)
+        kind = _shared_chrome_string(raw_destination.get("kind"), "kind", identifier)
+        if kind not in _SHARED_CHROME_KINDS:
+            raise ValueError(
+                f"shared chrome destination '{destination_id}' has unsupported kind "
+                f"'{kind}'; expected 'internal' or 'external'"
+            )
+        if kind == "internal":
+            _validate_internal_shared_target(target, destination_id)
+        group = raw_destination.get("group")
+        if group is not None and (not isinstance(group, str) or not group):
+            raise ValueError(
+                f"shared chrome destination '{destination_id}' has invalid 'group'; "
+                "expected a non-empty group ID"
+            )
+        destination = {
+            "id": destination_id,
+            "label": label,
+            "target": target,
+            "kind": kind,
+            "group": group,
+        }
+        destinations.append(destination)
+        destinations_by_id[destination_id] = destination
+
+    groups: list[dict] = []
+    groups_by_id: dict[str, dict] = {}
+    for index, raw_group in enumerate(raw_groups):
+        if not isinstance(raw_group, dict):
+            raise ValueError(f"shared chrome group at position {index + 1} must be a table")
+        raw_id = raw_group.get("id")
+        identifier = (
+            f"group '{raw_id}'"
+            if isinstance(raw_id, str) and raw_id
+            else f"group at position {index + 1}"
+        )
+        _reject_shared_chrome_fields(raw_group, _SHARED_GROUP_FIELDS, identifier)
+        group_id = _shared_chrome_string(raw_id, "id", identifier)
+        if group_id in groups_by_id:
+            raise ValueError(f"shared chrome duplicate group ID '{group_id}'")
+        label = _shared_chrome_string(raw_group.get("label"), "label", identifier)
+        raw_members = raw_group.get("destinations")
+        if not isinstance(raw_members, list):
+            raise ValueError(
+                f"shared chrome group '{group_id}' has invalid 'destinations'; "
+                "expected an ordered destination ID array"
+            )
+        members: list[str] = []
+        for raw_member in raw_members:
+            member = _shared_chrome_string(
+                raw_member, "destinations", f"group '{group_id}'"
+            )
+            if member in members:
+                raise ValueError(
+                    f"shared chrome group '{group_id}' repeats destination '{member}'"
+                )
+            members.append(member)
+        group = {"id": group_id, "label": label, "destinations": members}
+        groups.append(group)
+        groups_by_id[group_id] = group
+
+    for group in groups:
+        for member in group["destinations"]:
+            destination = destinations_by_id.get(member)
+            if destination is None:
+                raise ValueError(
+                    f"shared chrome group '{group['id']}' references missing "
+                    f"destination '{member}'"
+                )
+            if destination["group"] != group["id"]:
+                raise ValueError(
+                    f"shared chrome destination '{member}' references group "
+                    f"'{destination['group']}', not '{group['id']}'"
+                )
+
+    for destination in destinations:
+        group_id = destination["group"]
+        if group_id is None:
+            continue
+        if group_id not in groups_by_id:
+            raise ValueError(
+                f"shared chrome destination '{destination['id']}' references missing "
+                f"group '{group_id}'"
+            )
+        if destination["id"] not in groups_by_id[group_id]["destinations"]:
+            raise ValueError(
+                f"shared chrome destination '{destination['id']}' references group "
+                f"'{group_id}' but is missing from that group's destinations"
+            )
+
+    header = _validate_shared_chrome_destination_list(
+        raw_header, "header", destinations_by_id
+    )
+    docs_band = _validate_shared_chrome_destination_list(
+        raw_docs_band, "docs_band", destinations_by_id
+    )
+    docs_product_navigation = _validate_shared_chrome_destination_list(
+        raw_docs_product_navigation, "docs_product_navigation", destinations_by_id
+    )
+
+    return {
+        "header": header,
+        "docs_band": docs_band,
+        "docs_product_navigation": docs_product_navigation,
+        "destinations": destinations,
+        "groups": groups,
+    }
+
+
+def load_shared_chrome_contract(site_toml: Path) -> dict:
+    """Load and validate the shared-chrome table from the site recipe."""
+    with site_toml.open("rb") as f:
+        site = tomllib.load(f)
+    return validate_shared_chrome_contract(site.get("shared_chrome"))
+
+
+def project_shared_chrome(contract: object) -> dict[str, dict]:
+    """Create independent renderer-local data from one validated contract."""
+    canonical = validate_shared_chrome_contract(contract)
+    destinations_by_id = {
+        destination["id"]: destination for destination in canonical["destinations"]
+    }
+
+    def link(destination_id: str) -> dict:
+        destination = destinations_by_id[destination_id]
+        return {
+            "id": destination["id"],
+            "label": destination["label"],
+            "target": destination["target"],
+            "kind": destination["kind"],
+        }
+
+    def footer_projection() -> list[dict]:
+        return [
+            {
+                "id": group["id"],
+                "label": group["label"],
+                "destinations": [
+                    link(destination_id) for destination_id in group["destinations"]
+                ],
+            }
+            for group in canonical["groups"]
+        ]
+
+    marketing = {
+        "header": [link(destination_id) for destination_id in canonical["header"]],
+        "footer": footer_projection(),
+    }
+    docs = {
+        "product_orientation_band": [
+            link(destination_id) for destination_id in canonical["docs_band"]
+        ],
+        "product_navigation": [
+            link(destination_id)
+            for destination_id in canonical["docs_product_navigation"]
+        ],
+        "footer": footer_projection(),
+    }
+
+    return {"marketing": marketing, "docs": docs}
+
+
+def generate_marketing_shared_chrome_projection(
+    contract: object,
+    output: Path = MARKETING_SHARED_CHROME_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Project the marketing chrome input before and after its site build."""
+    payload = project_shared_chrome(contract)["marketing"]
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def assert_marketing_shared_chrome_projection_current(
+    contract: object, output: Path = MARKETING_SHARED_CHROME_PROJECTION
+) -> None:
+    """Reject a committed marketing input that no longer matches ``site.toml``."""
+    expected = project_shared_chrome(contract)["marketing"]
+    actual = json.loads(output.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise ValueError(
+            f"{output} is stale — run `python3 tools/build-site.py --journeys-only`"
+        )
+
+
+def generate_docs_shared_chrome_projection(
+    contract: object,
+    output: Path = DOCS_SHARED_CHROME_PROJECTION,
+    dry_run: bool = False,
+) -> dict:
+    """Project the docs chrome input in the full pre-docs-build pass."""
+    payload = project_shared_chrome(contract)["docs"]
+    if not dry_run:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def assert_docs_shared_chrome_projection_current(
+    contract: object, output: Path = DOCS_SHARED_CHROME_PROJECTION
+) -> None:
+    """Reject a committed docs input that no longer matches ``site.toml``."""
+    expected = project_shared_chrome(contract)["docs"]
+    actual = json.loads(output.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise ValueError(
+            f"{output} is stale — run `python3 tools/build-site.py`"
+        )
 
 
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
@@ -1656,6 +2019,10 @@ def main() -> None:
     packs_dir = REPO_ROOT / "packs"
 
     changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"
+    site_toml = REPO_ROOT / "site.toml"
+    # Validate the complete shared vocabulary before either build path can
+    # project or clean renderer inputs.
+    shared_chrome_contract = load_shared_chrome_contract(site_toml)
 
     if args.journeys_only:
         journey_dir = REPO_ROOT / "web" / "src" / "content" / "journeys"
@@ -1669,6 +2036,9 @@ def main() -> None:
         # `npm run build --prefix web`, and the full pass only afterwards, so a
         # projection emitted solely by the full pass would always be one build
         # stale for the renderer that consumes it.
+        generate_marketing_shared_chrome_projection(
+            shared_chrome_contract, dry_run=args.dry_run
+        )
         _report_now_projection(changelog_src, dry_run=args.dry_run)
         return
 
@@ -1682,7 +2052,6 @@ def main() -> None:
                 shutil.rmtree(d)
                 print(f"  clean {d.relative_to(REPO_ROOT)}/")
 
-    site_toml = REPO_ROOT / "site.toml"
     packs = discover_packs(REPO_ROOT, site_toml)
 
     print("build-site: copying pack READMEs …")
@@ -1729,6 +2098,19 @@ def main() -> None:
 
     print("build-site: projecting released changelog highlights …")
     _report_now_projection(changelog_src, dry_run=args.dry_run)
+
+    print("build-site: projecting marketing shared chrome …")
+    generate_marketing_shared_chrome_projection(
+        shared_chrome_contract, dry_run=args.dry_run
+    )
+
+    # Docs runs last in the load-bearing build order. Its committed input is
+    # therefore refreshed only here, immediately before `npm run build --prefix
+    # docs-site`; unlike marketing, it is not needed in the journeys-only pass.
+    print("build-site: projecting docs shared chrome …")
+    generate_docs_shared_chrome_projection(
+        shared_chrome_contract, dry_run=args.dry_run
+    )
 
     print("build-site: copying changelog …")
     changelog_dst = SITE_DOCS / "changelog.md"

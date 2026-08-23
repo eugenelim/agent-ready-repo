@@ -30,6 +30,10 @@ LINEAR_SCRIPT = (
 )
 
 
+def _unreached_acquire(_locator: str, _revision: str) -> dict[str, object]:
+    raise AssertionError("acquisition should not run in this test")
+
+
 @pytest.fixture(scope="module")
 def linear_mod() -> types.ModuleType:
     """Load linear.py once per session; stub credbroker to avoid import-time auth."""
@@ -213,6 +217,195 @@ class TestIntakeAcquisitionContract:
             linear_mod._graphql_request("opaque-key", "{ viewer { id } }")
 
         assert exc_info.value.code == linear_mod.EXIT_ERROR
+
+    def test_pinned_transport_selects_one_of_multiple_validated_addresses(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class ResponseContext:
+            def __init__(self, request: httpx.Request) -> None:
+                self.response = httpx.Response(200, content=b"{}", request=request)
+
+            def __enter__(self) -> httpx.Response:
+                return self.response
+
+            def __exit__(self, *_args: object) -> None:
+                self.response.close()
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def stream(self, method: str, url: str, **kwargs: object) -> ResponseContext:
+                captured.update({"method": method, "url": url, **kwargs})
+                return ResponseContext(httpx.Request(method, url))
+
+        transport_marker = object()
+        monkeypatch.setattr(
+            linear_mod,
+            "_pinned_transport",
+            lambda _destination: transport_marker,
+            raising=False,
+        )
+
+        def client_factory(**kwargs: object) -> FakeClient:
+            captured["client_kwargs"] = kwargs
+            return FakeClient()
+
+        monkeypatch.setattr(linear_mod.httpx, "Client", client_factory)
+        pinned = types.SimpleNamespace(
+            addresses=("2001:4860:4860::8888", "93.184.216.34"),
+            host="api.linear.app",
+            port=443,
+        )
+
+        response = linear_mod._bounded_post(
+            linear_mod.GRAPHQL_URL,
+            json_body={"query": "{}"},
+            headers={"Authorization": "opaque-key"},
+            timeout=1,
+            pinned_destination=pinned,
+        )
+
+        assert response.status_code == 200
+        assert captured["url"] == "https://93.184.216.34:443/graphql"
+        assert captured["headers"] == {
+            "Authorization": "opaque-key",
+            "Host": "api.linear.app",
+        }
+        assert captured["extensions"] == {"sni_hostname": "api.linear.app"}
+        assert captured["client_kwargs"] == {
+            "timeout": 1,
+            "transport": transport_marker,
+            "trust_env": False,
+        }
+
+    def test_pinned_transport_honors_https_proxy_and_pins_its_socket(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:8443")
+        monkeypatch.delenv("https_proxy", raising=False)
+        monkeypatch.setattr(linear_mod, "proxy_bypass", lambda _host: False, raising=False)
+        monkeypatch.setattr(
+            linear_mod.socket,
+            "getaddrinfo",
+            lambda _host, _port: [
+                (2, 1, 6, "", ("192.0.2.20", 8443)),
+                (2, 1, 6, "", ("192.0.2.21", 8443)),
+            ],
+        )
+        pinned = types.SimpleNamespace(host="api.linear.app", port=443)
+
+        transport = linear_mod._pinned_transport(pinned)
+
+        assert isinstance(transport, linear_mod.httpx.HTTPTransport)
+        assert isinstance(
+            transport._pool._network_backend, linear_mod._PinnedSyncNetworkBackend
+        )
+        assert transport._pool._network_backend._proxy_pin == (
+            "proxy.example",
+            8443,
+            frozenset({"192.0.2.20", "192.0.2.21"}),
+        )
+
+    @pytest.mark.parametrize(
+        "address",
+        ["0.0.0.0", "169.254.169.254", "100.100.100.200", "fe80::1", "fd00:ec2::254"],
+    )
+    def test_proxy_metadata_or_unspecified_address_is_refused_redacted(
+        self,
+        linear_mod: types.ModuleType,
+        monkeypatch: pytest.MonkeyPatch,
+        address: str,
+    ) -> None:
+        monkeypatch.setattr(
+            linear_mod.socket,
+            "getaddrinfo",
+            lambda _host, port: [(2, 1, 6, "", (address, port))],
+        )
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._resolved_proxy_addresses("proxy.example", 8443)
+
+        assert str(exc.value) == "HTTPS proxy resolution failed"
+
+    def test_no_proxy_bypasses_proxy_without_resolving_it(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:8443")
+        monkeypatch.setattr(linear_mod, "proxy_bypass", lambda _host: True, raising=False)
+        monkeypatch.setattr(
+            linear_mod.socket,
+            "getaddrinfo",
+            lambda *_args: pytest.fail("NO_PROXY path must not resolve proxy"),
+        )
+
+        assert linear_mod._https_proxy_settings("api.linear.app") == (None, None)
+
+    def test_unsupported_proxy_scheme_fails_closed_redacted(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("HTTPS_PROXY", "ftp://proxy.example:21")
+        monkeypatch.setattr(linear_mod, "proxy_bypass", lambda _host: False)
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._https_proxy_settings("api.linear.app")
+
+        assert str(exc.value) == "HTTPS proxy configuration is unsupported"
+
+    def test_unreadable_ca_bundle_fails_closed_redacted(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("REQUESTS_CA_BUNDLE", "/unreadable/ca-bundle.pem")
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            linear_mod._linear_ssl_context()
+
+        assert str(exc.value) == "TLS trust configuration is unavailable"
+
+    def test_linear_ssl_context_honors_ca_environment(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[tuple[str | None, str | None]] = []
+
+        class FakeContext:
+            def load_verify_locations(
+                self, *, cafile: str | None, capath: str | None
+            ) -> None:
+                calls.append((cafile, capath))
+
+        monkeypatch.setenv("REQUESTS_CA_BUNDLE", "/managed/example-ca.crt")
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        monkeypatch.setenv("SSL_CERT_DIR", "/managed/example-ca-dir")
+        monkeypatch.setattr(linear_mod.ssl, "create_default_context", FakeContext)
+
+        context = linear_mod._linear_ssl_context()
+
+        assert isinstance(context, FakeContext)
+        assert calls == [("/managed/example-ca.crt", "/managed/example-ca-dir")]
+
+    def test_proxy_rebinding_fails_closed_with_redacted_error(
+        self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        backend = linear_mod._PinnedSyncNetworkBackend(
+            ("proxy.example", 8443, frozenset({"192.0.2.20"}))
+        )
+        monkeypatch.setattr(
+            linear_mod.socket,
+            "getaddrinfo",
+            lambda _host, _port: [(2, 1, 6, "", ("192.0.2.99", 8443))],
+        )
+
+        with pytest.raises(linear_mod.httpx.TransportError) as exc:
+            backend.connect_tcp("proxy.example", 8443)
+
+        assert "proxy.example" not in str(exc.value)
+        assert "192.0.2" not in str(exc.value)
 
     def test_project_marks_max_page_truncation_incomplete(
         self, linear_mod: types.ModuleType, monkeypatch: pytest.MonkeyPatch

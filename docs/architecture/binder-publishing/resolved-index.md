@@ -7,9 +7,9 @@
 
 `binder-index.json` is a **public, versioned renderer interface with stability
 guarantees**: additive-only within a major version; a consumer written against
-version 1 keeps working across every 1.x emission. It is the answer to the
-brief's question, chosen deliberately over "internal format" because invariant 3
-gives it a second consumer by definition.
+version 1 keeps working across every 1.x emission. It is deliberately a
+renderer interface rather than an "internal format" because invariant 8 gives it
+a second consumer by definition.
 
 ### Two artifacts, because one of them is not renderer-neutral
 
@@ -30,12 +30,12 @@ breakpoint *array*, and pandoc `#sec-` anchors; under Zensical it holds `.md`
 filenames, a single integer `line-offset`, and relative page links. Every one of
 those fields changed. **Not one field of `binder-index.json` did.**
 
-> **Invariant 22.** `binder build` writes **no field of `binder-index.json`.** The
+> **Invariant 16.** `binder build` writes **no field of `binder-index.json`.** The
 > index is complete when `resolve` returns, and `build` reads it. A second
 > renderer writes its own plan file beside it; nothing in the index needs to
 > change to admit one.
 
-This is what makes invariant 3 hold in both directions: the adapter cannot
+This is what makes invariant 8 hold in both directions: the adapter cannot
 rediscover sources (it is given no source root), and the core cannot leak
 renderer detail (it emits no renderer-shaped field).
 
@@ -161,8 +161,8 @@ Three properties make the format implementable by a second renderer:
   knows what it is rendering and a CI job can tell whether a publication is stale
   — without either needing to re-read the sources.
 - **No absolute paths, no timestamps, no renderer-shaped fields.**
-  Byte-reproducible for identical inputs (invariant 21) and renderer-neutral by
-  construction (invariant 22).
+  Byte-reproducible for identical inputs (invariant 15) and renderer-neutral by
+  construction (invariant 16).
 
 ### Index surface — what a second renderer may rely on
 
@@ -172,7 +172,7 @@ may be absent.
 
 | Field | `source` | `editorial` | `generated` | Notes |
 |---|---|---|---|---|
-| `node-id` | R | R | R | `n` + the zero-padded 1-based position of the node **in the `nodes[]` array**, assigned by `resolve` over resolved nodes only. The array is in global reading order, so `n001` is always its first element — the excerpt above prints three non-adjacent nodes and is labelled as such. It has nothing to do with staged filenames, which are the adapter's and are numbered over a different set (they interleave part pages the core does not know about). **Stable across runs with identical inputs** (invariant 21); not stable across a change to the resolved node set. |
+| `node-id` | R | R | R | `n` + the zero-padded 1-based position of the node **in the `nodes[]` array**, assigned by `resolve` over resolved nodes only. The array is in global reading order, so `n001` is always its first element — the excerpt above prints three non-adjacent nodes and is labelled as such. It has nothing to do with staged filenames, which are the adapter's and are numbered over a different set (they interleave part pages the core does not know about). **Stable across runs with identical inputs** (invariant 15); not stable across a change to the resolved node set. |
 | `type` | R | R | R | closed set: `source` \| `editorial` \| `generated` |
 | `content-id`, `source-path`, `sha256` | R | R | — | a generated node has no source |
 | `section`, `numbered`, `label` | R | R | R | |
@@ -189,7 +189,7 @@ may be absent.
 | `generator` | — | — | R | names the compiler routine |
 
 `content-root` is **always the literal `"."`** — the index is absolute-path-free by
-invariant 21, so it cannot carry the real root. A consumer receives that
+invariant 15, so it cannot carry the real root. A consumer receives that
 out-of-band: from `--root`, or from the location of the index file itself. Stating
 it is necessary, because a second renderer handed only the index would otherwise
 have paths it cannot resolve.
@@ -201,7 +201,7 @@ Top level: `schema-version`, `binder`, `recipe`, `content-root`, `source-roots`,
 **`profile` was removed by D-A, and that is not a cosmetic deletion.** With one
 possible value the field carried no information — it would have been a constant
 emitted into every index in every repository, which is precisely the ceremonial
-field invariant 21 exists to make structurally impossible. If a second profile is
+field invariant 15 exists to make structurally impossible. If a second profile is
 ever added on evidence, the field returns additively; a consumer that never saw it
 is unaffected, because a consumer MUST ignore unknown fields.
 

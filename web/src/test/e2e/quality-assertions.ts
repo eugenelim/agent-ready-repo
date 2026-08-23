@@ -466,3 +466,266 @@ export async function expectLandmarkKeyboardReachable(
       'were reachable by Tab'
   ).toBe(expected);
 }
+
+/**
+ * WCAG contrast ratio between two opaque colours.
+ *
+ * Callers must pass an already-composited background. Compositing is not
+ * optional bookkeeping: `--ds-accent-subtle` is `#e8952b1a`, an 8-digit hex whose
+ * trailing `1a` is a 10% alpha channel. Treating that as an opaque fill reports
+ * 2.37:1 for the resting decision chip, which renders at 4.59:1 — a fabricated
+ * failure. `compositedBackground` below does the layering.
+ */
+function contrastRatio(fg: readonly number[], bg: readonly number[]): number {
+  const channel = (c: number): number => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (c: readonly number[]): number =>
+    0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2]);
+  const a = lum(fg);
+  const b = lum(bg);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** `rgb()` / `rgba()` to `[r, g, b, a]`. */
+function parseColor(value: string): number[] {
+  const parts = value.match(/[\d.]+/g);
+  if (!parts) throw new Error(`unparseable colour: ${value}`);
+  const [r, g, b] = parts.slice(0, 3).map(Number);
+  return [r, g, b, parts.length > 3 ? Number(parts[3]) : 1];
+}
+
+/** Flatten an element's background stack, alpha included, over white. */
+function compositedBackground(layers: readonly number[][]): number[] {
+  let out = [255, 255, 255];
+  for (let i = layers.length - 1; i >= 0; i -= 1) {
+    const [r, g, b, a] = layers[i];
+    out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+  }
+  return out;
+}
+
+/** Collect the background layers behind an element, optionally skipping itself. */
+async function backgroundLayers(
+  page: Page,
+  selector: string,
+  fromParent: boolean
+): Promise<number[][]> {
+  const raw = await page.evaluate(
+    ({ sel, skipSelf }) => {
+      let node: HTMLElement | null = document.querySelector(sel);
+      if (!node) throw new Error(`no element matches ${sel}`);
+      if (skipSelf) node = node.parentElement;
+      const out: string[] = [];
+      while (node) {
+        out.push(getComputedStyle(node).backgroundColor);
+        node = node.parentElement;
+      }
+      return out;
+    },
+    { sel: selector, skipSelf: fromParent }
+  );
+  const layers: number[][] = [];
+  for (const value of raw) {
+    const parsed = parseColor(value);
+    if (parsed[3] <= 0) continue;
+    layers.push(parsed);
+    if (parsed[3] >= 1) break;
+  }
+  return layers;
+}
+
+/**
+ * Assert an element's *current* text contrast, whatever state it is in.
+ *
+ * This exists because axe cannot reach it. axe scans the resting DOM, so a
+ * `:hover` or `:focus-visible` declaration never applies during the scan — which
+ * is how a chip whose focus style put white on amber at 2.40:1 passed a green
+ * accessibility gate. Tab to the element first, then call this.
+ */
+export async function expectTextContrast(
+  page: Page,
+  selector: string,
+  ctx: CaseContext,
+  what: string
+): Promise<void> {
+  const style = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`no element matches ${sel}`);
+    const cs = getComputedStyle(el);
+    return { color: cs.color, fontSize: cs.fontSize, fontWeight: cs.fontWeight };
+  }, selector);
+  const fg = parseColor(style.color);
+  const bg = compositedBackground(await backgroundLayers(page, selector, false));
+  const ratio = contrastRatio(fg, bg);
+  const px = parseFloat(style.fontSize);
+  const bold = Number.parseInt(style.fontWeight, 10) >= 700;
+  const large = px >= 24 || (px >= 18.66 && bold);
+  const floor = large ? 3 : 4.5;
+  expect(
+    ratio,
+    `${label(ctx)}: ${what} text contrast ${ratio.toFixed(2)}:1 at ${px}px ` +
+      `weight ${style.fontWeight} needs ${floor}:1`
+  ).toBeGreaterThanOrEqual(floor);
+}
+
+/**
+ * Assert a state indicator's contrast against what it sits on (WCAG 1.4.11, 3:1).
+ *
+ * The outline is measured against the *parent* background because
+ * `outline-offset` places the ring outside the element's own box.
+ */
+export async function expectOutlineContrast(
+  page: Page,
+  selector: string,
+  ctx: CaseContext,
+  what: string
+): Promise<void> {
+  const outline = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`no element matches ${sel}`);
+    const cs = getComputedStyle(el);
+    return { color: cs.outlineColor, width: cs.outlineWidth, style: cs.outlineStyle };
+  }, selector);
+  expect(
+    outline.style,
+    `${label(ctx)}: ${what} has no outline to measure`
+  ).not.toBe('none');
+  const bg = compositedBackground(await backgroundLayers(page, selector, true));
+  const ratio = contrastRatio(parseColor(outline.color), bg);
+  expect(
+    ratio,
+    `${label(ctx)}: ${what} indicator contrast ${ratio.toFixed(2)}:1 needs 3:1 ` +
+      `(WCAG 1.4.11 non-text)`
+  ).toBeGreaterThanOrEqual(3);
+}
+
+/**
+ * Every keyboard focus stop must have a ring that clears 3:1 against what is
+ * *behind* it (WCAG 1.4.11 non-text contrast).
+ *
+ * This exists because an enumerated list of "dark surfaces" cannot be trusted. The
+ * light-zone focus fix was authored against such a list and it was wrong in a way no
+ * static reading caught: the syntax-highlighted `<pre>` blocks carry a dark fill and
+ * receive `tabindex` when they overflow, so they looked like dark surfaces and were
+ * given the amber ring — but `outline-offset` draws a ring OUTSIDE the element's box,
+ * so theirs lands on the light page and measured 2.29:1, reinstating the very defect
+ * being fixed. The surface that matters is the one behind the ring, never the
+ * element's own fill.
+ *
+ * So this walks real Tab stops and measures what is actually there.
+ */
+export async function expectEveryFocusStopHasContrastingRing(
+  page: Page,
+  ctx: CaseContext,
+  maxStops = 160
+): Promise<void> {
+  const failures: string[] = [];
+  const seen = new Set<string>();
+  let first: string | null = null;
+
+  for (let i = 0; i < maxStops; i += 1) {
+    await page.keyboard.press('Tab');
+    const stop = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const cs = getComputedStyle(el);
+
+      const parse = (value: string): number[] | null => {
+        const m = value.match(/[\d.]+/g);
+        if (!m) return null;
+        const [r, g, b] = m.slice(0, 3).map(Number);
+        return [r, g, b, m.length > 3 ? Number(m[3]) : 1];
+      };
+
+      // Which surface the ring lands on depends on the SIGN of `outline-offset`.
+      // Positive draws it outside the element, over the parent; negative draws it
+      // inside, over the element's own background. Always starting at the parent
+      // was only accidentally correct: all seven inset rules here
+      // (TaskSwitcher -2px, InstallTerminal -2px, StatusChip 5x -1px) sit on
+      // `background: none` elements, so parent and self resolve alike. Give any of
+      // them a fill and the old version reported a passing number for a surface the
+      // ring never touches.
+      const inset = parseFloat(cs.outlineOffset) < 0;
+      const from = inset ? el : el.parentElement;
+
+      const behind = (): number[] => {
+        let node: HTMLElement | null = from;
+        const layers: number[][] = [];
+        while (node) {
+          const c = parse(getComputedStyle(node).backgroundColor);
+          if (c && c[3] > 0) {
+            layers.push(c);
+            if (c[3] >= 1) break;
+          }
+          node = node.parentElement;
+        }
+        let out = [255, 255, 255];
+        for (let j = layers.length - 1; j >= 0; j -= 1) {
+          const [r, g, b, a] = layers[j];
+          out = [r * a + out[0] * (1 - a), g * a + out[1] * (1 - a), b * a + out[2] * (1 - a)];
+        }
+        return out;
+      };
+
+      // `behind()` reads backgroundColor only. `.hero` layers an accent glow and
+      // two grid gradients over `--ds-hero-bg`, so where an image is present the
+      // measured backdrop is the solid colour beneath it and not the rendered
+      // pixel. Recorded rather than silently assumed, so the next decorative
+      // gradient cannot hide behind a passing number.
+      const approximated = (): boolean => {
+        let node: HTMLElement | null = from;
+        while (node) {
+          if (getComputedStyle(node).backgroundImage !== 'none') return true;
+          node = node.parentElement;
+        }
+        return false;
+      };
+
+      const id =
+        `${el.tagName.toLowerCase()}` +
+        `${el.id ? `#${el.id}` : ''}` +
+        `${el.className ? `.${String(el.className).trim().split(/\s+/).slice(0, 2).join('.')}` : ''}`;
+      return {
+        id,
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+        outlineColor: cs.outlineColor,
+        outlineOffset: cs.outlineOffset,
+        inset,
+        approximated: approximated(),
+        behind: behind(),
+      };
+    });
+
+    if (!stop) break;
+    // One full cycle is the coverage unit. Tabbing a fixed 160 times took 40s on
+    // `/journeys/` and blew the 30s case budget while re-measuring stops already
+    // seen; wrapping back to the first stop means every stop has been visited.
+    if (first === null) first = stop.id;
+    else if (stop.id === first) break;
+    if (seen.has(stop.id)) continue;
+    seen.add(stop.id);
+
+    // A ring drawn some other way (box-shadow) is out of this assertion's reach;
+    // `expectVisibleFocusIndicator` owns "is there an indicator at all".
+    if (stop.outlineStyle === 'none' || parseFloat(stop.outlineWidth) === 0) continue;
+
+    const ring = parseColor(stop.outlineColor);
+    const ratio = contrastRatio(ring, stop.behind);
+    if (ratio < 3) {
+      failures.push(
+        `${stop.id}: ring ${stop.outlineColor} on ` +
+          `rgb(${stop.behind.map((c) => Math.round(c)).join(',')}) = ${ratio.toFixed(2)}:1` +
+          `${stop.inset ? ' [inset ring, measured against its own background]' : ''}` +
+          `${stop.approximated ? ' [backdrop has a background-image; solid colour beneath measured]' : ''}`
+      );
+    }
+  }
+
+  expect(
+    failures,
+    `${label(ctx)}: focus rings below the 3:1 non-text floor:\n  ${failures.join('\n  ')}`
+  ).toEqual([]);
+}

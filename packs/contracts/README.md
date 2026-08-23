@@ -51,7 +51,7 @@ api-contract [orders service: create, get, cancel]
   ● Error shapes consistent (Problem schema)
   ⚠ POST /orders: missing 409 Conflict for duplicate order_id
 
-  G-contract ›
+  Contract review ›
 ```
 
 ```text

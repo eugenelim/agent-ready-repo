@@ -13,7 +13,7 @@ import unicodedata
 from collections.abc import Callable, Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -70,6 +70,7 @@ _UNSAFE_METADATA_KEYS = {
 _SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGED_INDEX_MARKER = "<!-- agentbundle-managed: profile=agentbundle-okf/v1 kind=okf-index -->"
+ROUTER_HANDOFF_MARKER = "<!-- agentbundle-okf: router-handoff=author-owned -->"
 ASSET_ROOT = Path(__file__).resolve().parent.parent / "assets"
 
 
@@ -481,8 +482,9 @@ def compile_pack(
     if manifest_diagnostics:
         return _compile_result(1, manifest_diagnostics)
 
+    handoff_paths = _router_handoff_paths(pack_dir, outputs, prior_manifest)
     if check:
-        drift = _check_drift(pack_dir, outputs, prior_manifest)
+        drift = _check_drift(pack_dir, outputs, prior_manifest, handoff_paths)
         if drift:
             return _compile_result(2, drift)
         return CompileResult(
@@ -491,13 +493,14 @@ def compile_pack(
             stdout=f"OKF000 check clean packs/{pack}\n",
         )
 
-    ownership = _ownership_diagnostics(pack_dir, outputs, prior_manifest)
+    ownership = _ownership_diagnostics(pack_dir, outputs, prior_manifest, handoff_paths)
     if ownership:
         return _compile_result(1, ownership)
     apply_diagnostic = _apply_outputs_transactionally(
         pack_dir,
         outputs,
         prior_manifest,
+        handoff_paths=handoff_paths,
         fail_after_operations=fail_after_operations,
     )
     if apply_diagnostic is not None:
@@ -640,7 +643,7 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
     }
     by_directory: dict[str, list[Concept]] = {}
     for path, concept in active_concepts.items():
-        directory = str(Path(path).parent)
+        directory = str(PurePosixPath(path).parent)
         by_directory.setdefault("" if directory == "." else directory, []).append(concept)
 
     indexes: dict[str, bytes] = {}
@@ -653,10 +656,10 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
             title = str(concept.metadata.get("title") or concept.path)
             status = str(concept.metadata.get("status") or "Active")
             concept_type = str(concept.metadata.get("type") or "Concept")
-            filename = Path(concept.path).name
+            filename = PurePosixPath(concept.path).name
             entries.append(f"- [{title}]({filename}) - {status} {concept_type}\n")
         if entries:
-            name = Path(directory).name
+            name = PurePosixPath(directory).name
             indexes[f"{directory}/index.md"] = (
                 f"{MANAGED_INDEX_MARKER}\n"
                 f"# OKF index: {name}\n\n"
@@ -1127,13 +1130,82 @@ def _prior_manifest_diagnostics(
     return diagnostics
 
 
+def _router_handoff_paths(
+    pack_dir: Path,
+    outputs: Mapping[str, bytes],
+    prior_manifest: Mapping[str, Any] | None,
+) -> set[str]:
+    """Return a former generated router that a renamed projection cedes to its author.
+
+    A renamed router skill is the one safe transition from a generated router to
+    a hand-authored one. The old router body becomes user-owned; every other
+    prior generated file remains subject to the normal ownership and cleanup
+    rules. This is derived solely from generic manifest fields, never from a
+    caller, pack, or knowledge-domain name.
+    """
+    if prior_manifest is None:
+        return set()
+    rendered_manifest = outputs.get(".okf-generated.json")
+    if rendered_manifest is None:
+        return set()
+    try:
+        current_manifest = json.loads(rendered_manifest)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return set()
+    prior_routers = _router_paths_by_source(prior_manifest)
+    current_routers = _router_paths_by_source(current_manifest)
+    handoffs: set[str] = set()
+    for source_path, former_router in prior_routers.items():
+        # A source that is no longer declared has been REMOVED, not renamed.
+        # `.get()` returning None must not read as "the router changed", or
+        # deleting a bundle would cede its managed output to the author instead
+        # of cleaning it up. Handoff requires the source still present AND its
+        # router actually different.
+        current_router = current_routers.get(source_path)
+        if current_router is None or current_router == former_router:
+            continue
+        prior_record = _manifest_records(prior_manifest).get(former_router)
+        if prior_record is None or not _path_lexists(pack_dir / former_router):
+            continue
+        try:
+            actual = _read_confined_regular_file(
+                pack_dir,
+                pack_dir / former_router,
+                max_bytes=MANAGED_OUTPUT_MAX_BYTES,
+            )
+        except (OSError, ValueError):
+            continue
+        if ROUTER_HANDOFF_MARKER in actual.decode("utf-8", errors="replace") and (
+            "generated-by: compile-okf agentbundle-okf/v1" not in actual.decode(
+                "utf-8", errors="replace"
+            )
+        ):
+            handoffs.add(former_router)
+    return handoffs
+
+
+def _router_paths_by_source(manifest: Mapping[str, Any]) -> dict[str, str]:
+    """Map each generated router source path to its managed Skill output."""
+    return {
+        str(record["source_path"]): output_path
+        for output_path, record in _manifest_records(manifest).items()
+        if record.get("kind") == "okf-router"
+        and isinstance(record.get("source_path"), str)
+        and output_path.startswith(".apm/skills/")
+        and output_path.endswith("/SKILL.md")
+    }
+
+
 def _check_drift(
     pack_dir: Path,
     outputs: Mapping[str, bytes],
     prior_manifest: Mapping[str, Any] | None,
+    handoff_paths: set[str],
 ) -> list[Diagnostic]:
     for relative_path in _manifest_records(prior_manifest):
         if relative_path in outputs:
+            continue
+        if relative_path in handoff_paths:
             continue
         path = pack_dir / relative_path
         if not _path_lexists(path):
@@ -1179,9 +1251,12 @@ def _ownership_diagnostics(
     pack_dir: Path,
     outputs: Mapping[str, bytes],
     prior_manifest: Mapping[str, Any] | None,
+    handoff_paths: set[str],
 ) -> list[Diagnostic]:
     records = _manifest_records(prior_manifest)
-    directory_diagnostics = _managed_skill_directory_diagnostics(pack_dir, outputs, records)
+    directory_diagnostics = _managed_skill_directory_diagnostics(
+        pack_dir, outputs, records, handoff_paths
+    )
     if directory_diagnostics:
         return directory_diagnostics
     for relative_path in sorted(outputs, key=_sort_path):
@@ -1219,6 +1294,8 @@ def _ownership_diagnostics(
     for relative_path, record in records.items():
         if relative_path in outputs:
             continue
+        if relative_path in handoff_paths:
+            continue
         path = pack_dir / relative_path
         boundary = _managed_output_path_diagnostic(
             pack_dir,
@@ -1250,6 +1327,7 @@ def _managed_skill_directory_diagnostics(
     pack_dir: Path,
     outputs: Mapping[str, bytes],
     records: Mapping[str, Mapping[str, Any]],
+    handoff_paths: set[str],
 ) -> list[Diagnostic]:
     directories = {
         directory
@@ -1265,6 +1343,35 @@ def _managed_skill_directory_diagnostics(
         )
         if directory is not None and directory in {_skill_directory(path) for path in records}
     )
+    ceded_directories = {
+        directory for directory in (_skill_directory(path) for path in handoff_paths)
+        if directory is not None
+    }
+    for relative_dir in sorted(ceded_directories, key=_sort_path):
+        directory = pack_dir / relative_dir
+        if not _path_lexists(directory):
+            continue
+        inventory, inventory_diagnostics = _inventory_paths_no_reparse(directory)
+        if inventory_diagnostics:
+            return [
+                _diagnostic(
+                    "OKF010", _display_path(pack_dir, relative_dir), "ownership conflict"
+                )
+            ]
+        for descendant_path, info in inventory:
+            relative_path = descendant_path.relative_to(pack_dir).as_posix()
+            if stat.S_ISDIR(info.st_mode):
+                continue
+            if (
+                relative_path.startswith(f"{relative_dir}/references/okf/")
+                and relative_path not in records
+            ):
+                return [
+                    _diagnostic(
+                        "OKF010", _display_path(pack_dir, relative_path), "ownership conflict"
+                    )
+                ]
+    directories.difference_update(ceded_directories)
     for relative_dir in sorted(directories, key=_sort_path):
         directory = pack_dir / relative_dir
         if not _path_lexists(directory):
@@ -1307,9 +1414,13 @@ def _managed_skill_directory_diagnostics(
         expected = {
             path
             for path, record in records.items()
-            if _skill_directory(path) == relative_dir and isinstance(record, Mapping)
+            if (
+                _skill_directory(path) == relative_dir
+                and isinstance(record, Mapping)
+                and path not in handoff_paths
+            )
         }
-        if actual != expected:
+        if actual - handoff_paths != expected:
             return [
                 _diagnostic("OKF010", _display_path(pack_dir, relative_dir), "ownership conflict")
             ]
@@ -1354,6 +1465,7 @@ def _apply_outputs_transactionally(
     outputs: Mapping[str, bytes],
     prior_manifest: Mapping[str, Any] | None,
     *,
+    handoff_paths: set[str],
     fail_after_operations: int | None,
 ) -> Diagnostic | None:
     """Apply managed writes with complete rollback after any apply failure."""
@@ -1366,7 +1478,9 @@ def _apply_outputs_transactionally(
         )
 
     stale_paths = {
-        path for path in _manifest_records(prior_manifest) if path not in outputs
+        path
+        for path in _manifest_records(prior_manifest)
+        if path not in outputs and path not in handoff_paths
     }
     affected_paths = set(outputs) | stale_paths
     original: dict[str, bytes | None] = {}

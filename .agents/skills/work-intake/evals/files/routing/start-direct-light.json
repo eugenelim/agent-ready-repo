@@ -1,0 +1,19 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Correct one bounded routing behavior in the current session."],
+    "constraints": ["Keep the change independently verifiable and session-local."],
+    "evidence": [],
+    "behaviors": ["A direct-light request selects no durable artifact route."],
+    "assumptions": ["No queueing, resumption, or durable contract is needed."],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "notes/direct-light-request.md",
+    "revision": "local-rev-direct-light-1"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin"
+}

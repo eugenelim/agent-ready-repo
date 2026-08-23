@@ -1,7 +1,7 @@
 [pack]
 name = "atlassian"
-version = "0.8.4"
-description = "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route."
+version = "0.9.0"
+description = "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back."
 readme = "README.md"
 display_name = "Atlassian"
 license = "Apache-2.0 OR MIT"
@@ -42,7 +42,7 @@ allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "ge
 # fires — no Atlassian credentials are needed to measure these (Tier-A only;
 # behavior testing of a backend skill is future-Tier-B-RFC scope, see the spec).
 [pack.evals]
-skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status"]
+skills = ["jira", "jira-align", "jira-brief-intake", "jira-align-brief-intake", "jira-refresh", "jira-align-refresh", "jira-defect-flow", "flow-metrics", "confluence-crawler", "confluence-publisher", "ai-adoption-report", "jira-story-triage", "jira-team-status"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

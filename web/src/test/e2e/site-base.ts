@@ -19,8 +19,25 @@ export const SITE_BASE: string = String(webConfig.base ?? '').replace(/\/+$/, ''
 /** The docs subtree lives beneath the marketing base (docs-site sets `base` to it). */
 export const DOCS_BASE: string = `${SITE_BASE}/docs`;
 
+function previewPortFromEnvironment(value: string | undefined): number {
+  if (value === undefined || value === '') {
+    return 4321;
+  }
+
+  const requirement = 'ARR_PREVIEW_PORT must be an integer from 1 to 65535';
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${requirement}; received ${JSON.stringify(value)}`);
+  }
+
+  const port = Number(value);
+  if (!Number.isSafeInteger(port) || port <= 0 || port > 65535) {
+    throw new Error(`${requirement}; received ${JSON.stringify(value)}`);
+  }
+  return port;
+}
+
 /** Port the preview server binds; shared with `playwright.config.ts`'s webServer. */
-export const PREVIEW_PORT = 4321;
+export const PREVIEW_PORT = previewPortFromEnvironment(process.env.ARR_PREVIEW_PORT);
 
 export const PREVIEW_ORIGIN = `http://localhost:${PREVIEW_PORT}`;
 

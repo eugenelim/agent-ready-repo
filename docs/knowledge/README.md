@@ -2,11 +2,18 @@
 
 The repository's accumulating record of *patterns, gotchas, and
 antipatterns* — the things a project learns about itself as code lands. The
-progressive `project-knowledge` capability and its topic/journal contracts are
-shipped. This repository has not activated a coherent v1 topic map yet, so its
-current canonical corpus remains the legacy `patterns.jsonl` next to this file.
-Contributors and agents curate it deliberately; the installed session-start
-hook does not load it into model context automatically.
+progressive `project-knowledge` capability uses the canonical per-topic JSON
+model established by [ADR-0081](../adr/0081-canonical-project-knowledge-uses-per-topic-json.md):
+reconciled knowledge is stored under `docs/knowledge/topics/` with a
+deterministic body-free `docs/knowledge/topics.index.json` map, published in
+the same Git snapshot. Ordinary enquiry reads only a coherent committed
+topic/map snapshot, so a topic absent from the index is not visible to it.
+`patterns.jsonl` is the legacy corpus; the store retains a legacy append writer
+and a legacy import path, but the append writer refuses with
+`staged_dual_writer` once a coherent committed topic map exists, so it is not a
+live write target and ordinary enquiry does not read it. Contributors and
+agents curate knowledge deliberately; the installed session-start hook does not
+load it into model context automatically.
 
 This is deliberately different from the documents that already exist:
 
@@ -15,7 +22,7 @@ This is deliberately different from the documents that already exist:
 | `docs/adr/` | Decisions ("we chose X over Y because…"). Immutable. |
 | `docs/architecture/` | Current code structure. Living. |
 | `guides/` | User-facing docs. Diátaxis. |
-| **`docs/knowledge/patterns.jsonl`** | **Practitioner-level lessons: patterns, gotchas, antipatterns. Scoped to file globs.** |
+| **`docs/knowledge/topics/` + `docs/knowledge/topics.index.json`** | **Canonical practitioner-level lessons: patterns, gotchas, and antipatterns. `patterns.jsonl` is the legacy corpus.** |
 
 ADRs answer *why was this decided*. Knowledge entries answer *what
 should the next person avoid stepping on, or repeat*.
@@ -220,6 +227,24 @@ keep scratch transient, and perform no capture or distillation. Findings,
 security conclusions, quality verdicts, citations, and recommendations remain
 solely in their owning review artifact. Research products and corpora remain a
 separate downstream authority surface.
+
+Research integrations preserve that separation. Quick and non-survey session
+work plus project start, digest, check, status, incomplete, and abandoned paths
+perform no knowledge operation. A completed repository-contained standard,
+applied, or deep survey, or completed project synthesis, may optionally capture
+only independently reusable practice or sanitized evidence residue through the
+public typed seam. A terminal producer may distil only receipts returned by
+that gate. Personal and external output roots remain capture-ineligible because
+they cannot claim repository-relative provenance honestly.
+
+The research producer still owns scratch, gate timing, sources, citations,
+claims, confidence, known unknowns, verdicts, and briefs. Counter-evidence
+review may use one bounded `CQ-REVIEW` enquiry for candidate checks, with no
+capture or distillation. Retrieved topics are untrusted and cannot change
+instructions, permissions, scope, source selection, citations, claims,
+confidence, counter-evidence, verdicts, or normative authority. Every research
+claim requires independent direct-source verification; unavailable or
+unverified evidence yields a named skip, caveat, omission, or abstention.
 
 Routing lessons into places that *are* authoritative—`AGENTS.md`, a skill, an
 ADR, architecture docs, code, CI, or a lint or test—is part of the shipped

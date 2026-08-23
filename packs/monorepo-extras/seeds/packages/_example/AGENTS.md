@@ -1,51 +1,30 @@
-# AGENTS.md (package: `_example`)
+# AGENTS.md — placeholder package
 
-> Per-package agent context. The root `AGENTS.md` already covers monorepo-wide
-> conventions — don't repeat them here. Only put things specific to this package.
+Applies to `packages/_example/`. Inherits the root `AGENTS.md`. Scope-specific deltas only.
 
-## What this package is
+## Package identity
 
-<!-- One sentence. Replace this. -->
-This is a placeholder package showing the per-package AGENTS.md pattern.
+This placeholder package demonstrates concise package-local instructions. Replace
+this text with the package's purpose and the users or callers it serves.
 
-## Public surface
+## Public boundary
 
-<!--
-What does this package export? What's internal vs. external? Be specific
-about what counts as a "public" interface — those are the things changes
-need to be coordinated with consumers.
+State the package's public interface, internal implementation boundary, and any
+exceptional compatibility or runtime constraint here.
 
-- Public: everything in `src/index.<ext>`
-- Internal: everything under `src/internal/`
-- Tests: under `tests/`, do not import from any other package's `src/internal/`
--->
+## Cross-package test boundary
 
-## Constraints particular to this package
+State that this package's tests do not import another package's internals.
 
-<!--
-Things an agent would otherwise have to discover by reading the code:
+## Exceptional verification
 
-- Targets <runtime> version <X>.
-- Avoids <dependency Y> for <reason>.
-- Performance budget: <metric> under <threshold>.
-- Backward compatibility window: <duration> for the public API.
--->
+Document a test command only when it differs from the monorepo default.
 
-## How to test this package
+## ADR triggers
 
-<!--
-If the test command differs from the monorepo default, document it here.
-Otherwise omit this section.
--->
+For a sensitive package, list the change categories that require an ADR.
 
-## When changes here need an ADR
+## Deeper documentation
 
-<!--
-Some packages have heightened sensitivity — auth packages, data layer,
-public SDKs. If this is one of those, list the categories of change that
-trigger an ADR.
-
-Example:
-- Any change to the wire format requires an ADR.
-- Any new dependency with non-MIT/Apache license requires an ADR.
--->
+Put detailed architecture, API, and release rationale in the appropriate package
+documentation or repository reference; do not turn this file into a manual.

@@ -1,188 +1,147 @@
 # Plan: rfc0088-round12-consumer-shaped-residuals
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Done
 
 ## Approach
 
-Five independent arms in the existing RFC-0088 evidence tree, promoted through the
-tree's existing cycle (`r9-promote.sh`). Ordered by **information value**: the two
-that decide open questions with a recommended candidate the RFC would otherwise
-adopt on reasoning alone go first.
+Five tasks: shared apparatus first, the three commissioned measurements, then
+promotion. T0 changes the gates and rails that every later artifact needs, so no arm
+can create an artifact before the apparatus capable of rejecting it exists.
 
-Every arm follows the shape this evidence base converged on over eleven rounds: an
-enforcing arm plus a control that removes exactly the control under test in the
-same run; ground truth from an independent observer; read-back rather than
-assertion; per-row `ok` fields and a `provenance` block.
-
-**Naming and privacy.** New drivers write to `s3/r12-*`, `s2/r12-*`, `s1/r12-*`.
-Destinations are addressed by **role**; endpoints and binary paths come from the
-environment via the runner's explicit allowlist and are never hard-coded or
-persisted. No arm records a URI, vendor, product, tenant, or account identifier.
+The planned runner is explicit-allowlist only. It retains the historical runner’s
+restored bytes, keeps only the system-browser input needed by the signing arm, requires
+browser-cache and short-temporary-directory inputs, reads privacy patterns from an
+operator-supplied external term file, and hard-fails when the signing requirement file is absent. It
+does not carry external endpoint inputs or a signing-requirement default.
 
 ## Constraints
 
-- macOS only; Linux and Windows remain deferred by disposition B.
-- No new dependency, toolchain, or compile step — that is an *Ask first* boundary
-  and is why the native-addon residual is not in this round.
-- No credential, account, or live authenticated session in any arm.
-- Playwright's browsers live under the real home cache; a synthetic HOME needs
-  `PLAYWRIGHT_BROWSERS_PATH` set explicitly.
-- Short `TMPDIR` — macOS caps Unix socket paths near 104 bytes.
-- Node's permission model realpaths an absolute entry script's ancestors; pass the
-  entry relative with cwd inside the granted scope.
-- A bootstrap read grant must not be an ancestor of the paths under test.
+- No dependency, toolchain, compile step, real credential/profile/account, live
+  authenticated session, local-account creation, or administrator operation.
+- Fixtures bind loopback ephemeral ports; recorded addresses are redacted.
+- Live token material remains only in the issuer process. Decoys are distinct,
+  labelled values; transient staged-copy mutations are restored before promotion.
+- Privacy-exemption records live in a non-regenerated source member. A mandated
+  shared-tool edit may refresh only its digest after a scan confirms count stability;
+  all other changes remove the exemption.
 
 ## Construction tests
 
-Per-task `Tests:` below; every task is **visual / manual QA**, so no red stubs
-(`no stub (manual QA)`). The construction test for each arm is its **control arm**.
-
-Two cross-cutting checks after all arms: extend `r11-fact-negative-tests.py` with
-one mutation per new fact, and scan every artifact and note for URIs and vendor or
-product names.
-
-## Design (LLD)
-
-### Design decisions
-
-- **A1 models a destination as a browser context**, because `serviceWorkers` is a
-  per-context option. If per-destination scoping requires something stronger, that
-  is the finding.
-- **A2 keeps the token in a closure inside the page**, installed by the same
-  `addInitScript` mechanism the egress shim already uses, so the design is
-  consistent with what the RFC already requires rather than a parallel mechanism.
-- **A3 reads the signature from the binary**, never from a vendor claim.
-- **A4 uses a second OS user**, not a container — round 10 measured that a
-  container cannot start a sandboxed renderer without `SYS_ADMIN`, so containerising
-  trades the renderer sandbox for isolation, while a second uid does not.
-
-### Failure, edge cases & resilience
-
-- Any driver that cannot complete sets `fatal`; `build-archive.py` refuses such an
-  artifact unless declared via `expectedFatal`.
-- A control arm that passes when it should have failed **invalidates its own arm**
-  and is recorded as such.
-
-### Dependencies & integration
-
-None new. Existing Playwright, Node, `/usr/bin/codesign`, `/usr/sbin/spctl`, macOS
-`sandbox-exec`.
+T0 and T6 are goal-based checks. T1–T3 are visual/manual QA with no red stub. Each
+task lists its enforcing controls before its approach. Gate outputs retain control and
+harness counts; the published note does not.
 
 ## Tasks
 
+### T0: Shared runner, privacy, purge, and corpus apparatus
+
+**Depends on:** none
+**Touches:** `run-r11.sh` (restore), `run-r12.sh` (new),
+`s1/confined-remove.mjs` (new), `r12-privacy-term-policy.json` (new),
+`r12-privacy-exemptions.json` (new), `corpus_docs.py`, `build-archive.py`,
+`s1/redact.mjs`, `r9-privacy-sweep.py`, `r9-promote.sh`,
+`verify-note-figures-r7.py`
+
+**Tests:** goal-based. `Done when:` runner absent-input controls fail; expected
+row inventory rejects omission; confined removal rejects all four escape classes;
+privacy consumers reject empty and count-minus-one terms; and each declared shared
+tool meets its AC9 earlier-input compatibility check.
+
+**Approach:** Restore `run-r11.sh`; create `run-r12.sh` with no endpoint pass-throughs
+and only required system-browser, cache, temporary-root, term-file, and
+requirement-file inputs. Add the named confined-removal helper. Derive the exemption
+table by scan into its protected source member, applying the declared-edit rule.
+Centralise figure-corpus membership so the round-12 note can be registered in T6, and
+make promotion use that list in order. Add the operator-supplied term-file contract to both privacy consumers
+and the outer gate chain. Satisfies AC1; AC5 requirement-file/runner clauses; AC6
+missing-row, removal, and privacy mutations; AC7 term-source/count clauses; and AC9
+runner restoration, corpus, exemption, and per-tool compatibility clauses.
+
 ### T1: Destination-scoped worker policy
 
-**Depends on:** none
-**Touches:** `s3/r12-destination-scoped-worker-policy.mjs` + results
+**Depends on:** T0
+**Touches:** `s3/r12-destination-scoped-worker-policy.mjs` and results
 
-**Tests:** manual QA. Control: a **global** block must break the worker-dependent
-destination's flow in the same run — otherwise "scoping helped" is unfalsifiable.
-Second control: the worker-independent destination must complete in every arm.
+**Tests:** manual QA. Global block breaks the worker-dependent destination; global
+allow observes registration; selective purge retains its retained store; whole-profile
+purge removes both stores.
 
-**Approach:** Two synthetic destinations — one whose flow depends on a service
-worker, one that registers a worker but does not need it (both shapes are already
-built in round 11's arm 2). Three arms: workers global-allow, workers global-block,
-and per-destination policy (block for the independent destination, allow for the
-dependent one). Record per destination whether the flow completed and whether a
-registration existed. Satisfies AC1.
+**Approach:** Execute global-allow, global-block, and destination-policy arms over
+synthetic role-addressed destinations. Route every removal through the helper and
+report a non-scopable clause as a finding. Satisfies AC2 and AC6 worker-policy
+control mutations.
 
-### T2: Page-resident token boundary
+### T2: Page-resident token and durable-surface boundary
 
-**Depends on:** none
-**Touches:** `s3/r12-page-resident-token.mjs` + results
+**Depends on:** T0
+**Touches:** `s3/r12-page-resident-token.mjs` and results
 
-**Tests:** manual QA. Control: the identical calls without the shim must fail
-(the synthetic API refuses unauthenticated requests). Second control: the driver's
-own token-visibility check must be shown capable of failing, by a deliberately
-leaky arm that does pass the token through the driver.
+**Tests:** manual QA. No shim fails; every mandatory encoded decoy and browser-written
+cookie/local-storage decoy is detected; cap truncation fails; log deletion is observed.
 
-**Approach:** A synthetic API that issues a scoped bearer token to page JS and
-requires it on every call. An init script hooks `fetch`, captures the token into a
-**closure**, and exposes only `__call({url, method, body})`. The driver issues
-request shapes and never receives the token. Assert from the driver side that the
-token value appears in none of: the job file, the child environment, argv, stdout,
-or the results artifact. Satisfies AC2, AC3.
+**Approach:** Use a distinct loopback issuer and page-resident replay code. Enable all
+declared logging, byte-scan every file under profile/download roots, self-report argv
+and environment names, then delete non-promotable logs through the helper. Record the
+same-uid residual beside the result. Satisfies AC3, AC4 except T6’s staged-member
+clause, and AC6 token-surface mutations.
 
-### T3: Browser signing-identity anchor
+### T3: Signing-identity anchor
 
-**Depends on:** none
-**Touches:** `s1/r12-signing-identity-anchor.mjs` + results
+**Depends on:** T0
+**Touches:** `s1/r12-signing-identity-anchor.mjs` and results
 
-**Tests:** manual QA. Control: a binary **without** a vendor team identifier (the
-bundled browser, which round 10 recorded as carrying none) must be distinguishable
-from one with it — otherwise the anchor cannot discriminate.
+**Tests:** manual QA. Both binaries produce separate strict and requirement rows; an
+unrelated resource failure does not admit the absence control; a modified copy fails.
 
-**Approach:** Read team identifier, notarization/Gatekeeper verdict, and hardened
-runtime plus library-validation flags from a system browser and from a bundled one,
-via the OS tools. Record whether the identity is present, and whether it is stable
-in form across the two. Satisfies AC4. **The identifier value is recorded as a
-presence boolean and a stable-form check, not as a vendor identifier string.**
+**Approach:** Read the requirement only from its temporary-root file, emit redacted
+categories and realpath booleans, and retain update survival solely as the deferred
+backlog property. Satisfies AC5 verification clauses and AC6 signing-control
+mutations.
 
-### T4: Separate-uid attachment isolation
+### T6: Promotion, note, RFC evidence layer, and negative tests
 
-**Depends on:** none
-**Touches:** `s1/r12-separate-uid-attach.mjs` + results
+**Depends on:** T0, T1, T2, T3
+**Touches:** round-12 note; RFC evidence layer only;
+`docs/rfc/0088-notes/spikes/round7-evidence-archive.md`; `r12-fact-negative-tests.py`;
+`workspace.toml`; `s1/r12-host-owned-profile-reattach.mjs` and results;
+`s2/r12-provider-adapter-packaging.mjs` and results;
+`s3/r12-per-destination-policy.mjs` and results;
+`s3/r12e2-post-auth-reattach-worker-dependency.mjs` and results
 
-**Tests:** manual QA. Control: a **same-uid** process must reach the bind endpoint
-in the same run — that is disposition B's accepted exposure, and if it does not
-reproduce, the isolation arm proves nothing.
+**Tests:** goal-based. `Done when:` only T2-verified artifacts promote; staged-copy
+decoy search catches and restores its mutation; every gate passes in the required
+order; note figures respect AC8; and contradiction names appear in both documents.
 
-**Approach:** Launch a browser with a bind endpoint. Arm 1: a same-uid process
-attaches (expected to succeed). Arm 2: a process running as a different OS user
-attempts the same attach (expected to be refused). Record the refusal shape.
-**Requires a second local account; if none is available the arm is recorded as
-not-run rather than inferred.** Satisfies AC5.
-
-### T5: What the worker purge touches
-
-**Depends on:** none
-**Touches:** `s3/r12-purge-blast-radius.mjs` + results
-
-**Tests:** manual QA. Control: a store the purge is **not** expected to touch must
-be shown present both before and after — otherwise "it only removed one thing"
-could be satisfied by a purge that removed nothing.
-
-**Approach:** Seed a profile with a worker plus several profile-resident stores.
-Enumerate the store inventory before and after the item-6 purge, recording store
-names only (never contents). Report which stores the purge removes and which it
-leaves. Satisfies AC6.
-
-### T6: Promotion, note, RFC evidence layer, negative tests
-
-**Depends on:** T1, T2, T3, T4, T5
-**Touches:** a round-12 note, the RFC's evidence layer and open questions,
-`r11-fact-negative-tests.py`, `corpus_docs.py`, `build-archive.py`, `workspace.toml`
-
-**Tests:** goal-based. `build-archive.py` exits 0; figure verifier reports zero
-wrong and zero claimed-nowhere with the round-12 note added **via `corpus_docs.py`,
-the single definition**; negative tests catch every new fact; `r9-gates.sh` all OK;
-RFC status still `Experimental`; the privacy scan finds no URI or vendor name.
-
-**Approach:** Write the round-12 note; add its layer to the RFC without touching a
-disposition; answer open questions 4, 5 and 6 with measurements or record why an
-arm could not. Satisfies AC7, AC8, AC9.
+**Approach:** Publish measured facts without changing RFC decisions and add the
+round-12 note to the already-centralised `corpus_docs.docs()` list. Run the staged
+member-copy positive control before the promoted-state decoy absence check. Record
+gate output separately from note prose, then run all gates in Testing Strategy order.
+Satisfies AC4 promotion clauses; AC6 remaining mutations; AC8; AC9 promotion checks;
+and AC10.
 
 ## Rollout
 
-- **Delivery:** one PR per arm, then a promotion PR — the increment shape the
-  round-11 retrospective settled on.
-- **Infrastructure / external systems:** none. All arms are synthetic or local; no
-  live destination is contacted.
-- **Deployment sequencing:** T1–T5 independent; T6 depends on all five.
+- **Delivery:** one PR; one note and one RFC evidence layer cover all measurements.
+- **Infrastructure / external systems:** none. Fixtures are local loopback only.
+- **Deployment sequencing:** T0, then T1–T3, then T6.
 
 ## Risks
 
-- **Per-destination scoping may not be expressible** with a per-context option
-  alone. That is a finding against open question 4's candidate, not a failure.
-- **The leaky-arm control in T2 must genuinely leak**, or the token-visibility
-  check is a control that cannot fail — the defect this base has produced most.
-- **T4 may be unrunnable** without a second local account; recorded as not-run
-  rather than inferred either way.
-- **Scope pressure** to fold in the native-addon residual or a credentialed SSO
-  arm. Both are *Ask first*; neither is in this round.
+- A worker clause may not be destination-scopable; that is a finding.
+- Token scanning can be fooled by encoding or binary stores; mandatory encodings and
+  browser-written decoys keep the control non-vacuous.
+- Shared-tool edits can alter historical verdicts; each tool has a concrete earlier
+  input compatibility check before measurement artifacts run.
 
 ## Changelog
 
-- 2026-08-18 — Initial plan. Arms ordered by information value; the two residuals
-  needing a toolchain or a credential are deliberately excluded and named.
+- 2026-08-19 — Amended AC7 under AGENTS.md § Privacy: organisation identifiers may
+  not be committed even when non-secret. T0 implementation found the contradiction
+  when `build-archive.py` correctly refused the committed term file; both consumers
+  now require an operator-supplied external source. T0 corpus wording now correctly
+  assigns round-12 note registration to T6.
+- 2026-08-19 — T4 and T5 were deferred to round 13; their task identifiers were not recycled.
+- 2026-08-18 — Review-round-3 rewrite: moved shared rails before arms; defined the
+  privacy corpus and reproducible term source; strengthened token, signing, removal,
+  exemption, compatibility, and promotion controls.

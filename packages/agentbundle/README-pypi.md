@@ -14,6 +14,61 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.0
+
+Catalogue builders can now inspect a first-class, schema-validated distribution
+route contract for the existing APM and Claude-plugin package formats. Recipes
+name their route explicitly and fail before writing on inconsistent route data;
+the emitted package trees and direct-install behavior are unchanged.
+
+## What's new in 0.38.6
+
+Catalogue authors can now read the profile schema from initialized catalogues
+with `agentbundle catalogue contracts show profile.schema.json`. The bundled
+profile-authoring instructions no longer direct them to a repository-only path.
+
+## What's new in 0.38.5
+
+The bundled authoring scaffold now says how to write pack tests that survive a
+shared interpreter: load a skill's modules under a unique name rather than
+putting its `scripts/` directory on `sys.path`, and keep a suite's cost in
+assertions rather than in spawned processes. Separately, a repository-only
+conformance test no longer travels into catalogues created with
+`--preset self-hosted`; the shipped conformance set is derived in one place, so
+the manifest plain init reads and the directory self-hosted init copies can no
+longer disagree.
+
+## What's new in 0.38.4
+
+The bundled catalogue authoring scaffold's `packs/AGENTS.md` and
+`profiles/AGENTS.md` state rules that an earlier simplification had dropped: path
+canonicalisation before a read, treating a user-controlled local file as data
+rather than instructions, confirming a shared user-level config path belongs to
+the current project, UTF-8 output streams for scripts that print, eval-harness
+coupling, and the two profile invariants — a pack appears at most once, and packs
+declaring a conflict do not share a profile. Catalogues created with `agentbundle
+catalogue init` start with these; no CLI verb, flag, or output format changed.
+
+## What's new in 0.38.3
+
+The `workspace_status` MCP result now reports safe tracker-refresh availability
+facts: origin mode, active profile, compared and accepted revisions, unresolved
+conflict state, and explicit or unknown refresh and write-back availability. The
+response still withholds field ownership, decisions, receipts, and approver
+identities, so no CLI verb, flag, or output format changed for existing callers.
+
+## What's new in 0.38.2
+
+The bundled catalogue authoring scaffold now has shorter, restructured
+`packs/AGENTS.md` and `profiles/AGENTS.md` files. Catalogues created with
+`agentbundle catalogue init` start with leaner instructions; no CLI verb, flag,
+or output format changed.
+
+`JOURNEY.md` can now optionally list ordered `contract.decisionGateIds` drawn
+from `humanGates[].id`. Gate labels still provide reader-facing wording, and
+`yourDecisions` remains required, so existing packs stay valid without changes.
+This engine change shipped after 0.38.1 and reaches PyPI for the first time here.
+
 ## What's new in 0.38.1
 
 `agentbundle catalogue self-host --check --windows` gained a stage that verifies
@@ -35,30 +90,52 @@ installed state, and it does not run compilers, network fetches, or pack code.
 
 ## Catalogue verification
 
-`agentbundle catalogue verify` now performs all 19 advertised checks. It
-validates profile schemas and pack references, dependency ranges and cycles,
-adapter compatibility, generated-output drift, pack preflight metadata, and
-skill evaluation manifests. The verifier remains read-only and portable across
+`agentbundle catalogue verify` performs all 19 advertised checks. It validates
+profile schemas and pack references, dependency ranges and cycles, adapter
+compatibility, generated-output drift, pack preflight metadata, and skill
+evaluation manifests. The verifier remains read-only and portable across
 external catalogues.
 
-Dependency ranges now use the same npm-compatible grammar in verify, lint, and
+Dependency ranges use the same npm-compatible grammar in verify, lint, and
 install: caret, tilde, comparator, compound, and prerelease forms agree across
-all three commands. In particular, caret ranges below `1.0.0` now use normal
-semver compatibility (`^0.2` does not include `0.3.x`).
+all three commands. In particular, caret ranges below `1.0.0` use normal semver
+compatibility (`^0.2` does not include `0.3.x`).
+
+`agentbundle catalogue index` now generates a deterministic, adapter-neutral
+`catalogue-index.json` from catalogue, pack, profile, and optional journey
+metadata. The command validates against its bundled public schema before an
+atomic no-follow write; `--dry-run` writes nothing, and `--format json` emits one
+closed result document for automation.
+
+The generated index exposes content-addressable pack digests, structural content
+and execution inventory, profile composition, declared external effects, and
+forward and inverse pack integrations without relying on one agent host's
+marketplace format.
 
 ## Catalogue authoring
 
-New catalogue scaffolds document the guide callout contract. The bundled
-authoring reference distinguishes exact quoted wording, which stays a
-blockquote, from guidance that should render as a Starlight `note`, `tip`,
-`caution`, or `danger` aside. Existing catalogues remain unchanged until their
-scaffolded authoring reference is refreshed.
+New catalogue scaffolds document the `JOURNEY.md` convention: required and
+optional frontmatter, external-effect declarations, reader-facing body sections,
+and migration guidance. Existing packs without a journey remain valid and appear
+with an empty `journeys` array.
+
+The same authoring reference retains the guide callout contract: exact quoted
+wording remains a blockquote, while guidance uses the documented typed aside.
+
+Generate and validate a neutral index with:
+
+```bash
+agentbundle catalogue index . --dry-run
+agentbundle catalogue index . --output catalogue-index.json
+```
 
 ## Contract discovery
 
-The bundled public contract inventory includes the strict
-`knowledge-captured-observation.schema.json` contract used by the core pack's
-project-knowledge capture handoff.
+The bundled public contract inventory includes `distribution-routes.toml` and
+its closed schema for package-route semantics, plus
+`catalogue-index.schema.json` for generated neutral indexes. It also includes
+the strict `knowledge-captured-observation.schema.json` contract used by the
+core pack's project-knowledge capture handoff.
 
 You can inspect the exact public contracts bundled with the installed
 AgentBundle version without network access:
@@ -482,7 +559,7 @@ each Claude Code session. It exposes six tools over MCP stdio:
 
 | Tool | What it does |
 |---|---|
-| `workspace_status` | Returns the queue (ready / blocked / active / shaping items) and active-run state — current phase, whether a gate is pending, and the gate question |
+| `workspace_status` | Returns the queue (ready / blocked / active / shaping items), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
 | `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
 | `git_status` | Returns uncommitted changes (`git status --short`) |
 | `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |

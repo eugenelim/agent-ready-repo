@@ -1,0 +1,25 @@
+{
+  "contract_version": "tracker-refresh-profile.v1",
+  "id": "linear-default",
+  "version": "1.0",
+  "revision_field": "updatedAt",
+  "field_mapping": {
+    "Outcome": "title",
+    "User stories": "description"
+  },
+  "capabilities": [
+    "acquire",
+    "trace-link",
+    "display-status",
+    "comment",
+    "pull-request-link",
+    "closure"
+  ],
+  "destination": {
+    "scheme": "https",
+    "host": "api.linear.app",
+    "port": 443,
+    "redirects": false,
+    "dns_policy": "pinned-address"
+  }
+}

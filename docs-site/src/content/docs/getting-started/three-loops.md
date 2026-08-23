@@ -47,7 +47,7 @@ Every change goes through:
 | **Review** | Adversarial reviewer in a fresh session, specialist reviewers when warranted |
 | **Decide** | Fix blockers, defer nits with backlog entries, ship |
 
-The loop scales by risk: **light mode** for low-risk work (lean inline spec, single adversarial pass); **full mode** when any risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work.
+The loop scales by risk: **light mode** for low-risk work — a session-local plan and a single adversarial pass, with no durable planning artifact; **full mode** when any risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work.
 
 **Three specialist reviewers:**
 

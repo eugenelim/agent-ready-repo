@@ -1,6 +1,6 @@
 [pack]
 name = "catalogue-curation"
-version = "0.3.0"
+version = "0.4.1"
 description = "For the person who runs a catalogue, not the people installing from it. Bring in an outside skill, survey a repo worth borrowing from, or draft the case for a new pack."
 readme = "README.md"
 display_name = "Catalogue Curation"

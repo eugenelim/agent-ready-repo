@@ -89,8 +89,7 @@ def project_packs(
 def _resolve_target(output_root: Path, target_path: str) -> Path:
     """Join a contract ``target-path`` onto ``output_root``, confined.
 
-    ``target-path`` (and its route-scoped sibling ``plugin-target-path``) are
-    contract *data*. An absolute value discards the base entirely on join
+    ``target-path`` is contract *data*. An absolute value discards the base entirely on join
     (``Path("/a/b") / "/etc/x"`` is ``/etc/x``) and a ``..``-bearing one walks
     out of it — and because the orphan sweep resolves the same value, an
     escaped target becomes the root of a ``shutil.rmtree``. Confine after

@@ -13,12 +13,13 @@ metadata:
 
 Receive an existing product brief — a PRD, a solution handoff, a packet of work
 product handed from someone else — and route it into delivery when the user is
-ready. A brief spans several features and carries the *what/why*; a spec is one
-feature and carries the *how*. `new-spec` authors one feature; this skill is
-the inbox a level above it: **elicit** what the brief is missing, **mark it
-Ready** when the human gate passes, and **scaffold** only each confirmed slice.
-The brief becomes a live tracker whose coverage rolls up from the specs it
-spawned.
+ready. A brief spans several features and carries the *what/why*; a spec is the
+durable behavior contract for one delivery slice; and the plan is the
+implementation and verification strategy. `new-spec` authors one feature; this
+skill is the inbox a level above it: **elicit** what the brief is missing,
+**mark it Ready** when the human gate passes, and **scaffold** only each
+confirmed slice. The brief becomes a live tracker whose coverage rolls up from
+the specs it spawned.
 
 ## Output rendering
 
@@ -133,17 +134,23 @@ nesting. Unconfirmed slices remain deferred scope in the brief.
 Run this step when the human Ready gate passes, even when there are zero specs.
 Do not require a confirmed slice cut before marking a complete brief Ready.
 
-**DoR gate check** — before stamping `Ready`, verify the brief carries:
+**Canonical Ready gate** — before stamping `Ready`, verify exactly these
+semantic fields:
 - **Outcome** (present and non-empty)
-- **In-scope and out-of-scope boundaries** (both explicit)
+- **In scope** (present and explicit)
+- **Non-goals** (present and explicit)
 - **Constraints or appetite** (present and non-empty)
 - **Named assumptions or risks** (at least one)
 - **Durable source provenance** (and reviewed source revision for
   tracker-origin work)
-- **Spec map section** (placeholder rows are not required)
 
 If any gate field is absent, surface the gap and ask the user to fill it.
 Do **not** stamp `Status: Ready` on a brief that does not pass this gate.
+The **Spec map** is mechanically present but is not a semantic gate field; it
+may contain zero slices. A Ready brief with zero specs is valid and
+non-dispatchable. Success metrics, instrumentation, user stories, and design
+artifacts are optional unless another installed workflow or explicit policy
+requires one.
 
 **Write sequence** (run only after the gate passes):
 
@@ -256,16 +263,18 @@ and a story-list brief (Shape B), each with a populated Spec map.
 
 ## DoR gate
 
-The canonical Ready-gate fields are defined once in step 4. Meeting them does
-**not** automatically set `Status: Ready` — only that step's human-confirmed
-write-back does. A Ready brief may have zero specs and remain non-executable
-until the user confirms a slice for `new-spec`.
+"DoR gate" and "canonical Ready gate" name the same single gate; the older term
+is retained because other sections reference it. The canonical Ready gate is
+defined only in step 4. Meeting it does **not**
+automatically set `Status: Ready` — only that step's human-confirmed write-back
+does. Only confirmed delivery slices create specs and plans.
 
 ## Anti-patterns to refuse
 
 - **Receiving unstructured external input (email, Linear Issue) directly.**
-  Route those through `author-brief` first — it elicits the DoR fields and
-  queues the brief as `Draft`. This skill picks up from a shaped brief file.
+  Route those through `author-brief` first — it records what is known, names
+  the missing Ready fields, and queues the brief as `Draft`. It does not gate on
+  them; this skill owns the Ready gate. This skill picks up from a shaped brief file.
 - **Mandating a schema / rejecting a half-formed brief.** The shape is a guide.
   Elicit the load-bearing fields; offer the rest. A brief that arrives missing
   metrics is normal, not invalid.

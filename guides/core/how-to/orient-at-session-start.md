@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You are starting an agent session on a repo that uses `workspace.toml` and need to read queue state before picking work.
 **Prerequisites:** `core` pack installed and a terminal or agent session open in the repo root; see Prerequisites below.
-**Result:** Active initiative, milestone, and next ready action identified — you know which spec to start or which shaping skill to run.
+**Result:** Active initiative, milestone, next ready action, and any tracker-refresh state identified.
 
 You are starting an agent session on a repo that uses `workspace.toml`. This guide walks you through running `workspace-status` to read the queue state, identifying your active initiative, and picking your next action before starting any work.
 
@@ -56,6 +56,18 @@ The output lists build-room items by readiness:
 
 Pick one ready-to-start item. If nothing is ready, read the blocked section to understand what would unblock the queue.
 
+For a tracker-origin artifact, also read the source facts shown in status:
+
+- active profile and origin mode;
+- compared revision and accepted revision when present;
+- unresolved refresh conflict state;
+- refresh and write-back availability.
+
+An availability value of `unknown` is not permission to proceed. It means the
+status projection has no explicit configured-processor fact; use `work-intake`
+to resolve the exact profile before acquisition or mutation. Status never shows
+the complete ownership map, approver identity, decisions, or receipts.
+
 ## Step 5 — Read the shaping queue
 
 If the output includes a shaping section, read it:
@@ -75,6 +87,7 @@ You now have enough context to start. The common cases:
 | A shaping item is active | Run the suggested shaping skill |
 | You've noticed something new mid-session | `work-intake` — see [Start or remember work without choosing a skill](start-or-remember-work.md) |
 | Nothing is ready; everything is blocked | Surface the blocking dependency — resolve it or capture a follow-on |
+| A tracker-origin artifact has a newer source revision | Ask `work-intake` to refresh it and review the field delta |
 
 ## Related
 
@@ -83,3 +96,4 @@ You now have enough context to start. The common cases:
 - [How to start working on a project](start-a-project.md) — if this is your first session on the repo
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — every field explained
 - [Your first workspace session](../tutorials/your-first-workspace.md) — an end-to-end walkthrough
+- [Refresh tracked work safely](../../_shared/how-to/use-work-intake.md) — review a tracker delta and confirm write-back separately

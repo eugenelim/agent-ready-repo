@@ -100,7 +100,7 @@ def _aggregate_over(tmp_path: Path, packs: dict[str, str | None]) -> dict:
             encoding="utf-8")
         handles.append(Pack(name=slug, path=src))
 
-    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+    recipe = Recipe(name="marketplace", type="aggregate", route="claude-plugins", adapter=None,
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)
@@ -311,7 +311,7 @@ def _synth_pack(root: Path, slug: str, *, user: bool, repo: str | None = None) -
 
 def _recipe():
     from agentbundle.build.main import Recipe
-    return Recipe(name="marketplace", type="aggregate", adapter=None,
+    return Recipe(name="marketplace", type="aggregate", route="claude-plugins", adapter=None,
                   output_subdir=None, input_subdir="claude-plugins",
                   output_file="marketplace.json", units=[],
                   fragment_path=None, manifest_path=None)
@@ -471,7 +471,7 @@ def test_the_aggregate_names_what_it_drops_from_a_stale_tree(tmp_path, capsys) -
         '[pack.adapter-contract]\nversion = "0.3"\n'
         '[pack.install]\nallowed-scopes = ["repo", "user"]\n', encoding="utf-8")
 
-    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+    recipe = Recipe(name="marketplace", type="aggregate", route="claude-plugins", adapter=None,
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)

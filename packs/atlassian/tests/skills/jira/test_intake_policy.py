@@ -56,6 +56,7 @@ def test_policy_rejects_scheme_host_and_credential_mismatch() -> None:
         flavor="server",
         email=None,
     )
+
     with pytest.raises(client_module.AuthError):
         client_module.JiraClient(credentials, intake_policy=policy)
 
@@ -100,6 +101,221 @@ def test_policy_disables_redirects_and_refuses_writes(monkeypatch) -> None:
 
     asyncio.run(exercise())
     assert len(seen) == 1
+
+
+def test_guarded_write_policy_sends_once_without_retry(monkeypatch) -> None:
+    client_module = _load_client()
+    from agentbundle._data.work_intake_refresh import RemoteActionReceipt
+
+    pending_receipt = RemoteActionReceipt(
+        "confirmation-1",
+        "a" * 64,
+        "1.0",
+        "b" * 64,
+        "approver@example.com",
+        "maintainer",
+        "2026-08-17T12:00:00Z",
+        "current-human-session",
+        "comment",
+        "EX-1",
+    )
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(503, request=request)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(
+            *args, **{**kwargs, "transport": transport}
+        ),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE,
+        "https://tracker.example.test",
+        resolver=_public_resolver,
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(
+            credentials,
+            intake_policy=policy,
+        ) as client:
+            with pytest.raises(client_module.JiraError, match="Exhausted 1 attempts"):
+                await client._request(
+                    "POST",
+                    "/rest/api/2/issue/EX-1/comment",
+                    guarded_write=pending_receipt,
+                )
+
+    asyncio.run(exercise())
+    assert len(seen) == 1
+
+
+def test_cloud_jql_search_retries_rate_limit_even_though_it_uses_post(monkeypatch) -> None:
+    """Cloud's read-only JQL endpoint is POST but remains safe to retry."""
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"}, request=request)
+        return httpx.Response(
+            200,
+            json={"issues": [{"key": "EX-1"}], "isLast": True},
+            request=request,
+        )
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(*args, **{**kwargs, "transport": transport}),
+    )
+
+    async def no_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="cloud",
+        email="user@example.test",
+    )
+
+    async def exercise() -> list[dict]:
+        async with client_module.JiraClient(credentials, intake_policy=policy) as client:
+            return [issue async for issue in client.iter_search("project = EX")]
+
+    assert asyncio.run(exercise()) == [{"key": "EX-1"}]
+    assert len(seen) == 2
+    assert all(request.method == "POST" for request in seen)
+
+
+@pytest.mark.parametrize(
+    ("method", "idempotent"),
+    [("GET", None), ("POST", True)],
+)
+def test_read_only_policy_permits_explicit_read_intent(
+    monkeypatch, method: str, idempotent: bool | None
+) -> None:
+    """GET/HEAD defaults and trusted idempotent POSTs share one read rule."""
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+    transport = httpx.MockTransport(
+        lambda request: seen.append(request) or httpx.Response(200, request=request)
+    )
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(*args, **{**kwargs, "transport": transport}),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(credentials, intake_policy=policy) as client:
+            response = await client._request(
+                method, "/rest/api/2/issue/EX-1", idempotent=idempotent
+            )
+            assert response.status_code == 200
+
+    asyncio.run(exercise())
+    assert [request.method for request in seen] == [method]
+
+
+def test_existing_token_write_retries_transient_failure(monkeypatch) -> None:
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"}, request=request)
+        return httpx.Response(201, json={"id": "1"}, request=request)
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(*args, **{**kwargs, "transport": transport}),
+    )
+
+    async def no_sleep(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="cloud",
+        email="user@example.test",
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(credentials) as client:
+            await client.add_comment("EX-1", "Reviewed")
+
+    asyncio.run(exercise())
+    assert len(seen) == 2
+    assert all(request.method == "POST" for request in seen)
+
+
+def test_read_only_policy_refuses_non_idempotent_post(monkeypatch) -> None:
+    """The Cloud-search exception does not authorize general POST requests."""
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+    transport = httpx.MockTransport(
+        lambda request: seen.append(request) or httpx.Response(200, request=request)
+    )
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(*args, **{**kwargs, "transport": transport}),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(credentials, intake_policy=policy) as client:
+            with pytest.raises(client_module.JiraError, match="read-only"):
+                await client._request("POST", "/rest/api/2/issue/EX-1/comment")
+
+    asyncio.run(exercise())
+    assert seen == []
 
 
 def test_policy_enforces_response_bytes(tmp_path, monkeypatch) -> None:

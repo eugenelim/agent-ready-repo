@@ -492,6 +492,37 @@ def build_check(args: argparse.Namespace) -> int:
             "agents-md gitignore probes",
             "tools", "test-lint-agents-md-gitignore-probes.py",
         ),
+        # The three structural boundary gates for ARCHITECTURE.md section 3.
+        # These go in the UNFILTERED chain for the same reason the check-ignore
+        # gates above do: `docs.yml` is `paths`-filtered to an explicit file
+        # allowlist, so a PR that violates one of these boundaries in a file the
+        # allowlist does not name would run neither the lint nor its self-test.
+        # Each lint is paired with its self-test, because a lint whose own
+        # detection is broken reports "passed" on a violating tree.
+        _script_step(
+            "adapter-layer-boundary",
+            "tools", "lint-adapter-layer-boundary.py",
+        ),
+        _script_step(
+            "adapter-layer-boundary self-test",
+            "tools", "test-lint-adapter-layer-boundary.py",
+        ),
+        _script_step(
+            "pack-dependency-declaration",
+            "tools", "lint-pack-dependency-declaration.py",
+        ),
+        _script_step(
+            "pack-dependency-declaration self-test",
+            "tools", "test-lint-pack-dependency-declaration.py",
+        ),
+        _script_step(
+            "generated-path-ownership",
+            "tools", "lint-generated-path-ownership.py",
+        ),
+        _script_step(
+            "generated-path-ownership self-test",
+            "tools", "test-lint-generated-path-ownership.py",
+        ),
         # Directory-scoped: each suite's conftest puts its skill's scripts/ on
         # sys.path, so both collect nothing from the repo root. Pure stdlib —
         # no install, no network — so they belong in the local chain.

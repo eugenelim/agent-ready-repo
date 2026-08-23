@@ -2,6 +2,23 @@
   "contract_version": "work-intake-routing-evals.v1",
   "cases": [
     {
+      "id": "direct-light",
+      "fixture": "evals/files/routing/start-direct-light.json",
+      "artifact": "",
+      "artifact_kind": "",
+      "lifecycle_membership": "none",
+      "processor": "work-loop",
+      "authority_mode": "repo-origin",
+      "mutation": "none",
+      "signals": {
+        "action": "start",
+        "artifact": "",
+        "artifact_kind": "",
+        "authority_mode": "repo-origin",
+        "direct_light": true
+      }
+    },
+    {
       "id": "start-minimal-intent",
       "fixture": "evals/files/routing/start-minimal-intent.json",
       "artifact": "docs/product/intents/workspace-routing.md",
@@ -55,7 +72,7 @@
       "artifact": "docs/specs/example/spec.md",
       "artifact_kind": "spec",
       "lifecycle_membership": "resolved-existing",
-      "processor": "new-spec",
+      "processor": "none",
       "authority_mode": "repo-origin",
       "mutation": "none",
       "signals": {

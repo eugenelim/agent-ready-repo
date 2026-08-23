@@ -5,8 +5,7 @@ The build derives a smaller, schema-compliant **subset** from it and projects
 that into each distribution route's manifest, alongside the pack's `README.md`.
 This page describes that model. The on-disk *shape* of a pack lives in
 [`pack-layout.md`](pack-layout.md); the decision record is
-[ADR-0021](../adr/0021-pack-manifest-source-of-truth-and-scoped-identity.md)
-(RFC-0031).
+[ADR-0021](../adr/0021-pack-manifest-source-of-truth-and-scoped-identity.md).
 
 ## Why a source-of-truth + projection split
 
@@ -21,7 +20,7 @@ simply aren't emitted there.
 ## What `pack.toml` carries
 
 Beyond the required `name` / `version` / `description`, `[pack]` accepts the
-optional enriched fields (all introduced at adapter-contract **v0.14**):
+optional enriched fields:
 
 | Field | Shape | Notes |
 | --- | --- | --- |
@@ -35,9 +34,8 @@ optional enriched fields (all introduced at adapter-contract **v0.14**):
 | `[pack.links]` | object | `homepage` / `repository` / `documentation` / `changelog` / `issues` / `icon` |
 | `[pack.metadata.<tool>]` | object | opaque passthrough — the build reads only namespaces it knows |
 
-Every enriched field is **optional**. A pack that declares none of them builds
-and validates exactly as it did before v0.14 — the projected output is
-byte-identical (the *emit-only-when-present* rule below makes this provable).
+Every enriched field is **optional**. A pack that declares none of them emits
+no enriched projection fields.
 
 ## The projectable subset
 
@@ -77,9 +75,8 @@ each `marketplace.json` entry validates against
 [`marketplace-entry.schema.json`](../../contracts/marketplace-entry.schema.json)
 (the derived schema plus required `source` and permitted `category`). The
 source-shape [`plugin-manifest.schema.json`](../../contracts/plugin-manifest.schema.json)
-admits the same named subset. Until 2026-08, marketplace entries were validated
-by nothing at all — which is how an invalid `source` shape reached adopters. Both keep `additionalProperties: false` — a
-genuinely unknown key is still rejected.
+admits the same named subset. Both schemas keep `additionalProperties: false`;
+a genuinely unknown key is rejected.
 
 The pack's `README.md` is copied verbatim into both the claude-plugins and APM
 route directories, so the `readme = "README.md"` pointer resolves relative to
@@ -94,13 +91,11 @@ pack.
 `@<catalogue>/<pack>` when `[pack].catalogue` is set, and the bare `<pack>`
 otherwise. This is **declaration + rendering only** — there is no
 multi-catalogue *resolution* path; single-catalogue resolution in `list-packs`
-and `install` is unchanged. Cross-catalogue resolution is a follow-on
-(RFC-0031's index-contract / virtual-catalogue roadmap).
+and `install` is unchanged. There is no cross-catalogue resolution.
 
 ## What is intentionally *not* here
 
-- No hosted registry, persisted index, or `agentbundle search` (RFC-0031 scopes
-  these out).
+- No hosted registry, persisted index, or `agentbundle search`.
 - No per-tool field routing into the Codex / Copilot / Cursor manifests yet —
   the subset projects only into the claude-plugins + APM `plugin.json` /
   `marketplace.json` surface (a deferred follow-on).

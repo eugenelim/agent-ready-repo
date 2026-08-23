@@ -35,7 +35,8 @@ _DATA_ROOT = (
 )
 
 # Pairs: (repo-root source path, relative path inside catalogue-scaffold/).
-# Order is stable; new files must be added here to participate in sync.
+# Order is stable. New files must be added here to participate in sync,
+# except tests/conformance/, which is derived below.
 _SYNC_PAIRS: list[tuple[Path, str]] = [
     (_REPO_ROOT / "packs" / "README.md", "packs/README.md"),
     (_REPO_ROOT / "packs" / "AGENTS.md", "packs/AGENTS.md"),
@@ -66,19 +67,19 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
         _REPO_ROOT / "guides" / "_shared" / "reference" / "catalogue-authoring-standards.md",
         "guides/_shared/reference/catalogue-authoring-standards.md",
     ),
-    (
-        _REPO_ROOT / "tests" / "conformance" / "test_gemini_admissibility.py",
-        "tests/conformance/test_gemini_admissibility.py",
-    ),
-    (
-        _REPO_ROOT / "tests" / "conformance" / "test_pack_metadata.py",
-        "tests/conformance/test_pack_metadata.py",
-    ),
-    (
-        _REPO_ROOT / "tests" / "conformance" / "test_shared_library_boundaries.py",
-        "tests/conformance/test_shared_library_boundaries.py",
-    ),
 ]
+
+# `tests/conformance/` is derived, not listed. Two mechanisms decide what
+# conformance an adopter receives: this manifest, which plain `catalogue init`
+# reads, and a wholesale directory copy in self-hosted init and both archive
+# flavours. A hand-maintained list keeps them equal only until the next file
+# lands -- after which the directory ships it and the manifest does not, and
+# the two adopter populations get different sets with every gate still green.
+# Deriving the pairs from the directory leaves one mechanism to disagree with.
+_SYNC_PAIRS.extend(
+    (path, f"tests/conformance/{path.name}")
+    for path in sorted((_REPO_ROOT / "tests" / "conformance").glob("*.py"))
+)
 
 
 def _check(verbose: bool) -> list[str]:

@@ -65,6 +65,27 @@
         "output_contains": ["Backlog", "[shape]", "docs/product/intents/example.md", "[build]", "docs/specs/example-defect/spec.md"],
         "output_excludes": ["Traceback", "workspace-status error:"]
       }
+    },
+    {
+      "id": 5,
+      "prompt": "Show workspace status, including the tracker refresh authority and availability facts",
+      "expected_output": "The agent invokes the workspace-status backend and reports only its structured tracker authority projection: tracker-origin, profile example-service 1.0, compared revision remote-rev-2, accepted revision remote-rev-1, unresolved conflict, and refresh/write-back availability unknown. It does not expose field ownership, the approver identity, raw tracker content, or infer that a processor is installed.",
+      "assertions": [
+        "Uses the backend authority projection rather than parsing prose or tracker content",
+        "Reports compared and accepted revisions plus the unresolved conflict",
+        "Reports refresh and write-back availability as unknown until a processor provides explicit facts",
+        "Does not expose owned fields or approver identity"
+      ],
+      "files": [
+        "evals/files/refresh/workspace.toml",
+        "evals/files/refresh/docs/specs/tracker-backed/spec.md",
+        "evals/files/refresh/docs/specs/tracker-backed/plan.md"
+      ],
+      "expect": {
+        "produces": [],
+        "output_contains": ["tracker-origin", "example-service", "remote-rev-2", "remote-rev-1", "unknown"],
+        "output_excludes": ["Outcome", "Example Approver", "Traceback", "workspace-status error:"]
+      }
     }
   ]
 }

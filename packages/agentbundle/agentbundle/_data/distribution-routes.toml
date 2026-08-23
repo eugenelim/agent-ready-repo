@@ -1,0 +1,42 @@
+# Distribution-route contract — package derivation concerns that are independent
+# of direct-install runtime adapters. Validates against
+# ./distribution-routes.schema.json.
+
+[contract]
+version = "0.1"
+
+[route.apm]
+identity = "apm"
+package-layout = { name = "apm-package-tree", output-subdir = "apm" }
+manifest-projector = { name = "apm-package", adapter-projector = "none", admission-policy = "all-packs" }
+marketplace-projector = "none"
+lifecycle-trigger = "session-start-install-marker"
+
+[route.apm.component-capabilities]
+skill = { status = "native", mode = "direct-directory", target-path = ".apm/skills/" }
+agent = { status = "native", mode = "direct-file", target-path = ".apm/agents/" }
+command = { status = "native", mode = "direct-file", target-path = ".apm/commands/" }
+hook-body = { status = "native", mode = "direct-file", target-path = ".apm/hooks/" }
+hook-wiring = { status = "native", mode = "direct-file", target-path = ".apm/hook-wiring/" }
+kiro-ide-hook = { status = "native", mode = "direct-file", target-path = ".apm/kiro-ide-hooks/" }
+shared-libs = { status = "native", mode = "direct-directory", target-path = ".apm/shared-libs/" }
+adapter-root-bins = { status = "native", mode = "direct-directory", target-path = ".apm/adapter-root-bins/" }
+user-libs = { status = "native", mode = "direct-directory", target-path = ".apm/user-libs/" }
+
+[route."claude-plugins"]
+identity = "claude-plugins"
+package-layout = { name = "claude-plugin-tree", output-subdir = "claude-plugins" }
+manifest-projector = { name = "claude-plugin", adapter-projector = "claude-code", admission-policy = "user-publishable-with-consent" }
+marketplace-projector = "claude-marketplace"
+lifecycle-trigger = "session-start-install-marker"
+
+[route."claude-plugins".component-capabilities]
+skill = { status = "native", mode = "direct-directory", target-path = "skills/" }
+agent = { status = "native", mode = "direct-file", target-path = "agents/" }
+command = { status = "native", mode = "direct-file", target-path = "commands/" }
+hook-body = { status = "native", mode = "direct-file", target-path = "hooks/" }
+hook-wiring = { status = "native", mode = "compiled-manifest", target-path = ".claude-plugin/plugin.json" }
+kiro-ide-hook = { status = "dropped", mode = "dropped", target-path = "none" }
+shared-libs = { status = "dropped", mode = "dropped", target-path = "none" }
+adapter-root-bins = { status = "dropped", mode = "dropped", target-path = "none" }
+user-libs = { status = "dropped", mode = "dropped", target-path = "none" }

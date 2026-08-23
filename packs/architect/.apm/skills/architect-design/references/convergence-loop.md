@@ -92,8 +92,8 @@ biases it toward agreeing).
   use the strongest isolation available per the ladder above.
 - **`architect-review` not installed** → loop against `architect-design`'s own
   **embedded rubric self-check**: walk `design-doc-rubric.md` and
-  `nfr-checklist.md`, plus the WA references (`well-architected-pillars.md`,
-  `tradeoffs-and-sensitivity.md`, `quality-attribute-scenarios.md`), and apply
+  `nfr-checklist.md`, plus the selected generated quality-lens,
+  trade-off/sensitivity, and quality-scenario concepts, and apply
   the same mechanical-vs-judgment test to each gap you find. The loop is **never
   a hard dependency** on the second skill — it does not error or require it, it
   degrades.

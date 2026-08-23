@@ -140,7 +140,7 @@ cache, where two concurrent builds on a fresh machine would both extract a 236 M
 tarball into one version directory. D-B replaced that with a pip package the user
 installs once, outside the pack, through a package manager that has its own
 concurrency story. **The design no longer introduces any globally mutable
-resource** — which upgrades invariant 10 from a claim needing a caveat to a claim
+resource** — which upgrades invariant 11 from a claim needing a caveat to a claim
 that simply holds.
 
 Both locks are created `O_CREAT|O_EXCL` holding PID and start time. A waiter
@@ -176,7 +176,7 @@ set**. Outside it, `clean` lists every content-key directory it matched and asks
 before removing, rather than assuming the binder-id means one thing.
 
 **Two different binders build concurrently with no shared mutable state** — there
-is no global file to contend over, which is invariant 10 doing real work rather
+is no global file to contend over, which is invariant 11 doing real work rather
 than being a slogan.
 
 ### Interruption and idempotence
@@ -184,7 +184,7 @@ than being a slogan.
 `stage/` is rebuilt from scratch every run — including `stage/.cache/`, which is
 Zensical's and is therefore never carried across — so an interrupted build leaves
 no state that can corrupt the next one. A rerun with unchanged inputs produces a
-byte-identical index (invariant 21) and byte-identical staged files; whether the
+byte-identical index (invariant 15) and byte-identical staged files; whether the
 renderer's HTML is byte-identical is not claimed. Incremental rebuild (`--if-stale`,
 Phase 2) will compare recorded SHA-256 values and skip a no-op rebuild; v1 always
 rebuilds, which is correct-but-slower and needs no cache-invalidation reasoning.
@@ -270,7 +270,7 @@ one.
 
 `run.json` holds exactly four fields — `started`, `finished`, `renderer-version`,
 `pack-version` — and exists so the build summary can report them without putting
-a timestamp in the index (invariant 21). Nothing else reads it; if the summary
+a timestamp in the index (invariant 15). Nothing else reads it; if the summary
 stops printing them, the file goes.
 
 **Orphaned workspaces.** The content-key hashes the pack version, so every pack
@@ -298,8 +298,8 @@ publication root). There is no `--toolchain`: D-B removed the cache it swept.
 
 ## Compatibility and migration
 
-Nothing to migrate. No existing artifact changes; no pack changes; no source file
-changes. A repository adopts the pack by adding one `binder.toml`.
+Nothing migrates: existing artifacts, packs, and sources remain unchanged. Adopt
+the pack by adding one `binder.toml`.
 
 | Change | Impact |
 |---|---|
@@ -308,10 +308,9 @@ changes. A repository adopts the pack by adding one `binder.toml`.
 | `tools/build-site.py`, `site.toml`, `docs-site/` | None. Not read, not written, not imported. |
 | `.gitignore` | Offered, on consent: `.binder-work/`, and the publication dir if inside the repository. |
 | `agentbundle-layout.toml` | An adopter adds a `[binder]` section by hand; the installer's append does not create it (see the current-state correction). |
-| `contracts/` | **None.** The schemas ship in the skill's `assets/` and are published from there; see *Canonical schema publication* for why mirroring them into `contracts/` would invert RFC-0076 D1's authority model and pull a binder schema into the CLI's bundled `_data/`. |
+| `contracts/` | **None.** Schemas ship and are published from skill `assets/`; mirroring them into `contracts/` would invert RFC-0076 D1's authority model and add a binder schema to the CLI's bundled `_data/`. |
 
-A pack that later wants to participate does so by shipping a recipe template
-under its own `assets/`, or documenting its frontmatter — both additive, neither
-requiring a change to this pack.
+A participating pack ships a recipe template in its assets or documents its
+frontmatter; neither changes this pack.
 
 ---

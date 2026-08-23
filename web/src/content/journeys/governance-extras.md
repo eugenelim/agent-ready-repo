@@ -16,6 +16,10 @@ contract:
     - "Review the RFC draft before circulation"
     - "Accept, reject, or defer the RFC"
     - "Merge the ADR"
+  decisionGateIds:
+    - review-rfc-draft
+    - decide-rfc
+    - merge-accepted-adr
 whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
@@ -24,16 +28,13 @@ skills:
   - name: new-adr
     description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
     humanTouches: 2
-  - name: update-conventions
-    description: "Evolves CONVENTIONS.md with tracked changes — the living record of how this project's team works."
-    humanTouches: 1
   - name: rfc-status
     description: "Surfaces the current RFC landscape at a glance — how many RFCs are in each lifecycle state, which are active, and how many findings are waiting in the candidate register."
     humanTouches: 0
 humanGates:
-  - id: G-draft
+  - id: review-rfc-draft
     globalGate: null
-    label: "Review the RFC draft before circulation"
+    label: "Review the RFC draft"
     trigger: "After new-rfc produces a draft — before it is shared with stakeholders"
     duration: "10–20 minutes"
     whatToCheck:
@@ -44,22 +45,21 @@ humanGates:
     whatGoodLooksLike: "An RFC whose problem statement you could send to someone who doesn't know the project and they'd understand what's being debated. Objections that a thoughtful opponent would actually raise."
     whatBadLooksLike: "An RFC that proposes the solution in the problem statement — 'we should adopt X' instead of 'we need to solve Y.' Or objections that are obviously weaker than the proposer's case and weren't genuinely steelmanned."
     consequence: "A bad RFC draft circulates and the feedback it gets is on the framing, not the substance — wasting reviewers' time and forcing a rewrite. The draft gate is cheap; the rewrite gate is not."
-  - id: G-accept
+  - id: decide-rfc
     globalGate: null
-    label: "Accept, reject, or defer the RFC"
+    label: "Accept or decline the RFC"
     trigger: "After the comment period closes and the RFC is ready for a decision"
     duration: "15–30 minutes"
     whatToCheck:
       - "Have all objections been addressed — or explicitly acknowledged and set aside with a reason?"
-      - "Is the decision clearly stated: Accepted, Rejected, or Deferred — with a rationale?"
+      - "Is the decision clearly stated: Accepted or Rejected — with a rationale?"
       - "If Accepted: is there a follow-on ADR planned to record the architectural decision?"
-      - "If Deferred: is there a trigger condition that would bring it back — or is Deferred a polite way of saying Rejected?"
     whatGoodLooksLike: "A clear disposition with a rationale a future reader could follow. Accepted means someone is building it. Rejected means no one is building it and the document explains why."
-    whatBadLooksLike: "An RFC that accumulates comments and then sits in limbo — no decision, no follow-on. Or a Deferred with no trigger condition, which means it will never be reconsidered."
+    whatBadLooksLike: "An RFC that accumulates comments and then sits in limbo — no decision, no follow-on."
     consequence: "An undecided RFC becomes technical debt in the governance register. People build around it, reference it as precedent, or ignore it entirely — none of those outcomes is what the RFC process is for."
-  - id: G-merge
+  - id: merge-accepted-adr
     globalGate: "G4"
-    label: "Merge the ADR"
+    label: "Merge the accepted ADR"
     trigger: "After new-adr produces a draft ADR ready for review"
     duration: "10–15 minutes"
     whatToCheck:
@@ -85,7 +85,6 @@ relatedJourneys:
 | `rfc-status`           | Orient — RFC landscape by status and findings count     |
 | `new-rfc`              | Propose a cross-cutting change through a structured RFC |
 | `new-adr`              | Record an architectural decision with critique tracks   |
-| `update-conventions`   | Evolve CONVENTIONS.md through tracked RFC review        |
 
 ---
 
@@ -107,7 +106,7 @@ new-rfc [adopt trunk-based development]
 Approve? ›
 ```
 
-- **You decide:** review the RFC draft at G-draft before circulating — the most common error is naming the solution in the problem statement; redirect to reframe around the underlying need.
+- **You decide:** review the RFC draft before circulating — the most common error is naming the solution in the problem statement; redirect to reframe around the underlying need.
 - **Output:** `docs/rfc/0043-trunk-based-development.md` — a circulated RFC draft with a clear problem statement and genuine adversarial perspectives. After every mandatory check is clean and the RFC and index entry are written, `rfc-handoff-ready` may capture reusable supporting practice through core's public seam; incomplete or abandoned work produces no capture.
 - **State:** proposed-write
 
@@ -159,6 +158,6 @@ new-adr [branching strategy: trunk-based development]
 Approve? ›
 ```
 
-- **You decide:** accept, reject, or defer the RFC at G-accept; then merge the ADR at G-merge.
+- **You decide:** accept or decline the RFC; then merge the accepted ADR.
 - **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale — linked from the RFC that produced it. Only the decision-maker's Proposed-to-Accepted transition reaches `adr-accepted`; previewed, rejected, or abandoned ADRs never capture, and normative decisions remain solely in the ADR.
 - **State:** confirmed-write

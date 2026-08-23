@@ -21,9 +21,15 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## When to invoke
 
-The spec is the contract; the plan is the strategy. Even a one-day feature
-benefits from a one-paragraph spec — it forces the question "what does done
-look like?" before any code.
+The spec is the contract; the plan is the strategy. Invoke this skill when at
+least one of these conditions warrants a durable contract:
+
+- The user explicitly requests a spec.
+- Full mode or durable coordination requires one.
+- A confirmed brief slice is selected for delivery.
+- The work needs queueing, resumption, approval persistence, or external
+  orchestration.
+- A durable published behavior contract is warranted.
 
 ## Procedure
 
@@ -288,14 +294,23 @@ look like?" before any code.
 
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
-   - Break the work into tasks small enough to be a single PR each.
+   - Break the work into plan tasks small enough for one PR. Above 2,000
+     reviewable behavior and test lines, declare the task's review shape and
+     act on it: mechanically uniform WIDE work is not split but carries
+     reproducibility proof;
+     MIXED and DEEP work decomposes into dependency-ordered layers, each
+     independently reviewable and leaving the repository working. Ambiguous
+     shape is DEEP.
    - Carry **construction tests** per task — `Tests:` before `Approach:`
      in each task, designed up front. "We'll test it" is not a strategy.
 
    Push back hard on these plan-stage failure modes (mirror of step 4):
    - **Task too big.** "Implement the feature" is not a task; "add the
-     validation function for X" is. Each task should fit a single PR
-     and a single context window. Split coarse tasks until they do.
+     validation function for X" is. Each task should be small enough for one
+     PR and one context window. Above 2,000 reviewable behavior and test
+     lines, the plan states the task's review shape and its consequence:
+     mechanically uniform WIDE carries reproducibility proof, MIXED and DEEP decompose into working
+     layers, ambiguous is DEEP.
    - **`Depends on:` omitted.** Every task must state `Depends on:`
      explicitly — prior task IDs or `none`. Don't let authors lean on
      task order to imply dependency; that hides serial-by-default

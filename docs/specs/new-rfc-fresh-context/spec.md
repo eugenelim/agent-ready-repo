@@ -1,6 +1,6 @@
 # Spec: new-rfc fresh-context readability + decidable-in-chat decisions
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0089](../../adr/0089-decision-weight-trims-the-rfc-gate.md) — refinement 3's all-tier scope, the readability check now being property-triggered; the check itself and the other three refinements stand) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0014, RFC-0054

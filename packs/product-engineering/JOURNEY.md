@@ -15,6 +15,11 @@ contract:
     - "Mid-discovery check"
     - "Reconcile"
     - "Commit to build"
+  decisionGateIds:
+    - approve-intent
+    - select-candidate
+    - approve-decision-brief
+    - commit-to-build
 whatChanges: "After installing product-engineering, upstream intent work runs through discovery-loop: frame → explore → converge → commit. The discovery-lead agent diverges across candidate product shapes, drives the lens roster to convergence, and emits a connected hypothesis with validation hooks — no engine. You review at four human gates; the agent runs everything between them."
 skills:
   - name: discovery-loop
@@ -63,9 +68,9 @@ skills:
     description: "Coordinates a multi-component product intent across a business-unit value stream."
     humanTouches: 1
 humanGates:
-  - id: G0
+  - id: approve-intent
     globalGate: "G0"
-    label: "Shape intent"
+    label: "Approve the intent"
     trigger: "After frame-intent emits the initial framing"
     duration: "10–15 minutes"
     whatToCheck:
@@ -74,10 +79,10 @@ humanGates:
       - "Is the outcome measurable — what would change in the world if this succeeded?"
     whatGoodLooksLike: "A framing that names a specific user, a falsifiable problem, and a measurable outcome."
     whatBadLooksLike: "A framing that could apply to any product — 'improve developer productivity' is not a problem statement."
-    consequence: "G0 is the framing gate. A bad framing means the entire discovery loop explores the wrong space."
-  - id: "G1.5"
+    consequence: "This is the framing gate. A bad framing means the entire discovery loop explores the wrong space."
+  - id: select-candidate
     globalGate: null
-    label: "Mid-discovery check"
+    label: "Choose a candidate"
     trigger: "After explore-options and the first lens-roster pass"
     duration: "15–20 minutes"
     whatToCheck:
@@ -87,9 +92,9 @@ humanGates:
     whatGoodLooksLike: "A clear field of two or three differentiated candidates, each with a distinct tradeoff profile."
     whatBadLooksLike: "All candidates converged to the same shape before the lens roster ran — the diverge step didn't diverge."
     consequence: "The mid-discovery check prevents the loop from converging on a bad candidate without the human noticing."
-  - id: G2
+  - id: approve-decision-brief
     globalGate: null
-    label: "Reconcile"
+    label: "Approve the decision brief"
     trigger: "After the full lens-roster pass on the surviving candidates"
     duration: "20–30 minutes"
     whatToCheck:
@@ -98,8 +103,8 @@ humanGates:
       - "Is the decomposition granular enough to fit in one build-loop iteration?"
     whatGoodLooksLike: "A build-ready decision brief — reviewers clean, falsifiable hypothesis, decomposition that fits the delivery loop."
     whatBadLooksLike: "A brief that passes the gate but skips the riskiest assumption. Or a decomposition too large for one loop."
-    consequence: "G2 produces the build commitment artifact. A bad brief means the delivery loop builds the wrong thing faithfully."
-  - id: G3
+    consequence: "This produces the build commitment artifact. A bad brief means the delivery loop builds the wrong thing faithfully."
+  - id: commit-to-build
     globalGate: "G3"
     label: "Commit to build"
     trigger: "After the reconciliation record is ratified"
@@ -109,7 +114,7 @@ humanGates:
       - "Is there anything in the brief you are not prepared to ship?"
     whatGoodLooksLike: "You ratify the brief and hand it to the delivery loop."
     whatBadLooksLike: "You ratify with reservations and don't surface them. The delivery loop builds faithfully to a brief you had doubts about."
-    consequence: "G3 is the discovery-to-delivery handoff. After this gate, the delivery loop builds."
+    consequence: "This is the discovery-to-delivery handoff. After this gate, the delivery loop builds."
 typicalSession:
   agentTurns: "12–20"
   humanTouches: 4
@@ -118,6 +123,27 @@ docsUrl: /docs/guides/product-engineering/
 packUrl: /packs/product-engineering/
 relatedJourneys:
   - core
+eyebrow: "From an uncertain idea to a build-ready decision"
+goodOutputDescription: |-
+  **You:** Use `discovery-loop` to take this feature idea to a build-ready
+  decision brief. Release owners can see which automated check failed, but not
+  what action will unblock it. Diverge before converging.
+  **Agent:** Initial framing: the affected user is the release owner; the
+  failure names the rule but not the corrective action; success means choosing
+  the next step without inspecting source code.
+  **You:** Approve the intent.
+  **Agent:** I compared three candidates: richer inline guidance, a linked
+  runbook, and interactive remediation. I recommend concise inline guidance
+  with a stable documentation link: it shortens recovery without creating a
+  new runtime path.
+  **You:** Choose that candidate.
+  **Agent:** The decision brief now records the evidence, boundaries, risks,
+  rejected alternatives, and success measures.
+  **You:** Approve the decision brief.
+  **Agent:** The capability map separates failure diagnosis, corrective
+  guidance, and verification. The first build slice is specified and
+  independently reviewable.
+  **You:** Commit to build.
 ---
 
 | Say this | What happens |
@@ -198,7 +224,7 @@ frame-intent
 Ratify framing? ›
 ```
 
-- **You decide:** G0 — ratify the framing before the loop diverges. A vague problem means the loop explores the wrong space.
+- **You decide:** approve the intent — ratify the framing before the loop diverges. A vague problem means the loop explores the wrong space.
 - **Output:** an intent document with a specific problem, named user, and measurable outcome, stamped with the confirmed `Level`.
 - **State:** draft
 
@@ -248,7 +274,7 @@ discovery-reliability-reviewer
 The agent surfaces the surviving candidates for your mid-course review.
 
 ```text
-discovery-loop [G1.5]
+discovery-loop
 
   Candidate   Status       Note
   Shape A     surviving    concern addressed — trust framing added
@@ -259,7 +285,7 @@ discovery-loop [G1.5]
 Mid-discovery check — confirm candidates? ›
 ```
 
-- **You decide:** G1.5 — confirm the surviving candidates or direct a re-exploration. This is the last cheap moment to expand the option space.
+- **You decide:** choose a candidate — confirm the surviving candidates or direct a re-exploration. This is the last cheap moment to expand the option space.
 - **Output:** a confirmed candidate field ready for convergence.
 - **State:** draft
 
@@ -295,7 +321,7 @@ A child whose riskiest assumption is killed bubbles back up — the parent must 
 The agent presents the full discovery sidecar — intent, assumption-test, validated candidate, and decomposition — for your final review.
 
 ```text
-discovery-loop [G2]
+discovery-loop
 
   Section          Status     Notes
   intent           ratified   feature level, onboarding-activation
@@ -306,6 +332,6 @@ discovery-loop [G2]
 Reconcile? ›
 ```
 
-- **You decide:** G2 — is the brief complete? Then G3 — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
+- **You decide:** approve the decision brief — is the brief complete? Then commit to build — am I ready to build this? These are two distinct decisions; read the brief in full before ratifying either.
 - **Output:** a ratified decision brief with a connected hypothesis and validation hooks. At `feature` level this hands off to the delivery loop via `receive-brief`. At `capability` or above it produces ratified child intents — each re-enters the loop independently at its own level.
 - **State:** confirmed-write

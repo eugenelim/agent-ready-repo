@@ -22,7 +22,7 @@ backs both the **spec-stage secure-design pass** (is the control specified?) and
 ## Enforced frameworks
 
 All framework rows source their "Driving module(s)" from the [`security-checklists` Module
-index](../../../packs/core/.apm/skills/security-checklists/SKILL.md#module-index) —
+index](../../packs/core/.apm/skills/security-checklists/SKILL.md#module-index) —
 the authoritative boundary→module routing table. Rows without a runtime module are
 always-on passes in the reviewer body or spec-stage-only.
 
@@ -101,7 +101,7 @@ The audit reviewed ~60 skills across 14 packs. Findings and their status:
 | `research` skill did not explicitly state that fetched content is treated as data not instructions | Concern | AST05 | Added "Trust posture — retrieved content is untrusted data" section to `research/SKILL.md` |
 | `confluence-crawler` and `jira` skills did not declare SSRF containment for user-supplied base URLs | Concern | AST06 | Added agent pre-flight check note to Security rules in both `confluence-crawler/SKILL.md` and `jira/SKILL.md`. The scripts validate only the URL scheme (`http://`/`https://`); the host pre-flight check (reject private-IP ranges and cloud-metadata endpoints) is the agent's responsibility. On the token path `follow_redirects=True` is active — verify before invoking. |
 | Non-credentialed boundary-crossing skills carried no security metadata in frontmatter | Concern | AST10 | Added `metadata.boundaries` lists to: `assimilate-primitive`, `assimilate-repo`, `propose-catalogue-pack` (catalogue-curation; `export-catalogue` has since been removed — its CLI replacement carries this in the engine); `file-to-markdown`, `msg-to-markdown`, `markdown-to-docx`, `markdown-to-html`, `markdown-to-pptx`, `markdown-to-xlsx`, `mermaid-renderer` (converters); `release-loop` (release-engineering); `research`, `source-map` (research) |
-| `assimilate-primitive` Phase 1 lacked an explicit AST01-AST10 review step for ingested candidates | Concern | AST01-AST10 | Added step 5 (AST01-AST10 agentic-skills security review) to `assimilate-primitive/SKILL.md` Phase 1; `assimilate-repo` Never-do updated to name this gate |
+| Ingested candidates | Concern | AST01-AST10 | `assimilate-primitive` requires an AST01-AST10 agentic-skills security review; `assimilate-repo` names the same gate |
 
 ### Security metadata convention — `metadata.boundaries`
 

@@ -1,13 +1,17 @@
 """Tests for guide-routing and /now/ projection in tools/build-site.py.
 
-Covers: frontmatter parsing, guide-metadata stripping, slug-override routing,
-alias redirect-stub generation, docs/guides/ exclusion, generation's
-independence from the marketing design-token file, and the released-changelog
-Highlights projection that feeds the public `/now/` route.
+Covers: shared-chrome contract validation and projection, frontmatter parsing,
+guide-metadata stripping, slug-override routing, alias redirect-stub generation,
+docs/guides/ exclusion, generation's independence from the marketing
+design-token file, and the released-changelog Highlights projection that feeds
+the public `/now/` route.
 """
 from __future__ import annotations
 
+import copy
 import importlib.util
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +26,54 @@ _spec.loader.exec_module(build_site)  # type: ignore[union-attr]
 
 SITE_BASE = "/agent-ready-repo/docs"
 
+_APPROVED_SHARED_CHROME_HEADER = (
+    "how-it-works", "use-cases", "catalogue", "now", "docs", "try-the-build-loop",
+)
+_APPROVED_SHARED_CHROME_DOCS_BAND = (
+    "product", "how-it-works", "use-cases", "catalogue", "now", "docs",
+)
+_APPROVED_SHARED_CHROME_DOCS_PRODUCT_NAVIGATION = (
+    "product-home", "how-it-works", "use-cases", "catalogue", "now",
+)
+_APPROVED_SHARED_CHROME_GROUPS = (
+    (
+        "product",
+        "Product",
+        ("how-it-works", "use-cases", "catalogue", "packs", "journeys"),
+    ),
+    (
+        "docs",
+        "Docs",
+        ("get-started", "install", "three-loops", "all-docs"),
+    ),
+    (
+        "project",
+        "Project",
+        ("now", "changelog", "contributing", "claude-plugins", "github", "pypi"),
+    ),
+)
+_APPROVED_SHARED_CHROME_DESTINATIONS = {
+    "product": ("Product", "/", "internal"),
+    "product-home": ("Product home", "/", "internal"),
+    "how-it-works": ("How it works", "/#three-loops", "internal"),
+    "use-cases": ("Use cases", "/#use-cases", "internal"),
+    "catalogue": ("Catalogue", "/catalogue/", "internal"),
+    "now": ("Now", "/now/", "internal"),
+    "docs": ("Docs", "/docs/", "internal"),
+    "try-the-build-loop": ("Try the build loop", "/#install", "internal"),
+    "packs": ("Packs", "/packs/", "internal"),
+    "journeys": ("Journeys", "/journeys/", "internal"),
+    "get-started": ("Get started", "/docs/getting-started/", "internal"),
+    "install": ("Install", "/docs/getting-started/install/", "internal"),
+    "three-loops": ("The three loops", "/docs/getting-started/three-loops/", "internal"),
+    "all-docs": ("All docs", "/docs/", "internal"),
+    "changelog": ("Changelog", "/docs/changelog/", "internal"),
+    "contributing": ("Contributing", "/docs/contributing/", "internal"),
+    "claude-plugins": ("Claude plugins", "/plugins/", "internal"),
+    "github": ("GitHub", "https://github.com/eugenelim/agent-ready-repo", "external"),
+    "pypi": ("PyPI", "https://pypi.org/project/agentbundle/", "external"),
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -34,6 +86,457 @@ def _make_guide(tmp_path: Path, rel: str, content: str) -> tuple[Path, Path]:
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(content, encoding="utf-8")
     return src, guides_root
+
+
+def _shared_chrome_fixture() -> dict:
+    """Return a fresh copy of the approved site.toml shared-chrome contract."""
+    return copy.deepcopy(
+        build_site.load_shared_chrome_contract(
+            Path(__file__).resolve().parent.parent / "site.toml"
+        )
+    )
+
+
+def _assert_shared_chrome_rejected(contract: dict, expected: str) -> None:
+    """Assert validation fails before it can return renderer projection data."""
+    try:
+        build_site.project_shared_chrome(contract)
+    except ValueError as exc:
+        assert expected in str(exc), str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError(f"shared chrome contract unexpectedly projected: {contract!r}")
+
+
+def _link(destination_id: str, label: str, target: str, kind: str) -> dict:
+    return {"id": destination_id, "label": label, "target": target, "kind": kind}
+
+
+# ---------------------------------------------------------------------------
+# Shared chrome contract — T1 of spec/site-shared-chrome
+# ---------------------------------------------------------------------------
+
+def test_shared_chrome_contract_anchor_matches_approved_vocabulary():
+    """Pin the approved IA vocabulary outside the renderer-neutral source."""
+    contract = _shared_chrome_fixture()
+
+    assert tuple(contract["header"]) == _APPROVED_SHARED_CHROME_HEADER
+    assert tuple(contract["docs_band"]) == _APPROVED_SHARED_CHROME_DOCS_BAND
+    assert (
+        tuple(contract["docs_product_navigation"])
+        == _APPROVED_SHARED_CHROME_DOCS_PRODUCT_NAVIGATION
+    )
+    assert tuple(
+        (group["id"], group["label"], tuple(group["destinations"]))
+        for group in contract["groups"]
+    ) == _APPROVED_SHARED_CHROME_GROUPS
+    assert {
+        destination["id"]: (
+            destination["label"], destination["target"], destination["kind"]
+        )
+        for destination in contract["destinations"]
+    } == _APPROVED_SHARED_CHROME_DESTINATIONS
+
+
+def _expected_renderer_projection(contract: dict) -> dict:
+    """Build projection expectations from the source contract, not a second taxonomy."""
+    destinations = {
+        destination["id"]: _link(
+            destination["id"],
+            destination["label"],
+            destination["target"],
+            destination["kind"],
+        )
+        for destination in contract["destinations"]
+    }
+    return {
+        "header": [
+            destinations[destination_id] for destination_id in contract["header"]
+        ],
+        "footer": [
+            {
+                "id": group["id"],
+                "label": group["label"],
+                "destinations": [
+                    destinations[destination_id]
+                    for destination_id in group["destinations"]
+                ],
+            }
+            for group in contract["groups"]
+        ],
+    }
+
+
+def _expected_docs_renderer_projection(contract: dict) -> dict:
+    """Build docs expectations from the source's docs-specific ordered lists."""
+    destinations = {
+        destination["id"]: _link(
+            destination["id"],
+            destination["label"],
+            destination["target"],
+            destination["kind"],
+        )
+        for destination in contract["destinations"]
+    }
+    return {
+        "product_orientation_band": [
+            destinations[destination_id]
+            for destination_id in contract["docs_band"]
+        ],
+        "product_navigation": [
+            destinations[destination_id]
+            for destination_id in contract["docs_product_navigation"]
+        ],
+        "footer": _expected_renderer_projection(contract)["footer"],
+    }
+
+
+def test_shared_chrome_projects_independently_allocated_renderer_data():
+    """Renderers receive their own ordered, separately allocated projection data."""
+    contract = _shared_chrome_fixture()
+    marketing_expected = _expected_renderer_projection(contract)
+    docs_expected = _expected_docs_renderer_projection(contract)
+
+    first = build_site.project_shared_chrome(contract)
+    second = build_site.project_shared_chrome(contract)
+    assert first == second == {"marketing": marketing_expected, "docs": docs_expected}
+    assert first["marketing"] is not first["docs"]
+    assert first["marketing"]["header"] is not first["docs"]["product_orientation_band"]
+    assert first["marketing"]["footer"] is not first["docs"]["footer"]
+
+    first["marketing"]["header"][0]["label"] = "Changed only in marketing"
+    assert first["docs"]["product_orientation_band"][1]["label"] == "How it works"
+
+
+def test_marketing_shared_chrome_projection_writes_the_marketing_contract(tmp_path):
+    """The pre-build marketing input contains no docs renderer projection."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+
+    payload = build_site.generate_marketing_shared_chrome_projection(contract, output)
+
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+    assert payload == build_site.project_shared_chrome(contract)["marketing"]
+    assert "product_orientation_band" not in payload
+
+
+def test_marketing_shared_chrome_projection_dry_run_does_not_write(tmp_path):
+    """Dry runs calculate the marketing projection without changing its input file."""
+    output = tmp_path / "shared-chrome.generated.json"
+
+    build_site.generate_marketing_shared_chrome_projection(
+        _shared_chrome_fixture(), output, dry_run=True
+    )
+
+    assert not output.exists()
+
+
+def test_marketing_shared_chrome_projection_rejects_a_seeded_stale_literal(tmp_path):
+    """AC1 guard: hand-edited renderer input cannot drift from the sole source."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+    payload = build_site.generate_marketing_shared_chrome_projection(contract, output)
+    payload["header"][0]["label"] = "Stale marketing literal"
+    output.write_text(json.dumps(payload), encoding="utf-8")
+
+    try:
+        build_site.assert_marketing_shared_chrome_projection_current(contract, output)
+    except ValueError as exc:
+        assert "is stale" in str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("a stale marketing shared-chrome literal passed consistency")
+
+
+def test_docs_shared_chrome_projection_writes_only_the_docs_contract(tmp_path):
+    """The post-web-build docs input has no marketing header projection."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+
+    payload = build_site.generate_docs_shared_chrome_projection(contract, output)
+
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+    assert payload == build_site.project_shared_chrome(contract)["docs"]
+    assert "header" not in payload
+
+
+def test_docs_shared_chrome_projection_dry_run_does_not_write(tmp_path):
+    """Dry runs calculate the docs projection without changing its input file."""
+    output = tmp_path / "shared-chrome.generated.json"
+
+    build_site.generate_docs_shared_chrome_projection(
+        _shared_chrome_fixture(), output, dry_run=True
+    )
+
+    assert not output.exists()
+
+
+def test_docs_shared_chrome_projection_rejects_a_seeded_stale_literal(tmp_path):
+    """AC1 guard: hand-edited docs input cannot drift from the sole source."""
+    output = tmp_path / "shared-chrome.generated.json"
+    contract = _shared_chrome_fixture()
+    payload = build_site.generate_docs_shared_chrome_projection(contract, output)
+    payload["product_orientation_band"][0]["label"] = "Stale docs literal"
+    output.write_text(json.dumps(payload), encoding="utf-8")
+
+    try:
+        build_site.assert_docs_shared_chrome_projection_current(contract, output)
+    except ValueError as exc:
+        assert "is stale" in str(exc)
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("a stale docs shared-chrome literal passed consistency")
+
+
+def test_shared_chrome_rejects_duplicate_destination_ids():
+    contract = _shared_chrome_fixture()
+    duplicate = copy.deepcopy(
+        next(
+            destination
+            for destination in contract["destinations"]
+            if destination["id"] == "how-it-works"
+        )
+    )
+    contract["destinations"].append(duplicate)
+
+    _assert_shared_chrome_rejected(contract, "duplicate destination ID 'how-it-works'")
+
+
+def test_shared_chrome_rejects_duplicate_group_ids():
+    contract = _shared_chrome_fixture()
+    duplicate = copy.deepcopy(contract["groups"][0])
+    contract["groups"].append(duplicate)
+
+    _assert_shared_chrome_rejected(contract, "duplicate group ID 'product'")
+
+
+def test_shared_chrome_rejects_missing_group_members():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"][-1] = "missing-journeys"
+
+    _assert_shared_chrome_rejected(contract, "destination 'missing-journeys'")
+
+
+def test_shared_chrome_rejects_a_group_repeating_a_member():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"].append("how-it-works")
+
+    _assert_shared_chrome_rejected(contract, "group 'product' repeats destination 'how-it-works'")
+
+
+def test_shared_chrome_rejects_a_group_listing_a_destination_from_another_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"][-1] = "all-docs"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'all-docs' references group 'docs', not 'product'",
+    )
+
+
+def test_shared_chrome_rejects_a_destination_omitted_from_its_declared_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["destinations"].pop(0)
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'how-it-works' references group 'product' but is missing",
+    )
+
+
+def test_shared_chrome_rejects_destination_referencing_a_missing_group():
+    contract = _shared_chrome_fixture()
+    contract["groups"].pop(0)
+
+    _assert_shared_chrome_rejected(contract, "destination 'how-it-works' references missing group 'product'")
+
+
+def test_shared_chrome_rejects_unsupported_target_kinds():
+    contract = _shared_chrome_fixture()
+    next(
+        destination
+        for destination in contract["destinations"]
+        if destination["id"] == "how-it-works"
+    )["kind"] = "mailto"
+
+    _assert_shared_chrome_rejected(contract, "destination 'how-it-works' has unsupported kind 'mailto'")
+
+
+def test_shared_chrome_rejects_invalid_internal_target_shapes():
+    invalid_targets = {
+        "https://example.test/": "expected a root-relative target",
+        "//example.test/": "protocol-relative targets are not allowed",
+        "/docs\\getting-started/": "backslashes are not allowed",
+        "/docs/../getting-started/": "parent-directory segments are not allowed",
+        "/docs/has space/": "whitespace is not allowed",
+        "/#": "fragment must be non-empty",
+        "/docs/getting-started": "expected a '/'-terminated path or '#fragment' form",
+    }
+    for target, expected in invalid_targets.items():
+        contract = _shared_chrome_fixture()
+        contract["destinations"][0]["target"] = target
+
+        _assert_shared_chrome_rejected(contract, expected)
+
+
+def test_shared_chrome_rejects_header_references_and_duplicates():
+    contract = _shared_chrome_fixture()
+    contract["header"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(contract, "header references missing destination 'missing-destination'")
+
+    contract = _shared_chrome_fixture()
+    contract["header"][1] = "how-it-works"
+
+    _assert_shared_chrome_rejected(contract, "header repeats destination 'how-it-works'")
+
+
+def test_shared_chrome_rejects_invalid_docs_band_entries():
+    contract = _shared_chrome_fixture()
+    contract["docs_band"] = "product"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "site.toml shared_chrome.docs_band must be an ordered destination ID array",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][0] = ""
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "shared chrome docs_band has invalid 'docs_band'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_band references missing destination 'missing-destination'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_band"][1] = "product"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_band repeats destination 'product'",
+    )
+
+
+def test_shared_chrome_rejects_invalid_docs_product_navigation_entries():
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"] = "product-home"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "site.toml shared_chrome.docs_product_navigation must be an ordered destination ID array",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][0] = ""
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "shared chrome docs_product_navigation has invalid 'docs_product_navigation'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][0] = "missing-destination"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_product_navigation references missing destination 'missing-destination'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["docs_product_navigation"][1] = "product-home"
+
+    _assert_shared_chrome_rejected(
+        contract,
+        "docs_product_navigation repeats destination 'product-home'",
+    )
+
+
+def test_shared_chrome_rejects_presentation_and_state_fields():
+    contract = _shared_chrome_fixture()
+    contract["state"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "contract has unsupported field 'state'")
+
+    contract = _shared_chrome_fixture()
+    next(
+        destination
+        for destination in contract["destinations"]
+        if destination["id"] == "how-it-works"
+    )["breakpoint"] = "renderer-owned"
+    _assert_shared_chrome_rejected(
+        contract,
+        "destination 'how-it-works' has unsupported field 'breakpoint'",
+    )
+
+    contract = _shared_chrome_fixture()
+    contract["groups"][0]["state"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "group 'product' has unsupported field 'state'")
+
+    contract = _shared_chrome_fixture()
+    contract["unexpected"] = "renderer-owned"
+    _assert_shared_chrome_rejected(contract, "contract has unsupported field 'unexpected'")
+
+
+def test_journeys_only_validates_shared_chrome_before_projection(monkeypatch):
+    """A malformed contract blocks journeys-only projections before they run."""
+    def fail_validation(_site_toml: Path) -> None:
+        raise ValueError("invalid shared chrome")
+
+    def unexpected_projection(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("journeys-only projection ran before shared-chrome validation")
+
+    monkeypatch.setattr(build_site, "load_shared_chrome_contract", fail_validation)
+    monkeypatch.setattr(build_site, "sync_pack_journeys", unexpected_projection)
+    monkeypatch.setattr(
+        build_site, "generate_marketing_shared_chrome_projection", unexpected_projection
+    )
+    monkeypatch.setattr(build_site, "_report_now_projection", unexpected_projection)
+    monkeypatch.setattr(sys, "argv", ["build-site.py", "--journeys-only"])
+
+    try:
+        build_site.main()
+    except ValueError as exc:
+        assert str(exc) == "invalid shared chrome"
+    else:  # pragma: no cover - the raise below is the failure report
+        raise AssertionError("journeys-only build unexpectedly projected invalid shared chrome")
+
+
+def test_journeys_only_emits_marketing_shared_chrome_before_the_web_build(monkeypatch):
+    """The pre-web-build path emits the generated marketing renderer input."""
+    contract = _shared_chrome_fixture()
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(build_site, "load_shared_chrome_contract", lambda _path: contract)
+    monkeypatch.setattr(build_site, "sync_pack_journeys", lambda *_args, **_kwargs: 0)
+    monkeypatch.setattr(
+        build_site,
+        "generate_marketing_shared_chrome_projection",
+        lambda received, **kwargs: calls.append(("shared_chrome", (received, kwargs))),
+    )
+    monkeypatch.setattr(
+        build_site,
+        "generate_docs_shared_chrome_projection",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("journeys-only must not emit the post-web docs input")
+        ),
+    )
+    monkeypatch.setattr(
+        build_site,
+        "_report_now_projection",
+        lambda *_args, **_kwargs: calls.append(("now", None)),
+    )
+    monkeypatch.setattr(sys, "argv", ["build-site.py", "--journeys-only", "--dry-run"])
+
+    build_site.main()
+
+    assert calls == [
+        ("shared_chrome", (contract, {"dry_run": True})),
+        ("now", None),
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +692,127 @@ def test_docs_guides_not_mirrored_from_real_guides_root(tmp_path):
         )
     # Sanity: some actual guides/ content was mirrored
     assert any(site_docs.rglob("*.md")), "Expected mirrored guides to produce at least one file"
+
+
+# --------------------------------------------------------------------------
+# spec/site-shared-chrome AC10 — the two renderers stay independent
+# --------------------------------------------------------------------------
+#
+# Shared chrome means shared destination vocabulary and NOTHING else. Both
+# renderers now consume the same canonical contract, which is exactly the
+# condition under which someone reaches for "just import the other one's
+# helper" — so the boundary needs a check rather than a convention. The
+# existing marketing-token tests below cover the palette half of AC10; these
+# cover source imports and the separateness of the two projected inputs.
+
+_MARKETING_CHROME_SOURCES = (
+    "web/src/components/layout/SiteNav.astro",
+    "web/src/components/layout/SiteFooter.astro",
+    "web/src/lib/shared-chrome.ts",
+)
+_DOCS_CHROME_SOURCES = (
+    "docs-site/src/components/PageFrame.astro",
+    "docs-site/src/components/Footer.astro",
+    "docs-site/src/components/shared-chrome.ts",
+)
+
+
+# Any construct that makes one tree depend on a file in another: JS/TS imports and
+# re-exports, CSS `@import`, and `url()` asset references. A named-file allowlist
+# would only cover the files someone remembered, so the sweep walks both trees.
+_DEPENDENCY_RE = re.compile(
+    r"""(?:\bfrom\s*|\bimport\s*|\brequire\s*\(\s*|@import\s*|\burl\s*\()['"]([^'"]+)['"]"""
+)
+_RENDERER_TREES = (
+    # (tree scanned, the other renderer's directory it may not reach into)
+    ("web/src", "docs-site"),
+    ("docs-site/src", "web"),
+)
+# The emitted-output suites deliberately read BOTH build trees to compare them;
+# they are assertions about the boundary, not a crossing of it.
+_CROSS_TREE_TEST_FILES = frozenset({
+    "web/src/test/rendered-output.test.ts",
+})
+
+
+def _renderer_source_files(tree: str):
+    """Every hand-written source file under a renderer tree."""
+    root = _REPO_ROOT / tree
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or "node_modules" in path.parts:
+            continue
+        if path.suffix not in {".astro", ".ts", ".tsx", ".js", ".mjs", ".css", ".json"}:
+            continue
+        if path.name.endswith(".generated.json"):
+            continue
+        yield path
+
+
+def test_neither_renderer_imports_the_other_renderers_chrome():
+    """AC10: no shared components, helpers, tokens, CSS, or state across renderers.
+
+    Swept over both trees rather than a list of the files someone thought of: a
+    cross-renderer `@import` in a stylesheet, or an import added to a component
+    this guard never named, is the same violation as one in the chrome files.
+    """
+    offenders = []
+    for tree, forbidden in _RENDERER_TREES:
+        for path in _renderer_source_files(tree):
+            relative = str(path.relative_to(_REPO_ROOT))
+            if relative in _CROSS_TREE_TEST_FILES:
+                continue
+            for number, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), start=1
+            ):
+                for target in _DEPENDENCY_RE.findall(line):
+                    # Only a path that climbs out of this tree can reach the other.
+                    if ".." not in target and not target.startswith("/"):
+                        continue
+                    if re.search(rf"(^|/){re.escape(forbidden)}/", target):
+                        offenders.append(f"{relative}:{number}: {line.strip()}")
+    assert not offenders, (
+        "a renderer depends on the other renderer's files: " + "; ".join(offenders)
+    )
+
+
+def test_the_chrome_files_this_guard_names_still_exist():
+    """A stale path would silently drop a file from the AC10 sweep's spot-checks."""
+    missing = [
+        relative
+        for relative in _MARKETING_CHROME_SOURCES + _DOCS_CHROME_SOURCES
+        if not (_REPO_ROOT / relative).is_file()
+    ]
+    assert not missing, f"AC10 guard names files that no longer exist: {missing}"
+
+
+def test_each_renderer_reads_its_own_projected_input():
+    """AC10: one canonical source, two independently allocated renderer inputs."""
+    marketing = _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+    docs = _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+    assert marketing.is_file() and docs.is_file()
+    assert marketing != docs
+
+    marketing_payload = json.loads(marketing.read_text(encoding="utf-8"))
+    docs_payload = json.loads(docs.read_text(encoding="utf-8"))
+    # The docs projection deliberately exposes no `header`: the docs band is not
+    # the marketing header, and inferring one from the other is the drift this
+    # separation exists to prevent.
+    assert set(marketing_payload) == {"header", "footer"}
+    assert "header" not in docs_payload
+    assert set(docs_payload) == {
+        "product_orientation_band", "product_navigation", "footer",
+    }
+
+    # Each renderer reads its own file and only its own file.
+    for relative, own, other in (
+        ("web/src/components/layout/SiteFooter.astro",
+         "lib/shared-chrome.generated.json", "docs-site"),
+        ("docs-site/src/components/PageFrame.astro",
+         "shared-chrome.generated.json", "web/src"),
+    ):
+        text = (_REPO_ROOT / relative).read_text(encoding="utf-8")
+        assert own in text, f"{relative} no longer reads its own projected input"
+        assert other not in text, f"{relative} reaches into the other renderer"
 
 
 # --------------------------------------------------------------------------
@@ -1084,6 +1708,12 @@ def test_the_window_does_not_filter_the_projection():
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
 _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
+_MARKETING_SHARED_CHROME_PROJECTION = (
+    _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
+)
+_DOCS_SHARED_CHROME_PROJECTION = (
+    _REPO_ROOT / "docs-site" / "src" / "shared-chrome.generated.json"
+)
 _EMITTED_CHANGELOG = _REPO_ROOT / "build" / "docs" / "changelog" / "index.html"
 
 # The day `/now/` launched. A historical fact, deliberately pinned rather than
@@ -1109,6 +1739,20 @@ def test_the_committed_now_projection_matches_the_changelog_source():
     assert committed == expected, (
         "web/src/lib/now-highlights.generated.json is stale — "
         "run `python3 tools/build-site.py --journeys-only`"
+    )
+
+
+def test_the_committed_marketing_shared_chrome_projection_matches_site_toml():
+    """The committed marketing renderer input remains derived from site.toml."""
+    build_site.assert_marketing_shared_chrome_projection_current(
+        _shared_chrome_fixture(), _MARKETING_SHARED_CHROME_PROJECTION
+    )
+
+
+def test_the_committed_docs_shared_chrome_projection_matches_site_toml():
+    """The docs build input remains derived from the renderer-neutral source."""
+    build_site.assert_docs_shared_chrome_projection_current(
+        _shared_chrome_fixture(), _DOCS_SHARED_CHROME_PROJECTION
     )
 
 
@@ -1312,8 +1956,8 @@ def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
         assert got_anchors.index(base) < got_anchors.index(anchor)
 
 
-def test_the_public_work_surface_is_gone_from_the_marketing_source():
-    """`/work/` is removed outright — no page, no component, no exporter, no redirect.
+def test_the_public_work_surface_is_gone_from_marketing_inputs():
+    """`/work/` is removed from routes and the generated marketing input.
 
     Asserted over source rather than the build so it holds in the required suite,
     which runs without a site build.
@@ -1329,11 +1973,31 @@ def test_the_public_work_surface_is_gone_from_the_marketing_source():
     present = [str(p.relative_to(_REPO_ROOT)) for p in forbidden if p.exists()]
     assert not present, f"retired work-index surface still present: {present}"
 
-    nav = (
-        _REPO_ROOT / "web" / "src" / "components" / "layout" / "SiteNav.astro"
-    ).read_text(encoding="utf-8")
-    assert "/work/" not in nav
-    assert "withBase('/now/')" in nav
+    projection = json.loads(
+        _MARKETING_SHARED_CHROME_PROJECTION.read_text(encoding="utf-8")
+    )
+    destinations = [
+        link
+        for section in (
+            projection["header"],
+            *(group["destinations"] for group in projection["footer"]),
+        )
+        for link in section
+    ]
+    assert all(link["target"] != "/work/" for link in destinations)
+    assert any(link["id"] == "now" and link["target"] == "/now/" for link in destinations)
+
+    # The projection check above cannot see a hand-written literal reintroduced
+    # into a component, and the emitted-output check that would runs only when a
+    # build exists. Keep a source-level scan so the required suite still fails.
+    layout = _REPO_ROOT / "web" / "src" / "components" / "layout"
+    marketing_chrome = [layout / "SiteNav.astro", layout / "SiteFooter.astro"]
+    with_work = [
+        str(path.relative_to(_REPO_ROOT))
+        for path in marketing_chrome
+        if "/work/" in path.read_text(encoding="utf-8")
+    ]
+    assert not with_work, f"marketing chrome reintroduced a /work/ literal: {with_work}"
 
 
 # Git blob hashes of the frozen m6 artifacts, recorded from `origin/main` at

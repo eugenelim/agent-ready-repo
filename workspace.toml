@@ -140,18 +140,24 @@ backlog = [
 executing = ""
 ready     = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
+  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
 ]
 draft     = []
 
 ["ini-002".work]
-active  = []
+active  = [
+  {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
+]
 shipped = [
+  {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
+  {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
   {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
   {path = "docs/specs/project-knowledge-review-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate bounded project knowledge enquiry with review workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-authoring-integrations/spec.md"}]},
+  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-integrations/spec.md"}]},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
@@ -227,17 +233,14 @@ shipped = [
   {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
   {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
   {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
+
+  # Shipped 2026-08-19. All 15 acceptance criteria met; AC15's design-review
+  # clause closed by a third recorded review returning no Major or worse.
+  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
+  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = []},
+  {path = "docs/specs/local-ci-orchestration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Remove duplicate local CI orchestration and resolve Make's default Python once", needs = []},
 ]
 queue   = [
-  # RFC-0088 round 12 — measures open questions 4, 5 and 6 plus two residuals that
-  # surfaced when round 11's amended requirements were read against a real adopter
-  # consumer. Five arms, all synthetic or local: destination-scoped worker policy,
-  # page-resident token boundary, browser signing-identity anchor, separate-uid
-  # attachment isolation, and the worker purge's blast radius. Deliberately EXCLUDES
-  # the native-addon bypass (needs a toolchain — Ask first) and the
-  # post-authentication SSO worker dependency (needs a credential — not measurable
-  # under the security preconditions). Spec is Draft: approve it to make it ready.
-  {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6 and two consumer-shaped residuals", needs = []},
   # Work-loop runtime: one transition, one Python process. `loop-engine.py
   # transition` shelled out to `loop-cohort.py` and `check-spec-status.py` for
   # its read-only guards, so a single transition started up to three extra
@@ -253,18 +256,10 @@ queue   = [
   # retire later entries through normal review when their assumed shape has changed;
   # queue comments are a roadmap, while each approved spec is the implementation truth.
 
-  # Slices 1 through 3 are shipped in the work list above. Their measured behavior is
+  # Slices 1 through 4 are shipped in the work list above. Their measured behavior is
   # the adaptive starting point for every remaining slice; do not preserve an
   # assumed integration shape when evidence supports splitting, combining,
   # reordering, or retiring it.
-
-  # Slice 4 — research integrations. Shape research separately because its cited products,
-  # raw corpora, intermediate phases, source-verification duty, and repo-relative versus
-  # personal output roots do not share review's non-writing stable-gate contract. Decide its
-  # exact terminal product gates and whether capture, enquiry, or no integration is justified;
-  # test every selected quick/standard/applied/deep and project-lifecycle workflow; never
-  # persist raw corpora or make retrieved knowledge a citation or self-validating evidence.
-  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-integrations/spec.md"}]},
 
   # Slice 5 — engineering and operational integrations. Introduce explicit enquiry and
   # semantic-gate capture where demonstrated useful in work-loop execution, diagnosis,
@@ -286,8 +281,6 @@ queue   = [
   # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
   # These entries are independently shippable. `needs` records only hard delivery
   # ordering; the brief retains the broader wave and evidence sequence.
-  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
-  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-now-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
   # CI throughput. Independent of the project-knowledge chain above — it touches
   # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
   # The critical path is set by one serial job, so the fix is job layout, not
@@ -512,6 +505,34 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # RFC-0092 distribution-routes programme. These confirmed downstream slices
+  # stay non-dispatchable until each is promoted through new-spec. Typed needs
+  # preserve the accepted dependency order without manufacturing placeholder
+  # specs. Phase 0 is already materialized at the canonical spec path.
+  {path = "docs/product/intents/portable-agent-plugin-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Project existing canonical skills into deterministic portable Agent Plugin packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},
+  {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/portable-agent-plugin-projection.md"}]},
+  {path = "docs/product/intents/distribution-route-registry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Extract generic route dispatch after three real routes exist", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}]},
+  {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
+  {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
+  {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
+  # RFC-0095 D3. 59 versioned entries sit nested under a `## [Unreleased]` heading and
+  # are permanently invisible to the `/now/` projection (it applies no date window; a
+  # nested entry simply never publishes). Not a mechanical level-shift: 48 genuinely
+  # unreleased bare `### Added`/`### Fixed` sections are interleaved across three
+  # `[Unreleased]` regions (12 / 5 / 31), and at least one — an `agentbundle pack evals
+  # run` fix directly below `[atlassian][0.9.0]` — would be republished under the wrong
+  # artifact by a uniform promotion. Needs per-section attribution. The ratchet in
+  # `tests/roster/test_workspace_status_projection.py` stops the count growing meanwhile,
+  # and should be lowered as entries are promoted.
+  {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
+  # RFC-0092 D7 deferred direction. The canonical MCP primitive stays transport-first so
+  # a typed acquisition descriptor stays possible; fetch-on-run launchers are already
+  # refused at the build boundary, so this is a permit-something RFC, not a restrict one.
+  {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
+  # The six hand-authored journey pages retain legacy display copy but have no
+  # approved semantic-ID/label mappings. Their fragments are intentionally not
+  # emitted; closing this requires an approved editorial ledger extension.
+  {slug = "legacy-hand-authored-journey-gate-mappings", source = "spec/journey-page-completion AC5", summary = "Approve semantic ID and label mappings for the six hand-authored journey pages before migrating their visible legacy gate-code prose"},
   # === spec/guide-typed-asides-test-gate deferrals ===
   # tools/test_guide_typed_asides.py pins a frozen 165-row blockquote ledger across
   # 193 guides/** files (docs/specs/guide-typed-asides-conversion/notes/*.jsonl).
@@ -1083,6 +1104,48 @@ open = [
   # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
   # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
   {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+  # Cause measured, not inferred: a non-editable `agentbundle` in site-packages
+  # resolves ahead of the worktree source under audit. The okf test asserts
+  # `expected == CLI_VERSION` and reports '0.38.4' == '0.38.1' — worktree source
+  # at 0.38.4 against the installed 0.38.1. This is agentbundle's CLI version,
+  # NOT the core pack version, so a core bump neither causes nor fixes it.
+  # Affected: test_okf_catalogue_discovery.py::test_release_metadata_moves_together_for_okf_catalogue_discovery,
+  # test_catalogue_wave4_live_contracts.py::test_live_catalogue_indexes_every_manifest_pack
+  # (raises inside site-packages/agentbundle/catalogue_tooling/index_generator.py:502),
+  # and test_marketplace_envelope_parity.py::test_resolved_layer_fails_loudly_when_the_package_is_unimportable.
+  # Reproduced independently in two control worktrees with no branch commits
+  # applied — at 0b7e5340 and at 3fc76067 — so it is environmental, not content.
+  # None are in `make build-check`; all are in `make test`.
+  #
+  # 2026-08-22, re-measured under spec/repo-tests-worktree-source. The stated
+  # remedy "the roster tests pin worktree source explicitly" has now SHIPPED —
+  # pyproject.toml declares [tool.pytest.ini_options] pythonpath — and it does
+  # not close this entry. Current state of the three named tests:
+  #   - okf release-metadata and catalogue-wave4 live-contracts now PASS when
+  #     run on their own, and this change is what fixes them: they compare a
+  #     worktree literal against `agentbundle.version.CLI_VERSION`, an imported
+  #     MODULE attribute (not distribution metadata — grep for importlib.metadata
+  #     under tests/roster/ returns nothing), so putting the worktree on sys.path
+  #     is exactly the fix. Verified independent of the untracked *.egg-info: both
+  #     still pass with it removed.
+  #     Kept named here because their whole-suite behaviour is ORDER-DEPENDENT:
+  #     under `pytest tools/ tests/` they passed even BEFORE this change, while
+  #     failing in isolation at the same commit. Some earlier test in that run
+  #     leaves the worktree on sys.path; the exact source was not identified, and
+  #     it is a pre-existing property of the suite, not of this change. The
+  #     consequence worth keeping: a green `make test` can mask a resolution
+  #     failure that `pytest <file>` exposes.
+  #   - test_resolved_layer_fails_loudly_when_the_package_is_unimportable still
+  #     FAILS, and is now understood to be structurally out of reach of that
+  #     remedy: it resolves its constants in a child spawned with `-I`
+  #     (tools/test_marketplace_envelope_parity.py:227), and pytest's
+  #     `pythonpath` mutates sys.path in-process only — it never becomes a
+  #     PYTHONPATH environment variable, so no child of any flavour sees it.
+  # Unblocks when: the installed agentbundle is reconciled with the worktree
+  # source (editable install or uninstall — both out of scope for that spec, and
+  # neither is required of any maintainer), or the parity test resolves its
+  # constants without an isolated child.
+  {slug = "pre-existing-roster-catalogue-index-and-okf-release-metadata", source = "pre-flight/2026-08-20"},
   # RFC-0088 round 11 measured that Node's permission model refuses
   # `process.dlopen` by POLICY when `--allow-addons` is absent
   # (`ERR_DLOPEN_DISABLED`) and lets it through to a non-policy failure when the
@@ -1096,31 +1159,65 @@ open = [
   # Unblocks when: an approver accepts a toolchain in the evidence tree, or the
   # pilot commits to denying addons unconditionally so the bypass is moot.
   {slug = "rfc0088-native-addon-confinement-bypass", source = "spec/rfc0088-round11-binding-requirements AC7"},
-  # NOT measurable under the security preconditions: it needs a real authenticated
-  # session. Round 11 measured the taxonomy and a follow-up probe measured the
-  # UNAUTHENTICATED front doors -- establishing that an identity provider's sign-in
-  # surface registers no service worker, so authentication itself does not depend on
-  # one. What stays open is whether the POST-authentication silent-SSO path (a
-  # device-bound refresh credential persisted in the browser profile) needs a
-  # worker. Round 12 bounds it further by enumerating which profile stores the
-  # item-6 purge removes. Unblocks when: an approver authorises a credentialed arm,
-  # or the pilot answers it for its own destination during rollout.
-  {slug = "rfc0088-post-auth-sso-worker-dependency", source = "rfc/0088 open question 4"},
   # Round 11 accepted, and no measured control closes, the exposure that any
-  # same-uid process can attach to the browser's unconfined bind endpoint. Round 12
-  # measures whether a second OS user closes it (the cheap alternative to
-  # containerising, which round 10 showed costs the renderer sandbox without
-  # SYS_ADMIN). Unblocks when: round 12 T4 runs, which needs a second local account.
+  # same-uid process can attach to the browser's unconfined bind endpoint. Round 13
+  # may measure whether a second OS user closes it once authorised. On this platform an unprivileged
+  # process cannot execute as another uid; the available switching mechanisms require
+  # administrator authority, which the current Ask-first boundary forbids. Unblocks
+  # when: an approver authorises a runnable second-uid mechanism or a suitable
+  # non-administrative execution boundary exists.
+  # Unblocks when: an authorised second-uid mechanism or a non-administrative
+  # execution boundary exists. Round 13 corrected the claim's WIDTH in the evidence
+  # layer as new evidence requiring re-ruling, which is documentation rather than
+  # measurement, so the slug is carried rather than closed.
   {slug = "rfc0088-same-uid-attach-exposure", source = "rfc/0088 disposition B"},
-  # AGENTS.md § "Commands you'll need" lists only `npm ci --prefix docs-site` as the
-  # one-time site setup, but `make site-link-check` runs `npm run build --prefix web`
-  # FIRST. Without `npm ci --prefix web` the gate dies with `sh: astro: command not
-  # found`, which reads as a broken gate rather than missing setup. Found in RFC-0088
-  # round 11, where it was almost recorded as a pre-existing failure. Not fixed in
-  # that PR: the round's own scope boundary is evidence-only, and root AGENTS.md is
-  # not a sibling of docs/rfc so it falls outside the bundled-fixes carve-out.
-  # Unblocks when: any PR that legitimately touches root AGENTS.md adds the command.
-  {slug = "agents-md-missing-web-npm-ci", source = "spec/rfc0088-round11-binding-requirements drift"},
+  # Round 12 amended item 6's accepted risk from per-destination to per-GROUP,
+  # derived from the BLOCK clause alone: blocking scopes only per context, contexts
+  # isolate sessions, so destinations sharing a sign-in share one worker policy and
+  # the weakest member sets it. The purge half is WITHDRAWN pending re-measurement
+  # and the amendment does not rest on it. What is NOT
+  # measured is whether a group can be split without costing an additional
+  # interactive sign-in -- spike A showed profile-bound re-attach works and spike E
+  # showed a fresh profile needs a real sign-in, which suggests one sign-in per
+  # group. That figure decides whether splitting is cheap or expensive.
+  # Unblocks when: a spike measures the per-group sign-in cost.
+  {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
+  # Open question 6 recommends signing identity as the browser-provenance anchor.
+  # Round 12 AC5 measures present-run verification and tamper discrimination; it
+  # cannot observe the deferred update-survival property. Unblocks when: the same
+  # system browser can be read before and after a real update in a second dated
+  # observation.
+  {slug = "rfc0088-signing-identity-update-survival", source = "spec/rfc0088-round12-consumer-shaped-residuals AC5"},
+  # AC6 remains deferred only for its four unimplemented mutations: missing expected row,
+  # token encodings, browser-store decoy, and staged-member decoy search. Unblocks when:
+  # each named mutation is implemented and run in the gate chain.
+  {slug = "rfc0088-round12-mutation-coverage", summary = "Satisfied by RFC-0088 round 13 (mutation coverage closed by class); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC6"},
+  # AC4 requires a T6 staged-member decoy search; no promoted-state implementation exists.
+  # Unblocks when: promotion searches a published decoy in staged members and restores them.
+  {slug = "rfc0088-staged-member-decoy-search", summary = "Satisfied by RFC-0088 round 13 (staged-member decoy search implemented, positive control first); retained as the frozen deferred-reference lint anchor", source = "spec/rfc0088-round12-consumer-shaped-residuals AC4"},
+  # Unblocks when: cross-round term identity is anchored by something other than
+  # operator trust. Round 13 closed same-file identity WITHIN a gate chain via a
+  # keyed HMAC; across chains it remains operator-trusted, so this is bounded, not
+  # closed.
+  {slug = "rfc0088-privacy-term-identity-anchor", source = "round-12 security review"},
+  # RFC-0088 round-14 pre-flight, not caused by round 14 and NOT fixed by it.
+  # r12-fact-negative-tests.py reports MISSED and NOT-RESTORED privacy cases.
+  # Verified pre-existing: against a clean detached checkout of origin/main, with
+  # no RFC-0088 work in the tree, it fails with MORE cases than against the round
+  # branch (privacy empty, privacy count-minus-one, absolute-tree-root member),
+  # so it is environment- or state-dependent rather than caused by any round. It
+  # references neither file round 14 edited. It is in the r9-gates.sh chain, so
+  # the full chain cannot be green until it is diagnosed.
+  {slug = "rfc0088-r12-fact-negative-tests-red", source = "pre-flight/2026-08-22"},
+  # Closed 2026-08-21. Root AGENTS.md § "Commands you'll need" now names
+  # `make bootstrap-sites`, the sanctioned target that installs BOTH npm trees
+  # (tools/repo/bootstrap.py profile_commands("sites")). Two corrections the entry
+  # text got wrong, recorded so a reader arriving from a stale reference is not
+  # misled: AGENTS.md listed NEITHER npm command, not "only docs-site"; and the
+  # Makefile's own § Site publishing header carried the same one-sided claim, which
+  # was corrected in the same change. `make test` needs the docs-site tree only;
+  # `site-build` / `site-link-check` need both. No `(deferred: …)` marker anchored
+  # this slug, so removing the entry reds no lint-spec-status invariant.
   # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
   # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
   # assertion in test_loop_concurrency.py — so bounding them is not a mechanical
@@ -1669,9 +1766,10 @@ open = [
   # reverted it.
   #
   # The gap is real: neither packs/AGENTS.md nor packs/README.md names
-  # contracts/pack.schema.json, while profiles/AGENTS.md:18 names
-  # contracts/profile.schema.json. Independently recorded at
-  # docs/product/research/catalogue-audience-discovery.md:276.
+  # contracts/pack.schema.json. Independently recorded at
+  # docs/product/research/catalogue-audience-discovery.md:276. profiles/AGENTS.md
+  # used to name contracts/profile.schema.json and no longer does — see the
+  # SECOND INSTANCE note below.
   #
   # WHY THE OBVIOUS FIX FAILS. packs/AGENTS.md and packs/README.md are both
   # projected into the authoring scaffold
@@ -1687,10 +1785,15 @@ open = [
   # packs/README.md has NO equivalent assertion, so a pointer added there lands
   # green — and is just as false for the adopter. Do not take the green as licence.
   #
-  # SECOND INSTANCE, found the same way: profiles/AGENTS.md already carries the
-  # dangling form, and no test covers profiles/AGENTS.md (test_scaffold_projection
-  # asserts only that it exists and is non-empty). So the file this entry called the
-  # precedent to mirror is a second occurrence of the same defect, not the pattern.
+  # SECOND INSTANCE — RESOLVED 2026-08-20 by
+  # spec/profiles-agents-adopter-resolvable-citations. profiles/AGENTS.md carried the
+  # dangling form and no test covered it. That file now names profile.schema.json
+  # without a path and routes the reader to
+  # `agentbundle catalogue contracts show profile.schema.json`, which resolves in
+  # both trees; test_profiles_agents_md_cites_only_paths_it_ships now holds it
+  # there. Option (b) below, taken for profiles/ only. packs/README.md is still open,
+  # and the decision for packs/ is still (a)-vs-(b) — profiles/ setting a precedent
+  # does not settle it, because pack.toml offline validation is a different question.
   #
   # Fix requires a decision, which is why this is not mechanical:
   #   (a) ship contracts/pack.schema.json (and profile.schema.json) in the scaffold,
@@ -1702,11 +1805,13 @@ open = [
   #       No such mechanism exists in _SYNC_PAIRS (it is byte-identity), so this is
   #       the most expensive option.
   # Recommend (a) if an adopter is ever expected to validate pack.toml offline,
-  # otherwise (b). Either way, extend the cites-only-paths-it-ships assertion to
-  # profiles/AGENTS.md in the same change, or the second instance survives.
+  # otherwise (b). The cites-only-paths-it-ships assertion now covers
+  # profiles/AGENTS.md, so a regression there fails; a packs/README.md fix still
+  # needs its own assertion, because no test reads that file.
   #
-  # Also still true, and unchanged: packs/AGENTS.md is at exactly 150 lines against
-  # the 150-line subdirectory cap, so any wording change must be net-zero.
+  # The line-budget note this entry used to carry is stale: lint-agents-md.py caps a
+  # scoped AGENTS.md at 80 lines and packs/AGENTS.md is 50, so a wording change no
+  # longer has to be net-zero.
   {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
 
   # docs-site-design-refresh deferral (spec Assumptions). The SCA half
@@ -2224,27 +2329,6 @@ open = [
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
 
-  # spec/okf-authoring-projection AC22. The AC asks for two WRITE-mode compiles
-  # producing byte-identical managed trees on Linux and Windows CI plus a local
-  # macOS run. Two measured facts make that unsatisfiable as written:
-  #   1. Windows cannot write at all. _apply_outputs_transactionally refuses with
-  #      OKF010 "safe managed output writes are unavailable on this platform"
-  #      because os.supports_dir_fd is empty there; the dir-fd confinement is a
-  #      deliberate security control, not a portability bug.
-  #   2. `core` cannot write on ANY platform. Its managed directory
-  #      packs/core/.apm/skills/security-checklists/ also holds 11 hand-authored
-  #      references/*.md that RFC-0087 deliberately retains for current
-  #      orchestrator loading, and the ownership guard refuses to take over a
-  #      directory holding files it does not manage (OKF010 ownership conflict).
-  # Measured 2026-08-18 on macOS 25.5.0 arm64 / CPython 3.13.13: two write-mode
-  # compiles of _okf-pilot-cost-engineering are byte-identical; `core` write mode
-  # refuses both times; check mode is clean for both packs.
-  # Fix: amend AC22 to state that check mode (re-render + committed-byte
-  #   comparison) is the evidence wherever write mode is unavailable, and say
-  #   which packs and platforms that covers — alongside the AC26/AC27 amendment,
-  #   since all three are the same Approver decision.
-  # Unblocks when: the RFC-0087 erratum covering AC22/AC26/AC27 is signed off.
-  {slug = "okf-ac22-write-mode-unsatisfiable-as-written"},
 
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # guides/core/explanation/role-journeys.md covers headless AI execution
@@ -2529,22 +2613,6 @@ open = [
   # asserted by test_the_archival_conversion_record_stays_unwired.
   # Closing this file as a sanctioned case reduces the leak count again; the numeral
   # in the summary drifts with every instance closed, so trust the enumeration, not it.
-  # spec/site-browser-quality-gate shipped its decision-to-gate keyboard cases in a
-  # state where they SKIP: semantic `#decision-<id>` chips are
-  # spec/journey-page-completion's contract and are not emitted yet, so six cases in
-  # web/src/test/e2e/site-quality-gate.spec.ts assert nothing today. They begin
-  # gating the moment that slice lands, and nobody is presently prompted to confirm
-  # they did. Fix: after journey-page-completion merges, run the gate and confirm the
-  # six cases RUN rather than skip; if they still skip, the chip contract and the
-  # gate's selector disagree.
-  {slug = "browser-gate-journey-chip-cases-inert", source = "spec/site-browser-quality-gate AC6", summary = "Confirm the six decision-chip browser cases stop skipping once journey-page-completion emits semantic gate IDs"},
-  # The tap-target audit's docs-footer rows measure a footer that
-  # spec/site-shared-chrome replaces with the approved three-group taxonomy, and its
-  # product-orientation band does not exist yet so has no rows at all. The audit says
-  # so, but that prose freezes with the spec. Fix: re-measure both docs routes at all
-  # five widths in both themes after shared chrome lands and update
-  # notes/docs-tap-target-audit.md.
-  {slug = "tap-target-audit-remeasure-after-shared-chrome", source = "spec/site-browser-quality-gate T0", summary = "Re-measure the docs tap-target audit after site-shared-chrome replaces the footer and adds the orientation band"},
   # spec/site-browser-quality-gate AC12 was narrowed to the axes its print audit
   # actually measures, listed once in that audit's Measured axes section; close-stale
   # rests on axes 1 and 2. Navigation visibility is withdrawn to
@@ -2673,6 +2741,32 @@ open = [
   {slug = "work-intake-surface-reanchor", type = "spec", source = "spec/work-intake-surface", summary = "Reanchor the intake-surface spec/plan on shipped Group 2/3 contracts before its build loop"},
   {slug = "tracker-intake-adapters-reanchor", type = "spec", source = "spec/tracker-intake-adapters", summary = "Reanchor the tracker-adapters spec/plan on the shipped normalized-intake contract"},
   {slug = "tracker-refresh-writeback-reanchor", type = "spec", source = "spec/tracker-refresh-writeback", summary = "Reanchor the refresh/write-back spec/plan on shipped lifecycle and authority rules"},
+  # Deferred: refresh has no trusted representation of which brief fields were
+  # materialized into children; adding one requires new trusted inputs.
+  {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
+  # Deferred: workspace-status receives only a profile id and version, not
+  # resolved capabilities, and the processor write path receives no trusted
+  # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
+  # and refresh availability can only report False or "unknown", never True.
+  # A defaulted parameter would be bypassable, which is worse than a documented
+  # gap; closing it means threading resolved capabilities through both surfaces.
+  {slug = "tracker-refresh-enforced-capability-state", type = "spec", source = "spec/tracker-refresh-writeback AC11", summary = "Enforce the lifecycle allowlist on remote write-back and report availability affirmatively"},
+  # Deferred: the guarded-write receipt check verifies status, action and target
+  # structurally, not by runtime class identity, so an in-process caller could
+  # present a receipt-shaped object. Making it exact needs a shared receipt
+  # runtime identity, the same design the cross-loaded store required.
+  {slug = "tracker-refresh-receipt-runtime-identity", type = "spec", source = "spec/tracker-refresh-writeback AC25", summary = "Verify the guarded-write receipt by runtime identity, not structurally"},
+  # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
+  # refresh-result.schema.json enum), but each processor returns its own
+  # WriteBackResult codes with no closed set, so a typo ships silently. A single
+  # shared frozenset would falsely authorize codes an adapter cannot return;
+  # closing it properly means one vocabulary per result type plus a deliberate
+  # shared base, which is a multi-file public-result-contract change. Deferred to
+  # avoid widening the reviewed surface after adversarial review round 2.
+  {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
+  # Deferred: projection repair needs its own confirmation contract; adding one
+  # requires a new trusted input rather than inferring authority from tracker data.
+  {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
   {slug = "work-intake-migration-docs-reanchor", type = "spec", source = "spec/work-intake-migration-docs", summary = "Reanchor the migration/docs spec/plan on shipped canonical routing and finding codes"},
   # Anchor-staleness fitness function. Nothing detected that Group 3 (#928) had
   # invalidated four unstarted Group 4-7 specs — it surfaced only because a human
@@ -2897,11 +2991,110 @@ open = [
   # marketing catalogue and pack cards, so aligning it is a naming decision
   # across surfaces that spec does not own.
   { slug = "iac-terraform-group-label-alignment", source = "spec/guide-title-clarity", summary = "Align the iac-terraform sidebar GROUP label with its retitled index page" },
+  # tools/test-pages-workflow.py deliberately does not assert concurrency: its
+  # charter is deploy-blocking gates, their ordering, and paths: filters, and
+  # every assertion family requires mutation coverage. Required CI therefore
+  # would not catch restoration of unkeyed group: "pages" with cancellation,
+  # which cancelled 18 of 40 runs, including a PR run cancelling a main deploy.
+  # Closing this needs a dedicated mutation-tested concurrency check and a
+  # tools/lint-ci-parity.py registration, not a patch; avoid the unwired
+  # tools/test-ci-security-workflow.py anti-precedent. Unblocks when: ready now.
+  { slug = "pages-concurrency-has-no-regression-gate", source = "spec/pages-concurrency-isolation (review concern)", summary = "pages.yml concurrency has no required-CI assertion, so restoring unkeyed group: \"pages\" would silently reintroduce cross-branch run cancellation" },
+  # Surfaced by a peer session while coordinating the pages-concurrency-isolation
+  # merge. The deploy lane serializes Pages deployments but does NOT order them:
+  # builds now run in distinct workflow groups, so two Pages-relevant merges to main
+  # build concurrently and their deploy jobs enter the shared "pages" lane in
+  # build-completion order, which need not match merge order. The older commit can
+  # therefore publish last. Self-heals on the next Pages-relevant merge and loses no
+  # data, but it is a real trade: the previous unkeyed group made inversion impossible
+  # by cancelling the older run outright. A "deploy only if still the tip of main"
+  # guard would close it and was declined as unrequested hardening with its own skip
+  # path. Decide whether the burst rate on main justifies it — and note the two
+  # arguments point OPPOSITE ways: a high burst rate makes inversion more likely but
+  # the stale window shorter, while a quiet period makes inversion rarer and the
+  # window unbounded. "Self-heals on the next Pages-relevant merge" is load-bearing on
+  # there BEING a next merge: an inverted pair that is the last Pages-relevant activity
+  # before a weekend or freeze leaves the site on the older commit for the whole gap,
+  # with nothing signalling it. Weigh both cases, not just the burst one.
+  # Unblocks when: ready now.
+  { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
+  # guides/credential-brokers/ carries an author how-to
+  # (how-to/add-a-credentialed-skill.md), an explanation, and a reference -- and
+  # nothing for the OPERATOR who has to store a credential. The architecture page
+  # docs/architecture/credentials.md correctly does not carry setup steps
+  # (architecture is not a how-to), which left the author guide as the only
+  # available link target for a task it does not cover. The credential-setup skill
+  # exists at packs/credential-brokers/.apm/skills/credential-setup/; the guide
+  # does not.
+  # Fix: write the operator how-to under guides/credential-brokers/how-to/ and
+  # point the credentials architecture page at it.
+  # Unblocks when: ready now -- the skill it documents already ships.
+  { slug = "credential-operator-setup-guide", source = "docs/architecture/credentials.md; guides/credential-brokers/ operator-guide gap", summary = "guides/credential-brokers/ has an author how-to but nothing for the operator who must store a credential, and the credential-setup skill ships without one" },
+  # docs/architecture/binder-publishing/ is a large STATUS: PLANNED design the
+  # owner intends to build. The only existing spec,
+  # docs/specs/binder-publishing-gate-propagation/, is narrow. The tree's
+  # invariant set is now self-contained rather than citing an absent brief, so
+  # the design is spec-ready.
+  # Fix: decompose the planned design into build units and open the spec(s).
+  # Unblocks when: someone applies RFC-0090's tail-triage lane to it -- that is
+  # the likely lens for the decomposition, given the design's size.
+  { slug = "binder-publishing-build-spec", source = "docs/architecture/binder-publishing/ (STATUS: PLANNED)", summary = "The planned binder-publishing design has no build spec; the only existing spec covers gate propagation only" },
+  # pytest temp trees carry no worktree attribution: the path is
+  # $TMPDIR/pytest-of-<user>/pytest-<N> where N is a global counter, so a tree
+  # cannot be traced to the worktree that produced it and a dead worktree's
+  # trees cannot be targeted. Measured 2026-08-20: 4.52 GB across 56 run dirs on
+  # one host; cleanup had to fall back to liveness-plus-age as a proxy.
+  # Do NOT reach for --basetemp: pytest removes that directory if it exists, so
+  # a shared per-worktree basetemp makes two concurrent runs in one worktree
+  # wipe each other, and it discards pytest's numbered retention.
+  # TMPDIR is the working lever -- verified it preserves both the numbering and
+  # the 3-run retention while making attribution structural.
+  # Detection needs no config and no Orca: local_exclude.derive_worktree_id()
+  # returns the sentinel "primary" for a primary checkout and the worktree name
+  # for a linked one, so a single-checkout CLI user is left untouched. Treat its
+  # RuntimeError as "primary" or a bare clone breaks bootstrap. Two traps: a
+  # non-existent TMPDIR makes tempfile.gettempdir() fall back to /tmp silently
+  # rather than erroring, so bootstrap must mkdir -p and doctor must assert it
+  # exists; and TMPDIR affects everything using tempfile, so it must not resolve
+  # inside the worktree unless gitignored.
+  # Declined by the worktree-runtime-hygiene lane on 2026-08-20 as a disk
+  # concern outside its concurrency scope -- this is unowned, not assigned.
+  { slug = "pytest-tmpdir-worktree-attribution", source = "spec/pytest-resource-optimization (measurement, unowned)", summary = "Give pytest temp trees per-worktree attribution via TMPDIR so a dead worktree's trees can be reclaimed; detect workspace vs single-checkout users from git topology, leaving single-checkout behaviour unchanged" },
+  # Adopters receive catalogue test FILES but no canonical command to run them.
+  # A fresh `catalogue init` creates tests/conformance/ and its next steps name
+  # authoring standards, contracts list and `catalogue verify` -- never a test
+  # command. Bare `pytest tests/conformance` does work (7 passed, 2 skipped from
+  # the published 0.38.5 wheel), so the gap is that nothing names it, nothing
+  # discovers pack tests, and nothing reports a missing framework.
+  # `pytest packs/` is NOT the answer and must not become it: it exits 2 with 37
+  # collection errors here, because independent skills ship colliding test
+  # basenames and colliding subject modules. One process per skill is a
+  # published adopter promise (catalogue-authoring-standards.md s4), so any
+  # runner has to preserve it rather than route around it.
+  # Discovery needs no new metadata artifact: ADR-0071 already mandates the
+  # layout (tests/skills/<skill>/, tests/hooks/, tests/pack/). Keep test
+  # dependencies development-only -- the wheel's runtime dependency set is
+  # empty and an optional extra is the precedent (pyproject [project.optional-
+  # dependencies] lint). `catalogue verify` must stay non-executing.
+  # Governance: additive, so no RFC under docs/CONVENTIONS.md 336-347, which
+  # names public visibility as evidence only. An ADR after experimentation is
+  # the right record for the execution boundary.
+  { slug = "agentbundle-catalogue-test-command", source = "spec/pytest-resource-optimization (adopter gap)", summary = "Give catalogue adopters a canonical way to execute the tests they receive, discovering pack and conformance suites from the ADR-0071 layout while preserving one process per skill and keeping test dependencies development-only" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # The RFC-0087 OKF projection replaced security-checklists' deterministic
+  # boundary-to-module table with a flat concept index. That made work-loop's
+  # security-reviewer dispatch impossible without guessing or reading every
+  # module, and hid the standards anchors and delegation legend at the routing
+  # point. Resolved by restoring the hand-authored router and moving the OKF
+  # projection into its own sibling skill directory; both pilot callers remain
+  # compiler-managed. The historical operational-safety plan instruction
+  # still names the direct config-misconfig reference and therefore needs no edit.
+  {slug = "security-checklists-okf-router-regression", summary = "The generated security-checklists router lost its boundary-to-module routing table, standards anchors, and delegation legend", source = "RFC-0087 OKF pilot regression"},
+
   # Original report (spec/npm-sca-gate): the suite appended a
   #   deliberately-violating `lint-selftest-scratch` target to the REAL Makefile
   #   to prove the boundary linter fires, then restored it. Any `git add -A`
@@ -3002,6 +3195,7 @@ backlog = []
 
 ["ini-007".work]
 active  = [
+  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
 ]
 shipped = [
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
@@ -3053,22 +3247,13 @@ shipped = [
   {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
   {path = "docs/specs/okf-catalogue-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bounded live OKF metadata through AgentBundle catalogue inspection", needs = []},
+
+  # Wave 4 — Semantic contracts and neutral index. 0.38.0 — JOURNEY.md
+  # conventions, derived content/execution inventory, deterministic neutral
+  # catalogue indexes, and integration views over Wave 2 declarations.
+  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
-  # RFC-0087 authoring pilot. Catalogue discovery has shipped; the authoring
-  # experiment remains active pending its model and maintainer exercise gates.
-  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
-  # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
-  # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
-  # the next AgentBundle minor; concurrent merges would claim the same release number.
-  # Shape gate (catalogue-semantics-release-shape) satisfied — Wave 4 spec is Approved.
-  # Deliver: JOURNEY.md convention (author-declared effects via frontmatter effects field);
-  # structural content/execution inventory derived from pack source (distinct from effects);
-  # deterministic catalogue-index.json (catalogue-index.schema.json new contract); integration
-  # views from pack.toml [[pack.integrations]] (Wave 2 data); representative
-  # first-party JOURNEY.md fixtures to prove the contract. First-party all-pack
-  # migration is Wave 9 scope — not included here.
-  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 
   # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
   # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and
@@ -3135,6 +3320,7 @@ milestone = "Wave 4 · Tracker adapters"
 # enforced contract, and a legacy path yields `invalid_artifact_path` and refuses
 # dispatch. Needs are typed objects — the canonical parser rejects bare strings.
 shipped = [
+  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
   # Group 2 — transient normalized-intake contract + structured workspace entry
   # schema (provenance, authority, summary, dependencies, lifecycle, validation).
   {path = "docs/specs/normalized-intake-workspace-contracts/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize intake and workspace contracts", needs = []},
@@ -3151,7 +3337,6 @@ active = []
 queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
-  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
   # Group 7 — reconcile legacy workspaces, publish the alias window and removal
   # criteria, finish cross-links, run the full evaluation matrix.
   {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},

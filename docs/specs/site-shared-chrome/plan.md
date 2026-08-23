@@ -1,7 +1,7 @@
 # Plan: Site shared chrome
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -66,8 +66,8 @@ programme's manual release check.
 
 - `tools/build-site.py` validates and projects the destination contract.
 - Marketing `SiteNav` and `SiteFooter` consume the marketing projection.
-- A docs-specific supported header override composes the orientation band with
-  the default header; the docs footer consumes local projected data after
+- A docs-specific supported `PageFrame` override composes the orientation band
+  above the default header; the docs footer consumes local projected data after
   native pagination. Traces to: AC3-AC10.
 
 ### State & control flow
@@ -198,3 +198,22 @@ Rollback is a normal source revert; no dependency or infrastructure changes.
 - 2026-08-17: fixed the exact Now-based taxonomy, both footer treatments, docs
   desktop/mobile behavior, link/focus/current semantics, Starlight ownership,
   non-shared boundary, and `/now/` dependency.
+- 2026-08-20: T2, T3 and T4 shipped (#1060, #1062, #1067). All thirteen
+  acceptance criteria are met. AC13 was answered by a recorded human design
+  review — no Major issue — kept in
+  [`notes/design-review.md`](notes/design-review.md) rather than asserted here,
+  because it is a judgement no gate can stand in for. The deferred
+  `tap-target-audit-remeasure-after-shared-chrome` backlog item was answered and
+  closed: no demonstrated non-exempt failure, with all 22 shared-chrome
+  candidates conforming through SC 2.5.8's Spacing clause.
+- 2026-08-20: corrected the docs seam during T3. The LLD named a "supported
+  header override"; the seam is a supported `PageFrame` override. Verified
+  against installed Starlight 0.41.4: `Header.astro` declares no slots and
+  renders inside `PageFrame`'s header, so a band composed there is inside the
+  pinned header's sticky region and cannot scroll away as the spec requires.
+  `PageFrame` is the only supported seam that renders above it. The native
+  `<Header slot="header" />` is preserved unchanged, so Starlight remains the
+  singular owner of its header; only the layout wrapper is docs-local, and its
+  outer header is `position: sticky` rather than Starlight's `position: fixed`
+  because the spec requires the band to scroll away while the header stays
+  sticky. No acceptance criterion changed.

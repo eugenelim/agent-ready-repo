@@ -14,7 +14,18 @@ import {
 // qualification; this is where that starts.
 export default defineConfig({
   testDir: './src/test/e2e',
-  fullyParallel: false,
+  // Schedule TESTS, not files. Under `false` this capped workers at 2 by the
+  // FILE count, not the machine — the gate has two specs, 139 cases and 39, so
+  // one worker ground the 139 serially while the other idled. On CI (4 vCPU,
+  // Playwright's default 50% of cores) the worker count stays 2 either way; the
+  // gain is the removed imbalance, dropping the critical path to about 89.
+  //
+  // Safe because the specs share no state: no `beforeAll`/`afterEach`, every
+  // test takes its own `{ page }` fixture and so a fresh context, the 139 cases
+  // come from nested loops over route x width x theme, and the preview server
+  // serves read-only output. Raising `workers` is a SEPARATE change: 4 Chromium
+  // on 4 vCPU contend and `retries` is unset, so contention fails a deploy.
+  fullyParallel: true,
   timeout: 30000,
   use: {
     baseURL: PREVIEW_ORIGIN,

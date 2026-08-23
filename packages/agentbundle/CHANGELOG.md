@@ -6,6 +6,92 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.39.0] — 2026-08-21
+
+### Added
+
+- The bundled public-contract inventory now exposes
+  `distribution-routes.toml` and its closed schema. The Phase 0 declaration
+  names the APM and Claude-plugin package layouts, manifest and marketplace
+  projectors, nine-primitive capability maps, admission policies, and lifecycle
+  trigger.
+
+### Changed
+
+- Catalogue builds resolve APM and Claude package recipes through explicit,
+  schema-validated route identities before writing output. Unsafe or
+  inconsistent route declarations fail closed; existing APM and Claude package
+  trees remain byte-for-byte unchanged.
+- Package-route fields no longer live in the direct-install adapter contract.
+  Direct `agentbundle install` behavior, adapter paths, scopes, seeds, and
+  marker identity are unchanged.
+
+## [0.38.6] — 2026-08-20
+
+### Fixed
+
+- The bundled profile-authoring instructions now direct catalogue authors to
+  the packaged profile schema through a command available in initialized
+  catalogues, rather than a repository-only path.
+
+## [0.38.5] — 2026-08-20
+
+### Changed
+
+- The bundled catalogue authoring scaffold's `packs/AGENTS.md` and authoring
+  standard state how to write pack tests that survive a shared interpreter:
+  load a skill's modules under a name that includes its pack and skill rather
+  than putting `scripts/` on `sys.path`, and keep a suite's cost in assertions
+  rather than processes. No engine behaviour changed; the package data moves
+  because those two repository files are its sources.
+
+### Fixed
+
+- Local-scope install and uninstall reuse each structural `git rev-parse`
+  answer for the duration of one command, dropping the cache at the command
+  boundary. Measured on the engine unit suite: git child processes fell from
+  176 to 59.
+
+- `catalogue init --preset self-hosted` and both archive flavours no longer
+  copy a repository-only conformance test into an adopter's catalogue. The
+  shipped set is now derived from `tests/conformance/` in one place, so the
+  manifest that plain init reads and the directory that self-hosted init copies
+  cannot describe different sets.
+
+## [0.38.4] — 2026-08-20
+
+### Changed
+
+- The bundled catalogue authoring scaffold carries restored instruction rules in
+  `packs/AGENTS.md` and `profiles/AGENTS.md`. No engine behaviour changed; the
+  package data moves because those two repository files are its sources.
+
+## [0.38.3] — 2026-08-19
+
+### Changed
+
+- **The `workspace_status` MCP result now includes safe tracker-refresh
+  availability facts.** Callers can read origin mode, active profile, compared
+  and accepted revisions, unresolved conflict state, and explicit or unknown
+  refresh/write-back availability. The response does not expose field
+  ownership, decisions, receipts, or approver identities.
+
+## [0.38.2] — 2026-08-19
+
+### Added
+
+- **Optional journey decision-gate identifiers.** `JOURNEY.md` may list ordered
+  `contract.decisionGateIds` from `humanGates[].id`; labels remain reader-facing,
+  `yourDecisions` remains required, and existing packs stay valid unedited. This
+  shipped after the 0.38.1 tag and reaches PyPI here for the first time.
+
+### Changed
+
+- **Leaner bundled authoring scaffold.** `packs/AGENTS.md` and
+  `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
+  init` starts catalogues with leaner instructions. No CLI verb, flag, or output
+  format changed.
+
 ## [0.38.1] — 2026-08-18
 
 ### Fixed
@@ -29,6 +115,22 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   live Skill activation metadata, and `knowledge` for declared OKF 0.2 bundles.
   Installed-state fallback preserves the existing inventory-only behavior and
   emits those three fields as `null` because install state cannot prove them.
+- **`agentbundle catalogue index` publishes a deterministic, neutral catalogue
+  index.** It reads confined catalogue, pack, profile, and optional journey
+  metadata; validates the assembled document against the bundled public schema;
+  and writes through the package's no-follow atomic writer. Dry-run and
+  structured JSON result modes are available for automation.
+- **`catalogue-index.schema.json` is now a bundled public contract.** The closed
+  schema covers catalogue identity, pack content and execution inventory,
+  journeys, declared effects, forward and inverse integrations, profiles, and
+  content-addressable pack digests.
+
+### Changed
+
+- **Catalogue journey authoring now has a published convention.** The bundled
+  authoring reference defines required and optional frontmatter, external-effect
+  declarations, reader-facing body sections, migration guidance, and index
+  verification commands. Existing packs without a journey remain valid.
 
 ### Unchanged
 

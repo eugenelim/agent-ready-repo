@@ -39,7 +39,8 @@ A local-first concept names *where it graduates to* and *what becomes real
 first*. The shape:
 
 1. **Pick the target provider class** — hyperscaler (managed services carry the
-   delta) or primitives (you build the delta yourself; load `cloud-primitives.md`).
+   delta) or primitives (you build the delta yourself; load the generated
+   `concepts/operating-model-patterns/provider-and-platform-operating-models.md`).
 2. **Order the delta by what blocks the first real users** — usually TLS + real
    secrets + a durable data tier come before CDN and multi-region.
 3. **Name what stays faked deliberately** — not every local convenience must

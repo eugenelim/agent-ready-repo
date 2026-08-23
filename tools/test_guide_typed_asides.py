@@ -1,6 +1,6 @@
 """Archival record of the one-time guide blockquote conversion.
 
-**Deliberately not wired into a gate.** These assertions pin a frozen 165-row
+**Deliberately not wired into a gate.** These assertions pin a reviewed 172-row
 blockquote ledger across 193 `guides/**` files, plus that spec's release-handoff
 record. They fire on edits with nothing to do with the callout contract — adding one
 blockquote to any guide is enough — there is no regenerator, and an unrelated PR
@@ -74,7 +74,7 @@ def _load_ledger() -> list[dict[str, object]]:
 
 
 def _load_baseline() -> list[dict[str, object]]:
-    """Load the frozen inventory captured before the wrapper conversion."""
+    """Load the reviewed inventory, including later guide additions."""
     return [
         json.loads(line)
         for line in BASELINE_PATH.read_text(encoding="utf-8").splitlines()
@@ -176,7 +176,7 @@ def test_ledger_has_complete_terminal_classifications() -> None:
     assert [row["item"] for row in ledger] == list(range(1, expected_count + 1))
     assert [row["item"] for row in baseline] == list(range(1, expected_count + 1))
     assert all(set(row) == REQUIRED_FIELDS for row in ledger)
-    assert all(row["status"] == "done" for row in ledger)
+    assert all(row["status"] in {"done", "superseded"} for row in ledger)
     assert all(row["classification"] in ALLOWED_CLASSIFICATIONS for row in ledger)
     assert all(isinstance(row["reason"], str) and row["reason"].strip() for row in ledger)
     assert all(isinstance(row["anchor"], str) and row["anchor"].strip() for row in ledger)
@@ -203,8 +203,13 @@ def test_ledger_matches_converted_asides_and_unchanged_quotations() -> None:
         source_path = path.relative_to(REPO_ROOT).as_posix()
         lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
         rows = [row for row in ledger if row["path"] == source_path]
-        quotation_rows = [row for row in rows if row["classification"] == "quotation"]
-        typed_rows = [row for row in rows if row["classification"] != "quotation"]
+        active_rows = [row for row in rows if row["status"] == "done"]
+        quotation_rows = [
+            row for row in active_rows if row["classification"] == "quotation"
+        ]
+        typed_rows = [
+            row for row in active_rows if row["classification"] != "quotation"
+        ]
 
         blockquotes = _blockquote_blocks(lines)
         blockquote_hashes = [
@@ -231,7 +236,7 @@ def test_ledger_matches_converted_asides_and_unchanged_quotations() -> None:
 
         expected_sequence = [
             (str(row["classification"]), str(row["content_sha256"]))
-            for row in rows
+            for row in active_rows
         ]
         expected_containers = set(expected_sequence)
         current_containers = [

@@ -1,6 +1,6 @@
 # ADR-0014: Rigor scales with risk — `work-loop` light/full modes
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted (superseded in part by ADR-0088 — the risk-trigger block's documentation homes; its trigger set and light/full mode selection stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-05
 - **Deciders:** eugenelim
 - **Supersedes:** none

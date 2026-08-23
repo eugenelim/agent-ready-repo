@@ -33,3 +33,32 @@ def test_specific_pack_name_is_rejected(tmp_path: Path) -> None:
 def test_generic_rule_text_passes(tmp_path: Path) -> None:
     root = _seed_catalogue(tmp_path, 'PACKS_DIR = ROOT / "packs"\n')
     assert _load_linter().find_violations(root) == []
+
+
+def test_repo_only_root_join_is_rejected(tmp_path: Path) -> None:
+    """`CATALOGUE_ROOT / "packages"` names a directory no adopter catalogue has."""
+    root = _seed_catalogue(
+        tmp_path, 'BUNDLED = CATALOGUE_ROOT / "packages" / "agentbundle"\n'
+    )
+    assert _load_linter().find_repo_only_references(root)
+
+
+def test_repo_only_path_literal_is_rejected(tmp_path: Path) -> None:
+    """The same reach written as a bare literal is equally unrunnable."""
+    root = _seed_catalogue(tmp_path, 'SCRIPT = "tools/lint-something.py"\n')
+    assert _load_linter().find_repo_only_references(root)
+
+
+def test_contracts_reach_is_rejected(tmp_path: Path) -> None:
+    """A catalogue from `catalogue init` has no contracts/ directory."""
+    root = _seed_catalogue(tmp_path, 'SCHEMA = CATALOGUE_ROOT / "contracts" / "x.json"\n')
+    assert _load_linter().find_repo_only_references(root)
+
+
+def test_rule_shaped_paths_pass(tmp_path: Path) -> None:
+    """`packs/` and `profiles/` exist in every catalogue, so they stay legal."""
+    root = _seed_catalogue(
+        tmp_path,
+        'PACKS = CATALOGUE_ROOT / "packs"\nPROFILES = CATALOGUE_ROOT / "profiles"\n',
+    )
+    assert _load_linter().find_repo_only_references(root) == []

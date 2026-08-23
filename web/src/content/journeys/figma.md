@@ -59,7 +59,7 @@ relatedJourneys:
 - **You provide:** the target Figma file URL or key, and a Personal Access Token if not already in credential-brokers.
 - **Agent does:** verifies the credential resolves via credential-brokers and can reach the target file.
 - **You do:** run credential-brokers setup if this is the first session, or confirm the existing token is still valid — once in place, every subsequent figma session resolves it automatically.
-- **You decide:** confirm the Figma credential at G-credential before any API call is made.
+- **You decide:** confirm the Figma credential at the credential check gate before any API call is made.
 - **Output:** a confirmed credential resolving to the target file.
 
 ---
@@ -76,5 +76,5 @@ relatedJourneys:
 
 - **Agent does:** presents the extracted artifact — rendered frame image, CSS variable set, Mermaid connector diagram, or structured property dump.
 - **You do:** check the artifact matches the intended design; for FigJam diagrams, verify all connectors and labels are preserved; for variable values, confirm they match the published design system state.
-- **You decide:** review extracted design data at G-output before passing it to the next workflow step.
+- **You decide:** review extracted design data at the design data review gate before passing it to the next workflow step.
 - **Output:** a reviewed design artifact ready to pass to the next workflow step.

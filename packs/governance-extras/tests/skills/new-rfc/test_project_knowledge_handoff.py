@@ -73,9 +73,50 @@ def test_rfc_gate_uses_public_typed_capture_and_same_gate_receipts() -> None:
     assert "CQ-DESIGN" in section
     assert "one query plus at most one refinement" in section
     assert "knowledge_store.py" not in section
+    # The full producer-prohibition list, not a subset. An earlier compression of this
+    # section dropped "locates journals" and "creates storage" while every substring this
+    # test then asserted still passed — the test reported green over a real loss of
+    # security semantics. Assert all five so that cannot recur.
     assert "never imports a private writer" in section
+    assert "locates journals" in section
     assert "invents IDs" in section
     assert "selects a partition" in section
+    assert "creates storage" in section
+    # Same compression dropped the privacy/instruction refusal entirely.
+    assert "Privacy or instruction" in section
+    assert "redacted diagnostic" in section
+    assert "no persisted body" in section
+    # A second compression pass then dropped four more path-confinement / retention
+    # controls while every assertion above still passed: the hash-read trigger, the
+    # repository-root discovery step, the committed-blob *identity* (not merely a blob),
+    # and the bound on what may be retained after capture. Assert each one.
+    # The complete load-bearing set, enumerated by diffing the compressed section against
+    # its pre-compression text rather than added reactively one review round at a time.
+    # Three review rounds found 15 separate semantic losses in this section while every
+    # assertion added after the previous round still passed: strengthening a check in
+    # response to a found defect calibrates it to that defect, not to the class. Any future
+    # edit to this section should re-derive this list from the diff, not trust it.
+    for clause in (
+        # path confinement and hashing
+        "sha256-bytes-v1",
+        "discover the repository root",
+        "committed Git blob identity",
+        # retention and distillation
+        "{capture_id, partition}",
+        "gate-local memory",
+        "selection_mode: workflow-receipts",
+        "Never guess IDs",
+        "drain another workflow",
+        # what may be captured at all
+        "reusable research-navigation",
+        "shipped governance-extras pack version",
+        # the verification barrier before the completion receipt
+        "claim persistence or reconciliation",
+        "no-diff outcome",
+        # enquiry bounds
+        "No automatic enquiry",
+    ):
+        assert clause in section, f"gate section lost load-bearing clause: {clause!r}"
     assert "verification and review barrier" in section
     assert "Before step 9 emits the completion receipt" in section
 

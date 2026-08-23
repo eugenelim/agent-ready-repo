@@ -1,0 +1,30 @@
+artifact: flawed-assessment.md
+verdict: MAJOR REWRITE
+review_surfaces:
+  - architect-review
+  - design-reviewer
+required_finding_classes:
+  scope_overclaim:
+    - conclusion overclaims
+    - whole platform
+  unsafe_sequence:
+    - tenant-safety defect
+    - after the cleanup
+  missing_evidence:
+    - uninspected evidence surfaces
+    - all other evidence is green
+  folders_as_architecture:
+    - folders are asserted
+    - runtime architecture
+  heat_as_severity:
+    - heat is incorrectly converted
+    - blocker-severity defects
+  missing_agentic_lenses:
+    - agentic-platform lenses are omitted
+    - not assessed
+  weak_finding:
+    - sole finding does not establish
+    - grep found
+  uncalibrated_confidence:
+    - high confidence is unsupported
+    - "confidence: high"

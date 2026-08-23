@@ -250,6 +250,9 @@ jobs:
       - name: pytest make-free gate chains (windows-build-gate-chain)
         run: python -m pytest tools/test_build_gate_chain.py
 
+      - name: pytest journey editorial decisions
+        run: python -m pytest tools/test_journey_editorial_decisions.py
+
       # The generated guides sidebar: sidebar-config.json is gitignored, so
       # these set-equality, label-parity and determinism guards are the only
       # thing standing between a generator regression and a broken published
@@ -356,6 +359,7 @@ jobs:
           python tools/lint-conformance-portability.py --root .
           python -m pytest tests/ -q
           python -m pytest packs/architect/tests/pack/ -q
+          python -m pytest packs/architect/tests/skills/architect-assess/ -q
           python -m pytest packs/core/tests/pack/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q
@@ -366,6 +370,7 @@ jobs:
           python -m pytest tools/test_lint_agents_md_diataxis_block.py \
             tools/test_lint_agents_md_legacy_block.py \
             tools/test_lint_agents_md_risk_block.py \
+            tools/test_lint_agents_md_frontmatter_scope.py \
             tools/test_catalogue_curation_guard.py \
             tools/test_contract_parity.py \
             tools/test_marketplace_envelope_parity.py \
@@ -439,6 +444,13 @@ jobs:
           tests/unit/test_validate_categories.py
           ../../tests/roster/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py
+
+      # catalogue-wave4-semantic-contracts-index: live catalogue, public/bundled
+      # schema parity, and shipped-guide projection are repository-owned claims.
+      # They cannot live in the engine sdist, and CI does not auto-discover
+      # roster tests, so keep their relocated acceptance suite explicit here.
+      - name: pytest catalogue Wave 4 live contracts (roster-owned)
+        run: python -m pytest tests/roster/test_catalogue_wave4_live_contracts.py
 
       # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
       # construction tests (never-create / never-overwrite / injection-safe emit

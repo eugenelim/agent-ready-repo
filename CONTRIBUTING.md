@@ -30,7 +30,7 @@ Two reads will save you time:
 
 One install: the artifact and skill-spec linters parse YAML via PyYAML. Run `pip install -r tools/requirements.txt` once. The linters also print an actionable install hint with exit code 2 if the import fails, so the first lint run will remind you.
 
-If your change is substantive — new top-level directory, new contract surface, a CHARTER edit beyond a typo — open an [RFC](docs/rfc/) first. Typo fixes and small clarifications go straight to PR.
+If a change's direction is still unresolved and more than one owner has to agree, open an [RFC](docs/rfc/) first — as does any change to the charter's mission or scope, to who may approve work, to a security trust model, or that breaks a published compatibility promise. A decision you have already made is an [ADR](docs/adr/). Everything else, including new directories and contract surfaces whose shape is settled, goes straight to PR.
 
 ## The pack source-of-truth split
 

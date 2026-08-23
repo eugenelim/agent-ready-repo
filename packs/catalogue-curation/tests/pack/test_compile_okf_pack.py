@@ -38,10 +38,12 @@ def test_compile_okf_skill_has_confined_compile_check_behavior_eval() -> None:
         "evals/files/catalogue/packs/demo/pack.toml",
         "evals/files/catalogue/packs/demo/okf/demo/index.md",
         "evals/files/catalogue/packs/demo/okf/demo/concepts/example.md",
+        "evals/files/catalogue/packs/demo/okf/demo/concepts/nested/windows.md",
     ]
     assert behavior["expect"]["produces"] == [
         "catalogue/packs/demo/.okf-generated.json",
         "catalogue/packs/demo/.apm/skills/demo-router/SKILL.md",
+        "catalogue/packs/demo/.apm/skills/demo-router/references/okf/concepts/nested/index.md",
     ]
     assert "OKF000 wrote packs/demo" in behavior["expect"]["output_contains"]
     assert "OKF000 check clean packs/demo" in behavior["expect"]["output_contains"]
@@ -51,8 +53,8 @@ def test_catalogue_curation_version_bump_is_synchronized() -> None:
     pack = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
-    assert pack["pack"]["version"] == "0.3.0"
-    assert plugin["version"] == "0.3.0"
+    assert pack["pack"]["version"] == "0.4.1"
+    assert plugin["version"] == "0.4.1"
 
 
 def test_compile_okf_has_no_internal_governance_citations() -> None:

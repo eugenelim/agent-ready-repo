@@ -3,15 +3,15 @@
 
 Pure-stdlib Python so the suite runs on Windows without an MSYS shell.
 Pattern: build a fixture set of knowledge-surface references in a tempdir, point
-KS_CANONICAL_FILE / KS_REVIEW_FILE / KS_DIAGRAM_FILE / KS_PE_FILE at them, run the
+KS_CANONICAL_FILE / KS_DIAGRAM_FILE / KS_PE_FILE at them, run the
 linter, and assert the exit code (and a diagnostic substring on the failure
 cases). Every LAYOUT copy must be overridden here — an un-overridden copy falls
 through to its real repo file and breaks the fixture cases.
 
 Cases pin each invariant to a failure mode the linter must catch:
 
-  A — parity: canonical {1..8}, architect-review full {1..8}, architect-diagram
-      full {1..8}, frame-intent subset {1,2,4,8}, all byte-identical name+question.
+  A — parity: canonical {1..8}, architect-diagram full {1..8}, frame-intent
+      subset {1,2,4,8}, all byte-identical name+question.
       Must exit 0.
   B — reworded question in the frame-intent copy for a shared area. Must fail.
   C — renamed area in the canonical copy. Must fail (the copies still name the
@@ -19,10 +19,7 @@ Cases pin each invariant to a failure mode the linter must catch:
   D — frame-intent carries an extra area (3). Must fail (subset drift).
   E — canonical dropped an area (only 1..7). Must fail (canonical incomplete).
   F — a missing file must surface as an error, not a traceback.
-  G — the architect-review copy drifts (reworded question). Must fail (the third
-      copy is guarded too).
-  I — the architect-diagram copy drifts (reworded question). Must fail (the
-      fourth copy is guarded too).
+  G — the architect-diagram copy drifts (reworded question). Must fail.
 """
 
 from __future__ import annotations
@@ -73,7 +70,7 @@ def _render(areas: dict[int, tuple[str, str]], *, weight_col: bool) -> str:
 
 
 # Sentinel so an un-passed diagram copy defaults to the full canonical fixture
-# (architect-diagram carries the full {1..8} table, like architect-review). It
+# (architect-diagram carries the full {1..8} table). It
 # *must* be overridden — its LAYOUT row otherwise resolves to the real repo file
 # and breaks the fixtures. None still means "don't write the file" (case F).
 _DEFAULT_DIAGRAM = object()
@@ -81,7 +78,6 @@ _DEFAULT_DIAGRAM = object()
 
 def _run(
     canon_text: str | None,
-    review_text: str | None,
     pe_text: str | None,
     diagram_text: str | None | object = _DEFAULT_DIAGRAM,
 ) -> subprocess.CompletedProcess:
@@ -91,7 +87,6 @@ def _run(
         env = dict(os.environ)
         for key, name, text in (
             ("KS_CANONICAL_FILE", "canonical.md", canon_text),
-            ("KS_REVIEW_FILE", "review.md", review_text),
             ("KS_DIAGRAM_FILE", "architect-diagram.md", diagram_text),
             ("KS_PE_FILE", "frame-intent.md", pe_text),
         ):
@@ -120,25 +115,21 @@ def _expect(label: str, cp: subprocess.CompletedProcess, *, code: int, needle: s
 
 def main() -> int:
     full = dict(CANON)
-    review = dict(CANON)  # architect-review carries the full set
     subset = {n: CANON[n] for n in SUBSET}
 
     def canon_md() -> str:
         return _render(full, weight_col=False)
 
-    def review_md(areas=None) -> str:
-        return _render(areas if areas is not None else review, weight_col=False)
-
     def pe_md(areas=None) -> str:
         return _render(areas if areas is not None else subset, weight_col=True)
 
-    # A — parity holds across the review, diagram, and frame-intent copies.
-    _expect("A parity", _run(canon_md(), review_md(), pe_md()), code=0)
+    # A — parity holds across the diagram and frame-intent copies.
+    _expect("A parity", _run(canon_md(), pe_md()), code=0)
 
     # B — reworded question in the frame-intent copy for shared area 1.
     drifted_pe = dict(subset)
     drifted_pe[1] = (CANON[1][0], "What do the words mean?")
-    _expect("B reworded pe", _run(canon_md(), review_md(), pe_md(drifted_pe)),
+    _expect("B reworded pe", _run(canon_md(), pe_md(drifted_pe)),
             code=1, needle="area #1 diverged")
 
     # C — renamed area in the canonical copy (shared area 2).
@@ -146,51 +137,52 @@ def main() -> int:
     drifted_canon[2] = ("Application landscape", CANON[2][1])
     _expect(
         "C renamed canonical",
-        _run(_render(drifted_canon, weight_col=False), review_md(), pe_md()),
+        _run(_render(drifted_canon, weight_col=False), pe_md()),
         code=1, needle="area #2 diverged",
     )
 
     # D — frame-intent carries an extra area (3), breaking the subset.
     extra_pe = {n: CANON[n] for n in (1, 2, 3, 4, 8)}
-    _expect("D subset drift", _run(canon_md(), review_md(), pe_md(extra_pe)),
+    _expect("D subset drift", _run(canon_md(), pe_md(extra_pe)),
             code=1, needle="frame-intent reference areas")
 
     # E — canonical dropped an area (only 1..7), breaking the canonical set.
     short = {n: CANON[n] for n in range(1, 8)}
     _expect(
         "E canonical incomplete",
-        _run(_render(short, weight_col=False), review_md(short), pe_md()),
+        _run(_render(short, weight_col=False), pe_md()),
         code=1, needle="canonical) areas",
     )
 
     # F — a missing file is an error, not a traceback.
-    cp = _run(canon_md(), review_md(), None)
+    cp = _run(canon_md(), None)
     _expect("F missing file", cp, code=1, needle="not found")
     if "Traceback" in cp.stderr:
         _FAILURES.append("F missing file: linter raised a traceback instead of a clean error")
 
-    # G — the architect-review copy drifts (reworded question for shared area 4).
-    drifted_review = dict(review)
-    drifted_review[4] = (CANON[4][0], "How does it run in prod?")
-    _expect("G review drift", _run(canon_md(), review_md(drifted_review), pe_md()),
-            code=1, needle="area #4 diverged")
-
-    # H — a copy carries an area outside the canonical set (a phantom area 9).
+    # G — a copy carries an area outside the canonical set (a phantom area 9).
     # Caught by invariant (2) (set != expected), not (3) (which only compares
     # shared areas) — pins that out-of-canon areas are guarded.
-    out_of_canon = dict(review)
+    out_of_canon = dict(CANON)
     out_of_canon[9] = ("Phantom area", "Does this exist?")
-    _expect("H out-of-canon area", _run(canon_md(), review_md(out_of_canon), pe_md()),
-            code=1, needle="architect-review reference areas")
+    _expect(
+        "G out-of-canon area",
+        _run(
+            canon_md(),
+            pe_md(),
+            diagram_text=_render(out_of_canon, weight_col=False),
+        ),
+        code=1,
+        needle="architect-diagram reference areas",
+    )
 
-    # I — the architect-diagram copy drifts (reworded question for shared area 5).
-    # Mirrors G: pins that the fourth copy is guarded too.
+    # H — the architect-diagram copy drifts (reworded question for shared area 5).
     drifted_diagram = _render(
         {**CANON, 5: (CANON[5][0], "What rules constrain me?")}, weight_col=False
     )
     _expect(
-        "I diagram drift",
-        _run(canon_md(), review_md(), pe_md(), diagram_text=drifted_diagram),
+        "H diagram drift",
+        _run(canon_md(), pe_md(), diagram_text=drifted_diagram),
         code=1, needle="area #5 diverged",
     )
 

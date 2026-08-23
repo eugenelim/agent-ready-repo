@@ -1,0 +1,181 @@
+{
+  "x-spec": "docs/specs/catalogue-wave4-semantic-contracts-index",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalogue-index.schema.json",
+  "title": "Neutral catalogue index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalogue", "packs", "profiles"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1"]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"}
+      }
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version",
+          "scope",
+          "integrations",
+          "integrations_inverse",
+          "journeys",
+          "effects",
+          "digest"
+        ],
+        "properties": {
+          "name": {"type": "string"},
+          "version": {"type": "string"},
+          "scope": {"type": "string", "enum": ["repo", "user"]},
+          "description": {"type": "string"},
+          "categories": {"type": "array", "items": {"type": "string"}},
+          "adapters": {"type": "array", "items": {"type": "string"}},
+          "integrations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "pack", "kind", "role"],
+              "properties": {
+                "id": {"type": "string"},
+                "pack": {"type": "string"},
+                "kind": {
+                  "type": "string",
+                  "enum": ["input", "augment", "review", "handoff"]
+                },
+                "role": {"type": "string"}
+              }
+            }
+          },
+          "integrations_inverse": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "pack", "kind", "role"],
+              "properties": {
+                "id": {"type": "string"},
+                "pack": {"type": "string"},
+                "kind": {
+                  "type": "string",
+                  "enum": ["input", "augment", "review", "handoff"]
+                },
+                "role": {"type": "string"}
+              }
+            }
+          },
+          "journeys": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "journey_id",
+                "pack",
+                "start_state",
+                "end_state",
+                "scope",
+                "tagline",
+                "contract"
+              ],
+              "properties": {
+                "journey_id": {"type": "string"},
+                "pack": {"type": "string"},
+                "start_state": {
+                  "type": "string",
+                  "enum": ["read-only", "proposed-write", "confirmed-write"]
+                },
+                "end_state": {
+                  "type": "string",
+                  "enum": ["read-only", "proposed-write", "confirmed-write"]
+                },
+                "scope": {"type": "string", "enum": ["repo", "user"]},
+                "tagline": {"type": "string"},
+                "contract": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["useItWhen", "youProvide", "youReceive", "yourDecisions"],
+                  "properties": {
+                    "useItWhen": {"type": "string"},
+                    "youProvide": {"type": "string"},
+                    "youReceive": {"type": "string"},
+                    "yourDecisions": {"type": "array", "items": {"type": "string"}},
+                    "decisionGateIds": {"type": "array", "items": {"type": "string"}}
+                  }
+                }
+              }
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "description"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "file-write",
+                    "git-push",
+                    "network-call",
+                    "shell-exec",
+                    "credential-read"
+                  ]
+                },
+                "description": {"type": "string"}
+              }
+            }
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "skills": {"type": "array", "items": {"type": "string"}},
+              "agents": {"type": "array", "items": {"type": "string"}},
+              "commands": {"type": "array", "items": {"type": "string"}},
+              "scripts": {"type": "array", "items": {"type": "string"}},
+              "hooks": {"type": "array", "items": {"type": "string"}},
+              "seeds": {"type": "array", "items": {"type": "string"}},
+              "shared-libs": {"type": "array", "items": {"type": "string"}},
+              "user-libs": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "execution": {"type": "array", "items": {"type": "string"}},
+          "documentation": {"type": "string"},
+          "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "scope"],
+        "properties": {
+          "name": {"type": "string"},
+          "scope": {"type": "string", "enum": ["user", "repo"]},
+          "description": {"type": "string"},
+          "packs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

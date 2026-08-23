@@ -17,11 +17,14 @@ in `agentbundle/_data/`.
 | --- | --- |
 | `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule |
 | `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape |
+| `distribution-routes.toml` | Package-route identity, layout, projector, capability, marketplace, and lifecycle concerns |
+| `distribution-routes.schema.json` | Closed JSON Schema for the Phase 0 distribution-route contract |
 | `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests |
 | `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` |
 | `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge |
 | `catalogue.schema.json` | JSON Schema for `catalogue.toml` manifests |
 | `profile.schema.json` | JSON Schema for profile TOML files |
+| `catalogue-index.schema.json` | JSON Schema for the generated neutral catalogue index |
 | `guide.schema.json` | JSON Schema for guide frontmatter |
 | `skill.schema.json` | JSON Schema for skill frontmatter and body |
 | `skill-manifest.schema.json` | JSON Schema for skill manifest files |
@@ -29,14 +32,21 @@ in `agentbundle/_data/`.
 
 ## Which design governs which file
 
-- **The adapter contract** — `adapter.toml`, `adapter.schema.json`,
+- **Distribution routes and runtime adapters** — `distribution-routes.toml`,
+  `distribution-routes.schema.json`, `adapter.toml`, `adapter.schema.json`,
   `pack.schema.json`, both `plugin-manifest` schemas, and `target-vocab.toml` —
-  comes from the [distribution-by-adapter design][adapters], which defines every
-  (primitive × adapter) projection rule.
+  come from the [distribution-route decision][routes] and the
+  [distribution-by-adapter design][adapters]. Routes own package identity,
+  layout, package-manifest projection, component capabilities, marketplace
+  projection, and lifecycle triggers; adapters continue to own direct-install
+  projection rules.
 - **The catalogue and profile manifests** — `catalogue.schema.json` and
   `profile.schema.json` — come from the [catalogue spec and CLI][cli], which
   also lifted these contracts into a published open standard with versioning and
   a conformance suite.
+- **The neutral catalogue index** — `catalogue-index.schema.json` — comes from
+  the [contracts composition and discovery design][composition] and pins the
+  adapter-neutral discovery document emitted by `agentbundle catalogue index`.
 - **The guide and skill schemas** — `guide.schema.json`, `skill.schema.json`,
   and `skill-manifest.schema.json` — implement the
   [agentskills.io standard](../guides/_shared/reference/agentskills-io-standard.md),
@@ -59,3 +69,4 @@ Future contracts land here too, each in its own PR.
 [origin]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0001-bundle-distribution-by-adapter-spec.md
 [cli]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0003-spec-and-cli.md
 [composition]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md
+[routes]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0092-first-class-distribution-routes.md

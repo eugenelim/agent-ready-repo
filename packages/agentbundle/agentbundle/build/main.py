@@ -18,6 +18,7 @@ paths.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import sys
@@ -102,6 +103,8 @@ def _read_bundled(name: str) -> str:
 
 
 CONTRACT_PATH = _bundled_or_repo("adapter.toml")
+ROUTE_CONTRACT_PATH = _bundled_or_repo("distribution-routes.toml")
+ROUTE_SCHEMA_PATH = _bundled_or_repo("distribution-routes.schema.json")
 PACK_SCHEMA_PATH = _bundled_or_repo("pack.schema.json")
 PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
@@ -339,6 +342,7 @@ DEFAULT_RECIPES = (
 class Recipe:
     name: str
     type: str
+    route: str | None
     adapter: str | None
     output_subdir: str | None
     input_subdir: str | None
@@ -346,6 +350,20 @@ class Recipe:
     units: list[str]
     fragment_path: str | None
     manifest_path: str | None
+
+
+@dataclass(frozen=True)
+class ResolvedDistributionRoute:
+    """Validated route semantics consumed by the two Phase 0 projectors."""
+
+    identity: str
+    package_projector: str
+    adapter_projector: str | None
+    admission_policy: str
+    output_subdir: str
+    component_capabilities: dict[str, dict[str, str]]
+    marketplace_projector: str
+    lifecycle_trigger: str
 
 
 @dataclass
@@ -387,9 +405,22 @@ def _parse_recipe(path: Path) -> Recipe:
 def _parse_recipe_text(toml_text: str) -> Recipe:
     data = tomllib.loads(toml_text)
     body = data["recipe"]
+    recipe_name = body.get("name", "<unnamed>")
+    recipe_type = body["type"]
+    route = body.get("route")
+    if recipe_type in {"per-pack", "aggregate"} and not isinstance(route, str):
+        raise ValueError(
+            f"recipe {recipe_name!r}: field 'route' is required for "
+            f"{recipe_type} distribution recipes"
+        )
+    if recipe_type not in {"per-pack", "aggregate"} and route is not None:
+        raise ValueError(
+            f"recipe {recipe_name!r}: field 'route' is not allowed for "
+            f"{recipe_type} recipes"
+        )
     return Recipe(
         name=body["name"],
-        type=body["type"],
+        type=recipe_type,
         adapter=body.get("adapter"),
         output_subdir=body.get("output-subdir"),
         input_subdir=body.get("input-subdir"),
@@ -397,7 +428,128 @@ def _parse_recipe_text(toml_text: str) -> Recipe:
         units=body.get("units", []),
         fragment_path=body.get("fragment-path"),
         manifest_path=body.get("manifest-path"),
+        route=route,
     )
+
+
+def _resolve_distribution_route(
+    recipe: Recipe, route_contract: dict
+) -> ResolvedDistributionRoute:
+    """Resolve one explicit Phase 0 route, rejecting inconsistent declarations."""
+    route_name = recipe.route
+    if route_name not in {"apm", "claude-plugins"}:
+        raise ValueError(
+            f"recipe {recipe.name!r}: field 'route' names unknown "
+            f"distribution route {route_name!r}"
+        )
+    routes = route_contract.get("route")
+    if not isinstance(routes, dict) or not isinstance(routes.get(route_name), dict):
+        raise ValueError(
+            f"recipe {recipe.name!r}: field 'route' names missing "
+            f"distribution route {route_name!r}"
+        )
+    raw_route = routes[route_name]
+
+    # Give the security-sensitive admission mismatch a concise route-local
+    # refusal before the exact schema reports the wider declaration diff.
+    expected_admission = {
+        "apm": "all-packs",
+        "claude-plugins": "user-publishable-with-consent",
+    }[route_name]
+    manifest = raw_route.get("manifest-projector")
+    if not isinstance(manifest, dict):
+        raise ValueError(
+            f"recipe {recipe.name!r}: route {route_name!r} field "
+            "'manifest-projector' must be an object"
+        )
+    if manifest.get("admission-policy") != expected_admission:
+        raise ValueError(
+            f"recipe {recipe.name!r}: route {route_name!r} field "
+            f"'manifest-projector.admission-policy' must be {expected_admission!r}"
+        )
+    expected_adapter = None if route_name == "apm" else "claude-code"
+    if recipe.type == "per-pack" and recipe.adapter != expected_adapter:
+        raise ValueError(
+            f"recipe {recipe.name!r}: field 'adapter' value {recipe.adapter!r} "
+            f"does not match route {route_name!r} adapter-projector "
+            f"{expected_adapter!r}"
+        )
+    marketplace_projector = raw_route.get("marketplace-projector")
+    if recipe.type == "aggregate":
+        if marketplace_projector == "none":
+            raise ValueError(
+                f"recipe {recipe.name!r}: field 'route' selects {route_name!r}, "
+                "whose 'marketplace-projector' is 'none'"
+            )
+        if recipe.adapter is not None and recipe.adapter != expected_adapter:
+            raise ValueError(
+                f"recipe {recipe.name!r}: field 'adapter' value "
+                f"{recipe.adapter!r} does not match route {route_name!r} "
+                f"adapter-projector {expected_adapter!r}"
+            )
+
+    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    errors = validate_instance(route_contract, schema)
+    if errors:
+        raise ValueError(
+            f"recipe {recipe.name!r}: distribution route contract is invalid: "
+            + "; ".join(errors)
+        )
+
+    layout = raw_route["package-layout"]
+    output_subdir = layout["output-subdir"]
+    output_path = Path(output_subdir)
+    if output_path.is_absolute() or ".." in output_path.parts:
+        raise ValueError(
+            f"recipe {recipe.name!r}: route {route_name!r} field "
+            f"'package-layout.output-subdir' is unsafe: {output_subdir!r}"
+        )
+    if recipe.type == "per-pack" and recipe.output_subdir != output_subdir:
+        raise ValueError(
+            f"recipe {recipe.name!r}: field 'output-subdir' value "
+            f"{recipe.output_subdir!r} does not match route {route_name!r} "
+            f"layout {output_subdir!r}"
+        )
+    if recipe.type == "aggregate":
+        expected_output_file = f"{output_subdir}/marketplace.json"
+        if recipe.input_subdir != output_subdir:
+            raise ValueError(
+                f"recipe {recipe.name!r}: field 'input-subdir' value "
+                f"{recipe.input_subdir!r} does not match route {route_name!r} "
+                f"layout {output_subdir!r}"
+            )
+        if recipe.output_file != expected_output_file:
+            raise ValueError(
+                f"recipe {recipe.name!r}: field 'output-file' value "
+                f"{recipe.output_file!r} does not match route {route_name!r} "
+                f"output {expected_output_file!r}"
+            )
+
+    adapter_projector = manifest["adapter-projector"]
+    return ResolvedDistributionRoute(
+        identity=raw_route["identity"],
+        package_projector=manifest["name"],
+        adapter_projector=(
+            None if adapter_projector == "none" else adapter_projector
+        ),
+        admission_policy=manifest["admission-policy"],
+        output_subdir=output_subdir,
+        component_capabilities=raw_route["component-capabilities"],
+        marketplace_projector=marketplace_projector,
+        lifecycle_trigger=raw_route["lifecycle-trigger"],
+    )
+
+
+def _load_distribution_route_contract() -> dict:
+    """Decode and validate the bundled distribution-route contract."""
+    route_contract = tomllib.loads(_read_bundled("distribution-routes.toml"))
+    schema = json.loads(_read_bundled("distribution-routes.schema.json"))
+    errors = validate_instance(route_contract, schema)
+    if errors:
+        raise ValueError(
+            "distribution route contract is invalid: " + "; ".join(errors)
+        )
+    return route_contract
 
 
 def discover_packs(packs_dir: Path) -> list[Pack]:
@@ -423,12 +575,6 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
 # contract ADR-0002 defines. One predicate decides membership; every writer that
 # can publish calls it.
 # ---------------------------------------------------------------------------
-
-# Recipes whose output this route publishes. Keyed on (name, adapter) to match
-# `_resolve_contract_for_route`'s idiom — `output_subdir` is free text on an
-# operator-supplied `--recipe` file and is not a safe key.
-_CLAUDE_PLUGIN_ROUTE = ("per-pack-claude-plugin", "claude-code")
-
 
 def is_publishable(pack_meta: dict, *, slug: str) -> bool:
     """Does this pack belong on the Claude-plugin route?
@@ -600,6 +746,7 @@ def run_recipe(
     contract: dict,
     *,
     aggregate_scope: str,
+    route_contract: dict | None = None,
 ) -> dict:
     """Execute a recipe and return a description of what it produced.
 
@@ -620,6 +767,17 @@ def run_recipe(
             f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
             f"got {aggregate_scope!r}"
         )
+    resolved_route: ResolvedDistributionRoute | None = None
+    if recipe.type in {"per-pack", "aggregate"}:
+        if recipe.route is None:
+            raise ValueError(
+                f"recipe {recipe.name!r}: field 'route' is required for "
+                f"{recipe.type} distribution recipes"
+            )
+        if route_contract is None:
+            route_contract = _load_distribution_route_contract()
+        resolved_route = _resolve_distribution_route(recipe, route_contract)
+
     packs_list = list(packs)
     for pack in packs_list:
         validate_pack_uniqueness(pack)
@@ -627,11 +785,16 @@ def run_recipe(
     if recipe.type == "per-pack":
         return _run_per_pack(
             recipe, packs_list, output_dir, contract,
+            resolved_route=resolved_route,
             aggregate_scope=aggregate_scope,
         )
     if recipe.type == "aggregate":
         return _run_aggregate(
-            recipe, output_dir, packs=packs_list, aggregate_scope=aggregate_scope
+            recipe,
+            output_dir,
+            packs=packs_list,
+            aggregate_scope=aggregate_scope,
+            resolved_route=resolved_route,
         )
     if recipe.type == "overlay":
         return _run_overlay(recipe, packs_list)
@@ -664,19 +827,30 @@ def _run_per_pack(
     output_dir: Path,
     contract: dict,
     *,
+    resolved_route: ResolvedDistributionRoute | None,
     aggregate_scope: str,
 ) -> dict:
-    if recipe.adapter == "apm":
-        return _run_per_pack_apm(recipe, packs, output_dir)
-    if recipe.adapter not in ADAPTERS:
-        raise ValueError(f"unknown adapter target {recipe.adapter!r}")
-    if recipe.adapter not in contract["adapter"]:
+    if resolved_route is not None and resolved_route.package_projector == "apm-package":
+        _preflight_route_source_trees(packs, resolved_route)
+        return _run_per_pack_apm(recipe, packs, output_dir, resolved_route)
+    adapter_projector = (
+        resolved_route.adapter_projector
+        if resolved_route is not None
+        else recipe.adapter
+    )
+    if adapter_projector not in ADAPTERS:
+        raise ValueError(f"unknown adapter target {adapter_projector!r}")
+    if adapter_projector not in contract["adapter"]:
         raise ValueError(
-            f"adapter {recipe.adapter!r} declared in recipe but not in contract"
+            f"adapter {adapter_projector!r} declared in recipe but not in contract"
         )
-    project = ADAPTERS[recipe.adapter]
+    project = ADAPTERS[adapter_projector]
     produced: dict[str, str] = {}
-    route_filtered = (recipe.name, recipe.adapter) == _CLAUDE_PLUGIN_ROUTE
+    route_filtered = (
+        resolved_route is not None
+        and resolved_route.identity == "claude-plugins"
+    )
+    admitted_packs: list[Pack] = []
     for pack in packs:
         plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
         pack_toml = pack.path / "pack.toml"
@@ -722,9 +896,21 @@ def _run_per_pack(
                     file=sys.stderr,
                 )
             continue
+        admitted_packs.append(pack)
+
+    if resolved_route is not None:
+        _preflight_route_source_trees(admitted_packs, resolved_route)
+
+    for pack in admitted_packs:
         try:
             _run_per_pack_single(
-                pack, recipe, project, output_dir, contract, produced
+                pack,
+                recipe,
+                project,
+                output_dir,
+                contract,
+                produced,
+                resolved_route=resolved_route,
             )
         except ValueError as exc:
             # Pack-authored validation failures are expected input errors. Keep
@@ -738,52 +924,90 @@ def _run_per_pack(
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
 
-def _resolve_contract_for_route(contract: dict, recipe: Recipe) -> dict:
-    """Return the contract with route-scoped projection targets applied.
-
-    Claude Code *plugins* load components from the plugin root; a repo or user
-    install lands the same primitives under adapter-specific direct paths.
-    Rather than widen every adapter's ``project`` signature with a route
-    argument, the dispatcher applies each ``plugin-target-path`` and
-    ``plugin-mode`` on the claude-plugins recipe only. The adapter keeps reading
-    ordinary ``target-path`` / ``mode`` fields, so the orphan sweep
-    (``_skill_direct_directory_target``) resolves the same route-correct target
-    for free — had the route reached the projection but not the sweep, the sweep
-    would silently target a nonexistent directory.
-    """
-    if recipe.name != "per-pack-claude-plugin" or recipe.adapter != "claude-code":
+def _projection_contract_for_route(
+    contract: dict, resolved_route: ResolvedDistributionRoute
+) -> dict:
+    """Build a fresh adapter input from route capabilities without mutation."""
+    if resolved_route.identity != "claude-plugins":
         return contract
-    entries = contract["adapter"]["claude-code"].get("projection", [])
-    missing: list[str] = []
-    for entry in entries:
-        primitive = entry.get("primitive")
-        if primitive in ("skill", "agent", "hook-body", "command"):
-            if "plugin-target-path" not in entry:
-                missing.append(str(primitive))
-        elif primitive == "hook-wiring" and "plugin-mode" not in entry:
-            missing.append("hook-wiring:plugin-mode")
-    if missing:
-        # Fail loud. Returning the un-rerouted contract here would silently
-        # restore the `.claude/` layout — the empty-plugin defect this exists
-        # to prevent — for a typo'd key or a stale bundled adapter.toml.
-        raise ValueError(
-            "claude-plugins recipe: claude-code contract is missing "
-            f"route-scoped projection fields for {missing}; hook components "
-            "would be misplaced or silently omitted"
-        )
-    rerouted = []
-    for entry in entries:
-        resolved = dict(entry)
-        if "plugin-target-path" in entry:
-            resolved["target-path"] = entry["plugin-target-path"]
-        if "plugin-mode" in entry:
-            resolved["mode"] = entry["plugin-mode"]
-        rerouted.append(resolved)
+    projection: list[dict] = []
+    for source_entry in contract["adapter"]["claude-code"].get("projection", []):
+        primitive = source_entry["primitive"]
+        capability = resolved_route.component_capabilities[primitive]
+        if (
+            capability["status"] == "dropped"
+            or capability["mode"] == "compiled-manifest"
+        ):
+            # Hook wiring is compiled separately into plugin.json; the runtime
+            # adapter projector must not also retain stale direct-install
+            # destinations or conflict semantics.
+            entry = {"primitive": primitive, "mode": "dropped"}
+        else:
+            entry = dict(source_entry)
+            entry["mode"] = capability["mode"]
+            entry["target-path"] = capability["target-path"]
+        projection.append(entry)
     adapters = dict(contract["adapter"])
     adapters["claude-code"] = {
-        **contract["adapter"]["claude-code"], "projection": rerouted
+        **contract["adapter"]["claude-code"],
+        "projection": projection,
     }
     return {**contract, "adapter": adapters}
+
+
+def _validate_route_source_tree(
+    pack_root: Path, source_relative: str, *, route: str
+) -> None:
+    """Reject a source-root link that copytree would dereference into output."""
+    source = pack_root / source_relative
+    try:
+        source.lstat()
+    except FileNotFoundError:
+        return
+    if source.is_symlink():
+        raise ValueError(
+            f"{route}: refusing symlinked source root {source_relative!r}"
+        )
+    if not source.is_dir():
+        raise ValueError(
+            f"{route}: route source root {source_relative!r} is not a directory"
+        )
+    source_root = source.resolve(strict=True)
+    try:
+        source_root.relative_to(pack_root.resolve(strict=True))
+    except ValueError as exc:
+        raise ValueError(
+            f"{route}: route source root {source_relative!r} escapes the pack"
+        ) from exc
+    for directory, child_dirs, child_files in os.walk(source, followlinks=False):
+        directory_path = Path(directory)
+        for child_name in child_dirs + child_files:
+            child = directory_path / child_name
+            if not child.is_symlink():
+                continue
+            target = child.readlink()
+            if target.is_absolute():
+                raise ValueError(
+                    f"{route}: unsafe absolute source link "
+                    f"{child.relative_to(pack_root)}"
+                )
+            resolved_target = (child.parent / target).resolve(strict=False)
+            try:
+                resolved_target.relative_to(source_root)
+            except ValueError as exc:
+                raise ValueError(
+                    f"{route}: source link {child.relative_to(pack_root)} "
+                    "escapes its route source tree"
+                ) from exc
+
+
+def _preflight_route_source_trees(
+    packs: Iterable[Pack], resolved_route: ResolvedDistributionRoute
+) -> None:
+    """Validate admitted route copy roots before any route output mutation."""
+    for pack in packs:
+        _validate_route_source_tree(pack.path, ".apm", route=resolved_route.identity)
+        _validate_route_source_tree(pack.path, "seeds", route=resolved_route.identity)
 
 
 def _run_per_pack_single(
@@ -793,16 +1017,21 @@ def _run_per_pack_single(
     output_dir: Path,
     contract: dict,
     produced: dict[str, str],
+    *,
+    resolved_route: ResolvedDistributionRoute | None,
 ) -> None:
     """Execute the derivation pipeline for a single pack."""
     plugin_route = (
-        recipe.name == "per-pack-claude-plugin" and recipe.adapter == "claude-code"
+        resolved_route is not None
+        and resolved_route.identity == "claude-plugins"
     )
     authored_hooks: dict[str, list[dict]] = {}
     plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
     if plugin_route:
         repo_prefix, plugin_prefix, hook_source, wiring_source = (
-            claude_projection_paths(contract)
+            claude_projection_paths(
+                contract, resolved_route.component_capabilities
+            )
         )
         authored_hooks = compile_plugin_hooks(
             pack.path,
@@ -821,15 +1050,24 @@ def _run_per_pack_single(
                 "claude-plugins recipe: pack ships hook wiring but has no "
                 ".claude-plugin/plugin.json to receive it"
             )
-    contract = _resolve_contract_for_route(contract, recipe)
-    per_pack_output = output_dir / recipe.output_subdir / pack.name
+    projection_contract = (
+        _projection_contract_for_route(contract, resolved_route)
+        if resolved_route is not None
+        else contract
+    )
+    route_output_subdir = (
+        resolved_route.output_subdir
+        if resolved_route is not None
+        else recipe.output_subdir
+    )
+    per_pack_output = output_dir / route_output_subdir / pack.name
     _assert_under(per_pack_output, output_dir)
     # Transactional cleanup (Blocker-4): remove any prior partial or
     # crashed build so phantom files do not survive into this build.
     if per_pack_output.exists():
         shutil.rmtree(per_pack_output)
     per_pack_output.mkdir(parents=True, exist_ok=True)
-    project(pack.path, contract, per_pack_output)
+    project(pack.path, projection_contract, per_pack_output)
     if plugin_manifest.exists():
         # Validate source-tree manifest against the source schema
         # (forbids hooks; additionalProperties: false ensures any stray
@@ -906,11 +1144,16 @@ def _run_per_pack_single(
     produced[pack.name] = str(per_pack_output)
 
 
-def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> dict:
+def _run_per_pack_apm(
+    recipe: Recipe,
+    packs: list[Pack],
+    output_dir: Path,
+    resolved_route: ResolvedDistributionRoute,
+) -> dict:
     produced: dict[str, str] = {}
     writer_bytes = _read_install_marker_template()
     for pack in packs:
-        per_pack_output = output_dir / recipe.output_subdir / pack.name
+        per_pack_output = output_dir / resolved_route.output_subdir / pack.name
         _assert_under(per_pack_output, output_dir)
         # Transactional cleanup: remove any prior partial or crashed build
         # so phantom files do not survive into this build (mirrors the
@@ -1048,6 +1291,7 @@ def _run_aggregate(
     *,
     packs: list[Pack],
     aggregate_scope: str,
+    resolved_route: ResolvedDistributionRoute | None = None,
 ) -> dict:
     """Aggregate per-pack manifests into a marketplace file.
 
@@ -1056,7 +1300,12 @@ def _run_aggregate(
     on `clean`, so a stale dist directory carries the *old* declaration and
     would republish contrary to the pack's current intent (spec § AC4).
     """
-    input_dir = output_dir / recipe.input_subdir
+    input_subdir = (
+        resolved_route.output_subdir
+        if resolved_route is not None
+        else recipe.input_subdir
+    )
+    input_dir = output_dir / input_subdir
     _assert_under(input_dir, output_dir)
     source_by_name = {p.name: p for p in packs}
     entries: list[dict] = []
@@ -1108,7 +1357,12 @@ def _run_aggregate(
                         if _mk in subset:
                             entry[_mk] = subset[_mk]
                 entries.append(entry)
-    output_path = output_dir / recipe.output_file
+    output_file = (
+        f"{resolved_route.output_subdir}/marketplace.json"
+        if resolved_route is not None
+        else recipe.output_file
+    )
+    output_path = output_dir / output_file
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1216,13 +1470,19 @@ def run_default_build(
     """Run the three default recipes — what plain `make build` invokes."""
     if contract is None:
         contract = tomllib.loads(_read_bundled("adapter.toml"))
+    route_contract = _load_distribution_route_contract()
     packs = discover_packs(packs_dir)
     results: list[dict] = []
     for recipe_name in DEFAULT_RECIPES:
         recipe = load_recipe(recipe_name)
         results.append(
             run_recipe(
-                recipe, packs, output_dir, contract, aggregate_scope="catalogue"
+                recipe,
+                packs,
+                output_dir,
+                contract,
+                aggregate_scope="catalogue",
+                route_contract=route_contract,
             )
         )
     return results
@@ -1234,6 +1494,7 @@ def cmd_build(args) -> int:
     packs_dir = Path(args.packs_dir).resolve()
     try:
         contract = tomllib.loads(_read_bundled("adapter.toml"))
+        route_contract = _load_distribution_route_contract()
     except Exception as exc:
         print(f"build: failed to load contract: {exc}", file=sys.stderr)
         return 1
@@ -1244,8 +1505,8 @@ def cmd_build(args) -> int:
                 recipe = load_recipe_from_path(Path(args.recipe))
             else:
                 recipe = load_recipe(args.recipe)
-        except FileNotFoundError as exc:
-            print(f"build: {exc}", file=sys.stderr)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"build: recipe {args.recipe!r}: {exc}", file=sys.stderr)
             return 1
         try:
             packs = discover_packs(packs_dir)
@@ -1271,7 +1532,12 @@ def cmd_build(args) -> int:
                 packs = [p for p in packs if p.name == args.pack]
                 aggregate_scope = "single-pack"
             run_recipe(
-                recipe, packs, output_dir, contract, aggregate_scope=aggregate_scope
+                recipe,
+                packs,
+                output_dir,
+                contract,
+                aggregate_scope=aggregate_scope,
+                route_contract=route_contract,
             )
         except ValueError as exc:
             print(f"build: {exc}", file=sys.stderr)

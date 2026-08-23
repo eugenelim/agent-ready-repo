@@ -1,6 +1,6 @@
 # Spec: Site shared chrome
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089, ADR-0085
@@ -160,43 +160,71 @@ means only the destination architecture and vocabulary above.
 
 ## Acceptance Criteria
 
-- [ ] `site.toml` is the sole renderer-neutral source for shared destination
+- [x] `site.toml` is the sole renderer-neutral source for shared destination
   IDs, labels, targets, groups, order, and internal/external kind; it contains
   no CSS, token, breakpoint, state, or component prescription.
-- [ ] Generator validation rejects duplicate destination/group IDs, missing
-  group references, invalid target kinds, order drift, and unknown internal
-  destinations, and projects deterministic renderer-local data.
-- [ ] Marketing header and mobile disclosure emit the exact six destinations,
+- [x] Generator validation rejects duplicate destination/group IDs, missing
+  group references, unknown destination references in groups and in the ordered
+  header and docs-navigation lists, repeated entries in those lists, invalid
+  target kinds, and invalid internal target shape, and projects deterministic
+  renderer-local data. Drift from the approved vocabulary — labels, targets,
+  kinds, and header, group, and docs-navigation order — is rejected by a
+  merge-blocking anchor test rather than by generator logic, because AC1 makes
+  `site.toml` the sole source of that order; target resolution is rejected by
+  `tools/check-rendered-site-links.py`.
+- [x] Marketing header and mobile disclosure emit the exact six destinations,
   order, labels, targets, and existing CTA treatment approved above.
-- [ ] Marketing and docs footers emit the exact Product, Docs, and Project
+- [x] Marketing and docs footers emit the exact Product, Docs, and Project
   groups; marketing retains its brand/tagline, while docs uses the approved
   subordinate renderer-native treatment after Starlight pagination.
-- [ ] Desktop docs emits the exact non-sticky product-orientation band above one
+- [x] Desktop docs emits the exact non-sticky product-orientation band above one
   unchanged sticky Starlight header, with Product home and Docs current
   treatment as specified.
-- [ ] Phone docs emits the exact Product disclosure beside the independent Docs
+- [x] Phone docs emits the exact Product disclosure beside the independent Docs
   menu, with the approved landmark, item order, and isolated disclosure state.
-- [ ] Internal and external links follow the exact kind, base, same-tab, glyph,
+- [x] Internal and external links follow the exact kind, base, same-tab, glyph,
   accessible-name, and relationship-metadata rules above; Docs is internal and
   only GitHub and PyPI are external.
-- [ ] Skip, focus-visible, exact-page `aria-current`, category-current, footer
+- [x] Skip, focus-visible, exact-page `aria-current`, category-current, footer
   current, and homepage-fragment rules match the approved behavior and do not
   rely on color alone.
-- [ ] Starlight remains the singular owner of its title/header, search, theme,
+- [x] Starlight remains the singular owner of its title/header, search, theme,
   docs menu, sidebar, breadcrumbs, page title/description, table of contents,
   edit control, pagination, skip link, and content layout on home and nested
   guide routes.
-- [ ] Neither emitted project shares or imports the other renderer's CSS,
+- [x] Neither emitted project shares or imports the other renderer's CSS,
   components, palette, tokens, spacing, breakpoints, focus implementation,
   disclosure state, JavaScript, or Starlight internals.
-- [ ] `/now/` exists before shared navigation adopts it, `/work/` is absent
+- [x] `/now/` exists before shared navigation adopts it, `/work/` is absent
   from public shared chrome, all other existing routes/sidebar/pagination links
   still resolve, and combined page/fragment checks pass.
-- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths in the approved themes,
+- [x] At 360, 375, 390, 414, and 1440 CSS-pixel widths in the approved themes,
   chrome has at most 1px horizontal overflow, is fully keyboard-usable, has
   visible focus, and produces zero serious or critical axe findings.
-- [ ] Recorded design review finds no Major issue against either renderer's
+- [x] Recorded design review finds no Major issue against either renderer's
   named aesthetic direction or the four tech-site principles.
+
+## Acceptance evidence
+
+Recorded 2026-08-20 against `main` at `fe26b042` plus this task's change. Each
+criterion names what was run, not what was intended. AC13 is unticked: it is a
+human judgement and is not self-certifiable.
+
+| AC | Evidence |
+| --- | --- |
+| 1 | `site.toml [shared_chrome]` carries only `id`/`label`/`target`/`kind`/`group`; `validate_shared_chrome_contract` rejects unknown fields. Both renderers read projected inputs, not literals: `test_the_committed_marketing_shared_chrome_projection_matches_site_toml` and its docs counterpart fail on a hand-edited projection (mutation-proved). |
+| 2 | Duplicate IDs, missing group members, unknown references in `header`/`docs_band`/`docs_product_navigation`, repeats, bad kinds and bad internal target shape each have a rejecting test in `tools/test_build_site_routing.py`. Vocabulary drift is caught by the merge-blocking anchor test; target resolution by `tools/check-rendered-site-links.py` — 63920 links across 270 pages, clean. |
+| 3 | `rendered-output.test.ts` compares the emitted `.nav__links` and `.nav__drawer` against the projection: exact six destinations, order, labels, targets, and the CTA retaining `nav__cta`. |
+| 4 | `rendered-output.test.ts` asserts the three marketing footer groups plus brand and tagline against the projection, and the same three groups in docs. Docs order is asserted as a relation, not a presence check: Starlight's `.pagination-links` must appear *before* the first shared group in document order, so a reversed footer fails. The quiet line `© <year> · agent-ready-repo` is asserted, as is the absence of the marketing brand block and tagline. |
+| 5 | e2e `expectDocsChromeIsWellPlaced` over 20 docs cases relates the band to the header rather than querying each alone: `compareDocumentPosition` requires the band to precede the Starlight header, and where displayed its top must be above the header's. Non-stickiness is asserted as behaviour, not just as a property — the band may be neither `fixed` nor `sticky`, and after scrolling its bottom must leave the viewport while the Starlight header's remains inside it. `header.header` computes `position: sticky`; exactly one `header.header > div.header`. Making the band sticky, or removing `.main-frame`'s padding, each fails (mutation-proved). |
+| 6 | e2e `docs Product and Docs disclosures stay independent` drives BOTH controls at 360/375/390/414: opening Product leaves the Docs menu closed and its sidebar hidden; opening Docs leaves Product open and its trigger unrenamed; closing either leaves the other untouched. Coupling the two fails it (mutation-proved). |
+| 7 | Kind is read from the data, never a hostname: `chromeHref` branches on `link.kind`, and `web/src/test/shared-chrome.test.ts` pins the discriminating case — a declared-external target without an http scheme is admissible data, since `_validate_internal_shared_target` runs only under `if kind == "internal"`. One `expectSharedChromeLinkContract` is applied to every shared-chrome surface — marketing header and mobile drawer, docs orientation band, docs Product disclosure, and **both** footers — asserting base-qualified href, `target` absent (same tab) and no `rel` on internal *and* external links, with an `aria-hidden` `↗` and an accessible name of exactly `<label> external` on GitHub and PyPI only. The visually-hidden half is measured in the browser, since a DOM-only test cannot see it: for each of the two exact external destinations the hidden word must read `external`, must not be `display:none` or `visibility:hidden` (which would drop it from the accessible name), and must be clipped or ≤1px. Both destinations are required rather than skipped — an earlier form of this check selected Starlight's own "Edit page" link, the first `https://` link in the docs footer, and silently measured nothing. Making the docs external text visible fails it at 65.5×20px (mutation-proved). Asserted semantically rather than by class name throughout, because each renderer hides the word with its own CSS and requiring a shared class would mandate the shared CSS AC10 forbids. |
+| 8 | Emitted `aria-current` measured from the build: `/catalogue/` and `/now/` = 3× `page`; `/packs/core/` and `/journeys/core/` = 3× `location`; homepage fragment destinations carry none. Footer state is asserted exactly and per route rather than as "something is current": the docs footer's `/docs/` link must be `page` on the docs home and `location` on a nested route, so a footer using one state everywhere, or none, fails. No footer `aria-current` may sit on a fragment target, in either renderer. Current state is carried by weight and underline, not colour alone. `expectSkipLinkFirst` runs on all 20 docs cases, and `expectVisibleFocusIndicator` requires each focused chrome control to *gain* an indicator it lacked at rest — suppressing docs focus styling fails it with a measured before/after (mutation-proved). |
+| 9 | `rendered-output.test.ts` asserts every control AC9 names on **both** the docs home and a nested guide route: one Starlight header, title, search, Docs-menu trigger, sidebar, skip link, `h1`, meta description, table of contents, mobile ToC, content layout, footer — plus the edit control and pagination where they render. Ownership is proved at the override seam: `docs-site/astro.config.ts`'s `components` map must contain exactly `Footer`, `PageFrame` and `PageTitle`, because declaring a native control there is precisely how it would be replaced — adding `ThemeSelect` fails the test (mutation-proved). Singular counts are asserted only where the contract requires singularity; the theme control is not pinned to a node count, since Starlight renders it twice natively and pinning that would fail a legitimate upstream consolidation. A control build with the `PageFrame` override disabled produced identical native-control counts, which is also how `.header` was ruled out as a singularity proxy — Starlight's Header emits `<div class="header">` and Expressive Code emits `<figcaption class="header">`. Native EditLink, LastUpdated and Pagination replaced the previously hand-rolled prev/next markup. |
+| 10 | `test_neither_renderer_imports_the_other_renderers_chrome` sweeps **every** hand-written `.astro`/`.ts`/`.js`/`.css`/`.json` file under both `web/src` and `docs-site/src` — not a named-file list — for any JS import, re-export, `require`, CSS `@import`, or `url()` whose path climbs into the other renderer's tree. A cross-renderer CSS `@import`, and an import in a component the earlier named-list guard never covered, both fail it (mutation-proved). `test_each_renderer_reads_its_own_projected_input` adds that each renderer reads only its own projection and the docs projection exposes no `header` key. The palette half is additionally held by the existing no-marketing-token-dependency tests. |
+| 11 | `/now/` exists and is linked; `test_the_public_work_surface_is_gone_from_marketing_inputs` checks the retired routes, the projection, and the marketing component sources for a `/work/` literal — the source scan fails when one is reintroduced (mutation-proved). `check-rendered-site-links.py` resolves every page and fragment. |
+| 12 | `npm run test:e2e:gate --prefix web`. The docs matrix is 20 cases — `/docs/` and `/docs/guides/core/how-to/start-a-project/` × 360/375/390/414/1440 × light/dark — each asserting ≤1px horizontal overflow, zero serious or critical axe findings, resolvable fragments, and skip-link-first. Keyboard operability is asserted by operating the controls: `expectDocsChromeIsKeyboardOperable` decides which affordance each breakpoint owes and **fails when it is absent** rather than skipping — the band iff wide, the Product disclosure and Docs-menu trigger iff narrow. Each is reached with `tabToAndAssertFocus`, i.e. by pressing Tab rather than calling `focus()`, so a control removed from the tab order cannot pass; the disclosure is then opened with **both** Enter and Space, focus must stay on the trigger, the disclosed links must follow it in tab order, and each stop must show a visible focus indicator. Hiding the phone disclosure, and giving the trigger or the disclosed links `tabindex="-1"`, each fail (mutation-proved). Tap targets were re-measured across the same 20 cases: no demonstrated non-exempt failure, all 22 shared-chrome candidates conforming through SC 2.5.8's Spacing clause at 35.2–69.8px against a 24px threshold. |
+| 13 | Recorded human design review, 2026-08-20, at `main` `ae6d0e30` — [`notes/design-review.md`](notes/design-review.md). Both renderers reviewed at wide and phone widths, docs in both themes through Starlight's own theme control, against each renderer's named direction and the four principles, with Major and Nit defined in advance so the answer was decidable. Verdict: no Major issue. Not self-certified — the verdict is the human reviewer's. The physical-device pass is explicitly out of this record's boundary and remains the programme's separate manual release check. |
 
 ## Assumptions
 

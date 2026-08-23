@@ -296,6 +296,99 @@ This applies in every retrieval mode (quick / standard / applied / deep) and to 
    `/devils-advocate` on `<topic-slug>-survey.md`; emit
    `<topic-slug>-counterpoints.md`.
 
+## Project-knowledge handoff
+
+Project knowledge is an optional handoff after research has completed its own
+work. It does not participate in question framing, retrieval, source selection,
+synthesis, citation, confidence, moderation, or counter-review. Research owns
+all transient working notes until the exact gate below; Scratch is never
+persisted automatically.
+
+### Gate classification
+
+- Quick mode is an absolute knowledge non-gate: its final inline answer and
+  every partial, refused, interrupted, or abandoned answer make no
+  project-knowledge call.
+- The non-survey typed products `fact-check`, `comparison-matrix`, `shortlist`,
+  `blueprint`, `hypotheses`, and `methodology` have no integration in this
+  release. Their terminal and incomplete forms perform no capture,
+  distillation, or enquiry. The legacy `research.md` alias is also never a
+  gate.
+- Standard survey capture is considered only at
+  `research-survey-complete`, after the survey exists and source retrieval,
+  synthesis, per-finding confidence, known-unknown/unknowable, citation,
+  independence/triangulation, and moderator passes are complete.
+- Applied survey capture is considered only at
+  `research-applied-survey-complete`, after the standard conditions plus the
+  discipline marker, practitioner-independence taxonomy, applied confidence
+  overlay, and failure-mode coverage are complete.
+- Deep survey capture is considered only at
+  `research-survey-counterreview-complete`, after the standard conditions and
+  the linked counterpoints artifact's counter-position, independent direct
+  counter-source, confidence-downgrade/do-not-resolve, uncited-material, and
+  challenge passes are complete.
+
+A created-only, abandoned, interrupted, refused, or otherwise incomplete
+product is not a gate. Missing confidence, known-unknown coverage, moderation,
+applied discipline, or counterreview also prevents the corresponding gate. A
+gate with no admissible reusable residue makes no request.
+
+### Transient scratch and authority
+
+At an eligible gate, form a small producer-owned transient handoff scratch from
+reusable retrieval, source-independence, triangulation, calibration,
+verification, or challenge-pass practice. An independently reusable research
+practice or carefully sanitized evidence residue may be proposed only after
+privacy and instruction-shape triage.
+
+Never put a survey, source corpus, quotation, citation, factual claim,
+confidence judgment, known unknown, counter-evidence, verdict, conclusion, or
+product excerpt in the lesson. The handoff must not mine transcripts and must
+not copy a raw source corpus. Research artifacts remain the sole normative
+owners of that material.
+
+### Eligibility, request, and receipts
+
+Resolve eligibility before provider discovery: resolve the Git root with Git
+relocation variables removed, reject lexical dot-segment traversal, and use
+native real-path resolution to prove every required path is a confined regular file. Refuse a
+symlink, junction, reparse point, non-file, I/O ambiguity, missing Git root, or
+containment uncertainty. A personal or otherwise external output root emits
+exactly `project-knowledge capture ineligible: non-repository research output`,
+does not probe the provider, and creates no fallback file.
+
+The capture fields are fixed by gate:
+
+- `research-survey-complete` and `research-applied-survey-complete` use the
+  survey for `semantic_gate.artifact`, `provenance.sources`, and
+  `freshness_anchor.path`.
+- `research-survey-counterreview-complete` uses the survey for
+  `semantic_gate.artifact`, the survey and linked counterpoints in
+  `provenance.sources`, and the counterpoints for `freshness_anchor.path`.
+
+Every listed path must be a confined regular file. Companions prove completion
+but remain normative research products; they are never copied into the lesson.
+
+Discover the public `project-knowledge` skill only after eligibility succeeds.
+If it is unavailable, emit exactly `project-knowledge unavailable`, create no
+fallback file, and leave the completed research product unchanged. For each
+admitted observation, construct the published typed request with
+`contract_version`, `lesson`, `kind`, `project_scope`, `competency_facets`,
+`destination_hint`, `producer`, `semantic_gate`, `provenance`,
+`freshness_anchor`, `observed_at`, and `privacy_attestation`; include optional
+fields only when their contract facts exist. Set `producer.workflow` to
+`desk-research` and `producer.workflow_version` to the current pack version.
+Invoke only the public `project-knowledge --capture` seam.
+
+The producer must not locate journals, must not import the private writer, must
+not invent capture IDs, must not select partitions, and must not create storage.
+Retain only `{capture_id, partition}` receipts returned by this gate. At the
+terminal gate, an optional distillation request is exactly
+`{"selection_mode":"workflow-receipts","receipts":[...]}` and contains only
+the receipts returned by that same gate. Never select
+`direct-maintainer-pending`, guess a receipt, drain another workflow, or
+distil after a failed or skipped capture.
+
 ## Retrievers
 
 Standard and deep mode enumerate retrievers from three surfaces before

@@ -5,9 +5,18 @@ All notable user-visible changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Maintenance: this file is updated in the same PR that introduces the
-> change. CI will warn (configurable: block) when a PR touches code that
-> changes user-visible behavior but does not touch this file.
+> Maintenance: see [`CONVENTIONS.md` § 5b](../CONVENTIONS.md) for *when* an
+> entry is owed. This header covers *how* this file is written.
+>
+> **A released section is free-standing, directly beneath `[Unreleased]`.**
+> Write `## [<artifact>][<version>] — YYYY-MM-DD` at the top level, newest
+> first. `[Unreleased]` holds only work that has no version yet: its own
+> `### Added` / `### Changed` / `### Fixed` sections, never a versioned entry
+> nested inside it. The level is load-bearing rather than cosmetic — a
+> versioned entry nested under `[Unreleased]` is invisible to the `/now/`
+> projection permanently, not until some later release step, because nothing
+> ever moves it out. Writing it at the right level is the whole of the
+> obligation.
 >
 > Entries can be drafted from conventional commits: `git log --oneline`
 > filtered to `feat:` and `fix:` since the last tag is a starting point,
@@ -15,14 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 >
-> **Highlights (optional, feeds the public `/now/` page).** A release entry may
-> carry one `Highlights` subsection, one heading level below that entry. Its
-> bullets are the outcome-led, user-facing sentences that publish at `/now/`;
-> everything else in the entry stays technical. Three rules govern them:
+> **Highlights (feeds the public `/now/` page).** A release entry carries one
+> `Highlights` subsection, one heading level below that entry, when the release
+> changes what a consumer can do. Its bullets are the outcome-led, user-facing
+> sentences that publish at `/now/`; everything else in the entry stays
+> technical. Judge by the nature of the change, not the semver level: a patch
+> that changes an adopter's obligations earns one, a minor that only moves code
+> does not. A release that changes nothing a consumer acts on carries none — but
+> *none* is a verdict to record with its reason, not a step to skip. For a pack
+> release the decision is part of the release pipeline in
+> `packs/AGENTS.local.md`; nothing downstream makes it, because the projection is
+> a pure parser and no model runs in the build. Three rules govern them:
 >
-> - **Released only.** An entry beneath `[Unreleased]` never publishes, even
->   when it has a date and a `Highlights` block. Move the entry out of
->   `[Unreleased]` at release time and it publishes then — nothing else to do.
+> - **Released only.** An entry nested beneath `[Unreleased]` never publishes,
+>   even when it has a date and a `Highlights` block — see the free-standing
+>   rule above, which is why that case should not arise.
 > - **Reviewed like code.** Write them in the same PR as the implementation,
 >   grounded in that diff and its verification evidence. Ordinary PR review is
 >   the only approval gate; there is no separate editorial process. Drafting
@@ -31,11 +47,558 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - **Outcome, not activity.** Describe what someone can now do. Never plans,
 >   queue state, commits, pull requests, or what the team is working on.
 >
-> A released entry with no `Highlights` is perfectly normal — it stays in this
-> changelog and is simply absent from `/now/`.
+> A released entry with no `Highlights` stays in this changelog and is simply
+> absent from `/now/`.
 
+## [catalogue-curation][0.4.1] — 2026-08-21
+
+### Highlights
+
+- **Nested OKF corpora now compile and check consistently on Windows.** Generated
+  index paths use the bundle’s portable POSIX form instead of inheriting the host
+  path separator, so Windows no longer reports clean nested indexes as stale.
+
+### Fixed
+
+- **The OKF compiler now distinguishes logical bundle paths from filesystem
+  paths.** Nested index names, links, and manifest entries are stable across
+  Windows, macOS, and Linux, with a Windows-path regression test and nested-corpus
+  eval fixture covering the failure.
+
+## [architect][0.15.0] — 2026-08-21
+
+### Highlights
+
+- **You can now turn a broad “assess this repository’s architecture” request
+  into a correctable current-state model, an evidence-backed attention map,
+  focused drill-downs, and a sequenced action plan.** The assessment starts
+  with a read-only survey, lets you correct its map before deeper investigation,
+  and can progressively examine assurance, optimization, growth,
+  transformation, or disposition without confusing repository conventions
+  with architectural evidence.
+
+### Added
+
+- **`architect-assess` provides survey, standard, and deep assessment depths.**
+  It separates observed repository evidence, optional attributed enterprise
+  context, and reusable architecture knowledge; reports confidence and coverage
+  limits; and uses heat as an investigation aid rather than a severity verdict.
+- **The architect pack now carries its own progressively disclosed architecture
+  lens corpus.** The pack-local OKF authoring source compiles into the ordinary
+  same-pack `architecture-lenses-reference` Skill. It has no dependency on a
+  core-pack knowledge surface and grants no runtime, retrieval, or execution
+  authority.
+- **A bounded optional profiler can census repository topology and basic
+  concentration signals without executing target code.** Unsupported languages
+  and unavailable Git history degrade visibly to manual evidence gathering.
+
+### Changed
+
+- **The first-session architecture journey now begins with a read-only survey.**
+  Creating a durable reference architecture remains an explicit follow-up, and
+  the new assessment how-to and reference guide explain correction points,
+  evidence levels, enterprise knowledge surfaces, drill-down selection, and
+  report review.
+- **Architecture design and review reuse neutral concepts from the architect
+  pack’s generated reference surface.** Their workflow instructions, activation,
+  permissions, and verdict semantics remain independently authored.
+
+## [core][2.10.5] — 2026-08-21
+
+### Highlights
+
+- **Work-loop commands now run from the project root without path discovery.**
+  The skill resolves its own installed directory before invoking the loop engine,
+  cohort, or freshness scripts, so Codex and Claude Code no longer lose a turn
+  searching for a repository-root `scripts/` directory that does not exist.
+
+### Fixed
+
+- **Every work-loop Python invocation uses the installed skill directory.** The
+  skill defines `<skill-dir>` as the directory containing its active `SKILL.md`,
+  keeps project-relative paths anchored at the repository root, and quotes the
+  resolved script path as one argument in its POSIX command examples.
+
+## [agentbundle][0.39.0] — 2026-08-21
+
+### Highlights
+
+- **Catalogue builders can now reason about package formats independently of
+  runtime adapters.** The installed CLI exposes a validated contract for the
+  existing APM and Claude-plugin routes, including their layouts, component
+  support, admission, marketplace, and lifecycle behavior.
+
+### Added
+
+- `agentbundle catalogue contracts` now includes
+  `distribution-routes.toml` and its closed schema, with exactly the existing
+  APM and Claude-plugin routes and an exhaustive nine-primitive capability map.
+
+### Changed
+
+- Distribution recipes name their route explicitly and are validated before
+  output creation. Route-only package fields moved out of the direct-install
+  adapter contract; APM and Claude package bytes and direct install behavior are
+  unchanged.
+
+## [core][2.10.4] — 2026-08-20
+
+### Highlights
+
+- **The changelog rule now says who "user-visible" means, so you can tell
+  whether your change needs an entry.** An entry is required when a pull
+  request bumps a released artifact's version — a pack or a published package
+  — and repository tooling that ships in no release needs none. The old wording
+  asked for an entry on "any user-visible behavior change", which read as
+  covering maintainer-only tooling and offered no heading to write it under.
+
+### Changed
+
+- **`CONVENTIONS.md` states one changelog trigger, and the section shape now
+  carries its heading level.** The `docs/product/` layout entry for
+  `changelog.md` gives the shape (`## [<artifact>][<version>] — YYYY-MM-DD`),
+  the released-artifact trigger, the exemption for repository tooling, and the
+  per-package path. The `##` is load-bearing, not cosmetic — see the fix below.
+  Adopted from RFC-0095 D1 and D3.
+- **The two overlapping changelog obligations became two rules scoped by file.**
+  The pull-request checklist previously required public-interface changes to be
+  "noted in `CHANGELOG.md`" — a path that resolves per-package, not at the
+  repository root, and the only reference anywhere in `CONVENTIONS.md` to the
+  per-package changelog tier. It now reads as a released-artifact reminder that
+  also names the published-package duty, phrased so it still holds for a
+  repository that *is* one published package. Adopted from RFC-0095 D2.
+- **The shipped changelog template and the pull-request template now state the
+  same trigger as `CONVENTIONS.md`.** The template's maintenance header asked
+  for an entry when a PR "bumps `pack.toml`" — packs only, with no published
+  packages and no exemption — and the pull-request checklist still carried the
+  old "any user-visible behavior change" wording verbatim. Three documents, three
+  triggers. Adopted from RFC-0095 D1.
+
+- **Deciding whether a pack release earns a `/now/` highlight is now a step in
+  the release pipeline, not something to remember.** `Highlights` is the only
+  content that reaches the public `/now/` page, and by contract no model runs in
+  CI or site generation — so if nobody writes the block while authoring, the
+  release is simply never mentioned publicly. Nothing prompted for it, and 1 of
+  144 entries had one. The pack release pipeline now obliges the call on every
+  pack release: read the diff, answer whether a consumer can now do something
+  new, and either draft the bullets or record the *none* verdict with its reason
+  where a reviewer will see it. The test is the nature of the change, not the
+  semver level. Adopted from RFC-0095 D4.
+
+### Fixed
+
+- **The changelog no longer claims a CI gate that does not exist.** Its
+  maintenance header stated that CI "will warn (configurable: block)" when a
+  pull request changed user-visible behaviour without touching the file. No
+  workflow has ever implemented that. The sentence is removed rather than
+  implemented: `tools/repo/check_release_impact.py` remains the only mechanical
+  check in this area, and it deliberately treats `tools/repo/` and `packs/` as
+  non-impacting. Adopted from RFC-0095 D5.
+- **A release entry nested under `[Unreleased]` can never reach the public
+  `/now/` page, and a new test now stops that happening.** 59 entries carrying
+  real versions and dates are nested there, and the `/now/` projection excludes
+  them by structure — permanently, because it applies no date window and nothing
+  moves an entry out later. A released section is written free-standing at `##`,
+  directly in the released part of the file; `[Unreleased]` holds only work with
+  no version yet. `test_no_new_release_is_nested_under_unreleased` ratchets the
+  count so a new nested release fails the roster suite instead of silently going
+  unpublished. Promoting the existing 59 is separate, registered work — 48
+  genuinely-unreleased bare sections are interleaved with them across three
+  `[Unreleased]` regions, so it needs per-section attribution rather than a
+  level-shift. Adopted from RFC-0095 D3.
 
 ## [Unreleased]
+
+### [core][2.10.3] — 2026-08-20
+
+#### Changed
+
+- **A small, low-risk change no longer has to write a spec first.** Ask the agent
+  to make one bounded change now and it plans, implements, runs your gates, takes
+  one adversarial review pass, repairs what that finds, and hands you the result —
+  without creating a spec directory, a plan, a queue entry, or any state file. The
+  rigor is unchanged; only the paperwork is gone. Work that genuinely needs to
+  outlive the session still gets the full treatment: anything that trips a risk
+  trigger, needs queueing or a second session, is handed to someone else, is
+  coordinated by an external system, needs an approval that survives a context
+  loss, or defines a durable published behavior — and, of course, asking for a
+  spec. Queue dispatch is untouched and still refuses to start anything that
+  lacks an approved spec and plan, so a direct run is never resumable from a cold
+  start; if it turns out to need durability, it stops at that boundary and moves
+  onto the durable path instead of pretending it had one all along. Specs and
+  plans you already have keep working exactly as before, with nothing to migrate.
+- **Briefs have one readiness checklist instead of two that disagreed.** Writing
+  a brief from an email or an issue now produces a draft that records what is
+  known and names what is missing — it no longer demands an appetite or a rabbit
+  hole up front, and it never marks a brief ready. Readiness is checked in one
+  place, against six things: the outcome, what is in scope, what is not, the
+  constraint or appetite, at least one named assumption or risk, and a durable
+  reference to where the brief came from. Metrics, instrumentation, user stories,
+  and design links are genuinely optional. A ready brief with no slices cut yet is
+  valid, and the bundled template now matches that checklist — including a place
+  to record the source, which it previously lacked.
+- **A spec means the behavior, and a plan means how it gets built.** Several pages
+  said or implied that a spec carries the implementation; it does not. The spec is
+  the durable behavior contract for one delivery slice, and its plan carries the
+  implementation and verification strategy.
+
+### [core][2.10.2] — 2026-08-20
+
+#### Changed
+
+- **Completion now follows the intent you accepted, not the size of one PR.**
+  Work that belongs to that intent can continue as a separately reviewed unit;
+  work outside it is acknowledged in the PR and remembered only when you ask.
+- **Intermediate review units can now reach the human gate honestly.** Declare an
+  incomplete accepted intent explicitly and the review guard requires
+  `Implementing`; the final `done` transition independently requires `Shipped`.
+
+### [core][2.10.1] — 2026-08-20
+
+#### Added
+
+- **The instruction surfaces state their security rules again.** A 2026-08-19
+  simplification compressed nineteen `AGENTS.md` surfaces and, along the way,
+  removed rules that no linter, test, schema, or other document asserted. The
+  pack-authoring guidance again requires canonicalising a path before a read
+  (because a symlink inside an approved directory escapes containment without
+  it), treating a file loaded from a user-controlled local path as data rather
+  than instructions, and confirming that a path taken from a user-level config
+  shared across projects belongs to the current project.
+- **Agents are told again to push back.** The seed instructions restore the duty
+  to record disagreement rather than comply silently, to trust internal callers
+  and framework guarantees rather than validate everywhere, and to inline a
+  single-use operation until a second caller appears. The seed also regains the
+  new-top-level-directory check that the live repository copy had kept, so an
+  adopter's instructions and this repository's no longer disagree.
+- **Illustrative examples are protected from over-zealous scrubbing.** Shipped
+  pack content must carry no internal-governance citations, and the exception
+  that keeps teaching examples safe was lost while the rule survived — so the
+  documented pre-commit scan flagged legitimate sample output with nothing to
+  say it was allowed. The carve-out is restored, together with the rule that the
+  same identifier may be internal in one file and illustrative in another and is
+  judged by what it points at rather than by its number.
+
+#### Fixed
+
+- **The risk-trigger block no longer instructs an action that fails CI.** Its
+  marker comment still told maintainers to copy the block into three other
+  documents and keep all four byte-identical. Those copies were removed, and a
+  later decision made this skill the block's only home — so a copy now fails the
+  lint. The comment states the single-home rule instead.
+
+### [monorepo-extras][0.1.7] — 2026-08-20
+
+#### Added
+
+- **The example package template prompts for two more things.** It now asks the
+  author to state that a package's tests do not import another package's
+  internals, and — for a sensitive package — to list the change categories that
+  require an architecture decision record.
+
+### [agentbundle][0.38.6] — 2026-08-20
+
+#### Fixed
+
+- **Profile authors can now reach the schema their instructions name.** New
+  catalogues direct them to the bundled profile contract through the installed
+  CLI, rather than a path that exists only in this repository.
+
+### [agentbundle][0.38.5] — 2026-08-20
+
+#### Changed
+
+- **The bundled authoring scaffold says how to write pack tests.** A skill's
+  modules load under a name that includes their pack and skill rather than by
+  putting `scripts/` on `sys.path` — independent skills may each ship a
+  `render.py`, and a bare `import render` binds whichever directory was reached
+  first. The standard also asks that a suite spend its time asserting rather
+  than spawning processes.
+
+#### Fixed
+
+- **Local-scope install and uninstall ask git each structural question once.**
+  `git rev-parse` answers for the exclude-file path and worktree identity are
+  reused for the duration of a single command and dropped at its boundary, so
+  the same query is no longer paid for two or three times per operation.
+
+- **A repository-only test no longer ships to self-hosted catalogues.**
+  `catalogue init --preset self-hosted` and both archive flavours copied
+  `tests/conformance/` wholesale, which carried a test that resolves paths only
+  this repository has; it failed on an adopter's first run. The shipped
+  conformance set is now derived from the directory in one place, so plain
+  init's manifest and self-hosted init's copy cannot describe different sets.
+
+### [agentbundle][0.38.4] — 2026-08-20
+
+#### Changed
+
+- **The bundled authoring scaffold carries the restored pack and profile
+  rules.** The scaffold's `packs/AGENTS.md` regains the security and
+  eval-coupling rules described above, and its `profiles/AGENTS.md` again states
+  that a pack appears at most once in a profile and that packs declaring a
+  conflict do not share one. No CLI behaviour changes.
+
+### [agentbundle][0.38.3] — 2026-08-17
+
+#### Changed
+
+- **Workspace status clients now receive the same structured refresh facts as
+  the core skill.** MCP and CLI results expose origin mode, configured profile,
+  compared and accepted revisions, conflict state, and known refresh or
+  write-back availability without publishing authority maps or identities.
+
+### [core][2.10.0] — 2026-08-17
+
+#### Added
+
+- **Registered tracker-origin work can now be refreshed through one reviewed
+  authority path.** `work-intake` resolves the exact configured profile,
+  presents a field-level delta, preserves lifecycle locks, and updates the
+  canonical artifact plus workspace revision mirror as one guarded operation.
+  Tracker content remains untrusted and cannot select the processor, approval,
+  destination, or write payload.
+
+#### Changed
+
+- **Previously materialized tracker-origin artifacts require an authority
+  migration before refresh.** Artifacts created by earlier tracker-intake
+  adapters without a closed source-authority record remain readable but report
+  a named migration requirement instead of being dispatched for refresh.
+
+- **Jira Cloud searches retain their configured retry budget.** Read-only JQL
+  searches use an idempotency declaration rather than their POST method when
+  deciding whether a transient failure may be retried.
+
+- **Workspace status now shows refresh facts without becoming an authority
+  store.** It reports origin mode, profile, compared and accepted revisions,
+  unresolved conflict state, and known availability while omitting ownership,
+  decisions, receipts, and approver identities.
+- **Remote coordination writes have a per-mutation confirmation and receipt.**
+  Every supported action binds one fresh confirmation to the artifact,
+  revision, profile, destination, target, and canonical payload. A pending
+  receipt lands before the adapter call, and failed writes are not retried
+  automatically.
+
+### [linear][0.3.0] — 2026-08-17
+
+#### Added
+
+- **Linear refresh now supports reviewed local deltas and narrow coordination
+  write-back.** Trace links, pull-request links, display status, comments, and
+  closure use documented GraphQL mutations, a pinned fixed destination, one
+  fresh confirmation per mutation, and no automatic write retry.
+
+### [github][0.2.0] — 2026-08-17
+
+#### Added
+
+- **GitHub refresh uses the approved fixed-host `gh` boundary.** It can add
+  trace links, pull-request links, display-status labels, comments, or closure
+  after separate exact confirmations. Tracker content stays in argv-safe or
+  stdin data positions and cannot choose the host, repository, executable, or
+  command options. Requirement and Issue-body rewrites remain unsupported.
+
+### [atlassian][0.9.0] — 2026-08-17
+
+#### Added
+
+- **Jira and Jira Align now share the reviewed tracker-refresh lifecycle.**
+  Token-authenticated Jira can comment, transition display status, or close
+  through the pinned guarded client after a separate exact confirmation. Jira
+  SSO-cookie writes remain zero-wire refusals. Jira Align supports local
+  reviewed refresh and truthfully declares remote write-back unavailable.
+
+#### Changed
+
+- **Existing token-authenticated Jira writes retain their configured transient
+  failure retry budget.** The reviewed refresh path temporarily enables the
+  guarded write policy only after its pending receipt is durable, then restores
+  the read-only policy; SSO-cookie writes remain refused before transport.
+
+### Fixed
+
+- **Running the activation evals no longer writes into the repository you are
+  measuring.** `agentbundle pack evals run` projected the pack into a directory
+  inside your repository and ran each probe from there, so a skill that resolves
+  the repository root could create files in your tree — one *negative* eval query
+  fired a spec-authoring skill and left a spec at the worktree root, which then
+  read as workspace drift with no author. The projection now lives in a temporary
+  directory outside the repository and is removed when the run ends, and the run
+  refuses outright if `TMPDIR` points inside the repository rather than silently
+  losing the confinement. Eval outputs still land in `.eval-workspace/`,
+  unchanged. Probes also no longer pause three seconds each waiting on standard
+  input.
+
+### Added
+
+- **Journey authors can record which decisions a reader meets, and in what
+  order.** A pack's `JOURNEY.md` may now carry an optional
+  `contract.decisionGateIds` — an ordered list of `humanGates[].id` values. It
+  holds identifiers only; the wording readers see still comes from each gate's
+  label. The field is optional and `yourDecisions` remains required, so every
+  pack authored before this stays valid with no edit.
+
+### Removed
+
+- **The `update-conventions` skill is gone.** Asking to "update the rules", "amend the
+  charter", or "change our principles" now reaches `new-rfc`, which tells you which
+  artifact the change actually needs — usually a plain pull request. What the skill
+  carried: a rule that every substantive conventions edit needed an RFC, which no longer
+  holds; a commit-footer convention, already covered by the conventions' § Commits
+  footer-references rule; a typo exemption, now subsumed by the routing rules; and a
+  nudge to update an accepted RFC's follow-on-artifacts list after merge, which is no
+  longer prompted for (RFC-0091).
+
+### Changed
+
+- **Keyboard focus is visible everywhere on the marketing site, not just in the
+  dark bands.** The focus outline used a gold that was too faint against light
+  backgrounds, so on most pages the ring around the control you had tabbed to was
+  hard to make out. Light areas now use a near-black outline; the dark bands keep
+  the gold, which was already clearly visible there.
+- **You no longer need an RFC just because a change is big.** What opens an RFC is
+  now an unresolved direction that more than one owner has to agree on, or someone
+  asking to circulate a proposal. Touching several packages, changing something
+  users can see, renaming a top-level directory, or editing `docs/CONVENTIONS.md`
+  raises how carefully the change is reviewed — none of them, on its own, requires a
+  proposal any more. Charter mission and scope, who may approve work, security trust
+  models, and breaking a published compatibility promise are still reserved
+  (RFC-0091).
+- **A decision you have already made goes straight into an ADR.** Reversing an
+  earlier ADR when you already know the replacement is a superseding ADR, not a
+  proposal for comment. Behaviour-preserving refactors, dependency upgrades and bug
+  fixes are pull requests; a bounded feature whose direction is settled is a spec
+  (RFC-0091).
+- **A light RFC is now genuinely lighter.** `light` means one focused decision, a
+  completeness check and a single review pass — not the full apparatus over a shorter
+  draft. Citation and claim checking still apply at every weight, to whatever the
+  proposal actually claims (RFC-0091).
+- **Governance advice now works in a repository that has no RFC process.** If you
+  installed `core` without the optional governance pack, the conventions no longer
+  tell you to run a workflow you do not have: reserved and contested decisions ask
+  for a recorded owner decision using whatever mechanism you already use. No new
+  file, pack or configuration is required, and a stricter local rule of your own
+  still wins (RFC-0091).
+- **The example session on a journey page now reads as a session.** Each turn is
+  attributed to whoever spoke it and sits on its own line in a terminal-style
+  register, instead of running together in one paragraph with stray asterisks and
+  backticks showing. The wording is unchanged.
+- **Keyboard focus on a journey decision is easier to see.** Focusing a decision
+  no longer makes its label harder to read than the ones beside it, and the
+  heading you land on after activating one now takes the same clearly visible
+  outline the decision itself uses.
+- **Every decision point on a journey page is now a link you can share.** Each
+  place the agent pauses for you has a stable address, so you can send someone
+  straight to the decision itself rather than to the top of the page. The links
+  survive rewording and reordering: if a decision is renamed or moved, an address
+  you shared earlier still lands on the same decision. They also work from the
+  keyboard — tab to a decision, press Enter, and the page moves focus to it.
+- **Decision labels read as plain language.** They describe what you are being
+  asked to do — "Approve the plan", "Confirm the backlog scope" — instead of
+  exposing internal codes. No page shows an internal identifier as visible text.
+- **The core, product engineering, and release engineering journeys open with a
+  one-line summary and a worked example.** Each shows an abbreviated session so
+  you can see the shape of the exchange, and where your decisions fall in it,
+  before committing to the journey.
+
+### [core][2.9.5] — 2026-08-19
+
+#### Changed
+
+- **PR size guidance no longer asks you to split ordinary changes.** The old
+  target of roughly 100 changed lines, with a split above roughly 400, is
+  replaced by a single tail trigger: a change is examined once it exceeds 2,000
+  reviewable behavior and test lines. Below that, size the change by whether it
+  is one reviewable idea, not by a line count. Documentation prose is sized by
+  coherence and is never split on length.
+- **A large change is now routed by its shape rather than sliced by length.** A
+  broad mechanical sweep is proved with the command that produced it and a
+  zero-diff re-run, not broken into arbitrary parts. Concentrated authored work
+  is decomposed into dependency-ordered layers that each leave the repository
+  working.
+- **Mechanical ride-alongs are admitted by verifiability, not by locality.**
+  Work reproducible from a stated command, or provably inert, may now land with
+  the change that occasions it even when it spans the repository, so routine
+  cleanup stops accumulating as deferred backlog. Hand-made ride-alongs keep
+  their existing same-area and size limits, and every tier still fails closed on
+  a design call or a behavior change.
+
+### [core][2.9.4] — 2026-08-19
+
+#### Changed
+
+- **Privacy obligations restored.** Seed conventions again prohibit personal
+  identifiers in all git artifacts, preserve the public-handle carve-out, and
+  direct root guidance to the canonical privacy policy.
+- **Risk-trigger documentation is explicitly single-sourced.** ADR-0088 records
+  the `work-loop` skill as the sole block home without changing mode selection.
+
+
+### [core][2.9.2] — 2026-08-19
+
+#### Changed
+
+- **Leaner seeded instructions.** Core's seed `AGENTS.md` and seed
+  `docs/CONVENTIONS.md` now start repositories with a map and universal
+  invariants rather than a manual.
+- **Risk triggers have one home.** The enumerated set now lives only in the
+  `work-loop` skill, which the seed names instead of copying. Mode selection is
+  unchanged: the same triggers select the same light/full behaviour; only the
+  documentation home moved.
+- **Portable seed references.** Vendor-specific `.claude/...` projection paths
+  were removed from seed conventions, so guidance does not assume one adapter.
+- **Eval artifacts stay uncommitted.** The seed `.gitignore` now excludes
+  `.eval-workspace/` produced by `agentbundle pack evals run`.
+
+### [agentbundle][0.38.2] — 2026-08-19
+
+#### Added
+
+- **Optional journey decision-gate identifiers.** `JOURNEY.md` may list ordered
+  `contract.decisionGateIds` from `humanGates[].id`; labels remain reader-facing,
+  `yourDecisions` remains required, and existing packs stay valid unedited. This
+  shipped after the 0.38.1 tag and reaches PyPI here for the first time.
+
+#### Changed
+
+- **Leaner bundled authoring scaffold.** `packs/AGENTS.md` and
+  `profiles/AGENTS.md` are shorter and restructured, so `agentbundle catalogue
+  init` starts catalogues with leaner instructions. No CLI verb, flag, or output
+  format changed.
+
+
+### [core][2.9.1] — 2026-08-19
+
+#### Added
+
+- **`docs/CONVENTIONS.md` now states the managed-generated-output rules.** A
+  compiler that owns a directory end to end has constraints a reader could
+  previously only discover by tripping them: author the source rather than the
+  output, keep hand-authored files out of a managed directory, treat check mode
+  as the gate and write mode as the authoring step, and treat retargeting as a
+  rename rather than a deletion. Each rule is one the OKF pilot learned the hard
+  way.
+
+### [core][2.9.0] — 2026-08-18
+
+#### Fixed
+
+- **Security reviewers can again select their boundary-specific depth.** The
+  `security-checklists` router again maps each trust boundary to its direct
+  reference module, including the standards anchor and the `tool` / `hybrid` /
+  `reason` delegation guidance. Its compiled reference companion remains
+  independently verifiable without owning the production router.
+
+### [catalogue-curation][0.4.0] — 2026-08-18
+
+#### Changed
+
+- **OKF router renames can hand their former router back to authors safely.**
+  The compiler cedes only an explicitly marked, non-generated former
+  `SKILL.md`; it continues to verify and remove every other stale generated
+  file before writing the new managed directory. The migration is
+  manifest-driven and applies to every pack and corpus alike.
 
 ### Added
 
@@ -59,6 +622,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address returns a 404 rather than implying the surface moved. `Work` in the
   site navigation is now `Now`.
 
+### [desk-research][1.1.5] — 2026-08-18
+
+#### Changed
+
+- **Completed research can optionally hand reusable practice to project
+  knowledge without merging the two systems.** Repository-contained standard,
+  applied, and deep surveys and complete project synthesis expose exact
+  terminal handoffs for typed capture and same-gate receipt distillation. Quick
+  answers, non-survey artifacts, project start, digest, check, status,
+  incomplete work, and personal or external output roots remain no-integration.
+- **Counter-evidence review may consult bounded, untrusted candidate checks.**
+  `devils-advocate` may declare one `CQ-REVIEW` enquiry, but direct sources still
+  own verification. Retrieved knowledge cannot become a citation or claim,
+  change scope or source selection, strengthen confidence, suppress
+  counter-evidence, alter a verdict, or create fallback persistence.
+
 ### [agentbundle][0.38.1] — 2026-08-18
 
 #### Fixed
@@ -80,6 +659,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Skill activation metadata, and declared OKF 0.2 knowledge bundles. Installed
   state continues to return inventory-only data, and human-readable output is
   unchanged.
+- **Catalogues can publish a deterministic neutral discovery index.** The new
+  `agentbundle catalogue index` command validates catalogue, pack, profile, and
+  optional journey metadata against a bundled closed schema before writing. It
+  supports dry runs, reproducible timestamps, structured JSON command results,
+  and content-addressable pack digests.
+- **Journey authoring is now a published catalogue convention.** The adopter
+  reference defines the required frontmatter contract, optional discovery
+  fields, declared external effects, reader-facing body sections, migration
+  guidance, and verification commands. Older packs without `JOURNEY.md` remain
+  valid.
+
+#### Changed
+
+- **The `agentbundle` package version is now 0.38.0.** Its bundled public
+  contract inventory includes `catalogue-index.schema.json`, and new catalogue
+  scaffolds carry the completed journey-authoring reference.
 
 ### [core][2.8.0] — 2026-08-17
 

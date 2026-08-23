@@ -65,14 +65,20 @@ below assigns every kind of doc to exactly one bucket.
                                        └────────────────────────────┘
 ```
 
-Inside `architecture/`, the two docs play opposite roles. `overview.md` is
-**descriptive** — the map of how the code is organized today, read to find
-things. `reference.md` is **normative** — the golden path (stack, building
-blocks, component stereotypes, cross-cutting standards) that new work conforms
-to, the target a feature's low-level design steers by. The map tells you where
-things are; the golden path tells you how new things should be shaped. A thin
-repo has only the map; the golden path appears once there are real architecture
-decisions to hold work to.
+`/ARCHITECTURE.md`, when present, is the concise descriptive system model:
+responsibilities, allowed dependency edges, state ownership, flows, extension
+points, enforced invariants, and deeper current-state links. It is optional;
+add it when a repo has more than one subsystem or a boundary the directory
+tree cannot make clear.
+
+Architecture documents have three roles. `overview.md` is **descriptive** —
+the map of how the code is organized today, read to find things.
+`reference.md` is **normative** — the golden path (stack, building blocks,
+component stereotypes, cross-cutting standards) that new work conforms to, the
+target a feature's low-level design steers by. The system model explains the
+system, the map tells you where things are, and the golden path tells you how
+new things should be shaped. A thin repo has only the map; the golden path
+appears once there are real architecture decisions to hold work to.
 
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
@@ -99,7 +105,7 @@ maintenance rules differ:
 
 | Class | Files | Rule |
 | --- | --- | --- |
-| **Living** | `CHARTER.md`, `architecture/*`, `product/*`, `guides/*`, active `specs/*` | Must match current reality. Updated in the same PR as any change that affects them. Drift is a bug. |
+| **Living** | `CHARTER.md`, `ARCHITECTURE.md`, `architecture/*`, `product/*`, `guides/*`, active `specs/*` | Must match current reality. Updated in the same PR as any change that affects them. Drift is a bug. |
 | **Frozen** | `adr/*`, shipped `specs/*`, accepted/rejected `rfc/*` | Immutable history. Status fields can change (Accepted → Superseded), bodies cannot. |
 | **Governance** | open `rfc/*` | In flight. Updated through the RFC process, not direct edits. Closes to Frozen on acceptance/rejection. |
 
@@ -215,8 +221,9 @@ the edited file, not by trusting this paragraph.
 **What:** one page. Mission, scope, and principles. The foundational
 document. Modeled on the [CNCF charter pattern](https://contribute.cncf.io/maintainers/governance/charter/).
 
-**Lifecycle:** living, but rarely changed. Substantive edits go through an
-RFC. Trivial edits (typos, broken links) can be a normal PR.
+**Lifecycle:** living, but rarely changed. Mission, scope, and foundational-principle
+changes are reserved; wording, clarification, examples, typos, broken links, and
+accepted decisions are normal PRs regardless of pathname.
 
 **What goes here:**
 
@@ -300,8 +307,8 @@ Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
 ```
 
 **Optional `Experimental` status.** An RFC that proposes running an
-experiment — using the optional `Experiment / validation` section of the
-`new-rfc` template — may sit in `Experimental` while the trial runs and
+experiment — using an optional `Experiment / validation` section of the RFC
+template — may sit in `Experimental` while the trial runs and
 results are pending, instead of being forced to a premature Accept or Reject.
 Results live in a linked spike note (or a follow-up RFC / superseding ADR),
 not the RFC body; when they land, the RFC moves to `Accepted | Rejected |
@@ -324,21 +331,38 @@ is optional and informal; the RFC body remains the contract.
 
 **Filename:** `NNNN-kebab-case-title.md`. Numbers are sequential.
 
-**Template:** `assets/rfc.md` in the `new-rfc` skill that creates RFCs from it.
+**Template:** the RFC template provided by the repository's RFC workflow, if it has one.
 
 **When to open an RFC:**
 
-- The change touches more than one package, or affects external users.
-- The change reverses a previous ADR.
-- The change adds, removes, or modifies a top-level directory or a convention.
-- You expect any reasonable contributor to want a say.
+- Direction is unresolved and more than one owner must agree.
+- Someone explicitly asks to circulate a proposal.
+- Always reserved, taking the strongest route the repository has:
+  - charter mission, scope, or foundational principles;
+  - maintainer authority, approval process, or governance model;
+  - a security trust model, as distinct from a security implementation;
+  - withdrawal of, or a breaking change to, a stable published compatibility promise.
+- Evidence only, never sufficient: package or file count, public visibility, top-level
+  location, a prior ADR, or a governed-document pathname. These raise review depth;
+  they do not select the artifact.
 
 **When NOT to open an RFC:**
 
-- A bug fix, performance improvement, or refactor that preserves behavior —
-  just open a PR.
-- A new feature that fits cleanly within an existing package and doesn't change
-  any interface — write a spec, not an RFC.
+- Bug fix, performance work, behavior-preserving refactor, or accepted-decision
+  implementation → PR; cite the decision.
+- Bounded feature whose direction is settled → issue, or a spec when concrete behaviour
+  and acceptance criteria need defining.
+- Settled durable architectural choice, including a settled replacement for a prior ADR
+  → ADR, or a superseding ADR.
+- Reversible, time-bounded trial with stated exit criteria → normal implementation
+  review; promote to RFC only if permanent adoption is contested.
+- Conventions maintenance that preserves an obligation → PR; a changed obligation uses
+  the test above; authority, mission, scope, and principles are reserved.
+
+Without an RFC process, reserved and unresolved multi-owner decisions require owners to
+reach and retain an explicit recorded decision before implementation, using the existing
+mechanism; no file, pack, or configuration is required. Honour a stricter declared local
+policy as an override.
 
 ---
 
@@ -416,12 +440,17 @@ mechanical rule.
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
-- **Deferral token.** A criterion that ships *unmet on purpose* is not left
-  unchecked and silent — it carries an inline `(deferred: <slug>)` marker whose
-  `<slug>` resolves to a `slug` field in `workspace.toml [backlog].open`, the
-  durable register of open work. Form: `- [ ] <outcome> (deferred: <slug>)`. A
-  deferral recorded only in a PR comment rots; the register is version-controlled
-  and greppable. Run `workspace-status` to see all open backlog items.
+- **Deferral token.** A criterion that ships *unmet on purpose* because
+  genuinely deferred in-scope work remains is not left unchecked and silent —
+  it carries an inline `(deferred: <slug>)` marker whose `<slug>` resolves to a
+  `slug` field in `workspace.toml [backlog].open`, the durable register of open
+  work. Form: `- [ ] <outcome> (deferred: <slug>)`. This is not the default
+  disposition for an excluded out-of-scope discovery: acknowledge that work in
+  the PR's *What did you not change that you considered?* answer instead. If
+  its owner explicitly asks to remember it, route that capture through
+  `work-intake`. A deferral recorded only in a PR comment rots; the register is
+  version-controlled and greppable. Run `workspace-status` to see all open
+  backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which
@@ -592,10 +621,23 @@ what was decided or what's proposed. Each serves a different audience:
 How the code is *currently* organized. Not why (ADRs); not what we want
 (RFCs); what is.
 
+- `ARCHITECTURE.md` — when present, the concise system model: responsibilities,
+  allowed dependency edges, state ownership, flows, extension points,
+  mechanically enforced invariants, and deeper current-state links.
 - `overview.md` — the map of the monorepo. What's in `apps/`, `packages/`,
   `tools/`, and how they relate.
 - `<subsystem>.md` — one file per non-trivial subsystem. Describes the
   structure, the entry points, and links to the ADRs that explain why.
+
+`architecture/` holds current state. A designed-but-unbuilt subtree is admitted
+only when its index carries a `STATUS: PLANNED` marker and links to its
+governing decision.
+
+When a page carries a `Last verified against commit` marker, it records a
+deliberate whole-page re-verification against that commit, not merely an edit.
+Update it only after re-reading the whole page against the tree at the recorded
+commit. An unchanged marker means the page has not received that full audit;
+it is provenance, not a freshness requirement.
 
 **Why separate from ADRs:** ADRs accumulate; current state has to be
 reconstructed by reading them all in order. `architecture/` is the
@@ -613,8 +655,17 @@ right now?"
   commitments. Reviewed quarterly. Items that haven't moved in two
   consecutive reviews are a drift signal.
 - `changelog.md` — user-visible changes by release, in
-  [Keep a Changelog](https://keepachangelog.com/) format. Updated in the
-  same PR as any user-visible behavior change.
+  [Keep a Changelog](https://keepachangelog.com/) format. One section per
+  release, naming every artifact that release covers:
+  `## [<artifact>][<version>] — YYYY-MM-DD`, where `<artifact>` is a pack or a
+  published package. An entry is required in the same PR that bumps a released
+  artifact's version — you know the version at write time because you are
+  setting it. Repository tooling that ships in no release needs no entry. The
+  heading level is load-bearing: a section carrying a version and a date is
+  released, so it sits at that top level directly beneath `[Unreleased]`, never
+  nested inside it. A published package also keeps its own `CHANGELOG.md`
+  beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
+  readers who get the package and not the repository.
 - `briefs/<slug>.md` (optional) — a received, externally-authored
   multi-feature product brief and its auto-rolled-up coverage map. Created by
   the `receive-brief` skill; one file per brief. See the brief altitude under
@@ -627,7 +678,7 @@ right now?"
   here because shaping artifacts are decisions, not corpora — they belong in
   the version-controlled tree alongside ADRs and specs.
 - `findings/` (optional) — structured governance registers: `rfc-candidates.md`
-  (candidate RFCs surfaced by work-loop scope-deferrals or `frame-situation`
+  (candidate RFCs surfaced by owner-requested capture or `frame-situation`
   escalations) and `roadmap-intents.md` (deferred roadmap items). `rfc-status`
   surfaces the candidate count at session start.
 - `initiatives/` (optional) — initiative brief artifacts and their
@@ -697,10 +748,9 @@ seeds) lives under `packs/<pack>/`. The split is:
   consumed by composite recipes.
 
 *Projected* paths under `make build-check`'s gate:
-- Adapter-driven primitives: `.claude/skills/<name>/`,
-  `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
-  `tools/hooks/<name>.<ext>`, and the `hooks` key of
-  `.claude/settings.local.json`.
+- Adapter-driven primitives: the adapter's skills, agents, commands, and local
+  settings targets; the adapter contract owns their exact paths. `tools/hooks/<name>.<ext>`
+  and the `hooks` settings key are also adapter-driven.
 - Adapter-independent runtime primitives: `.agentbundle/bin/<name>.py` from
   `packs/<pack>/.apm/adapter-root-bins/`, and
   `.agentbundle/lib/<module>/` from the package source vendored through
@@ -730,6 +780,36 @@ upstream under `packs/<pack>/.apm/` or `packs/<pack>/seeds/`, then run
 `make build-self` (with `FORCE=1` if the working tree is dirty),
 commit, push. The gate is the contract; the source-of-truth split is
 the convention.
+
+### Managed generated output
+
+A *managed* tree is one a compiler owns end to end: it writes every file in it,
+records each one in a manifest beside the pack, and refuses to proceed if the
+tree holds anything the manifest does not list. `compile-okf` is the current
+example — it owns `.apm/skills/<router>/` and records it in
+`.okf-generated.json`.
+
+The rules:
+
+- **Author the source, never the output.** Edit the canonical input (for OKF,
+  `packs/<pack>/okf/<bundle>/`) and recompile. A hand edit to managed output is
+  detected as drift, not accepted as a change.
+- **A managed directory may not hold unmanaged files.** The compiler refuses a
+  directory containing files its manifest does not own, because it cannot tell
+  your file from a stale one it should delete. Keep hand-authored content in a
+  sibling directory the compiler does not own.
+- **Check mode is the gate; write mode is the authoring step.** Check re-renders
+  and compares against the committed bytes, so it verifies without needing to
+  write. That matters on platforms where the confined write path is
+  unavailable — check mode still proves the committed output is what that
+  platform produces.
+- **Retargeting output is a rename, not a deletion.** Pointing a bundle at a new
+  output directory hands the old one back to its author only when the source is
+  still declared and its target actually changed. Removing a source is a
+  removal, and its former output stays managed until cleaned up.
+
+Managed output is projected like any other pack content, so the muscle memory
+above still applies: edit the source, run `make build-self`, commit both.
 
 ### Install scope is per-pack
 
@@ -777,12 +857,47 @@ A PR description should answer four questions in this order:
 4. **What did you not change that you considered?** (The dog that didn't bark.
    This catches more bugs than any other section.)
 
-Aim for under ~100 lines of diff. PRs that grow beyond ~400 lines should be
-split unless the change is genuinely atomic (e.g. a generated file, a single
-rename across many call-sites).
+Size a PR as a reviewable semantic change, not as an agent session or a whole
+specification. One specification may deliver one PR or a dependency-ordered
+stack; each layer must be independently reviewable and leave the repository
+working. Keep behavior with its related tests, separate refactoring from
+behavior changes, and keep each curated commit independently testable.
 
-CI must be green. Specs must match implementation. Public-interface changes
-must be noted in `CHANGELOG.md`.
+Use 2,000 reviewable behavior and test lines only as a tail-triage trigger,
+not as an automatic split rule. Classify by operational role, never file
+extension: agent instruction files and executed content count as behavior.
+Non-executable documentation prose is sized by coherence, not line count.
+Report raw diff lines for triage, material volume after content-hash
+deduplication, and reviewable behavior and test lines for size judgement.
+Raw diff lines and changed-file count only prompt examination. Classify tail
+shape by the median reviewable lines per changed, deduplicated file with at
+least one such line; exclude prose, generated output, and duplicate copies.
+WIDE is 60 or fewer, MIXED is above 60 and below 200, and DEEP is 200 or more.
+If classification is ambiguous or contested, treat it as DEEP and decompose.
+
+For mechanically uniform WIDE work, do not split: give the source artifact,
+exact command, transformation invariant, zero diff on re-run, targeted tests,
+sampled review, and rollback evidence.
+For MIXED or DEEP work, split into dependency-ordered working layers. A single
+coherent artifact is a floor: when it alone exceeds the trigger, nothing else
+rides with it. The author names the single unit it serves and states why no
+split preserves working layers. The same evidence is required for a regular
+test suite serving one unit; otherwise decompose. An atomic correctness window
+needs prior approver acceptance, a named invariant, volume classification,
+validation evidence, and a rollback path; a breaking interface change is not
+grounds and uses expand/migrate/contract.
+
+Bundled fixes must be listed under `Bundled fixes:` and fail closed on design
+calls or behavior changes. Tier 1 is reproducible: state the command and show
+a zero diff on re-run; it may span the repository. Tier 2 is provably inert:
+show no remaining references and green tests for bounded dead-code or
+unused-import removal. Tier 3 is hand-made: same-area, same-concern, visibly
+smaller mechanical work. Tier 1 and Tier 2 require their command or evidence.
+
+CI must be green. Specs must match implementation. A released-artifact version
+bump carries its changelog entry (see *`docs/product/` — for maintainers*); if
+the repository publishes packages separately, each also updates its own
+`CHANGELOG.md`.
 
 ---
 
@@ -798,7 +913,7 @@ the `work-loop` skill; this section is the why.
 declare victory when they *feel* done. Mechanical gates (lint, typecheck,
 tests) plus an adversarial review pass replace "feel" with verifiable
 termination. The loop keeps going until both kinds of check are satisfied —
-or until it hits a hard cap.
+or it pauses for human replanning.
 
 **Why think before acting.** The cost of a wrong start is higher than the
 cost of thinking. For high-stakes changes (architectural choices, multi-file
@@ -813,43 +928,46 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — an unattended, fresh-session-per-iteration loop (see the
 work-loop skill).
 
-**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by `loop-cohort check --phase gates-failed` and `--phase review` respectively at `.claude/skills/work-loop/scripts/loop-cohort.py`; if you hit one, the task is bigger than you thought — stop, re-plan, or split.
+**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
 
 **Why capture learnings.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a
 human) will pay for it again. The work-loop skill enumerates where each
 kind of learning belongs.
 
+### Intent-scoped completion
+
+Completion answers to the original accepted intent, not to the current pull
+request. A pull request is a review unit: one accepted intent may need more
+than one independently reviewed unit in the same session. Only the owner may
+narrow or waive that intent.
+
+For every implementation or review discovery, determine intent fit before the
+session decision:
+
+| Intent fit | Session decision | Disposition |
+| --- | --- | --- |
+| Matches | Include now | Add it to the current plan or session. |
+| Matches | Do not include | Stop incomplete unless the owner explicitly narrows or waives the intent. |
+| Does not match | Include now | Obtain an explicit scope change; it then becomes accepted intent. |
+| Does not match | Do not include | Exclude it with no durable follow-on by default. |
+| Unclear | — | Ask the owner before acting. |
+
+An included discovery shares the current review unit only when the accepted
+contract authorizes it and it qualifies under the bundled-fixes tiers. A
+distinct design, behavior, or semantic change becomes the next review unit in
+the same session. An excluded discovery is acknowledged by the PR's *What did
+you not change that you considered?* answer; create a durable follow-on only
+when the owner explicitly requests capture, then route it through `work-intake`.
+Retry caps and review stasis pause for human replanning; they neither complete
+the accepted intent nor create backlog work automatically.
+
 ### Light and full modes
 
-**Rigor scales with risk, not file count.** `work-loop` has two modes —
-**light mode**, the default for low-risk work, and **full mode**, with every
-gate, reviewer iteration, and the state machine. The `work-loop` skill is the
-single owner of what each mode trims and how it runs; this section keeps only
-the principle and the risk triggers, so the mechanics live in one place rather
-than two. Work escalates to full mode the moment it trips a risk trigger:
-
-<!-- risk-triggers:start — canonical wording lives here; copied verbatim
-     into AGENTS.md, packs/core/seeds/AGENTS.md, and docs/CONVENTIONS.md.
-     Keep all four byte-identical (grep-equality is an acceptance
-     criterion of the work-loop-light-mode spec). -->
-**Risk triggers — any one routes the work to full mode:**
-
-- **Unfamiliar** — territory you don't know well.
-- **Multi-person** — more than one person builds or reviews it.
-- **Multi-feature or dependent tasks** — it decomposes a multi-feature
-  brief, or its tasks depend on one another.
-- **Compliance, governance, or security boundary** — it touches a
-  compliance or governance surface, or a security boundary (auth,
-  secrets, user input, deserialization, file or network I/O).
-- **Structural or public-interface change** — it changes structure (a new
-  module, layer, or boundary) or a public or published interface.
-- **Destructive or irreversible operation** — it deletes data,
-  force-pushes, drops tables, or otherwise can't be cleanly undone.
-- **New dependency** — it adds a dependency.
-
-No trigger fires → **light mode**.
-<!-- risk-triggers:end -->
+**Rigor scales with risk, not file count.** An eligible light request runs
+directly from the current session without a persisted spec; durable or
+risk-triggering work uses the spec-and-plan path. The `work-loop` skill is the
+single owner of mode mechanics and the enumerated trigger set.
 
 **Why risk, not file count.** A familiar two-file change is cheap to get right
 and cheap to undo; a one-file change to an auth path or a published interface is
@@ -1018,7 +1136,7 @@ in the work-loop skill is the same pattern at a different layer —
 moving review left from after code is written to before it is.
 
 `session-start.py` is shipped pre-wired by the install pipeline: the
-SessionStart binding lands in `.claude/settings.local.json`
+SessionStart binding lands in the adapter's local settings file
 automatically, no manual paste. `pre-pr.py` stays consumer-wired,
 because Claude Code has no PR-open lifecycle event (`Stop` fires after
 every agent turn — wrong semantics). Wire `pre-pr.py` via
@@ -1037,7 +1155,8 @@ not the answer to most work; the work-loop skill covers when it fits.
 
 
 Skills are workflows agents invoke for repeating tasks: scaffolding a package,
-opening an ADR, running a release. They live in `.claude/skills/<name>/SKILL.md`.
+opening an ADR, running a release. They live in the adapter's skills directory as
+`<name>/SKILL.md`.
 
 Add a skill when you've done the same multi-step thing three times. Don't add
 one speculatively — speculative skills bloat context and degrade adherence.
@@ -1071,9 +1190,9 @@ something forces them to fill.
 | `docs/CONVENTIONS.md` (trim aggressively) | `docs/architecture/` (the README is enough) |
 | `docs/adr/` (write when you make a real tradeoff) | `docs/product/personas.md` |
 | `docs/specs/` (one spec at a time, or none) | Per-package `AGENTS.md` (no packages) |
-| `docs/product/changelog.md` | `.claude/agents/adversarial-reviewer.md` (overhead at this size) |
+| `docs/product/changelog.md` | the `adversarial-reviewer` subagent (overhead at this size) |
 | `guides/reference/` (API/config docs) | Other Diátaxis buckets — fill as needed |
-| `.claude/skills/work-loop/` | |
+| the `work-loop` skill | |
 
 **Rule of thumb:** if your README + an OpenAPI/schema file would have
 been enough, you're at this profile. The template gives you ADRs and
@@ -1093,7 +1212,7 @@ Most folders start carrying content.
 - `rfc/` may still be unused; PRs are enough for most decisions.
 - `adversarial-reviewer` subagent is worth using. `security-reviewer` and
   `quality-engineer` are worth reaching for when a PR warrants them — see
-  [`AGENTS.md § Specialist subagents`](../AGENTS.md#specialist-subagents).
+  the `work-loop` skill's REVIEW step.
 
 ### Profile C — Medium platform / engine (10-50 contributors)
 
@@ -1163,10 +1282,8 @@ of adopting them — not as a precaution.
 
 ## Common rationalizations
 
-Four lies an agent tells itself mid-loop, paired with the rebuttal that
-already lives in this repo. These are the in-loop counterparts to the
-[Excuses we don't accept](../AGENTS.md#excuses-we-dont-accept) table in
-`AGENTS.md`, which fires *before* the work-loop loads.
+These are rationalizations to refuse, whether they arise before the work-loop
+loads or while it is running.
 
 | The lie | The rebuttal |
 | --- | --- |
@@ -1174,6 +1291,10 @@ already lives in this repo. These are the in-loop counterparts to the
 | "I'll verify this manually, just this once." | Verification mode — TDD, goal-based, or manual QA — is declared in the plan task, not improvised at the keyboard. If manual QA is the right mode, write it down; if it isn't, pick TDD or a goal-based check. See the PLAN phase in the `work-loop` skill. |
 | "I can fix this while I'm here." | Out-of-scope changes need a separate PR or an explicit note in the plan. Scope creep is the most common cause of failed adversarial review. See [`AGENTS.md` § Keeping changes minimal](../AGENTS.md#keeping-changes-minimal). |
 | "This decision doesn't need an ADR — it's obvious." | If you're making it, it isn't obvious to the next person. Writing an ADR now costs less than someone re-litigating the decision in six months. See § 2 above and the `new-adr` skill. |
+| "Low-risk, so I'll skip the work-loop." | Load `work-loop` and write its trio anyway — light mode is lean, not absent. The discipline is the point, not the length. |
+| "I don't need a spec, I understand the task." | An eligible direct-light request keeps its plan in the active session; it does not persist a spec. If the work needs durability or any risk trigger fires, use `new-spec` for the durable spec and plan. |
+| "I'll grep the codebase as I go." | Verify APIs before you start writing, not while you're writing. |
+| "I'll match the surrounding code's pattern." | Check the [Source of truth](../AGENTS.md#source-of-truth) map first; local style may already conflict with the canonical convention. |
 
 ---
 
@@ -1332,6 +1453,27 @@ must respect:
   only; primitive emits a stderr warning whenever it fires.
 
 ---
+
+## Privacy
+
+**Never commit personal information to any file in this repo.** This includes:
+
+- Real names, email addresses, usernames, or account identifiers.
+- Org-specific domains, subdomains, or employer hostnames.
+- AAD/UUID identifiers tied to real people.
+- Device names, profile paths, or user-specific filesystem paths.
+- Names of personal service providers or platforms that identify account relationships.
+
+Use generic placeholders everywhere: `user@example.com`, `colleague@example.com`, `Example User`,
+`https://mail.yourorg.com/`, `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`, `example-service`,
+and `[service type]`.
+
+**This rule covers all git artifacts** — code, comments, docs, specs, commit messages,
+PR titles, PR bodies, and PR comments are permanent record. Never use real service or
+vendor names as examples; use `example-service` or `[service type]` instead. When
+authoring governance docs (ADRs, RFCs, specs), GitHub handles used for author/decider
+fields are not PII — they are public project identifiers.
+Do not infer them from session context.
 
 ## When this file is wrong
 

@@ -38,7 +38,51 @@ const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
 const DOCS_HOME = join(DOCS_ROOT, 'index.html');
 const NOW_PAGE = join(BUILD_ROOT, 'now', 'index.html');
 const NOW_PROJECTION = join(REPO_ROOT, 'web/src/lib/now-highlights.generated.json');
+const SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'web/src/lib/shared-chrome.generated.json');
+const DOCS_SHARED_CHROME_PROJECTION = join(REPO_ROOT, 'docs-site/src/shared-chrome.generated.json');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
+
+/**
+ * spec/site-shared-chrome AC7, for one emitted shared-chrome link.
+ *
+ * Factored out because it was previously applied only to the footers, so a
+ * header or docs-band link could have carried `target="_blank"`, an
+ * external-only `rel`, or a stray glyph and still passed. AC7 is a property of
+ * every shared-chrome link, not of the surfaces someone remembered.
+ *
+ * Asserted semantically rather than by class name: marketing and docs each hide
+ * the "external" word with their own CSS, and requiring a shared class here
+ * would mandate exactly the shared CSS AC10 forbids.
+ */
+function expectSharedChromeLinkContract(
+  link: HTMLAnchorElement,
+  expected: { label: string; target: string; kind: string },
+  base: string,
+  where: string
+): void {
+  expect(link.getAttribute('href'), `${where}: href`).toBe(
+    expected.kind === 'internal' ? `${base}${expected.target}` : expected.target
+  );
+  // Same tab, and no external-only relationship metadata — on internal AND
+  // external links: GitHub and PyPI are external but still open in the same tab.
+  expect(link.getAttribute('target'), `${where}: must open in the same tab`).toBeNull();
+  expect(link.hasAttribute('rel'), `${where}: must carry no rel`).toBe(false);
+
+  const glyph = link.querySelector('[aria-hidden="true"]');
+  const accessibleName = [...link.childNodes]
+    .filter((node) => !(node as Element).getAttribute?.('aria-hidden'))
+    .map((node) => node.textContent)
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (expected.kind === 'external') {
+    expect(glyph?.textContent?.trim(), `${where}: aria-hidden glyph`).toBe('↗');
+    expect(accessibleName, `${where}: accessible name`).toBe(`${expected.label} external`);
+  } else {
+    expect(link.textContent?.includes('↗'), `${where}: no external glyph`).toBe(false);
+    expect(accessibleName, `${where}: accessible name`).toBe(expected.label);
+  }
+}
 
 function walk(dir: string, match: (name: string) => boolean, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
@@ -147,7 +191,7 @@ interface AsideLedgerRow {
   content_sha256: string;
   anchor: string;
   classification: 'quotation' | 'note' | 'tip' | 'caution' | 'danger';
-  status: 'done';
+  status: 'done' | 'superseded';
   reason: string;
 }
 
@@ -155,7 +199,8 @@ function asideLedger(): AsideLedgerRow[] {
   return readFileSync(ASIDE_LEDGER, 'utf8')
     .split('\n')
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as AsideLedgerRow);
+    .map((line) => JSON.parse(line) as AsideLedgerRow)
+    .filter((row) => row.status === 'done');
 }
 
 function builtGuidePage(sourcePath: string): string {
@@ -430,6 +475,270 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
     expect(now.length).toBeGreaterThanOrEqual(2); // desktop list + mobile drawer
     for (const link of now) expect(link.label).toBe('Now');
     expect(navHrefs.some((l) => l.href?.endsWith('/work/'))).toBe(false);
+  });
+
+  it('shared chrome AC3/AC4/AC7/AC8: marketing navigation and footer render the approved contract', () => {
+    const expected = JSON.parse(readFileSync(SHARED_CHROME_PROJECTION, 'utf8'));
+    const d = doc(homePage);
+    const base = '/agent-ready-repo';
+    const expectedHeader = expected.header.map((link: { label: string; target: string }) => ({
+      label: link.label,
+      href: `${base}${link.target}`,
+    }));
+
+    for (const selector of ['.nav__links', '.nav__drawer']) {
+      const links = [...d.querySelectorAll<HTMLAnchorElement>(`${selector} a`)];
+      expect(links.map((link) => ({
+        label: link.textContent?.replace(/\s+/g, ' ').trim().replace(/ →$/, ''),
+        href: link.getAttribute('href'),
+      }))).toEqual(expectedHeader);
+      expect(links.at(-1)?.classList.contains('nav__cta')).toBe(true);
+      for (const [index, link] of links.entries()) {
+        const expectedLink = expected.header[index];
+        // The CTA carries a decorative `→`, so its accessible name is checked by
+        // the label comparison above rather than by the shared contract.
+        if (expectedLink.id === 'try-the-build-loop') {
+          expect(link.getAttribute('target'), `${selector} CTA: same tab`).toBeNull();
+          expect(link.hasAttribute('rel'), `${selector} CTA: no rel`).toBe(false);
+          continue;
+        }
+        expectSharedChromeLinkContract(link, expectedLink, base, `${selector} ${expectedLink.id}`);
+      }
+    }
+
+    const columns = [...d.querySelectorAll('footer .footer__col')];
+    expect(columns.map((column) => column.querySelector('h2')?.textContent?.trim())).toEqual(
+      expected.footer.map((column: { label: string }) => column.label)
+    );
+    for (const [index, column] of columns.entries()) {
+      const expectedColumn = expected.footer[index];
+      const links = [...column.querySelectorAll<HTMLAnchorElement>('a')];
+      expect(links.map((link) => link.textContent?.replace(/\s+/g, ' ').trim().replace(/ external$/, '').replace(/ ↗$/, ''))).toEqual(
+        expectedColumn.destinations.map((link: { label: string }) => link.label)
+      );
+      for (const [linkIndex, link] of links.entries()) {
+        const expectedLink = expectedColumn.destinations[linkIndex];
+        expect(link.getAttribute('href')).toBe(
+          expectedLink.kind === 'internal' ? `${base}${expectedLink.target}` : expectedLink.target
+        );
+        expect(link.hasAttribute('rel')).toBe(false);
+        expect(link.getAttribute('target')).toBeNull();
+        const glyph = link.querySelector('[aria-hidden="true"]');
+        if (expectedLink.kind === 'external') {
+          // The glyph must be hidden from assistive technology and the accessible
+          // name must read "<label> external" — not "<label> ↗ external".
+          expect(glyph?.textContent?.trim()).toBe('↗');
+          expect(link.querySelector('.visually-hidden')?.textContent?.trim()).toBe('external');
+          const accessibleName = [...link.childNodes]
+            .filter((node) => !(node as Element).getAttribute?.('aria-hidden'))
+            .map((node) => node.textContent)
+            .join('')
+            .replace(/\s+/g, ' ')
+            .trim();
+          expect(accessibleName).toBe(`${expectedLink.label} external`);
+        } else {
+          expect(link.textContent?.includes('↗')).toBe(false);
+          expect(glyph).toBeNull();
+          expect(link.querySelector('.visually-hidden')).toBeNull();
+        }
+      }
+    }
+    expect(d.querySelector('.footer__brand')?.textContent?.trim()).toBe('agent-ready-repo');
+    expect(d.querySelector('.footer__tag')?.textContent?.trim()).toBe(
+      'The supervised AI operating model for software teams.'
+    );
+  });
+
+  it('shared chrome AC8: current states are route-specific and fragments stay non-current', () => {
+    const readPage = (path: string) => doc(join(BUILD_ROOT, path, 'index.html'));
+    const home = doc(homePage);
+    expect(home.querySelectorAll('[href*="#"][aria-current]').length).toBe(0);
+    expect(readPage('now').querySelectorAll('[href$="/now/"][aria-current="page"]').length).toBeGreaterThan(1);
+    expect(readPage('catalogue').querySelectorAll('[href$="/catalogue/"][aria-current="page"]').length).toBeGreaterThan(1);
+    // `/packs/` itself is a redirect stub with no chrome; the pack and journey
+    // descendants that carry chrome are the ones the category-current rule owns.
+    for (const descendant of ['packs/core', 'journeys', 'journeys/core']) {
+      expect(readPage(descendant).querySelectorAll('[href$="/catalogue/"][aria-current="location"]').length)
+        .toBeGreaterThan(1);
+    }
+
+    // AC8 applies the same semantics in footers. Scoped to `footer` because the
+    // desktop nav and mobile drawer alone satisfy any whole-document count, so a
+    // footer that dropped `aria-current` would pass every assertion above.
+    const footerCurrent = (path: string, selector: string) =>
+      readPage(path).querySelectorAll(`footer ${selector}`).length;
+    expect(footerCurrent('now', '[href$="/now/"][aria-current="page"]')).toBe(1);
+    expect(footerCurrent('catalogue', '[href$="/catalogue/"][aria-current="page"]')).toBe(1);
+    expect(footerCurrent('packs/core', '[href$="/catalogue/"][aria-current="location"]')).toBe(1);
+    expect(footerCurrent('journeys/core', '[href$="/catalogue/"][aria-current="location"]')).toBe(1);
+    // Fragment destinations stay non-current in the footer too.
+    expect(footerCurrent('now', '[href*="#"][aria-current]')).toBe(0);
+  });
+
+  it('shared chrome AC4–AC9: docs keeps native Starlight controls around its local product chrome', () => {
+    if (!docsBuilt) throw new Error('docs emitted-output guard requires build/docs/');
+    const expected = JSON.parse(readFileSync(DOCS_SHARED_CHROME_PROJECTION, 'utf8'));
+    const base = '/agent-ready-repo';
+    const home = doc(DOCS_HOME);
+    const nested = doc(join(DOCS_ROOT, 'getting-started/install/index.html'));
+    const labels = (links: HTMLAnchorElement[]) => links.map((link) =>
+      link.textContent?.replace(/\s+/g, ' ').trim().replace(/ ↗ external$/, '')
+    );
+
+    const band = home.querySelector('nav[aria-label="Product orientation"]');
+    expect(band).not.toBeNull();
+    expect(labels([...band!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
+      expected.product_orientation_band.map((link: { label: string }) => link.label)
+    );
+    for (const [index, link] of [...band!.querySelectorAll<HTMLAnchorElement>('a')].entries()) {
+      expectSharedChromeLinkContract(
+        link, expected.product_orientation_band[index], base,
+        `docs band ${expected.product_orientation_band[index].id}`
+      );
+    }
+    expect(band!.querySelector('[href$="/docs/"]')?.getAttribute('aria-current')).toBe('page');
+    expect(nested.querySelector('nav[aria-label="Product orientation"] [href$="/docs/"]')?.getAttribute('aria-current'))
+      .toBe('location');
+
+    const productNav = home.querySelector('nav[aria-label="Product navigation"]');
+    expect(productNav?.querySelector('summary')?.textContent?.trim()).toBe('Product');
+    expect(productNav?.querySelector('summary a')).toBeNull();
+    expect(labels([...productNav!.querySelectorAll<HTMLAnchorElement>('a')])).toEqual(
+      expected.product_navigation.map((link: { label: string }) => link.label)
+    );
+    for (const [index, link] of [...productNav!.querySelectorAll<HTMLAnchorElement>('a')].entries()) {
+      expectSharedChromeLinkContract(
+        link, expected.product_navigation[index], base,
+        `docs disclosure ${expected.product_navigation[index].id}`
+      );
+    }
+    expect(home.querySelectorAll('starlight-menu-button button[aria-controls="starlight__sidebar"]').length).toBe(1);
+    expect(home.querySelectorAll('.sl-skip-link').length).toBe(1);
+    expect(home.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link')).toBe(true);
+    // `.header` is not a singularity proxy. Starlight's own Header renders a
+    // `<div class="header">`, Expressive Code emits `<figcaption class="header">`
+    // for captioned code blocks, and the page frame's `<header class="header">` is
+    // the docs-local sticky wrapper that keeps starlight.css's `header.header`
+    // rule applying. Assert the controls AC9 actually names instead. These counts
+    // were verified against a build with the PageFrame override disabled, so they
+    // record native Starlight behaviour rather than a number that happened to pass.
+    // AC9 names twelve controls and applies to home AND nested guide routes, so
+    // assert every one of them on both rather than a convenient subset of one.
+    // `starlight-theme-select` is TWICE and `a[href="#_top"]` THREE times in a
+    // build with this override DISABLED — native Starlight behaviour, so those
+    // are the counts singularity means here, not 1.
+    for (const [routeName, page] of [['home', home], ['nested', nested]] as const) {
+      const only = (selector: string, expectedCount = 1) =>
+        expect(
+          page.querySelectorAll(selector).length,
+          `${routeName}: ${selector}`
+        ).toBe(expectedCount);
+      only('header.header > div.header');   // one Starlight header
+      only('a.site-title');                 // title
+      only('site-search');                  // search
+      // Presence, not a count. Starlight renders its theme control twice natively
+      // (desktop and mobile); pinning 2 would assert Starlight's incidental
+      // implementation and fail a legitimate upstream consolidation to one. AC9
+      // asks that Starlight OWNS the control, not how many nodes it uses.
+      expect(
+        page.querySelectorAll('starlight-theme-select').length,
+        `${routeName}: Starlight owns the theme control`
+      ).toBeGreaterThan(0);
+      // Ownership is proved at the override seam below, not by a generated Astro
+      // scope hash: a hash is brittle, and a docs-local replacement emitted by any
+      // other component would carry a different one and pass.
+      only('starlight-menu-button');        // Docs menu trigger
+      only('#starlight__sidebar');          // sidebar
+      only('nav.sidebar');
+      only('.sl-skip-link');                // skip link
+      only('h1');                           // page title
+      only('head > meta[name="description"]');
+      only('starlight-toc');                // table of contents
+      only('mobile-starlight-toc');
+      only('.main-frame');                  // content layout
+      only('footer');
+      // The skip link stays the first focusable control on both routes.
+      expect(
+        page.body.querySelector('a, button, summary')?.classList.contains('sl-skip-link'),
+        `${routeName}: skip link first`
+      ).toBe(true);
+    }
+    // AC9's actual ownership contract: docs may override only the approved seams.
+    // Read from the config, because that is where a replacement of a
+    // Starlight-native control has to be declared — adding `ThemeSelect`,
+    // `Search`, `Header`, `Sidebar` or `Pagination` here is what AC9 forbids.
+    const docsConfig = readFileSync(join(REPO_ROOT, 'docs-site/astro.config.ts'), 'utf8');
+    const componentsBlock = docsConfig.slice(
+      docsConfig.indexOf('components: {'),
+      docsConfig.indexOf('}', docsConfig.indexOf('components: {'))
+    );
+    const overrides = [...componentsBlock.matchAll(/(\w+):\s*'\.\//g)].map((m) => m[1]);
+    expect(overrides.length, 'docs component overrides were not parsed').toBeGreaterThan(0);
+    expect(new Set(overrides), 'docs may override only the approved Starlight seams').toEqual(
+      new Set(['Footer', 'PageFrame', 'PageTitle'])
+    );
+
+    // Edit control and pagination are Starlight-owned and singular on the nested
+    // guide route, which is where they render.
+    expect(nested.querySelectorAll('a[href*="/edit/"]').length).toBe(1);
+    expect(nested.querySelectorAll('.pagination-links').length).toBe(1);
+    expect(nested.querySelectorAll('nav[aria-label="Breadcrumbs"], .docs-breadcrumbs').length)
+      .toBeLessThanOrEqual(1);
+
+    const footer = nested.querySelector('footer.docs-site-footer');
+    expect(nested.querySelectorAll('footer').length).toBe(1);
+    expect([...footer!.querySelectorAll('.docs-site-footer__group h2')].map((heading) => heading.textContent?.trim()))
+      .toEqual(expected.footer.map((group: { label: string }) => group.label));
+    for (const [index, group] of [...footer!.querySelectorAll('.docs-site-footer__group')].entries()) {
+      const expectedGroup = expected.footer[index];
+      const links = [...group.querySelectorAll<HTMLAnchorElement>('a')];
+      expect(labels(links)).toEqual(expectedGroup.destinations.map((link: { label: string }) => link.label));
+      for (const [linkIndex, link] of links.entries()) {
+        expectSharedChromeLinkContract(
+          link, expectedGroup.destinations[linkIndex], base,
+          `docs footer ${expectedGroup.destinations[linkIndex].id}`
+        );
+      }
+    }
+    // AC8 in the docs footer, stated exactly rather than as "something is current".
+    // `/docs/` is the exact page on the docs home and a category ancestor on a
+    // nested route, so the two routes must differ — a footer using `page`
+    // everywhere, or carrying no current state at all, has to fail.
+    for (const [routeName, page, expectedState] of [
+      ['home', home, 'page'],
+      ['nested', nested, 'location'],
+    ] as const) {
+      const routeFooter = page.querySelector('footer');
+      const allDocs = [...routeFooter!.querySelectorAll<HTMLAnchorElement>('a[href$="/docs/"]')];
+      expect(allDocs.length, `${routeName} footer: an All docs link`).toBeGreaterThan(0);
+      for (const link of allDocs) {
+        expect(
+          link.getAttribute('aria-current'),
+          `${routeName} footer: /docs/ current state`
+        ).toBe(expectedState);
+      }
+      // No fragment destination claims current state, in either footer.
+      for (const link of routeFooter!.querySelectorAll('[aria-current]')) {
+        expect(
+          link.getAttribute('href'),
+          `${routeName} footer: fragments stay non-current`
+        ).not.toContain('#');
+      }
+    }
+    expect(footer?.textContent?.replace(/\s+/g, ' ').trim()).toContain(`© ${new Date().getFullYear()} · agent-ready-repo`);
+    expect(footer?.textContent).not.toContain('The supervised AI operating model for software teams.');
+    expect(footer?.textContent).not.toContain('Platform');
+    // AC4 says the groups follow Starlight pagination. "Both present" is not that:
+    // a reversed order would satisfy a presence check.
+    const footerChildren = [...footer!.querySelectorAll('*')];
+    const paginationIndex = footerChildren.findIndex((el) => el.classList.contains('pagination-links'));
+    const firstGroupIndex = footerChildren.findIndex((el) =>
+      el.classList.contains('docs-site-footer__group')
+    );
+    expect(paginationIndex, 'docs footer renders Starlight pagination').toBeGreaterThanOrEqual(0);
+    expect(firstGroupIndex, 'docs footer renders the shared groups').toBeGreaterThanOrEqual(0);
+    expect(paginationIndex, 'the shared groups must follow Starlight pagination')
+      .toBeLessThan(firstGroupIndex);
   });
 
   it('now AC3–AC4: every release group names its package, version, date and changelog source', () => {

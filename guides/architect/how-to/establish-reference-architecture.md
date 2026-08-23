@@ -7,7 +7,7 @@ kind: how-to
 
 # Establish your repo's reference architecture
 
-**Use this when:** Your repo lacks a `docs/architecture/reference.md` and you want a normative golden path that the architect skills steer designs, diagrams, and reviews against.
+**Use this when:** Your repo lacks a `docs/architecture/reference.md` and you want a normative golden path that assessment can compare with evidence and that designs, diagrams, and reviews can follow.
 **Prerequisites:** A working codebase with real architecture decisions (harvesting route); or `adapt-to-project` for harvest, a stack pack for pre-bake, or `init-project` for greenfield.
 **Result:** A committed `docs/architecture/reference.md` that reflects decisions your team has actually made, with no invented constraints.
 
@@ -17,7 +17,9 @@ Get a `docs/architecture/reference.md` — your repo's normative golden path —
 
 You have a working codebase with real architecture decisions, and you want them written down as a foundation that new work conforms to. There are three routes in, depending on where your repo is.
 
-Once it exists, all three architect skills steer off it — proposals, drawings, and critiques all measure against the same golden path:
+Once it exists, the four architect workflows can use it. Assessment treats it as
+reported intent to compare with implementation; proposals, drawings, and
+critiques measure against the same golden path:
 
 ```text
                          ┌──────────────────────────────┐
@@ -25,11 +27,11 @@ Once it exists, all three architect skills steer off it — proposals, drawings,
                          │  (your repo's golden path)    │
                          └───────────────┬──────────────┘
                                          │ steers
-                 ┌───────────────────────┼───────────────────────┐
-                 ▼                       ▼                       ▼
-          architect-design       architect-diagram        architect-review
-          proposes against       draws document-mode      measures the
-          your stack             against your stack       artifact against it
+         ┌───────────────┬───────────────┼───────────────┬───────────────┐
+         ▼               ▼               ▼               ▼
+ architect-assess architect-design architect-diagram architect-review
+ compares intent   proposes against draws against     measures the artifact
+ with evidence     your stack        your stack        against it
 ```
 
 ## Route 1 — Harvest it from an existing codebase (most common)
@@ -72,6 +74,7 @@ However you got there, you're done when:
 
 ## See also
 
+- [Assess a repository and turn evidence into action](assess-a-repository.md) — test the implemented architecture without turning the foundation into proof.
 - [Foundation vs. map](../../core/explanation/foundation-vs-map.md) — why the two docs are separate.
 - [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md) — the authoritative section list and contract.
 - [Create and use your `reference.md`](../tutorials/create-your-reference-architecture.md) — the guided walkthrough.

@@ -1,44 +1,88 @@
 ---
-// Starlight Footer override — matches site/overrides/partials/footer.html
-// Renders the route's prev/next navigation plus the brand footer.
-// Footer overrides receive page props only; pagination lives on the typed route
-// data, matching Starlight's own Footer → Pagination integration.
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+import sharedChrome from '../shared-chrome.generated.json';
+import { docsChromeCurrent, docsChromeHref } from './shared-chrome';
 
-const { pagination } = Astro.locals.starlightRoute;
+const docsBase = import.meta.env.BASE_URL.replace(/\/docs\/?$/, '');
+const pathname = Astro.url.pathname.startsWith(docsBase)
+  ? Astro.url.pathname.slice(docsBase.length) || '/'
+  : Astro.url.pathname;
+
 ---
 
-{
-  pagination && (pagination.prev || pagination.next) && (
-    <nav class="sl-prev-next" aria-label="Previous and next pages">
-      {pagination.prev && (
-        <a href={pagination.prev.href} rel="prev" class="sl-prev-next__link sl-prev-next__link--prev">
-          <span class="sl-prev-next__direction">Previous</span>
-          <span class="sl-prev-next__label">{pagination.prev.label}</span>
-        </a>
-      )}
-      {pagination.next && (
-        <a href={pagination.next.href} rel="next" class="sl-prev-next__link sl-prev-next__link--next">
-          <span class="sl-prev-next__direction">Next</span>
-          <span class="sl-prev-next__label">{pagination.next.label}</span>
-        </a>
-      )}
-    </nav>
-  )
-}
-
-<footer class="site-footer">
-  <div class="site-footer__inner">
-    <p class="site-footer__brand">agent-ready-repo</p>
-    <nav class="site-footer__links" aria-label="Site footer">
-      <ul>
-        <li><a href="https://eugenelim.github.io/agent-ready-repo/" rel="noopener">Platform</a></li>
-        <li><a href="https://github.com/eugenelim/agent-ready-repo" rel="noopener">GitHub</a></li>
-        <li><a href="https://pypi.org/project/agentbundle/" rel="noopener">PyPI</a></li>
-      </ul>
-    </nav>
-    <p class="site-footer__copy">© 2026 · The supervised AI operating model for software teams.</p>
+<footer class="docs-site-footer">
+  <div class="docs-site-footer__native-meta">
+    <EditLink />
+    <LastUpdated />
   </div>
+  <Pagination />
+  <div class="docs-site-footer__groups">
+    {
+      sharedChrome.footer.map((group) => (
+        <section class="docs-site-footer__group" aria-labelledby={`docs-footer-${group.id}`}>
+          <h2 id={`docs-footer-${group.id}`}>{group.label}</h2>
+          <ul>
+            {group.destinations.map((link) => (
+              <li>
+                <a href={docsChromeHref(link, docsBase)} aria-current={docsChromeCurrent(link, pathname)}>
+                  {link.label}
+                  {link.kind === 'external' && <><span aria-hidden="true"> ↗</span><span class="docs-site-footer__external"> external</span></>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+  <p class="docs-site-footer__quiet-line">© {new Date().getFullYear()} · agent-ready-repo</p>
 </footer>
+
+<style>
+  .docs-site-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 3rem;
+    border-top: 1px solid var(--doc-rule);
+    padding-top: 1.5rem;
+  }
+
+  .docs-site-footer__native-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem 3rem;
+    color: var(--doc-text-muted);
+    font-size: var(--sl-text-sm);
+  }
+
+  .docs-site-footer__groups {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .docs-site-footer__group h2 {
+    margin: 0 0 0.65rem;
+    color: var(--doc-heading);
+    font-size: 0.8125rem;
+  }
+
+  .docs-site-footer__group ul { margin: 0; padding: 0; list-style: none; }
+  .docs-site-footer__group li + li { margin-top: 0.45rem; }
+  .docs-site-footer__group a { color: var(--doc-text-muted); text-decoration: none; }
+  .docs-site-footer__group a:hover { color: var(--doc-heading); text-decoration: underline; text-underline-offset: 0.2em; }
+  .docs-site-footer__group a[aria-current] { color: var(--doc-heading); font-weight: 700; }
+  .docs-site-footer__external { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .docs-site-footer__quiet-line { margin: 0; color: var(--doc-text-faint); font-size: var(--sl-text-sm); }
+  .docs-site-footer :focus-visible { outline: 2px solid var(--doc-accent-strong); outline-offset: 3px; }
+
+  @media (min-width: 50rem) {
+    .docs-site-footer__groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
 
 <script>
   // Mermaid is bundled (exact pin in package.json) and lazy-loaded only on

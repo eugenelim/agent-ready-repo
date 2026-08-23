@@ -10,6 +10,7 @@ Verifies that:
 
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -67,10 +68,64 @@ class MakefileRewireTest(unittest.TestCase):
         self.assertIn('"catalogue", "verify"', chain,
                       "the gate chain must own portable catalogue verification")
 
+    def _resolved_body(self, target: str, *, hops: int = 2) -> str:
+        """A target's recipe, following `$(MAKE) <target>` delegation.
+
+        `build-check` delegates through the cooperative run-slot wrapper
+        (`with-lease -- $(MAKE) -f <makefile> build-check-unleased`), so the
+        gate-chain call it must reach is one hop away. Reading only the literal
+        recipe reports a missing delegation that is in fact present -- and, worse, a
+        guard that reads only the first recipe stops protecting the chain the moment
+        any wrapper is introduced. Following the hop keeps it pointed at the
+        property that matters: the gate chain actually runs.
+        """
+        seen: set[str] = set()
+        pending = [target]
+        collected: list[str] = []
+        for _ in range(hops):
+            if not pending:
+                break
+            current = pending.pop(0)
+            if current in seen:
+                continue
+            seen.add(current)
+            body = self._target_body(current)
+            collected.append(body)
+            for line in body.splitlines():
+                for call in re.finditer(r"\$\(MAKE\)(.*)", line):
+                    # Skip flags and make-variable arguments: the call carries
+                    # `-f $(firstword $(MAKEFILE_LIST))`, so taking the first token
+                    # after $(MAKE) captures "-f" and the target is never followed.
+                    for token in call.group(1).split():
+                        if token.startswith(("-", "$(")) or token.endswith("))"):
+                            continue
+                        pending.append(token)
+                        break
+        return "\n".join(collected)
+
     def test_build_check_calls_repo_build_gate_chain(self):
-        body = self._target_body("build-check")
-        self.assertIn("tools/repo/build_gate_chain.py", body,
-                      "build-check must delegate to tools/repo/build_gate_chain.py")
+        resolved = self._resolved_body("build-check")
+        self.assertIn("tools/repo/build_gate_chain.py", resolved,
+                      "build-check must reach tools/repo/build_gate_chain.py")
+
+    def test_wrapped_targets_keep_their_lease_and_forward_the_makefile(self):
+        """Each wrapped target is guarded, so a dropped wrapper reddens something.
+
+        The plan's participant matrix requires one dropped-wrapper mutation per
+        wrapped target. The `-f` forwarding is asserted too: without it a recursive
+        sub-make launched from inside the wrapper loses `-f` and re-reads the default
+        Makefile, which silently disarms `assert-sast-chain-reachable`'s self-test.
+        """
+        for target, inner in (
+            ("test", "test-unleased"),
+            ("build-check", "build-check-unleased"),
+            ("sast", "sast-unleased"),
+        ):
+            body = self._target_body(target)
+            self.assertIn("with-lease", body, f"{target} must run under the wrapper")
+            self.assertIn(inner, body, f"{target} must delegate to {inner}")
+            self.assertIn("$(firstword $(MAKEFILE_LIST))", body,
+                          f"{target} must forward the makefile currently in use")
 
     def test_package_target_exists(self):
         body = self._target_body("package")

@@ -1,7 +1,7 @@
 # Architecture Overview
 
-> The map of this monorepo. Read this first when exploring. Updated whenever
-> the directory layout or major dependencies change.
+> The directory map of this monorepo. For its systems, boundaries, flows, and
+> state ownership, read [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
 ## Layout
 
@@ -48,27 +48,6 @@ straight into the adopter's own repo without needing to expose `dist/`.
 Edit seeds under `packs/<pack>/.apm/...`, not these projections. See
 [`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
 
-## The catalogue
-
-`packs/` is the source catalogue. Each pack owns its manifest, portable
-primitives, tests, seeds, README, and journey; `profiles/` composes those packs
-without introducing new primitives. The complete current inventory belongs to
-the [generated catalogue](https://eugenelim.github.io/agent-ready-repo/catalogue/)
-and [technical pack reference](https://eugenelim.github.io/agent-ready-repo/docs/packs/),
-not to a hand-maintained architecture table.
-
-[`core`](../../guides/core/explanation/core-pack.md) is the flagship build
-system. Other packs may depend on it, integrate with it, or remain independently
-useful; composition is declared in `pack.toml`, not inferred from directory
-adjacency. Each pack's full metadata lives in that manifest and is projected
-into catalogue listings — see [`pack-manifest.md`](pack-manifest.md).
-
-What it means for `core` to be load-bearing: its
-`session-start.py` is the single read-side of the install→adapt chain —
-every install route (CLI, APM, Claude plugins) drops the same
-`.adapt-install-marker.toml`, and `core`'s hook is what surfaces it to the
-agent on next session. Pull `core` out and the chain doesn't close.
-
 ## Subsystems
 
 One file per non-trivial subsystem:
@@ -107,8 +86,10 @@ One file per non-trivial subsystem:
   processor dispatch. Jira, Jira Align, Linear, and GitHub adapters now converge
   on its `normalized-intake.v1` boundary: acquisition and versioned profile
   hints stay tracker-specific, while content classification and every repository
-  write stay in `work-intake`. Tracker intake is read-only; refresh conflicts,
-  execution locks, and tracker write-back remain later integrations.
+  write stay in `work-intake`. Intake remains read-only. Reviewed refresh now
+  applies authorized local changes through execution locks and conflict-aware
+  compare-and-swap writes; configured tracker processors may perform separately
+  confirmed remote mutations within their declared capability boundaries.
 
 ## Packages
 
@@ -143,3 +124,5 @@ One file per non-trivial subsystem:
    [0010](../rfc/0010-apm-install-route-parity.md)) for current direction.
 5. Run `make build-check` once — it's the self-host drift gate, and
    tripping it explains the seed/projection split better than prose can.
+The subsystem index and deeper links are in
+[`ARCHITECTURE.md` § 8](../../ARCHITECTURE.md#8-deeper-current-state-pages).

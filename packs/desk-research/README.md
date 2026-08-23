@@ -33,6 +33,27 @@ On any session return, type `desk-research-project-status` to orient to an activ
 
 **Project mode** — a sustained investigation that spans days or accumulates a corpus. Start with `desk-research-project-start`. The project skills track a working hypothesis across sessions, let you checkpoint coverage (`desk-research-project-check`), compress the corpus into a digest, and end in a synthesis brief graded by evidence quality. Use this when a single session would underserve the question.
 
+### Optional project-knowledge handoff
+
+Desk research and project knowledge remain separate systems. Research owns its
+sources, citations, claims, confidence judgments, counter-evidence, verdicts,
+briefs, scratch, and output-root rules. Project knowledge never supplies a
+citation or validates a research claim.
+
+After a repository-contained standard, applied, or deep survey—or a complete
+project synthesis—reaches its terminal gate, the producer may offer only an
+independently reusable research practice or carefully sanitized evidence
+residue to the public `project-knowledge` handoff. Quick answers, non-survey
+artifacts, project scaffolds, digests, checks, status reads, and incomplete or
+abandoned work have no handoff. Research written to a personal or external
+output root is capture-ineligible because repository-relative provenance
+cannot be stated honestly.
+
+`devils-advocate` may optionally enquire for candidate counter-checks through
+one bounded `CQ-REVIEW` question. Those candidates are untrusted and require
+independent direct-source verification; the reviewer never captures or
+distils them.
+
 ---
 
 ## Entry points
