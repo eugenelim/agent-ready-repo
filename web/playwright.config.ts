@@ -42,6 +42,23 @@ export default defineConfig({
     url: PREVIEW_READY_URL,
     reuseExistingServer: false,
     timeout: 30000,
+    // Astro 7.2 extends to `astro preview` the agent-triggered daemonization
+    // `astro dev` already had at 7.1.0: it detects an agentic environment
+    // (`am-i-vibing`) and, on a hit, forks a detached server instead of holding
+    // the foreground. The process Playwright spawned then exits immediately and
+    // every case dies on "Process from config.webServer exited early" — the gate
+    // runs zero tests. Agents only: no CI variable appears in `am-i-vibing`
+    // 0.4.x's detector list, which is why this is green on the runner and dead
+    // on a developer's machine.
+    //
+    // Astro sets this variable on a server it has just detached, so it means "you
+    // are already the background child" — which is why setting it here suppresses
+    // the implicit switch. Two consequences of borrowing it: astro also reads it
+    // as plain fact when writing `.astro/preview.json`, so this foreground server
+    // is recorded as `background: true` and `astro preview status` misreports it;
+    // and `ASTRO_DEV_BACKGROUND` carries the identical double meaning, so do not
+    // reuse this trick for `astro dev` without rechecking.
+    env: { ASTRO_PREVIEW_BACKGROUND: '1' },
   },
   projects: [
     {
