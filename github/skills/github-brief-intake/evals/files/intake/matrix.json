@@ -4,6 +4,7 @@
     "id": "github-default",
     "version": "1.0"
   },
+  "routing_evaluation": {"source_case_ids": ["direct-spec", "multi-spec-brief", "cross-repo-brief", "incoherent-collection", "defect", "claimed-defect-without-evidence"], "refresh_profile": {"id": "github-default", "version": "1.0"}},
   "security": {
     "boundary": "approved-gh-fixed-host",
     "host_source": "trusted-configuration-only",

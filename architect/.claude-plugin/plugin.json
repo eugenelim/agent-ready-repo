@@ -1,6 +1,6 @@
 {
   "name": "architect",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence.",
   "hooks": {
     "SessionStart": [
