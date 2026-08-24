@@ -230,6 +230,69 @@
         "Offers selection or creation as a next action",
         "Leaves lifecycle behavior unchanged"
       ]
+    },
+    {
+      "id": 23,
+      "prompt": "Admit this resolved repository handoff for one independently shippable feature. Its bounded delivery contract names boundaries, non-goals, dependencies, design context, and delivery questions.",
+      "expected_output": "The agent validates the closed handoff, preserves the real Wave 1 resolution and source provenance, reads repository content only through the confined regular-file guard, and passes attributed context to new-spec without skipping assumption, spec, or plan approval gates.",
+      "assertions": [
+        "Classifies one independently shippable feature as delivery contract",
+        "Uses the exact real resolver result and confined regular-file read",
+        "Routes to new-spec without changing lifecycle or approval gates",
+        "Treats every handoff field as attributed untrusted context"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Admit this resolved repository handoff for a cross-repository outcome spanning three delivery slices.",
+      "expected_output": "The agent validates and classifies the bounded content as a delivery brief, preserves resolver provenance, and routes to receive-brief or author-brief according to whether the brief artifact exists. It does not create speculative specs or bypass slice confirmation and Ready gates.",
+      "assertions": [
+        "Classifies multi-spec or cross-repository content as delivery brief",
+        "Preserves the resolver result separately",
+        "Keeps Ready and slice-confirmation gates intact",
+        "Creates no speculative spec"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "Admit already-acquired external delivery-contract content at example-tracker:delivery/42 revision r7.",
+      "expected_output": "The agent reuses only the bounded content already supplied by the trusted invocation after the external locator and revision match the real resolution. It treats the locator as opaque and performs no network, tracker, shell, credential, DNS, search, probe, filesystem, or fetch operation derived from it.",
+      "assertions": [
+        "Requires current trusted acquisition plus a matching revision",
+        "Keeps the external locator opaque",
+        "Performs no locator-derived external or filesystem operation",
+        "Routes only the admitted bounded content"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "Admit a handoff whose destination has two equally ranked candidates.",
+      "expected_output": "The agent preserves the real confirmation-required resolution, returns the stable confirmation stop, and performs no artifact, workspace, processor, external, or filesystem effect.",
+      "assertions": [
+        "Does not choose by order or recompute resolution",
+        "Returns confirmation-required",
+        "Performs zero effects"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "Start Core from the same normalized request without a handoff object.",
+      "expected_output": "The agent returns the standalone disposition before consulting the resolver and continues the existing Core classification unchanged.",
+      "assertions": [
+        "Preserves standalone Core behavior",
+        "Does not consult a resolver for an absent handoff",
+        "Produces the same existing route"
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "Admit a repository contract handoff using an optional configured delivery-contract destination.",
+      "expected_output": "The agent treats optional configuration as bounded resolver evidence, grants it no extra authority, preserves the resolved result, and routes admitted context through new-spec while repositories without configuration remain supported.",
+      "assertions": [
+        "Treats configuration as optional evidence",
+        "Does not infer source, write, or deletion authority",
+        "Preserves core-only operation without configuration"
+      ]
     }
   ]
 }

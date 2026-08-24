@@ -63,12 +63,30 @@ The loop runs the full **self-coverage gate** (pre-mortem, the discovery-risk ta
 
 ## 9. Hand off to the build loop (G3)
 
-The brief decomposes into an **ordered, dependency-aware backlog**; `loop-cohort` orders it; `work-loop` pulls the first item. You're done — you turned a raw idea into a build-ready brief, and the audit trail (the decision log + coverage record) records every gate.
+Confirm the handoff, then say:
+
+> *Hand the first independently shippable feature to Core intake and preserve the confirmed boundaries, non-goals, dependencies, design context, and delivery questions.*
+
+You should see a `delivery contract` with those five bounded field groups. If
+the current Core invocation advertises `normalized-intake.v1#handoff`, it
+delegates through `work-intake` and stops at the normal `new-spec` approval
+path. A multi-spec or cross-repository result appears as a `delivery brief`
+and retains the `receive-brief` Ready and slice-confirmation steps.
+
+If Core is unavailable or older, you should see the same portable rendered
+handoff with no machine object. Save or pass that output to a compatible
+delivery environment; the discovery is still complete.
+
+The ordered, dependency-aware backlog remains intact; `loop-cohort` orders it
+and `work-loop` pulls only an approved delivery item. You're done when the
+handoff role, bounded fields, provenance, and next approval gate are visible.
 
 ## What you have now
 
 - A committed `docs/discovery/household-assistant/` with the decision brief, the intent tree, the journey/blueprint/screens, and the backlog.
 - A validation plan naming what still needs real users to confirm — because *converged ≠ validated*.
 - Parked sub-ideas (e.g. recipe integration) you can resume any time with *Resume the parked `recipe-integration` sub-idea.*
+- A delivery contract or delivery brief whose external locators, if any, remain
+  opaque provenance rather than fetched content.
 
 To go deeper on any stage, re-run it with a targeted prompt (see the how-to [*Run a discovery*](../how-to/run-a-discovery.md)).

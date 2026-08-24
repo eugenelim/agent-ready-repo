@@ -35,6 +35,24 @@ routes are:
 If two routes are plausible, the agent asks for the smallest missing choice or
 records the gap. It does not infer that incomplete work is ready.
 
+### Start from confirmed upstream shaping
+
+When an installed shaping workflow offers a validated handoff, ask:
+
+```text
+Start this confirmed delivery handoff through Core intake.
+```
+
+One independently shippable feature enters as a delivery contract for
+`new-spec`. Multi-spec or cross-repository work enters as a delivery brief for
+`receive-brief` or `author-brief`. The handoff supplies bounded context and
+provenance; it does not approve an artifact or skip a gate.
+
+If the destination is ambiguous, intake stops for your choice without writing.
+If no handoff is present, Core follows the ordinary routes above. External
+locators remain opaque unless another trusted workflow has already acquired and
+supplied matching bounded content.
+
 ## Remember work for later
 
 Say that you want to remember the work and stop:

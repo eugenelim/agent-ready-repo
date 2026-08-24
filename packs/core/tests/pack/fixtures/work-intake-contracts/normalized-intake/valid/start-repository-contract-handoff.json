@@ -1,0 +1,34 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Deliver one independently shippable intake feature."],
+    "constraints": ["Keep lifecycle behavior unchanged."],
+    "evidence": ["The approved upstream contract is repository-owned."],
+    "behaviors": ["Reuse bounded attributed delivery context."],
+    "assumptions": ["Wave 1 resolution is available."],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/specs/example-feature/spec.md",
+    "revision": "rev-local-002"
+  },
+  "constraints": {"repository": "current"},
+  "proposed_authority": "repo-origin",
+  "handoff": {
+    "boundaries": ["Treat upstream content as attributed data."],
+    "non_goals": ["Do not change workspace lifecycle."],
+    "dependencies": [
+      {
+        "relationship": "informs",
+        "locator_kind": "repository-path",
+        "locator": "docs/product/intents/example-feature.md",
+        "semantic_role": "delivery-contract",
+        "revision": "rev-local-001"
+      }
+    ],
+    "design_context": ["Reuse the existing core intake boundary."],
+    "delivery_questions": []
+  }
+}

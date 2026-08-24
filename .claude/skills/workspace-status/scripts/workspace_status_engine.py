@@ -220,6 +220,29 @@ class NormalizedIntake:
     constraints: dict[str, object]
     proposed_authority: str
     refresh_target: str | None = None
+    handoff: NormalizedHandoff | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class HandoffDependency:
+    """One closed, bounded dependency carried as upstream content."""
+
+    relationship: str
+    locator_kind: str
+    locator: str
+    semantic_role: str | None = None
+    revision: str | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class NormalizedHandoff:
+    """Validated optional shaping context; it has no routing authority."""
+
+    boundaries: list[str]
+    non_goals: list[str]
+    dependencies: list[HandoffDependency]
+    design_context: list[str]
+    delivery_questions: list[str]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -837,6 +860,90 @@ def _validate_intake_constraints(raw: object) -> dict[str, object] | None:
     return dict(raw)
 
 
+def _validate_handoff(raw: object) -> NormalizedHandoff | None:
+    """Validate the additive closed handoff object without interpreting text."""
+
+    required = {
+        "boundaries",
+        "non_goals",
+        "dependencies",
+        "design_context",
+        "delivery_questions",
+    }
+    if not isinstance(raw, dict) or set(raw) != required:
+        return None
+    text_arrays: dict[str, list[str]] = {}
+    for key in ("boundaries", "non_goals", "design_context", "delivery_questions"):
+        values = raw.get(key)
+        if (
+            not isinstance(values, list)
+            or len(values) > 50
+            or not all(_is_bounded_text(value, 2000) for value in values)
+        ):
+            return None
+        text_arrays[key] = list(values)
+
+    raw_dependencies = raw.get("dependencies")
+    if not isinstance(raw_dependencies, list) or len(raw_dependencies) > 32:
+        return None
+    dependencies: list[HandoffDependency] = []
+    required_dependency = {"relationship", "locator_kind", "locator"}
+    allowed_dependency = required_dependency | {"semantic_role", "revision"}
+    for raw_dependency in raw_dependencies:
+        if (
+            not isinstance(raw_dependency, dict)
+            or set(raw_dependency) - allowed_dependency
+            or not required_dependency.issubset(raw_dependency)
+        ):
+            return None
+        relationship = raw_dependency.get("relationship")
+        locator_kind = raw_dependency.get("locator_kind")
+        locator = raw_dependency.get("locator")
+        semantic_role = raw_dependency.get("semantic_role")
+        revision = raw_dependency.get("revision")
+        if relationship not in {"blocks", "informs"}:
+            return None
+        if locator_kind == "repository-path":
+            if not _is_repository_relative_path(locator):
+                return None
+        elif locator_kind == "external":
+            if (
+                not _is_strict_locator(locator)
+                or re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]*:.+", str(locator))
+                is None
+                or not _is_bounded_text(revision, 300)
+                or not _is_strict_locator(revision)
+            ):
+                return None
+        else:
+            return None
+        if semantic_role is not None and semantic_role not in {
+            "delivery-brief",
+            "delivery-contract",
+        }:
+            return None
+        if revision is not None and (
+            not _is_bounded_text(revision, 300) or not _is_strict_locator(revision)
+        ):
+            return None
+        dependencies.append(
+            HandoffDependency(
+                relationship=str(relationship),
+                locator_kind=str(locator_kind),
+                locator=str(locator),
+                semantic_role=str(semantic_role) if semantic_role is not None else None,
+                revision=str(revision) if revision is not None else None,
+            )
+        )
+    return NormalizedHandoff(
+        boundaries=text_arrays["boundaries"],
+        non_goals=text_arrays["non_goals"],
+        dependencies=dependencies,
+        design_context=text_arrays["design_context"],
+        delivery_questions=text_arrays["delivery_questions"],
+    )
+
+
 def validate_normalized_intake(
     raw: object,
 ) -> tuple[NormalizedIntake | None, list[RoutingFinding]]:
@@ -849,7 +956,7 @@ def validate_normalized_intake(
         "constraints",
         "proposed_authority",
     }
-    allowed = required | {"refresh_target"}
+    allowed = required | {"refresh_target", "handoff"}
     if not isinstance(raw, dict):
         return None, [_finding("invalid_entry", detail="normalized intake must be an object")]
     if set(raw) - allowed or not required.issubset(raw):
@@ -879,6 +986,11 @@ def validate_normalized_intake(
     authority = raw.get("proposed_authority")
     if authority not in SOURCE_MODES:
         return None, [_finding("invalid_entry", detail="proposed_authority is invalid")]
+    handoff = None
+    if "handoff" in raw:
+        handoff = _validate_handoff(raw.get("handoff"))
+        if handoff is None:
+            return None, [_finding("invalid_entry", detail="handoff is invalid")]
     return NormalizedIntake(
         contract_version=NORMALIZED_INTAKE_CONTRACT_VERSION,
         action=action,
@@ -887,6 +999,7 @@ def validate_normalized_intake(
         constraints=constraints,
         proposed_authority=authority,
         refresh_target=refresh_target,
+        handoff=handoff,
     ), []
 
 
@@ -1217,7 +1330,7 @@ _WORKSPACE_ENTRY_SCHEMA_DIGEST = (
     "3531a8f8e26bcdbf0ec69357a9f6eeb8fe8f2039e2ab2cbcfb44555976ee0b67"
 )
 _NORMALIZED_INTAKE_SCHEMA_DIGEST = (
-    "7d753d44b4af64979953dc32b094f27e5186f9bf21944357cfd3eb06a47fe4f4"
+    "fcc077be35e968260c733503dcc3f773b16b8782a24ad9584ffa16a6245ceb54"
 )
 _ADAPTER_CONTRACT_DIGEST = (
     "52794c24aedaa11897a50fd758eacee8ebee767886a27d22795d24ae0efc4016"

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
+import sys
 from dataclasses import dataclass
+from pathlib import Path
+from types import ModuleType
 from typing import Protocol
 
 
@@ -86,6 +90,33 @@ class RefreshFrontDoorResult:
     invocation: RefreshInvocation | None = None
 
 
+@dataclass(frozen=True)
+class HandoffSignals:
+    """Trusted booleans derived after normalized-intake validation."""
+
+    present: bool
+    content_complete: bool
+    source_matches: bool
+    revision_matches: bool
+    external_content_acquired: bool
+    authority_mode: str
+    named_gaps: bool = False
+    confidentiality_allowed: bool = True
+    mandatory_policy_conflict: bool = False
+
+
+@dataclass(frozen=True)
+class HandoffRoute:
+    """Closed, zero-effect admission result for an optional handoff."""
+
+    disposition: str
+    semantic_role: str
+    processor: str
+    authority_mode: str
+    next_action: str
+    surface_resolution: object | None = None
+
+
 _START_ROUTES = {
     "intent": ("shaping_queue.backlog", "none"),
     "spec": ("work.queue", "new-spec"),
@@ -153,6 +184,118 @@ def route_intake(
 
     membership, processor = _START_ROUTES[signals.artifact_kind]
     return _route(signals, membership, processor, "materialize-and-register")
+
+
+def route_handoff(
+    signals: HandoffSignals,
+    surface_resolution: object | None,
+) -> HandoffRoute:
+    """Admit a validated Wave 1 result without materializing or dispatching."""
+
+    if not _valid_handoff_signals(signals):
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="repair-handoff-signals",
+        )
+    if not signals.present:
+        return _handoff_route(
+            signals,
+            "standalone",
+            next_action="continue-standalone-classification",
+        )
+    if signals.named_gaps or not signals.content_complete:
+        return _handoff_route(
+            signals,
+            "clarification-required",
+            next_action="complete-bounded-handoff",
+        )
+    if not signals.confidentiality_allowed:
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="select-compatible-confidentiality",
+        )
+    if signals.mandatory_policy_conflict:
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="reconcile-mandatory-repository-policy",
+        )
+    if not signals.source_matches:
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="reconcile-handoff-source",
+        )
+    if not signals.revision_matches:
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="reconcile-handoff-revision",
+        )
+
+    resolver = _surface_resolver_module()
+    try:
+        if not isinstance(surface_resolution, resolver.SurfaceResolution):
+            raise TypeError
+        resolver.render_safe_result(surface_resolution)
+    except (TypeError, ValueError):
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="repair-or-rerun-surface-resolution",
+        )
+
+    if surface_resolution.status != "resolved":
+        disposition = (
+            "clarification-required"
+            if surface_resolution.status
+            in {"confirmation-required", "destination-required"}
+            else "refused"
+        )
+        return _handoff_route(
+            signals,
+            disposition,
+            semantic_role=surface_resolution.role,
+            next_action=surface_resolution.next_action
+            or "repair-or-rerun-surface-resolution",
+            surface_resolution=surface_resolution,
+        )
+
+    locator = surface_resolution.physical_locator
+    if (
+        surface_resolution.role not in {"delivery-brief", "delivery-contract"}
+        or locator is None
+        or surface_resolution.revision_or_fingerprint is None
+    ):
+        return _handoff_route(
+            signals,
+            "refused",
+            next_action="repair-or-rerun-surface-resolution",
+        )
+    if locator.kind == "external" and not signals.external_content_acquired:
+        return _handoff_route(
+            signals,
+            "refused",
+            semantic_role=surface_resolution.role,
+            next_action="supply-acquired-external-content",
+            surface_resolution=surface_resolution,
+        )
+
+    processor = (
+        "receive-brief"
+        if surface_resolution.role == "delivery-brief"
+        else "new-spec"
+    )
+    return _handoff_route(
+        signals,
+        "reuse",
+        semantic_role=surface_resolution.role,
+        processor=processor,
+        next_action=processor,
+        surface_resolution=surface_resolution,
+    )
 
 
 def invoke_refresh(
@@ -261,3 +404,64 @@ def _route(
         authority_mode=signals.authority_mode,
         mutation=mutation,
     )
+
+
+def _valid_handoff_signals(signals: object) -> bool:
+    """Validate the closed trusted-signal shape without raising."""
+
+    if not isinstance(signals, HandoffSignals):
+        return False
+    booleans = (
+        signals.present,
+        signals.content_complete,
+        signals.source_matches,
+        signals.revision_matches,
+        signals.external_content_acquired,
+        signals.named_gaps,
+        signals.confidentiality_allowed,
+        signals.mandatory_policy_conflict,
+    )
+    return all(isinstance(value, bool) for value in booleans) and (
+        signals.authority_mode in {"repo-origin", "tracker-origin"}
+    )
+
+
+def _handoff_route(
+    signals: object,
+    disposition: str,
+    *,
+    semantic_role: str = "none",
+    processor: str = "none",
+    next_action: str,
+    surface_resolution: object | None = None,
+) -> HandoffRoute:
+    """Construct one stable result without reflecting untrusted content."""
+
+    authority_mode = getattr(signals, "authority_mode", "unknown")
+    if authority_mode not in {"repo-origin", "tracker-origin"}:
+        authority_mode = "unknown"
+    return HandoffRoute(
+        disposition=disposition,
+        semantic_role=semantic_role,
+        processor=processor,
+        authority_mode=authority_mode,
+        next_action=next_action,
+        surface_resolution=surface_resolution,
+    )
+
+
+def _surface_resolver_module() -> ModuleType:
+    """Load the sibling resolver once under a collision-proof module name."""
+
+    module_name = "core_work_intake_surface_resolver"
+    loaded = sys.modules.get(module_name)
+    if loaded is not None:
+        return loaded
+    module_path = Path(__file__).resolve().with_name("surface_resolver.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("surface resolver cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module

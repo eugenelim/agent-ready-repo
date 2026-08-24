@@ -148,6 +148,12 @@ the content, writes the artifact, then registers its lifecycle state. A
 multi-feature outcome becomes a Draft brief; one independently shippable change
 continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
+If the request includes a validated shaping handoff, `work-intake` first admits
+the bounded context and resolves its semantic destination. A delivery contract
+continues through `new-spec`; a delivery brief continues through
+`receive-brief`. External locators remain opaque, and every existing approval
+gate remains in place. Without the optional handoff, this stage is unchanged.
+
 ```text
   artifact    docs/product/briefs/data-export.md
   membership  draft · non-dispatchable

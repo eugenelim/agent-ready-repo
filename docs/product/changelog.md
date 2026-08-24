@@ -50,6 +50,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.10] / [product-engineering][0.13.5] — 2026-08-24
+
+### Highlights
+
+- **A confirmed product discovery can now hand bounded delivery context to
+  Core intake without losing its source or skipping delivery approvals.** One
+  independently shippable feature enters as a delivery contract; multi-spec or
+  cross-repository work enters as a delivery brief. Older or absent Core
+  installations receive the same content as a portable rendered handoff.
+
+### Added
+
+- normalized-intake.v1 accepts an optional closed shaping handoff containing
+  boundaries, non-goals, dependencies, design context, and delivery questions.
+- Product Engineering declares an optional capability-negotiated handoff to
+  Core work-intake; neither pack becomes a mandatory dependency of the other.
+
+### Security
+
+- Repository handoff content is confined to regular files under the repository
+  root. External locators remain opaque provenance and are never fetched,
+  searched, probed, executed, or converted into filesystem paths.
+- Handoff content remains attributed, untrusted context. Existing brief Ready,
+  slice-confirmation, spec, plan, and human approval gates remain authoritative.
+
+### Scope
+
+- This release changes only optional shaping handoff and content routing. It
+  does not change lifecycle membership, pause/resume, completion, closeout,
+  retention, cooling, retirement, deletion, migration, architecture/decision
+  routing, or locator-only dispatch.
+
 ## [core][2.10.9] — 2026-08-23
 
 ### Highlights

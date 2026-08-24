@@ -5,7 +5,10 @@
   "description": "Transient, source-boundary envelope for acquired work before classification or materialization.",
   "type": "object",
   "contract_version": "normalized-intake.v1",
-  "x-spec": ["docs/specs/normalized-intake-workspace-contracts/"],
+  "x-spec": [
+    "docs/specs/normalized-intake-workspace-contracts/",
+    "docs/specs/shaping-intake-handoff/"
+  ],
   "additionalProperties": false,
   "required": [
     "contract_version",
@@ -36,6 +39,9 @@
     },
     "refresh_target": {
       "$ref": "#/$defs/repositoryRelativePath"
+    },
+    "handoff": {
+      "$ref": "#/$defs/handoff"
     }
   },
   "allOf": [
@@ -70,6 +76,100 @@
       "items": {
         "$ref": "#/$defs/boundedText"
       }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundaries",
+        "non_goals",
+        "dependencies",
+        "design_context",
+        "delivery_questions"
+      ],
+      "properties": {
+        "boundaries": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "non_goals": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "dependencies": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/handoffDependency"
+          }
+        },
+        "design_context": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "delivery_questions": {
+          "$ref": "#/$defs/boundedTextArray"
+        }
+      }
+    },
+    "handoffDependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship", "locator_kind", "locator"],
+      "properties": {
+        "relationship": {
+          "enum": ["blocks", "informs"]
+        },
+        "locator_kind": {
+          "enum": ["repository-path", "external"]
+        },
+        "locator": {
+          "type": "string"
+        },
+        "semantic_role": {
+          "enum": ["delivery-brief", "delivery-contract"]
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "locator_kind": {
+                "const": "repository-path"
+              }
+            },
+            "required": ["locator_kind"]
+          },
+          "then": {
+            "properties": {
+              "locator": {
+                "$ref": "#/$defs/repositoryRelativePath"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "locator_kind": {
+                "const": "external"
+              }
+            },
+            "required": ["locator_kind"]
+          },
+          "then": {
+            "required": ["revision"],
+            "properties": {
+              "locator": {
+                "$ref": "#/$defs/safeExternalLocator"
+              }
+            }
+          }
+        }
+      ]
     },
     "content": {
       "type": "object",
@@ -197,7 +297,13 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 1000,
-      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\/$).+$"
+    },
+    "safeExternalLocator": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 1000,
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!.*[@?#\\s])[A-Za-z][A-Za-z0-9+.-]*:.+$"
     }
   }
 }

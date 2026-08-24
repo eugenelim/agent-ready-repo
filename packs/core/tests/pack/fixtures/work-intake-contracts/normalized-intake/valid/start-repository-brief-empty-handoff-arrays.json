@@ -1,0 +1,26 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Coordinate delivery across two repositories."],
+    "constraints": [],
+    "evidence": ["The upstream brief is approved."],
+    "behaviors": ["Route through the existing brief processor."],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/product/briefs/cross-repository-outcome.md",
+    "revision": "rev-local-003"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin",
+  "handoff": {
+    "boundaries": [],
+    "non_goals": [],
+    "dependencies": [],
+    "design_context": [],
+    "delivery_questions": []
+  }
+}

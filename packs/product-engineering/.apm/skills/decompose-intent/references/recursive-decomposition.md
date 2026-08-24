@@ -38,25 +38,27 @@ step 2), with a pointer to the killed child's verdict — so the dropped branch
 leaves a trace and isn't re-proposed later. That upward edge is the coupling that
 keeps the tree honest — a parent is only as sound as its surviving children.
 
-## The brief projection (`app` Scale)
+## The delivery-contract projection
 
-A feature-level leaf intent **is** a `core` brief — the projection is identity at
-`app` Scale:
+A feature-level leaf intent that is independently shippable becomes a delivery
+contract. The projection preserves the shaping context without writing or
+approving the downstream spec:
 
-| Intent field | Brief field |
+| Intent field | Handoff field |
 | --- | --- |
-| Outcome (input / lagging / guardrail) | Success metrics |
-| Opportunity | Outcome (the problem + user-facing outcome prose) |
-| Scope (from the parent) | Scope / Non-goals |
-| (appetite, named here) | Appetite |
+| Outcome (input / lagging / guardrail) | Attributed delivery context |
+| Opportunity | Outcome context |
+| Scope (from the parent) | Boundaries / non-goals |
+| Contract references | Dependencies |
 
-Write it to `docs/product/briefs/<slug>.md` and hand to `receive-brief`. No new
-brief fields are needed — `receive-brief` is level-agnostic and always receives a
-brief *for its own repo*.
+At a confirmed handoff gate, send the bounded contract through `work-intake`
+only when the current invocation advertises
+`normalized-intake.v1#handoff`. Otherwise render the same portable handoff.
+`new-spec` owns the spec and plan approval gates.
 
 ## The per-component slice projection (`business-unit` Scale)
 
-At `business-unit` Scale a feature intent fans out across many component repos,
+At `business-unit` Scale a feature intent can fan out across many component repos,
 and a polyrepo has no shared tree to spec it in. So instead of one brief, the
 feature leaf is **sliced per component** into **one `core` brief per affected
 repo** — cut by component here because each component repo is its own
@@ -78,4 +80,6 @@ edges and contract references from the meta-repo's catalog (the
 Then seed **one rollup row per slice** in the meta-repo's cross-component rollup
 so `align-value-stream` can answer "delivered across all components?" Each brief
 crosses into its component repo, where `receive-brief` → `new-spec` → `work-loop`
-take it the rest of the way — exactly the app-scale handoff, once per repo.
+take it the rest of the way. When a component slice is independently shippable,
+it may instead enter as its own delivery contract; the semantic role follows
+the shippability boundary, not the Scale label.

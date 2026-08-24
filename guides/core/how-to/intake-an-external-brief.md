@@ -15,6 +15,17 @@ Start with `work-intake` when you have an email, issue, or conversation rather
 than a confirmed artifact route. It normalizes the bounded facts and invokes
 `author-brief` only when the content forms one coherent multi-feature outcome.
 
+For a confirmed upstream delivery brief, use:
+
+```text
+Intake this confirmed delivery brief and preserve its handoff provenance.
+```
+
+Core admits the bounded fields through `work-intake`. An existing brief
+continues through `receive-brief`; otherwise `author-brief` creates the Draft.
+An external locator is recorded as opaque provenance. Core does not fetch,
+search, probe, or read it.
+
 ## Is `author-brief` the right entry point?
 
 | Situation | Skill to invoke |
@@ -38,12 +49,17 @@ You need:
 
 1. **Invoke `work-intake` with what you have.** It treats the source as untrusted data, retains a safe locator and revision, and passes bounded normalized content to `author-brief` when a brief is the clear route.
 
-2. **The skill names what it found and what is missing.** It scans the input for DoR fields already present — Outcome, Appetite, Rabbit holes — and tells you which are present and which are absent. For example: "I found an Outcome but no Appetite and no Rabbit holes."
+2. **The skill names what it found and what is missing.** It scans the input for
+   the outcome, constraints or appetite, assumptions or risks, and safe source
+   provenance, then reports what is present and what a later Ready review must
+   resolve.
 
 3. **Answer the elicitation for missing fields.**
-   - **Outcome** is required. If the input contains no clear outcome, the skill asks for it before proceeding — it will not fabricate one.
-   - **Appetite** gets a default if absent. Confirm or correct it.
-   - **Rabbit holes** need ≥1 entry for the DoR gate. The skill asks you to name at least one design trap or out-of-bounds exploration before proceeding.
+   - An identifiable multi-slice outcome lets the Draft proceed. If it is
+     missing, the skill records that blocking gap rather than inventing one.
+   - Constraints, appetite, assumptions, and risks improve readiness but do not
+     block Draft creation.
+   - Safe source provenance is required; raw source payloads are not copied.
 
 4. **Confirm the slug.** The skill proposes a kebab-case slug that becomes the filename (`docs/product/briefs/<slug>.md`). Confirm or correct it. If a file already exists at that path, the skill stops and prompts you before writing.
 

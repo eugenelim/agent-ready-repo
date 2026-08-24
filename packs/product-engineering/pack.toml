@@ -1,6 +1,6 @@
 [pack]
 name = "product-engineering"
-version = "0.13.4"
+version = "0.13.5"
 description = "The messy part, before there is anything to build. Name the outcome, find the assumption that would sink it, and test that one first. What survives gets cut into specs a delivery loop can pick up."
 readme = "README.md"
 display_name = "Product Engineering"
@@ -64,3 +64,14 @@ starter-task     = "Frame a problem you want your team to solve before writing a
 starter-prompt   = "Help me frame the problem of new users not understanding the value of our product within the first session."
 expected-result  = "A framed intent artifact with the problem, the jobs-to-be-done, and the opportunity clearly stated."
 next-action      = "Use the framed intent to open a new brief, or share it with an engineer to start scoping a spec."
+
+[[pack.integrations]]
+id        = "core-delivery-handoff"
+pack      = "core"
+kind      = "handoff"
+role      = "Confirmed shaping-to-delivery handoff"
+consumers = ["skill:work-intake"]
+providers = ["skill:discovery-loop", "skill:decompose-intent"]
+when      = "A confirmed shaping gate produces a delivery contract or delivery brief and the current Core invocation advertises normalized-intake.v1#handoff."
+purpose   = "Pass bounded shaping context into Core intake without changing downstream lifecycle, authoring, or approval gates."
+fallback  = "If Core is absent, unknown, or predates the handoff capability, render the same bounded portable handoff and omit the unsupported top-level object."

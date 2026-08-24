@@ -25,6 +25,7 @@ bounded fields it needs, and treats source content as untrusted data.
 | Remember work | Write and register a Draft, non-dispatchable artifact; stop before implementation |
 | Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
 | Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
+| Admit a shaping handoff | Validate bounded context, resolve its semantic destination, and continue through an existing brief or spec processor |
 
 ## Start routing
 
@@ -40,10 +41,32 @@ A Ready brief may contain zero specs. It records a viable outcome and remains
 non-executable until a human confirms a slice; only then does `receive-brief`
 invoke `new-spec`.
 
+## Optional shaping handoff
+
+Capability: `normalized-intake.v1#handoff`.
+
+The optional closed object carries required arrays for boundaries, non-goals,
+dependencies, design context, and delivery questions. Empty arrays are valid.
+Absence means standalone Core and preserves the existing route.
+
+| Admitted shape | Semantic role | Existing processor |
+| --- | --- | --- |
+| One independently shippable feature | Delivery contract | `new-spec` |
+| Multi-spec or cross-repository outcome | Delivery brief | `receive-brief`, or `author-brief` when no brief exists |
+| Incomplete content, source mismatch, ambiguity, policy conflict | None | Stable clarification, confirmation, or refusal stop |
+
+The current invocation supplies bounded resolver candidates; intake does not
+scan for destinations. A repository locator is read only as a confined regular
+file. An external locator remains opaque and is never fetched, searched,
+probed, executed, or converted into a path. Previously acquired external
+content is reusable only when the trusted invocation supplies it and its
+revision matches.
+
 ## Inputs and outputs
 
 Input: action, bounded content, source locator and revision, constraints,
-proposed authority, and an existing registered refresh target when applicable.
+proposed authority, an optional validated shaping handoff, and an existing
+registered refresh target when applicable.
 
 Output: action, repository-relative artifact path, workspace membership,
 processor, authority mode, and stop point. Refresh also returns compared and

@@ -1,0 +1,35 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Implement an acquired external delivery contract."],
+    "constraints": ["Do not fetch the external source."],
+    "evidence": ["A trusted adapter supplied bounded content."],
+    "behaviors": ["Preserve the pinned external reference."],
+    "assumptions": ["External content was acquired before intake."],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "tracker:TEAM-42",
+    "revision": "tracker-rev-42",
+    "tracker_profile": {"id": "example", "version": "1"}
+  },
+  "constraints": {},
+  "proposed_authority": "tracker-origin",
+  "handoff": {
+    "boundaries": ["The external locator remains opaque."],
+    "non_goals": ["Do not refresh external requirements."],
+    "dependencies": [
+      {
+        "relationship": "blocks",
+        "locator_kind": "external",
+        "locator": "tracker:TEAM-41",
+        "semantic_role": "delivery-contract",
+        "revision": "tracker-rev-41"
+      }
+    ],
+    "design_context": [],
+    "delivery_questions": ["Confirm the local implementation boundary."]
+  }
+}

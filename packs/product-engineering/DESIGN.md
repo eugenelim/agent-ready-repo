@@ -149,13 +149,18 @@ The `product-strategy` pack is the strategic anchor this pack builds on. Before 
 
 ### Downstream: core (the G3 handoff)
 
-At G3, `discovery-loop` hands one independently shippable feature directly to
-the delivery loop through `new-spec` → `work-loop`. A coordinating brief and
-`receive-brief` are used only when the result spans multiple specs or
-repositories. At `app` Scale a single leaf is ordinarily a direct `core` spec;
-at `business-unit` Scale the coordinating brief maps per-component slices that
-cross into their component repositories, where each selected slice enters the
-same delivery loop.
+At G3, one independently shippable feature is a delivery contract. A result
+that spans multiple specs or repositories is a coordinating delivery brief.
+After the human confirms the gate, product-engineering emits the optional
+closed `normalized-intake.v1#handoff` object only when the current Core
+invocation advertises that capability. Otherwise it renders the same bounded
+handoff without the unsupported field.
+
+Core `work-intake` owns admission and semantic destination resolution. It
+routes an admitted contract through `new-spec` and an admitted brief through
+`receive-brief`, preserving all existing gates. Product-engineering imports no
+Core code and declares no mandatory dependency. External locators are opaque
+provenance, not transport.
 
 ### Downstream: experience-design
 
