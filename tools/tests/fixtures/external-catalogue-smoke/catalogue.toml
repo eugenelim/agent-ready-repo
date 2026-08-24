@@ -1,0 +1,32 @@
+schema = 1
+
+[catalogue]
+name                        = "smoke-cat"
+display-name                = "Smoke Catalogue"
+description                 = "Minimal external catalogue for CI smoke test."
+minimum-agentbundle-version = "0.13.0"
+
+[catalogue.paths]
+packs        = "packs"
+profiles     = "profiles"
+contracts    = "contracts"
+marketplace  = "dist/claude-plugins/marketplace.json"
+build-output = "dist"
+
+[catalogue.build]
+recipes                 = ["default"]
+self-host               = false
+claude-plugin-branch    = "main"
+marketplace-description = "External smoke-test catalogue."
+
+[catalogue.package]
+include  = ["packs/sample-pack"]
+required = ["packs/sample-pack"]
+
+[distribution.agentbundle]
+install-defaults-output = ""
+preferred-adapter       = "claude-code"
+default-source          = "git+https://example.test/smoke-cat"
+
+[distribution.agentbundle.artifactory]
+enabled = false

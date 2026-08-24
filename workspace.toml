@@ -690,15 +690,6 @@ open = [
   # Deferred rather than bundled: closing it needs a repository-settings action and a
   # live canary run, neither of which is a code change this PR could carry.
   {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # `make build` calls `python -m agentbundle.build build`, whose _cmd_build_shim
-  # prints its own deprecation notice pointing at `agentbundle catalogue build`.
-  # The Makefile has not followed it.
-  # Fix: repoint `make build` at the sanctioned CLI.
-  # Deferred: needs a decision about --packs-dir, which `agentbundle catalogue
-  # build` ignores in favour of --root (build_gate_chain.py:529,539 already
-  # document theirs as ignored).
-  # Unblocks when: the PACKS_DIR override is confirmed unused or dropped.
-  {slug = "make-build-uses-deprecated-entrypoint", summary = "`make build` still calls the deprecated agentbundle.build build shim instead of `agentbundle catalogue build --root .`", source = "spec/marketplace-generator-single-source (plan risk)"},
   # build/main.py:265-275 copies [[pack.maintainers]].email verbatim into the
   # published marketplace manifest. Every in-repo pack currently uses a
   # @users.noreply.github.com address by discipline alone; no lint enforces it, so
@@ -1348,11 +1339,29 @@ open = [
   # clause 3 is untouched; it only gives the approver something to read. Needs a
   # spec note, since it changes what AC35's approval step means in practice.
   {slug = "publish-approval-preview-summary", source = "spec/claude-plugin-hook-parity AC35"},
-  # catalogue-tooling-ci-gates.yml Gate B builds a synthetic external catalogue
-  # with `agentbundle catalogue build`, so an engine change can redden it while
-  # every `make` target stays green — it did, on spec/claude-plugin-route-scope,
-  # and no local command would have caught it. Fix: a `make` target that extracts
-  # the fixture heredoc and runs the same command, chained into `make ci`.
+  # NARROWED 2026-08-24. The fixture half is DONE: Gate B's synthetic external
+  # catalogue moved out of five workflow heredocs into one committed tree at
+  # tools/tests/fixtures/external-catalogue-smoke/, and `make
+  # external-catalogue-smoke` reproduces Gate B's build step against that same
+  # tree, so the local reproduction and CI cannot drift. Proven discriminating:
+  # mutating `if len(identities) > 1:` to `if not identities:` in
+  # agentbundle/build/main.py reddens the new target (exit 2) while `make build`
+  # and `make lint-packs` stay green — the external fixture's pack has no
+  # repository-derived source identity, so it reaches a branch the repository's
+  # own build never does.
+  # REMAINING SCOPE, and the only reason this entry is still open: the original
+  # text said "chained into `make ci`", and that turned out to be blocked.
+  # docs/specs/local-ci-orchestration AC1 is a checked, shipped criterion pinning
+  # `make ci`'s direct prerequisites to exactly build-check, lint-ruff, lint-mypy
+  # and test; tools/test-lint-ci-parity.py's `local-ci-direct-prereqs` case
+  # enforces it and went red on the attempt (1/135). So the target ships
+  # standalone and is run on demand. Three routes, none mechanical: (a) amend AC1
+  # and its pinned case through a frozen-spec amendment; (b) make it a
+  # prerequisite of `build-check` instead, which keeps AC1 literally true but adds
+  # a leg to the merge-blocking gate CI runs, so it needs a lint-ci-parity
+  # disposition and a CI-behaviour call; (c) accept on-demand and close this as
+  # won't-fix. Do NOT re-add it to `ci` without taking one of them — the guard
+  # will red again. Unblocks when: someone picks a route.
   {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which

@@ -99,8 +99,9 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "`agentbundle catalogue build`, so an engine change can redden it "
         "while every `make` target stays green. That happened once "
         "(docs/specs/claude-plugin-route-scope): a route filter emptied the "
-        "fixture's marketplace and the build raised. Reproduce locally by "
-        "extracting the fixture heredoc and running the same command.",
+        "fixture's marketplace and the build raised. Reproduce locally with "
+        "`make external-catalogue-smoke`, which copies "
+        "tools/tests/fixtures/external-catalogue-smoke/`.",
     "ci-security.yml":
         "Out of scope; same backlog entry as docs.yml.",
     "codeql.yml": "GitHub-hosted analysis; no local equivalent exists.",

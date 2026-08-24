@@ -1,0 +1,18 @@
+[pack]
+name        = "sample-pack"
+version     = "0.1.0"
+description = "Minimal smoke-test pack."
+
+[pack.adapter-contract]
+version = "0.14"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]
+
+[pack.first-value]
+audience-posture = "technical"
+surfaces         = ["claude-code"]
+prerequisites    = ["agentbundle installed"]
+verification     = "Run the hello skill and confirm it greets the user."
+recovery         = "Reinstall the pack if the skill is missing."
