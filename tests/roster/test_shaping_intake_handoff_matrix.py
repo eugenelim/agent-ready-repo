@@ -114,6 +114,10 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "resolution_code": None,
         "effects": [],
     },
+    # `consumer` below names the skill that receives the handoff *payload*, and
+    # is deliberately not the pack manifest's `consumers` key: CAT-V-019 resolves
+    # manifest `consumers` inside the declaring pack and `providers` inside the
+    # target pack, so work-intake is a manifest *provider* and a payload consumer.
     {
         "id": "product-engineering-compatible-core",
         "disposition": "machine",

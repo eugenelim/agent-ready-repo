@@ -8,7 +8,7 @@ import re
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "packs" / "core"
 PRODUCT = ROOT / "packs" / "product-engineering"
 CAPABILITY = "normalized-intake.v1#handoff"
@@ -54,8 +54,11 @@ def test_product_engineering_declares_optional_exact_handoff() -> None:
         "pack": "core",
         "kind": "handoff",
         "role": "Confirmed shaping-to-delivery handoff",
-        "consumers": ["skill:work-intake"],
-        "providers": ["skill:discovery-loop", "skill:decompose-intent"],
+        # CAT-V-019 resolves `consumers` inside the declaring pack and
+        # `providers` inside the target pack: Core's work-intake provides the
+        # handoff capability that these product-engineering skills consume.
+        "consumers": ["skill:discovery-loop", "skill:decompose-intent"],
+        "providers": ["skill:work-intake"],
         "when": (
             "A confirmed shaping gate produces a delivery contract or delivery "
             "brief and the current Core invocation advertises "

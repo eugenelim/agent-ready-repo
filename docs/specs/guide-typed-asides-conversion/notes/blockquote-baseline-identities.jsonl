@@ -171,3 +171,4 @@
 {"item": 171, "path": "guides/architect/tutorials/architect-first-session.md", "line": 86, "content_sha256": "79d31d415b5f482c93948b25352cb93a397add8193140eff500c088f7ab2c637"}
 {"item": 172, "path": "guides/architect/how-to/review-an-architecture-artifact.md", "line": 14, "content_sha256": "525118965f6c367a3a2e1c77b903de0f17ec26634f94eaf472b79ec4c1144cf2"}
 {"item": 173, "path": "guides/_shared/how-to/build-an-org-stack-pack.md", "line": 14, "content_sha256": "c60776453e327c91ae1509c30a4e985a054483e9e85571476865e12440e521d0"}
+{"item": 174, "path": "guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md", "line": 68, "content_sha256": "c45bb91c877d7e1c03463d0ac96dfc6d516e7e5f7515d4939aff94748ba39f8f"}

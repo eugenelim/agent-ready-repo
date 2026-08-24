@@ -39,7 +39,11 @@ _GUARD_PATH = (
     / "scripts"
     / "intake_guard.py"
 )
-_REPOSITORY_ROOT = _PACK_ROOT.parents[1]
+# A pack-local suite stays inside its own pack tree, so the confinement root is
+# the owning pack rather than the repository. The resolver's repository-path
+# contract is confinement-shaped, not existence-shaped, so anchoring here
+# exercises the same resolution and keeps every assertion below unchanged.
+_CONFINEMENT_ROOT = _PACK_ROOT
 
 
 def _load_router():
@@ -116,7 +120,7 @@ def test_resolved_contract_handoff_routes_to_existing_new_spec_processor() -> No
     router = _load_router()
     resolver = _load_resolver()
     resolution = resolver.resolve_surface(
-        _REPOSITORY_ROOT,
+        _CONFINEMENT_ROOT,
         "delivery-contract",
         (
             resolver.SurfaceCandidate(
@@ -124,7 +128,7 @@ def test_resolved_contract_handoff_routes_to_existing_new_spec_processor() -> No
                 logical_locator="delivery:contract/example",
                 physical_locator=resolver.Locator(
                     "repository-path",
-                    "docs/specs/shaping-intake-handoff/spec.md",
+                    ".apm/skills/new-spec/SKILL.md",
                 ),
                 provenance=(
                     resolver.Evidence(
@@ -193,10 +197,10 @@ def test_resolved_brief_routes_to_existing_receive_brief_processor() -> None:
     resolver = _load_resolver()
     resolution = _resolution(
         resolver,
-        _REPOSITORY_ROOT,
+        _CONFINEMENT_ROOT,
         "delivery-brief",
         "repository-path",
-        "docs/product/briefs/distribution-routes-programme.md",
+        ".apm/skills/receive-brief/SKILL.md",
     )
 
     result = router.route_handoff(_valid_handoff_signals(router), resolution)
@@ -214,7 +218,7 @@ def test_acquired_external_resolution_is_opaque_and_preserves_authority(
     resolver = _load_resolver()
     resolution = _resolution(
         resolver,
-        _REPOSITORY_ROOT,
+        _CONFINEMENT_ROOT,
         "delivery-contract",
         "external",
         "tracker:TEAM-42",
@@ -324,7 +328,7 @@ def test_unacquired_external_resolution_refuses_without_effects() -> None:
     resolver = _load_resolver()
     resolution = _resolution(
         resolver,
-        _REPOSITORY_ROOT,
+        _CONFINEMENT_ROOT,
         "delivery-contract",
         "external",
         "tracker:TEAM-42",
@@ -355,10 +359,10 @@ def test_invalid_or_ambiguous_signals_stop_before_reuse(
     resolver = _load_resolver()
     resolution = _resolution(
         resolver,
-        _REPOSITORY_ROOT,
+        _CONFINEMENT_ROOT,
         "delivery-contract",
         "repository-path",
-        "docs/specs/shaping-intake-handoff/spec.md",
+        ".apm/skills/new-spec/SKILL.md",
     )
     values = {
         "present": True,
