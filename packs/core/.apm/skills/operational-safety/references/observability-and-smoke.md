@@ -1,8 +1,10 @@
 # observability-and-smoke — active end-to-end probe, log access, health, verify-status
 
 > **Loaded when:** the change deploys a service, site, or endpoint a user
-> reaches — anything where "created" does not yet mean "works" and the deploy
-> needs an active probe plus the telemetry to debug a failed one.
+> reaches, or rolls out a persistent-state migration that needs progress and
+> completion signals, explicit stop conditions, or recovery control — anything
+> where "created" or "mutated" does not yet mean "works" and the rollout needs
+> an active probe plus the telemetry to debug a failed one.
 > **Grounded in:** F2.2 ("created" ≠ "works"; smoke / health checks are
 > mandatory before promotion); taxonomy follow-up — AWS Well-Architected
 > Operational Excellence (understand operational health), Google SRE monitoring
@@ -38,6 +40,20 @@ human.
   / mock users it needs and tears them (and any ephemeral resources) down after
   — so the probe is repeatable and leaves no residue (this meets
   `cost-and-teardown`).
+
+## Persistent-state migration checks
+
+- `reason` **Progress and correctness signals describe the rollout.** Report
+  processed, remaining, failed, retried, and reconciled records together with
+  rate, lag, and error trends. A job heartbeat without data-correctness evidence
+  cannot prove safe progress.
+- `reason` **Stop conditions are executable.** Name thresholds for error rate,
+  divergence, lock or latency impact, resource saturation, and unexpected data
+  loss that pause or abort the rollout before the blast radius grows.
+- `hybrid` **Recovery is observable end to end.** After pause, retry, rollback,
+  or forward-fix, the same compatibility and reconciliation probes confirm that
+  readers, writers, and already-mutated data are healthy before promotion
+  resumes.
 
 ## Symptom→layer log playbook (failure localization)
 

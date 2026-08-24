@@ -1,0 +1,3 @@
+## Concerns
+
+**1. Per-module load headers still exclude pure stateful migrations.** `packs/core/.apm/skills/operational-safety/references/observability-and-smoke.md:3`. The module index routes stateful migrations into `observability-and-smoke` for progress, stop, and recovery signals, but the module's own `Loaded when` header still limits loading to services/sites/endpoints, leaving a data-only backfill or schema rollout with contradictory reviewer guidance; `drift-and-rollback.md:3` has the same stale infra/deploy-only shape for data recovery. Fix: update the affected module `Loaded when` headers to include persistent-state migrations that need validation/reconciliation, code-and-data recovery, progress/stop signals, or recovery control.

@@ -87,6 +87,64 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.12.0"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[core][2.12.0] — 2026-08-23",
+      "changelogAnchor": "core2120--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Work-loop reviews now explain readiness without asking you to trust a generic “clean” verdict.** Reviewers trace non-local impact and rollout safety when warranted, then hand off an evidence-bearing verdict — `BLOCKED`, `CHANGES_REQUIRED`, `READY_WITH_RESIDUAL_RISK`, or `READY` — so every residual risk is named, not hidden.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Work-loop reviews now explain readiness without asking you to trust a generic “clean” verdict."
+            },
+            {
+              "type": "text",
+              "value": " Reviewers trace non-local impact and rollout safety when warranted, then hand off an evidence-bearing verdict — "
+            },
+            {
+              "type": "code",
+              "value": "BLOCKED"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "CHANGES_REQUIRED"
+            },
+            {
+              "type": "text",
+              "value": ", "
+            },
+            {
+              "type": "code",
+              "value": "READY_WITH_RESIDUAL_RISK"
+            },
+            {
+              "type": "text",
+              "value": ", or "
+            },
+            {
+              "type": "code",
+              "value": "READY"
+            },
+            {
+              "type": "text",
+              "value": " — so every residual risk is named, not hidden."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.9"
         }
       ],

@@ -567,6 +567,23 @@ open = [
   # redrawn deliberately, not widened by implication.
   {slug = "adjudicator-evidence-and-remedy-predicate", source = "spec/review-finding-adjudication (rounds 7-8)", summary = "Design the finding-adjudicator's orchestrator-supplied evidence protocol and a wrong-mechanism predicate, with ACs, prose pins, and eval coverage"},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
+  # Pre-existing enterprise-runtime restriction: bounded directory deletion and
+  # atomic directory rename are denied even beneath approved workspace and
+  # temporary roots. Two unchanged work-loop engine tests pass their
+  # non-regular-event-log assertions and then fail in fixture cleanup;
+  # agentbundle self-host, render/diff, and catalogue verify cannot remove their
+  # generated trees; Astro/Vite cannot rename its project-local dependency cache
+  # into place. The implementation diff does not touch those paths. Fix by making
+  # the managed profile permit bounded cleanup/atomic rename or by providing a
+  # supported enterprise-safe filesystem boundary, then rerun the named gates.
+  {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
+  # Measure the disputed value of code-graph-assisted review before adopting
+  # infrastructure. Compare it with repository-native targeted exploration on
+  # the same review tasks, holding instructions and adjudication constant; track
+  # valid finding yield, false positives, elapsed review time, and graph setup
+  # and maintenance cost. The evidence survey is deliberately inconclusive.
+  # Unblocks when: promoted through normal intake into a controlled benchmark.
+  {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
   # RFC-0092 distribution-routes programme. These confirmed downstream slices
   # stay non-dispatchable until each is promoted through new-spec. Typed needs
   # preserve the accepted dependency order without manufacturing placeholder

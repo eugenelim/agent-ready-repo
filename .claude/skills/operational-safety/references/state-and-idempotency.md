@@ -46,6 +46,23 @@ rather than iterate around.
   **how to author around it** at EXECUTE — the two placements are deliberate
   (convergence-case naming vs. authoring craft), not duplication.
 
+## Persistent-state migration checks
+
+- `reason` **Old/new reader-writer compatibility and expand/contract order.**
+  State shared during rollout must remain readable and safely writable by every
+  live binary version. Add representations before depending on them, tolerate
+  both forms through the mixed-version window, migrate data, switch reads and
+  writes, and remove the old form only after compatibility evidence proves the
+  window closed. Flag a one-step destructive schema or serialization change.
+- `reason` **Backfills are idempotent, resumable, batched, and concurrency-safe.**
+  A retry resumes from durable progress without double-applying work; batches
+  bound locks, load, and failure scope; concurrent foreground writes cannot be
+  overwritten by stale backfill reads. Name the checkpoint and conflict rule.
+- `reason` **Mixed-version tests cover real read/write combinations.** Exercise
+  old reader/new writer, new reader/old writer, retry after partial progress,
+  and foreground-write/backfill races where those combinations are possible.
+  A test of only the final schema misses the deployment boundary.
+
 ## Established-pattern bypass
 
 Resolve the repo's sanctioned convergence mechanism — the declarative IaC
