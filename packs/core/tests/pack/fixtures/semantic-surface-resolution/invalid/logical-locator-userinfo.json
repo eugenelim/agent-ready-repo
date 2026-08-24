@@ -1,0 +1,26 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "resolved",
+  "role": "delivery-contract",
+  "logical_locator": "https://user@example.invalid/delivery/42",
+  "physical_locator": {
+    "kind": "external",
+    "value": "example-tracker:delivery/42"
+  },
+  "provenance": [
+    {
+      "source": "explicit",
+      "ref": "request:wave1",
+      "strength": "explicit"
+    }
+  ],
+  "availability": "unknown",
+  "writability": "unknown",
+  "confinement": "external",
+  "authority": {
+    "source": {"status": "unknown"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": []
+}

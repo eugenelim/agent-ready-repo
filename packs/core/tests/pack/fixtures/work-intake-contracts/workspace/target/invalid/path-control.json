@@ -1,0 +1,7 @@
+{
+  "path": "docs/specs/example/\u0000spec.md",
+  "kind": "spec",
+  "source": {"mode": "repo-origin"},
+  "summary": "Control-bearing repository path",
+  "needs": []
+}

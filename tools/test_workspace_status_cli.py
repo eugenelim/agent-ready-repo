@@ -232,6 +232,69 @@ backlog = []
         self.assertIn("spec/legacy-ready", blocked_paths)
         self.assertNotIn(str(root), result.stdout)
 
+    def test_status_preserves_additive_surface_metadata(self) -> None:
+        root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {path = "docs/specs/example/spec.md", surface_role = "delivery-contract", locator = {kind = "external", value = "example-tracker:delivery/42"}, kind = "spec", source = {mode = "repo-origin"}, summary = "example", needs = []},
+]
+active = []
+shipped = []
+"""
+        )
+        self._make_canonical_spec(root, "example", "Approved")
+
+        result = _run_cli("status", "--root", str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        item = json.loads(result.stdout)["canonical"]["evaluations"][0]
+        self.assertEqual(item["surface_role"], "delivery-contract")
+        self.assertEqual(
+            item["locator"],
+            {"kind": "external", "value": "example-tracker:delivery/42"},
+        )
+
+    def test_status_blocks_locator_only_before_local_artifact_access(self) -> None:
+        root = self._write_workspace(
+            """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {surface_role = "delivery-contract", locator = {kind = "external", value = "example-tracker:delivery/42"}, kind = "spec", source = {mode = "tracker-origin", ref = "example-tracker:delivery/42", revision = "revision-7"}, summary = "external", needs = []},
+]
+active = []
+shipped = []
+"""
+        )
+
+        result = _run_cli("status", "--root", str(root))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        canonical = json.loads(result.stdout)["canonical"]
+        self.assertEqual(len(canonical["evaluations"]), 1)
+        blocked = canonical["blocked"][0]
+        self.assertFalse(blocked["dispatchable"])
+        self.assertEqual(blocked["surface_role"], "delivery-contract")
+        self.assertEqual(
+            blocked["locator"],
+            {"kind": "external", "value": "example-tracker:delivery/42"},
+        )
+        self.assertEqual(
+            [(item["code"], item["path"]) for item in canonical["findings"]],
+            [("configuration_mismatch", "workspace.toml")],
+            result.stderr,
+        )
+
     def test_status_renders_refresh_authority_without_owned_fields(self) -> None:
         root = self._write_workspace(
             """\

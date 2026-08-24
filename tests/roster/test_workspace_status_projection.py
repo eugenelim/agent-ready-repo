@@ -69,6 +69,9 @@ def test_t1_group2_schema_constants_match_engine() -> None:
         workspace_schema["$defs"]["artifactKind"]["enum"]
     ) == engine.WORKSPACE_ARTIFACT_KINDS
     assert tuple(
+        workspace_schema["$defs"]["surfaceRole"]["enum"]
+    ) == engine.SURFACE_ROLES
+    assert tuple(
         intake_schema["properties"]["action"]["enum"]
     ) == engine.NORMALIZED_INTAKE_ACTIONS
 

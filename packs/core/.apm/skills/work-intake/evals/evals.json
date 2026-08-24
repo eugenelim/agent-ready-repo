@@ -164,6 +164,72 @@
         "Delegates to the read-only workspace-status planner",
         "Does not apply or roll back a migration"
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "Resolve the delivery-contract destination explicitly supplied as docs/contracts/current.md.",
+      "expected_output": "The agent supplies one explicit repository-path candidate to the shared resolver, proves realpath confinement, and reports the complete resolved result without creating or registering the destination.",
+      "assertions": [
+        "Uses scripts/surface_resolver.py instead of assuming a catalogue path",
+        "Ranks the explicit policy-permitted candidate first",
+        "Reports provenance, capability facts, confinement, and three independent authority dimensions",
+        "Does not mutate lifecycle state or create the destination"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "Resolve our custom delivery-contract convention from two analogous project/contracts entries and their construction test.",
+      "expected_output": "The agent normalizes only the bounded analogue evidence, treats the confirmed custom convention as established, and returns its confined repository locator without requiring catalogue defaults or a configuration file.",
+      "assertions": [
+        "Preserves the adopter-owned custom path",
+        "Uses no repository-wide scan",
+        "Requires two analogues plus a test or explicit confirmation",
+        "Does not require optional configuration"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Resolve delivery-contract using this optional adopter configuration candidate: product/contracts/current.md.",
+      "expected_output": "The agent passes the closed optional-adapter candidate to the shared resolver, reports its declared evidence strength without granting extra authority, and leaves repositories without that adapter fully supported.",
+      "assertions": [
+        "Treats configuration as optional",
+        "Does not create a global surface registry",
+        "Does not infer source, write, or deletion authority from configuration",
+        "Returns a read-only resolution result"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Resolve the delivery contract at external locator example-tracker:delivery/42.",
+      "expected_output": "The agent preserves the external locator as external, performs no filesystem, network, shell, DNS, tracker, or credential operation, and reports unknown availability and writability unless supplied evidence establishes them.",
+      "assertions": [
+        "Never sends the external locator through Path resolution",
+        "Rejects credentials and query or fragment material",
+        "Keeps authority dimensions independent",
+        "Does not register a locator-only entry for dispatch"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Resolve delivery-contract from two equally ranked explicit destinations.",
+      "expected_output": "The agent returns confirmation-required with decision provenance and a bounded next action, omits selected locators, and performs no mutation.",
+      "assertions": [
+        "Does not choose by list order",
+        "Requires destination-selection confirmation",
+        "Reports all capability, confinement, and authority facts as unknown",
+        "Does not create or register either destination"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "Resolve delivery-contract, but no explicit, policy, convention, configuration, or external candidate exists.",
+      "expected_output": "The agent returns destination-required with an offer-shaped next action and no selected locator, artifact creation, workspace registration, or lifecycle change.",
+      "assertions": [
+        "Does not assume a catalogue filename",
+        "Reports destination-required rather than inventing a path",
+        "Offers selection or creation as a next action",
+        "Leaves lifecycle behavior unchanged"
+      ]
     }
   ]
 }

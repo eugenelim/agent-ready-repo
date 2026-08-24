@@ -50,6 +50,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.10.9] — 2026-08-23
+
+### Highlights
+
+- **Core workflows can resolve a semantic destination using each repository's
+  own paths, policy, established conventions, optional configuration, or
+  external locator.** Results preserve bounded provenance and independent
+  authority facts, while unsafe local paths and ambiguous evidence fail closed.
+
+### Added
+
+- `work-intake` now ships one stdlib-only, read-only semantic-surface resolver
+  and a deterministic completion matrix covering explicit, policy, custom,
+  configured, external, ambiguous, absent, conflicting, and unsafe outcomes.
+- Workspace target entries accept additive semantic-role and external-locator
+  metadata. Existing path entries keep their behavior; locator-only entries
+  remain visible but non-dispatchable with `configuration_mismatch`.
+
+### Security
+
+- Repository locators reject ambiguous path forms, symlink escapes, and symlink
+  loops after realpath resolution. External locators remain offline and reject
+  credentials, queries, fragments, whitespace, and control characters.
+
 ## [core][2.10.8] — 2026-08-23
 
 ### Highlights

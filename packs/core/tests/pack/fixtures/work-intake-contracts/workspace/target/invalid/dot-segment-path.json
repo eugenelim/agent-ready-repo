@@ -1,0 +1,9 @@
+{
+  "path": "docs/./specs/example/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Dot-segment path",
+  "needs": []
+}

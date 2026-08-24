@@ -1,0 +1,26 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "resolved",
+  "role": "delivery-contract",
+  "logical_locator": "delivery-contract:example",
+  "physical_locator": {
+    "kind": "repository-path",
+    "value": "docs/contracts/"
+  },
+  "provenance": [
+    {
+      "source": "explicit",
+      "ref": "request:trailing-slash",
+      "strength": "explicit"
+    }
+  ],
+  "availability": "unavailable",
+  "writability": "unknown",
+  "confinement": "repository-confined",
+  "authority": {
+    "source": {"status": "repository-owned", "evidence_ref": "request:trailing-slash"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": []
+}

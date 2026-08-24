@@ -1,0 +1,8 @@
+{
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Entry with no physical locator",
+  "needs": []
+}

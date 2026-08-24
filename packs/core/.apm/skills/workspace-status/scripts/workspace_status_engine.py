@@ -48,13 +48,31 @@ from typing import Any
 # ── Data types ────────────────────────────────────────────────────────────────
 
 WORKSPACE_ENTRY_CONTRACT_VERSION = "workspace-entry.v1"
-WORKSPACE_ENTRY_REQUIRED_FIELDS = ("path", "kind", "source", "summary", "needs")
+WORKSPACE_ENTRY_REQUIRED_FIELDS = ("kind", "source", "summary", "needs")
+WORKSPACE_ENTRY_OPTIONAL_FIELDS = ("path", "surface_role", "locator")
 WORKSPACE_ARTIFACT_KINDS = ("intent", "research", "design", "brief", "spec", "defect")
+SURFACE_ROLES = (
+    "delivery-brief",
+    "delivery-contract",
+    "current-product-truth",
+    "user-documentation",
+    "product-history",
+    "release-history",
+    "current-architecture",
+    "architecture-design",
+    "decision-record",
+    "operations",
+    "interface-contract",
+    "project-knowledge",
+    "runtime-coordination",
+)
 NORMALIZED_INTAKE_CONTRACT_VERSION = "normalized-intake.v1"
 NORMALIZED_INTAKE_ACTIONS = ("start", "remember", "refresh")
 SOURCE_MODES = ("repo-origin", "tracker-origin")
 
-_WORKSPACE_ENTRY_FIELDS = frozenset(WORKSPACE_ENTRY_REQUIRED_FIELDS)
+_WORKSPACE_ENTRY_FIELDS = frozenset(
+    (*WORKSPACE_ENTRY_REQUIRED_FIELDS, *WORKSPACE_ENTRY_OPTIONAL_FIELDS)
+)
 _SOURCE_FIELDS = frozenset(
     {"mode", "ref", "revision", "parent", "coordination", "tracker_profile"}
 )
@@ -142,17 +160,29 @@ class Dependency:
 
 
 @dataclasses.dataclass(frozen=True)
+class WorkspaceLocator:
+    """Validated non-path locator carried by an additive workspace entry."""
+
+    kind: str
+    value: str
+
+
+@dataclasses.dataclass(frozen=True)
 class WorkspaceEntry:
     """Validated target workspace entry; eligibility is evaluated separately."""
 
-    path: str
+    path: str | None
     kind: str
     source: SourceRecord
     summary: str
     needs: list[Dependency]
+    surface_role: str | None = None
+    locator: WorkspaceLocator | None = None
 
     @property
     def slug(self) -> str:
+        if self.path is None:
+            return f"surface:{self.surface_role or 'unresolved'}"
         if self.path.startswith("docs/specs/") and self.path.endswith("/spec.md"):
             return self.path[len("docs/specs/"):-len("/spec.md")]
         return self.path.removeprefix("spec/")
@@ -500,12 +530,31 @@ def _is_safe_locator(value: object) -> bool:
     )
 
 
+def _is_strict_locator(value: object) -> bool:
+    """Reject whitespace and control characters on top of `_is_safe_locator`.
+
+    Workspace source references and external surface locators are consumed as
+    identifiers rather than rendered as escaped data, so they carry the tighter
+    form the semantic-surface contract requires. Normalized-intake locators stay
+    on the looser predicate: they are untrusted source text that the intake
+    guard escapes at render time.
+    """
+    if not _is_safe_locator(value):
+        return False
+    return not any(
+        character.isspace() or ord(character) <= 31 or ord(character) == 127
+        for character in str(value)
+    )
+
+
 def _is_repository_relative_path(value: object) -> bool:
     if not isinstance(value, str) or not 1 <= len(value) <= 1000:
         return False
     if value.startswith("/") or re.match(r"^[A-Za-z]:", value):
         return False
     if "\\" in value:
+        return False
+    if any(ord(character) <= 31 or ord(character) == 127 for character in value):
         return False
     parts = value.split("/")
     return not (".." in parts or "." in parts or "" in parts)
@@ -568,7 +617,7 @@ def _parse_source_record(raw: object) -> tuple[SourceRecord | None, list[Routing
     parent = raw.get("parent")
     coordination = raw.get("coordination")
     tracker_profile = raw.get("tracker_profile")
-    if ref is not None and not _is_safe_locator(ref):
+    if ref is not None and not _is_strict_locator(ref):
         return None, [_finding("invalid_entry", detail="source.ref is not a safe locator")]
     if revision is not None and not _is_bounded_text(revision, 200):
         return None, [_finding("invalid_entry", detail="source.revision is invalid")]
@@ -653,18 +702,46 @@ def parse_workspace_entry(
     if not isinstance(raw, dict):
         return None, [_finding("invalid_entry", detail="target entry must be an object")]
     keys = set(raw)
-    if keys != _WORKSPACE_ENTRY_FIELDS:
+    if not set(WORKSPACE_ENTRY_REQUIRED_FIELDS).issubset(keys) or not keys.issubset(
+        _WORKSPACE_ENTRY_FIELDS
+    ):
         return None, [_finding("invalid_entry", detail="target entry fields are not exact")]
     path = raw.get("path")
-    if not _is_repository_relative_path(path):
+    if path is None and "locator" not in raw:
+        return None, [_finding("invalid_entry", detail="target entry needs path or locator")]
+    if path is not None and not _is_repository_relative_path(path):
         return None, [_path_finding_or_invalid(path, "entry path is unsafe")]
     kind = raw.get("kind")
     if kind not in WORKSPACE_ARTIFACT_KINDS:
         return None, [_finding("invalid_entry", str(path), "entry kind is invalid")]
-    if kind == "spec" and not _is_canonical_spec_artifact_path(path):
+    if path is not None and kind == "spec" and not _is_canonical_spec_artifact_path(path):
         return None, [_finding("invalid_artifact_path", str(path), "spec path is invalid")]
-    if kind == "brief" and not _is_canonical_local_brief_path(path):
+    if path is not None and kind == "brief" and not _is_canonical_local_brief_path(path):
         return None, [_finding("invalid_artifact_path", str(path), "brief path is invalid")]
+    surface_role = raw.get("surface_role")
+    if surface_role is not None and surface_role not in SURFACE_ROLES:
+        return None, [_finding("invalid_entry", str(path or ""), "surface role is invalid")]
+    locator = None
+    if "locator" in raw:
+        if surface_role is None:
+            return None, [
+                _finding("invalid_entry", str(path or ""), "locator requires surface role")
+            ]
+        raw_locator = raw.get("locator")
+        if (
+            not isinstance(raw_locator, dict)
+            or set(raw_locator) != {"kind", "value"}
+            or raw_locator.get("kind") != "external"
+            or not _is_strict_locator(raw_locator.get("value"))
+            or re.fullmatch(
+                r"[A-Za-z][A-Za-z0-9+.-]*:.+", str(raw_locator.get("value", ""))
+            )
+            is None
+        ):
+            return None, [
+                _finding("invalid_entry", str(path or ""), "external locator is invalid")
+            ]
+        locator = WorkspaceLocator("external", raw_locator["value"])
     source, source_findings = _parse_source_record(raw.get("source"))
     if source_findings:
         return None, source_findings
@@ -686,6 +763,8 @@ def parse_workspace_entry(
         source=source,
         summary=summary,
         needs=needs,
+        surface_role=surface_role,
+        locator=locator,
     ), []
 
 
@@ -1066,12 +1145,12 @@ def parse_legacy_workspace_entry(collection: str, raw: object) -> LegacyWorkspac
 
 
 def _is_target_like_entry(raw: object) -> bool:
-    if not isinstance(raw, dict) or "path" not in raw:
+    if not isinstance(raw, dict) or not ({"path", "locator"} & set(raw)):
         return False
     keys = set(raw)
     if keys.issubset(_WORKSPACE_ENTRY_FIELDS):
         path = raw.get("path")
-        return bool(keys & {"kind", "source", "summary"}) or (
+        return bool(keys & {"kind", "source", "summary", "surface_role"}) or (
             isinstance(path, str) and path.startswith("docs/")
         )
     return {"kind", "source", "summary", "needs"}.issubset(keys)
@@ -1135,7 +1214,7 @@ _TERMINAL_STATUS_BY_KIND = {
 _CANONICAL_INITIATIVE_RE = re.compile(r"^ini-\d{3}$")
 ROUTING_CONFIGURATION_VERSION = "workspace-routing.v1"
 _WORKSPACE_ENTRY_SCHEMA_DIGEST = (
-    "21fb3a4ffb01afcae330d53d7c15f4f580b990cf4342d8a57088acc2d5a72db4"
+    "3531a8f8e26bcdbf0ec69357a9f6eeb8fe8f2039e2ab2cbcfb44555976ee0b67"
 )
 _NORMALIZED_INTAKE_SCHEMA_DIGEST = (
     "7d753d44b4af64979953dc32b094f27e5186f9bf21944357cfd3eb06a47fe4f4"
@@ -1152,6 +1231,16 @@ def _canonical_finding_payload(finding: RoutingFinding) -> dict[str, object]:
         "dispatchable": finding.dispatchable,
         "next_action": finding.next_action,
     }
+
+
+def _surface_metadata_payload(entry: WorkspaceEntry) -> dict[str, object]:
+    """Project additive surface metadata only when an entry declares it."""
+    payload: dict[str, object] = {}
+    if entry.surface_role is not None:
+        payload["surface_role"] = entry.surface_role
+    if entry.locator is not None:
+        payload["locator"] = dataclasses.asdict(entry.locator)
+    return payload
 
 
 def canonical_result_snapshot(
@@ -1185,6 +1274,7 @@ def canonical_result_snapshot(
         {
             "path": evaluation.entry.path,
             "kind": evaluation.entry.kind,
+            **_surface_metadata_payload(evaluation.entry),
             "ini_slug": evaluation.ini_slug,
             "collection": evaluation.collection,
             "dispatchable": evaluation.dispatchable,
@@ -1280,18 +1370,36 @@ def canonical_repository_identity(
             (dataclasses.asdict(need) for need in entry.needs),
             key=lambda need: json.dumps(need, sort_keys=True),
         )
-        identity_key = (
-            f"{membership.ini_slug}:{membership.collection}:{entry.path}"
-        )
+        entry_identity = entry.path
+        if entry_identity is None and entry.locator is not None:
+            entry_identity = (
+                f"{entry.surface_role}:{entry.locator.kind}:{entry.locator.value}"
+            )
+        identity_key = f"{membership.ini_slug}:{membership.collection}:{entry_identity}"
         semantic_memberships.append({
             "path": entry.path,
             "kind": entry.kind,
+            **_surface_metadata_payload(entry),
             "source": source,
             "needs": needs,
             "ini_slug": membership.ini_slug,
             "collection": membership.collection,
             "initiative_status": membership.initiative_status,
         })
+        if entry.path is None:
+            status_fingerprints[identity_key] = hashlib.sha256(b"null").hexdigest()
+            provenance_fingerprints[identity_key] = hashlib.sha256(
+                json.dumps(
+                    {"source": source, "artifact": None},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                    ensure_ascii=True,
+                ).encode("ascii")
+            ).hexdigest()
+            profile = entry.source.tracker_profile
+            if profile is not None:
+                tracker_profiles.add((profile["id"], profile["version"]))
+            continue
         metadata = _metadata_from_root(root, entry)
         artifact = _confined_artifact_path(root, entry.path)
         status_fingerprint: str | None = None
@@ -2442,6 +2550,21 @@ def evaluate_dispatch(
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership."""
     entry = membership.entry
+    if entry.path is None:
+        return DispatchEvaluation(
+            entry=entry,
+            ini_slug=membership.ini_slug,
+            collection=membership.collection,
+            dispatchable=False,
+            findings=[
+                _finding(
+                    "configuration_mismatch",
+                    "workspace.toml",
+                    "locator-only entries are visible but non-dispatchable",
+                )
+            ],
+            authority_status=None,
+        )
     metadata = _artifact_metadata(workspace, entry, root) or _metadata_from_membership(membership)
     findings = _structural_findings(
         membership,
@@ -2509,8 +2632,12 @@ def run_canonical_reconciliation(
         parse_blocked_path_counts,
     ) = _extract_canonical_memberships(workspace)
     parse_blocked_paths = set(parse_blocked_path_counts)
+    local_memberships = [
+        membership for membership in memberships if membership.entry.path is not None
+    ]
     by_path: dict[str, list[WorkspaceMembership]] = {}
-    for membership in memberships:
+    for membership in local_memberships:
+        assert membership.entry.path is not None
         by_path.setdefault(membership.entry.path, []).append(membership)
     legacy_alias_counts: dict[str, int] = {}
     for legacy_membership in legacy_memberships:
@@ -2545,8 +2672,8 @@ def run_canonical_reconciliation(
             | parse_only_duplicate_paths
         )
     ]
-    cycle_paths = _dependency_cycles(memberships)
-    brief_child_states = _brief_child_spec_states(memberships, workspace, root)
+    cycle_paths = _dependency_cycles(local_memberships)
+    brief_child_states = _brief_child_spec_states(local_memberships, workspace, root)
     global_invalid_workspace = any(
         finding.code == "invalid_workspace" for finding in parse_findings
     )
@@ -2557,7 +2684,7 @@ def run_canonical_reconciliation(
         *parse_only_duplicate_paths,
         *parse_blocked_paths,
     }
-    for membership in memberships:
+    for membership in local_memberships:
         metadata = (
             _artifact_metadata(workspace, membership.entry, root)
             or _metadata_from_membership(membership)
@@ -2586,7 +2713,11 @@ def run_canonical_reconciliation(
         )
         for membership in memberships
     ]
-    dispatch_by_path = {evaluation.entry.path: evaluation for evaluation in evaluations}
+    dispatch_by_path = {
+        evaluation.entry.path: evaluation
+        for evaluation in evaluations
+        if evaluation.entry.path is not None
+    }
     findings = [
         *parse_findings,
         *legacy_only_duplicate_findings,

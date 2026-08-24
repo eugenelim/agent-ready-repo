@@ -1,0 +1,28 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "destination-required",
+  "role": "delivery-contract",
+  "provenance": [
+    {
+      "source": "explicit",
+      "ref": "request:wave 1",
+      "strength": "explicit"
+    }
+  ],
+  "availability": "unknown",
+  "writability": "unknown",
+  "confinement": "unknown",
+  "authority": {
+    "source": {"status": "unknown"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": [
+    {
+      "kind": "destination-selection",
+      "status": "required"
+    }
+  ],
+  "code": "destination_absent",
+  "next_action": "select-or-create-destination"
+}

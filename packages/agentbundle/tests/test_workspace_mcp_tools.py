@@ -75,6 +75,71 @@ def test_canonical_evaluation_refuses_authority_status_key_collision() -> None:
         mod._canonical_eval_dict(evaluation)
 
 
+def test_canonical_evaluation_preserves_safe_surface_metadata() -> None:
+    mod = _load_module()
+    evaluation = SimpleNamespace(
+        ini_slug="ini-001",
+        collection="work.queue",
+        entry=SimpleNamespace(
+            path=None,
+            kind="spec",
+            surface_role="delivery-contract",
+            locator=SimpleNamespace(
+                kind="external", value="example-tracker:delivery/42"
+            ),
+        ),
+        dispatchable=False,
+        findings=(),
+        authority_status=None,
+    )
+
+    projected = mod._canonical_eval_dict(evaluation)
+
+    assert projected["surface_role"] == "delivery-contract"
+    assert projected["locator"] == {
+        "kind": "external",
+        "value": "example-tracker:delivery/42",
+    }
+    assert projected["path"] == "workspace.toml"
+    assert projected["dispatchable"] is False
+
+
+def test_workspace_status_preserves_locator_only_blocked_metadata(tmp_path: Path) -> None:
+    mod = _load_module()
+    root = tmp_path / "workspace"
+    root.mkdir()
+    (root / "workspace.toml").write_text(
+        """\
+["ini-001"]
+name = "Canonical"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  {surface_role = "delivery-contract", locator = {kind = "external", value = "example-tracker:delivery/42"}, kind = "spec", source = {mode = "tracker-origin", ref = "example-tracker:delivery/42", revision = "revision-7"}, summary = "external", needs = []},
+]
+active = []
+shipped = []
+""",
+        encoding="utf-8",
+    )
+
+    result = mod._WorkspaceStatusTool(root, _FakeBridge()).call()
+
+    assert result["ready"] == []
+    assert result["active"] == []
+    assert len(result["blocked"]) == 1
+    blocked = result["blocked"][0]
+    assert blocked["dispatchable"] is False
+    assert blocked["surface_role"] == "delivery-contract"
+    assert blocked["locator"] == {
+        "kind": "external",
+        "value": "example-tracker:delivery/42",
+    }
+    assert blocked["findings"][0]["code"] == "configuration_mismatch"
+
+
 class _FakeBridge:
     def get_fsm_state(self):  # noqa: ANN201
         return {}

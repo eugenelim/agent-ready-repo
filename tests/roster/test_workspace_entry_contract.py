@@ -16,7 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "contracts/jsonschema/workspace-entry.schema.json"
 FIXTURE_ROOT = ROOT / "packs/core/tests/pack/fixtures/work-intake-contracts/workspace"
 
-SEMANTIC_FIELDS = {"path", "kind", "source", "summary", "needs"}
+BASE_SEMANTIC_FIELDS = {"kind", "source", "summary", "needs"}
+PATH_SEMANTIC_FIELDS = BASE_SEMANTIC_FIELDS | {"path"}
+SURFACE_SEMANTIC_FIELDS = {"surface_role", "locator"}
 SOURCE_DECISION_FIELDS = {
     "artifact",
     "source_revision",
@@ -95,7 +97,7 @@ def _semantic_graph(doc: dict[str, Any]) -> list[tuple[str, str, tuple[tuple[str
         entry
         for values in _workspace_memberships(doc).values()
         for entry in values
-        if isinstance(entry, dict) and set(entry) >= SEMANTIC_FIELDS
+        if isinstance(entry, dict) and set(entry) >= PATH_SEMANTIC_FIELDS
     ]
     graph = []
     for entry in entries:
@@ -158,7 +160,8 @@ def test_schema_is_valid_and_versioned() -> None:
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     assert schema["contract_version"] == "workspace-entry.v1"
     assert schema["x-spec"] == [
-        "docs/specs/normalized-intake-workspace-contracts/"
+        "docs/specs/normalized-intake-workspace-contracts/",
+        "docs/specs/semantic-surface-resolver/",
     ]
 
 
@@ -166,7 +169,9 @@ def test_schema_is_valid_and_versioned() -> None:
 def test_valid_target_entries(fixture_path: Path) -> None:
     payload = _load_json(fixture_path)
     assert isinstance(payload, dict)
-    assert set(payload) == SEMANTIC_FIELDS
+    assert set(payload) >= BASE_SEMANTIC_FIELDS
+    assert "path" in payload or "locator" in payload
+    assert set(payload) <= PATH_SEMANTIC_FIELDS | SURFACE_SEMANTIC_FIELDS
 
     _validator().validate(payload)
 

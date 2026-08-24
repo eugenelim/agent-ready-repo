@@ -221,7 +221,10 @@ def test_both_schemas_are_valid_versioned_and_backlinked() -> None:
         validator_cls.check_schema(schema)
         assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema", f"{path}: meta-schema"
         assert schema["contract_version"] == version, f"{path}: stable contract version"
-        assert schema["x-spec"] == ["docs/specs/normalized-intake-workspace-contracts/"], f"{path}: x-spec"
+        expected_specs = ["docs/specs/normalized-intake-workspace-contracts/"]
+        if path == WORKSPACE_SCHEMA:
+            expected_specs.append("docs/specs/semantic-surface-resolver/")
+        assert schema["x-spec"] == expected_specs, f"{path}: x-spec"
 
 
 def test_skill_adapters_preserve_work_intake_frontmatter() -> None:

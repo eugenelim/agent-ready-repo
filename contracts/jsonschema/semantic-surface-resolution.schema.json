@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/semantic-surface-resolution.schema.json",
+  "title": "Semantic surface resolution result",
+  "description": "Portable, read-only result for resolving one semantic role to a repository-owned or external destination.",
+  "type": "object",
+  "contract_version": "semantic-surface-resolution.v1",
+  "x-spec": ["docs/specs/semantic-surface-resolver/"],
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "status",
+    "role",
+    "provenance",
+    "availability",
+    "writability",
+    "confinement",
+    "authority",
+    "confirmations"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "semantic-surface-resolution.v1"
+    },
+    "status": {
+      "enum": [
+        "resolved",
+        "confirmation-required",
+        "destination-required",
+        "refused"
+      ]
+    },
+    "role": {
+      "$ref": "#/$defs/surfaceRole"
+    },
+    "logical_locator": {
+      "$ref": "#/$defs/logicalLocator"
+    },
+    "physical_locator": {
+      "$ref": "#/$defs/physicalLocator"
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "availability": {
+      "enum": ["available", "unavailable", "unknown"]
+    },
+    "writability": {
+      "enum": ["writable", "read-only", "unknown"]
+    },
+    "confinement": {
+      "enum": ["repository-confined", "external", "unknown"]
+    },
+    "authority": {
+      "$ref": "#/$defs/authority"
+    },
+    "revision_or_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "confirmations": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/confirmation"
+      }
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "next_action": {
+      "enum": [
+        "confirm-established-repository-convention",
+        "confirm-one-policy-permitted-destination",
+        "reconcile-mandatory-repository-policy",
+        "reduce-candidates-to-32-or-fewer",
+        "reduce-confirmations-to-eight-or-fewer",
+        "repair-authority-facts",
+        "repair-candidate-evidence",
+        "repair-candidate-facts",
+        "repair-candidate-role-and-shape",
+        "repair-confirmation-evidence",
+        "repair-external-locator",
+        "repair-logical-locator",
+        "repair-physical-locator",
+        "repair-revision-or-fingerprint",
+        "select-confined-repository-path",
+        "select-or-create-destination",
+        "select-policy-permitted-destination",
+        "supply-closed-candidates",
+        "supply-existing-repository-root",
+        "supply-one-to-four-evidence-records"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "resolved"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": [
+          "logical_locator",
+          "physical_locator",
+          "provenance",
+          "availability",
+          "writability",
+          "confinement",
+          "authority"
+        ],
+        "not": {
+          "anyOf": [
+            {"required": ["code"]},
+            {"required": ["next_action"]}
+          ]
+        }
+      },
+      "else": {
+        "required": ["code", "next_action"],
+        "not": {
+          "anyOf": [
+            {"required": ["logical_locator"]},
+            {"required": ["physical_locator"]},
+            {"required": ["revision_or_fingerprint"]}
+          ]
+        },
+        "properties": {
+          "availability": {"const": "unknown"},
+          "writability": {"const": "unknown"},
+          "confinement": {"const": "unknown"},
+          "authority": {"$ref": "#/$defs/unknownAuthority"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "physical_locator": {
+            "properties": {
+              "kind": {
+                "const": "repository-path"
+              }
+            },
+            "required": ["kind"]
+          }
+        },
+        "required": ["physical_locator"]
+      },
+      "then": {
+        "properties": {
+          "confinement": {
+            "const": "repository-confined"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "physical_locator": {
+            "properties": {
+              "kind": {
+                "const": "external"
+              }
+            },
+            "required": ["kind"]
+          }
+        },
+        "required": ["physical_locator"]
+      },
+      "then": {
+        "properties": {
+          "confinement": {
+            "const": "external"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "confirmation-required"}
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "confirmations": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "properties": {
+                "status": {"const": "required"}
+              },
+              "required": ["status"]
+            },
+            "minContains": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "surfaceRole": {
+      "enum": [
+        "delivery-brief",
+        "delivery-contract",
+        "current-product-truth",
+        "user-documentation",
+        "product-history",
+        "release-history",
+        "current-architecture",
+        "architecture-design",
+        "decision-record",
+        "operations",
+        "interface-contract",
+        "project-knowledge",
+        "runtime-coordination"
+      ]
+    },
+    "logicalLocator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "physicalLocator": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/repositoryPathLocator"
+        },
+        {
+          "$ref": "#/$defs/externalLocator"
+        }
+      ]
+    },
+    "repositoryPathLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "const": "repository-path"
+        },
+        "value": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        }
+      }
+    },
+    "externalLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "const": "external"
+        },
+        "value": {
+          "$ref": "#/$defs/safeExternalLocator"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "ref", "strength"],
+      "properties": {
+        "source": {
+          "enum": [
+            "explicit",
+            "repository-policy",
+            "repository-convention",
+            "external-destination",
+            "configuration-adapter"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+        },
+        "strength": {
+          "enum": [
+            "explicit",
+            "mandatory-policy",
+            "enforced",
+            "confirmed",
+            "inferred"
+          ]
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "write", "delete"],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/authorityFact"
+        },
+        "write": {
+          "$ref": "#/$defs/authorityFact"
+        },
+        "delete": {
+          "$ref": "#/$defs/authorityFact"
+        }
+      }
+    },
+    "unknownAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "write", "delete"],
+      "properties": {
+        "source": {"$ref": "#/$defs/unknownAuthorityFact"},
+        "write": {"$ref": "#/$defs/unknownAuthorityFact"},
+        "delete": {"$ref": "#/$defs/unknownAuthorityFact"}
+      }
+    },
+    "unknownAuthorityFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"const": "unknown"}
+      }
+    },
+    "authorityFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "enum": [
+            "repository-owned",
+            "external-owned",
+            "delegated",
+            "none",
+            "unknown"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+        }
+      }
+    },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "status"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "destination-selection",
+            "convention-establishment",
+            "policy-exception",
+            "authority"
+          ]
+        },
+        "status": {
+          "enum": ["required", "confirmed", "not-required"]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "pattern": "^(?!.*[@?#\\s])[^\\u0000-\\u001f\\u007f]+$"
+        }
+      }
+    },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\/$).+$"
+    },
+    "safeExternalLocator": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 1000,
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!.*[@?#\\s])[A-Za-z][A-Za-z0-9+.-]*:.+$"
+    }
+  }
+}

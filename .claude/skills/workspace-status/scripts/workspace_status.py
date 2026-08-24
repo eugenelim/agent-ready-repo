@@ -414,6 +414,13 @@ def _canonical_evaluation_dict(e) -> dict:
         "dispatchable": e.dispatchable,
         "findings": [_canonical_finding_dict(f) for f in e.findings],
     }
+    if getattr(e.entry, "surface_role", None) is not None:
+        result["surface_role"] = e.entry.surface_role
+    if getattr(e.entry, "locator", None) is not None:
+        result["locator"] = {
+            "kind": e.entry.locator.kind,
+            "value": e.entry.locator.value,
+        }
     if getattr(e, "authority_status", None) is not None:
         authority_status = dict(e.authority_status)
         if set(result).intersection(authority_status):

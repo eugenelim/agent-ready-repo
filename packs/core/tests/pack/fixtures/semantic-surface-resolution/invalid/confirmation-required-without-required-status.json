@@ -1,0 +1,21 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "confirmation-required",
+  "role": "delivery-contract",
+  "provenance": [
+    {"source": "repository-convention", "ref": "convention:delivery-contracts", "strength": "inferred"}
+  ],
+  "availability": "unknown",
+  "writability": "unknown",
+  "confinement": "unknown",
+  "authority": {
+    "source": {"status": "unknown"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": [
+    {"kind": "destination-selection", "status": "not-required"}
+  ],
+  "code": "ambiguous_candidates",
+  "next_action": "confirm-one-policy-permitted-destination"
+}
