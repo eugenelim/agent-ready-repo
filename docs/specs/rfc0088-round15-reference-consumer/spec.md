@@ -1,6 +1,6 @@
 # Spec: rfc0088-round15-reference-consumer
 
-- **Status:** Done
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -164,7 +164,7 @@ that would close it — never by prose that is true whichever way the measuremen
 
 ## Acceptance criteria
 
-- [ ] **AC1 — The sign-in window is a three-state sequence, and each blind-phase conjunct
+- [x] **AC1 — The sign-in window is a three-state sequence, and each blind-phase conjunct
   is separately asserted.** The states are **blind** (nothing read at all), **probe-only**
   (exactly one named read — the authenticated-state probe — and nothing else), then
   **instrumented**. A declared row asserts, as separately-mutated conjuncts, that on entry
@@ -174,7 +174,7 @@ that would close it — never by prose that is true whichever way the measuremen
   are unconfigured for the run; and no `DEBUG`, `PWDEBUG` or `PLAYWRIGHT_*` variable is set
   in the harness process or any child it spawns. "No listener attached" alone does not
   satisfy this criterion — it addresses only the first conjunct.
-- [ ] **AC2 — The operator's hand-back channel is named, carries no credential, and the
+- [x] **AC2 — The operator's hand-back channel is named, carries no credential, and the
   harness never types.** The blind phase blocks on a keypress read directly from
   `/dev/tty`, not on the harness's stdin. `/dev/tty` alone does not establish the property:
   under an agent that allocates a pty it resolves to the agent's own channel, and under an
@@ -183,7 +183,7 @@ that would close it — never by prose that is true whichever way the measuremen
   run** unless `/dev/tty` opens *and* its device differs from the device behind fds 0, 1
   and 2. It never falls back. A row asserts the harness invoked no
   `fill`/`type`/`insertText` for the run's lifetime.
-- [ ] **AC3 — The per-group split cost is measured across three arms on both channels, and
+- [x] **AC3 — The per-group split cost is measured across three arms on both channels, and
   every arm's outcome is reachable.** The authenticated session the arms derive from is
   **the seed group**; the three arms are named for their mechanism, never "group B".
   - **Control arm** — a fresh persistent context with its own profile. Expected to require
@@ -205,13 +205,13 @@ that would close it — never by prose that is true whichever way the measuremen
   is demonstrated rather than predicted. The criterion fails if a probe never ran, if the
   seed group was not proven authenticated, or if the copied-profile arm cannot show its
   copy was intact.
-- [ ] **AC4 — The reference-consumer observation is recorded with provenance, and asserts
+- [x] **AC4 — The reference-consumer observation is recorded with provenance, and asserts
   nothing about the third party in CI.** The observation carries its date, the channel,
   the surfaces exercised and their observed outcomes, in a table a reader can re-run. No
   acceptance criterion in this repository asserts the third party's behaviour, and no
   criterion for it executes in CI. AC17's grep is the check that establishes the second
   half.
-- [ ] **AC5 — Whether the login path registers a service worker is measured under a
+- [x] **AC5 — Whether the login path registers a service worker is measured under a
   read-back `serviceWorkers: 'allow'` context, and the halves the apparatus cannot reach
   are named.** Running under `'block'` would measure the driver's own refusal rather than
   the login path, so the option is set to `'allow'` and read back from the context.
@@ -221,7 +221,7 @@ that would close it — never by prose that is true whichever way the measuremen
   needs a network log inside the sign-in window; and the controller check is
   **same-session only**, because round 10 established that a persisted worker controls the
   *first document of the next session*, which a same-session check cannot see.
-- [ ] **AC6 — Signing-identity observation #1 is recorded for the system channel only, as
+- [x] **AC6 — Signing-identity observation #1 is recorded for the system channel only, as
   team identifier, authority chain and browser version — never a filesystem path.**
   `codesign` output embeds the binary path, which for a browser resolved under a home
   directory carries the operator's username. The record states that one installation
@@ -234,7 +234,7 @@ that would close it — never by prose that is true whichever way the measuremen
   still reads "ACCEPTANCE BLOCKER", and it gains a pointer to the note carrying observation
   #1 so the deferral's "before" half is findable. The bundled channel carries no such
   record; digest pinning is its anchor.
-- [ ] **AC7 — Every operator-supplied input is supplied out of band, never through argv
+- [x] **AC7 — Every operator-supplied input is supplied out of band, never through argv
   or the environment, and is erased before any child exists.** Scope is the whole input
   set — destination host, each declared path, and the private collection identifier — not
   the identifier alone; round 14's shape was `process.env.RFC88_SPA_ORIGIN`, which is what
@@ -258,7 +258,7 @@ that would close it — never by prose that is true whichever way the measuremen
   still alter terminal state on other paths. The private collection is requested
   unauthenticated and again on the authenticated session; outcomes are status codes and
   booleans. No enumeration is performed.
-- [ ] **AC8 — Round 14's finding is tested against a third destination shape; the decoy is
+- [x] **AC8 — Round 14's finding is tested against a third destination shape; the decoy is
   planted post-authentication; and absence is gated on decoy recovery.** The decoy is
   planted by `page.evaluate` on a fresh page **after** the authenticated-state probe
   returns — never by a context init script, which would run inside the login document and
@@ -292,7 +292,7 @@ that would close it — never by prose that is true whichever way the measuremen
   *issuing response* carried a cache directive is **not** measurable under this handshake,
   because reading it needs a response listener inside the sign-in window; it is recorded
   as such.
-- [ ] **AC9 — The apparatus is split into a live capture layer and a pure row layer, and a
+- [x] **AC9 — The apparatus is split into a live capture layer and a pure row layer, and a
   synthetic capture-layer arm restores mutation coverage to the controls the split would
   otherwise strand.** Round 14's harness re-runs the whole driver per case; a driver that
   blocks on a human cannot be re-run per case. The row layer is a pure function from a
@@ -313,13 +313,13 @@ that would close it — never by prose that is true whichever way the measuremen
   independently and a row computed over a field the capture layer silently stopped emitting
   reads `ok: true` without being evaluated. Only live-third-party-specific code remains
   uncovered, and that narrower limit is what the note states.
-- [ ] **AC10 — Every declared row carries a mutation that changes that row's outcome, the
+- [x] **AC10 — Every declared row carries a mutation that changes that row's outcome, the
   harness throws on a stale anchor rather than skipping, and every anchor is unique within
   the mutable region.** A row that is a conjunction carries a case per load-bearing
   conjunct — AC1's blind-phase row most of all. Any row whose recorded outcome is a
   finding mutates **toward passing**. The unmutated baseline is recorded immediately before
   the harness runs, and the harness's own summary is persisted beside the results artifact.
-- [ ] **AC11 — The two-pass write gate covers every byte the run persists, and the needle
+- [x] **AC11 — The two-pass write gate covers every byte the run persists, and the needle
   set is specified as a prohibition with an enumerated form set.** Gated surfaces are the
   results artifact, the AC9 observation record, the mutation summary and the refusal
   record — not "the artifact" alone. Record safety is stated as a **prohibition** — no
@@ -338,7 +338,7 @@ that would close it — never by prose that is true whichever way the measuremen
   **monotonic**, and every already-persisted surface is re-scanned on each registration —
   otherwise a byte persisted before the session cookie was read was gated against a needle
   set that did not yet contain it.
-- [ ] **AC12 — Every byte written by harness JavaScript is scanned, and the bytes that are
+- [x] **AC12 — Every byte written by harness JavaScript is scanned, and the bytes that are
   not scannable are named as a residual rather than covered by a claim that cannot hold.**
   The structural control comes first: **the harness is invoked by the operator from their
   own terminal, never spawned by the orchestrating agent**, so its streams are not attached
@@ -355,7 +355,7 @@ that would close it — never by prose that is true whichever way the measuremen
   signal messages, and anything written before the patch installs — are unscannable. Round
   14's mutation harness throwing `failures.join(',')` over raw child output is the specific
   in-process path this criterion closes.
-- [ ] **AC13 — No temporary root survives any exit path, a survivor is fatal, and the
+- [x] **AC13 — No temporary root survives any exit path, a survivor is fatal, and the
   removal path is recorded.** Scope is **every** temporary root the round creates,
   including the mutation harness's, not the browser user-data directory alone. Symlinks are
   unlinked first with a mechanism that cannot follow one; confinement is established
@@ -376,7 +376,7 @@ that would close it — never by prose that is true whichever way the measuremen
   exactly once, and a bounded escalation timer makes a hung cleanup exit non-zero rather
   than hang. Terminal echo is restored on every exit path, normal and interrupted alike.
   SIGKILL is the named residual.
-- [ ] **AC14 — Both channels launch with credential-persisting browser features disabled,
+- [x] **AC14 — Both channels launch with credential-persisting browser features disabled,
   and no OS keychain item is created.** On the system channel the launched binary is the
   real vendor browser, which offers to save the operator's password and keeps its safe-storage
   key in the login keychain — neither inside the temporary profile AC13 covers. Both
@@ -388,7 +388,7 @@ that would close it — never by prose that is true whichever way the measuremen
   path straight into an AC11 needle — and records three distinct outcomes:
   `absent -> absent`, `present -> present`, `absent -> present`. Only the third is a
   failure; the second establishes nothing and says so.
-- [ ] **AC15 — Every *harness-originated* request stays inside a declared allowlist, and
+- [x] **AC15 — Every *harness-originated* request stays inside a declared allowlist, and
   in-browser navigation is a named residual rather than a claim.** Scope is the harness's
   own `fetch` and `APIRequestContext` calls: `https` only, one declared destination host,
   an exact declared path list, `redirect: 'manual'` with per-hop re-validation — round 14's
@@ -399,7 +399,7 @@ that would close it — never by prose that is true whichever way the measuremen
   that could constrain it in-browser is the route handler AC1 forbids for the run's
   lifetime. The operator's own navigation is the compensating control. A declared row
   records that every harness-originated request stayed inside the allowlist.
-- [ ] **AC16 — `rfc0088-native-addon-confinement-bypass` is re-scoped by approver ruling,
+- [x] **AC16 — `rfc0088-native-addon-confinement-bypass` is re-scoped by approver ruling,
   and the amendment entry supersedes explicitly.** The approver ruled to narrow the entry
   to configurations that grant `--allow-addons`, keeping it carried. Because the
   2026-08-23 entry closes with "no other residual is relabelled", the new amendment hunk
@@ -407,7 +407,7 @@ that would close it — never by prose that is true whichever way the measuremen
   slug stays in `[backlog].open` and stays `carried` in the digest's disposition block, so
   no peer's slug-set comparison moves. The entry records what the ruling gives up: a
   carried residual no pilot work will close.
-- [ ] **AC17 — The round's governance controls are green, and never-in-CI is asserted
+- [x] **AC17 — The round's governance controls are green, and never-in-CI is asserted
   rather than stated.** The digest covers the new note with exactly one appended entry of
   at least 120 characters carrying asked / measured / changed and no prohibited apparatus
   figure; the decision surface carries one record per open question; every RFC hunk sits
@@ -417,13 +417,13 @@ that would close it — never by prose that is true whichever way the measuremen
   `! grep -rq <pattern> <paths>` over the gate chain and workflow definitions — because a
   bare `grep` exits 1 on no-match, which a harness reads as failure rather than as the
   intended pass.
-- [ ] **AC18 — The pre-existing apparatus failure is re-established as pre-existing, not
+- [ ] **AC18 — The pre-existing apparatus failure is re-established as pre-existing, not (deferred: rfc0088-r12-fact-negative-tests-red)
   asserted from memory.** `r12-fact-negative-tests.py` must be run against this branch and
   against a clean checkout of the default branch, and the differential recorded — round 15
   extends the shared apparatus tree, so "references nothing this round edited" is a claim
   that genuinely changes and must be re-derived. Carried as
   `rfc0088-r12-fact-negative-tests-red`. This round does not claim a green full gate chain.
-- [ ] **AC19 — The round's verdict remains NOT FINAL, and residual movement is explicit.**
+- [x] **AC19 — The round's verdict remains NOT FINAL, and residual movement is explicit.**
   No blocker item closes, no disposition is withdrawn, and the status field does not move.
   **Three** register entries change and all three are named here rather than discovered in
   a diff:

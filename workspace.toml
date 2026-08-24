@@ -1254,9 +1254,12 @@ open = [
   # not discriminate -- fresh unauthenticated contexts returned "authenticated" on bundled;
   # consecutive unauthenticated renders of the account surface differed on system -- voiding
   # the sharing arms. The measurement produced a null result. Close-or-carry is an approver
-  # disposition; see the 2026-08-24 RFC amendment entry and
-  # docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md
-  # Unblocks when: a spike measures the per-group interactive sign-in cost.
+  # APPROVER RULED CARRY (2026-08-24): unblock condition satisfied as read (an attended spike
+  # ran the three-arm measurement on both channels), but null oracle ≠ "splitting is free."
+  # The question remains open for other destination classes. See the 2026-08-24 RFC amendment
+  # entry and docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md
+  # Unblocks when: a spike measures the per-group interactive sign-in cost on a destination
+  # class with a discriminating oracle.
   {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
   # Open question 6 was RULED on 2026-08-22: signing identity is the provenance anchor for
   # system channels. The same day's matrix admits the macOS system channel. The 2026-08-23
