@@ -3227,6 +3227,30 @@ open = [
   #   -> Branch protection rules -> Edit on `main` -> Require status checks to pass
   #   -> search `build` -> select -> Save changes
   { slug = "pages-build-job-not-a-required-check", source = "CI observation 2026-08-23, PR #1036", summary = "pages.yml's `build` job carries both site builds, the plugin suite, the rendered-output invariants and the browser gate but is not a required status check, and its `paths:` filter means it cannot simply be ticked as one" },
+
+  # === RFC-0088 follow-on artifacts (authorized for implementation now that the RFC is Accepted) ===
+  # These are the items listed in rfc/0088-web-pilot-foundation.md § Follow-on artifacts.
+  # Each requires a separate implementation authorization from the approver before work begins.
+  # Unblocks when: approver separately authorises implementation of the named item.
+  #
+  # ADR: library-owned broker plus bound Playwright CLI — decides between a library-in-process
+  # broker and a bound Playwright CLI as the broker deployment unit. Source: rfc/0088 follow-on list.
+  { slug = "rfc0088-adr-broker-deployment-model", source = "rfc/0088 follow-on list", summary = "Record the ADR choosing between library-owned broker and bound Playwright CLI as the broker deployment unit" },
+  # ADR: immutable adapter artifacts and no remote adapter catalogue in v1.
+  # Decides how adapter artifacts are pinned, distributed, and verified; forbids a remote catalogue.
+  { slug = "rfc0088-adr-immutable-adapter-artifacts", source = "rfc/0088 follow-on list", summary = "Record the ADR establishing immutable adapter artifacts and no remote adapter catalogue in v1" },
+  # Convention amendment: add auth: browser-session and its lint contract. Unblocks after Spec 1.
+  { slug = "rfc0088-convention-browser-session-lint", source = "rfc/0088 follow-on list", summary = "Add auth: browser-session taxonomy and its pack-lint contract to CONVENTIONS.md" },
+  # Spec 1: synthetic foundation/provider vertical, current-rail runtime delivery, browser lifecycle,
+  # authorization-order fixtures, installation-state fault-injection gate, user guide.
+  # This is the primary CI-testable spec: a pinned container fixture drives the full login →
+  # token → frontend-API path with synthetic credentials. Includes Q3's deferred CI contract clause.
+  { slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Spec 1: synthetic foundation/provider vertical — pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, install/admit/activate/upgrade/rollback/repair gate, user guide for login handoff and recovery" },
+  # Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction,
+  # authorization, and network/filesystem policy contracts. Q5's declaration carrier lives here.
+  { slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction, authorization, and network/filesystem policy contracts; carries Q5's destination-credential-exposure declaration requirement" },
+  # Spec 3: developer workbench, supervised probes, packaging/provenance review, repair workflow.
+  { slug = "rfc0088-spec-3-developer-workbench", source = "rfc/0088 follow-on list", summary = "Spec 3: developer workbench, supervised probes, packaging and provenance review, and repair workflow" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
