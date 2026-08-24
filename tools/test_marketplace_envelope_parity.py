@@ -1261,9 +1261,17 @@ def test_resolved_layer_refuses_a_str_subclass(tmp_path: Path) -> None:
 
 
 def test_resolved_layer_fails_loudly_when_the_package_is_unimportable(tmp_path: Path) -> None:
-    """A layer that cannot read must fail, never degrade to a skip."""
-    root = tmp_path / "empty"
-    (root / BUILD_MAIN).parent.mkdir(parents=True)
+    """A layer that cannot read must fail, never degrade to a skip.
+
+    Built through `_package_fixture` rather than by planting a lone `main.py`, so the
+    fixture is a REGULAR package. A hand-built tree with no `__init__.py` is a PEP 420
+    namespace package, and a namespace package loses to a regular one on `sys.path`
+    regardless of order — so on any machine with `agentbundle` installed in
+    site-packages the child resolved THAT copy and raised the provenance refusal
+    instead of the import failure this case is about. The assertion then failed on the
+    message, and the whole case only passed where the package happened to be absent.
+    """
+    root = _package_fixture(tmp_path)
     (root / BUILD_MAIN).write_text("", encoding="utf-8")
     with pytest.raises(ParityError, match="child failed"):
         resolve_build_main_constants(root)
