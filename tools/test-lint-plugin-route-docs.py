@@ -112,6 +112,38 @@ def main() -> int:
                len(out) == len(lint.SITES) and len(out) > 0,
                f"got {len(out)} of {len(lint.SITES)}")
 
+    # The positional legacy fixture is copied from research-pack/spec.md:190;
+    # the uninstall line is copied from m3-desk-research-rename/plan.md:303.
+    # The nested case proves recursive guides/ discovery, not just matching.
+    install_cases = [
+        ("agentbundle install --pack research", True, "retired-install.md"),
+        ("agentbundle install research --scope user", True, "retired-install.md"),
+        ("agentbundle install ./my-catalogue --pack research", True, "retired-install.md"),
+        ("agentbundle install <catalogue-uri> --pack research", True, "retired-install.md"),
+        ("agentbundle install --pack=research", True, "retired-install.md"),
+        ("agentbundle install --pack research --scope user", True, "nested/retired.md"),
+        ("agentbundle install --pack research-tools", False, "current-install.md"),
+        ("agentbundle install --pack desk-research", False, "current-install.md"),
+        ("agentbundle install desk-research", False, "current-install.md"),
+        ("agentbundle install --pack=desk-research", False, "current-install.md"),
+        ("agentbundle uninstall research --adapter <adapter>", False, "uninstall.md"),
+        ("This research guide explains the method.", False, "prose.md"),
+        ("agentbundle install --pack core", False, "current-install.md"),
+    ]
+    for line, should_fire, relative_path in install_cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "guides" / relative_path
+            path.parent.mkdir(parents=True)
+            path.write_text(f"{line}\n", encoding="utf-8")
+            out = lint.check(root)
+            fired = any("retired pack id `research`" in message for message in out)
+            _check(
+                f"retired install guard: {line!r}",
+                fired is should_fire,
+                f"expected fire={should_fire}, got fire={fired}; output={out}",
+            )
+
     if FAILURES:
         print(f"test-lint-plugin-route-docs: FAIL ({len(FAILURES)})", file=sys.stderr)
         return 1

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Assert no doc offers the Claude-plugin route for a pack that cannot use it.
+"""Assert install-route documentation does not make false catalogue claims.
 
 Per-site `(path, pattern, expected)` rather than one repo-wide grep, because the
-sites do not share a pattern — `README.md` writes `claude plugin install`,
-several guides write `/plugin install`, and two files name the dist-tree path
-`<output>/claude-plugins/core/…`. A single `! grep -q 'claude plugin install'`
-would pass green on most of them.
+plugin-route sites do not share a pattern — `README.md` writes `claude plugin
+install`, several guides write `/plugin install`, and two files name the
+dist-tree path `<output>/claude-plugins/core/…`. A single `! grep -q 'claude
+plugin install'` would pass green on most of them. The retired-pack guard is
+the exception: it scans every guide because the false install claim could be
+introduced anywhere in the adopter-facing tree.
 
 Each entry also asserts its file **exists**, so a rename is not a silent pass —
 the failure mode of every absence-only check.
@@ -20,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -47,6 +50,18 @@ def _offers(pack: str) -> list[str]:
 
 
 _NO_REPO_ONLY_OFFER = [pat for p in REPO_ONLY for pat in _offers(p)]
+
+# `research` was renamed to `desk-research`. Keep command detection separate
+# from pack-argument detection: `--pack` may appear after the catalogue URI,
+# while the legacy positional spelling appeared immediately after `install`.
+# The explicit bounds treat hyphens as part of an id, unlike ``\b``.
+_INSTALL_COMMAND_RE = re.compile(r"\bagentbundle\s+install\b")
+_RETIRED_PACK_FLAG_RE = re.compile(
+    r"--pack(?:\s+|=)(?<![A-Za-z0-9_-])research(?![A-Za-z0-9_-])"
+)
+_RETIRED_LEGACY_PACK_RE = re.compile(
+    r"\bagentbundle\s+install\s+(?<![A-Za-z0-9_-])research(?![A-Za-z0-9_-])"
+)
 
 SITES: list[tuple[str, list[str], list[str]]] = [
     # (path, forbidden substrings, required substrings)
@@ -83,6 +98,33 @@ SITES: list[tuple[str, list[str], list[str]]] = [
 ]
 
 
+def _offers_retired_research_install(line: str) -> bool:
+    """Return whether one line offers either retired ``research`` install form."""
+
+    return bool(_INSTALL_COMMAND_RE.search(line)) and bool(
+        _RETIRED_PACK_FLAG_RE.search(line) or _RETIRED_LEGACY_PACK_RE.search(line)
+    )
+
+
+def _retired_guide_install_failures(root: Path) -> list[str]:
+    """Return guide diagnostics for the retired ``research`` pack install form."""
+
+    guides_root = root / "guides"
+    if not guides_root.is_dir():
+        return []
+
+    failures: list[str] = []
+    for path in sorted(guides_root.rglob("*.md")):
+        body = path.read_text(encoding="utf-8", errors="replace")
+        for line_number, line in enumerate(body.splitlines(), start=1):
+            if _offers_retired_research_install(line):
+                failures.append(
+                    f"{GATE}: {path.relative_to(root)}:{line_number} offers retired "
+                    "pack id `research`; use `desk-research`"
+                )
+    return failures
+
+
 def check(root: Path) -> list[str]:
     failures: list[str] = []
     for rel, forbidden, required in SITES:
@@ -106,6 +148,7 @@ def check(root: Path) -> list[str]:
                     f"{GATE}: {rel} is missing {pat!r} — the scope precondition "
                     f"is stated once and referenced; this reference is gone"
                 )
+    failures.extend(_retired_guide_install_failures(root))
     return failures
 
 
