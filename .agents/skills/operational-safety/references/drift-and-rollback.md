@@ -1,8 +1,9 @@
 # drift-and-rollback — read-only drift detection, known-good re-apply path
 
 > **Loaded when:** the change manages long-lived infrastructure that can drift
-> from its declared state, or where a deploy needs a defined recovery path if
-> the smoke probe fails.
+> from its declared state; a deploy needs a defined recovery path if the smoke
+> probe fails; or a persistent-state migration needs validation,
+> reconciliation, and recovery for both code and already-mutated data.
 > **Grounded in:** F1.4 (drift detection is read-only and separable from
 > remediation; auto-remediation default is contested), F2.6 (no atomic
 > rollback — re-apply the prior known-good config). Operational taxonomy: AWS
@@ -31,6 +32,24 @@ is mutating and gated.
   small increments and a real smoke probe (see `observability-and-smoke`) are
   what keep rollback rarely needed. Flag a large, all-at-once apply with no
   early-detection layer in front of it.
+
+## Persistent-state migration checks
+
+- `hybrid` **Validation and reconciliation detect partial divergence.** Define
+  counts, invariants, checksums, or sampled semantic comparisons that expose
+  missing, duplicated, stale, or malformed migrated records. Reconciliation is
+  safe to repeat and reports unresolved differences rather than declaring the
+  migration complete from command exit alone.
+- `reason` **Rollback covers code and already-mutated data.** Rolling back the
+  binary is insufficient when new writes or a backfill have changed durable
+  representation. Name whether the old code remains compatible, data is
+  reversibly transformed, forward-fix is the recovery path, or rollback is
+  deliberately impossible—and test the selected path before rollout.
+- `reason` **Retention, deletion, and irreversible loss are explicit gates.**
+  Before dropping a field, table, payload version, checkpoint, or original
+  value, establish the retention window, backup or restoration evidence, and
+  the human-authorized point of no return. Privacy and access-control policy
+  remain with the security lens; this check owns operational recoverability.
 
 ## The auto-remediation default — an unresolved tension (surface, do not resolve)
 

@@ -76,6 +76,12 @@ pass, or interrupted report is not that gate.
    You do **not** load the skill yourself; if no modules were inlined, fall back
    to your own reliability/observability checklists and say so. **You remain the
    consumer — no new reviewer is added** for operational safety.
+   The same consumer rule applies to **persistent-state compatibility** work:
+   database or durable-schema changes, retained payloads, backfills, replays,
+   destructive transformations, and old/new binaries sharing state route only
+   the matching migration modules into this review. An ordinary stateless code
+   change records `stateful migration: not triggered` and does not expand the
+   checklist.
 
 If you skip step 1 you cannot do your job — recommending a test style
 the repo has already rejected is the most common quality-reviewer

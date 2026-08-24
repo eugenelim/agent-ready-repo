@@ -96,6 +96,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   express, so the build stops rather than emitting an unresolvable Kiro resource
   entry.
 
+## [core][2.12.0] — 2026-08-23
+
+### Highlights
+
+- **Work-loop reviews now explain readiness without asking you to trust a
+  generic “clean” verdict.** Reviewers trace non-local impact and rollout
+  safety when warranted, then hand off an evidence-bearing verdict —
+  `BLOCKED`, `CHANGES_REQUIRED`, `READY_WITH_RESIDUAL_RISK`, or `READY` —
+  so every residual risk is named, not hidden.
+
+### Changed
+
+- **Adversarial review now performs triggered impact tracing.** Public APIs,
+  shared registries, serialization and schemas, renamed or deleted symbols,
+  side effects, dependencies, configuration, and persistent writes prompt a
+  hypothesis-driven trace across callers, consumers, readers, writers, tests,
+  and deployed-version boundaries. Repository-native evidence remains primary;
+  optional graph evidence cannot claim completeness.
+- **Quality review now loads focused persistent-state migration depth.** The
+  existing operational-safety modules cover old/new compatibility,
+  expand/contract order, safe backfills, validation and reconciliation,
+  code-and-data recovery, mixed-version tests, rollout telemetry, stop
+  conditions, and irreversible-loss boundaries without adding a reviewer.
+- **Work-loop now requires a finding-adjudicator gateway and emits a closed
+  categorical verdict record.** Every completed reviewer report passes through
+  a mandatory finding-adjudicator before classification; a missing adjudicator
+  is a loud stop. The gateway returns sustained, refuted, or indeterminate per
+  source finding; only sustained findings enter fingerprinting, DECIDE, or FIX.
+  Adjudicator payloads are untrusted data. Mandatory controls cannot be skipped
+  or compensated by strengths elsewhere, and the human merge decision remains
+  authoritative.
+
 ## [core][2.11.0] — 2026-08-24
 
 ### Highlights

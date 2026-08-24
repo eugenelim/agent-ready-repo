@@ -1,0 +1,3 @@
+## Blockers
+
+**1. Persistent-state routing still has a contradictory load gate.** `packs/core/.apm/skills/operational-safety/SKILL.md:29`. `work-loop` now correctly routes persistent representation and mixed-version deployment changes independently of infra/destructive work, but the `operational-safety` skill still says its modules load only when the change is infra/destructive and the destructive/irreversible trigger fired, so the canonical module-loading instructions still exclude non-destructive migrations. Fix: update the skill description, How-it-loads paragraph, and module-index lead-in to include persistent representation / mixed-version deployment as an independent load condition.

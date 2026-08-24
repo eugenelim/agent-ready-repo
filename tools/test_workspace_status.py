@@ -1509,8 +1509,11 @@ _WORK_LOOP_CONTRACT_HASH = (
 # warranted set, and make a missing `finding-adjudicator` a hard block. Those
 # bullets describe reviewer routing only; the doc-drift bullet that owns the
 # spec `Status: Shipped` write is unchanged, so the engine needs no edit.
+# Reconciled 2026-08-24: checklist distinguishes mandatory from non-mandatory
+# reviewers and requires a `review-verdict.v1` record; both are reviewer-readiness
+# concerns, engine needs no edit (no spec.md write or workspace.toml mutation).
 _WORK_LOOP_FINISH_HASH = (
-    "f9f7b046676a42c283103020e245d0889981c1a0aac825352077d2d1bd74e0f3"
+    "f562b55548d6aff707e49dc0b67699de8bdc32972885a438495bf56ead172ff6"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

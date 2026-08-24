@@ -150,6 +150,19 @@ checklists; verification-mode awareness applies to every review.
    the criterion were broken — in the mode named by Testing Strategy.
    Map each criterion → artifact `file:line`. If you can't, that's a
    Blocker.
+   **Triggered non-local impact tracing.** When the diff changes a public API
+   or signature, shared registry, serialization or schema, renamed / moved /
+   deleted symbol, side effect, dependency or configuration, or a
+   persistent-state write, trace the callers and consumers, readers and
+   writers, tests, and deployed-version boundaries needed to test a concrete
+   risk hypothesis. Start with repository-native evidence (`rg`, language
+   tooling, compiler or typechecker, tests, and static analysis). Record which
+   changed code and inspected unchanged code support the conclusion, and mark
+   inferred relations separately from tool-proven relations. A repository
+   graph, when available, is an optional evidence source; neither graph output
+   nor partial textual search can claim completeness. Name blind spots such as
+   reflection, generated code, runtime configuration, databases, and
+   cross-service edges instead of implying they were covered.
 2. **Edge cases.** Empty input, max input, malformed input, concurrent
    access, partial failure. Cite specific cases the diff handles, and
    specific cases it might not.
