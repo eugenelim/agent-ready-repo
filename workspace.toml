@@ -2705,19 +2705,6 @@ open = [
   # the unconditional step, keeping requirements-sast.txt as the canonical input
   # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
-  # pip-audit covers tools/requirements.txt and every packs/*/requirements.txt
-  # (Makefile:235) and the PEP 517 build-system requirements (Makefile:238). It
-  # does NOT cover tools/requirements-sast.txt,
-  # tools/requirements-ci-security-locked.txt, or tools/requirements-evals-locked.txt
-  # -- the CI tooling itself has no SCA. The evals file was added here by
-  # spec/stale-reference-corrections: it is equally unaudited and fell outside every
-  # other entry, so nothing named it.
-  # Confirmed by reading the audit invocations, not inferred. Adjacent to
-  # npm-dependabot-wiring but a different ecosystem and a different file set.
-  # Fix: add the three CI-tooling requirements files to the audit-requirements.py
-  # invocation, or wire Dependabot for pip so the bumps arrive as PRs. Decide
-  # which, then do one -- doing both duplicates the noise.
-  {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt, requirements-ci-security-locked.txt, and requirements-evals-locked.txt SCA coverage -- pip-audit skips all three today", source = "spec/build-check-coverage-gaps security review"},
   # Semgrep's signal for a target it could not parse depends on HOW it failed.
   # A PARTIAL failure (unbalanced bracket, stray token) does surface as a
   # path-attributed PartialParsing entry in `errors`, and --strict escalates it

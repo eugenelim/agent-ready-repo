@@ -18,6 +18,7 @@ file whose remainder is empty says so rather than passing quietly.
 
 Usage:
     audit-requirements.py <requirements.txt> [<requirements.txt> ...]
+    audit-requirements.py --tools-manifests
     audit-requirements.py --optional-group <name> <pyproject.toml> [...]
 """
 
@@ -47,6 +48,12 @@ _PIP_AUDIT_TIMEOUT_S = 300
 # exit 0 without touching a tracked file.
 _SCRUBBED_ENV_PREFIXES = ("PIP_AUDIT_",)
 _SCRUBBED_ENV_NAMES = ("PIP_INDEX_URL", "PIP_EXTRA_INDEX_URL")
+
+# requirements-sast.txt has its own direct pip-audit invocation in Makefile,
+# where four accepted Semgrep transitive-dependency CVEs are suppressed. Do not
+# include it here: removing those suppressions or auditing the file twice would
+# respectively regress the accepted allowlist or duplicate SCA findings.
+_DIRECT_SAST_MANIFEST = "requirements-sast.txt"
 
 
 def _scrubbed_env() -> dict[str, str]:
@@ -78,6 +85,15 @@ def first_party_names(root: Path) -> set[str]:
                 names.add(_canonical(match.group(1)))
                 break
     return names
+
+
+def tools_requirements_manifests(tools_dir: Path) -> list[Path]:
+    """Return every tools requirements manifest except the direct SAST manifest."""
+    return [
+        path
+        for path in sorted(tools_dir.glob("requirements*.txt"))
+        if path.is_file() and not path.is_symlink() and path.name != _DIRECT_SAST_MANIFEST
+    ]
 
 
 # Option lines that pull in dependencies pip-audit would have to resolve. A
@@ -259,6 +275,19 @@ def main(argv: list[str]) -> int:
             print(f"audit-requirements: {exc}", file=sys.stderr)
             return 2
         return audit_lines("build-system-requirements", requirements, first_party)
+
+    if argv == ["--tools-manifests"]:
+        paths = tools_requirements_manifests(_REPO_ROOT / "tools")
+        if not paths:
+            print(
+                "audit-requirements: found no tools/requirements*.txt manifests",
+                file=sys.stderr,
+            )
+            return 2
+        failed = 0
+        for path in paths:
+            failed |= audit(path, first_party)
+        return 1 if failed else 0
 
     if argv[0] == "--optional-group":
         if len(argv) < 3:

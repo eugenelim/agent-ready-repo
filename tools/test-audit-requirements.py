@@ -11,9 +11,11 @@ was removed.
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -45,6 +47,25 @@ def check(label: str, condition: bool, detail: str = "") -> None:
     else:
         FAILURES.append(f"{label}{': ' + detail if detail else ''}")
         print(f"  FAIL {label} {detail}")
+
+
+_MAKE_TARGET = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\- ]*?\s*::?(?!=)")
+
+
+def sast_unleased_recipe_lines(makefile: str) -> list[str]:
+    """Return target recipe lines, retaining Make conditionals but not define bodies."""
+    lines = makefile.splitlines()
+    try:
+        start = lines.index("sast-unleased:")
+    except ValueError:
+        return []
+    recipe: list[str] = []
+    for line in lines[start + 1:]:
+        if line.startswith(("\t", " ")):
+            recipe.append(line)
+        elif line.startswith("define ") or _MAKE_TARGET.match(line.split("#", 1)[0]):
+            break
+    return recipe
 
 
 def main() -> int:
@@ -207,39 +228,39 @@ def main() -> int:
                     "AUDIT_SELFTEST_KEEP_ME"):
             _os.environ.pop(key, None)
 
-    # 12. THE AUDITED SET HAS A FLOOR.
-    #     Makefile's `$(find packs -name requirements.txt | sort)` has its exit
-    #     status swallowed by the pipeline, so a renamed, moved or deleted manifest
-    #     shrinks the audited input silently at exit 0 and nothing notices the gate
-    #     covers less than it did. Pin the shape AND the count.
+    # 12. THE PACKS AUDITED SET HAS A FLOOR.
+    #     A renamed, moved or deleted pack manifest must not silently shrink the
+    #     SCA input at exit 0. Pin the shape AND the count.
     repo_root = _HERE.parent
     makefile = (repo_root / "Makefile").read_text(encoding="utf-8")
-    # A recipe line, not the SAST_CONFIG assignment that also names the script:
-    # match on the invocation prefix so `SAST_CONFIG := … tools/audit-requirements.py …`
-    # cannot satisfy this case (it did, on the first attempt).
-    audit_invocation = next(
-        (
-            line for line in makefile.splitlines()
-            if line.lstrip("\t ").startswith("python3 tools/audit-requirements.py")
-            and "--build-system" not in line
-            and "--optional-group" not in line
+    makefile_lines = sast_unleased_recipe_lines(makefile)
+    check(
+        "the packs audit invocation is present",
+        any(
+            line.lstrip("\t ").startswith(
+                "python3 tools/audit-requirements.py "
+                "$$(find packs -name requirements.txt | sort)"
+            )
+            for line in makefile_lines
         ),
-        "",
     )
     check(
-        "the packs+tools audit invocation was located in the Makefile",
-        bool(audit_invocation),
-        "no `python3 tools/audit-requirements.py <manifests>` recipe line found",
+        "the tools-manifests audit invocation is present",
+        any(
+            line.lstrip("\t ").startswith(
+                "python3 tools/audit-requirements.py --tools-manifests"
+            )
+            for line in makefile_lines
+        ),
     )
     check(
-        "the Makefile still enumerates packs manifests by find",
-        "find packs -name requirements.txt" in audit_invocation,
-        audit_invocation.strip(),
-    )
-    check(
-        "the Makefile still audits tools/requirements.txt explicitly",
-        "tools/requirements.txt" in audit_invocation,
-        audit_invocation.strip(),
+        "the direct SAST audit matches the resolver exclusion",
+        any(
+            line.lstrip("\t ").startswith(
+                f"@pip-audit -r tools/{_MOD._DIRECT_SAST_MANIFEST}"
+            )
+            for line in makefile_lines
+        ),
     )
     pack_manifests = sorted(
         path.relative_to(repo_root).as_posix()
@@ -252,10 +273,10 @@ def main() -> int:
         f"raise _EXPECTED_PACK_MANIFESTS in the same commit; if one vanished, the "
         f"SCA input just shrank and that is the failure this case exists for.",
     )
-    #     A NEW tools/requirements*.txt must not silently join the unaudited set.
-    #     The three below are unaudited today and tracked as
-    #     `sast-requirements-not-audited` in workspace.toml [backlog].open; this
-    #     case pins the roster so a fourth is a deliberate decision.
+    # 13. THE TOOLS AUDITED SET IS CONSTRUCTED BY THE AUDITOR.
+    #     A new matching manifest joins the audit without a Makefile edit. The
+    #     direct SAST manifest remains excluded because its accepted-CVE
+    #     suppressions belong to its dedicated pip-audit invocation.
     tools_manifests = sorted(
         path.name for path in (repo_root / "tools").glob("requirements*.txt")
     )
@@ -263,8 +284,46 @@ def main() -> int:
         "the tools/ manifest roster is unchanged",
         tools_manifests == _EXPECTED_TOOLS_MANIFESTS,
         f"found {tools_manifests}, expected {_EXPECTED_TOOLS_MANIFESTS}. A new "
-        f"tools/requirements*.txt is unaudited until it is added to the Makefile "
-        f"invocation or dispositioned under sast-requirements-not-audited.",
+        f"tools/requirements*.txt is selected automatically by the auditor.",
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        tools_dir = Path(tmp)
+        for name in (
+            "requirements.txt",
+            "requirements-ci-security-locked.txt",
+            "requirements-evals-locked.txt",
+            "requirements-extra.txt",
+            "requirements-linked.txt",
+            "requirements-sast.txt",
+            "not-a-requirements.txt",
+        ):
+            (tools_dir / name).write_text("example>=1\n", encoding="utf-8")
+        resolved = [
+            path.name for path in _MOD.tools_requirements_manifests(tools_dir)
+        ]
+        with mock.patch.object(
+            Path,
+            "is_symlink",
+            lambda path: path.name == "requirements-linked.txt",
+        ):
+            resolved_without_symlink = [
+                path.name for path in _MOD.tools_requirements_manifests(tools_dir)
+            ]
+    check(
+        "tools resolver includes every matching manifest except direct SAST",
+        resolved == [
+            "requirements-ci-security-locked.txt",
+            "requirements-evals-locked.txt",
+            "requirements-extra.txt",
+            "requirements-linked.txt",
+            "requirements.txt",
+        ],
+        str(resolved),
+    )
+    check(
+        "tools resolver ignores symlink candidates",
+        "requirements-linked.txt" not in resolved_without_symlink,
+        str(resolved_without_symlink),
     )
 
     if FAILURES:

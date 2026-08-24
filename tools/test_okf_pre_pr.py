@@ -33,6 +33,7 @@ def _load(name: str, path: Path):
 
 
 okf_check = _load("check_okf_managed_packs", REPO_ROOT / "tools" / "check-okf-managed-packs.py")
+audit_requirements = _load("audit_requirements", REPO_ROOT / "tools" / "audit-requirements.py")
 
 
 def _write_pack(root: Path, name: str, *, okf_path: str = "okf/demo") -> Path:
@@ -501,7 +502,11 @@ class OkfCheckGateTests(unittest.TestCase):
         self.assertIn("SAST_DIRS := tools packs packages tests", makefile)
         self.assertIn("tools/run-bandit-gate.py $(SAST_DIRS)", makefile)
         self.assertIn("$(SEMGREP_EXCLUDE) $(SAST_DIRS)", makefile)
-        self.assertIn("tools/audit-requirements.py tools/requirements.txt", makefile)
+        # test-audit-requirements.py owns the comment-rejecting invocation check.
+        resolved_tools_manifests = audit_requirements.tools_requirements_manifests(
+            REPO_ROOT / "tools"
+        )
+        self.assertIn(REPO_ROOT / "tools" / "requirements.txt", resolved_tools_manifests)
         self.assertIn("$$(find packs -name requirements.txt | sort)", makefile)
         self.assertIn("--optional-group lint", makefile)
         self.assertIn("packages/agentbundle/pyproject.toml", makefile)

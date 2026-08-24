@@ -279,7 +279,11 @@ sast-unleased:
 	# `dependencies = []` on both, so they contribute no tree, and resolving them
 	# against the public index would couple a merge to a release that has not
 	# happened yet. Every skip is printed. See tools/audit-requirements.py.
-	python3 tools/audit-requirements.py tools/requirements.txt $$(find packs -name requirements.txt | sort)
+	python3 tools/audit-requirements.py $$(find packs -name requirements.txt | sort)
+	# Discover tools/requirements*.txt in the auditor so a new CI manifest is
+	# covered at once; requirements-sast.txt remains on its direct, suppression-
+	# bearing invocation below.
+	python3 tools/audit-requirements.py --tools-manifests
 	# Audit the PEP 517 backends that execute during package builds. Extract the
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
 	python3 tools/audit-requirements.py --build-system \
