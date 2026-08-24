@@ -124,7 +124,7 @@ label = "Cross-cutting"
 
 [[guide_groups]]
 dir = "iac-terraform"
-label = "IaC (Terraform)"
+label = "Terraform and OpenTofu"
 
 [[guide_groups]]
 dir = "catalogue-curation"

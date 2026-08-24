@@ -178,7 +178,7 @@ def test_no_sibling_label_collision_anywhere_in_the_real_tree():
 def test_every_guides_directory_is_declared_in_site_toml():
     """AC8. An undeclared directory silently takes the title-cased fallback and
     is appended last — `iac-terraform` would read "Iac Terraform" rather than
-    its curated "IaC (Terraform)"."""
+    its curated "Terraform and OpenTofu"."""
     dirs = {p.name for p in (REPO_ROOT / "guides").iterdir() if p.is_dir()}
     with (REPO_ROOT / "site.toml").open("rb") as f:
         declared = {g["dir"] for g in tomllib.load(f).get("guide_groups", [])}
@@ -400,7 +400,7 @@ def test_no_projected_sidebar_label_is_a_retired_string():
 
     Scope is exactly what `_pairs(_guides_group())` yields — the slug-bearing
     items inside the `Guides` super-group. Group labels carry no slug and are not
-    covered here; `IaC (Terraform)` is a group label and is deliberately retained
+    covered here; `Terraform and OpenTofu` is a group label and is deliberately retained
     (see `notes/render-review.md`).
     """
     offenders = {slug: label for slug, label in _pairs(_guides_group())
