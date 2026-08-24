@@ -395,3 +395,22 @@ The per-slug partition, in its four declared states, is recorded in the disposit
 block below and checked mechanically against a committed pre-round snapshot. The
 approver's decision surface is the round-13 amendment entry in the RFC, not this
 document.
+
+## Round fifteen
+
+**`spikes/2026-08-24-reference-consumer-observation.md`** — Asked whether an attended
+reference-consumer observation on both admitted channels (bundled Chromium and system Chrome)
+establishes the open-question-3 bar and yields the five further measurements that require a live
+authenticated session. Measured: the authentication oracle does not discriminate on this
+destination class on either channel (always-positive probe on bundled; unstable unauthenticated
+baseline on system), voiding the split-cost arms and producing a null result; no service worker
+registers at the login path on either channel; web-storage values are plaintext-scannable at rest
+and the registered credential term was found, while cookie-store values are encrypted at rest
+(OSCrypt platform scheme) and no byte-scan absence claim is possible for that class; the private
+variant of the readable-by-identifier collection gates at the body level (200 both ways,
+authenticated response larger); signing identity observation #1 recorded for the system channel
+(team EQHXZ8M8AV, Developer ID chain, v151.0.7922.170, 2026-08-24). Changed:
+`rfc0088-signing-identity-update-survival` reclassified from acceptance blocker to post-acceptance
+observation and gains a pointer to observation #1; `rfc0088-destination-group-split-cost` comment
+updated with the measured null result, close-or-carry decision put to the approver. Round verdict:
+NOT FINAL. The approver's decision on the split-cost slug is the remaining open surface.

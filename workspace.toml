@@ -162,6 +162,7 @@ active  = [
 shipped = [
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
   {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
+  {path = "docs/specs/rfc0088-round15-reference-consumer/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run the reference-consumer observation on both admitted channels and record the per-group split-cost measurement result", needs = []},
   # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
@@ -1248,14 +1249,27 @@ open = [
   # its session; if each extra group costs an interactive sign-in, fine grouping is
   # theoretical. Spike A showed profile-bound re-attach works and spike E showed a fresh
   # profile needs a real sign-in, which suggests one sign-in per group -- suggests, not measures.
-  # Unblocks when: a spike measures the per-group interactive sign-in cost.
+  # ROUND-15 RESULT (2026-08-24): the three-arm measurement was attempted on both channels
+  # (bundled Chromium and system Chrome). On both channels the authenticated-state oracle did
+  # not discriminate -- fresh unauthenticated contexts returned "authenticated" on bundled;
+  # consecutive unauthenticated renders of the account surface differed on system -- voiding
+  # the sharing arms. The measurement produced a null result. Close-or-carry is an approver
+  # APPROVER RULED CARRY (2026-08-24): unblock condition satisfied as read (an attended spike
+  # ran the three-arm measurement on both channels), but null oracle ≠ "splitting is free."
+  # The question remains open for other destination classes. See the 2026-08-24 RFC amendment
+  # entry and docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md
+  # Unblocks when: a spike measures the per-group interactive sign-in cost on a destination
+  # class with a discriminating oracle.
   {slug = "rfc0088-destination-group-split-cost", source = "rfc/0088 item 6 per-group amendment"},
   # Open question 6 was RULED on 2026-08-22: signing identity is the provenance anchor for
-  # system channels. The same day's matrix admits the macOS system channel, so this is an
-  # ACCEPTANCE BLOCKER rather than a later-admission precondition -- an earlier draft demoted
-  # it on a bundled-only reading that the approver corrected. Round 12 AC5 measured present-run
-  # verification and tamper discrimination; neither can observe update survival, and one
-  # installation cannot observe an update at all.
+  # system channels. The same day's matrix admits the macOS system channel. The 2026-08-23
+  # deferrals entry DOWNGRADED this to a POST-ACCEPTANCE OBSERVATION (not an acceptance
+  # blocker): acceptance does not wait on it; the first dated observation is taken during pilot
+  # operation and the second is carried by an RFC update when a real vendor update occurs.
+  # Round 12 AC5 measured present-run verification and tamper discrimination; neither can
+  # observe update survival, and one installation cannot observe an update at all.
+  # Observation #1 (2026-08-24): see
+  # docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md
   # Unblocks when: the same system browser is read before and after a real update, as a second
   # dated observation.
   {slug = "rfc0088-signing-identity-update-survival", source = "spec/rfc0088-round12-consumer-shaped-residuals AC5"},
@@ -3213,6 +3227,30 @@ open = [
   #   -> Branch protection rules -> Edit on `main` -> Require status checks to pass
   #   -> search `build` -> select -> Save changes
   { slug = "pages-build-job-not-a-required-check", source = "CI observation 2026-08-23, PR #1036", summary = "pages.yml's `build` job carries both site builds, the plugin suite, the rendered-output invariants and the browser gate but is not a required status check, and its `paths:` filter means it cannot simply be ticked as one" },
+
+  # === RFC-0088 follow-on artifacts (authorized for implementation now that the RFC is Accepted) ===
+  # These are the items listed in rfc/0088-web-pilot-foundation.md § Follow-on artifacts.
+  # Each requires a separate implementation authorization from the approver before work begins.
+  # Unblocks when: approver separately authorises implementation of the named item.
+  #
+  # ADR: library-owned broker plus bound Playwright CLI — decides between a library-in-process
+  # broker and a bound Playwright CLI as the broker deployment unit. Source: rfc/0088 follow-on list.
+  { slug = "rfc0088-adr-broker-deployment-model", source = "rfc/0088 follow-on list", summary = "Record the ADR choosing between library-owned broker and bound Playwright CLI as the broker deployment unit" },
+  # ADR: immutable adapter artifacts and no remote adapter catalogue in v1.
+  # Decides how adapter artifacts are pinned, distributed, and verified; forbids a remote catalogue.
+  { slug = "rfc0088-adr-immutable-adapter-artifacts", source = "rfc/0088 follow-on list", summary = "Record the ADR establishing immutable adapter artifacts and no remote adapter catalogue in v1" },
+  # Convention amendment: add auth: browser-session and its lint contract. Unblocks after Spec 1.
+  { slug = "rfc0088-convention-browser-session-lint", source = "rfc/0088 follow-on list", summary = "Add auth: browser-session taxonomy and its pack-lint contract to CONVENTIONS.md" },
+  # Spec 1: synthetic foundation/provider vertical, current-rail runtime delivery, browser lifecycle,
+  # authorization-order fixtures, installation-state fault-injection gate, user guide.
+  # This is the primary CI-testable spec: a pinned container fixture drives the full login →
+  # token → frontend-API path with synthetic credentials. Includes Q3's deferred CI contract clause.
+  { slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Spec 1: synthetic foundation/provider vertical — pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, install/admit/activate/upgrade/rollback/repair gate, user guide for login handoff and recovery" },
+  # Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction,
+  # authorization, and network/filesystem policy contracts. Q5's declaration carrier lives here.
+  { slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction, authorization, and network/filesystem policy contracts; carries Q5's destination-credential-exposure declaration requirement" },
+  # Spec 3: developer workbench, supervised probes, packaging/provenance review, repair workflow.
+  { slug = "rfc0088-spec-3-developer-workbench", source = "rfc/0088 follow-on list", summary = "Spec 3: developer workbench, supervised probes, packaging and provenance review, and repair workflow" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
