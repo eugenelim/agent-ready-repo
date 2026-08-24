@@ -416,6 +416,7 @@ test-unleased: lint-editable-install
 	@test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
 	npm run test:plugins --prefix docs-site
 	$(PYTHON) tools/test-pages-workflow.py
+	$(PYTHON) tools/test-pages-concurrency.py
 	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q

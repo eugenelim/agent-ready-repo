@@ -33,6 +33,11 @@ concurrency:
   group: codeql-${{ github.ref }}
   cancel-in-progress: true
 
+# Default floor for any future job. The analyzer's elevated permissions remain
+# scoped to that job below.
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: CodeQL analyze (python)
