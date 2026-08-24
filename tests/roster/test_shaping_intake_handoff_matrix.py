@@ -114,17 +114,17 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "resolution_code": None,
         "effects": [],
     },
-    # `consumer` below names the skill that receives the handoff *payload*, and
-    # is deliberately not the pack manifest's `consumers` key: CAT-V-019 resolves
-    # manifest `consumers` inside the declaring pack and `providers` inside the
-    # target pack, so work-intake is a manifest *provider* and a payload consumer.
+    # `consumer` below projects the declaring pack's manifest `consumers` list
+    # verbatim. CAT-V-019 resolves `consumers` inside the declaring pack, so for
+    # these product-engineering cases they are its own shaping skills; Core's
+    # work-intake is the manifest `provider` of the capability they consume.
     {
         "id": "product-engineering-compatible-core",
         "disposition": "machine",
         "role": "delivery-contract",
         "machine_handoff": True,
         "capability": CAPABILITY,
-        "consumer": ["skill:work-intake"],
+        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
         "fallback_declared": True,
         "effects": [],
     },
@@ -134,7 +134,7 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "role": "delivery-contract",
         "machine_handoff": False,
         "capability": None,
-        "consumer": ["skill:work-intake"],
+        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
         "fallback_declared": True,
         "effects": [],
     },
@@ -144,7 +144,7 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "role": "delivery-contract",
         "machine_handoff": False,
         "capability": None,
-        "consumer": ["skill:work-intake"],
+        "consumer": ["skill:discovery-loop", "skill:decompose-intent"],
         "fallback_declared": True,
         "effects": [],
     },
