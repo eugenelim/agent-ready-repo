@@ -3471,6 +3471,7 @@ shipped = [
 ]
 active = []
 queue = [
+  {path = "docs/specs/semantic-surface-resolver/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Resolve semantic roles to repository-owned or external destinations without lifecycle changes", needs = []},
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
 ]

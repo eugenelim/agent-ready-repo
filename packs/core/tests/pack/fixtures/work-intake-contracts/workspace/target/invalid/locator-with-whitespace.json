@@ -1,0 +1,15 @@
+{
+  "surface_role": "delivery-contract",
+  "locator": {
+    "kind": "external",
+    "value": "example-tracker:delivery item"
+  },
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-tracker:delivery-item",
+    "revision": "revision-7"
+  },
+  "summary": "Unsafe external locator",
+  "needs": []
+}

@@ -14,6 +14,11 @@ owns the temporary reviewed migration transaction for accepted legacy entries.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
 
+The same boundary owns a shared read-only semantic-surface resolver. Callers
+supply bounded candidates; the resolver applies repository policy and
+established adopter conventions without assuming catalogue paths, requiring a
+configuration file, or fetching external locators.
+
 ## 2. Entrypoints
 
 - `work-intake` selects direct-light, intent, brief, spec, defect,
@@ -26,6 +31,9 @@ authorized local changes or separately confirmed coordination actions.
   closed comparison/effect result.
 - `capture-work` is a temporary compatibility alias that emits a deprecation
   notice and forwards to `work-intake` without separate semantics.
+- `surface_resolver.py` resolves one semantic role from caller-supplied local or
+  external candidates and returns provenance, capability, confinement, and
+  independent authority facts without lifecycle effects.
 
 ## 3. Owned state and write authority
 
@@ -38,6 +46,7 @@ authorized local changes or separately confirmed coordination actions.
 | Migration ledger | `.workspace-migrations.json` | Authorized `workspace-status` migration transaction | Recovery, rollback, audit |
 | Selection and confirmation | Human-authored repository-relative JSON supplied out of band | Human reviewer/approver | Migration planner/effect only |
 | Direct-light decision record | Active session only | `work-loop` | Requester and current session |
+| Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
 
 `workspace.toml` indexes artifacts and lifecycle facts. It is not a
 requirements store. Target entries contain exactly `path`, `kind`, `source`,
@@ -57,6 +66,12 @@ closed per-field `source`/`local` ownership map and compared/accepted revisions.
 Lifecycle locks and explicit decisions govern local refresh. A remote tracker
 coordination action is a separate effect with its own fresh exact confirmation;
 neither tracker content nor intake authorization can approve it.
+
+Semantic candidate acquisition is caller-owned. The resolver accepts no more
+than 32 closed candidates or four evidence records per candidate. Optional
+configuration adapters normalize into that same record shape and gain no
+authority merely by being configured. Only repository-path candidates enter
+realpath confinement; external locators remain opaque and offline.
 
 ## 5. Primary flows
 
@@ -78,6 +93,11 @@ neither tracker content nor intake authorization can approve it.
    human supplies a reviewed route selection. Planning is read-only; apply is
    ledger-first; rollback restores the exact legacy slice without deleting the
    canonical artifact.
+7. A semantic destination request resolves explicit, repository-policy,
+   established repository-convention, then established external candidates.
+   Ambiguity requires confirmation; contradiction or unsafe confinement is a
+   refusal; absence asks the caller to select or create a destination. None of
+   these outcomes changes lifecycle state.
 
 Classification routes an explicit start to exactly one durability class:
 
@@ -120,11 +140,22 @@ operation is recovered from the ledger. A concurrent change or malformed
 ledger fails closed; canonical artifacts and unknown/private TOML extensions
 are never deleted or silently rewritten.
 
+A locator-only workspace entry is contract-valid and visible, but it stops at
+`configuration_mismatch` before local artifact access or dispatch. An unsafe
+local candidate, symlink escape, symlink loop, or mandatory-policy conflict
+returns a stable refusal without raw exception text.
+
 ## 7. Observability, evidence, and the compatibility window
 
 `workspace.toml`, canonical artifacts, and `workspace-status` provide the
 observable routing and lifecycle record. Provenance records the source locator
 and revision without copying credentials or a tracker payload.
+
+Each resolved semantic-surface result reports its role, logical and physical
+locator, bounded evidence, availability, writability, confinement, revision or
+fingerprint when known, confirmations, and source/write/deletion authority as
+independent facts. Non-resolved results omit selected locators and make those
+facts explicitly unknown.
 
 All current writers and the workspace seed emit only target entries. The
 accepted legacy reader and `capture-work` forwarding alias remain installed in
@@ -139,8 +170,9 @@ artifacts and migration evidence.
 
 ## 8. Mechanical invariants and evaluation
 
-- JSON Schemas own normalized intake, target entries, authority/refresh, and
-  migration selection/confirmation/ledger/result shapes.
+- JSON Schemas own normalized intake, target entries, authority/refresh,
+  migration selection/confirmation/ledger/result, and semantic-surface
+  resolution shapes.
 - Reconciliation owns stable finding codes and never makes legacy entries
   dispatchable by inference.
 - The integrated routing matrix runs acquisition, normalization, routing,
@@ -150,6 +182,8 @@ artifacts and migration evidence.
 - Pack/plugin versions move together for non-cosmetic pack changes. Self-hosted
   projections and marketplace metadata are generated from pack sources.
 - Marketing builds before docs, followed by emitted-link validation.
+- The semantic-surface completion matrix enumerates every resolution outcome
+  and is compared deterministically against the resolver's own results.
 
 These skill scripts run in the finish-time checklist and can run as fail-closed
 CI gates where a PR event and Python exist. They do not fail closed inside an

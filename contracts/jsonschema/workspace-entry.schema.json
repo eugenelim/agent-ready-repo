@@ -5,12 +5,21 @@
   "description": "Durable workspace.toml index entry for one canonical artifact.",
   "type": "object",
   "contract_version": "workspace-entry.v1",
-  "x-spec": ["docs/specs/normalized-intake-workspace-contracts/"],
+  "x-spec": [
+    "docs/specs/normalized-intake-workspace-contracts/",
+    "docs/specs/semantic-surface-resolver/"
+  ],
   "additionalProperties": false,
-  "required": ["path", "kind", "source", "summary", "needs"],
+  "required": ["kind", "source", "summary", "needs"],
   "properties": {
     "path": {
       "$ref": "#/$defs/repositoryRelativePath"
+    },
+    "surface_role": {
+      "$ref": "#/$defs/surfaceRole"
+    },
+    "locator": {
+      "$ref": "#/$defs/externalLocator"
     },
     "kind": {
       "$ref": "#/$defs/artifactKind"
@@ -31,7 +40,50 @@
       }
     }
   },
+  "allOf": [
+    {
+      "anyOf": [
+        {"required": ["path"]},
+        {"required": ["locator"]}
+      ]
+    },
+    {
+      "if": {"required": ["locator"]},
+      "then": {"required": ["surface_role"]}
+    }
+  ],
   "$defs": {
+    "surfaceRole": {
+      "enum": [
+        "delivery-brief",
+        "delivery-contract",
+        "current-product-truth",
+        "user-documentation",
+        "product-history",
+        "release-history",
+        "current-architecture",
+        "architecture-design",
+        "decision-record",
+        "operations",
+        "interface-contract",
+        "project-knowledge",
+        "runtime-coordination"
+      ]
+    },
+    "externalLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {"const": "external"},
+        "value": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 1000,
+          "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!.*[@?#\\s])[A-Za-z][A-Za-z0-9+.-]*:.+$"
+        }
+      }
+    },
     "artifactKind": {
       "enum": ["intent", "research", "design", "brief", "spec", "defect"]
     },
@@ -39,7 +91,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 1000,
-      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\/$).+$"
     },
     "source": {
       "type": "object",
@@ -165,7 +217,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 1000,
-      "pattern": "^[^@?#]+$"
+      "pattern": "^(?!.*[\\u0000-\\u001f\\u007f])(?!.*\\s)[^@?#]+$"
     }
   }
 }

@@ -12,6 +12,9 @@
   {"query": "Triage the current workspace status before choosing work", "should_trigger": true},
   {"query": "Refresh this registered brief from its declared tracker authority", "should_trigger": true},
   {"query": "Intake this cited regression and route it as a defect", "should_trigger": true},
+  {"query": "Resolve where this repository keeps its delivery contracts", "should_trigger": true},
+  {"query": "Use the repository's established convention for current architecture instead of assuming a docs path", "should_trigger": true},
+  {"query": "The delivery contract lives in our external tracker; preserve that locator", "should_trigger": true},
 
   {"query": "Write an architecture decision record for this choice", "should_trigger": false},
   {"query": "Generate a slide deck from this outline", "should_trigger": false},
@@ -23,5 +26,7 @@
   {"query": "Open the spreadsheet and format column B", "should_trigger": false},
   {"query": "Plan migration of this legacy workspace entry from the reviewed selection", "should_trigger": false},
   {"query": "Apply the approved workspace migration operation", "should_trigger": false},
-  {"query": "Diagnose this already-routed defect against its expected behavior", "should_trigger": false}
+  {"query": "Diagnose this already-routed defect against its expected behavior", "should_trigger": false},
+  {"query": "Close this shipped work and move its durable outputs", "should_trigger": false},
+  {"query": "Cool and retire old delivery artifacts according to retention policy", "should_trigger": false}
 ]

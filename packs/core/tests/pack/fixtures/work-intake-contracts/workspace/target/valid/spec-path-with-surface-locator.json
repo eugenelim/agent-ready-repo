@@ -1,0 +1,14 @@
+{
+  "path": "docs/specs/example/spec.md",
+  "surface_role": "delivery-contract",
+  "locator": {
+    "kind": "external",
+    "value": "example-tracker:delivery/42"
+  },
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Example delivery contract with an external coordination locator",
+  "needs": []
+}

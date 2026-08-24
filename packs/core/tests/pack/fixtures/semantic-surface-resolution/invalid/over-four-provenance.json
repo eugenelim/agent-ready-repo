@@ -1,0 +1,23 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "destination-required",
+  "role": "delivery-contract",
+  "provenance": [
+    {"source": "explicit", "ref": "request:evidence-1", "strength": "explicit"},
+    {"source": "repository-policy", "ref": "policy:evidence-2", "strength": "enforced"},
+    {"source": "repository-convention", "ref": "convention:evidence-3", "strength": "confirmed"},
+    {"source": "configuration-adapter", "ref": "adapter:evidence-4", "strength": "confirmed"},
+    {"source": "external-destination", "ref": "tracker:evidence-5", "strength": "confirmed"}
+  ],
+  "availability": "unknown",
+  "writability": "unknown",
+  "confinement": "unknown",
+  "authority": {
+    "source": {"status": "unknown"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": [],
+  "code": "destination_required",
+  "next_action": "select-or-create-destination"
+}

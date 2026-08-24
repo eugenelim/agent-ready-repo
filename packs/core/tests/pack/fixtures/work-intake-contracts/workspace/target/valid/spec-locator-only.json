@@ -1,0 +1,15 @@
+{
+  "surface_role": "delivery-contract",
+  "locator": {
+    "kind": "external",
+    "value": "example-tracker:delivery/42"
+  },
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-tracker:delivery/42",
+    "revision": "revision-7"
+  },
+  "summary": "Externally located delivery contract",
+  "needs": []
+}

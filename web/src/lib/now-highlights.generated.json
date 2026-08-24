@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.10.9"
+        }
+      ],
+      "date": "2026-08-23",
+      "heading": "[core][2.10.9] — 2026-08-23",
+      "changelogAnchor": "core2109--2026-08-23",
+      "highlights": [
+        {
+          "source": "**Core workflows can resolve a semantic destination using each repository's own paths, policy, established conventions, optional configuration, or external locator.** Results preserve bounded provenance and independent authority facts, while unsafe local paths and ambiguous evidence fail closed.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Core workflows can resolve a semantic destination using each repository's own paths, policy, established conventions, optional configuration, or external locator."
+            },
+            {
+              "type": "text",
+              "value": " Results preserve bounded provenance and independent authority facts, while unsafe local paths and ambiguous evidence fail closed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.8"
         }
       ],

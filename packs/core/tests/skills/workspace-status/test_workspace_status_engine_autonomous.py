@@ -182,9 +182,13 @@ def test_t1_group2_pack_contract_surface() -> None:
             if path.name in {
                 "absolute-path.json",
                 "backslash-path.json",
+                "dot-segment-path.json",
                 "dotdot-path.json",
                 "empty-path.json",
-                "windows-drive-path.json",
+                "empty-segment-path.json",
+                    "path-control.json",
+                    "trailing-slash-path.json",
+                    "windows-drive-path.json",
             }
             else "invalid_entry"
         )

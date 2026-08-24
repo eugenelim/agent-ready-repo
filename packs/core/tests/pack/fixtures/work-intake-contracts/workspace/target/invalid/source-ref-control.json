@@ -1,0 +1,11 @@
+{
+  "path": "docs/specs/example/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-tracker:delivery/\u007f42",
+    "revision": "revision-7"
+  },
+  "summary": "Control-bearing source reference",
+  "needs": []
+}

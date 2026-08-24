@@ -780,6 +780,13 @@ def _canonical_eval_dict(evaluation: Any) -> dict[str, Any]:
         "dispatchable": bool(evaluation.dispatchable),
         "findings": [_canonical_finding_dict(f) for f in evaluation.findings],
     }
+    if getattr(evaluation.entry, "surface_role", None) is not None:
+        result["surface_role"] = evaluation.entry.surface_role
+    if getattr(evaluation.entry, "locator", None) is not None:
+        result["locator"] = {
+            "kind": evaluation.entry.locator.kind,
+            "value": evaluation.entry.locator.value,
+        }
     if getattr(evaluation, "authority_status", None) is not None:
         authority_status = dict(evaluation.authority_status)
         if set(result).intersection(authority_status):
@@ -802,6 +809,16 @@ def _canonical_legacy_dict(membership: Any) -> dict[str, Any]:
 
 def _is_canonical_work_spec(item: dict[str, Any]) -> bool:
     return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
+
+
+def _surface_metadata(item: dict[str, Any]) -> dict[str, Any]:
+    """Carry validated optional surface metadata into primary work projections."""
+    metadata: dict[str, Any] = {}
+    if "surface_role" in item:
+        metadata["surface_role"] = item["surface_role"]
+    if "locator" in item:
+        metadata["locator"] = dict(item["locator"])
+    return metadata
 
 
 def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any] | None:
@@ -934,6 +951,7 @@ class _WorkspaceStatusTool:
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
+                **_surface_metadata(candidate),
             }
             skill = manifest.get("dispatch_skill")
             if skill and not _is_skill_present(skill, repo_root):
@@ -959,6 +977,7 @@ class _WorkspaceStatusTool:
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
+                **_surface_metadata(candidate),
             })
         for candidate in canonical_projection["active"]:
             if (
@@ -978,6 +997,7 @@ class _WorkspaceStatusTool:
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
+                **_surface_metadata(candidate),
             })
 
         result = None

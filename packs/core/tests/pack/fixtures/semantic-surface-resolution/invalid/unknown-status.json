@@ -1,0 +1,19 @@
+{
+  "contract_version": "semantic-surface-resolution.v1",
+  "status": "pending",
+  "role": "delivery-contract",
+  "provenance": [
+    {"source": "explicit", "ref": "request:unknown-status", "strength": "explicit"}
+  ],
+  "availability": "unknown",
+  "writability": "unknown",
+  "confinement": "unknown",
+  "authority": {
+    "source": {"status": "unknown"},
+    "write": {"status": "unknown"},
+    "delete": {"status": "unknown"}
+  },
+  "confirmations": [],
+  "code": "destination_required",
+  "next_action": "select-or-create-destination"
+}

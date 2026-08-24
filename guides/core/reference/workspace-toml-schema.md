@@ -13,13 +13,14 @@ names hard dependencies. It is not a requirements document.
 
 Use this reference when you need to answer: “How should this artifact be
 represented in `workspace.toml`, and is the entry safe to dispatch?” The result
-is either a valid five-field target entry in one lifecycle collection or a
+is either a valid target entry in one lifecycle collection or a
 non-dispatchable compatibility or reconciliation finding.
 
 ## Contract at a Glance
 
-Input: A repository-relative canonical artifact path, its artifact kind,
-minimal source provenance, a display summary, and any hard dependencies.
+Input: A repository-relative canonical artifact path or a closed external
+locator, its artifact kind, minimal source provenance, a display summary, and
+any hard dependencies.
 
 Output: A target entry that validates against the published workspace-entry
 schema, or a fail-closed finding that names the unsafe or legacy condition.
@@ -57,8 +58,8 @@ milestone = "M1"
 
 ## Target Entry
 
-Every target-state lifecycle entry is an inline table with exactly five
-semantic fields:
+Every target-state lifecycle entry is an inline table with four required
+fields plus a repository-relative `path`, a closed external `locator`, or both:
 
 ```toml
 { path = "docs/specs/self-service-reset/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Let a user reset access without support", needs = [] }
@@ -66,7 +67,9 @@ semantic fields:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `path` | string | Repository-relative canonical artifact path. |
+| `path` | string | Optional repository-relative canonical artifact path. At least one of `path` or `locator` is required. |
+| `surface_role` | string | Optional semantic role. Required with `locator`. |
+| `locator` | table | Optional closed external locator with exactly `kind = "external"` and `value`. |
 | `kind` | string | `intent`, `research`, `design`, `brief`, `spec`, or `defect`. |
 | `source` | table | Minimal provenance used for display and reconciliation. |
 | `summary` | string | Non-empty display text. Non-semantic. |
@@ -81,6 +84,7 @@ payloads do not belong in `workspace.toml`.
 | Value | Limit |
 | --- | ---: |
 | `path` and dependency paths | 1–1,000 characters |
+| External `locator.value` | 3–1,000 characters |
 | `summary` | 1–500 characters |
 | `needs` | 0–50 records |
 | `source.ref` | 1–1,000 characters when present |
@@ -92,13 +96,48 @@ payloads do not belong in `workspace.toml`.
 ## Paths
 
 `path` and local dependency paths are repository-relative POSIX-style paths.
-They must not be empty, absolute, contain backslashes, or contain a `..`
-segment.
+They must not be empty or absolute. Backslashes, control characters, empty
+segments, and `.` or `..` segments are rejected.
 
 The lexical check is not enough before reading or dispatching. Consumers must
 resolve the repository root and target path after symlinks, then verify the
 resolved target remains under the resolved root. A symlink that points outside
-the repository fails closed even if its text path looks valid.
+the repository, a symlink loop, or an uncertain resolution fails closed even
+if its text path looks valid.
+
+## Semantic Roles and External Locators
+
+Use a semantic role when a workflow needs to identify what a destination means
+without fixing its filename or format. The accepted roles are:
+
+- `delivery-brief`, `delivery-contract`, `current-product-truth`
+- `user-documentation`, `product-history`, `release-history`
+- `current-architecture`, `architecture-design`, `decision-record`
+- `operations`, `interface-contract`, `project-knowledge`, `runtime-coordination`
+
+A path entry may carry role and locator metadata without changing its lifecycle
+classification:
+
+```toml
+{ path = "docs/specs/example/spec.md", surface_role = "delivery-contract", locator = { kind = "external", value = "example-tracker:delivery/42" }, kind = "spec", source = { mode = "repo-origin" }, summary = "Delivery contract with external coordination", needs = [] }
+```
+
+A locator-only entry is also contract-valid:
+
+```toml
+{ surface_role = "delivery-contract", locator = { kind = "external", value = "example-tracker:delivery/42" }, kind = "spec", source = { mode = "tracker-origin", ref = "example-tracker:delivery/42", revision = "revision-7" }, summary = "Externally located delivery contract", needs = [] }
+```
+
+Locator-only entries are visible but non-dispatchable. The workspace reader
+returns `configuration_mismatch` before attempting a local artifact read.
+Semantic resolution itself is read-only: it does not create an artifact,
+register an entry, or change lifecycle membership.
+
+An external locator uses a scheme-shaped opaque value such as
+`example-tracker:delivery/42`. Userinfo, query strings, fragments, whitespace,
+and control characters fail the contract. Consumers preserve the value as an
+external locator; they do not turn it into a local path, fetch it, or infer
+availability, writability, or authority from it.
 
 ## Source
 
@@ -277,7 +316,7 @@ Every refusal is visible as a stable code with a safe next action.
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
 | `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
-| `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
+| `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is inconsistent, or a locator-only entry has no dispatch integration. | Install or select a consistent versioned configuration, then rerun. |
 
 ## Minimal Intent
 

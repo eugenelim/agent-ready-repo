@@ -1,0 +1,303 @@
+{
+  "contract_version": "semantic-surface-resolution-fixtures.v1",
+  "cases": [
+    {
+      "id": "explicit-local",
+      "setup": "existing-local",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:local",
+          "kind": "repository-path",
+          "value": "docs/specs/example/spec.md",
+          "source": "explicit",
+          "ref": "request:explicit-local",
+          "strength": "explicit"
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:local",
+        "physical_locator": {"kind": "repository-path", "value": "docs/specs/example/spec.md"},
+        "provenance": [{"source": "explicit", "ref": "request:explicit-local", "strength": "explicit"}],
+        "availability": "available",
+        "writability": "unknown",
+        "confinement": "repository-confined",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": []
+      }
+    },
+    {
+      "id": "mandatory-repository-policy",
+      "setup": "empty",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:policy",
+          "kind": "repository-path",
+          "value": "docs/contracts/delivery.md",
+          "source": "repository-policy",
+          "ref": "policy:delivery-contract",
+          "strength": "mandatory-policy"
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:policy",
+        "physical_locator": {"kind": "repository-path", "value": "docs/contracts/delivery.md"},
+        "provenance": [{"source": "repository-policy", "ref": "policy:delivery-contract", "strength": "mandatory-policy"}],
+        "availability": "unavailable",
+        "writability": "unknown",
+        "confinement": "repository-confined",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": []
+      }
+    },
+    {
+      "id": "confirmed-custom-convention",
+      "setup": "empty",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:custom",
+          "kind": "repository-path",
+          "value": "project/contracts/delivery.md",
+          "source": "repository-convention",
+          "ref": "convention:two-analogues-and-tests",
+          "strength": "confirmed",
+          "confirmations": [{"kind": "convention-establishment", "status": "confirmed", "evidence_ref": "review:custom-convention"}]
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:custom",
+        "physical_locator": {"kind": "repository-path", "value": "project/contracts/delivery.md"},
+        "provenance": [{"source": "repository-convention", "ref": "convention:two-analogues-and-tests", "strength": "confirmed"}],
+        "availability": "unavailable",
+        "writability": "unknown",
+        "confinement": "repository-confined",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [{"kind": "convention-establishment", "status": "confirmed", "evidence_ref": "review:custom-convention"}]
+      }
+    },
+    {
+      "id": "optional-configuration-adapter",
+      "setup": "empty",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:configured",
+          "kind": "repository-path",
+          "value": "product/contracts/current.md",
+          "source": "configuration-adapter",
+          "ref": "configuration:adopter-policy",
+          "strength": "enforced"
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:configured",
+        "physical_locator": {"kind": "repository-path", "value": "product/contracts/current.md"},
+        "provenance": [{"source": "configuration-adapter", "ref": "configuration:adopter-policy", "strength": "enforced"}],
+        "availability": "unavailable",
+        "writability": "unknown",
+        "confinement": "repository-confined",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": []
+      }
+    },
+    {
+      "id": "established-external",
+      "setup": "empty",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:external",
+          "kind": "external",
+          "value": "example-tracker:delivery/42",
+          "source": "external-destination",
+          "ref": "external:delivery-contract",
+          "strength": "confirmed",
+          "authority": {
+            "source": {"status": "external-owned", "evidence_ref": "policy:source"},
+            "write": {"status": "delegated", "evidence_ref": "policy:write"},
+            "delete": {"status": "none", "evidence_ref": "policy:delete"}
+          },
+          "revision_or_fingerprint": "revision-7"
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:external",
+        "physical_locator": {"kind": "external", "value": "example-tracker:delivery/42"},
+        "provenance": [{"source": "external-destination", "ref": "external:delivery-contract", "strength": "confirmed"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "external",
+        "authority": {"source": {"status": "external-owned", "evidence_ref": "policy:source"}, "write": {"status": "delegated", "evidence_ref": "policy:write"}, "delete": {"status": "none", "evidence_ref": "policy:delete"}},
+        "revision_or_fingerprint": "revision-7",
+        "confirmations": []
+      }
+    },
+    {
+      "id": "equivalent-aliases",
+      "setup": "equivalent-aliases",
+      "candidates": [
+        {
+          "logical_locator": "delivery-contract:alias",
+          "kind": "repository-path",
+          "value": "docs/contracts/example.md",
+          "source": "repository-convention",
+          "ref": "convention:contracts",
+          "strength": "confirmed"
+        },
+        {
+          "logical_locator": "delivery-contract:alias",
+          "kind": "repository-path",
+          "value": "delivery/example.md",
+          "source": "repository-convention",
+          "ref": "convention:contracts",
+          "strength": "confirmed"
+        }
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "resolved",
+        "role": "delivery-contract",
+        "logical_locator": "delivery-contract:alias",
+        "physical_locator": {"kind": "repository-path", "value": "docs/contracts/example.md"},
+        "provenance": [{"source": "repository-convention", "ref": "convention:contracts", "strength": "confirmed"}],
+        "availability": "available",
+        "writability": "unknown",
+        "confinement": "repository-confined",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": []
+      }
+    },
+    {
+      "id": "ambiguity",
+      "setup": "empty",
+      "candidates": [
+        {"logical_locator": "delivery-contract:one", "kind": "external", "value": "example-tracker:delivery/one", "source": "explicit", "ref": "request:one", "strength": "explicit"},
+        {"logical_locator": "delivery-contract:two", "kind": "external", "value": "example-tracker:delivery/two", "source": "explicit", "ref": "request:two", "strength": "explicit"}
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "confirmation-required",
+        "role": "delivery-contract",
+        "provenance": [{"source": "explicit", "ref": "request:one", "strength": "explicit"}, {"source": "explicit", "ref": "request:two", "strength": "explicit"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [{"kind": "destination-selection", "status": "required"}],
+        "code": "ambiguous_candidates",
+        "next_action": "confirm-one-policy-permitted-destination"
+      }
+    },
+    {
+      "id": "absence",
+      "setup": "empty",
+      "candidates": [],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "destination-required",
+        "role": "delivery-contract",
+        "provenance": [{"source": "explicit", "ref": "request:semantic-surface", "strength": "explicit"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [],
+        "code": "destination_absent",
+        "next_action": "select-or-create-destination"
+      }
+    },
+    {
+      "id": "mandatory-policy-conflict",
+      "setup": "empty",
+      "candidates": [
+        {"logical_locator": "delivery-contract:one", "kind": "external", "value": "example-tracker:delivery/one", "source": "repository-policy", "ref": "policy:one", "strength": "mandatory-policy"},
+        {"logical_locator": "delivery-contract:two", "kind": "external", "value": "example-tracker:delivery/two", "source": "repository-policy", "ref": "policy:two", "strength": "mandatory-policy"}
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "refused",
+        "role": "delivery-contract",
+        "provenance": [{"source": "repository-policy", "ref": "policy:one", "strength": "mandatory-policy"}, {"source": "repository-policy", "ref": "policy:two", "strength": "mandatory-policy"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [],
+        "code": "mandatory_policy_conflict",
+        "next_action": "reconcile-mandatory-repository-policy"
+      }
+    },
+    {
+      "id": "unsafe-path",
+      "setup": "empty",
+      "candidates": [
+        {"logical_locator": "delivery-contract:unsafe", "kind": "repository-path", "value": "docs/../outside.md", "source": "explicit", "ref": "request:unsafe", "strength": "explicit"}
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "refused",
+        "role": "delivery-contract",
+        "provenance": [{"source": "explicit", "ref": "request:unsafe", "strength": "explicit"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [],
+        "code": "unsafe_repository_path",
+        "next_action": "select-confined-repository-path"
+      }
+    },
+    {
+      "id": "symlink-escape",
+      "setup": "symlink-escape",
+      "candidates": [
+        {"logical_locator": "delivery-contract:escape", "kind": "repository-path", "value": "escape/contract.md", "source": "explicit", "ref": "request:escape", "strength": "explicit"}
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "refused",
+        "role": "delivery-contract",
+        "provenance": [{"source": "explicit", "ref": "request:escape", "strength": "explicit"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [],
+        "code": "unsafe_repository_path",
+        "next_action": "select-confined-repository-path"
+      }
+    },
+    {
+      "id": "symlink-loop",
+      "setup": "symlink-loop",
+      "candidates": [
+        {"logical_locator": "delivery-contract:loop", "kind": "repository-path", "value": "loop/contract.md", "source": "explicit", "ref": "request:loop", "strength": "explicit"}
+      ],
+      "expected": {
+        "contract_version": "semantic-surface-resolution.v1",
+        "status": "refused",
+        "role": "delivery-contract",
+        "provenance": [{"source": "explicit", "ref": "request:loop", "strength": "explicit"}],
+        "availability": "unknown",
+        "writability": "unknown",
+        "confinement": "unknown",
+        "authority": {"source": {"status": "unknown"}, "write": {"status": "unknown"}, "delete": {"status": "unknown"}},
+        "confirmations": [],
+        "code": "unsafe_repository_path",
+        "next_action": "select-confined-repository-path"
+      }
+    }
+  ]
+}

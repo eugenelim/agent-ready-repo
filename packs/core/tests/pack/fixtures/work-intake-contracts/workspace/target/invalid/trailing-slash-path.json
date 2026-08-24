@@ -1,0 +1,9 @@
+{
+  "path": "docs/specs/example/",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Trailing-slash path",
+  "needs": []
+}
