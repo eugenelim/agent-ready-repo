@@ -2689,6 +2689,35 @@ open = [
   # file and install from it with --require-hashes in both the conditional and
   # the unconditional step, keeping requirements-sast.txt as the canonical input
   # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
+  #
+  # SCOPED 2026-08-24, measured not estimated, after this was picked up and put
+  # back down. It is larger than the entry above implies, and the ci-security
+  # precedent does not generalise the way it looks like it should.
+  #   - `--require-hashes` pins the whole transitive closure, not the three
+  #     direct requirements. Measured with `pip install --dry-run
+  #     --ignore-installed --report`: 86 packages, so roughly 250 hash lines.
+  #     A three-line locked file is not an option -- pip refuses the mode
+  #     unless every requirement is pinned with `==`.
+  #   - THE REAL CONSTRAINT IS PLATFORM. The closure carries binary wheels
+  #     (cryptography, pydantic_core, rpds-py, protobuf, cffi, msgpack,
+  #     ruamel.yaml.clib). A file generated on a contributor's macOS pins macOS
+  #     wheels and breaks ubuntu CI. requirements-ci-security-locked.txt sidesteps
+  #     this by pinning ONE package and saying so in its own header ("Other
+  #     platform wheels are not pinned here"); at 86 packages that is not a
+  #     footnote. Target manylinux explicitly, and treat the locked file as
+  #     CI-only -- contributors keep installing requirements-sast.txt, which the
+  #     entry already implies by calling it the canonical input.
+  #   - `pip-compile` is NOT installed here and pip-tools is not a declared
+  #     dependency, so the header's suggested command does not work as written.
+  #     Adding pip-tools is its own dependency decision (AGENTS.md). Viable
+  #     stdlib path instead: `pip install --dry-run --report` emits
+  #     `download_info.archive_info.hashes` with sha256 per package, so a
+  #     generator can be written against the report JSON with no new dependency.
+  #   - Three pins move with the install-step change and are easy to miss:
+  #     `PINNED_SAST_INSTALL` (tools/test-build-check-workflow.py:296) plus the
+  #     `drop-bandit-pin-read` and `echo-wrap-sast-install` mutation lambdas in
+  #     the same file.
+  # Unblocks when: picked up with the platform-targeting decision made first.
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
   # Semgrep's signal for a target it could not parse depends on HOW it failed.
   # A PARTIAL failure (unbalanced bracket, stray token) does surface as a

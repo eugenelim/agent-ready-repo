@@ -71,6 +71,8 @@ jobs:
         run: |
           python3 tools/check-docs-contrast.py
           python -m pytest tools/test_check_docs_contrast.py -q
+      - name: pages.yml concurrency posture
+        run: python3 tools/test-pages-concurrency.py
   gate-sast:
     runs-on: ubuntu-latest
     timeout-minutes: 25

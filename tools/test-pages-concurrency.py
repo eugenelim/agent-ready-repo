@@ -17,6 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pages.yml"
 EXPECTED_GROUP = "pages-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}"
 EXPECTED_CANCEL = "${{ github.event_name == 'pull_request' }}"
+EXPECTED_DEPLOY_IF = "github.ref == 'refs/heads/main'"
 
 
 def _strip_comments(text: str) -> str:
@@ -48,6 +49,16 @@ def _concurrency_block(text: str) -> str:
     return following[:next_key.start()] if next_key else following
 
 
+def _job_block(text: str, job_id: str) -> str:
+    """Return a job's mapping body, or an empty string when it is absent."""
+    match = re.search(rf"^  {re.escape(job_id)}:\s*$", text, re.M)
+    if match is None:
+        return ""
+    following = text[match.end():]
+    next_job = re.search(r"^  [A-Za-z0-9_-]+:\s*$", following, re.M)
+    return following[:next_job.start()] if next_job else following
+
+
 def audit(text: str) -> list[str]:
     """Return the concurrency-posture violations in a workflow's text."""
     clean = _strip_comments(text)
@@ -62,6 +73,10 @@ def audit(text: str) -> list[str]:
     cancel = re.findall(r"^  cancel-in-progress:\s*(.*?)\s*$", block, re.M)
     if cancel != [EXPECTED_CANCEL]:
         bad.append("cancellation-pr-only")
+    deploy = _job_block(clean, "deploy")
+    deploy_if = re.findall(r"^    if:\s*(.*?)\s*$", deploy, re.M)
+    if deploy_if != [EXPECTED_DEPLOY_IF]:
+        bad.append("deploy-main-only")
     return bad
 
 
@@ -75,6 +90,13 @@ _MUTATIONS: tuple[tuple[str, str, str, str], ...] = (
     ("drop-concurrency", "concurrency-present", "concurrency:\n", "concurrency-disabled:\n"),
     ("unkeyed-group", "pr-and-deploy-groups-separated", EXPECTED_GROUP, '"pages"'),
     ("unconditional-cancellation", "cancellation-pr-only", EXPECTED_CANCEL, "true"),
+    (
+        "widen-deploy-to-pr",
+        "deploy-main-only",
+        EXPECTED_DEPLOY_IF,
+        "github.event_name == 'pull_request' || github.ref == 'refs/heads/main'",
+    ),
+    ("drop-deploy-if", "deploy-main-only", f"    if: {EXPECTED_DEPLOY_IF}\n", ""),
 )
 
 
@@ -105,7 +127,20 @@ def main() -> int:
         return 1
     violations = audit(_baseline())
     if violations:
-        print(f"✖ pages concurrency: {', '.join(violations)}", file=sys.stderr)
+        details = {
+            "pr-and-deploy-groups-separated":
+                "top-level group must retain the exact documented expression; reread its "
+                "deadlock comment before changing it",
+            "deploy-main-only":
+                "deploy must remain exactly main-only; reread its bare-pages concurrency "
+                "comment before changing it",
+        }
+        print(
+            "✖ pages concurrency: " + "; ".join(
+                f"{violation} ({details.get(violation, violation)})" for violation in violations
+            ),
+            file=sys.stderr,
+        )
         return 1
     print("✓ pages.yml concurrency posture OK")
     return 0

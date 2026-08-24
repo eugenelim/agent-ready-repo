@@ -54,6 +54,31 @@ def _check_codeql_permission_shape() -> str | None:
     return None
 
 
+def _finding_paths(finding: dict[str, object]) -> tuple[str, ...] | None:
+    """Return an audit finding's local paths, rejecting unknown result shapes."""
+    locations = finding.get("locations")
+    if not isinstance(locations, list) or not locations:
+        return None
+    paths: list[str] = []
+    for location in locations:
+        if not isinstance(location, dict):
+            return None
+        symbolic = location.get("symbolic")
+        if not isinstance(symbolic, dict):
+            return None
+        key = symbolic.get("key")
+        if not isinstance(key, dict):
+            return None
+        local = key.get("Local")
+        if not isinstance(local, dict):
+            return None
+        path = local.get("verbatim_path")
+        if not isinstance(path, str):
+            return None
+        paths.append(path)
+    return tuple(paths)
+
+
 def main() -> int:
     """Run zizmor and fail when its focused audit reports a finding."""
     missing = [path for path in WORKFLOWS if not (REPO_ROOT / path).is_file()]
@@ -82,17 +107,35 @@ def main() -> int:
         print("zizmor excessive-permissions: JSON result is not a list", file=sys.stderr)
         return 2
 
-    violations = [finding for finding in findings if finding.get("ident") == AUDIT]
+    violations: list[tuple[dict[str, object], tuple[str, ...]]] = []
+    for finding in findings:
+        if not isinstance(finding, dict) or not isinstance(finding.get("ident"), str):
+            print("zizmor excessive-permissions: finding lacks string ident", file=sys.stderr)
+            return 2
+        if finding["ident"] != AUDIT:
+            continue
+        paths = _finding_paths(finding)
+        if paths is None:
+            print("zizmor excessive-permissions: finding lacks local paths", file=sys.stderr)
+            return 2
+        unexpected = sorted(set(paths) - set(WORKFLOWS))
+        if unexpected:
+            print(
+                "zizmor excessive-permissions: finding outside owned workflows: "
+                f"{', '.join(unexpected)}",
+                file=sys.stderr,
+            )
+            return 2
+        violations.append((finding, paths))
     if violations:
         print(
             f"zizmor excessive-permissions: {len(violations)} finding(s) in "
             f"{', '.join(WORKFLOWS)}",
             file=sys.stderr,
         )
-        for finding in violations:
-            for location in finding.get("locations", []):
-                path = location.get("symbolic", {}).get("key", {}).get("Local", {})
-                print(f"  - {path.get('verbatim_path', 'unknown workflow')}", file=sys.stderr)
+        for _, paths in violations:
+            for path in paths:
+                print(f"  - {path}", file=sys.stderr)
         return 1
     if result.returncode != 0:
         print(f"zizmor excessive-permissions: zizmor exited {result.returncode}", file=sys.stderr)
