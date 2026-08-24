@@ -137,6 +137,36 @@ class CodexAdapterTests(unittest.TestCase):
             self.assertEqual(data["web_search"], "live")
             self.assertEqual(data["tools"]["web_search"], True)
 
+    def test_codex_read_tools_retain_local_file_access_without_bash(self) -> None:
+        """Read intent keeps Codex's command-backed access read-only."""
+        import tomllib
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "reviewer.md").write_text(
+                "---\n"
+                "name: reviewer\n"
+                "description: local read-only review\n"
+                "tools: Read, Grep, Glob\n"
+                "---\n"
+                "Body.\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            data = tomllib.loads(
+                (out / ".codex" / "agents" / "reviewer.toml").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(data["sandbox_mode"], "read-only")
+            self.assertEqual(data["features"]["shell_tool"], True)
+            self.assertEqual(data["web_search"], "disabled")
+            self.assertNotIn("tools", data)
+
     def test_codex_hook_wiring_projects_via_merge_json(self) -> None:
         """Pack ships ``.apm/hook-wiring/<name>.toml``; codex projects the
         merged result at ``.codex/hooks.json`` with the ``hooks`` key."""

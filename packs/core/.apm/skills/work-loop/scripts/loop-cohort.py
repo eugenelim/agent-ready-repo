@@ -22,8 +22,9 @@ Verb surface
                                --cycle-id <run_id>:<seq> --expect-run-id <uuid>
     loop-cohort wave check <spec-dir> --expect {more,last} [--wave-index <n>]
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
-    loop-cohort review inspect <spec-dir> --report <path> [--json]
-    loop-cohort review record <spec-dir> (--report <path>
+    loop-cohort review classify --report <path> [--json]
+    loop-cohort review inspect <spec-dir> --report <path> [--adjudication] [--json]
+    loop-cohort review record <spec-dir> (--report <path> [--adjudication]
                                | --fingerprint <hex> ...) --expect-run-id <uuid>
     loop-cohort status <spec-dir> [--json]
     loop-cohort reset <spec-dir>
@@ -65,6 +66,7 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
 CLEAN_SUBSTRING = "Clean — ready to commit."
+INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
 # on its own line as their clean verdict instead of CLEAN_SUBSTRING.
 _SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
@@ -1114,6 +1116,17 @@ FINDING_LINE_RE_UNQUOTED = re.compile(
 FINDING_LINE_RE_WHERE = re.compile(
     r"^(?P<title>\*\*\d+\.[^*]+\*\*)\s*[\.\s]*\s*Where:\s*(?P<location>[^.]+)"
 )
+ADJUDICATION_HEADINGS = (
+    "## Main-loop result",
+    "## Refuted audit",
+    "## Indeterminate audit",
+)
+NUMBERED_FINDING_MARKER_RE = re.compile(r"\*\*\d+\.")
+STRICT_SUSTAINED_FINDING_LINE_RE = re.compile(
+    r"^\*\*\d+\.[^*\n]+\*\*\s*"
+    r"(?:`[^`\n]+:\d+[^`\n]*`|\S+:\d+|Where:\s+[^.\n]+)\.\s+"
+    r"\S(?:.*\S)?\s+Fix:\s+\S.*$"
+)
 
 
 def parse_findings(report_text: str) -> list[str]:
@@ -1177,6 +1190,102 @@ def parse_findings(report_text: str) -> list[str]:
     return fingerprints
 
 
+def _is_strict_actionable_result(actionable: str) -> bool:
+    """Accept exact clean or complete parser-compatible sustained lines."""
+    if actionable == CLEAN_SUBSTRING:
+        return True
+
+    finding_lines = [line for line in actionable.splitlines() if line.strip()]
+    return bool(finding_lines) and all(
+        STRICT_SUSTAINED_FINDING_LINE_RE.fullmatch(line.strip()) is not None
+        and len(NUMBERED_FINDING_MARKER_RE.findall(line)) == 1
+        and len(parse_findings(line)) == 1
+        for line in finding_lines
+    )
+
+
+def _invalid(reason: str) -> dict:
+    """Refuse a report, naming which rule refused it.
+
+    `invalid` returns at exit 0 and stops the loop, so an unnamed refusal costs
+    the operator a parser read to act on. The reason is enumerated and
+    content-free, matching `review-artifact.py`'s refusal codes.
+    """
+    print(
+        f"loop-cohort: report classified invalid ({reason})",
+        file=sys.stderr,
+    )
+    return {
+        "classification": "invalid",
+        "fingerprints": [],
+        "matches_previous_round": False,
+        "reason": reason,
+    }
+
+
+def _actionable_review_text(
+    report_text: str,
+    *,
+    require_adjudication: bool = False,
+) -> tuple[str, str | None]:
+    """Return the main-loop result and a refusal reason, or None when accepted.
+
+    Legacy reviewer reports have no adjudication headings and remain unchanged.
+    When any adjudication heading is present, require the exact three-section
+    envelope, keep only the main-loop result, and reject finding-shaped audit
+    text rather than allowing it to reach fingerprinting.
+
+    The second element is `None` when the structure is acceptable, otherwise an
+    enumerated, content-free code naming which rule refused it. Codes mirror
+    `review-artifact.py`'s `INVALID <code>` refusal vocabulary — the other half
+    of this gateway — so a fail-closed stop is diagnosable without reopening the
+    artifact or reverse-engineering the parser. They carry no report content,
+    no path, and no line text.
+    """
+    lines = report_text.splitlines()
+    found_headings = [
+        line.strip() for line in lines if line.strip().startswith("## ")
+    ]
+    if not any(heading in found_headings for heading in ADJUDICATION_HEADINGS):
+        return report_text, "legacy-report" if require_adjudication else None
+    if found_headings != list(ADJUDICATION_HEADINGS):
+        return "", "envelope-headings"
+
+    heading_indexes = [
+        next(index for index, line in enumerate(lines) if line.strip() == heading)
+        for heading in ADJUDICATION_HEADINGS
+    ]
+    if any(line.strip() for line in lines[: heading_indexes[0]]):
+        return "", "prose-before-envelope"
+
+    main_start, refuted_start, indeterminate_start = heading_indexes
+    audit_lines = lines[refuted_start + 1 :]
+    if any(NUMBERED_FINDING_MARKER_RE.search(line) for line in audit_lines):
+        return "", "audit-numbered-finding"
+
+    actionable = "\n".join(lines[main_start + 1 : refuted_start]).strip()
+    indeterminate_audit = "\n".join(lines[indeterminate_start + 1 :]).strip()
+
+    # The refusals below are NOT gated on `require_adjudication`. Reaching here
+    # already proves the exact three-section envelope is present, so the report
+    # is an adjudication whichever flag the caller passed — and an indeterminate
+    # verdict must never classify as clean (AC5), including on a flagless
+    # `review inspect` or a replayed `review record`. Envelope-free legacy
+    # reports returned earlier and are unaffected.
+    #
+    # Order matters for the operator, not for soundness — every `if` below
+    # refuses. Report the most specific cause first: an indeterminate verdict is
+    # a decision the adjudicator made and the owner must resolve, whereas a
+    # shape complaint about the same report would send them to the wrong place.
+    if INDETERMINATE_SENTINEL in report_text:
+        return "", "indeterminate-present"
+    if indeterminate_audit != "None.":
+        return "", "indeterminate-audit-not-none"
+    if not _is_strict_actionable_result(actionable):
+        return "", "sustained-line-shape"
+    return actionable, None
+
+
 def _resolved_report(candidate: str) -> Path:
     """Normalise the CLI-supplied `--report` path at the argv boundary.
 
@@ -1201,7 +1310,12 @@ def _resolved_report(candidate: str) -> Path:
         return Path(candidate)
 
 
-def _classify_report(report_path: Path, state: dict) -> dict:
+def _classify_report(
+    report_path: Path,
+    state: dict,
+    *,
+    require_adjudication: bool = False,
+) -> dict:
     """Classify a reviewer report. Exits 0 for all report-content outcomes.
 
     Returns a dict with keys: classification, fingerprints, matches_previous_round.
@@ -1228,24 +1342,33 @@ def _classify_report(report_path: Path, state: dict) -> dict:
             f"({_diag(exc)}); classified invalid",
             file=sys.stderr,
         )
-        return {
-            "classification": "invalid",
-            "fingerprints": [],
-            "matches_previous_round": False,
-        }
+        return _invalid("unreadable")
 
-    fps = parse_findings(report_text)
-    has_clean = (
-        CLEAN_SUBSTRING in report_text
-        or _SHIP_IT_RE.search(report_text) is not None
+    actionable_text, refusal = _actionable_review_text(
+        report_text,
+        require_adjudication=require_adjudication,
     )
+    if refusal is not None:
+        return _invalid(refusal)
+
+    fps = parse_findings(actionable_text)
+    if require_adjudication:
+        has_clean = actionable_text == CLEAN_SUBSTRING
+    else:
+        has_clean = (
+            CLEAN_SUBSTRING in actionable_text
+            or _SHIP_IT_RE.search(actionable_text) is not None
+        )
 
     if fps:
         classification = "findings"
     elif has_clean:
         classification = "clean"
     else:
-        classification = "invalid"
+        # No fingerprints and no clean sentinel. Reachable on the flagless
+        # legacy path; name it like every other refusal so a consumer reading
+        # `reason` never sees a missing key.
+        return _invalid("no-actionable-result")
 
     canonical_fps = sorted(set(fps))
     previous = sorted(set(state.get("finding_fingerprints", [])))
@@ -1260,6 +1383,30 @@ def _classify_report(report_path: Path, state: dict) -> dict:
     }
 
 
+def _print_review_result(result: dict, *, as_json: bool, verb: str) -> None:
+    """Print one review classification without report content or path data."""
+    if as_json:
+        print(json.dumps(result))
+        return
+    print(
+        f"loop-cohort: review {verb} classification={result['classification']} "
+        f"fingerprints={len(result['fingerprints'])} "
+        f"matches_previous_round={result['matches_previous_round']}"
+    )
+
+
+def cmd_review_classify(args: argparse.Namespace) -> int:
+    """Strictly classify an adjudication report without cohort state."""
+    report_path = _resolved_report(args.report)
+    result = _classify_report(
+        report_path,
+        {},
+        require_adjudication=True,
+    )
+    _print_review_result(result, as_json=args.json, verb="classify")
+    return 0
+
+
 def cmd_review_inspect(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -1272,17 +1419,13 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
         return stop(str(exc))
 
     report_path = _resolved_report(args.report)
-    result = _classify_report(report_path, state)
+    result = _classify_report(
+        report_path,
+        state,
+        require_adjudication=args.adjudication,
+    )
 
-    if args.json:
-        print(json.dumps(result))
-    else:
-        print(
-            f"loop-cohort: review inspect "
-            f"classification={result['classification']} "
-            f"fingerprints={len(result['fingerprints'])} "
-            f"matches_previous_round={result['matches_previous_round']}"
-        )
+    _print_review_result(result, as_json=args.json, verb="inspect")
     return 0  # content outcomes always exit 0
 
 
@@ -1338,7 +1481,11 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if not args.report:
         return stop("review record: one of --report or --fingerprint is required")
     report_path = _resolved_report(args.report)
-    result = _classify_report(report_path, state)
+    result = _classify_report(
+        report_path,
+        state,
+        require_adjudication=args.adjudication,
+    )
     if result["classification"] != "clean":
         cls = result["classification"]
         return stop(
@@ -1522,11 +1669,24 @@ def build_parser() -> argparse.ArgumentParser:
     review_sub = sp_review.add_subparsers(dest="review_verb", required=True)
 
     sp = review_sub.add_parser(
+        "classify",
+        help="state-free: strictly classify a finding-adjudicator report",
+    )
+    sp.add_argument("--report", required=True)
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_review_classify)
+
+    sp = review_sub.add_parser(
         "inspect",
         help="read-only: classify a reviewer report (clean/findings/invalid)",
     )
     sp.add_argument("spec_dir")
     sp.add_argument("--report", required=True)
+    sp.add_argument(
+        "--adjudication",
+        action="store_true",
+        help="require the exact finding-adjudicator report envelope",
+    )
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_review_inspect)
 
@@ -1550,6 +1710,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         dest="all_skipped",
         help="all warranted reviewers were named skips; bumps round count, clears fingerprints",
+    )
+    sp.add_argument(
+        "--adjudication",
+        action="store_true",
+        help="require the exact finding-adjudicator envelope for --report",
     )
     sp.add_argument("--expect-run-id", required=True, dest="expect_run_id")
     sp.set_defaults(func=cmd_review_record)

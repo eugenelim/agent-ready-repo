@@ -351,7 +351,12 @@ frontmatter-mapping = "kiro-ide-agent-frontmatter-v0.9"
 # #4993). Inject the same fixed skill-resources glob as kiro-cli; the IDE
 # agent `resources` field is documented and `skill://`-aware, so it does not
 # trip the silent-drop bug (that's for non-schema keys like `hooks`). Emitted
-# into the `.md` YAML frontmatter, quoted. Author override wins.
+# into the `.md` YAML frontmatter, quoted. Author override wins; an explicit
+# empty `resources` list suppresses injection and is omitted from output, and so
+# does Claude Code's `skills: []` — the portable form of the same intent, since
+# `resources` is Kiro-native and not valid Claude Code agent frontmatter. A
+# non-empty `skills` list is a build error: turning a bare skill name into a
+# `skill://` URI needs templating this mapping grammar cannot express.
 inject-resources = ["skill://.kiro/skills/**/SKILL.md", "skill://~/.kiro/skills/**/SKILL.md"]
 on-conflict = "prompt-then-preserve"
 
@@ -427,8 +432,21 @@ frontmatter-mapping = "kiro-cli-agent-frontmatter-v1.0"
 # `--agent` run sees zero skills unless the agent declares them. Inject this
 # fixed skill-resources glob (both install scopes) into every projected agent.
 # Skipped when the agent source already declares its own `resources` (author
-# override wins). kiro-ide carries the same field on its own agent projection
+# override wins); an explicit empty list suppresses injection and is omitted, as
+# does the portable Claude Code `skills: []` opt-out (see the kiro-ide entry).
+# kiro-ide carries the same field on its own agent projection
 # entry (emitted into `.md` frontmatter rather than JSON).
+#
+# Both Kiro agent projectors rewrite the *source frontmatter* and pass unmapped
+# keys through, unlike codex/copilot/cursor/gemini which iterate this mapping and
+# so drop anything unmapped. That is what admits a Kiro-native `resources` or
+# `prompt`, but it also means an unmapped key would reach the consumer verbatim.
+# `_CLI_AGENT_FIELDS` / `_IDE_AGENT_FIELDS` in `adapters/kiro.py` bound the
+# emitted shape and log every drop, so Claude Code fields Kiro cannot read
+# (`permissionMode`, `memory`, `maxTurns`) and IDE-only fields that make the CLI
+# loader silently drop an agent (`hooks`) stay out of the output. `skills` is
+# not among them: it is consumed as the portable no-skill opt-out before that
+# bound applies, so it is never emitted and never logged as a drop.
 inject-resources = ["skill://.kiro/skills/**/SKILL.md", "skill://~/.kiro/skills/**/SKILL.md"]
 on-conflict = "prompt-then-preserve"
 
@@ -779,7 +797,13 @@ allowed-prefixes.user = [".agents/skills/", ".gemini/", ".agentbundle/"]
 # ---------------------------------------------------------------------------
 
 # Kiro agent frontmatter v0.9: renames Claude Code agent fields to Kiro's schema.
-# Adapters consume this table generically; no field dictionary hardcoded in Python.
+# Adapters consume the RENAME/NORMALIZE/VALUES rules below generically — no
+# per-field rename dictionary is hardcoded in Python. The emitted field *set* is
+# a separate concern and is bounded in `adapters/kiro.py` (`_IDE_AGENT_FIELDS` /
+# `_CLI_AGENT_FIELDS`), because these projectors iterate source frontmatter and
+# would otherwise pass unmapped keys through verbatim. A rename target added
+# here must also be a member of that set or the rule is a silent no-op;
+# `test_adapter_kiro_cli.py` / `test_adapter_kiro_ide.py` assert that coupling.
 [frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9"]
 
 [frontmatter-mapping."kiro-ide-agent-frontmatter-v0.9".description]
@@ -835,6 +859,9 @@ values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "clau
 # `codex-agent-toml` projection reduces duplicate intents to documented
 # config keys (`sandbox_mode`, `[features].shell_tool`, `web_search`,
 # `[tools].web_search`) and never emits a generic `tools = [...]` array.
+# Codex has no named Read/Grep/Glob tool allowlist, so any mapped `read`
+# intent retains the default shell tool inside `sandbox_mode = "read-only"`;
+# mapped `write` remains the only route to a writable sandbox.
 # The markdown body lands in TOML `developer_instructions` via a
 # mode-level convention in the `codex-agent-toml` projection mode, NOT
 # via a rename rule (frontmatter mapping is keyed on frontmatter fields;

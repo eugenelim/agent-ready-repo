@@ -4,6 +4,58 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.39.4"
+        }
+      ],
+      "date": "2026-08-24",
+      "heading": "[agentbundle][0.39.4] — 2026-08-24",
+      "changelogAnchor": "agentbundle0394--2026-08-24",
+      "highlights": [
+        {
+          "source": "**Codex agents with read-only source permissions can read and search local files again.** The design reviewer, both desk-research agents, experience reviewer, frontend reviewer, and both discovery reviewers retain Codex's command-backed file access inside a read-only sandbox without gaining write authority.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Codex agents with read-only source permissions can read and search local files again."
+            },
+            {
+              "type": "text",
+              "value": " The design reviewer, both desk-research agents, experience reviewer, frontend reviewer, and both discovery reviewers retain Codex's command-backed file access inside a read-only sandbox without gaining write authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.11.0"
+        }
+      ],
+      "date": "2026-08-24",
+      "heading": "[core][2.11.0] — 2026-08-24",
+      "changelogAnchor": "core2110--2026-08-24",
+      "highlights": [
+        {
+          "source": "**Review loops now verify reviewer findings before asking you to repair them.** An independent, read-only adjudicator checks each claim against the current target and governing rules. False positives stay in an audit instead of consuming repair rounds, while missing evidence stops for your decision.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Review loops now verify reviewer findings before asking you to repair them."
+            },
+            {
+              "type": "text",
+              "value": " An independent, read-only adjudicator checks each claim against the current target and governing rules. False positives stay in an audit instead of consuming repair rounds, while missing evidence stops for your decision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.10.10"
         },

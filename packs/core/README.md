@@ -112,8 +112,13 @@ work-loop execute spec/data-export
   ● Lint          ok
   ● Typecheck     ok
   ● Tests  246/246 ok
-  ● Review        1 blocker → fixed → clean
+  ● Review        1 blocker → sustained → fixed → clean
 ```
+
+Every completed reviewer report passes through an independent, read-only
+adjudicator before it can trigger a repair. Evidence-supported findings
+continue into the loop, false positives remain in the audit, and missing
+evidence stops for your decision instead of guessing.
 
 The agent opens the PR. Read the description, then merge.
 

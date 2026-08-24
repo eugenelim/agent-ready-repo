@@ -1504,8 +1504,13 @@ _WORK_LOOP_CONTRACT_HASH = (
 )
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.
+# Reconciled 2026-08-24: the full-mode and light-mode reviewer bullets now
+# require an adjudicated main-loop result, add `design-reviewer` to the
+# warranted set, and make a missing `finding-adjudicator` a hard block. Those
+# bullets describe reviewer routing only; the doc-drift bullet that owns the
+# spec `Status: Shipped` write is unchanged, so the engine needs no edit.
 _WORK_LOOP_FINISH_HASH = (
-    "b242dbcb8a84a8e46b25f3be53ed47ebf6e4093b177ee2afb64ba9bab8b47104"
+    "f9f7b046676a42c283103020e245d0889981c1a0aac825352077d2d1bd74e0f3"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

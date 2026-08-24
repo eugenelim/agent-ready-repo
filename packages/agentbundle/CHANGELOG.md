@@ -6,6 +6,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.39.4] — 2026-08-24
+
+### Fixed
+
+- Codex projections now retain the default shell tool for agents that declare
+  `Read`, `Grep`, or `Glob`, while keeping those agents in a read-only sandbox.
+  This restores local file reading and search for the shipped design,
+  desk-research, experience, frontend, and discovery reviewers that do not
+  separately declare `Bash`; write and web capabilities remain controlled by
+  their own source declarations.
+- Kiro IDE and CLI projections now treat an explicit empty agent `resources`
+  list as a no-resource opt-out: default skill-resource globs are suppressed and
+  the empty consumer field is omitted.
+
+### Added
+
+- Portable no-skill opt-out for agent sources: Claude Code's own `skills: []`
+  now suppresses Kiro's default skill-resource injection, so the intent is
+  expressed in the portable frontmatter schema rather than in Kiro's
+  consumer-native `resources` field. `skills` is admitted to the agent
+  frontmatter allowlist; `resources` deliberately is not, because the
+  Claude Code agent projection is a byte copy and would carry it verbatim into
+  `.claude/agents/`.
+
+### Changed
+
+- **Breaking for Kiro agent sources.** The Kiro IDE and CLI agent projectors now
+  bound the field set they emit (`name`, `description`, `model`, `tools`,
+  `resources`, and `prompt` on the CLI) instead of passing unmapped source
+  frontmatter through verbatim. Any other key — a Claude Code field Kiro cannot
+  read such as `permissionMode`, `memory`, or `maxTurns`, or an IDE-only key
+  such as `hooks` that makes the CLI loader silently drop the agent — is now
+  dropped, with one `kiro: dropping … agent field` line on stderr per key as the
+  migration signal. Pack authors who relied on the documented pass-through
+  should check their build log.
+- A non-empty `skills` list on an agent source is now a hard build failure:
+  turning a skill name into a `skill://` URI needs templating the
+  frontmatter-mapping grammar cannot express, so the build stops rather than
+  emitting an unresolvable resource entry.
 ## [0.39.3] — 2026-08-23
 
 ### Changed

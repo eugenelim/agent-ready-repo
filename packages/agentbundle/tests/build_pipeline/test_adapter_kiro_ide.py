@@ -7,6 +7,8 @@ activated. No CLI-only keys in agent output.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -102,6 +104,125 @@ class KiroIdeAdapterTests(unittest.TestCase):
             raw = (out / ".kiro" / "agents" / "bar.md").read_text(encoding="utf-8")
             self.assertIn("file://README.md", raw)
             self.assertNotIn("skill://", raw)
+
+    def test_kiro_ide_empty_resources_suppress_skill_injection(self) -> None:
+        """An explicit empty list projects a no-resource IDE agent."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\nresources: []\n---\nbody\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            raw = (out / ".kiro" / "agents" / "bar.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertNotIn("resources:", raw)
+            self.assertNotIn("skill://", raw)
+
+    def test_kiro_ide_empty_skills_suppress_skill_injection(self) -> None:
+        """Claude Code's `skills: []` is the portable no-skill opt-out."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\nskills: []\n---\nbody\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            out = tmp_path / "out"
+            project(pack, self.contract, out)
+            raw = (out / ".kiro" / "agents" / "bar.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertNotIn("resources:", raw)
+            self.assertNotIn("skill://", raw)
+            self.assertNotIn("skills", raw)
+
+    def test_kiro_ide_drops_unmapped_claude_agent_fields(self) -> None:
+        """An unmapped Claude Code field must not reach the IDE agent.
+
+        Asserts the exact emitted key set rather than absent substrings, so an
+        over-eager `_IDE_AGENT_FIELDS` that dropped a required field fails here
+        too. The fixture includes the CLI-only keys this module's docstring
+        warns silently break the IDE loader.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            (pack / ".apm" / "agents").mkdir(parents=True)
+            (pack / ".apm" / "agents" / "bar.md").write_text(
+                "---\nname: bar\ntools: Read\nmemory: project\n"
+                "permissionMode: plan\nmaxTurns: 12\nbackground: true\n"
+                "color: blue\nisolation: worktree\neffort: high\n"
+                "disallowedTools: Bash\ninitialPrompt: go\nhooks: {}\n"
+                "allowedTools: [read]\ntoolsSettings: {}\nmcpServers: {}\n"
+                "---\nbody\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            out = tmp_path / "out"
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                project(pack, self.contract, out)
+            raw = (out / ".kiro" / "agents" / "bar.md").read_text(
+                encoding="utf-8"
+            )
+            lines = raw.splitlines()
+            end = lines.index("---", 1)
+            emitted = sorted(
+                line.split(":")[0]
+                for line in lines[1:end]
+                if line and not line[0].isspace()
+            )
+            self.assertEqual(emitted, ["name", "resources", "tools"])
+            # The stderr line is the pack author's only signal that a declared
+            # field did not reach the consumer.
+            log = stderr.getvalue()
+            for dropped in (
+                "memory",
+                "permissionMode",
+                "maxTurns",
+                "background",
+                "color",
+                "isolation",
+                "effort",
+                "disallowedTools",
+                "initialPrompt",
+                "hooks",
+                "allowedTools",
+                "toolsSettings",
+                "mcpServers",
+            ):
+                self.assertIn(
+                    f"dropping kiro-ide agent field {dropped!r}", log, dropped
+                )
+
+    def test_kiro_ide_mapping_targets_are_all_emittable(self) -> None:
+        """Every rename target must survive `_restrict_agent_fields`.
+
+        The projector bounds its emitted field set in Python while the rename
+        rules live in the contract; a target outside that set makes the contract
+        rule a silent no-op. Bind the two so the contract cannot drift.
+        """
+        from agentbundle.build.adapters.kiro import _IDE_AGENT_FIELDS
+
+        mapping = self.contract["frontmatter-mapping"][
+            "kiro-ide-agent-frontmatter-v0.9"
+        ]
+        for source_key, rule in mapping.items():
+            target = rule.get("rename", source_key)
+            self.assertIn(
+                target,
+                _IDE_AGENT_FIELDS,
+                f"contract maps {source_key!r} -> {target!r}, which "
+                f"_IDE_AGENT_FIELDS drops",
+            )
 
     def test_kiro_ide_tools_use_ide_ids(self) -> None:
         """kiro-ide uses IDE tool ids (read_file, grep_search) not CLI short-names."""

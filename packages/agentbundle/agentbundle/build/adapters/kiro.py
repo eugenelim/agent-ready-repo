@@ -357,6 +357,13 @@ def _project_agent_as_json(
             continue
         frontmatter, body = _split_frontmatter(entry.read_text(encoding="utf-8"))
         rewritten = _apply_mapping(frontmatter, mapping)
+        skills_optout = _consume_skills_optout(frontmatter, rewritten, entry)
+        resources_declared = "resources" in rewritten or skills_optout
+        if rewritten.get("resources") == []:
+            # An explicit empty list suppresses default skill-resource
+            # injection without emitting a meaningless empty consumer field.
+            rewritten.pop("resources")
+        _restrict_agent_fields(rewritten, _CLI_AGENT_FIELDS, flavor="kiro-cli")
         agent_name = rewritten.get("name") or entry.stem
         agent_json: dict[str, Any] = {"name": agent_name}
         # Preserve any rewritten fields that aren't `name` (already
@@ -384,7 +391,7 @@ def _project_agent_as_json(
         # handles the CLI (JSON) path; kiro-ide injects the same field in its
         # own `.md` projector (`_project_agent_as_md`).
         inject_resources = rule.get("inject-resources")
-        if inject_resources and "resources" not in agent_json:
+        if inject_resources and not resources_declared:
             agent_json["resources"] = list(inject_resources)
         destination = target_dir / (entry.stem + ".json")
         destination.write_text(
@@ -584,6 +591,74 @@ def _parse_frontmatter(lines: list[str]) -> dict[str, Any]:
                 value = value[1:-1]
             result[key.strip()] = value
     return result
+
+
+# Fields each Kiro agent projection actually emits. Unlike codex / copilot /
+# cursor / gemini — which iterate the contract mapping and so drop anything
+# unmapped — the Kiro projectors iterate the *source frontmatter*, rewriting
+# what the contract maps and passing the rest through verbatim. That is what
+# lets a pack author declare a Kiro-native `resources` or `prompt`, but it also
+# means any unmapped key reaches the consumer unchanged: a Claude Code field
+# Kiro cannot read (`permissionMode`, `memory`, `maxTurns`), or an IDE-only
+# field that makes the CLI loader silently drop the agent (`hooks`). These sets
+# bound the emitted shape so pass-through stays deliberate. `skills` is NOT
+# among them: it is consumed as the portable no-skill opt-out upstream of this
+# bound, so it never reaches the set and is never logged as a drop.
+_CLI_AGENT_FIELDS = frozenset(
+    {"name", "description", "model", "tools", "prompt", "resources"}
+)
+_IDE_AGENT_FIELDS = frozenset(
+    {"name", "description", "model", "tools", "resources"}
+)
+
+
+def _restrict_agent_fields(
+    rewritten: dict[str, Any], allowed: frozenset[str], *, flavor: str
+) -> dict[str, Any]:
+    """Drop rewritten fields the Kiro `flavor` agent shape does not carry.
+
+    Mutates and returns `rewritten`. Each drop prints a stderr line in the
+    same style as `_apply_mapping`'s values-map misses, so a pack author sees
+    at build time that a declared field did not reach the projected agent
+    rather than discovering it silently ignored — or silently honoured — by
+    the consumer.
+    """
+    for key in sorted(set(rewritten) - allowed):
+        print(
+            f"kiro: dropping {flavor} agent field {key!r} — not part of the "
+            f"projected Kiro agent shape",
+            file=sys.stderr,
+        )
+        rewritten.pop(key)
+    return rewritten
+
+
+def _consume_skills_optout(
+    frontmatter: dict[str, Any], rewritten: dict[str, Any], entry: Path
+) -> bool:
+    """Read Claude Code's `skills` field as the portable no-skill opt-out.
+
+    Kiro grants skill access through `resources` entries using the `skill://`
+    URI scheme, so Claude Code's `skills` is the portable field that carries
+    this intent; `resources` itself is Kiro-native and is not valid Claude Code
+    agent frontmatter. An explicit empty `skills` list therefore means "inject
+    no skill resources" and returns True so the caller suppresses injection.
+
+    A non-empty list would need `skill://` URI templating from a bare skill
+    name, which the contract's rename / normalize / values grammar cannot
+    express, so it fails loudly here rather than emitting an unresolvable
+    resource entry. `skills` never reaches the projected agent either way.
+    """
+    declared = "skills" in frontmatter
+    rewritten.pop("skills", None)
+    if declared and frontmatter["skills"]:
+        raise ValueError(
+            f"{entry.name}: non-empty `skills` cannot be projected to Kiro — "
+            f"turning a skill name into a `skill://` URI needs templating the "
+            f"frontmatter-mapping grammar cannot express. Remove the entries "
+            f"and declare `skills: []`, or extend the grammar first."
+        )
+    return declared
 
 
 def _apply_mapping(frontmatter: dict[str, Any], mapping: dict) -> dict[str, Any]:
