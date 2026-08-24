@@ -18,6 +18,12 @@ Start work on adding export retention controls for workspace owners.
 artifact, registers it in `workspace.toml`, and invokes a processor only after
 both writes succeed. Ambiguous or deferred work stays Draft and cannot dispatch.
 
+It can also admit a confirmed shaping handoff from an optional upstream pack.
+One independently shippable feature enters as a delivery contract; multi-spec
+or cross-repository work enters as a delivery brief. The bounded context
+preserves provenance but never skips brief, spec, plan, or human approval gates.
+Core behaves exactly as before when no handoff is present.
+
 ```text
   action      start
   artifact    docs/specs/export-retention/spec.md

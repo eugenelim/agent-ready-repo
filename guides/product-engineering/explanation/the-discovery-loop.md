@@ -41,4 +41,17 @@ The loop pauses at three **consent gates** — G0 (the value seed), G1.5 (the al
 
 ## Where it sits
 
-The discovery loop is the upstream half of a two-loop operating model. It hands a build-ready brief to `work-loop` at G3; `work-loop` builds it; the release loop ships it. It does not replace classic requirements work (BRD/PRD/SRS/RTM) — it maps onto those artifacts, ingests them, and can emit them for sign-off.
+The discovery loop is the upstream half of a two-loop operating model. At G3,
+one independently shippable feature becomes a delivery contract; a multi-spec
+or cross-repository outcome becomes a delivery brief. After human confirmation,
+an explicitly compatible Core invocation admits the bounded handoff through
+`work-intake` and keeps the existing `new-spec` or `receive-brief` gates.
+
+Core is optional. If it is absent, unknown, or predates the handoff capability,
+the loop renders the same bounded content for portable use and still completes
+shaping. This seam moves context, not authority: external locators stay opaque,
+and neither lifecycle state nor approval crosses the boundary.
+
+The release loop ships what delivery builds. Discovery does not replace classic
+requirements work (BRD/PRD/SRS/RTM); it maps onto those artifacts, ingests them,
+and can emit them for sign-off.

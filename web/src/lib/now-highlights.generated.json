@@ -5,6 +5,36 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.10.10"
+        },
+        {
+          "name": "product-engineering",
+          "version": "0.13.5"
+        }
+      ],
+      "date": "2026-08-24",
+      "heading": "[core][2.10.10] / [product-engineering][0.13.5] — 2026-08-24",
+      "changelogAnchor": "core21010--product-engineering0135--2026-08-24",
+      "highlights": [
+        {
+          "source": "**A confirmed product discovery can now hand bounded delivery context to Core intake without losing its source or skipping delivery approvals.** One independently shippable feature enters as a delivery contract; multi-spec or cross-repository work enters as a delivery brief. Older or absent Core installations receive the same content as a portable rendered handoff.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A confirmed product discovery can now hand bounded delivery context to Core intake without losing its source or skipping delivery approvals."
+            },
+            {
+              "type": "text",
+              "value": " One independently shippable feature enters as a delivery contract; multi-spec or cross-repository work enters as a delivery brief. Older or absent Core installations receive the same content as a portable rendered handoff."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.10.9"
         }
       ],

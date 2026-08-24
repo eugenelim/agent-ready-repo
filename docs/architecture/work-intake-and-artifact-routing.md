@@ -19,6 +19,12 @@ supply bounded candidates; the resolver applies repository policy and
 established adopter conventions without assuming catalogue paths, requiring a
 configuration file, or fetching external locators.
 
+An upstream shaping workflow may offer one optional closed handoff inside
+`normalized-intake.v1`. The object adds boundaries, non-goals, dependencies,
+design context, and delivery questions. Existing content and source fields keep
+the outcome, assumptions, evidence, locator, revision, and proposed authority.
+Absence of the object is standalone Core and follows the existing routes.
+
 ## 2. Entrypoints
 
 - `work-intake` selects direct-light, intent, brief, spec, defect,
@@ -34,6 +40,9 @@ configuration file, or fetching external locators.
 - `surface_resolver.py` resolves one semantic role from caller-supplied local or
   external candidates and returns provenance, capability, confinement, and
   independent authority facts without lifecycle effects.
+- `route_handoff` admits only a validated, resolved delivery brief or delivery
+  contract. It returns an existing processor or a stable zero-effect stop; it
+  does not materialize, register, or dispatch.
 
 ## 3. Owned state and write authority
 
@@ -47,6 +56,7 @@ configuration file, or fetching external locators.
 | Selection and confirmation | Human-authored repository-relative JSON supplied out of band | Human reviewer/approver | Migration planner/effect only |
 | Direct-light decision record | Active session only | `work-loop` | Requester and current session |
 | Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
+| Optional shaping handoff | Validated `normalized-intake.v1` envelope in the active invocation | Upstream producer owns offered content; Core owns validation and admission | `work-intake`, then the selected existing processor |
 
 `workspace.toml` indexes artifacts and lifecycle facts. It is not a
 requirements store. Target entries contain exactly `path`, `kind`, `source`,
@@ -73,6 +83,21 @@ configuration adapters normalize into that same record shape and gain no
 authority merely by being configured. Only repository-path candidates enter
 realpath confinement; external locators remain opaque and offline.
 
+Product-engineering owns producing the optional bounded handoff only after its
+existing confirmed delivery gate. It imports no Core implementation and has no
+mandatory Core dependency. One independently shippable feature is a delivery
+contract; multi-spec or cross-repository work is a delivery brief. Core owns
+classification, resolution, admission, and the receiving processor. An
+explicitly compatible invocation receives the machine object; older, unknown,
+or absent Core receives portable rendered data from the producer.
+
+Repository handoff content crosses one additional read boundary after
+resolution: a confined regular-file read that rejects symlinks, reparse points,
+multiple hard links, non-regular files, oversized content, post-resolution
+identity changes, and paths outside the repository root. External handoff
+content crosses no read boundary. It is reusable only when the current trusted
+invocation already supplies bounded content at the matching pinned revision.
+
 ## 5. Primary flows
 
 1. An adapter or local request produces validated normalized intake.
@@ -98,6 +123,10 @@ realpath confinement; external locators remain opaque and offline.
    Ambiguity requires confirmation; contradiction or unsafe confinement is a
    refusal; absence asks the caller to select or create a destination. None of
    these outcomes changes lifecycle state.
+8. An optional shaping handoff validates before content reads or effects. A
+   resolved delivery contract continues through `new-spec`; a resolved delivery
+   brief continues through `receive-brief`. Those processors retain their
+   assumption, Ready, slice-confirmation, spec, plan, and human approval gates.
 
 Classification routes an explicit start to exactly one durability class:
 
@@ -126,6 +155,22 @@ source adapter ── normalized-intake.v1 ──> work-intake
                                         processor/work-loop   workspace-status
 ```
 
+The optional producer seam composes above that unchanged pipeline:
+
+```text
+confirmed shaping gate
+        |
+        +-- compatible Core --> bounded handoff --> work-intake admission
+        |
+        +-- absent/older Core --> portable rendered handoff
+
+work-intake admission
+        |
+        +-- delivery contract --> new-spec
+        +-- delivery brief ----> receive-brief
+        +-- ambiguity/refusal --> stable zero-effect stop
+```
+
 ## 6. Failure and recovery behavior
 
 Missing, malformed, duplicate, unsafe, or inconsistent state becomes a stable
@@ -144,6 +189,12 @@ A locator-only workspace entry is contract-valid and visible, but it stops at
 `configuration_mismatch` before local artifact access or dispatch. An unsafe
 local candidate, symlink escape, symlink loop, or mandatory-policy conflict
 returns a stable refusal without raw exception text.
+
+Handoff admission also stops on incomplete bounded content, confidentiality or
+mandatory-policy conflict, source or revision mismatch, forged/non-resolved
+resolver data, and unacquired external content. No handoff result changes
+lifecycle state. Dependencies carried in the handoff remain context until the
+existing workspace contract separately admits and satisfies them.
 
 ## 7. Observability, evidence, and the compatibility window
 
@@ -184,6 +235,9 @@ artifacts and migration evidence.
 - Marketing builds before docs, followed by emitted-link validation.
 - The semantic-surface completion matrix enumerates every resolution outcome
   and is compared deterministically against the resolver's own results.
+- The shaping-handoff completion matrix runs twice, covers compatible,
+  standalone, and legacy pack pairings plus every routing/refusal class, and
+  fingerprints its filesystem before and after to prove zero effects.
 
 These skill scripts run in the finish-time checklist and can run as fail-closed
 CI gates where a PR event and Python exist. They do not fail closed inside an
@@ -213,7 +267,7 @@ Maintainer procedures live in
 
 ## 10. Last verified against commit
 
-`297739e4`
+`f7660b008`
 
-Verified against the Group 2–7 schema, runtime, evaluation, and documentation
-surfaces.
+Verified against the normalized-intake handoff, semantic resolver, routing,
+pack integration, projection, evaluation, and documentation surfaces.

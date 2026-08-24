@@ -9,7 +9,9 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | Component | Owns | Must not own |
 | --- | --- | --- |
 | Source adapter | Bounded acquisition, provenance, profile-version hints, strict normalization | Artifact classification, repository writes, authorization |
+| Upstream shaping producer | Bounded handoff content after its confirmed delivery gate; capability-negotiated portable fallback | Core imports, destination self-certification, lifecycle or delivery approval |
 | `work-intake` | Content-based route, artifact-before-registration sequencing, processor selection | Tracker vocabulary, source credentials, legacy conversion |
+| Handoff admission | Closed-field validation, source/revision consistency, exact resolver-result reuse, stable zero-effect disposition | Raw source storage, external acquisition, new artifact/lifecycle kinds |
 | Canonical artifact | Requirements, decisions, acceptance state, tracker-origin authority block | Workspace membership |
 | `workspace.toml` | Artifact path/kind, lifecycle membership, source mirror, display summary, hard dependencies | Requirements or comment-backed routing |
 | Processor | The artifact-specific workflow selected by the route | Reclassifying the source from tracker object names |
@@ -31,6 +33,28 @@ fields, treats all source content as untrusted data, and emits
 defect, direct-light, Draft-with-gaps, status, remember, or refresh behavior.
 Equivalent normalized content must produce the same route for Jira, Jira Align,
 GitHub, and Linear.
+
+The optional `handoff` object is additive to `normalized-intake.v1`. Its
+required arrays are boundaries, non-goals, dependencies, design context, and
+delivery questions; empty arrays remain explicit and valid. Do not add raw
+payload, instruction, prompt, secret, credential, lifecycle, or approval
+fields. A producer sends the object only when the current Core invocation
+advertises `normalized-intake.v1#handoff`. Otherwise it renders the same
+bounded content and omits the unsupported object.
+
+Core derives the semantic role from validated content: one independently
+shippable feature is a delivery contract, while multi-spec or cross-repository
+work is a delivery brief. Pass caller-acquired closed candidates to the
+semantic-surface resolver and preserve its result unchanged. Never accept a
+producer-shaped replacement for that result.
+
+For a repository locator, read content only after resolution through
+`read_confined_regular_file` or the tested standalone equivalent. Refuse
+symlinks, reparse points, multiply linked or non-regular files, oversized
+content, identity swaps, and uncertain confinement. For an external locator,
+perform no fetch, search, probe, DNS, tracker, credential, shell, or
+locator-derived filesystem operation. Only already-acquired bounded content at
+the matching pinned revision can continue.
 
 Intake adapters are read-only at the tracker boundary. A configured refresh
 processor is a separate capability. It resolves by exact profile ID and version;
@@ -106,6 +130,15 @@ When any component changes:
    notes, then regenerate self-hosted projections and marketplace metadata.
 6. Build marketing before docs, audit emitted links, and inspect generated
    canonical and compatibility routes rather than editing generated output.
+7. For a handoff change, run the completion matrix twice and require
+   byte-identical records plus unchanged filesystem fingerprints. Check
+   repository brief/contract, acquired external content, aliases, standalone
+   direct/durable routes, absent and older Core fallback, ambiguity, absence,
+   policy conflict, unsafe paths, symlink escape/loop, prompt-like data,
+   authority independence, and optional configuration.
+8. Confirm every producer and consumer that reads offered content declares
+   `filesystem_read_untrusted`, and inspect each generated adapter projection
+   for the same boundary metadata.
 
 The schemas under `contracts/jsonschema/`, the scripts under the owning
 `.apm/skills/` directories, and their construction tests are mechanically

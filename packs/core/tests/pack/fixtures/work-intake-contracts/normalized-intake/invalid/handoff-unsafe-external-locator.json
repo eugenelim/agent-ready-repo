@@ -1,0 +1,9 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {"outcomes": [], "constraints": [], "evidence": [], "behaviors": [], "assumptions": [], "named_gaps": []},
+  "source": {"mode": "tracker-origin", "locator": "tracker:TEAM-42", "revision": "rev-42"},
+  "constraints": {},
+  "proposed_authority": "tracker-origin",
+  "handoff": {"boundaries": [], "non_goals": [], "dependencies": [{"relationship": "informs", "locator_kind": "external", "locator": "https://user@example.invalid/work", "revision": "rev-41"}], "design_context": [], "delivery_questions": []}
+}

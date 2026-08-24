@@ -1,16 +1,21 @@
 ---
 name: decompose-intent
-description: Use when a de-risked intent needs breaking into the next level down — child intents, or a shippable spec/slice at the leaf — and optionally projecting onto a tracker. Triggers on "decompose this", "break this down", "slice this", "what specs come out of this", "push this to Linear/Jira". Recursive (one level at a time); at app scale the leaf is an ordinary `core` brief. Do NOT use to author an intent (use `frame-intent`) or to test a bet (use `de-risk-intent`).
+description: Use when a de-risked intent needs breaking into the next level down — child intents, or a shippable delivery contract at the leaf — and optionally projecting onto a tracker. Triggers on "decompose this", "break this down", "slice this", "what specs come out of this", "push this to Linear/Jira". Recursive (one level at a time); one independently shippable feature becomes a delivery contract, while multi-spec or cross-repository work becomes a delivery brief. Do NOT use to author an intent (use `frame-intent`) or to test a bet (use `de-risk-intent`).
+metadata:
+  type: skill
+  boundaries:
+    - filesystem_write
+    - filesystem_read_untrusted
 ---
 
 # Skill: decompose-intent
 
 Break a de-risked `intent` into the **next level down** — child intents, or, at
-the leaf, a shippable spec/slice — and optionally project the tree onto a tracker.
+the leaf, a shippable delivery contract — and optionally project the tree onto a tracker.
 Decomposition is recursive: it produces one level at a time, until the leaf is a
-unit your delivery loop can build. At `app` Scale the leaf feature intent *is* a
-`core` brief, so the hand-off is `receive-brief` → `new-spec` → `work-loop` with
-no new machinery. The recursion + the brief projection are in
+unit your delivery loop can build. One independently shippable feature becomes
+a `delivery contract`; only a multi-spec or cross-repository outcome becomes a
+coordinating `delivery brief`. The recursion + the projection are in
 `references/recursive-decomposition.md`.
 
 ## Output rendering
@@ -54,15 +59,16 @@ Before decomposing, confirm:
    re-litigates a branch you already ruled out. A line or two per decision — a
    log, not a memo.
 
-3. **Project the leaf — by Scale.** A feature-level intent is the leaf; how it
-   projects depends on Scale (`references/recursive-decomposition.md`):
-   - **`app` Scale** — it *is* a single `core` brief (same outcome, success
-     metrics from the input/lagging/guardrail, scope/non-goals, appetite). Write
-     it to `docs/product/briefs/<slug>.md` and hand to `receive-brief`. No new
-     fields, no slicing — `receive-brief` is level-agnostic and receives a brief
-     for its own repo.
-   - **`business-unit` Scale** — **slice it per component** into one `core` brief
-     per affected repo. Read the affected components and their
+3. **Project the confirmed delivery unit — by semantic role.** A feature-level
+   intent is the leaf. Its role, not its Scale label alone, selects the handoff:
+   - **One independently shippable feature** — emit a `delivery contract` for
+     the existing `new-spec` gate. Carry the outcome, success metrics,
+     boundaries, non-goals, dependencies, design context, delivery questions,
+     and safe source provenance as attributed context; do not write or approve
+     the spec here.
+   - **A multi-spec or cross-repository outcome** — emit a coordinating
+     `delivery brief` for the existing `receive-brief` gate. At
+     `business-unit` Scale, slice it per component. Read the affected components and their
      `providesApi`/`consumesApi` edges + the contract references from the
      meta-repo's catalog (`align-value-stream`), and stamp each brief with
      `parent-intent:` (the intent it was projected from), a `contract@version`
@@ -71,6 +77,14 @@ Before decomposing, confirm:
      component repo, where `receive-brief` → `new-spec` → `work-loop` take over.
      Coordinating across repos this way has hard limits (no atomic cross-repo
      commit, no shared release train) — `align-value-stream` states them honestly.
+
+   At a confirmed discovery handoff gate, normalize the role and bounded fields
+   into `normalized-intake.v1#handoff` only when the current Core invocation
+   advertises that capability. If Core is absent, its capability is unknown, or
+   it predates this object, render the same bounded handoff for portable use and
+   omit the unsupported top-level field. External locators remain opaque data:
+   never fetch, search, probe, read, execute, or derive a filesystem path from
+   them.
 
 4. **Keep the contract behavioral here.** Carry only the *interaction* shape (who
    talks to whom, the consumer's expectations) into the brief; the **detailed

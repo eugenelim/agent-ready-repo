@@ -1,0 +1,9 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {"outcomes": [], "constraints": [], "evidence": [], "behaviors": [], "assumptions": [], "named_gaps": []},
+  "source": {"mode": "repo-origin", "locator": "docs/specs/example/spec.md", "revision": "rev-1"},
+  "constraints": {},
+  "proposed_authority": "repo-origin",
+  "handoff": {"boundaries": [], "non_goals": [], "dependencies": [{"relationship": "informs", "locator_kind": "repository-path", "locator": "docs/architecture/example.md", "semantic_role": "architecture-design"}], "design_context": [], "delivery_questions": []}
+}

@@ -222,6 +222,8 @@ def test_both_schemas_are_valid_versioned_and_backlinked() -> None:
         assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema", f"{path}: meta-schema"
         assert schema["contract_version"] == version, f"{path}: stable contract version"
         expected_specs = ["docs/specs/normalized-intake-workspace-contracts/"]
+        if path == NORMALIZED_SCHEMA:
+            expected_specs.append("docs/specs/shaping-intake-handoff/")
         if path == WORKSPACE_SCHEMA:
             expected_specs.append("docs/specs/semantic-surface-resolver/")
         assert schema["x-spec"] == expected_specs, f"{path}: x-spec"
