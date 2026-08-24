@@ -1,5 +1,5 @@
 # Build pipeline entrypoint — every target delegates to
-# `python3 -m agentbundle.build`. Argument parsing happens inside the
+# `python3 -m agentbundle catalogue`. Argument parsing happens inside the
 # Python package; this file is the thin user surface spec § Boundaries
 # § Always do calls for.
 
@@ -20,26 +20,47 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
 	$(PYTHON) -m agentbundle catalogue lint --root .
 
 build: lint-packs
+	$(if $(filter packs,$(PACKS_DIR)),,$(error build: PACKS_DIR=$(PACKS_DIR) is unsupported; catalogue build resolves packs from --root))
 ifeq ($(RECIPE),)
 ifeq ($(PACK),)
-	$(PYTHON) -m agentbundle.build build --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
+	$(PYTHON) -m agentbundle catalogue build --root . --output $(OUTPUT_DIR)
 else
-	$(PYTHON) -m agentbundle.build build --pack $(PACK) --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
+	$(PYTHON) -m agentbundle catalogue build --root . --output $(OUTPUT_DIR) --pack $(PACK)
 endif
 else
 ifeq ($(PACK),)
-	$(PYTHON) -m agentbundle.build build --recipe $(RECIPE) --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
+	$(PYTHON) -m agentbundle catalogue build --root . --output $(OUTPUT_DIR) --recipe $(RECIPE)
 else
-	$(PYTHON) -m agentbundle.build build --recipe $(RECIPE) --pack $(PACK) --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
+	$(PYTHON) -m agentbundle catalogue build --root . --output $(OUTPUT_DIR) --recipe $(RECIPE) --pack $(PACK)
 endif
 endif
+
+# Local counterpart of catalogue-tooling-ci-gates.yml Gate B's build step, run
+# on demand: `make external-catalogue-smoke`. Reproduces the one command that
+# reddened Gate B while every local target stayed green, against the same
+# committed fixture CI copies, so the two cannot drift.
+#
+# Deliberately NOT a prerequisite of `ci`. docs/specs/local-ci-orchestration
+# AC1 pins `make ci`'s direct prerequisites to exactly build-check, lint-ruff,
+# lint-mypy and test, and tools/test-lint-ci-parity.py's
+# `local-ci-direct-prereqs` case enforces it. Chaining this target would need a
+# frozen-spec amendment; run it directly, or before raising a catalogue-engine
+# PR.
+#
+# CI additionally proves wheel isolation, venv install, lint, verify, package
+# and archive verification. This target proves only the build step.
+external-catalogue-smoke:
+	@tmp_dir="$$(mktemp -d)"; trap 'rm -rf "$$tmp_dir"' EXIT; \
+		cp -R tools/tests/fixtures/external-catalogue-smoke/. "$$tmp_dir"; \
+		touch "$$tmp_dir/AGENTS.md"; mkdir -p "$$tmp_dir/profiles" "$$tmp_dir/contracts"; \
+		$(PYTHON) -m agentbundle catalogue build --root "$$tmp_dir" --output "$$tmp_dir/dist"
 
 # Self-host projection via the portable catalogue engine.
 # Windows contributors: python tools/repo/build_gate_chain.py build-self

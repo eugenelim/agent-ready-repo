@@ -1,9 +1,10 @@
 """End-to-end pipeline test (T8).
 
-Drives `make build` (via `python -m agentbundle.build build`) against
-the four reference fixture packs at
+Exercises the build pipeline against the four reference fixture packs at
 `packages/agentbundle/tests/build_pipeline/fixtures/packs/` on a
 clean checkout and asserts the dist/ shape the contract requires.
+`make build` delegates to `python -m agentbundle catalogue build`; these tests
+also retain direct compatibility-shim coverage for `agentbundle.build build`.
 Production-pack migration into a top-level `packs/` directory is out of
 scope here; a follow-on owns it.
 """

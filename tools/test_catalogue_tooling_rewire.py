@@ -34,8 +34,9 @@ class MakefileRewireTest(unittest.TestCase):
                 in_target = True
                 continue
             if in_target:
-                # include tab-indented lines AND Makefile conditional keywords
-                if (line.startswith(("\t", "ifeq", "ifneq", "else", "endif"))):
+                # Include recipes, conditionals, and parse-time expansions inside
+                # the target body.
+                if line.startswith(("\t", "$(", "ifeq", "ifneq", "else", "endif")):
                     body_lines.append(line)
                 elif line.strip() and not line.startswith(" ") and not line.startswith("#"):
                     break
@@ -47,6 +48,61 @@ class MakefileRewireTest(unittest.TestCase):
                       "lint-packs must call agentbundle catalogue lint")
         self.assertNotIn("agentbundle.build lint-packs", body,
                          "lint-packs must not use old agentbundle.build surface")
+
+    def test_build_calls_catalogue_build(self):
+        """Every make-build selector branch uses the supported CLI entrypoint."""
+        body = self._target_body("build")
+        self.assertIn("agentbundle catalogue build", body)
+        self.assertNotIn("agentbundle.build build", body)
+        self.assertIn("$(if $(filter packs,$(PACKS_DIR))", body)
+        self.assertEqual(body.count("--root ."), 4)
+        self.assertEqual(body.count("--output $(OUTPUT_DIR)"), 4)
+
+    def test_external_catalogue_smoke_is_shared_with_gate_b_and_ci(self):
+        """The local build smoke target uses Gate B's committed fixture."""
+        body = self._target_body("external-catalogue-smoke")
+        self.assertIn("mktemp -d", body)
+        self.assertNotIn("/private/tmp", body)
+        self.assertIn("trap 'rm -rf", body)
+        self.assertIn("tools/tests/fixtures/external-catalogue-smoke", body)
+        self.assertIn("agentbundle catalogue build", body)
+        self.assertIn('touch "$$tmp_dir/AGENTS.md"', body)
+        self.assertIn('mkdir -p "$$tmp_dir/profiles" "$$tmp_dir/contracts"', body)
+        self.assertIn('--output "$$tmp_dir/dist"', body)
+
+        workflow = (
+            REPO_ROOT / ".github/workflows/catalogue-tooling-ci-gates.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "cp -R tools/tests/fixtures/external-catalogue-smoke /tmp/ext-cat",
+            workflow,
+        )
+        self.assertIn("touch /tmp/ext-cat/AGENTS.md", workflow)
+        self.assertIn("mkdir -p /tmp/ext-cat/profiles /tmp/ext-cat/contracts", workflow)
+
+        # The target is deliberately standalone. docs/specs/local-ci-orchestration
+        # AC1 pins `make ci`'s direct prerequisites to exactly four, and
+        # tools/test-lint-ci-parity.py's `local-ci-direct-prereqs` case enforces
+        # it -- chaining this target reddened that case. Pin the absence so a
+        # future edit re-adding it fails here, next to the reason, rather than in
+        # a parity suite that cannot say why.
+        self.assertIn("ci: build-check lint-ruff lint-mypy test", self.makefile)
+        self.assertNotIn("external-catalogue-smoke lint-ruff", self.makefile)
+
+        fixture = REPO_ROOT / "tools/tests/fixtures/external-catalogue-smoke"
+        for rel in (
+            "catalogue.toml",
+            "packs/sample-pack/pack.toml",
+            "packs/sample-pack/.claude-plugin/plugin.json",
+            "packs/sample-pack/.apm/skills/hello/SKILL.md",
+            ".claude-plugin/marketplace.json",
+            "LICENSE-APACHE",
+            "LICENSE-MIT",
+        ):
+            self.assertTrue((fixture / rel).is_file(), f"missing Gate B fixture: {rel}")
+        self.assertFalse((fixture / "AGENTS.md").exists())
+        self.assertFalse((fixture / "profiles").exists())
+        self.assertFalse((fixture / "contracts").exists())
 
     def test_build_self_calls_catalogue_self_host(self):
         body = self._target_body("build-self")

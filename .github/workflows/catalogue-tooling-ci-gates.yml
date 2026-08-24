@@ -211,92 +211,20 @@ jobs:
 
       - name: Create minimal external catalogue
         run: |
-          mkdir -p /tmp/ext-cat/packs/sample-pack/.apm/skills/hello
-          mkdir -p /tmp/ext-cat/packs/sample-pack/.claude-plugin
-          mkdir -p /tmp/ext-cat/profiles
-          mkdir -p /tmp/ext-cat/contracts
+          cp -R tools/tests/fixtures/external-catalogue-smoke /tmp/ext-cat
           # AGENTS.md doubles as a catalogue marker in the archive (catalogue.toml
           # is excluded from archives by design; the archive verifier requires one of:
           # catalogue.toml, AGENTS.md, or .agentbundle).
+          #
+          # AGENTS.md and the two empty directories are recreated here rather than
+          # committed: an AGENTS.md with content is linted as real repository
+          # governance, and a .gitkeep placeholder is a regular file that
+          # `catalogue package` would collect into the archive. Both would change
+          # what this gate packages. `make external-catalogue-smoke` does the same
+          # three steps — keep them in step.
           touch /tmp/ext-cat/AGENTS.md
-
-          cat > /tmp/ext-cat/catalogue.toml <<'TOML'
-          schema = 1
-
-          [catalogue]
-          name                        = "smoke-cat"
-          display-name                = "Smoke Catalogue"
-          description                 = "Minimal external catalogue for CI smoke test."
-          minimum-agentbundle-version = "0.13.0"
-
-          [catalogue.paths]
-          packs        = "packs"
-          profiles     = "profiles"
-          contracts    = "contracts"
-          marketplace  = "dist/claude-plugins/marketplace.json"
-          build-output = "dist"
-
-          [catalogue.build]
-          recipes                  = ["default"]
-          self-host                = false
-          claude-plugin-branch     = "main"
-          marketplace-description  = "External smoke-test catalogue."
-
-          [catalogue.package]
-          include  = ["packs/sample-pack"]
-          required = ["packs/sample-pack"]
-
-          [distribution.agentbundle]
-          install-defaults-output = ""
-          preferred-adapter        = "claude-code"
-          default-source           = "git+https://example.test/smoke-cat"
-
-          [distribution.agentbundle.artifactory]
-          enabled = false
-          TOML
-
-          cat > /tmp/ext-cat/packs/sample-pack/pack.toml <<'TOML'
-          [pack]
-          name        = "sample-pack"
-          version     = "0.1.0"
-          description = "Minimal smoke-test pack."
-
-          [pack.adapter-contract]
-          version = "0.14"
-
-          [pack.install]
-          default-scope = "repo"
-          # User-capable so the smoke build exercises the claude-plugins route
-          # as well as APM. A repo-only fixture leaves the marketplace empty,
-          # which is a valid state but tests nothing about aggregation.
-          allowed-scopes = ["repo", "user"]
-
-          [pack.first-value]
-          audience-posture = "technical"
-          surfaces         = ["claude-code"]
-          prerequisites    = ["agentbundle installed"]
-          verification     = "Run the hello skill and confirm it greets the user."
-          recovery         = "Reinstall the pack if the skill is missing."
-          TOML
-
-          cat > /tmp/ext-cat/packs/sample-pack/.claude-plugin/plugin.json <<'JSON'
-          {
-            "name": "sample-pack",
-            "version": "0.1.0",
-            "description": "Minimal smoke-test pack."
-          }
-          JSON
-
-          cat > /tmp/ext-cat/packs/sample-pack/.apm/skills/hello/SKILL.md <<'MD'
-          ---
-          name: hello
-          description: Greets the user when asked for a greeting.
-          ---
-
-          # Body
-
-          Greet the user warmly.
-          MD
+          mkdir -p /tmp/ext-cat/profiles /tmp/ext-cat/contracts
+          mkdir -p /tmp/ext-cat/profiles /tmp/ext-cat/contracts
 
       - name: agentbundle catalogue build (external — creates dist/marketplace.json)
         run: /tmp/smoke-venv/bin/agentbundle catalogue build --root /tmp/ext-cat --output /tmp/ext-cat/dist
@@ -306,21 +234,6 @@ jobs:
 
       - name: agentbundle catalogue verify (external)
         run: /tmp/smoke-venv/bin/agentbundle catalogue verify --root /tmp/ext-cat
-
-      - name: Prepare catalogue root for packaging
-        run: |
-          # catalogue package requires three files that the default build does
-          # not place at the catalogue root.
-          #
-          # 1. .claude-plugin/marketplace.json — created by `catalogue self-host
-          #    --write` (or `make build-self`) for self-hosted repos; for an
-          #    external catalogue tested here we write a minimal valid stub.
-          mkdir -p /tmp/ext-cat/.claude-plugin
-          cat > /tmp/ext-cat/.claude-plugin/marketplace.json <<'JSON'
-          {"name": "smoke-cat", "description": "Smoke test catalogue.", "owner": {"name": "ci"}, "plugins": []}
-          JSON
-          # 2. LICENSE-APACHE and LICENSE-MIT — required by catalogue package.
-          touch /tmp/ext-cat/LICENSE-APACHE /tmp/ext-cat/LICENSE-MIT
 
       - name: agentbundle catalogue package (external)
         run: |
