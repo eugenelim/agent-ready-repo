@@ -1,6 +1,8 @@
 ---
 name: generate-iac
-description: Use this skill to author governed, best-practice Terraform/OpenTofu infrastructure from a plain-language intent. Triggers on "provision X", "create Terraform for", "generate IaC for", "set up cloud resources", "write Terraform for", "scaffold infrastructure". Stops at a digest-pinned `terraform plan` (G4 handoff); never runs `apply`. Governance-first — loads the decision-record index before any code.
+description: Use this skill to author governed, best-practice Terraform/OpenTofu infrastructure from a plain-language intent. Triggers on "provision X", "create Terraform for", "generate IaC for", "set up cloud resources", "write Terraform for", "scaffold infrastructure". Stops at a digest-pinned `terraform plan` (G4 handoff); never runs `apply`. Governance-first — resolves the decision-record surface before any code.
+metadata:
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: generate-iac
@@ -50,17 +52,26 @@ plan-based drift audit via `reconcile-iac`.
 
 ## Hard rules — non-negotiable
 
-- **Stage 0 is mandatory and non-bypassable.** Before any Terraform, load the
-  repo's governance index (`governance-index.toml` / `governance-index.yaml`)
-  and read only the 2–3 files it maps to the intent's domains. The plan must
-  list which decision records it satisfies and why. Do not proceed to Stage 1
-  until Stage 0 is complete.
-  - **First-time use (no governance-index exists yet):** offer to bootstrap one
-    — scan `docs/adr/` for infrastructure-adjacent ADRs, scaffold the index
-    structure with their references (using the template from
-    `governance-extras/seeds/governance/manifest.example.yaml`), and confirm
-    the bootstrap with the human before proceeding. The bootstrapped index is a
-    starting point; the human confirms completeness before Stage 0 proceeds.
+- **Stage 0 is mandatory and non-bypassable.** Before any Terraform, request
+  the `decision-record` destination through Core's `work-intake` semantic-
+  surface capability. Pass bounded adopter evidence and consume the returned
+  `semantic-surface-resolution.v1` result unchanged; never reproduce its
+  precedence, policy, or confinement logic. Then load the governance index
+  established for that destination and read only the 2–3 records it maps to the
+  intent's domains. The plan must list which decision records it satisfies and
+  why. Do not proceed to Stage 1 until Stage 0 is complete.
+  - **First-time use (no governance index exists for the resolved destination):**
+    offer to bootstrap one according to that destination's established index
+    convention, using the template from
+    `governance-extras/seeds/governance/manifest.example.yaml`. For a confined
+    repository destination, inspect only the resolved decision-record surface;
+    do not assume `docs/adr/`. For an external destination, use only bounded
+    content already acquired through a separately approved adapter. Without an
+    adapter, render a portable handoff and stop. Confirm the bootstrap with the
+    human before proceeding; the human confirms completeness before Stage 0.
+  - A mandatory-policy refusal, ambiguity, absence, contradictory evidence,
+    unsafe locator, or unavailable external content stops before index or
+    directory creation and before any Terraform write.
 - **Never invent a decision record.** If an intent conflicts with an existing
   ADR, or no ADR covers a material decision, stop and surface it — draft a new
   ADR via `governance-extras`' `new-adr` (infra mode); do not silently resolve.
@@ -100,7 +111,7 @@ plan-based drift audit via `reconcile-iac`.
 | Engine | `terraform` | `terraform \| opentofu` — emit engine-neutral HCL unless a divergent feature is requested; load `opentofu-differences.md` only when `engine = opentofu` |
 | Environment(s) | `dev` | |
 | Region | **ask** | |
-| Decision-record source | repo's `docs/adr/` | |
+| Decision-record source | resolve semantic role `decision-record` | Adopter-owned repository or external destinations win when policy permits |
 | CI system | `github-actions` | `github-actions \| azure-devops \| gitlab` |
 | Remote execution platform | `none` | `none \| hcp-terraform \| scalr`; when `engine = opentofu`, only `none` and `scalr` are valid — `cloud {}` is Terraform-only and incompatible with OpenTofu |
 | State backend | derive from cloud | S3 (AWS), GCS (GCP), Azure Blob — **only when `remote_exec_platform = none`**; remote exec platforms own the state |
@@ -110,7 +121,7 @@ plan-based drift audit via `reconcile-iac`.
 
 ```
 Stage 0: ADR gate (mandatory, non-bypassable)
-  → load governance-index; bootstrap if absent; read 2-3 governing files
+  → resolve decision-record; load its governance index; offer bootstrap if absent; read 2-3 governing records
 Stage 1: SPECIFY
   → vocabulary firewall — generic names only in spec.md; no cloud service names
 Stage 2: CLARIFY

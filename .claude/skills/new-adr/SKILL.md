@@ -7,8 +7,8 @@ metadata:
 
 # Skill: new-adr
 
-Create a new ADR in `docs/adr/` from the template, with the next sequential
-number.
+Create a new ADR in the repository's resolved `decision-record` destination
+from the existing template, with that destination's next sequential number.
 
 ## Output rendering
 
@@ -34,20 +34,50 @@ If any of these checks fail, push back rather than proceeding.
 
 ## Procedure
 
-1. Find the next number. The bundled helper prints the next 4-digit
+1. **Resolve the `decision-record` destination before identity or reads.** Ask
+   compatible Core work-intake for `semantic-surface-resolution.v1`, supplying
+   only bounded caller-acquired candidates in this order: an explicit
+   destination for this decision; declared repository policy or configuration;
+   an established in-repository convention; and an established external
+   destination. Inspect root/scoped guidance and at most two analogues and tests;
+   one example is inference, not a convention.
+
+   Consume the Wave 1 result unchanged. An explicit destination that violates
+   mandatory policy is refused, not an override. Contradictory evidence fails
+   closed; ambiguity requires confirmation; absence offers destination selection
+   or creation but performs neither. `docs/adr/` is the catalogue fallback
+   candidate/offer, not a universal location. Do not create a directory,
+   configuration file, or index while resolving.
+
+   A resolved repository path must be confined within the active repository by
+   Wave 1. An external locator remains external and is not fetched, probed, or
+   coerced into a path; without a separately authorized write adapter, render a
+   portable `decision-record` handoff instead of writing. If compatible Core is
+   absent or does not expose `semantic-surface-resolution.v1`, state the role,
+   candidate/evidence facts, and needed write, render a repository handoff, and
+   stop. User confirmation may correct the handoff evidence but cannot replace
+   Wave 1 confinement or authorize a repository write. Never simulate or claim
+   a Wave 1 result. Refusal, ambiguity, absence, unsafe path, missing compatible
+   Core, or declined confirmation has zero ordinal, index, directory,
+   configuration, or artifact effects.
+
+   Surface the resolved logical and physical destination before continuing.
+
+2. Find the next number **inside the resolved destination**. The bundled helper
+   prints the next 4-digit
    ordinal — `0001` if no ADRs exist yet, max-plus-one otherwise. It
    parses the full digit prefix, so a `00099-foo.md` correctly yields
    `0100` (not `0010`):
 
    ```bash
-   python3 scripts/next-ordinal.py docs/adr
+   python3 scripts/next-ordinal.py <resolved-decision-record-directory>
    ```
 
    (The script lives next to this `SKILL.md` under `scripts/`. Python
    is preferred over `ls | grep | sed | sort` so the snippet works the
    same way on native Windows, macOS, and Linux.)
 
-2. Pick a kebab-case filename title from the user's description. Keep it
+3. Pick a kebab-case filename title from the user's description. Keep it
    short and declarative — `0007-primary-store-postgres-over-dynamodb.md`,
    not `0007-decision-about-the-database.md`. The H1 title inside the file
    names the problem *and* the chosen solution together — "Primary store
@@ -57,19 +87,10 @@ If any of these checks fail, push back rather than proceeding.
    belongs in the Decision section, not the H1. A title that compresses the whole
    argument into a clause makes the ADR index hard to scan.
 
-3. **Resolve the write target — before creating anything.** Establish *where*
-   this ADR will live and surface it, before any file exists:
-   - **Resolve and display the repository root** — the absolute path the ADR
-     and its index live under — so the author sees where the write will land.
-   - **Inspect the project's instructions and governance conventions**
-     (`AGENTS.md` / `CLAUDE.md`, `docs/CONVENTIONS.md`) for an ADR location, a
-     numbering rule, or an identity convention that overrides the defaults here.
-   - **Determine whether the project uses a non-default ADR location.** The
-     default is `docs/adr/`; if the conventions or the existing tree place ADRs
-     elsewhere, use that location (and its sibling index) instead.
-
-   You now hold the number (step 1), the filename (step 2), and the target
-   directory — but **nothing is on disk yet.** The bundled `assets/adr.md`
+   You now hold the resolved destination (step 1), its next number (step 2), and
+   the filename (step 3) — but **nothing is on disk yet.** Use the resolved
+   destination's established numbering, filename, and sibling-index conventions;
+   the bundled `assets/adr.md`
    template is copied and renamed to `NNNN-<title>.md` only after the preview
    gate (step 7) clears. (Paths are skill-relative — the `assets/` folder lives
    next to this `SKILL.md` wherever your IDE installed the skill.)
@@ -154,9 +175,10 @@ If any of these checks fail, push back rather than proceeding.
    update its index before the author confirms.**
 
 8. **On confirmation, write.** Copy the bundled `assets/adr.md` into the
-   resolved location (step 3), rename to `NNNN-<title>.md`, write the drafted
+   resolved location (step 1), rename to `NNNN-<title>.md`, write the drafted
    content, then add the new ADR's row to the index (`<adr-dir>/README.md`,
-   default `docs/adr/README.md`).
+   with `docs/adr/README.md` only when the resolved destination is the catalogue
+   fallback).
 
 9. **Return a completion receipt.** After writing, hand back:
    - **Identifier** — `ADR-NNNN`;

@@ -1,6 +1,8 @@
 ---
 name: init-project
 description: Use this skill to turn an idea into a structured new repo. It runs a trigger gate (throwaways and single scripts skip it), a value gate over fed-in discovery, records a foundation (an ADR plus a reference.md golden path), authors a walking-skeleton spec via new-spec and hands the build to work-loop, then hands off to the normal build loop. Triggers on "start a new project", "greenfield init", "idea to repo", "bootstrap a new codebase". Do NOT use inside an existing repo (use adapt-to-project) or to author one feature (use new-spec).
+metadata:
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: init-project
@@ -93,20 +95,34 @@ the downstream loop read. Hand that brief forward; nothing else.
 Choose the stack and architecture, and **record the decision with its
 rationale** — a foundation you can hold later work to. Two artifacts:
 
+Before creating either artifact, request two independent semantic destinations
+through `work-intake`: `decision-record` for the ADR and
+`current-architecture` for the normative golden path. Pass bounded candidates
+from the adopter's explicit choice, declared policy or optional configuration,
+and established convention to the shipped resolver; consume both
+`semantic-surface-resolution.v1` results unchanged. Do not infer that the two
+roles share a directory. A mandatory-policy refusal, ambiguity, absence, unsafe
+repository locator, or external locator without an approved write adapter stops
+that artifact before directory creation, ADR numbering, indexing, or writing.
+The catalogue paths below are fallback candidates, not universal destinations.
+
 - **An ADR** capturing *what* you chose, *why*, the *alternatives* weighed, and
-  a *re-evaluation date*. A stack chosen with no recorded rationale is the thing
-  to stop and fix before going further.
-- **`docs/architecture/reference.md`** — the normative golden path (constraints,
-  solution strategy, building blocks, cross-cutting standards). Instantiate it
-  from the arc42 `reference.md` template the `adapt-to-project` skill bundles
-  (the same golden-path template its reference-architecture harvest fills) —
-  here you fill it forward from a decision rather than harvesting it from
-  existing code. The core methodology stays stack-neutral; the chosen stack is
-  *yours*, recorded in your ADR and your `reference.md`. If the project will
-  deploy, this is also the moment to record the **deployment platform** and
-  **where verification tooling will live** in the `reference.md` slots (and the
-  matching one-liners in the `AGENTS.md` infra block) — optional grounding the
-  work-loop infra preflight reads if present, never a prerequisite.
+  a *re-evaluation date*. Hand the resolved `decision-record` destination to
+  `new-adr`; it retains ownership of numbering, filename, index, preview,
+  confirmation, and lifecycle. A stack chosen with no recorded rationale is the
+  thing to stop and fix before going further.
+- **A normative golden path** at the resolved `current-architecture`
+  destination. `docs/architecture/reference.md` is the catalogue fallback
+  candidate. Instantiate it from the arc42 `reference.md` template the
+  `adapt-to-project` skill bundles (the same golden-path template its
+  reference-architecture harvest fills) — here you fill it forward from a
+  decision rather than harvesting it from existing code. The core methodology
+  stays stack-neutral; the chosen stack is *yours*, recorded in the ADR and
+  golden path. If the project will deploy, this is also the moment to record the
+  **deployment platform** and **where verification tooling will live** in the
+  golden-path slots (and the matching one-liners in the `AGENTS.md` infra block)
+  — optional grounding the work-loop infra preflight reads if present, never a
+  prerequisite.
 
 Hand the foundation forward as the steering every later design conforms to.
 
@@ -158,6 +174,9 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
   `work-loop` — not a sketch you'll discard.
 - **Choosing a stack with no recorded rationale.** The foundation's ADR comes
   before the skeleton is authored, so the *why* survives.
+- **Treating catalogue paths as the foundation contract.** Resolve
+  `decision-record` and `current-architecture` independently through
+  `work-intake`; adopter-owned destinations win when policy permits them.
 - **Adding a new top-level directory, or importing another pack's code.** This
   skill lives beside the other core skills and composes the rest **by reference,
   not import** — it names `desk-research`, `receive-brief`, the arc42 `reference.md`

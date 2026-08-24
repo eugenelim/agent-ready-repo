@@ -116,9 +116,17 @@ never hand-edited sources.
 
 ### Reference architecture
 
-`reference.md` is the repo's normative grounding artifact — the golden-path file describing the stack, chosen patterns, and architectural constraints for a codebase. Before shaping a concept, `architect-design` checks what architecture context is reachable: an in-repo `reference.md`, an enterprise knowledge surface, or nothing. It states which surface it found in the concept; the absence of a surface is itself a visible signal.
+The repo's normative current-architecture grounding surface is its golden path:
+the stack, chosen patterns, and architectural constraints for a codebase. A
+`reference.md` is the catalogue's conventional artifact name, not a universal
+destination. Before shaping a concept, `architect-design` checks which resolved
+current-architecture or external knowledge surface is reachable and states what
+it found in the concept; the absence of a surface is itself a visible signal.
 
-If no `reference.md` exists, `architect-design` offers to create one. A design grounded against a known stack produces far tighter proposals than design against an implicit assumption of what the stack probably is.
+If no golden-path artifact exists, `architect-design` offers to establish one
+at the adopter-selected or resolved current-architecture destination. A design
+grounded against a known stack produces far tighter proposals than design
+against an implicit assumption of what the stack probably is.
 
 ### Platform contract grounding
 
@@ -202,16 +210,40 @@ for the model prose.
 
 ---
 
-## 7. Path resolution model
+## 7. Semantic surface and operating-mode model
 
-Output artifacts resolve through the `[architecture]` section of an adopter-owned `agentbundle-layout.toml`. Resolution order: (1) repo-root `./agentbundle-layout.toml` `[architecture] output_dir`; (2) user-profile `~/.agentbundle/agentbundle-layout.toml` `[architecture] output_dir`; (3) two-branch elicitation when neither resolves (repo branch or personal/vault branch — never a silent default).
+Destination follows artifact meaning, not a catalogue filename. A proposal or
+future-state design uses `architecture-design`; canonical documentation of the
+implemented system uses `current-architecture`; decision rationale remains the
+separate `decision-record` role owned by the ADR workflow. Architecture
+assessments choose from their saved intent: a canonical current-state report is
+current architecture, remediation/future change is architecture design, and a
+mixed report requires an explicit durable-role choice.
 
-Each design or assessment effort gets its own per-effort folder:
-`<output_dir>/<topic-slug>/`. Concepts, design docs, diagrams, assessments, and
-approved evidence outputs for one effort live together. The pack output layout
-contract governs this shape.
+The pack remains independently useful at user scope through four modes.
+`chat-only` creates nothing. `personal-workspace` uses an exact user-confirmed
+root/file and reports personal authority. `repository-resolved` exists only when
+compatible Core returns `semantic-surface-resolution.v1`; Architect supplies
+bounded candidates and consumes the result unchanged. `repository-handoff`
+states the role and bounded evidence when Core is absent/incompatible and asks
+the user or a capable workflow to resolve it; it never simulates Wave 1 and
+never authorizes a repository write.
 
-Saving is always an offer, never automatic. The skill resolves the path, surfaces the full absolute path to the user, and writes only on confirmation.
+An adopter-owned `[architecture] output_dir` is optional candidate evidence, not
+a universal registry. Repository precedence remains explicit destination,
+declared policy/configuration, established repository convention, established
+external destination, confirmation-required ambiguity, then an offer to select
+or create. Mandatory policy rejects a conflicting explicit destination. One
+analogue is inference, discovery is bounded, contradictions fail closed, and no
+configuration or destination is silently created.
+
+Each design or assessment effort keeps its existing per-effort folder under the
+selected destination. Personal paths are canonicalized and every derived child
+is confined beneath the exact confirmed root; repository writes rely on Wave 1
+confinement; external locators stay external. An exact personal file is refused
+when the method requires a per-effort folder, while a single-file diagram may
+use that exact file as its sole target. Saving is always an offer: surface the
+final local path and write only on confirmation.
 
 ---
 
@@ -223,7 +255,10 @@ The backstage column of a `service-blueprint` artifact (experience-design pack) 
 
 ### Downstream: core
 
-Architecture design docs produced by `architect-design` become the `reference.md` input for the core pack's `work-loop`. When a design doc exists, `work-loop` reads it to orient against the current architectural intent before implementation begins.
+Architecture design docs produced by `architect-design` become an input for the
+core pack's `work-loop`. When a resolved architecture-design or
+current-architecture surface exists, `work-loop` reads it to orient against the
+current architectural intent before implementation begins.
 
 ---
 

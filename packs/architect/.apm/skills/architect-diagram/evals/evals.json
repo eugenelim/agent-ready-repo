@@ -12,6 +12,41 @@
         "Stays readable at a glance — split or simplified rather than one sprawling diagram",
         "The diagram is the deliverable; it is not padded with prose that the diagram should carry"
       ]
+    },
+    {
+      "id": 2,
+      "prompt": "Document the deployment topology that is running today and save it in our repository's established architecture location. Compatible Core resolution is available.",
+      "expected_output": "A current-architecture diagram in repository-resolved mode. The skill grounds the diagram in the implemented system, consumes semantic-surface-resolution.v1, uses the adopter destination, surfaces the final confined .mmd path, and asks before writing.",
+      "assertions": [
+        "Classifies the implemented-system diagram as current-architecture",
+        "Names repository-resolved mode and consumes semantic-surface-resolution.v1",
+        "Uses the adopter destination rather than scanning for a catalogue path",
+        "Surfaces the confined .mmd target and preserves write confirmation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Draw the proposed future deployment and save it to this repository, but Core is not installed and no destination convention is established.",
+      "expected_output": "A zero-write architecture-design repository-handoff. The skill states the role, proposed destination if any, bounded evidence, and needed write, does not claim semantic-surface-resolution.v1, and creates nothing until compatible Core returns a confined result. User confirmation may correct handoff evidence but cannot authorize the repository write.",
+      "assertions": [
+        "Classifies the future-state diagram as architecture-design",
+        "Names repository-handoff because compatible Core is absent",
+        "Does not claim semantic-surface-resolution.v1 or silently create configuration/destination",
+        "Invokes no repository write even if the user confirms the proposed path",
+        "Routes the handoff to compatible Core for confinement"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Save this diagram to the exact personal file /example/personal/system-boundary.mmd. This is not a repository destination.",
+      "expected_output": "A personal-workspace single-file save. The skill canonicalizes the exact confirmed file, treats it as the only permitted target, labels the result personal rather than repository-authoritative, surfaces it, and retains write confirmation without claiming semantic-surface-resolution.v1.",
+      "assertions": [
+        "Names personal-workspace and the diagram's architecture role",
+        "Treats the exact confirmed file as the sole target",
+        "Does not derive another child or write beside the file",
+        "Reports personal rather than repository authority",
+        "Does not claim semantic-surface-resolution.v1 and retains write confirmation"
+      ]
     }
   ]
 }

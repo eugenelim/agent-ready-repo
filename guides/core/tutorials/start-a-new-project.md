@@ -7,12 +7,12 @@ kind: tutorial
 
 # From idea to a walking skeleton: start a new project
 
-**What you'll build:** A brand-new repo with a recorded foundation (an ADR and `docs/architecture/reference.md`) and a walking-skeleton spec authored and ready to build.
+**What you'll build:** A brand-new repo with a recorded foundation (a decision record and a current-architecture golden path at the destinations your repo selects) and a walking-skeleton spec authored and ready to build.
 **Prerequisites:** An empty (or nearly empty) repo you can commit to, the `core` pack installed, and a one-paragraph idea or PRD to start from.
 **Time:** About 20 minutes.
 
 :::note
-At the end of this tutorial you'll have a brand-new repo with a recorded foundation — an ADR and a `docs/architecture/reference.md` — and a walking-skeleton spec authored and ready to build. You'll learn the rhythm of the greenfield front door by walking it once.
+At the end of this tutorial you'll have a brand-new repo with a recorded foundation — a decision record and a current-architecture golden path — and a walking-skeleton spec authored and ready to build. `docs/adr/` and `docs/architecture/reference.md` are catalogue fallback candidates; adopter-owned destinations win when policy permits them.
 :::
 
 This is a learning walkthrough, not a reference. It uses the `core` pack alone. For the fuller inception — where the `research`, `product-engineering`, and `architect` packs fit around this core spine — see [Run a full inception for a new project](../../_shared/how-to/run-a-full-inception.md). For *why* the skeleton is built this way, read [Why a walking skeleton beats a throwaway prototype](../explanation/walking-skeleton-vs-throwaway.md) afterward; for the foundation step on its own, see [Decide and record your foundation during inception](../how-to/record-your-foundation-during-inception.md).
@@ -60,12 +60,15 @@ If you don't see this: if the skill pauses and asks you to sharpen the idea, the
 
 ## Step 3 — Record the foundation
 
-The skill now helps you choose the stack and **record the rationale**. Decide the few load-bearing things (say: a small HTTP service, a key-value store for the code-to-URL mapping) and let the skill capture them as two artifacts:
+The skill now helps you choose the stack and **record the rationale**. Decide the few load-bearing things (say: a small HTTP service, a key-value store for the code-to-URL mapping). It asks Core to resolve two independent semantic destinations before any directory, ordinal, index, or file is created:
 
-- an **ADR** stating what you chose, why, the alternatives, and a re-evaluation date;
-- a `docs/architecture/reference.md` — your golden path — instantiated from the arc42 template and filled forward from the decision you just made.
+- a `decision-record` stating what you chose, why, the alternatives, and a re-evaluation date;
+- a `current-architecture` golden path instantiated from the arc42 template and filled forward from the decision you just made.
 
-You should see both files written: an ADR under `docs/adr/` and `docs/architecture/reference.md` with at least the **Solution strategy** section naming your stack and the one-line reason it won.
+You should see both resolved destinations before their existing confirmation
+gates. If the repo has no stronger location evidence, you can confirm the
+catalogue fallbacks. A mandatory-policy refusal, ambiguity, unsafe path, or
+unavailable external destination stops that artifact without a partial write.
 
 ## Step 4 — Author the walking skeleton
 
@@ -80,7 +83,7 @@ You should see a new `docs/specs/walking-skeleton/` (or similarly named) spec wi
 You now have a brand-new repo with a **recorded foundation** (an ADR plus `reference.md`) and a **walking-skeleton spec** authored and ready to build — not a throwaway you'll later have to clean up. Commit the foundation:
 
 ```bash
-git add docs/adr docs/architecture/reference.md docs/product/briefs docs/specs
+git add <resolved-decision-record-path> <resolved-current-architecture-path> docs/product/briefs docs/specs
 git commit -m "chore: record foundation and author walking skeleton"
 ```
 

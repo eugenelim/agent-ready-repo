@@ -19,6 +19,15 @@ supply bounded candidates; the resolver applies repository policy and
 established adopter conventions without assuming catalogue paths, requiring a
 configuration file, or fetching external locators.
 
+Architecture and governance workflows consume that boundary by semantic role,
+not by catalogue filename. Proposed or future design requests
+`architecture-design`; the implemented system and accepted boundary changes
+request `current-architecture`; ADRs or equivalent records request
+`decision-record`. These roles remain independent of product truth, user
+documentation, and product or release history. Architect and governance own the
+artifact methods after resolution; work intake owns only the shared repository
+destination result.
+
 An upstream shaping workflow may offer one optional closed handoff inside
 `normalized-intake.v1`. The object adds boundaries, non-goals, dependencies,
 design context, and delivery questions. Existing content and source fields keep
@@ -40,6 +49,10 @@ Absence of the object is standalone Core and follows the existing routes.
 - `surface_resolver.py` resolves one semantic role from caller-supplied local or
   external candidates and returns provenance, capability, confinement, and
   independent authority facts without lifecycle effects.
+- Architect consumers have four explicit modes. Chat-only writes nothing;
+  personal-workspace confines writes to an exact user-confirmed root or file;
+  compatible repository mode consumes the real resolver result; repository
+  handoff mode names bounded evidence without claiming a Wave 1 result.
 - `route_handoff` admits only a validated, resolved delivery brief or delivery
   contract. It returns an existing processor or a stable zero-effect stop; it
   does not materialize, register, or dispatch.
@@ -83,6 +96,21 @@ configuration adapters normalize into that same record shape and gain no
 authority merely by being configured. Only repository-path candidates enter
 realpath confinement; external locators remain opaque and offline.
 
+The architecture consumers keep a strict ownership edge:
+
+| Semantic role | Content owner after resolution | Catalogue fallback is only evidence |
+| --- | --- | --- |
+| `architecture-design` | Architect design or future-proposal workflow | Per-effort design location |
+| `current-architecture` | Architect current-state or repository adaptation workflow | `docs/architecture/` |
+| `decision-record` | Governance `new-adr` workflow | `docs/adr/` |
+
+`init-project`, `adapt-to-project`, `new-package`, and `generate-iac` may request
+one of these destinations because their existing methods create or update that
+artifact. They pass the complete result to the content owner rather than
+copying resolver or authoring logic. A boundary change can therefore produce
+separate current-architecture and decision-record handoffs without producing a
+product artifact.
+
 Product-engineering owns producing the optional bounded handoff only after its
 existing confirmed delivery gate. It imports no Core implementation and has no
 mandatory Core dependency. One independently shippable feature is a delivery
@@ -118,11 +146,13 @@ invocation already supplies bounded content at the matching pinned revision.
    human supplies a reviewed route selection. Planning is read-only; apply is
    ledger-first; rollback restores the exact legacy slice without deleting the
    canonical artifact.
-7. A semantic destination request resolves explicit, repository-policy,
-   established repository-convention, then established external candidates.
-   Ambiguity requires confirmation; contradiction or unsafe confinement is a
-   refusal; absence asks the caller to select or create a destination. None of
-   these outcomes changes lifecycle state.
+7. A semantic destination request resolves an explicit destination first,
+   unless mandatory repository policy rejects it; then declared repository
+   policy or optional configuration, established repository convention, and an
+   established external destination. Equally ranked non-equivalent candidates
+   require confirmation. Contradiction or unsafe confinement is a refusal;
+   absence offers destination selection or creation but performs neither. None
+   of these outcomes changes lifecycle state.
 8. An optional shaping handoff validates before content reads or effects. A
    resolved delivery contract continues through `new-spec`; a resolved delivery
    brief continues through `receive-brief`. Those processors retain their
@@ -238,6 +268,10 @@ artifacts and migration evidence.
 - The shaping-handoff completion matrix runs twice, covers compatible,
   standalone, and legacy pack pairings plus every routing/refusal class, and
   fingerprints its filesystem before and after to prove zero effects.
+- The architecture-decision portability matrix calls the real resolver for
+  custom repository and external destinations, mandatory-policy rejection,
+  ambiguity, absence, and the boundary-change dual output. It pins the resolver
+  and published schema bytes so consumers cannot widen Wave 1 by accident.
 
 These skill scripts run in the finish-time checklist and can run as fail-closed
 CI gates where a PR event and Python exist. They do not fail closed inside an

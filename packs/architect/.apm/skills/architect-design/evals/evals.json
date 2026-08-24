@@ -35,6 +35,54 @@
         "Does not make saving the concept conditional on continuing to the full design-document stage",
         "Ends with an explicit completion receipt: either 'chat only; no file was created' or an exact file path with a one-line description of its contents"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Save this approved future-state design in our repository's established engineering/proposals area. Core work-intake exposes semantic-surface-resolution.v1, and repository policy requires that location.",
+      "expected_output": "A repository-resolved architecture-design save. The skill supplies bounded adopter evidence to the compatible Core resolver, consumes its complete result unchanged, surfaces the confined final path under engineering/proposals, retains the per-effort folder, and asks at the existing write gate. It neither treats docs/design as universal nor creates layout configuration.",
+      "assertions": [
+        "Requests the architecture-design semantic role and names repository-resolved mode",
+        "Consumes semantic-surface-resolution.v1 rather than reproducing precedence or confinement",
+        "Uses the adopter-established engineering/proposals destination and retains the per-effort folder",
+        "Surfaces the final confined path and preserves the existing write confirmation",
+        "Does not create agentbundle-layout.toml or fall back to docs/design"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I installed Architect at user scope and do not have Core here. Save this concept under my exact personal workspace root /example/personal/designs.",
+      "expected_output": "A personal-workspace architecture-design save that labels the destination personal rather than repository-authoritative, canonicalizes and confines every derived child beneath the exact confirmed root, surfaces the final path, and asks before writing. It does not claim semantic-surface-resolution.v1 or silently create configuration.",
+      "assertions": [
+        "Names personal-workspace mode and architecture-design",
+        "Does not claim a semantic-surface-resolution.v1 result",
+        "Canonicalizes the exact root and rechecks the per-effort child beneath it",
+        "Reports personal rather than repository authority",
+        "Creates no configuration and retains the write confirmation"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Save this approved design in the repository path I named, but Core is not installed. I confirm the path, so write it now.",
+      "expected_output": "A zero-write repository-handoff. The skill states architecture-design, the proposed destination, bounded evidence, and the needed write, but explains that user confirmation cannot replace Wave 1 repository confinement. It creates no directory or file and routes the handoff to compatible Core.",
+      "assertions": [
+        "Names repository-handoff and architecture-design",
+        "Does not claim semantic-surface-resolution.v1",
+        "Treats the confirmed path as handoff evidence rather than write authority",
+        "Invokes no repository write and creates no destination",
+        "Routes the handoff to compatible Core for confinement"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Core is not installed. Save this design to the exact personal file /example/personal/design.md.",
+      "expected_output": "A personal-workspace refusal with zero effects. Because architect-design preserves a per-effort folder containing the design, diagrams, and notes, an exact file cannot satisfy its method. The skill asks for an exact personal directory or offers chat-only; it does not reinterpret the file as a directory or write beside it.",
+      "assertions": [
+        "Names personal-workspace and architecture-design",
+        "Refuses the exact file because the per-effort folder is preserved",
+        "Does not append a topic folder beneath the file or write beside it",
+        "Asks for an exact directory or offers chat-only",
+        "Invokes no write"
+      ]
     }
   ]
 }

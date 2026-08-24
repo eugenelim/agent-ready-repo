@@ -20,7 +20,7 @@ contract:
     - review-rfc-draft
     - decide-rfc
     - merge-accepted-adr
-whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
+whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. Before an ADR receives an ordinal or index, new-adr resolves the portable decision-record role through compatible Core so adopter policy and established custom or external destinations win; older or absent capability produces confirmation or a portable handoff rather than simulated resolution. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
     description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives, with optional supporting-practice capture only after the written draft passes every mandatory check."
@@ -142,7 +142,10 @@ rfc-status
 
 ### 3. Decide and record
 
-Close the comment period, state your decision, and type `new-adr` to lock in the architectural record — the agent previews the ADR before writing.
+Close the comment period, state your decision, and type `new-adr` to lock in the
+architectural record. The agent resolves `decision-record` before choosing the
+ordinal/index, then previews the ADR before writing. This example repository has
+confirmed the catalogue fallback; an adopter's custom location would win.
 
 ```text
 new-adr [branching strategy: trunk-based development]

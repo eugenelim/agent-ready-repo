@@ -13,7 +13,7 @@ you need evidence coverage, hotspot selection, findings, or an action plan, ask
 current-state view.
 
 **Use this when:** You know what you want drawn and need a Mermaid diagram of a system, flow, state machine, data model, or deployment topology.
-**Prerequisites:** The `architect` pack installed; optionally a `docs/architecture/reference.md` for document-mode diagrams grounded in your stack.
+**Prerequisites:** The `architect` pack installed; optionally a resolved `current-architecture` golden path for document-mode diagrams grounded in your stack.
 **Result:** A self-checked Mermaid diagram in the right notation, with an offer to save it to the repo.
 
 :::note
@@ -90,7 +90,12 @@ Trust boundaries are non-negotiable here. A cross-account or cross-tenant arrow 
 
 ## Let your `reference.md` steer it
 
-If your repo has a `docs/architecture/reference.md`, the architect skills design against it — your stack, your patterns, your constraints — so document-mode diagrams match how this codebase is actually built rather than a generic shape. No `reference.md` yet? [Establish your repo's reference architecture](establish-reference-architecture.md) first; it gives the skills something to draw against.
+If your repo has a resolved `current-architecture` golden path, the architect
+skills design against it — your stack, your patterns, your constraints — so
+document-mode diagrams match how this codebase is actually built rather than a
+generic shape. `docs/architecture/reference.md` is only the catalogue fallback.
+No golden path yet? [Establish your repo's reference architecture](establish-reference-architecture.md)
+first; it gives the skills something to draw against.
 
 ## What you get back
 
@@ -102,7 +107,16 @@ Every diagram is self-checked against the skill's rubric before it reaches you. 
 - Document mode never fabricates a name.
 - Trust boundaries are visible.
 
-When the diagram is ready, the skill offers to save it. It scans for an obvious home (`docs/architecture/`, `diagrams/`, `docs/`) and suggests a kebab-case `.mmd` filename. Saving is always an offer, never automatic — you decide where it lands.
+When the diagram is ready, the skill offers to save it. An implemented/current
+architecture diagram resolves `current-architecture`; a proposal or future-state
+diagram resolves `architecture-design`. In a compatible repository it consumes
+Core's `semantic-surface-resolution.v1`, so adopter policy and established custom
+locations outrank catalogue suggestions and mandatory policy can reject an
+explicit path. Without compatible Core it returns a portable handoff and stops
+without a repository write; your confirmation may correct its evidence but
+cannot substitute for Core's confined result. Standalone personal use requires
+an exact confined root/file. Saving is always an offer, never automatic, and
+non-architecture diagrams are not forced into architecture roles.
 
 ## When not to reach for it
 

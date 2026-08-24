@@ -1,6 +1,8 @@
 ---
 name: architect-diagram
 description: Use when the user asks for a diagram of a system, integration, flow, state, data model, deployment topology, roadmap, prioritization matrix, or decomposition. Triggers on "show me", "draw", "diagram of", or artifact-shaped nouns like "sequence", "C4 Container view", "state machine", "roadmap", "2×2", "mind map", "branching strategy", "gantt", "sprint plan". Produces Mermaid diagrams (flowchart, sequenceDiagram, C4, stateDiagram-v2, erDiagram, gitGraph, gantt, plus timeline, quadrantChart, and mindmap for roadmaps, prioritization, and hierarchical decomposition) routed by intent. Cloud-aware (AWS, Azure, GCP, and primitives providers like Hetzner) and agentic-platform-aware (Bedrock AgentCore, AI Foundry, Vertex Agent Engine). Do NOT use for full design-doc drafting (use `architect-design`), critique (use `architect-review`), or comparison tables (use plain Markdown).
+metadata:
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: architect-diagram
@@ -123,19 +125,42 @@ If two modes plausibly fit, ask once which the user wants.
    the parser fails silently on unrecognised keywords, producing a blank
    diagram with no error.
 
-8. **Offer to save — config-driven.** Resolve the output directory following
-   the config-driven, two-branch elicitation procedure in
-   `references/agentbundle-layout.md`. Resolution order: (1) repo-root `./agentbundle-layout.toml`
-   `[architecture] output_dir` — repo-scope takes priority; (2) user-profile
-   `~/.agentbundle/agentbundle-layout.toml` `[architecture] output_dir`; when neither resolves, two-branch elicitation
-   runs — never a silent default: **(a) Repo branch** — suggest `docs/design/`
-   and offer to write `output_dir` to `./agentbundle-layout.toml [architecture]`;
-   **(b) Personal/vault branch** — ask for an absolute path (e.g.
-   `~/Documents/<VaultName>/design/`) and write to
-   `~/.agentbundle/agentbundle-layout.toml [architecture]`. Resolve to a full
-   absolute path (`~`-expand, realpath-resolve, reject `..` escapes); surface
-   the resolved path before writing. Suggest a kebab-case `.mmd` filename
-   inside the resolved directory. Saving is an offer, never automatic.
+8. **Offer to save — role-aware.** For an architecture/system diagram, select
+   the role from the diagram's time horizon: implemented/current documentation
+   is `current-architecture`; a proposal or future-state diagram is
+   `architecture-design`. Do not classify roadmaps, prioritization charts, data
+   analysis, or other non-architecture diagrams as either role merely because
+   this skill rendered them.
+
+   Name one operating mode: `chat-only`, `personal-workspace`,
+   `repository-resolved`, or `repository-handoff`. `chat-only` creates no file.
+   `personal-workspace` uses an exact user-confirmed root/file and reports
+   personal—not repository—authority. Only `repository-resolved` with compatible
+   Core may claim `semantic-surface-resolution.v1`: supply the selected role and
+   bounded candidates, consume Wave 1 unchanged, and write only beneath its
+   confined result. `repository-handoff` states the role, explicit destination
+   if any, bounded evidence, and needed write, then stops with zero repository
+   effects until compatible Core returns a confined result. User confirmation
+   may correct the handoff evidence but cannot substitute for Wave 1.
+
+   Repository precedence is explicit destination, declared policy or
+   configuration, established repository convention, established external
+   destination, ambiguity requiring confirmation, then an offer to select or
+   create. Mandatory policy rejects a conflicting explicit destination. One
+   analogue is inference, discovery is at most two analogues and tests,
+   contradictions fail closed, and absence creates nothing. Repo-root
+   `[architecture] output_dir` is optional candidate evidence; user-profile
+   configuration is a personal-workspace candidate. See
+   `references/agentbundle-layout.md`.
+
+   For a personal local destination, `~`-expand and realpath-resolve the exact
+   root, reject `..`, symlink, junction/reparse-point, and containment
+   uncertainty, and recheck the proposed kebab-case `.mmd` child beneath that
+   root; an exact confirmed file is the sole target. External locators remain
+   external and are not fetched or coerced into paths. Surface the final
+   absolute local path before writing. Saving and configuration changes are
+   separate offers, never automatic; refusal, ambiguity, absence, and unsafe
+   paths have zero effects.
 
 ## Anti-patterns to refuse
 

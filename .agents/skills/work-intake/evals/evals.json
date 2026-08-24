@@ -293,6 +293,17 @@
         "Does not infer source, write, or deletion authority",
         "Preserves core-only operation without configuration"
       ]
+    },
+    {
+      "id": 29,
+      "prompt": "A committed component boundary changed. Resolve the existing current architecture and decision-record destinations without creating product prose.",
+      "expected_output": "The agent invokes the shared resolver independently for current-architecture and decision-record, preserves both complete semantic-surface-resolution.v1 results, and hands each result to its owning authoring workflow without selecting a product surface.",
+      "assertions": [
+        "Requests current-architecture and decision-record as distinct semantic roles",
+        "Consumes each real resolver result unchanged",
+        "Leaves architecture authoring with Architect and ADR authoring with new-adr",
+        "Does not create current-product-truth, product-history, release-history, or user-documentation prose"
+      ]
     }
   ]
 }

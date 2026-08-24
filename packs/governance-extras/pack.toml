@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.10.0"
+version = "0.10.1"
 description = "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -66,7 +66,7 @@ level-b          = true
 writes-to-repo   = true
 starter-task     = "Record an architectural decision your team has already made"
 starter-prompt   = "Create an ADR for the decision to use TOML as the format for our workspace coordination file."
-expected-result  = "A new ADR file in docs/adr/ that records the decision, its rationale, and the alternatives considered."
+expected-result  = "A new ADR file in the resolved decision-record destination that records the decision, its rationale, and the alternatives considered; docs/adr/ is only the fallback when selected or confirmed."
 next-action      = "Share the ADR with your team and link to it from the relevant code or config file."
 safety-gate      = "The new-adr skill shows you a preview of the ADR content and the target file path before writing anything. Confirm the preview before the file is created."
 tutorial         = "guides/governance-extras/tutorials/governance-extras-first-session.md"

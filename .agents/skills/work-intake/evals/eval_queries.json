@@ -15,6 +15,8 @@
   {"query": "Resolve where this repository keeps its delivery contracts", "should_trigger": true},
   {"query": "Use the repository's established convention for current architecture instead of assuming a docs path", "should_trigger": true},
   {"query": "The delivery contract lives in our external tracker; preserve that locator", "should_trigger": true},
+  {"query": "Resolve the current architecture and decision record destinations for this boundary change", "should_trigger": true},
+  {"query": "Find the adopter-owned destination for this proposed architecture design", "should_trigger": true},
 
   {"query": "Write an architecture decision record for this choice", "should_trigger": false},
   {"query": "Generate a slide deck from this outline", "should_trigger": false},

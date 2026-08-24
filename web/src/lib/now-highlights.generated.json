@@ -4,6 +4,61 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.12.1"
+        },
+        {
+          "name": "architect",
+          "version": "0.15.2"
+        },
+        {
+          "name": "governance-extras",
+          "version": "0.10.1"
+        },
+        {
+          "name": "monorepo-extras",
+          "version": "0.1.8"
+        },
+        {
+          "name": "iac-terraform",
+          "version": "0.1.8"
+        }
+      ],
+      "date": "2026-08-24",
+      "heading": "[core][2.12.1] / [architect][0.15.2] / [governance-extras][0.10.1] / [monorepo-extras][0.1.8] / [iac-terraform][0.1.8] — 2026-08-24",
+      "changelogAnchor": "core2121--architect0152--governance-extras0101--monorepo-extras018--iac-terraform018--2026-08-24",
+      "highlights": [
+        {
+          "source": "**Architecture designs, current-state architecture, and decision records can now follow each adopter's own repository or external destinations.** Explicit destinations, policy, established conventions, and optional configuration are resolved by semantic role; catalogue paths remain fallback offers.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Architecture designs, current-state architecture, and decision records can now follow each adopter's own repository or external destinations."
+            },
+            {
+              "type": "text",
+              "value": " Explicit destinations, policy, established conventions, and optional configuration are resolved by semantic role; catalogue paths remain fallback offers."
+            }
+          ]
+        },
+        {
+          "source": "**Architect stays useful as an independent user pack.** It can remain chat-only, save to an exactly confirmed personal workspace, consume Core's repository resolution when compatible, or produce a truthful repository handoff when Core is absent.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Architect stays useful as an independent user pack."
+            },
+            {
+              "type": "text",
+              "value": " It can remain chat-only, save to an exactly confirmed personal workspace, consume Core's repository resolution when compatible, or produce a truthful repository handoff when Core is absent."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agentbundle",
           "version": "0.39.4"
         }

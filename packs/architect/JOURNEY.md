@@ -18,7 +18,7 @@ contract:
     - correct-current-state-map
     - choose-architecture-hotspots
     - accept-architecture-action
-whatChanges: "After installing architect, a broad request such as 'Assess architecture and provide an action plan' follows one progressive method instead of collapsing into a folder or compliance audit. architect-assess separates target evidence, enterprise context, and reusable pack knowledge; supports survey, standard, and deep stopping depths; and asks before private retrieval, execution, runtime evidence, experiments, or writes. architect-design owns future-state choices, architect-diagram owns the picture, architect-review owns supplied-artifact critique, and design-reviewer supplies the independent cold-context pass. The generated architecture-lenses-reference skill is internal knowledge routing, not a fifth user workflow."
+whatChanges: "After installing architect, a broad request such as 'Assess architecture and provide an action plan' follows one progressive method instead of collapsing into a folder or compliance audit. architect-assess separates target evidence, enterprise context, and reusable pack knowledge; supports survey, standard, and deep stopping depths; and asks before private retrieval, execution, runtime evidence, experiments, or writes. architect-design owns future-state choices, architect-diagram owns the picture, architect-review owns supplied-artifact critique, and design-reviewer supplies the independent cold-context pass. Saved architecture-design and current-architecture outputs resolve separately; the user-scope pack remains useful in chat-only and explicit personal-workspace modes, while compatible repositories consume Core's semantic-surface-resolution.v1 and other repositories receive a zero-write portable handoff. The generated architecture-lenses-reference skill is internal knowledge routing, not a fifth user workflow."
 skills:
   - name: architect-assess
     description: "Maps and pressure-tests the implemented architecture through Frame, Map, Focus, Investigate, Act, and Close."
@@ -130,9 +130,14 @@ relatedJourneys:
 ### 5. Save or review
 
 - **You provide:** “Save this assessment” or “Review this assessment report.”
-- **Agent does:** surfaces the resolved path before an approved write, or sends
-  the supplied artifact through independent review without rescanning.
+- **Agent does:** classifies the saved artifact as current architecture or
+  architecture design, names chat-only, personal-workspace,
+  repository-resolved, or repository-handoff mode, surfaces the final local
+  path before an approved write only for a confined writable mode, stops a
+  repository handoff without writing, or sends the supplied artifact through
+  independent review without rescanning.
 - **You decide:** accept the report as decision evidence or revise it.
-- **Output:** `<architecture output_dir>/<topic-slug>/assessment.md` when saved,
-  or an inline severity-tagged report critique.
+- **Output:** `<resolved destination>/<topic-slug>/assessment.md` when saved,
+  a portable repository handoff when Core is unavailable, or an inline
+  severity-tagged report critique.
 - **State:** confirmed-write

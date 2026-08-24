@@ -8,7 +8,7 @@ kind: reference
 # `reference.md` sections and the stack-pack contract
 
 :::note
-Authoritative description of the `docs/architecture/reference.md` document: its four arc42 sections and the contract governing how an opt-in stack pack delivers a filled one. For *why* this is separate from `overview.md`, see [Foundation vs. map](../../core/explanation/foundation-vs-map.md). For the task of creating one, see [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md).
+Authoritative description of the `current-architecture` golden path: its four arc42 sections and the contract governing how an opt-in stack pack supplies a filled starting point. `docs/architecture/reference.md` is the catalogue fallback. For *why* this is separate from a descriptive map, see [Foundation vs. map](../../core/explanation/foundation-vs-map.md). For the task of creating one, see [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md).
 :::
 
 `reference.md` is the normative golden path a feature's low-level design conforms to. It is filled only when a repo has real architecture decisions to record; a thin repo has none and leaves the template un-instantiated.
@@ -39,23 +39,26 @@ A `reference.md` can be authored by hand, proposed by the `adapt-to-project` har
 
 | Clause | Rule |
 | --- | --- |
-| **Delivery path** | A stack pack ships a filled `reference.md` as an ordinary seed at `seeds/docs/architecture/reference.md`. |
+| **Delivery source** | A stack pack ships a filled `reference.md` as ordinary catalogue seed material at `seeds/docs/architecture/reference.md`; that packaging path is not adopter routing authority. |
 | **Sole producer** | When the stack pack is the only producer of `reference.md`, it lands with no collision — the core product never pre-places a `reference.md`, so there is nothing to collide against. |
 | **Two producers** | When a `reference.md` already exists (you wrote your own, or two packs each ship one), the incoming copy is delivered as a `.upstream` companion beside the existing file, and the two are reconciled through the `adapt-to-project` companion-merge path — never a silent overwrite. |
 | **Never `overview.md`** | A stack pack ships only `reference.md` (the normative foundation), never `overview.md` (the descriptive map). The map is specific to your codebase and is not something a pack can pre-write. |
 
-A consequence of the first two clauses: **no bundler override field exists or is needed.** The sole-producer case has nothing to collide with, and the two-producer case is handled by the existing `.upstream` companion plus merge — so there is no "this pack's `reference.md` wins" switch to configure.
+A stack-pack seed remains candidate content. Before accepting or merging it,
+resolve `current-architecture`; an adopter's policy-permitted explicit location,
+declared policy or optional configuration, established convention, or external
+destination wins over the catalogue fallback. No global registry or mandatory
+configuration is introduced, and no bundler override field exists or is needed.
 
 ## Where design docs land
 
-Each design or assessment effort lands in its own **per-effort folder**
-`<parent>/<topic-slug>/`. Design docs, diagrams, assessments, and approved
-evidence outputs for one effort stay together. The base `<parent>` defaults to
-`docs/design` for a repo-scope pack layout and can be overridden by the
-`[architecture]` table of an adopter-created `agentbundle-layout.toml`.
-Repo-root configuration wins over user-profile configuration. When neither
-resolves, the workflow asks whether to use a repo path or an explicit
-personal/vault path; it never silently scans for or chooses a destination.
+Each architecture-design effort keeps its existing **per-effort folder** shape
+under the resolved `architecture-design` destination. Current-state artifacts
+resolve `current-architecture` independently; assessments choose between those
+roles from the saved artifact's actual intent. A repo-root `[architecture]`
+layout value is optional candidate evidence, while a user-profile value can
+propose an exact personal-workspace root. Neither is a global registry. Missing
+configuration is normal, and no workflow silently creates a destination.
 
 For the full schema — two-location read, anchor rules, realpath/`..`-rejection,
 surface-before-write, and the untrusted-origin posture — see the

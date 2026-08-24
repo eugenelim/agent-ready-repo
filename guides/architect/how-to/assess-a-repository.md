@@ -167,10 +167,20 @@ The report cannot claim readiness while a material boundary is unassessed.
 
 ## Save or review the result
 
-The report renders in chat first. If you approve saving, it uses the existing
-`[architecture] output_dir` and writes
-`<output_dir>/<topic-slug>/assessment.md` after showing the resolved absolute
-path. Otherwise no file is created.
+The report renders in chat first. If you approve saving, the agent classifies
+the saved artifact: a canonical implemented-system report is
+`current-architecture`; remediation or future change is `architecture-design`;
+a mixed report requires you to choose and is never silently published as current
+architecture. It then names the operating mode. Chat-only writes nothing; an
+explicit personal directory confines derived files beneath your confirmed root; a
+compatible repository consumes Core's `semantic-surface-resolution.v1`; and a
+repository without compatible Core returns a portable handoff and stops without
+writing. Your confirmation may correct that handoff's evidence, but only Core
+can return the confined repository result. For a compatible repository or
+confirmed personal directory, the agent shows the final local path and writes
+`<resolved destination>/<topic-slug>/assessment.md` only after approval. An
+exact personal file is refused because the assessment retains its per-effort
+folder. Configuration remains optional and no destination is created silently.
 
 Next, ask:
 

@@ -92,7 +92,12 @@ When an artifact asserts facts about the current landscape, a mandated standard,
 
 ## Steered by your `reference.md`
 
-If your repo has a `docs/architecture/reference.md`, the review measures the artifact against it — your stack, your patterns, your constraints — so the findings reflect how this codebase is actually built. No golden path yet? [Establish your repo's reference architecture](establish-reference-architecture.md) first.
+If your repo has a resolved `current-architecture` golden path, the review
+measures the artifact against it — your stack, your patterns, your constraints
+— so the findings reflect how this codebase is actually built.
+`docs/architecture/reference.md` is only the catalogue fallback. No golden path
+yet? [Establish your repo's reference architecture](establish-reference-architecture.md)
+first.
 
 ## When not to reach for it
 

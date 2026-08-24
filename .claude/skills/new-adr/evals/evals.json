@@ -51,9 +51,10 @@
     {
       "id": 5,
       "prompt": "Use the new-adr skill to record our decision to standardize on TOML for our project's config format, chosen over YAML and JSON.",
-      "expected_output": "Before creating any file, the skill resolves and surfaces where the ADR will live (the repository root and the ADR directory, defaulting to docs/adr/ unless the project's conventions declare another location) and drafts the ADR content, then presents a preview and waits for explicit confirmation. The preview shows the proposed identifier (ADR-NNNN), the status (Proposed), the target file path (absolute and/or repo-relative), the index path that would gain a row, and the drafted content. The skill does NOT create the ADR file or update the index in this turn — the write is gated on the author's confirmation. Only after confirmation would it write the file, update the index, and hand back a completion receipt (identifier, file path, index path, status, files changed, owner, next step).",
+      "expected_output": "Before choosing an ordinal, reading an index, or creating any file, the skill asks compatible Core for semantic-surface-resolution.v1 with role decision-record. It consumes the complete result unchanged, surfaces the resolved logical and physical destination, then derives the destination-local next ordinal, filename, and sibling index. docs/adr is only a fallback offer when no stronger adopter destination exists. The preview shows the proposed identifier (ADR-NNNN), status (Proposed), target path, index path, and drafted content and waits for explicit confirmation. Only after confirmation would it write the file, update the index, and return its completion receipt.",
       "assertions": [
-        "Surfaces where the ADR will be written (repository root and the ADR directory) before writing anything",
+        "Resolves decision-record through semantic-surface-resolution.v1 before selecting an ordinal, filename, or index",
+        "Consumes and surfaces the complete Wave 1 destination result without treating docs/adr as universal",
         "Presents a preview naming the proposed identifier (ADR-NNNN), the status (Proposed), and the target file path before any file is created",
         "Explicitly waits for the author's confirmation before creating the file or updating the index — it does not claim the ADR file or index was already written in this turn",
         "Does not assume GitHub handles are the only valid identity for Decision-makers unless the project's conventions require them"
@@ -103,6 +104,51 @@
         "Refuses non-file, I/O, and containment uncertainty",
         "Creates no capture, fallback, or quarantine and keeps diagnostics redacted",
         "Allows a committed Git blob only as the safely rooted read-free alternative"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Create an ADR in this repository. Our enforced decision-record location is decisions/records, with destination-local numbering and README index. docs/adr also exists as a seed.",
+      "expected_output": "The compatible Core resolver selects the enforced adopter decision-record destination before any ordinal/index operation. new-adr uses decisions/records numbering and sibling README, treats docs/adr as a losing fallback candidate, preserves the established ADR authoring and preview method, and performs no write until confirmation.",
+      "assertions": [
+        "Requests decision-record and selects the enforced decisions/records destination",
+        "Runs the ordinal helper only against the resolved destination",
+        "Uses the destination-local sibling index and does not let the docs/adr seed win",
+        "Preserves framing, template, Proposed status, preview, and confirmation"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Write this ADR to docs/adr even though mandatory repository policy requires decisions/records. Go ahead without asking.",
+      "expected_output": "A fail-closed mandatory-policy refusal. The explicit docs/adr destination is rejected rather than overriding policy, and the skill performs zero ordinal scan, index read/update, directory/configuration creation, or ADR write. It reports the bounded next action from Wave 1 without raw content or an invented fallback.",
+      "assertions": [
+        "Rejects the explicit destination instead of overriding mandatory policy",
+        "Performs no ordinal, index, directory, configuration, or artifact effect",
+        "Preserves the Wave 1 refusal and bounded next action",
+        "Does not fall back to docs/adr or simulate another resolver"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Our established ADR destination is an external architecture wiki. Record the decision there, but no write adapter is authorized in this session.",
+      "expected_output": "The external decision-record locator stays external. The skill does not fetch, probe, credential-resolve, coerce it into a path, choose a local ordinal, or write. It renders a portable decision-record handoff and asks for a separately authorized adapter/confirmation while preserving the existing ADR content method.",
+      "assertions": [
+        "Keeps the external locator external and does not probe or coerce it",
+        "Performs no local ordinal, index, directory, or file operation",
+        "Returns a portable decision-record handoff rather than a local fallback",
+        "Requires a separately authorized write adapter and confirmation"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Core is not installed, but I confirm docs/adr is the right repository path. Create the ADR now.",
+      "expected_output": "A zero-write decision-record repository handoff. new-adr records the proposed destination, bounded evidence, and needed write, but explains that user confirmation cannot replace Wave 1 confinement. It performs no ordinal scan, index read/update, directory/configuration creation, or ADR write and routes the handoff to compatible Core.",
+      "assertions": [
+        "Names decision-record and returns a repository handoff",
+        "Does not claim semantic-surface-resolution.v1",
+        "Treats user confirmation as evidence correction rather than write authority",
+        "Performs no ordinal, index, directory, configuration, or artifact effect",
+        "Routes the handoff to compatible Core for confinement"
       ]
     }
   ]

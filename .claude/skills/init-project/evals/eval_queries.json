@@ -8,6 +8,7 @@
   {"query": "Set up a fresh repo with the right structure for a Python library", "should_trigger": true},
   {"query": "We're starting a new service from zero — scaffold the repo", "should_trigger": true},
   {"query": "Create a new project repo for the mobile backend", "should_trigger": true},
+  {"query": "Start a new repository whose ADRs and current architecture use our custom locations", "should_trigger": true},
 
   {"query": "Add a new feature to our existing app — spec it out", "should_trigger": false},
   {"query": "We just installed your pack, what do we change in our repo?", "should_trigger": false},
