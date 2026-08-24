@@ -178,15 +178,19 @@ def test_report_sites_route_through_resolver() -> None:
     guard is that the call sites still use it. Do not replace this with a
     behavioural assertion that appears stronger; it would be green either way.
     """
-    name = "loop-cohort: both --report sites route through _resolved_report"
+    name = "loop-cohort: every --report site routes through _resolved_report"
     src = LOOP_COHORT.read_text(encoding="utf-8")
     # Match assignment form only: `_resolved_report`'s own docstring names
     # `Path(args.report)` in prose, and a substring count would score that as
     # a live call site.
     routed = src.count("= _resolved_report(args.report)")
     bare = src.count("= Path(args.report)")
-    if routed != 2:
-        fail(name, f"expected 2 routed call sites, found {routed}")
+    # One site per `--report`-taking verb: `review inspect`, `review record`,
+    # and `review classify`. Adding a verb should bump this deliberately, which
+    # is the point of counting rather than asserting "at least one".
+    expected_sites = 3
+    if routed != expected_sites:
+        fail(name, f"expected {expected_sites} routed call sites, found {routed}")
     elif bare:
         fail(name, f"found {bare} bare Path(args.report) call site(s) — should be 0")
     else:
