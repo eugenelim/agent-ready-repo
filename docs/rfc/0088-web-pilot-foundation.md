@@ -3910,3 +3910,51 @@ that mechanism rather than record the channel as inherently uncontrollable.
   artifact is created, and the five binding requirements are unchanged. The slug stays
   `carried` in the round-13 disposition partition, so no slug-set comparison against the
   pinned base moves.
+
+- **2026-08-24 — Reference-consumer observation and per-group split-cost measurement.
+  Supersedes the 2026-08-23 *native-addon-confinement-bypass* entry's "no other residual
+  is relabelled" clause.**
+
+  This entry supersedes that closing clause for the same reason the 2026-08-23
+  *native-addon* entry superseded the matching clause in the 2026-08-23 *deferrals* entry:
+  the per-entry self-scoping convention, which the *native-addon* entry established, means
+  a "nothing else" clause cannot bind acts it did not contemplate. Three register entries
+  are touched here and all three are named.
+
+  **The reference-consumer observation was run on both admitted channels.** An operator
+  signed in, attended, against their own account, read-only, on bundled Chromium and on
+  system Chrome. The observation, apparatus, and limits are recorded in
+  `docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md`.
+
+  **The authentication oracle does not discriminate on this destination class.** The
+  per-group split-cost measurement ran the three declared arms on both channels. On the
+  bundled channel, the oracle returned "authenticated" for a fresh, never-signed-in context
+  — a positive response that cannot be read as evidence of session sharing. On the system
+  channel, two consecutive unauthenticated renders of the account-scoped surface produced
+  different response bodies, making the rendered-comparison oracle unreliable. With no
+  discriminating oracle on either channel, the sharing arms are void and the split-cost
+  measurement produces a null result on this destination class.
+
+  **`rfc0088-destination-group-split-cost` — unblock condition satisfied as read; close-or-carry
+  decision put to the approver.** The entry's literal unblock condition reads "a spike measures
+  the per-group interactive sign-in cost". An attended spike ran the three-arm measurement against
+  a real destination on both admitted channels. The measured result is null: not that sharing
+  failed, but that no discriminating oracle could be established to characterise success or
+  failure. Whether that null satisfies the spirit of the unblock condition, and therefore whether
+  the slug closes or remains carried, is an approver disposition. The measurement is in hand.
+
+  **`rfc0088-signing-identity-update-survival` — stale classification corrected, observation #1
+  pointer added.** The register entry's workspace.toml comment reads "ACCEPTANCE BLOCKER", but
+  the 2026-08-23 *deferrals* entry explicitly downgraded it to a post-acceptance observation:
+  acceptance does not wait on a second observation; the first is taken during pilot operation and
+  the second is carried by an RFC update when a real vendor update occurs. That correction was not
+  applied to the register comment. It is applied now. Separately, observation #1 is recorded in
+  the note named above: team identifier `EQHXZ8M8AV`, authority chain Developer ID Application:
+  Google LLC (EQHXZ8M8AV) → Developer ID Certification Authority → Apple Root CA, browser
+  version 151.0.7922.170, observed 2026-08-24. The slug stays carried; its unblock condition is
+  unchanged.
+
+  **No blocker item closes.** The `rfc0088-destination-group-split-cost` close-or-carry decision
+  is an approver act and is not made here. No other residual is relabelled beyond the two named
+  above. No disposition is withdrawn. The status field does not move. No follow-on artifact is
+  created. The five binding requirements are unchanged.

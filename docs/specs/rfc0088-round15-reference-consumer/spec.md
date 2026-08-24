@@ -1,6 +1,6 @@
 # Spec: rfc0088-round15-reference-consumer
 
-- **Status:** Implementing
+- **Status:** Done
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
