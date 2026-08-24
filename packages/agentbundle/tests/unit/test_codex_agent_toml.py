@@ -18,6 +18,7 @@ from contextlib import redirect_stderr
 from pathlib import Path
 
 from agentbundle.build.projections.codex_agent_toml import (
+    _apply_codex_tool_intents,
     _apply_mapping,
     project_codex_agent_toml,
 )
@@ -62,6 +63,15 @@ RULE = {
     "target-path": ".codex/agents/",
     "frontmatter-mapping": "codex-agent-frontmatter-v0.8",
 }
+
+
+def test_codex_read_intent_retains_command_backed_file_access() -> None:
+    """Project portable reads to Codex's shell inside a read-only sandbox."""
+    fields = _apply_codex_tool_intents({"tools": ["read"]})
+
+    assert fields["sandbox_mode"] == "read-only"
+    assert fields["features.shell_tool"] is True
+    assert fields["web_search"] == "disabled"
 
 
 class TestCodexAgentTomlSerialiser(unittest.TestCase):
@@ -156,13 +166,14 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
         self.assertIn("codex: dropping model=", stderr.getvalue())
 
     def test_read_tools_collapse_to_read_only_config(self) -> None:
+        """Keep Codex's command-backed file reads inside a read-only sandbox."""
         self._write(
             "---\nname: foo\ndescription: bar\ntools: Read, Grep, Glob\n---\nBody.\n"
         )
         data = self._run()
         self.assertNotIn("tools", data)
         self.assertEqual(data["sandbox_mode"], "read-only")
-        self.assertEqual(data["features"]["shell_tool"], False)
+        self.assertEqual(data["features"]["shell_tool"], True)
         self.assertEqual(data["web_search"], "disabled")
 
     def test_write_tools_collapse_to_workspace_write_config(self) -> None:

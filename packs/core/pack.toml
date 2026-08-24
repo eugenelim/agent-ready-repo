@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "2.10.10"
+version = "2.11.0"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -21,7 +21,7 @@ lint-seeds = true
 # repo-only by content — it ships hooks (Rail B would refuse user
 # scope) and AGENTS.md / CONVENTIONS seeds that reference this
 # project's vocabulary by name (the falsifiable user-scope test fails).
-# Copilot is a full-parity adapter: it projects core's 4 subagents
+# Copilot is a full-parity adapter: it projects core's subagents
 # (`.github/agents/`) + hook-wiring (`.github/hooks/`); only `command` stays
 # dropped (copilot-cli#618/#1113). Contract 0.12 carries Copilot skills:
 # core's skills project as first-class Copilot Agent Skills

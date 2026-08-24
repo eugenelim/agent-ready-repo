@@ -1063,6 +1063,7 @@ enforces this. Reasoning behind each current choice:
 | `security-reviewer` | `opus` | Threat-model reasoning; stakes are security. |
 | `quality-engineer` | `opus` | Maintenance lens; spec-level coverage pass. Reconsider per observation. |
 | `implementer` | `sonnet` | One narrow plan task per dispatch; gates rerun in the primary; supervisor judges merge readiness. Cost beats capability here. |
+| `finding-adjudicator` | `opus` | Weighs a reviewer's claim against repository evidence and decides what the loop may act on. A wrong refutation silently discards a real defect, so this is judgment under conflict, not extraction. |
 
 Changing a subagent's model is a behaviour change, not a configuration
 tweak — note the change in the PR that makes it, with a one-line

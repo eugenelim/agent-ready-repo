@@ -882,7 +882,17 @@ def _step_agent_artifacts(
                           "metadata", "allowed-tools"}
     ALLOWED_PRIMITIVE_CLASSES = {"credentialed-cli", "mcp-server"}
     ALLOWED_AUTH_BROKERS = ("env", "cli", "creds", "sso-cookie")
-    ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model"}
+    # Claude Code agent frontmatter. `skills` (preload set) is admitted because
+    # it is the portable field carrying "which skills may this agent reach". An
+    # empty `skills` list is the portable no-skill opt-out — the Kiro projectors
+    # consume it to suppress their `skill://` resource injection; a non-empty
+    # list is a build error until `skill://` URI templating exists (see
+    # `contracts/adapter.toml` on the kiro-ide `inject-resources` entry).
+    # Kiro's own `resources` is deliberately NOT admitted: it is consumer-native,
+    # not valid Claude Code frontmatter, and a source agent declaring it would
+    # land verbatim in `.claude/agents/` via the byte-copy `direct-file`
+    # projection.
+    ALLOWED_AGENT_KEYS = {"name", "description", "tools", "model", "skills"}
     ALLOWED_COMMAND_KEYS = {"description", "allowed-tools", "model", "argument-hint"}
     diags: list[Diagnostic] = []
 

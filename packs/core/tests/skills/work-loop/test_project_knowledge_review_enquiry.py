@@ -12,7 +12,10 @@ EVALS = PACK_ROOT / ".apm" / "skills" / "work-loop" / "evals" / "evals.json"
 def _review_enquiry_section() -> str:
     text = WORK_LOOP_SKILL.read_text(encoding="utf-8")
     start = text.index("### Review-planning project-knowledge enquiry")
-    end = text.index("**Record findings after each pass", start)
+    # End boundary: the sentence that closes the enquiry branch and hands off to
+    # reviewer dispatch. The previous anchor ("**Record findings after each
+    # pass") was the block the finding-adjudication gateway replaced.
+    end = text.index("After that branch, select a subagent matching", start)
     return text[start:end]
 
 

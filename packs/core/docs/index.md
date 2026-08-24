@@ -1,6 +1,6 @@
 # Core
 
-> The build loop — a repo-scope pack of 13 skills, 4 specialist subagents, 3 hooks, and a full repo scaffold that gives any project a structured, verifiable implementation workflow.
+> The build loop — a repo-scope pack of skills, specialist subagents, hooks, and a full repo scaffold that gives any project a structured, verifiable implementation workflow.
 
 ## Why this pack exists
 
@@ -10,11 +10,11 @@ Install this first. All other packs assume it is present at repo scope.
 
 ## What it is
 
-**Skills (13):** `work-intake` (route start, remember, status, and refresh requests into canonical workspace state), `work-loop` (the plan-execute-gate-review loop with an iteration cap), `new-spec` (write a spec and drive implementation from it), `bug-fix` (diagnose and fix a behavioral deviation), `adapt-to-project` (post-install configuration walkthrough), `init-project` (scaffold a new repo from an idea), `receive-brief` (validate a brief and cut confirmed slices into specs), `author-brief` (turn a coherent multi-feature outcome into a Draft brief), `capture-work` (compatibility alias for `work-intake`), `workspace-status` (orient at session start), `contract-acquisition` (acquire a platform's real contract before building against it), `operational-safety` (blast-radius and idempotency checklists for the reviewer), `security-checklists` (OWASP-anchored depth modules for the security reviewer).
+**Skills:** `work-intake` (route start, remember, status, and refresh requests into canonical workspace state), `work-loop` (the plan-execute-gate-review loop with an iteration cap), `new-spec` (write a spec and drive implementation from it), `bug-fix` (diagnose and fix a behavioral deviation), `adapt-to-project` (post-install configuration walkthrough), `init-project` (scaffold a new repo from an idea), `receive-brief` (validate a brief and cut confirmed slices into specs), `author-brief` (turn a coherent multi-feature outcome into a Draft brief), `capture-work` (compatibility alias for `work-intake`), `workspace-status` (orient at session start), `contract-acquisition` (acquire a platform's real contract before building against it), `operational-safety` (blast-radius and idempotency checklists for the reviewer), `security-checklists` (OWASP-anchored depth modules for the security reviewer).
 
-**Subagents (4):** `adversarial-reviewer` (spec/plan/implementation drift finder), `quality-engineer` (testability, observability, maintainability lens), `security-reviewer` (OWASP multi-framework threat model), `implementer` (single-task executor for supervisor mode).
+**Subagents:** `adversarial-reviewer` (spec/plan/implementation drift finder), `finding-adjudicator` (independently sustains or refutes reviewer findings before repair, and stops for your decision when the evidence is insufficient), `quality-engineer` (testability, observability, maintainability lens), `security-reviewer` (OWASP multi-framework threat model), `implementer` (single-task executor for supervisor mode).
 
-**Hooks (3):** `pre-pr` (pre-commit gate runner), `session-start` (orient on wakeup), `work-loop-check` (iteration-cap enforcement).
+**Hooks:** `pre-pr` (pre-commit gate runner), `session-start` (orient on wakeup), `work-loop-check` (iteration-cap enforcement).
 
 **Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `CONVENTIONS.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/` (including the minimal-intent template), `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
 

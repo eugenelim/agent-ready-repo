@@ -50,6 +50,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [agentbundle][0.39.4] — 2026-08-24
+
+### Highlights
+
+- **Codex agents with read-only source permissions can read and search local
+  files again.** The design reviewer, both desk-research agents, experience
+  reviewer, frontend reviewer, and both discovery reviewers retain Codex's
+  command-backed file access inside a read-only sandbox without gaining write
+  authority.
+
+### Fixed
+
+- **The Codex agent projector now preserves its default shell tool for mapped
+  `Read`, `Grep`, and `Glob` intents.** Previously, it selected a read-only
+  sandbox and then disabled Codex's only local file read/search mechanism unless
+  the portable source also declared `Bash`. Web and writable sandbox settings
+  remain independently derived from their source intents.
+- **Kiro agents can explicitly opt out of default skill resources.** An empty
+  source `resources` list now suppresses Kiro IDE and CLI skill-resource
+  injection and is omitted from the projected consumer file.
+
+### Added
+
+- **A portable no-skill opt-out for agent sources.** Claude Code's own
+  `skills: []` now suppresses Kiro's default skill-resource injection, so the
+  intent lives in the portable frontmatter schema instead of Kiro's
+  consumer-native `resources` field. `skills` joins the agent frontmatter
+  allowlist; `resources` deliberately does not, because the Claude Code agent
+  projection is a byte copy and would carry it verbatim into `.claude/agents/`.
+
+### Changed
+
+- **Breaking for Kiro agent sources: the Kiro projectors now bound the field set
+  they emit.** Kiro IDE and CLI agents previously passed unmapped source
+  frontmatter through verbatim. They now emit only `name`, `description`,
+  `model`, `tools`, `resources`, and — on the CLI — `prompt`. Any other key is
+  dropped with one `kiro: dropping … agent field` line on stderr per key. That
+  removes two real hazards: Claude Code fields Kiro cannot read
+  (`permissionMode`, `memory`, `maxTurns`) and IDE-only keys such as `hooks`
+  that make the CLI loader silently discard the agent. Pack authors who relied
+  on the documented pass-through should check their build log after upgrading.
+- **A non-empty `skills` list is now a hard build failure.** Turning a skill name
+  into a `skill://` URI needs templating the frontmatter-mapping grammar cannot
+  express, so the build stops rather than emitting an unresolvable Kiro resource
+  entry.
+
+## [core][2.11.0] — 2026-08-24
+
+### Highlights
+
+- **Review loops now verify reviewer findings before asking you to repair
+  them.** An independent, read-only adjudicator checks each claim against the
+  current target and governing rules. False positives stay in an audit instead
+  of consuming repair rounds, while missing evidence stops for your decision.
+
+### Added
+
+- **`finding-adjudicator` provides an outcome-neutral gateway for every review
+  report.** It can sustain, refute, or mark each supplied finding indeterminate;
+  it cannot discover new defects, widen scope, edit files, execute project code,
+  or use the web. Codex may use only bounded command-backed reads and searches
+  over orchestrator-supplied paths inside its read-only sandbox.
+- **A bounded artifact validator protects the path-based handoff.** It admits
+  only deterministic, regular UTF-8 session reports beneath
+  `.context/reviews/`, rejects unsafe metadata and filesystem objects, and
+  exposes only size and digest metadata.
+
+### Changed
+
+- **`work-loop` now sends only sustained findings into fingerprinting, DECIDE,
+  implementer briefs, and FIX.** Refuted-only reports use the existing clean
+  result without a retry or mutation. Indeterminate reports stop before state
+  changes, clean recording, or target edits.
+- **The adjudicator projects with the narrowest posture each supported adapter
+  can express.** Claude Code, Kiro IDE, Kiro CLI, Copilot, and Gemini retain
+  explicit read/search allowlists. Codex retains its command-backed file access
+  inside a read-only sandbox, Cursor uses its native read-only reduction, and
+  both fail closed when the active managed permission profile would expose a
+  broader capability. Kiro IDE and CLI also suppress their default skill
+  resources for this no-skills agent.
+
 ## [core][2.10.10] / [product-engineering][0.13.5] — 2026-08-24
 
 ### Highlights

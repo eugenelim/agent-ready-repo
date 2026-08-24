@@ -10,6 +10,89 @@
 > PLAN, but this depth only matters once a trigger actually fires on a given
 > loop, so it loads on demand rather than sitting inline.
 
+## Finding-adjudication gateway
+
+Route every completed pre-EXECUTE reviewer report through the same independent
+gateway before classifying the report as clean or finding-bearing, revising the
+spec or plan, or firing a review transition. This applies to adversarial,
+security, design-intent, and frontend pre-flight reports whenever those
+reviewers are warranted. A missing adjudicator is a loud stop; it is never a
+named clean skip.
+
+This also includes the architect pack's `design-reviewer` whenever an
+architecture integration activates it inside the work-loop. Supply the named
+architecture artifact plus its accepted concept/constraints and governing
+rubric paths. The adjudicator can verify the reviewer's artifact-relative
+`Where:` findings with its existing `Read`/`Grep` surface. This gateway adds no
+`design-reviewer` trigger.
+
+`<round>` here is a per-run, per-stage ordinal the orchestrator keeps: 1 for the
+first pre-EXECUTE pass, incremented on each `spec-ready` re-entry. Do not derive
+it from the cohort's `review_round_count` — that counter is advanced only by
+`review record`, which this path never calls, so every pass would reuse `1` and
+silently overwrite the previous pass's paired artifacts.
+
+The orchestrator assigns the canonical reviewer-role slug and persists the raw
+report under the ignored session root as:
+
+```text
+.context/reviews/<run-id>/<round>-pre-execute-<reviewer-role>-raw.md
+```
+
+**Before persisting the first raw report of a run, prove `.context/reviews/` is
+ignored:** run `git check-ignore -q .context/reviews`. A non-zero exit means
+this repository does not ignore it — seed delivery is skip-on-conflict, so an
+adopter whose `.gitignore` already existed never received the rule. Stop and ask
+the owner rather than writing reports into a tracked directory.
+
+Artifact-capable runtimes route reviewer output directly to that file. When a
+runtime must deliver the output through the controller once, persist it
+immediately without classifying, summarizing, quoting, or acting on it. The raw
+report is opaque from that point onward. Validate the orchestrator-derived path
+before dispatch; never accept a reviewer-selected path:
+
+```bash
+python '<skill-dir>/scripts/review-artifact.py' validate \
+  --root <repo> --run-id <run-id> --round <round> \
+  --review-stage pre-execute --reviewer-role <reviewer-role> --kind raw
+```
+
+Before dispatch on Codex or Cursor, inspect the active session's managed
+permission profile and exposed tool surface; the projected agent file is
+necessary but not sufficient. Admit Codex only when its command tool is inside
+the projected read-only sandbox and bounded file-read/search instructions.
+Admit Cursor only when its inherited surface is read-only. In both cases the
+active profile must withhold mutation, web, MCP, skill, recursive dispatch, and
+project-code execution outside that Codex exception. If the profile is not
+observable or exposes any additional capability, stop before dispatch and ask
+the owner; local configuration never overrides managed policy.
+
+Then select a subagent matching `finding-adjudicator`. Pass only the validated
+raw-artifact path, unchanged target and structural scope, reviewer role, and
+governing spec/rubric/checklist paths—not the report body. Persist its complete
+output at the paired path:
+
+```text
+.context/reviews/<run-id>/<round>-pre-execute-<reviewer-role>-adjudication.md
+```
+
+Validate that artifact with the same command using `--kind adjudication`, then
+classify its envelope before any pre-EXECUTE decision:
+
+```bash
+python '<skill-dir>/scripts/loop-cohort.py' review inspect <spec-dir> \
+  --report <pre-execute-adjudication-path> --adjudication --json
+```
+
+An `invalid` classification is a fail-closed stop; do not revise the spec or
+plan and do not call `review record`. Evict the raw report prose and consume
+only the strict classifier's `## Main-loop result`. Only sustained findings
+may drive a spec/plan revision or the iterate-to-clean branch. A
+refuted-only result is the existing exact `Clean — ready to commit.` result and
+does not consume a repair round. `ADJUDICATION-INDETERMINATE` stops for the named
+evidence or owner decision before mutation and is never recorded as clean. Keep
+both artifacts paired for the final audit without adding cohort state.
+
 ## Adversarial spec/plan review — how the reviewer measures
 
 Both triggers route to the same reviewer mode and the same spec-stage checklist;

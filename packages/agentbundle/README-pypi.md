@@ -14,6 +14,26 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.39.4
+
+Codex-projected agents that declare `Read`, `Grep`, or `Glob` without `Bash`
+can read and search local files again. AgentBundle now retains Codex's default
+shell tool for those read intents while confining the agent to a read-only
+sandbox; write and web capabilities still require their corresponding source
+declarations.
+
+Kiro IDE and CLI agents may also declare `resources: []` to suppress the
+default skill-resource injection without emitting an empty consumer field. The
+portable way to say the same thing is Claude Code's own `skills: []`, which now
+suppresses that injection too — a non-empty `skills` list is a build error until
+`skill://` URI templating exists.
+
+**Breaking for Kiro agent sources:** the Kiro projectors now bound the field set
+they emit rather than passing unmapped source frontmatter through verbatim.
+Claude Code fields Kiro cannot read (`permissionMode`, `memory`, `maxTurns`, …)
+and IDE-only keys that make the CLI loader drop an agent (`hooks`) are dropped,
+each with a `kiro: dropping … agent field` line on stderr. If you relied on the
+previous pass-through, check your build log after upgrading.
 ## What's new in 0.39.3
 
 The bundled workspace-status engine now recognizes reviewed legacy work-intake

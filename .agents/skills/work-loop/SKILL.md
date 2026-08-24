@@ -77,7 +77,7 @@ No trigger fires → **light mode**.
 4. **No `loop-cohort` state machine.** Run finish-time `lint-spec-status.py`
    only when a persisted spec exists.
 
-**Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to Clean, `quality-engineer` floor, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the four trims above.
+**Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to adjudicated Clean, `quality-engineer` floor, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the four trims above.
 
 ### Direct-light decision record and route
 
@@ -272,6 +272,10 @@ hard failure. Never require whole-repository ingestion or a new durable file.
    ² Auth, secrets, user input, deserialization, file/network I/O. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
    ³ `creative-direction` for new surfaces; `design-review` for changed surfaces. HTML/CSS/JS primary output: load `frontend-engineering` when the output IS the artifact. If absent: named skip.
 
+   When an architect-pack integration activates `design-reviewer` inside this
+   work-loop, treat its report as another fired pre-EXECUTE reviewer report and
+   route it through finding adjudication. This adds no core reviewer trigger.
+
 10. **Full mode:** if `engine-state.json` already exists in the spec dir, this is a **resume** — follow the Session Resumption protocol at the end of this doc instead of running init. For a **new run** (no engine-state.json), if `state.json` is present (orphaned cohort from a prior partial run) — **Surface to human**: run `loop-cohort status docs/specs/<feature>` to show the orphaned state, describe it, and wait for explicit authorization before running the destructive reset pair (`loop-cohort reset` then `loop-engine reset`). Once authorized, run the **init pair** (engine then cohort, in order), then fire `spec-ready`:
     ```
     # Use --mode spec-plan for spec/plan-only work; --mode code for implementation work.
@@ -284,14 +288,14 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     Exit 1 (`plan_review_status: pending`) is the expected signal to run
     pre-EXECUTE review — it does not trigger termination.
 
-11. **Run every fired pre-EXECUTE reviewer to `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Full conditions: [`references/pre-execute-review.md`](references/pre-execute-review.md). When a reviewer reports findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
+11. **Run every fired pre-EXECUTE reviewer to adjudicated `Clean`.** Reviewer absent → proceed and note the named skip, **except** mandatory infra security review: missing `security-reviewer` on infra-flavored work surfaces and blocks. Every completed report, including one that claims clean, passes through the finding-adjudication gateway before the controller classifies or acts on it; a missing `finding-adjudicator` always blocks. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
     ```
     # On findings: revise spec/plan
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
     # ... revise ...
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
     ```
-    After all fired reviewers return Clean, fire the spec-review transition:
+    After all fired reviewers produce adjudicated Clean results, fire the spec-review transition:
     ```
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
     ```
@@ -487,7 +491,10 @@ Both EXECUTE fan-out (supervisor mode) and REVIEW fan-out share these rules:
 - Issue all subagent invocations in a single message (one Agent use per target). Do not call sequentially.
 - Barrier-wait: don't issue follow-on Agent calls until every subagent in the round has returned.
 - Timeout, tool error, or missing report = `failed` for that target. Same as substantive failure; don't retry silently.
-- Merge results in your own context: read N reports, group by your bookkeeping, then decide.
+- EXECUTE fan-out: merge implementer results in your own context. REVIEW
+  fan-out: persist each raw report, adjudicate it by path, and merge only the
+  sustained main-loop results; never read N raw reviewer reports into the
+  controller to aggregate them.
 
 #### Supervisor mode (sequential only in Phase 1)
 
@@ -540,10 +547,12 @@ After GATES pass and the simplify pass is done, fix the current review target,
 structural review scope, warranted reviewer set, and governing rubrics or
 checklists. Then run the review-planning branch below.
 
-Findings come back grouped by severity (Blockers / Concerns / Nits), each with a one-sentence `Fix:`.
+Adjudicated sustained findings come back grouped by severity (Blockers /
+Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
+in the paired audit artifact; indeterminate findings stop before this routing.
 
-- **Full mode:** iterate `adversarial-reviewer` until it returns `Clean — ready to commit.`
-- **Light mode:** run the single bounded pass. After every finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single Blocker re-review allowed by the light-mode rules.
+- **Full mode:** iterate `adversarial-reviewer` until its adjudicated main-loop result returns `Clean — ready to commit.`
+- **Light mode:** run the single bounded pass and adjudicate its report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
 
 ### Review-planning project-knowledge enquiry
 
@@ -596,40 +605,36 @@ diff, spec path, and the delimited envelope or named skip. Fallback if no
 subagent is installed: proceed and note the missing review in the final
 summary.
 
-**Record findings after each pass (full mode):**
-```
-# 1. Classify the report
-python '<skill-dir>/scripts/loop-cohort.py' review inspect docs/specs/<feature> \
-    --report <report-path> --json
-# ↑ Parse classification and matches_previous_round from the JSON output.
+### Finding-adjudication gateway
 
-# 2a. Stasis — same findings two rounds in a row → surface immediately
-#     (matches_previous_round=True with classification=findings)
+Every completed post-GATES report—including clean claims and every warranted
+reviewer role—must pass through `finding-adjudicator` before classification,
+fingerprinting, DECIDE, or FIX. Missing adjudicator, invalid structure, or
+`ADJUDICATION-INDETERMINATE` is a loud stop; never trust the raw report or turn
+this gateway into a named skip.
 
-# 2b. Findings — fire findings-remain first (guard: check --phase review),
-#     then record fingerprints. Transition first preserves the retry bound:
-#     recording first could increment review_retry_count to the cap and then
-#     refuse the transition on the last allowed round.
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <fp1> --fingerprint <fp2> ... \
-    --expect-run-id <run_id>
-# Fix findings; then fire wave-complete → re-run GATES → re-enter REVIEW.
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
-# Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
+Before the first report in a review unit, read
+[`references/finding-adjudication.md`](references/finding-adjudication.md). It
+owns artifact identity, path validation, strict classification, retry ordering,
+and context eviction. The invariant is short:
 
-# 2c. Adversarial clean — run specialist reviewers (see below), then fire
-#     reviewers-clean and record. Do not record here: a specialist finding
-#     would prematurely advance the round counter before all reviews are done.
-```
-`review inspect` classifies the report into `findings` / `clean` / `invalid`; exit 0 for all content outcomes (use `invalid` as a signal to Surface — the reviewer output is malformed). `matches_previous_round=True` on a `findings` round = stasis → Surface to human, don't spin another round. `review record --fingerprint` increments both `review_round_count` and `review_retry_count`; `review record --report` (clean path) increments only `review_round_count`. `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`.
+1. Persist and validate the raw report without acting on its prose.
+2. Dispatch the adjudicator by path with the unchanged target, reviewer role,
+   and governing authority paths; persist and validate its paired output.
+3. Classify only the adjudication artifact: stateful `review inspect
+   --adjudication` in full mode, state-free `review classify` in light mode
+   (including direct-light).
+4. Route only sustained findings. Refuted-only is exact clean and consumes no
+   retry; indeterminate stops before transition, recording, or mutation.
 
-Drop the full report text from resident context after recording. Re-read from disk when a FIX needs a finding's detail. (There is no pre-filtered "open findings" file — which findings are still open is your DECIDE-phase routing call.)
+Keep the raw report opaque after persistence, pass only artifact paths, and
+evict both report bodies after recording. Re-read only a sustained finding from
+the adjudication artifact when FIX needs its detail.
 
 **Specialist reviewers — run after the adversarial requirement is satisfied:**
 
-- Full mode: the reviewer returned Clean, or its absence is an allowed named skip.
-- Light mode: the bounded pass completed and its findings were disposed, or its absence is an allowed named skip.
+- Full mode: the reviewer's adjudicated main-loop result returned Clean, or its absence is an allowed named skip.
+- Light mode: the bounded pass completed and its sustained findings were disposed, or its absence is an allowed named skip.
 
 An absent or non-Clean adversarial reviewer must not suppress another warranted reviewer. Missing `security-reviewer` on infra-flavored work still surfaces and blocks.
 
@@ -645,6 +650,11 @@ Dispatch reviewers the diff warrants; don't run all by default. Select each via 
 
 - **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 Focus Appearance + Target Size, CWV regression signals. Fallback absent: named skip.
 
+- **`design-reviewer`** — only when an architect-pack integration explicitly
+  activates it for an architecture artifact inside this work-loop. Pass the
+  named artifact, accepted concept/constraints, and governing rubric paths;
+  route its report through finding adjudication. This adds no core trigger.
+
 **When ALL warranted reviewers are clean (or are named skips)** — for a
 spec-backed run, normally write `Status: Shipped` in `spec.md`, then fire
 `reviewers-clean` and, if at least one reviewer produced a clean report, record
@@ -656,7 +666,8 @@ fires no engine or cohort transition:
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> reviewers-clean
 # If at least one reviewer produced a clean report:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --report <report-path> --expect-run-id <run_id>
+    --report <adjudication-report-path> --adjudication \
+    --expect-run-id <run_id>
 # If every warranted reviewer was a named skip:
 python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
     --all-skipped --expect-run-id <run_id>
@@ -699,18 +710,20 @@ For direct-light, do not fire engine or cohort transitions: after the bounded
 review and any required repair, complete the Finish checklist and produce the
 five-field final handoff.
 
-If a specialist reviewer returns findings, first exit `CODE-REVIEW` via `findings-remain` and record the fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
+If a specialist adjudication sustains findings, first exit `CODE-REVIEW` via `findings-remain` and record only their fingerprints (same as the adversarial-findings path above), then apply the fixes, fire `wave-complete` to reach `CODE-VERIFICATION`, re-run GATES, then re-enter REVIEW:
 ```
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
-    --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id>
+# Never record when the transition is refused: it carries the retry-cap guard,
+# `review record --fingerprint` carries none and increments regardless.
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
+    && python '<skill-dir>/scripts/loop-cohort.py' review record docs/specs/<feature> \
+         --fingerprint <fp1> --fingerprint <fp2> ... --expect-run-id <run_id>
 # Apply the specialist's fixes, then fire wave-complete (required to reach
 # CODE-VERIFICATION before gates-clean/gates-failed).
 python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
 # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
 ```
 
-**Dispatch multiple reviewers in parallel** per the [Parallel dispatch discipline](#parallel-dispatch-discipline): read N reports, group by severity, deduplicate cross-reviewer overlaps. Fingerprint computation once per fan-out round. Drop merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [Parallel dispatch discipline](#parallel-dispatch-discipline), but adjudicate each completed report independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
@@ -775,8 +788,8 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 - [ ] GATES were clean (lint, typecheck, tests).
 - [ ] **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
-- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs) returned `Clean — ready to commit.` or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks**. Silent skips are not allowed.
-- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran (or its absence is a named skip); every finding received an intent-fit and session-decision disposition; included fixes passed GATES. A Blocker received exactly one re-review; a surviving Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and returned Clean or is an allowed named skip.
+- [ ] **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) produced an adjudicated `Clean — ready to commit.` main-loop result or is a named skip — **except missing `security-reviewer` on infra-flavored work, which blocks; missing `finding-adjudicator` always blocks**. Silent skips are not allowed.
+- [ ] **Light mode:** the single bounded `adversarial-reviewer` pass ran and was adjudicated (or the reviewer's absence is a named skip); every sustained finding received an intent-fit and session-decision disposition; included fixes passed GATES. A sustained Blocker received exactly one re-review; a surviving sustained Blocker escalated to full mode. If `AGENTS.md` declares the external-quality-gate exception, `quality-engineer` also ran and produced adjudicated Clean or is an allowed named skip.
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and deferrals, and any discovered reason future work should use a durable spec.
@@ -798,10 +811,10 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 ## FIX
 
-1. Read the finding carefully; fix what the reviewer flagged, not the symptom.
+1. Read the sustained finding from the adjudication artifact carefully; fix the established defect, not the symptom. Never route a refuted or indeterminate source finding into FIX.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
-4. **Full mode:** after any applied REVIEW finding, re-run the reviewer or reviewer set that produced it; continue until Clean.
+4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it and adjudicate every new report; continue until adjudicated Clean.
 5. **Light mode — non-Blocker fix:** return to GATES, then DECIDE/finish. Do not run a second adversarial pass.
 6. **Light mode — Blocker fix:** return to GATES, then run the single permitted re-review. A surviving Blocker escalates to full mode.
 

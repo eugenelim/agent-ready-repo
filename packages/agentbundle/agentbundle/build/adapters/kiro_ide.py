@@ -25,10 +25,13 @@ from typing import Any, Iterator
 
 # Import frontmatter helpers from kiro.py (pure functions, no side effects).
 from agentbundle.build.adapters.kiro import (
+    _IDE_AGENT_FIELDS,
     _apply_mapping,
+    _consume_skills_optout,
     _project_direct_directory,
     _project_direct_file,
     _project_direct_file_template,
+    _restrict_agent_fields,
     _split_frontmatter,
 )
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
@@ -295,6 +298,13 @@ def _project_agent_as_md(
             continue
         frontmatter, body = _split_frontmatter(entry.read_text(encoding="utf-8"))
         rewritten = _apply_mapping(frontmatter, mapping)
+        skills_optout = _consume_skills_optout(frontmatter, rewritten, entry)
+        resources_declared = "resources" in rewritten or skills_optout
+        if rewritten.get("resources") == []:
+            # An explicit empty list is a portable no-resource opt-out. Keep
+            # the author decision but omit a meaningless empty consumer field.
+            rewritten.pop("resources")
+        _restrict_agent_fields(rewritten, _IDE_AGENT_FIELDS, flavor="kiro-ide")
 
         # Ensure name is present (derived from filename if not in frontmatter).
         agent_name = rewritten.get("name") or entry.stem
@@ -306,7 +316,7 @@ def _project_agent_as_md(
         # own `resources` (author override wins). `resources` is a documented
         # IDE agent field, so it does not trip the silent-drop bug.
         inject_resources = rule.get("inject-resources")
-        if inject_resources and "resources" not in rewritten:
+        if inject_resources and not resources_declared:
             rewritten["resources"] = list(inject_resources)
 
         output_text = _serialize_frontmatter_md(rewritten) + body

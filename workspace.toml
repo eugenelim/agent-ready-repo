@@ -157,6 +157,7 @@ draft     = []
 
 ["ini-002".work]
 active  = [
+  {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
   {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
 ]
 shipped = [
@@ -518,6 +519,54 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Warning-baseline observation, NOT a gate failure. The repository baseline
+  # carries 65 CAT-S003/CAT-S004 skill-spec findings spread across twelve packs
+  # plus the projected `.claude/skills` tree — attributed on 2026-08-24 as
+  # atlassian 18, product-engineering 16, core 8, `.claude/skills` 8, linear 4,
+  # github/figma/converters 2 each, and architect/credential-brokers/
+  # desk-research/frontend-engineering/release-engineering 1 each. They are
+  # emitted as WARN, and `catalogue lint` computes its exit status from ERROR
+  # severity alone, so `catalogue lint --deep`, `pre_pr_catalogue.py`, and
+  # `make build-check` all pass with them present. Nothing is blocked.
+  # Ten of the 65 are on `work-loop/SKILL.md` itself (five in the pack source,
+  # five in its `.claude/` projection) — a file the review-finding-adjudication
+  # diff edits and lengthens past the 500-line body guidance the warning names.
+  # Those are confirmed pre-existing: the same warning fires at HEAD, and this
+  # diff makes the body longer without introducing the finding.
+  # Two adjudication-gateway improvements surfaced during the
+  # review-finding-adjudication build and were deliberately NOT folded into it.
+  # Both change the `finding-adjudicator` contract and need an acceptance
+  # criterion, a prose pin, and eval coverage rather than a prose edit.
+  #
+  # (1) Orchestrator-supplied evidence for a machine-checkable indeterminate.
+  # Reviewers hold `Bash`; the adjudicator holds `Read`/`Grep`, so a finding a
+  # reviewer grounded in execution is structurally unverifiable and lands as
+  # `indeterminate`. A first attempt was written and reverted after review found
+  # a confused-deputy path (the orchestrator executing a command string derived
+  # from artifact text), an input that the closed validator cannot admit, an
+  # unbounded loop outside retry accounting, and an undefined artifact
+  # composition for partial re-dispatch. A real design must bound the command to
+  # repository-declared read-only gates, add an `evidence` artifact kind with
+  # validation, keep the human stop that AC5 promises, and define who composes
+  # the merged adjudication.
+  #
+  # (1b) The agent contract never tells the adjudicator it cannot REPRODUCE the
+  # indeterminate stop token in prose. The strict classifier scans the whole
+  # report for that literal, deliberately, so a sentinel cannot be smuggled
+  # through an audit section — but an adjudicator explaining why some other
+  # path still stops on it invalidates its own report by quoting it. Observed
+  # twice in this run. The agent's output contract should state the constraint
+  # and name the descriptive alternative.
+  #
+  # (2) A predicate testing whether a finding's proposed MECHANISM is correct.
+  # The five predicates establish only that the defect is real; the sole remedy
+  # rule is "smallest adequate fix, reject over-broad prescription", which
+  # catches breadth but not wrongness. Adding this risks the agent drifting into
+  # authoring solutions, which its `Never do` boundary and the spec's
+  # "not a fourth code-review lens" framing forbid — so it needs the boundary
+  # redrawn deliberately, not widened by implication.
+  {slug = "adjudicator-evidence-and-remedy-predicate", source = "spec/review-finding-adjudication (rounds 7-8)", summary = "Design the finding-adjudicator's orchestrator-supplied evidence protocol and a wrong-mechanism predicate, with ACs, prose pins, and eval coverage"},
+  {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   # RFC-0092 distribution-routes programme. These confirmed downstream slices
   # stay non-dispatchable until each is promoted through new-spec. Typed needs
   # preserve the accepted dependency order without manufacturing placeholder

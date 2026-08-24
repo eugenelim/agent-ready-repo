@@ -281,12 +281,16 @@ def _apply_codex_tool_intents(fields: dict[str, Any]) -> dict[str, Any]:
         return rewritten
 
     intent_set = {str(intent) for intent in intents}
+    has_read = "read" in intent_set
     has_write = "write" in intent_set
     has_shell = "shell" in intent_set
     has_web_search = "web_search" in intent_set
 
     rewritten["sandbox_mode"] = "workspace-write" if has_write else "read-only"
-    rewritten["features.shell_tool"] = has_shell
+    # Codex custom agents have no named Read/Grep/Glob allowlist. Their
+    # documented read-heavy shape is a read-only sandbox with the default
+    # command tool available, so a portable read intent must retain that tool.
+    rewritten["features.shell_tool"] = has_read or has_shell
     rewritten["web_search"] = "live" if has_web_search else "disabled"
     if has_web_search:
         rewritten["tools.web_search"] = True

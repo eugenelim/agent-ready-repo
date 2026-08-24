@@ -76,7 +76,9 @@ Steps:
 
 ### Adding or modifying a subagent
 
-A subagent is a sharp diff-review or execution lens — currently four: `adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`. The bar to add a fifth is high: a new lens needs a differentiable role the existing four don't cover, with reviewer findings that wouldn't have surfaced otherwise.
+A subagent is a sharp diff-review or execution lens — currently four: `adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`. The bar to add another is high: a new lens needs a differentiable role the existing four don't cover, with reviewer findings that wouldn't have surfaced otherwise.
+
+core's `finding-adjudicator` sits outside that set and clears the bar a different way: it is not a fifth review lens. It discovers no defects and walks no checklist. It serves the distinct work type of *finding adjudication* — testing a completed reviewer's claims against repository evidence so only sustained findings enter the loop's decision and repair context. Adding a genuine fifth *review* lens still faces the bar above.
 
 Steps:
 
