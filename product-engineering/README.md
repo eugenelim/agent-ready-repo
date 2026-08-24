@@ -81,9 +81,11 @@ decompose-intent
   └─ onboarding/step-3-first-action (app — spec ready to draft)
 ```
 
-The agent hands each independently shippable leaf directly to `new-spec` →
-`work-loop`. It writes a coordinating brief first only when a result spans
-multiple specs or repositories.
+After you confirm the handoff, the agent sends each independently shippable leaf
+to Core intake as a delivery contract. It sends a coordinating delivery brief
+only when the result spans multiple specs or repositories. If the current Core
+invocation advertises the handoff capability, the bounded context is
+machine-readable; otherwise you receive the same portable rendered handoff.
 
 ---
 
@@ -112,9 +114,10 @@ The base paths are configurable — `[product] output_dir` and `[discovery] outp
 **Upstream — `product-strategy`:** OKR gaps and opportunity assessments from `product-strategy` feed `frame-situation` and `frame-intent` as strategic anchors. Absent means both skills degrade gracefully.
 
 **Downstream — `core`:** One independently shippable result from
-`decompose-intent` goes directly to `new-spec` → `work-loop`. A multi-spec or
-cross-repository result uses a `core` brief and `receive-brief` before the
-selected slice enters that loop.
+`decompose-intent` becomes a delivery contract; a multi-spec or
+cross-repository result becomes a delivery brief. A compatible Core invocation
+admits the bounded handoff through `work-intake`, then preserves the existing
+`new-spec` or `receive-brief` approval path. Core is optional.
 
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 
