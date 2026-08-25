@@ -32,8 +32,17 @@ the boundary is validated — see the rule's own header, which is emphatic that 
 is a tripwire for the obvious regression, not a proof of correctness.
 
 Run: python3 tools/test-semgrep-argv-boundary.py
-Exit 0 = all pass; exit non-zero = at least one failure. Skips (exit 0) when
-semgrep is not installed, matching `make sast`'s optional-tool posture.
+Exit 0 = all pass; exit non-zero = at least one failure.
+
+**What skips without semgrep, and what does not.** The SCAN skips (exit 0) when
+semgrep is not installed, matching `make sast`'s optional-tool posture. The
+integrity preconditions do NOT: the rule must exist, its `paths.include` must
+parse, every target it names must be on disk, and no target may carry a
+suppression comment. Those are text reads needing no semgrep, and each one is a
+condition under which a later green scan would be meaningless — so they run
+first and can return non-zero on a machine with no semgrep at all. Do not move
+them below the availability guard to restore a uniform skip; that would make a
+control that did not run indistinguishable from one that passed.
 """
 
 from __future__ import annotations
@@ -68,6 +77,14 @@ FIXTURES = REPO_ROOT / "tools" / "semgrep" / "fixtures" / "argv-path-boundary"
 # The rule under test, parsed once. `--config` names a FILE, so a finding's
 # check_id is `<file-stem>.<rule-id>`; RULE_ID is the bare id used to filter.
 RULE_ID = "argv-path-without-boundary-validator"
+# Matches semgrep's suppression pragma in a `#` comment, both spellings.
+# Scoped to `#` deliberately: every path this rule ratchets is Python (see the
+# rule's paths.include), so `//` and `<!-- -->` forms cannot occur in this target
+# set. That is a property of the target set, NOT general coverage — a non-Python
+# target added to paths.include would need this widened. Whether a
+# repository-wide form-lint should span comment syntaxes is the open half of the
+# `sast-nosemgrep-has-no-form-lint` backlog entry, which records the one live
+# `//` instance in the tree.
 NOSEMGREP_COMMENT = re.compile(r"#.*\bnosem(?:grep)?\b")
 
 
