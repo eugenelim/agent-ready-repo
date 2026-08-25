@@ -4,13 +4,27 @@
 ``agentbundle`` copies ``[[pack.maintainers]].email`` into published
 marketplace manifests. That makes a personal maintainer address in a source
 ``pack.toml`` a release-path privacy concern, rather than merely repository
-metadata. This lint permits no-reply addresses, plus reviewed exceptions in
-``ALLOWED_EMAILS``.
+metadata. This lint permits addresses on a reviewed host set
+(``ALLOWED_HOSTS``), plus whole-address exceptions in ``ALLOWED_EMAILS``.
 
 It deliberately does not try to decide whether an address is personal. That
 judgment is undecidable from an email string: a role mailbox can look personal,
-and a personal mailbox can look like a role. The explicit allowlist is the
+and a personal mailbox can look like a role. The explicit allowlists are the
 reviewed human decision for the cases a mechanical rule cannot classify.
+
+**Why a host allowlist and not a no-reply pattern.** The first draft accepted
+any address whose host contained a ``.noreply.`` label, or whose local part was
+``noreply``. Review broke it in three ways, and the bypasses were the point of
+the control rather than edge cases:
+``alice.smith@alice-smith.noreply.example.test`` is personally identifying and
+matched the host pattern; ``noreply@alice-smith.example.test`` put the person in
+the host instead; and ``noreply@alice-smith@example.test`` -- not a valid
+address at all -- passed because splitting on the first ``@`` left the local
+part reading ``noreply``. A pattern over an attacker- or author-chosen string
+cannot be made safe by adding more pattern. An allowlist can: the set of hosts
+this repository publishes from is small, known, and changes in a reviewed diff.
+Structural parsing (``_split_address``) runs first, and anything it cannot
+resolve to exactly one ordinary ``local@host`` is refused rather than cleared.
 
 **Why this lives in ``tools/`` and not in the ``agentbundle`` package.** The
 published package validates adopter catalogues; imposing this repository's
@@ -44,20 +58,52 @@ import sys
 import tomllib
 from pathlib import Path
 
-# Each exception must carry a reason in this reviewed diff. Keeping this empty
-# until one is needed prevents a role address from becoming an unexamined rule.
+# Hosts whose addresses cannot identify a person no matter the local part.
+# This is an allowlist, not a pattern, and that is the point -- see the module
+# docstring's § "Why a host allowlist and not a no-reply pattern". Adding a host
+# is a reviewed diff; state the reason beside it.
+ALLOWED_HOSTS: frozenset[str] = frozenset(
+    {
+        # GitHub's per-user no-reply host. The local part is a GitHub account id,
+        # which is already public, and the address does not deliver mail.
+        "users.noreply.github.com",
+    }
+)
+
+# Whole addresses admitted by review, for the cases a host rule cannot classify
+# -- typically a role mailbox on a real delivering domain. Each entry must carry
+# a reason in this reviewed diff. Empty until one is genuinely needed.
 ALLOWED_EMAILS: frozenset[str] = frozenset()
 
 
-def _is_no_reply_address(email: str) -> bool:
-    """Return whether *email* uses one of the repository's no-reply forms."""
-    local, separator, host = email.strip().lower().partition("@")
-    if not separator or not host:
-        return False
-    if local in {"noreply", "no-reply"}:
+def _split_address(email: str) -> tuple[str, str] | None:
+    """Return ``(local, host)`` for a structurally single, ordinary address.
+
+    Returns ``None`` for anything this lint refuses to reason about: an address
+    with no ``@`` or more than one, an empty side, or internal whitespace. Those
+    are not classified as no-reply by default -- an address the lint cannot
+    parse is an address it cannot clear.
+    """
+    candidate = email.strip().lower()
+    if candidate.count("@") != 1:
+        return None
+    local, _, host = candidate.partition("@")
+    if not local or not host:
+        return None
+    if any(character.isspace() for character in candidate):
+        return None
+    return local, host
+
+
+def _is_allowed_address(email: str) -> bool:
+    """Return whether *email* is on a reviewed host or is a reviewed address."""
+    if email.strip().lower() in ALLOWED_EMAILS:
         return True
-    prefix, marker, domain = host.partition(".noreply.")
-    return bool(prefix and marker and domain)
+    parts = _split_address(email)
+    if parts is None:
+        return False
+    _local, host = parts
+    return host in ALLOWED_HOSTS
 
 
 def find_violations(packs_dir: Path) -> list[str]:
@@ -87,16 +133,14 @@ def find_violations(packs_dir: Path) -> list[str]:
             email = maintainer.get("email")
             if not isinstance(email, str):
                 continue
-            normalised = email.strip().lower()
-            if normalised in ALLOWED_EMAILS or _is_no_reply_address(normalised):
+            if _is_allowed_address(email):
                 continue
             violations.append(
                 f"lint-pack-maintainer-emails: {pack_dir.name}: "
-                f"[[pack.maintainers]].email {email!r} is neither a no-reply "
-                "address nor an explicit reviewed allowlist entry. Use a "
-                "noreply/no-reply local part or a *.noreply.<domain> host; for "
-                "a role mailbox, add the exact address to ALLOWED_EMAILS with "
-                "its reason."
+                f"[[pack.maintainers]].email {email!r} is not on a reviewed "
+                "host and is not a reviewed address. Publish from one of "
+                f"{sorted(ALLOWED_HOSTS)}, or add the host to ALLOWED_HOSTS "
+                "(or the exact address to ALLOWED_EMAILS) with its reason."
             )
     return violations
 
@@ -131,8 +175,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     print(
-        "lint-pack-maintainer-emails: all maintainer emails are no-reply or "
-        "reviewed."
+        "lint-pack-maintainer-emails: every maintainer email is on a reviewed "
+        "host or is a reviewed address."
     )
     return 0
 

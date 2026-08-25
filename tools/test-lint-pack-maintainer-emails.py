@@ -43,13 +43,46 @@ def test_non_no_reply_address_is_flagged() -> None:
     assert "person@example.test" in violations[0]
 
 
-def test_no_reply_forms_pass() -> None:
+def test_reviewed_host_passes() -> None:
+    """The one host this repository actually publishes from."""
     with tempfile.TemporaryDirectory() as tmp:
         packs = Path(tmp) / "packs"
-        _pack(packs, "local", "noreply@example.test")
-        _pack(packs, "hyphenated", "no-reply@example.test")
-        _pack(packs, "host", "account@users.noreply.example.test")
+        _pack(packs, "ok", "12345+someone@users.noreply.github.com")
         assert lint.find_violations(packs) == []
+
+
+def test_the_three_review_bypasses_are_rejected() -> None:
+    """Regression cases from the round-1 review of this lint.
+
+    The first draft matched a `.noreply.` pattern rather than a reviewed host
+    set. Each address below defeated it. They are pinned here because a future
+    "simplification" back to a pattern would reopen all three at once.
+    """
+    cases = [
+        # Identifying local part AND identifying host, but the host carried a
+        # `.noreply.` label, so the pattern cleared it.
+        "alice.smith@alice-smith.noreply.example.test",
+        # Person moved into the host; the `noreply` local part cleared it.
+        "noreply@alice-smith.example.test",
+        # Not a valid address at all. Splitting on the FIRST `@` left the local
+        # part reading `noreply`, so it was cleared.
+        "noreply@alice-smith@example.test",
+    ]
+    for address in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            packs = Path(tmp) / "packs"
+            _pack(packs, "bypass", address)
+            violations = lint.find_violations(packs)
+        assert len(violations) == 1, f"{address!r} was cleared: {violations}"
+
+
+def test_structurally_unparseable_addresses_are_refused_not_cleared() -> None:
+    """An address the lint cannot resolve must fail, never default to allowed."""
+    for address in ("no-at-sign", "@host.test", "local@", "a b@users.noreply.github.com"):
+        with tempfile.TemporaryDirectory() as tmp:
+            packs = Path(tmp) / "packs"
+            _pack(packs, "weird", address)
+            assert len(lint.find_violations(packs)) == 1, address
 
 
 def test_allowlisted_address_passes() -> None:
@@ -125,7 +158,7 @@ def test_exit_codes() -> None:
         assert lint.main(["--root", str(root)]) == 1
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        _pack(root / "packs", "quiet", "noreply@example.test")
+        _pack(root / "packs", "quiet", "12345+someone@users.noreply.github.com")
         assert lint.main(["--root", str(root)]) == 0
 
 
