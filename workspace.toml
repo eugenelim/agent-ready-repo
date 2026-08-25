@@ -694,25 +694,6 @@ open = [
   # Deferred rather than bundled: closing it needs a repository-settings action and a
   # live canary run, neither of which is a code change this PR could carry.
   {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # Found while writing tools/lint-pack-maintainer-emails.py against it as the
-  # model, 2026-08-25. lint-pack-descriptions.py's find_violations returns []
-  # when `<root>/packs` is not a directory (:69), and main() then prints
-  # "no pack description has run away" and exits 0 -- so `--root` pointed at the
-  # wrong tree reports a pass over zero scanned manifests. Same shape as
-  # curation-guard-silent-base-skip: a run that gated nothing reads identically
-  # to a run that gated everything.
-  # Bounded today: the only invocations are build_gate_chain.py and
-  # build-check.yml, both of which pass a correct root, so no green run in CI or
-  # in `make build-check` is currently false. This is a latent hole, not a live
-  # one, which is why it is recorded rather than fixed in the PR that found it.
-  # The new maintainer-email lint deliberately does NOT share the behaviour: it
-  # exits 2 when it finds no pack.toml. Deciding whether the descriptions lint
-  # should match is a change to a shipped gate's failure mode, so it wants its
-  # own criterion rather than a ride-along.
-  # Fix: give lint-pack-descriptions.py the same fail-closed check, or record
-  # why a drift backstop is allowed to differ from a privacy control.
-  # Unblocks when: picked up -- no dependency.
-  {slug = "lint-pack-descriptions-passes-on-empty-scan", summary = "lint-pack-descriptions.py exits 0 with a pass line when `<root>/packs` is absent, so a wrong --root reports clean over zero scanned manifests", source = "spec-less maintainer-email lint (discovered while modelling on it)"},
   # The parity gate's two layers bound static bindings and the resolved value at
   # import time. Neither bounds a rebind that happens AFTER import -- a function
   # mutating the module global while the build runs. The dynamic-rebinding refusal

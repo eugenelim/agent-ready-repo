@@ -33,8 +33,23 @@ lints run only on this repository's own `make build-check`, which is the correct
 blast radius for a style rule. Pack discoverability is unaffected either way:
 that is carried by the separate `[pack].keywords` and `[pack].categories`.
 
-Pure-stdlib, `--root` flagged, exit 0=pass / 1=violation — matching the other
-`tools/` lints.
+Pure-stdlib, `--root` flagged, exit 0=pass / 1=violation / 2=scanned nothing.
+
+**Why exit 2 exists.** This lint used to print its pass line whenever
+`<root>/packs` was absent, so a `--root` aimed at the wrong tree reported
+"no pack description has run away" over zero examined manifests — a run that
+checked nothing reading identically to a run that checked everything. Both real
+invocations (`tools/repo/build_gate_chain.py`, `build-check.yml`) pass a correct
+root, so no green run was ever false; it was a latent hole, and it is now
+closed rather than left for the first person to pass a wrong `--root`.
+
+The repository had already settled this question twice before this lint caught
+up: `tools/lint-adapter-layer-boundary.py` refuses with "this must not pass
+vacuously", and `tools/audit-npm.py` treats zero discovered inputs as an error.
+Note the two disagree on the code — the former returns 1, the latter 2. This
+lint follows `tools/lint-pack-maintainer-emails.py`, its direct sibling and the
+lint that was modelled on this file, in using 2, so that "scanned nothing" stays
+distinguishable from "found violations".
 
 Usage:
     python3 tools/lint-pack-descriptions.py [--root .]
@@ -100,7 +115,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    violations = find_violations(Path(args.root) / "packs")
+    packs_dir = Path(args.root) / "packs"
+    # Fail closed before reporting anything: see the module docstring. A pass
+    # line printed over zero scanned manifests is the defect, not the absence.
+    # `find_violations` stays a pure function returning []; the decision lives
+    # here, where the operator's unmet intent -- "lint this root" -- is visible.
+    if not packs_dir.is_dir() or not any(packs_dir.glob("*/pack.toml")):
+        print(
+            f"lint-pack-descriptions: no pack.toml found under {packs_dir} "
+            "— scanned nothing, so this is not a pass. Check --root.",
+            file=sys.stderr,
+        )
+        return 2
+
+    violations = find_violations(packs_dir)
     for violation in violations:
         print(violation, file=sys.stderr)
     if violations:

@@ -34,18 +34,19 @@ only over this repository's own ``packs/`` tree through ``make build-check``.
 Pure-stdlib, ``--root`` flagged, exit 0=pass / 1=violation / **2=scanned
 nothing**.
 
-**Why exit 2 exists, and why this diverges from its sibling.**
-``lint-pack-descriptions.py`` returns "clean" when ``packs/`` is absent, so a
-wrong ``--root`` prints a pass line for a run that examined zero files. That is
-survivable for a drift backstop on display copy. It is not survivable for a
-privacy control on a release path: a run that gated nothing would read
-identically to a run that gated everything, which is the failure this
-repository has already been bitten by elsewhere (see ``[backlog].open``
-``curation-guard-silent-base-skip``, a false green reproduced three times in
-one session). So finding no ``pack.toml`` at all is an error here, not a pass.
-``find_violations`` stays a pure function returning ``[]``; the fail-closed
-decision lives in ``main``, where the operator's intent — "lint this root" — is
-what went unmet.
+**Why exit 2 exists.** A run that gated nothing must not read identically to a
+run that gated everything — the failure this repository has been bitten by
+elsewhere (see ``[backlog].open`` ``curation-guard-silent-base-skip``, a false
+green reproduced three times in one session). So finding no ``pack.toml`` at
+all is an error here, not a pass. ``find_violations`` stays a pure function
+returning ``[]``; the fail-closed decision lives in ``main``, where the
+operator's intent — "lint this root" — is what went unmet.
+
+This originally read as a deliberate divergence from
+``lint-pack-descriptions.py``, which then printed a pass line over an empty
+scan. That is no longer true: the same guard was added there on 2026-08-25, so
+the two agree and the sentence is kept only to stop the divergence being
+reintroduced as a "consistency" fix in the wrong direction.
 
 Usage:
     python3 tools/lint-pack-maintainer-emails.py [--root .]
