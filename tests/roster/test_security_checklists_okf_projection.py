@@ -103,9 +103,24 @@ def test_core_version_and_okf_declaration_are_synchronized() -> None:
         (PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
 
-    assert pack["pack"]["version"] == "2.12.1"
-    assert plugin["version"] == "2.12.1"
-    assert pack["pack"]["version"] == plugin["version"]
+    # Assert the invariant, not a literal. A pinned version string has to be
+    # re-pinned by every bump, and until someone does the suite is red for a
+    # reason that has nothing to do with the OKF declaration this test owns.
+    # Worse, two concurrent branches that bump to the same number merge with no
+    # conflict, so the literal can agree with a `pack.toml` that names a
+    # different code state. Three surfaces have to move together instead.
+    version = pack["pack"]["version"]
+    assert plugin["version"] == version
+    changelog = (REPO_ROOT / "docs" / "product" / "changelog.md").read_text(
+        encoding="utf-8"
+    )
+    topmost_core = next(
+        line for line in changelog.splitlines() if line.startswith("## [core][")
+    )
+    assert topmost_core.startswith(f"## [core][{version}]"), (
+        f"pack.toml is {version!r} but the topmost core changelog heading is "
+        f"{topmost_core!r}"
+    )
     assert pack["pack"]["metadata"]["okf"]["profile"] == "agentbundle-okf/v1"
     bundle = pack["pack"]["metadata"]["okf"]["bundles"][0]
     assert bundle["id"] == "security-checklists"

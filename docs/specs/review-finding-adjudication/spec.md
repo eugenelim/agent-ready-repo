@@ -1,6 +1,6 @@
 # Spec: Review finding adjudication
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [`adjudicator-evidence-and-remedy-predicate`](../adjudicator-evidence-and-remedy-predicate/spec.md) — AC3's five-predicate set now has a bounded sixth remedy-mechanism predicate, AC10's terminal indeterminate path now admits a guarded machine-evidence retry, and AC11's exact three eval cases are now four; every other decision stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), [RFC-0051](../../rfc/0051-the-self-coverage-gate.md), [ADR-0014](../../adr/0014-rigor-scales-with-risk-work-loop-modes.md)

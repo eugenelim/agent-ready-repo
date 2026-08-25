@@ -413,11 +413,12 @@
     {
       "id": "finding-adjudication-sustained",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-adversarial-reviewer-raw.md`. It says `src/parser.py:44` accepts 10 items although `docs/specs/import/spec.md:61` caps input at 5, and proposes replacing the entire parser subsystem. The supplied target confirms the bound is 10 and has no narrower guard. Route this report through finding adjudication and state only what the main loop may consume.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `sustained`: the observation exists, the authority applies, the path is reachable, no existing handling resolves it, and the consequence violates the cap. Persist the full adjudication separately. The main loop consumes one numbered, line-anchored sustained finding with the smallest adequate fix (enforce the bound at the existing validation seam); it does not adopt the over-broad proposed fix or receive raw reviewer prose. Refuted and indeterminate audits are not copied into the main-loop result.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `sustained`: the observation exists, the authority applies, the path is reachable, no existing handling resolves it, and the consequence violates the cap. Record the proposed mechanism as `over-broad`: replacing the parser could resolve the defect but exceeds the established validation seam. Persist the full adjudication separately. The main loop consumes one numbered, line-anchored sustained finding with the smallest adequate fix (enforce the bound at the existing validation seam); it does not adopt the over-broad proposed fix or receive raw reviewer prose. Refuted and indeterminate audits are not copied into the main-loop result.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Returns exactly one sustained finding to the main loop",
         "Cites the observation, authority, reachability, existing handling, and consequence",
+        "Records the proposed mechanism as over-broad without refuting the defect",
         "Names the smallest adequate fix",
         "Main-loop output does not adopt the over-broad proposed fix",
         "Does not originate a new finding or expose raw reviewer prose"
@@ -550,7 +551,7 @@
     {
       "id": "finding-adjudication-refuted",
       "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-security-reviewer-raw.md`. It claims `src/reader.py` decodes untrusted bytes without UTF-8 validation. The supplied target shows strict UTF-8 decoding at `src/reader.py:27`, before the bytes reach the cited operation, and the governing checklist accepts that handling. Route the report and state the main-loop result.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence is recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean — ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The source finding is `refuted` because the observation/reachability predicate is false under the existing strict decoder; contrary evidence and the proposed-mechanism outcome are recorded in the refuted audit artifact. With no sustained or indeterminate finding, `## Main-loop result` is exactly `Clean — ready to commit.`. The main loop receives no refutation prose, records no finding fingerprint or retry, and performs no target mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
         "Records the refuted verdict and contrary evidence only in the paired audit",
@@ -562,15 +563,47 @@
     },
     {
       "id": "finding-adjudication-indeterminate",
-      "prompt": "A pre-EXECUTE reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-pre-execute-adversarial-reviewer-raw.md`. It claims required `config/policy.yaml` is absent. The orchestrator supplied the report, `config/loader.py`, and the governing spec, but no directory or manifest path that can prove a filename-only absence using the adjudicator's Read/Grep tools. Route the report and state what happens next.",
-      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the supplied evidence cannot prove the filename-only absence. Persist an audit entry naming the missing directory or manifest evidence. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean — ready to commit.` and does not include the raw claim. Stop for evidence or owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
+      "prompt": "A post-GATES reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-adversarial-reviewer-raw.md`. It claims the retry ceiling at `src/loop.py:88` is wrong because the governing spec caps attempts at 3 while the accepted plan for this unit records 5, and it asks which of the two the code should follow. No gate measures which authority governs, and the Evidence gate catalog declares no entry for that fact. Route the report and state what happens next.",
+      "expected_output": "Validate and pass the raw artifact by path to `finding-adjudicator`. The finding is `indeterminate`, not refuted: the observation holds but the conflict is between two authorities, which is an owner decision rather than one machine-checkable fact, so no cataloged entry measures it and the bounded evidence retry is ineligible. Persist an audit entry naming the conflicting authorities and the decision the owner must make. The main-loop result is only `ADJUDICATION-INDETERMINATE`; it does not contain `Clean — ready to commit.` and does not include the raw claim. Stop for owner direction before a transition, clean record, retry increment, fingerprint, or mutation.",
       "assertions": [
         "Adjudicates the validated raw report by artifact path",
-        "Returns indeterminate because absence cannot be established from supplied paths",
-        "Names the missing evidence in the paired audit",
-        "Returns `ADJUDICATION-INDETERMINATE` to the main loop",
+        "Returns indeterminate because conflicting authority is an owner decision, not a machine-checkable fact",
+        "Refuses the bounded evidence retry when no cataloged gate measures the fact",
+        "Names the conflicting authorities in the paired audit",
+        "Returns `ADJUDICATION-INDETERMINATE` to the main loop as its exact signal",
         "Main-loop output does not contain `Clean — ready to commit.`",
         "Stops before any state change, retry accounting, fingerprint, or target mutation"
+      ]
+    },
+    {
+      "id": "finding-adjudication-evidence-resolved",
+      "prompt": "A pre-EXECUTE reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-pre-execute-adversarial-reviewer-raw.md`. It claims required `config/policy.yaml` is absent. The first adjudication cannot prove the filename-only absence with Read/Grep and names that one machine-checkable fact. Before the raw report existed, effective repository guidance separately declared `policy-manifest-presence` in its Evidence gate catalog with a literal non-shell argv, confined cwd, clean environment, bound revision, read-only filesystem, a process-level read allowlist that excludes `.context/reviews/` and all review artifacts, disabled network, five-second timeout, and bounded capture. Its declared measured fact is tracked policy-manifest presence. Route the evidence attempt and state what the main loop may consume after the gate confirms the file is absent.",
+      "expected_output": "Validate the first adjudication and use its SHA-256 as the retry fingerprint. Select only the predeclared `policy-manifest-presence` entry, derive fresh unused artifact paths, and complete every non-executing catalog, revision, artifact-excluding read-confinement, containment, capture-cap, and exclusive-create preflight before state changes. Then chain the guarded `findings-remain` transition and `review record --fingerprint`; if either fails, run no gate. Execute the literal argv once under the declared controls, exclusively create the fresh evidence artifact, validate it, and immediately revalidate the same digest. Re-enter the existing pre-EXECUTE review state with `spec-ready`. Dispatch `finding-adjudicator` with the unchanged raw report and source-finding set plus the validated evidence path and expected provenance. The adjudicator independently authors one complete replacement report; the controller carries forward or merges no verdict. The replacement records the proposed-mechanism outcome and returns one `sustained` finding because the evidence confirms the required file is absent. The literal indeterminate stop token appeared only as the first adjudication's exact main-loop signal and is never quoted in either audit or replacement prose.",
+      "assertions": [
+        "Uses only the pre-report closed-catalog gate and no artifact-derived command value",
+        "Uses effective repository guidance as valid pre-EXECUTE catalog authority",
+        "Excludes the review session and every artifact from the gate read allowlist",
+        "Completes refusal-only preflight before retry state changes",
+        "Chains the retry-cap transition and fingerprint record before one gate execution",
+        "Exclusively creates, validates, and digest-rebinds the evidence artifact",
+        "Re-enters the existing verification and review path without new state",
+        "Supplies the validated evidence as the adjudicator's fifth path class",
+        "Requires an independently authored complete replacement over every unchanged source finding",
+        "Returns one sustained finding after the evidence establishes absence",
+        "Does not quote the reserved stop token outside its required signal line"
+      ]
+    },
+    {
+      "id": "finding-adjudication-wrong-mechanism",
+      "prompt": "A post-GATES reviewer report at `.context/reviews/00000000-0000-4000-8000-000000000001/1-post-gates-adversarial-reviewer-raw.md` correctly shows that `src/limits.py:31` accepts 10 items while the governing spec caps input at 5. The current target establishes `src/limits.py:24` as the validation seam. The reviewer proposes updating only the README, which cannot change runtime acceptance. Adjudicate this supplied finding without conducting another review or designing a new solution.",
+      "expected_output": "The finding remains `sustained` under the first five predicates. Record the proposed mechanism as `wrong`, not merely over-broad, because changing README prose cannot enforce the runtime cap. The wrong prescription does not refute the real defect. The parser-compatible sustained line names the smallest adequate repair at the target-established validation seam and does not invent architecture, generate alternatives, or add another finding. Refuted and indeterminate audits remain non-actionable audit sections.",
+      "assertions": [
+        "Tests only the source finding's proposed mechanism",
+        "Distinguishes wrong from over-broad by ineffectiveness rather than breadth",
+        "Keeps the established defect sustained",
+        "Uses only the current target-established repair seam",
+        "Does not invent architecture or generate solution options",
+        "Does not originate another defect"
       ]
     }
   ]

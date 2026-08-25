@@ -50,6 +50,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.12.2] — 2026-08-25
+
+### Highlights
+
+- **Machine-checkable reviewer claims can now be adjudicated without giving
+  the adjudicator execution tools.** The work loop may supply evidence from one
+  predeclared, confined read-only gate; the attempt consumes the existing
+  review retry budget and produces a complete independent replacement report.
+- **A bad proposed fix no longer obscures a real defect.** The adjudicator now
+  distinguishes an ineffective remedy from an effective but over-broad one
+  while staying inside the supplied finding and repository-established repair
+  seams.
+
+### Changed
+
+- Added validated evidence artifacts with digest rebinding, exclusive fresh
+  paths, fixed provenance, and closed-catalog execution authority.
+- Reserved the indeterminate stop token for its exact main-loop signal so the
+  strict whole-report classifier cannot reject an audit that discusses another
+  indeterminate path.
+- Applied the existing review retry cap to both pre-EXECUTE and post-GATES
+  review states without adding review state or widening the adjudicator's exact
+  `Read`/`Grep` source tools.
+
 ## [core][2.12.1] / [architect][0.15.2] / [governance-extras][0.10.1] / [monorepo-extras][0.1.8] / [iac-terraform][0.1.8] — 2026-08-24
 
 ### Highlights

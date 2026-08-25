@@ -1852,6 +1852,67 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
         ok(name)
 
 
+# STUB: adjudicator-evidence-and-remedy-predicate AC5
+def test_guard_spec_plan_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
+    """SPEC-PLAN-REVIEW shares the review retry-cap guard."""
+    name = "guard-spec-plan-review-at-cap"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir,
+        minimal_engine_state(run_id, name, "code", "SPEC-PLAN-REVIEW"),
+    )
+    write_cohort_state(
+        spec_dir,
+        minimal_cohort_state(
+            run_id,
+            name,
+            extra={
+                "review_retry_count": 5,
+                "max_review_retries": 5,
+            },
+        ),
+    )
+
+    rc, _, _ = run_engine("transition", str(spec_dir), "findings-remain")
+    if rc == 0:
+        fail(name, "expected non-zero when review_retry_count == max")
+    else:
+        ok(name)
+
+
+def test_guard_spec_plan_only_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
+    """SPEC-PLAN-REVIEW is capped in spec-plan-only mode too."""
+    name = "guard-spec-plan-only-review-at-cap"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir)
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir,
+        minimal_engine_state(run_id, name, "spec-plan", "SPEC-PLAN-REVIEW"),
+    )
+    write_cohort_state(
+        spec_dir,
+        minimal_cohort_state(
+            run_id,
+            name,
+            extra={
+                "review_retry_count": 5,
+                "max_review_retries": 5,
+            },
+        ),
+    )
+
+    rc, _, _ = run_engine("transition", str(spec_dir), "findings-remain")
+    if rc == 0:
+        fail(name, "expected non-zero when review_retry_count == max")
+    else:
+        ok(name)
+
+
 def test_schedule_precheck_blocks_code_implementation_transition(tmp: Path) -> None:
     """All CODE-* transitions (except done) require schedule check-current.
     When plan.md is mutated after schedule, the pre-guard blocks the transition."""
