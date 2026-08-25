@@ -212,10 +212,25 @@ conversation order in `assets/assessment.md`. State what was assessed, partially
 assessed, not assessed, and not applicable; distinguish confidence from
 severity; name remaining decision evidence; and recommend one next decision.
 
-Offer to save only after rendering. Resolve the existing `[architecture]
-output_dir` through `references/output-layout.md`, create
-`<output_dir>/<topic-slug>/assessment.md`, surface the resolved absolute path
-before writing, and write only on approval. Otherwise end with:
+Offer to save only after rendering. Select the semantic role from the artifact
+being saved, not from the skill name: a canonical current-state model/report is
+`current-architecture`; a remediation or future-change proposal is
+`architecture-design`. A report containing both requires the user to choose the
+intended durable role (or keep it chat-only); never silently publish proposed
+change as current architecture.
+
+Then follow `references/output-layout.md` and name one operating mode:
+`chat-only`, `personal-workspace`, `repository-resolved`, or
+`repository-handoff`. Only `repository-resolved` with compatible Core may claim
+`semantic-surface-resolution.v1`; Core receives the selected role plus bounded
+caller-acquired evidence and its result is consumed unchanged. Without
+compatible Core, render the portable handoff and stop with zero repository
+effects; user confirmation may correct its evidence but cannot replace Wave 1
+confinement. For `repository-resolved` or a confirmed personal directory,
+create `<destination>/<topic-slug>/assessment.md`, surface the final absolute
+local path before writing, and write only on approval. Because the assessment
+method preserves a per-effort folder, refuse an exact personal file and ask for
+an exact directory or keep the result chat-only. Otherwise end with:
 
 `Result: chat only; no file was created.`
 

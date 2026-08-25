@@ -79,6 +79,64 @@
         "Keeps hardening, optimization, growth, transformation, and disposition actions distinct",
         "Treats the six-intent taxonomy as a decision lens rather than an external maturity standard"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "Save only the corrected canonical model of the system as it is implemented today. Core exposes semantic-surface-resolution.v1 and our current architecture lives under engineering/system/current.",
+      "expected_output": "A repository-resolved current-architecture save. The skill classifies the current-state-only report by artifact intent, consumes the compatible Core resolver result unchanged, surfaces the confined adopter path, and preserves the existing write approval without publishing remediation prose as current architecture.",
+      "assertions": [
+        "Classifies the saved artifact as current-architecture",
+        "Names repository-resolved mode and consumes semantic-surface-resolution.v1",
+        "Uses the adopter current-architecture destination rather than a catalogue default",
+        "Keeps remediation or future-change proposals out of the saved current-state report",
+        "Surfaces the final path and retains explicit write approval"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Save the remediation and future-change proposal from this assessment, but do not overwrite our current architecture.",
+      "expected_output": "An architecture-design save for the proposed change. Current-architecture remains untouched, the destination is resolved or handed off independently, and the assessment method and write gate remain unchanged.",
+      "assertions": [
+        "Classifies the remediation/future-change artifact as architecture-design",
+        "Does not publish it to current-architecture",
+        "Resolves or hands off the architecture-design destination independently",
+        "Preserves the assessment content method and write confirmation"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Save this full assessment: it contains both the corrected current-state model and proposed modernization waves. Choose the destination for me and write it now.",
+      "expected_output": "A mixed-output stop at the durable-role gate. The skill explains the current-architecture versus architecture-design boundary, asks which artifact intent should be saved (or offers chat-only), and performs no current-state or design write before that explicit choice.",
+      "assertions": [
+        "Recognizes mixed current-state and proposed-change content",
+        "Requires an explicit current-architecture versus architecture-design save choice",
+        "Does not silently choose current-architecture",
+        "Invokes no write tool before the role choice and existing write approval"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Save the corrected current-state assessment to this repository path. Core is unavailable, but I confirm the path.",
+      "expected_output": "A zero-write current-architecture repository-handoff. The skill records the role, proposed destination, bounded evidence, and needed write, does not claim semantic-surface-resolution.v1, and explains that user confirmation does not replace Wave 1 confinement. No directory, assessment, or profiler evidence is written.",
+      "assertions": [
+        "Classifies the report as current-architecture",
+        "Names repository-handoff and does not claim semantic-surface-resolution.v1",
+        "Treats user confirmation as evidence correction, not repository write authority",
+        "Writes no report, directory, or profiler evidence",
+        "Routes the handoff to compatible Core"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Save this assessment to the exact personal file /example/personal/assessment.md.",
+      "expected_output": "A personal-workspace refusal with zero effects. The assessment retains its per-effort folder and may keep approved profiler evidence beside the report, so an exact file is incompatible. The skill asks for an exact personal directory or offers chat-only.",
+      "assertions": [
+        "Names personal-workspace and the selected architecture role",
+        "Refuses the exact file because the per-effort assessment layout is preserved",
+        "Does not derive a topic folder beneath the file or write beside it",
+        "Asks for an exact directory or offers chat-only",
+        "Invokes no write"
+      ]
     }
   ]
 }
