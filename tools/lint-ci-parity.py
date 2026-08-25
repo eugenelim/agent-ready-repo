@@ -383,6 +383,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # `test` target, which invokes the same script.
     "pages.yml deploy-gate posture":
         LOCAL("test"),
+    # The Pages concurrency checker is independently reachable from `make ci`
+    # through `test`, and runs in required gate-main so it cannot become the
+    # unwired workflow-posture anti-pattern.
+    "pages.yml concurrency posture":
+        LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes
     # red here rather than staying silently green.

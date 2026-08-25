@@ -54,6 +54,12 @@ on:
       - "Makefile"
       - "*.md"
 
+# Every job only checks out source and runs tests. setup-python's cache uses the
+# Actions runtime token, not this repository token; no artifact, check, PR, or
+# repository write is performed.
+permissions:
+  contents: read
+
 jobs:
   agentbundle-windows:
     name: AgentBundle compatibility (windows)

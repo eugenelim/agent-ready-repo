@@ -2680,22 +2680,6 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
-  # build-check.yml declares no top-level `permissions:` block, so every step --
-  # including three pip installs and an editable install that executes setup.py
-  # -- runs under the repository's DEFAULT GITHUB_TOKEN. The job also runs on
-  # `push: branches: [main]`, where that default may be write-scoped. 10 of the
-  # 14 workflows here already declare one; ci-security.yml:27 documents
-  # `contents: read` as the intended posture, so this is the repo's own pattern
-  # being missed rather than an unconsidered gap. Surfaced by security review on
-  # spec/build-check-coverage-gaps and deliberately NOT bundled there: adding the
-  # block changes the job's token scope, which is a behaviour change and outside
-  # that spec's bundled-fixes carve-out.
-  # Fix: add `permissions: contents: read` at the top of build-check.yml (and
-  # sweep the other three undeclared workflows). zizmor's `excessive-permissions`
-  # audit would own this class going forward, but ci-security.yml:120 filters it
-  # out with --min-severity high -- lower the threshold or add a rule-specific
-  # run in the same change, or the next one lands the same way.
-  {slug = "build-check-yml-no-permissions-block", summary = "Declare `permissions: contents: read` on build-check.yml (and the three other undeclared workflows), and stop zizmor's --min-severity high from filtering out excessive-permissions", source = "spec/build-check-coverage-gaps security review"},
   # tools/requirements-sast.txt is installed by range (`bandit>=1.9,<2` etc.)
   # with no hashes, and after spec/build-check-coverage-gaps its bandit line is
   # fetched on 100% of build-check runs rather than a subset. The repo already
@@ -2705,6 +2689,35 @@ open = [
   # file and install from it with --require-hashes in both the conditional and
   # the unconditional step, keeping requirements-sast.txt as the canonical input
   # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
+  #
+  # SCOPED 2026-08-24, measured not estimated, after this was picked up and put
+  # back down. It is larger than the entry above implies, and the ci-security
+  # precedent does not generalise the way it looks like it should.
+  #   - `--require-hashes` pins the whole transitive closure, not the three
+  #     direct requirements. Measured with `pip install --dry-run
+  #     --ignore-installed --report`: 86 packages, so roughly 250 hash lines.
+  #     A three-line locked file is not an option -- pip refuses the mode
+  #     unless every requirement is pinned with `==`.
+  #   - THE REAL CONSTRAINT IS PLATFORM. The closure carries binary wheels
+  #     (cryptography, pydantic_core, rpds-py, protobuf, cffi, msgpack,
+  #     ruamel.yaml.clib). A file generated on a contributor's macOS pins macOS
+  #     wheels and breaks ubuntu CI. requirements-ci-security-locked.txt sidesteps
+  #     this by pinning ONE package and saying so in its own header ("Other
+  #     platform wheels are not pinned here"); at 86 packages that is not a
+  #     footnote. Target manylinux explicitly, and treat the locked file as
+  #     CI-only -- contributors keep installing requirements-sast.txt, which the
+  #     entry already implies by calling it the canonical input.
+  #   - `pip-compile` is NOT installed here and pip-tools is not a declared
+  #     dependency, so the header's suggested command does not work as written.
+  #     Adding pip-tools is its own dependency decision (AGENTS.md). Viable
+  #     stdlib path instead: `pip install --dry-run --report` emits
+  #     `download_info.archive_info.hashes` with sha256 per package, so a
+  #     generator can be written against the report JSON with no new dependency.
+  #   - Three pins move with the install-step change and are easy to miss:
+  #     `PINNED_SAST_INSTALL` (tools/test-build-check-workflow.py:296) plus the
+  #     `drop-bandit-pin-read` and `echo-wrap-sast-install` mutation lambdas in
+  #     the same file.
+  # Unblocks when: picked up with the platform-targeting decision made first.
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
   # Semgrep's signal for a target it could not parse depends on HOW it failed.
   # A PARTIAL failure (unbalanced bracket, stray token) does surface as a
@@ -3164,15 +3177,6 @@ open = [
   # marketing catalogue and pack cards, so aligning it is a naming decision
   # across surfaces that spec does not own.
   { slug = "iac-terraform-group-label-alignment", source = "spec/guide-title-clarity", summary = "Align the iac-terraform sidebar GROUP label with its retitled index page" },
-  # tools/test-pages-workflow.py deliberately does not assert concurrency: its
-  # charter is deploy-blocking gates, their ordering, and paths: filters, and
-  # every assertion family requires mutation coverage. Required CI therefore
-  # would not catch restoration of unkeyed group: "pages" with cancellation,
-  # which cancelled 18 of 40 runs, including a PR run cancelling a main deploy.
-  # Closing this needs a dedicated mutation-tested concurrency check and a
-  # tools/lint-ci-parity.py registration, not a patch; avoid the unwired
-  # tools/test-ci-security-workflow.py anti-precedent. Unblocks when: ready now.
-  { slug = "pages-concurrency-has-no-regression-gate", source = "spec/pages-concurrency-isolation (review concern)", summary = "pages.yml concurrency has no required-CI assertion, so restoring unkeyed group: \"pages\" would silently reintroduce cross-branch run cancellation" },
   # Surfaced by a peer session while coordinating the pages-concurrency-isolation
   # merge. The deploy lane serializes Pages deployments but does NOT order them:
   # builds now run in distinct workflow groups, so two Pages-relevant merges to main

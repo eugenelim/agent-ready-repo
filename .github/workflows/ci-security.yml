@@ -5,7 +5,8 @@ name: ci-security
 # Three tools:
 #   gitleaks   — secret scanner; fails on detected secrets (exit 1)
 #   actionlint — GitHub Actions linter; fails on workflow errors
-#   zizmor     — GitHub Actions security analyzer; --min-severity high
+#   zizmor     — GitHub Actions security analyzer; high severity plus a focused
+#                 excessive-permissions run for the owned workflow pair
 #
 # Posture (security-load-bearing; asserted by tools/test-ci-security-workflow.py):
 #   - pull_request + push ONLY — pull_request_target absent (would expose secrets
@@ -115,6 +116,13 @@ jobs:
       - name: zizmor (min-severity high)
         # Scans workflow files for high-severity GitHub Actions vulnerabilities:
         # template-injection, cache-poisoning, dangerous-triggers, artipacked, etc.
-        # unpinned-uses (HIGH in zizmor 1.27.0) is suppressed via .github/zizmor.yml —
-        # the repo accepts @vN tag-pinning as current posture (SHA pinning is backlog).
+        # `.github/zizmor.yml` declares no suppressions; unpinned action references
+        # are SHA-pinned and remain visible to this high-severity gate.
         run: zizmor --min-severity high .github/workflows/
+
+      - name: zizmor (excessive-permissions)
+        # Do not lower the global threshold: that would make unrelated medium/low
+        # findings (for example artipacked) block this focused posture gate. The
+        # checker consumes zizmor's JSON and fails only on excessive-permissions in
+        # the two workflows this backlog item owns.
+        run: python3 tools/check-zizmor-excessive-permissions.py

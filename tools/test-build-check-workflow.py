@@ -327,6 +327,7 @@ PINNED_SITE_BUILD_PYTEST = (
 )
 PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"
 PINNED_CONTRAST_SUITE = "python -m pytest tools/test_check_docs_contrast.py -q"
+PINNED_PAGES_CONCURRENCY = "python3 tools/test-pages-concurrency.py"
 # The GENERIC form of the five pins above, keyed by job id, for work jobs whose
 # gate is a whole step body rather than one statement. `gate-main`, `gate-sast` and
 # `gate-export-boundary` carry the bespoke constants above; a job added later gets
@@ -372,6 +373,7 @@ _NO_CWD_STEPS = (
     ("gate-main", "pytest guides + catalogue navigation"),
     ("gate-main", "pytest site build + link rewriting"),
     ("gate-main", "docs palette contrast gate"),
+    ("gate-main", "pages.yml concurrency posture"),
 )
 # Non-run steps permitted in the aggregator, compared as the `uses:` VALUE for equality.
 # A substring test over the step chunk — the previous shape — accepted
@@ -1414,6 +1416,9 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("contrast-body-exact",
           _run_lines(_step_named(main_blk, "docs palette contrast gate"))
           == [PINNED_CONTRAST_CHECKER, PINNED_CONTRAST_SUITE])
+    check("pages-concurrency-body-exact",
+          _run_lines(_step_named(main_blk, "pages.yml concurrency posture"))
+          == [PINNED_PAGES_CONCURRENCY])
 
     # AC2's second neutering form. `continue-on-error` is covered file-wide, and
     # cwd redirection by _NO_CWD_STEPS above — but a step-level `if:` was the live
@@ -1422,7 +1427,8 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # `if:` at all, so the honest assertion is that it stays that way.
     for _step_name in ("pytest guides + catalogue navigation",
                        "pytest site build + link rewriting",
-                       "docs palette contrast gate"):
+                       "docs palette contrast gate",
+                       "pages.yml concurrency posture"):
         _st = _step_named(main_blk, _step_name)
         check(f"site-step-no-if[{_step_name}]", bool(_st) and not _has_if(_st))
 
@@ -1626,6 +1632,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("drop-contrast-suite", "contrast-gate[tools/test_check_docs_contrast.py]",
      lambda t: t.replace(
          "          python -m pytest tools/test_check_docs_contrast.py -q\n", "")),
+    ("drop-pages-concurrency-posture", "pages-concurrency-body-exact",
+     lambda t: t.replace("        run: python3 tools/test-pages-concurrency.py\n", "", 1)),
     ("if-false-on-contrast-step", "site-step-no-if[docs palette contrast gate]",
      lambda t: t.replace("      - name: docs palette contrast gate\n",
                          "      - name: docs palette contrast gate\n        if: ${{ false }}\n")),
