@@ -1870,10 +1870,12 @@ open = [
   # Unblocks when: atlassian-sso-cookie-live-dc-read-transcript is complete.
   {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 
-  # Unverified: six real platform-by-mode credential and SSO transcripts remain
-  # outstanding.
-  # Settle on macOS, Windows, and Linux with real platform stores plus an approved
-  # corporate-SSO endpoint, recording each row under the existing notes directory.
+  # Unverified: six real platform-by-mode transcripts remain under
+  # docs/specs/credential-broker-contract/notes/:
+  # `creds` × macOS; `creds` × Windows; `creds` × Linux;
+  # `sso-cookie` × macOS; `sso-cookie` × Windows; `sso-cookie` × Linux.
+  # Settle when every row uses its real platform store and an approved corporate-SSO
+  # endpoint, and records PAT resolution / sso-broker test exit 0.
   {slug = "credential-broker-contract-manual-qa"},
 
   # Unverified: publish-artifactory has never run because the repository lacks the three
