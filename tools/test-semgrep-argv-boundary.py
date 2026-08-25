@@ -39,6 +39,7 @@ semgrep is not installed, matching `make sast`'s optional-tool posture.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -67,6 +68,7 @@ FIXTURES = REPO_ROOT / "tools" / "semgrep" / "fixtures" / "argv-path-boundary"
 # The rule under test, parsed once. `--config` names a FILE, so a finding's
 # check_id is `<file-stem>.<rule-id>`; RULE_ID is the bare id used to filter.
 RULE_ID = "argv-path-without-boundary-validator"
+NOSEMGREP_COMMENT = re.compile(r"#.*\bnosem(?:grep)?\b")
 
 
 def ratcheted_scope() -> tuple[list[Path], list[str]]:
@@ -347,10 +349,27 @@ def test_ratcheted_scripts_silent(
             ok(name)
 
 
+def test_targets_have_no_nosemgrep_comments(targets: list[Path]) -> None:
+    """Reject suppression comments before semgrep's optional-tool guard.
+
+    This is a pure text check over the scan targets already on disk, so it must
+    remain before the ``semgrep`` availability guard in ``main``. Putting it
+    below that guard would silently skip the control on machines without
+    semgrep—the same indistinguishable-from-clean failure this check prevents.
+    """
+    name = "no scan target contains a nosemgrep/nosem comment"
+    suppressions: list[str] = []
+    for target in targets:
+        for line_number, line in enumerate(target.read_text(encoding="utf-8").splitlines(), 1):
+            if NOSEMGREP_COMMENT.search(line):
+                suppressions.append(f"{_key(target)}:{line_number}")
+    if suppressions:
+        fail(name, f"suppression comment found at: {', '.join(suppressions)}")
+    else:
+        ok(name)
+
+
 def main() -> int:
-    if shutil.which("semgrep") is None:
-        print("skip: semgrep not on PATH (install: pip install -r tools/requirements-sast.txt)")
-        return 0
     if not RULE.is_file():
         print(f"FAIL: rule not found at {RULE}", file=sys.stderr)
         return 1
@@ -361,22 +380,30 @@ def main() -> int:
     # points at the rule when the file is simply gone.
     ratcheted, _globs = ratcheted_scope()
 
-    missing = [p for p in (FIXTURES / "positive.py", FIXTURES / "negative.py") if not p.is_file()]
+    targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *ratcheted]
+    missing = [target for target in targets if not target.is_file()]
     for path in missing:
-        fail(f"{path.name} fixture is present", f"fixture not found at {path} — path drifted?")
+        fail(f"{path.name} scan target is present", f"target not found at {path} — path drifted?")
     if missing:
         print(f"\n{ran - len(failures)}/{ran} passed")
         print("Failed:", ", ".join(failures), file=sys.stderr)
         return 1
 
-    targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *ratcheted]
-    present = [t for t in targets if t.is_file()]
+    test_targets_have_no_nosemgrep_comments(targets)
+    if failures:
+        print(f"\n{ran - len(failures)}/{ran} passed")
+        print("Failed:", ", ".join(failures), file=sys.stderr)
+        return 1
 
-    unwired = unwired_fixtures(present)
+    if shutil.which("semgrep") is None:
+        print("skip: semgrep not on PATH (install: pip install -r tools/requirements-sast.txt)")
+        return 0
+
+    unwired = unwired_fixtures(targets)
     if unwired:
         fail("every fixture is wired into the scan", f"never scanned: {unwired}")
 
-    findings = scan_all(present)
+    findings = scan_all(targets)
 
     test_positive_fixture_fires(findings)
     test_negative_fixture_silent(findings)
