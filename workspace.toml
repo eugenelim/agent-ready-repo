@@ -2111,17 +2111,6 @@ open = [
   # cost and deserves its own decision, not a ride-along.
   {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
-  # Unverified: generated PDFs prove page count and stale-chrome axes, not overlap,
-  # orphaned headings, blank pages, or usable page breaks.
-  # Settle by visually reading the six representative PDFs and recording break-quality
-  # results, or explicitly scope that judgment out in the owning audit.
-  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
-
-  # Unverified: layout boxes, computed style, and extracted PDF text all over-report
-  # whether navigation chrome actually paints.
-  # Settle by establishing a paint-level oracle and recording per-route chrome visibility
-  # for the representative print set.
-  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   # Same orphan class one layer up, and deliberately a separate slug: the entry above
   # is scoped to tools/test*.py, so closing it would not discharge an e2e spec.
@@ -2600,6 +2589,38 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # Closed 2026-08-25 on human review. The six representative print PDFs were
+  # regenerated from a clean build and provided to the owner, who read them for
+  # break quality: no unusable break, no orphaned heading, no unexpected blank
+  # page. One defect was found and is NOT covered by this closure — the docs
+  # footer's navigation link groups printed, producing a navigation-only final
+  # page on four of the five documentation routes. That defect is carved out to
+  # spec/docs-site-print-chrome-suppression, which owns it. This entry closes the
+  # break-quality axis only; it makes no claim about chrome paint.
+  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
+
+  # Retired 2026-08-25 as won't-do — never delivered, and deliberately not
+  # staffed. Four probe generations each produced wrong attributions: computed
+  # style reports zero-box elements as printing; box geometry still reports
+  # `clip:rect(0,0,0,0)` and `transform:translateY(-150%)` as printing, because a
+  # box is not paint; and diffing extracted PDF text against `<main>` has no
+  # discriminating power on the docs routes, where Starlight keeps breadcrumb,
+  # pagination and footer inside `<main>`. A correct answer needs a paint-level
+  # oracle none of the four provided, and the question it would settle is a
+  # legibility preference — which the owning audit's decision rule bars from
+  # producing print rules. The inventory has no consumer.
+  #
+  # Closing this required removing a live `(deferred:)` marker from a Shipped,
+  # frozen spec (`site-browser-quality-gate/spec.md` AC12).
+  # `docs/CONVENTIONS.md:435` makes a Status-line parenthetical the only edit a
+  # frozen spec accepts and `:188` says no body line moves, while
+  # `lint-spec-status.py` invariant (iv) resolves markers only against
+  # `[backlog].open` — the two admit no licensed path between them. Done under an
+  # EXPLICIT OWNER RULING (eugenelim, 2026-08-25), recorded here rather than in
+  # the frozen document. AC12 now reads `[x]`: closed, NOT delivered. A reader who
+  # needs that distinction should read this entry and that spec's Status line.
+  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
+
   # The RFC-0087 OKF projection replaced security-checklists' deterministic
   # boundary-to-module table with a flat concept index. That made work-loop's
   # security-reviewer dispatch impossible without guessing or reading every
