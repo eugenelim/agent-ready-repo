@@ -1,6 +1,8 @@
 ---
 name: new-package
 description: Use this skill when the user wants to scaffold a new package in the monorepo's `packages/` directory. Triggers on "new package", "create a package called...", "add a library for...". Don't use for new top-level directories (those need an RFC) or for new apps (which go in `apps/`, not `packages/`).
+metadata:
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: new-package
@@ -51,9 +53,17 @@ articulate it before scaffolding.
 
 5. Run the test command to verify the placeholder test passes.
 
-6. Update `docs/architecture/overview.md` to list the new package and what
-   it's for. (If this update would be the only change to overview.md in
-   weeks, that's fine — overview.md is meant to drift slowly.)
+6. Request the `current-architecture` destination through Core's `work-intake`
+   semantic-surface capability before documenting the new package. Pass bounded
+   adopter evidence and consume the returned
+   `semantic-surface-resolution.v1` result unchanged; do not recreate its
+   precedence or confinement rules here. Update the resolved current-state
+   architecture source to list the new package and what it is for.
+   `docs/architecture/overview.md` is only the catalogue fallback candidate.
+   A mandatory-policy refusal, ambiguity, absence, unsafe repository locator,
+   or external locator without a separately approved write adapter stops this
+   documentation write and produces a portable handoff. Do not route the
+   package boundary to product prose or turn the update into a future design.
 
 ## What goes in the per-package AGENTS.md
 

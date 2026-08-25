@@ -108,9 +108,17 @@ access, stakeholder evidence, experiments, production data, and any write.
 Never reads: credentials, browser profiles, protected secret configuration, or
 out-of-root link targets. It creates no connector or authentication mechanism.
 
-Writes: none by default. On explicit approval, an assessment may be saved as
-`<architecture output_dir>/<topic-slug>/assessment.md`; approved profiler output
-may sit beside it or in an explicitly approved workspace/temporary root.
+Writes: none by default. On explicit approval, a current-state report resolves
+`current-architecture`; a remediation/future-change report resolves
+`architecture-design`; mixed output needs an explicit role choice. The saved
+path is `<resolved destination>/<topic-slug>/assessment.md`. Compatible
+repositories use Core's `semantic-surface-resolution.v1`; standalone user-pack
+operation remains chat-only or uses an exact confined personal root; a
+repository without compatible Core produces a portable handoff and stops with
+zero writes until Core returns a confined result. An exact personal file is
+refused because the assessment retains its per-effort folder.
+Approved profiler output may sit beside the report or in an explicitly approved
+workspace/temporary root.
 
 ## Current-state and attention output
 

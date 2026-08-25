@@ -12,12 +12,12 @@ architecture assessment: first ask “Assess architecture and provide an action
 plan” when you need evidence and hotspots; use this journey when you are ready
 to confirm a standard future work must follow.
 
-**What you'll build:** A committed `docs/architecture/reference.md` with one real architecture standard filled in, used to steer one design decision.
+**What you'll build:** A committed `current-architecture` golden path at your repository's resolved destination, with one real architecture standard used to steer one design decision.
 **Prerequisites:** A repo with at least one settled architecture decision and the `adapt-to-project` skill available — see [Prerequisites](#prerequisites) below.
 **Time:** 20–30 minutes.
 
 :::note
-At the end of this tutorial you'll have a committed `docs/architecture/reference.md` with one real section filled in, and you'll have used it to steer one design decision. You'll learn the rhythm of the golden path by walking it once.
+At the end of this tutorial you'll have a committed golden path with one real section filled in, and you'll have used it to steer one design decision. `docs/architecture/reference.md` is the catalogue fallback, but your adopter-owned destination wins when policy permits it.
 :::
 
 This is a learning walkthrough, not a reference. For *why* `reference.md` exists, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) afterward; for the full section list, see [`reference.md` sections and the stack-pack contract](../reference/reference-architecture.md).
@@ -29,7 +29,10 @@ This is a learning walkthrough, not a reference. For *why* `reference.md` exists
 
 ## Step 1 — Instantiate the template
 
-Run the `adapt-to-project` skill and ask it to propose a reference architecture. It reads your codebase and presents a draft `reference.md`, section by section, built from the arc42 template it carries.
+Run the `adapt-to-project` skill and ask it to propose a reference architecture.
+It classifies the implemented-system artifact as `current-architecture`, asks
+Core to resolve the destination, then reads your codebase and presents a draft
+`reference.md`, section by section, built from the arc42 template it carries.
 
 You should see a proposal with four sections — **Constraints**, **Solution strategy**, **Building-block view / component catalogue**, and **Crosscutting concepts / standards** — each pre-filled with what the skill detected.
 
@@ -50,13 +53,16 @@ You should see the skill confirm the accepted section and record the declines.
 
 ## Step 3 — Write it and commit
 
-Confirm the proposal. The skill writes `docs/architecture/reference.md` with your accepted section.
+Confirm the proposal. The skill writes the accepted section to the resolved,
+confined repository destination. If this tutorial's repo has no stronger
+destination evidence, you may explicitly accept the offered
+`docs/architecture/reference.md` fallback.
 
 Verify and commit:
 
 ```bash
-cat docs/architecture/reference.md
-git add docs/architecture/reference.md
+cat <resolved-current-architecture-path>
+git add <resolved-current-architecture-path>
 git commit -m "docs(architecture): add reference.md with error-handling standard"
 ```
 

@@ -337,9 +337,17 @@ their tooling paths.
 
 **Optional reference-architecture enrichment.** When the repository has real
 architecture decisions but no equivalent documented source, offer fuller
-architecture documentation and let the adopter choose its location. The
-shipped `assets/reference.md` is an optional starting template, not a canonical
-destination. Never draft or write it authoritatively:
+architecture documentation. This is a `current-architecture` artifact because
+it records the implemented system; a remediation or future proposal is instead
+`architecture-design` and belongs with Architect. Before drafting or writing,
+request the exact role through `work-intake`, pass only bounded evidence already
+acquired by this skill, and consume its real
+`semantic-surface-resolution.v1` result unchanged. The shipped
+`assets/reference.md` is an optional starting template, not a canonical
+destination; `docs/architecture/reference.md` is fallback-candidate evidence.
+When resolution needs an explicit selection, let the adopter choose its location
+and do not turn the choice into silent configuration.
+Never draft or write the result authoritatively:
 
 1. **Detect.** Read the codebase for the signal a `reference.md` would record:
    the stack and runtimes in use, the reusable internal building blocks and
@@ -352,9 +360,16 @@ destination. Never draft or write it authoritatively:
    work-loop infra preflight reads if present, so offer to record them, never
    require them. A thin repo with no real decisions yet has nothing to
    harvest — say so and stop rather than inventing constraints.
-2. **Instantiate if requested.** Fill the arc42-shaped template shipped at
-   `assets/reference.md`, or adapt the same concerns into the adopter's existing
-   architecture source and terminology.
+2. **Resolve, then instantiate if requested.** Resolve `current-architecture`
+   before creating directories or writing. Preserve an adopter's permitted
+   explicit destination, declared policy or optional configuration, established
+   repository convention, or established external destination. A
+   mandatory-policy refusal, ambiguity, absence, contradictory evidence, or
+   unsafe locator has zero write effects. An external locator remains external;
+   without a separately approved adapter, render a portable handoff rather than
+   probing or writing it. For a writable confined repository result, fill the
+   arc42-shaped template shipped at `assets/reference.md`, or adapt the same
+   concerns into the resolved source and the adopter's terminology.
 3. **Propose, per finding.** Present the draft at the adopter-approved path as a
    proposal — per-section, per-finding **accept / edit / decline**. Each
    accepted finding is the adopter's confirmed decision, not the skill's

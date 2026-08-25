@@ -46,9 +46,14 @@ shares finite entry/byte/path/time budgets across every phase, and emits
 signals, not an architecture score.
 
 It does not run builds, tests, migrations, deploys, network calls, private
-enterprise queries, or experiments without asking. Saving is also optional. If
-you approve it, the assessment lands as
-`<architecture output_dir>/<topic-slug>/assessment.md`.
+enterprise queries, or experiments without asking. Saving is also optional.
+Current-state architecture, future designs, and decision records have distinct
+semantic destinations. In a compatible repository the pack consumes Core's
+`semantic-surface-resolution.v1`; without Core it returns a zero-write portable
+handoff whose evidence the user may correct before a capable workflow resolves
+it. Chat-only and explicit
+personal-workspace saves remain available when the user-scope pack is used on
+its own.
 
 ## Install
 

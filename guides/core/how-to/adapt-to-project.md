@@ -97,6 +97,10 @@ Your repo already has conventions, so the skill walks **four classes of change**
 3. **Discovery + restructuring.** The skill surfaces genuine consolidation or
    restructuring opportunities while preserving adopter-owned guidance such as
    root `DESIGN.md`. It does not relocate files to match pack conventions.
+   When it offers an implemented-system reference architecture, it requests the
+   `current-architecture` semantic destination through Core and preserves a
+   custom repository or external location. `docs/architecture/reference.md` is
+   only the catalogue fallback; no destination is created silently.
 4. **Within-layout consolidation.** Overlapping shapes — your `docs/howto/` vs. the diátaxis pack's `guides/how-to/` — get folded together per your call.
 
 ### Companion availability by install route

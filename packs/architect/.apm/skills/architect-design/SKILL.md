@@ -167,74 +167,62 @@ If any check fails, push back rather than proceeding.
    the pass cap / stasis escape. **Never auto-resolve a judgment finding** —
    surface the tradeoff / risk / low-confidence calls as explicit decisions.
 
-7. **Offer to save — config-driven, per-effort folder.** Resolve where the
-   design effort lands, in this order, **in this skill body**. Reading is
-   **prompt-only** (Charter Principle 3): this skill reads a file and
-   reasons about a path — there is no engine, index, daemon, or watcher
-   behind it, and the only code that ever *writes* the layout file is the
-   install-time append. See
-   [`references/agentbundle-layout.md`](references/agentbundle-layout.md)
-   for the `[architecture]` section's full schema.
+7. **Offer to save — role-aware, per-effort folder.** The semantic role is
+   `architecture-design`; it is distinct from `current-architecture` and
+   `decision-record`. Saving is optional and begins by naming exactly one
+   operating mode:
 
-   **Resolution order:**
+   - **`chat-only`** — do not resolve a destination and create no file. End
+     with `Result: chat only; no file was created.`
+   - **`personal-workspace`** — use only an exact user-confirmed directory or
+     file. A user-profile `[architecture] output_dir` may propose that personal
+     root, but it is optional and never repository authority.
+   - **`repository-resolved`** — only when a compatible Core work-intake
+     capability exposes `semantic-surface-resolution.v1`. Give that capability
+     bounded caller-acquired candidates for `architecture-design`: the explicit
+     destination for this work; declared repository policy/configuration;
+     established repository convention; and established external destination.
+     Structural discovery is at most two analogues and tests. Consume the real
+     Wave 1 result unchanged; do not reproduce its ranking or confinement.
+   - **`repository-handoff`** — Core is absent or incompatible. State the role,
+     explicit destination if any, bounded evidence, and needed write as a
+     portable handoff. The user may correct or confirm the evidence carried by
+     the handoff, but confirmation is not a substitute for Wave 1 confinement:
+     stop without a repository write and route the handoff to compatible Core.
+     Never label this a `semantic-surface-resolution.v1` result.
 
-   a. **Repo-root config** — read `./agentbundle-layout.toml`
-      `[architecture] output_dir`. Repo-scope takes priority so that a
-      project or team convention applies when you're in this repo. The
-      file is **adopter-owned**, never shipped into a projected path:
+   In repository mode, precedence is explicit destination, declared policy or
+   configuration, established repository convention, established external
+   destination, confirmation-required ambiguity, then an offer to select or
+   create a destination. An explicit destination that violates mandatory policy
+   is rejected, not an override. One analogue is inference, contradictions fail
+   closed, and absence never silently creates a directory or configuration.
+   Existing repo-root `[architecture] output_dir` is only optional candidate
+   evidence. Creating or changing `agentbundle-layout.toml` is a separate
+   ask-first action, never a prerequisite for saving. See
+   [`references/agentbundle-layout.md`](references/agentbundle-layout.md).
 
-      ```toml
-      # agentbundle-layout.toml (adopter-created; optional)
-      [architecture]
-      output_dir = "docs/design"   # a base; per-effort folders are created under it
-      ```
-
-   b. **User-profile config** — read `~/.agentbundle/agentbundle-layout.toml`
-      `[architecture] output_dir`. User-scope is the fallback — useful for
-      a personal vault when no repo convention is set.
-
-   c. **Two-branch elicitation** — when neither config resolves, ask which
-      branch fits — never a silent default:
-      - **Repo branch** — "Commit to this repo? Suggest: `docs/design/`
-        (team-visible, version-controlled). Enter path or press Enter to
-        accept:" On accept, write `output_dir = "<path>"` to
-        `./agentbundle-layout.toml [architecture]`.
-      - **Personal/vault branch** — "Write to a personal workspace (e.g.
-        Obsidian vault)? Enter the absolute path. Example:
-        `~/Documents/<VaultName>/design/` (no default)." On accept, write
-        to `~/.agentbundle/agentbundle-layout.toml [architecture]`.
-
-   **Once the base is resolved**, each design effort gets its own
-   **per-effort folder**: `<output_dir>/<topic-slug>/` where `<topic-slug>`
+   **Once a personal directory or confined repository base is selected**, each design effort gets its own
+   **per-effort folder**: `<destination>/<topic-slug>/` where `<topic-slug>`
    is a short (~2–5 word) kebab-case slug derived from the design doc's
    title. The design doc, diagrams, and notes all go inside that folder —
    not as a loose file beside it. A Stage-0 concept saved on its own (step 3)
    shares this same effort folder, so a later full doc lands beside it.
 
-   **Anchor `output_dir` by the layout file's own location**, never against
-   the ambient cwd: a **repo-root** file's `output_dir` is
-   **repo-root-relative** (an absolute value is permitted but warn it as
-   non-portable); a **user-profile** file's `output_dir` **must be an
-   explicit absolute path** (`~`-anchored is fine), and a *relative* value
-   there is an Ask-first deviation, never silently resolved.
-
-   **Resolve, then surface, then write.** After anchoring, resolve `output_dir`
-   to its **full absolute path** — `~`-expand it and **realpath-resolve it**
-   so any symlink in the path is made visible and never silently followed
-   out of the intended root — and **reject any `..` escape**. The `..`
-   rejection and the realpath happen **after** anchoring, so a relative
-   repo-file value that escapes via `..` (e.g. `output_dir = "../../etc"`)
-   is caught regardless of which file supplied it; anchoring never blesses a
-   `..`-bearing value as in-tree. Then **surface the resolved absolute path
-   to the adopter before creating the effort folder** — the first write is
-   always preceded by the path you are about to write under.
-
-   **A repo-root-sourced `output_dir` that resolves outside the repo tree** —
-   or whose resolution required following a symlink out of the intended root
-   — is **untrusted-origin**: confirm the resolved absolute path with the
-   adopter before writing.
-
-   Saving is an offer, never automatic.
+   **Resolve, surface, then write.** `repository-resolved` writes only beneath
+   the confined repository locator returned by Wave 1. For
+   `personal-workspace`, `~`-expand and realpath-resolve the exact confirmed
+   root, reject `..`, symlink, junction/reparse-point, and containment
+   uncertainty, then recheck every derived effort folder and file beneath that
+   root. Because this method preserves a per-effort folder, an exact confirmed
+   file is not a valid design destination: refuse it and ask for an exact
+   directory or keep the result chat-only. `repository-handoff` renders the
+   requested role, destination evidence, and needed write, then stops with zero
+   repository effects until compatible Core returns a confined result.
+   External locators stay external and are not fetched or coerced to paths.
+   Surface the final absolute local path before the first folder or file write.
+   Any refusal, ambiguity, absence, unsafe path, or unresolved handoff has zero
+   effects.
 
 8. **Decision-moment prompt.** If the doc captures one or more discrete
    decisions (technology choice, structural commitment, interface

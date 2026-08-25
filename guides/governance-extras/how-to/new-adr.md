@@ -7,11 +7,11 @@ kind: how-to
 
 # How to record a decision with an ADR
 
-**Use this when:** You've made (or are formally proposing) an architectural decision with a concrete tradeoff and need it durably recorded in `docs/adr/`.
+**Use this when:** You've made (or are formally proposing) an architectural decision with a concrete tradeoff and need it durably recorded in the repository's decision-record surface.
 **Prerequisites:** `governance-extras` pack installed and a decision that is architectural in scope, made, and has a real tradeoff — see [Prerequisites](#prerequisites) below.
-**Result:** A confirmed ADR file in `docs/adr/` with its row added to the index, ready for sign-off and acceptance.
+**Result:** A confirmed ADR file in the resolved decision-record destination with its row added to that destination's index, ready for sign-off and acceptance.
 
-You made an architectural call — a database choice, a process commitment, a structural rule the team will live with — and the next person to ask "why did we do it this way?" deserves an answer in writing. The `new-adr` skill drafts an Architecture Decision Record in `docs/adr/` from the bundled template, with the next sequential number, and pushes back on hand-wavy sections before you commit.
+You made an architectural call — a database choice, a process commitment, a structural rule the team will live with — and the next person to ask "why did we do it this way?" deserves an answer in writing. The `new-adr` skill first resolves the portable `decision-record` destination, then drafts an Architecture Decision Record there from the bundled template with that destination's next sequential number. It pushes back on hand-wavy sections before you commit.
 
 This guide is task-oriented; for the *why* of ADRs (immutable history vs. living docs), read [`docs/CONVENTIONS.md` § ADR](../../../CONVENTIONS.md#2-adr--architecture-decision-records--docsadr). For where ADRs sit in the wider doc system, see [the core pack as a system](../../core/explanation/core-pack.md).
 
@@ -34,7 +34,11 @@ If the call is already made (or you're recording one made in a meeting yesterday
 **Pack:** `governance-extras`. `new-adr` does not ship in `core`. Verify with `ls .claude/skills/new-adr/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
 :::
 
-- A `docs/adr/` directory at the repo root. The skill creates it on first use if absent; the repo's seed `docs/adr/README.md` is fine to leave in place.
+- A repository destination that Core can resolve for `decision-record`,
+  including an explicit policy-permitted destination supplied as resolver
+  evidence. Existing custom locations win; `docs/adr/` is a fallback offer and
+  is never created silently. Without compatible Core, the skill returns a
+  zero-write handoff even when you confirm its evidence.
 - A decision that genuinely warrants an ADR — the entry-point prose below covers the test.
 
 ## When is `new-adr` the right call?
@@ -76,11 +80,27 @@ Before the skill scaffolds anything, it asks (explicitly or implicitly) about ar
 - **"This is still being debated."** → open an RFC instead. The accepted RFC then produces the ADR as follow-on.
 - **"This is about a single feature's internals."** → write a spec (`new-spec`), not an ADR.
 
-## Step 3 — Find the next ordinal and scaffold the file
+## Step 3 — Resolve the destination, then find its next ordinal
 
-The skill runs its bundled `scripts/next-ordinal.py` helper (the path is skill-relative; the skill resolves it for you). It prints the next 4-digit ordinal — `0001` if `docs/adr/` is empty, max-plus-one otherwise. Numbers are sequential and never reused. The helper parses the full digit prefix, so transitions like `0099` → `0100` work correctly without manual zero-padding.
+Before it reads an ADR directory or chooses identity, the skill asks compatible
+Core for `semantic-surface-resolution.v1` with role `decision-record`. The
+resolver honors an explicit permitted destination, repository policy or
+configuration, established repository convention, and established external
+destination—in that order—then stops for ambiguity or offers selection/creation
+on absence. Mandatory policy rejects a conflicting explicit path. One example
+does not establish a convention, and no terminal result creates a directory,
+index, or configuration.
 
-The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`) and **resolves where the ADR will live** — it surfaces the repository root and the ADR directory (`docs/adr/` by default, or a non-default location your project's conventions declare). It **does not create the file yet**: it drafts the ADR, shows you a preview, and waits for your confirmation before writing anything (see [Preview and confirm](#preview-and-confirm) below). The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index. The skill keeps it **short** — the title *identifies* the decision rather than encoding the whole rationale (that lives in the Decision section); a title that compresses the whole argument into a clause makes the index hard to scan.
+Only after a confined repository destination resolves does the skill run its
+bundled `scripts/next-ordinal.py` helper against that directory. It prints the
+next 4-digit ordinal—`0001` if the destination has no ADRs, max-plus-one
+otherwise. Numbers are sequential within the resolved destination and never
+reused. The helper parses the full digit prefix, so transitions like `0099` →
+`0100` work correctly without manual zero-padding. External destinations remain
+external; without an authorized write adapter, the skill returns a portable
+handoff instead of probing or writing them.
+
+The skill then picks a short kebab-case filename from your description (`0007-primary-store-postgres-over-dynamodb.md`, not `0007-decision-about-the-database.md`). It **does not create the file yet**: it drafts the ADR, shows you a preview, and waits for your confirmation before writing anything (see [Preview and confirm](#preview-and-confirm) below). The H1 title inside names the problem and the chosen solution together (keeping the `ADR-NNNN` ordinal), so the decision reads clearly from the index. The skill keeps it **short** — the title *identifies* the decision rather than encoding the whole rationale (that lives in the Decision section); a title that compresses the whole argument into a clause makes the index hard to scan.
 
 ## Step 4 — Fill in frontmatter
 
@@ -104,7 +124,7 @@ None of these is mandatory. The skill pushes back on hand-wavy *required* sectio
 
 ## Step 6 — Update the ADR index
 
-The skill adds a row to `docs/adr/README.md` so the new ADR appears in the table.
+The skill adds a row to the resolved destination's sibling index so the new ADR appears in its established table. For the catalogue fallback only, that index is `docs/adr/README.md`.
 
 ## Step 7 — Get sign-off, then mark Accepted (or Rejected)
 
@@ -177,7 +197,7 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 - **The decision is still being debated.** Use `new-rfc` — RFCs carry the debate; ADRs record the outcome. The accepted RFC then produces the ADR.
 - **The decision is about a single feature's internals.** Use `new-spec` — feature-internal choices live in `docs/specs/<feature>/spec.md` under Boundaries or Testing Strategy.
 - **The decision is trivial or has only one sensible option.** ("We use UTF-8.") No ADR needed. Don't manufacture decisions to document.
-- **Documenting how something works today.** That's `docs/architecture/`, not `docs/adr/`. ADRs are *why* we made the call; `architecture/` is *what* the code looks like now.
+- **Documenting how something works today.** That's the repository's resolved `current-architecture` surface, not its `decision-record` surface. ADRs are *why* we made the call; current architecture is *what* the implemented system looks like now.
 
 ## Related
 

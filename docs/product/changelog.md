@@ -50,6 +50,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.12.1] / [architect][0.15.2] / [governance-extras][0.10.1] / [monorepo-extras][0.1.8] / [iac-terraform][0.1.8] — 2026-08-24
+
+### Highlights
+
+- **Architecture designs, current-state architecture, and decision records can
+  now follow each adopter's own repository or external destinations.** Explicit
+  destinations, policy, established conventions, and optional configuration
+  are resolved by semantic role; catalogue paths remain fallback offers.
+- **Architect stays useful as an independent user pack.** It can remain
+  chat-only, save to an exactly confirmed personal workspace, consume Core's
+  repository resolution when compatible, or produce a truthful repository
+  handoff when Core is absent.
+
+### Changed
+
+- Architect design, assessment, and diagram workflows distinguish future
+  design from implemented current architecture while retaining their existing
+  reasoning, per-effort organization, and write confirmations.
+- `new-adr` resolves the decision-record destination before ordinal, filename,
+  and index selection, then preserves the destination's established ADR method.
+- Core project inception and adaptation, monorepo package scaffolding, and IaC
+  governance request the relevant semantic role instead of treating this
+  catalogue's documentation layout as universal.
+
+### Security
+
+- Mandatory repository policy rejects a conflicting explicit destination.
+  Ambiguous, absent, contradictory, unsafe, or unavailable destinations stop
+  before directory, ordinal, index, configuration, or artifact effects.
+- Personal-workspace writes are confined to an exact confirmed root or file.
+  External locators stay external and require a separately authorized adapter
+  before any write.
+
+### Scope
+
+- This release changes destination selection and related guides only. It adds
+  no resolver, schema, dependency, registry, architecture or ADR method,
+  product-prose route, lifecycle behavior, or external transport.
+
 ## [agentbundle][0.39.4] — 2026-08-24
 
 ### Highlights

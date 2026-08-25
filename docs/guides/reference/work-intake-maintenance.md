@@ -12,6 +12,8 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | Upstream shaping producer | Bounded handoff content after its confirmed delivery gate; capability-negotiated portable fallback | Core imports, destination self-certification, lifecycle or delivery approval |
 | `work-intake` | Content-based route, artifact-before-registration sequencing, processor selection | Tracker vocabulary, source credentials, legacy conversion |
 | Handoff admission | Closed-field validation, source/revision consistency, exact resolver-result reuse, stable zero-effect disposition | Raw source storage, external acquisition, new artifact/lifecycle kinds |
+| Semantic-surface resolver | Six-step destination precedence, mandatory-policy rejection, locator confinement, complete read-only result | Candidate acquisition, artifact applicability, authoring method, lifecycle effects |
+| Architect / governance owner | Role selection and the existing architecture or ADR method after resolution | Reimplementing precedence, coercing external locators, routing architecture into product prose |
 | Canonical artifact | Requirements, decisions, acceptance state, tracker-origin authority block | Workspace membership |
 | `workspace.toml` | Artifact path/kind, lifecycle membership, source mirror, display summary, hard dependencies | Requirements or comment-backed routing |
 | Processor | The artifact-specific workflow selected by the route | Reclassifying the source from tracker object names |
@@ -47,6 +49,16 @@ shippable feature is a delivery contract, while multi-spec or cross-repository
 work is a delivery brief. Pass caller-acquired closed candidates to the
 semantic-surface resolver and preserve its result unchanged. Never accept a
 producer-shaped replacement for that result.
+
+Architecture consumers use the same boundary without changing it. Proposed or
+future designs request `architecture-design`; implemented-system descriptions
+request `current-architecture`; ADRs request `decision-record`. Resolve each
+applicable artifact independently. A mandatory policy may reject an explicit
+destination, and configuration remains optional candidate evidence. The
+resolver never decides that an artifact should exist: Architect and `new-adr`
+retain their existing applicability, authoring, preview, and confirmation gates.
+A boundary change may yield current-architecture and decision-record handoffs,
+but never implies product prose.
 
 For a repository locator, read content only after resolution through
 `read_confined_regular_file` or the tested standalone equivalent. Refuse
@@ -139,6 +151,12 @@ When any component changes:
 8. Confirm every producer and consumer that reads offered content declares
    `filesystem_read_untrusted`, and inspect each generated adapter projection
    for the same boundary metadata.
+9. For an architecture or decision consumer, run the real-resolver portability
+   matrix, verify custom repository and external destinations, and prove
+   refusal, ambiguity, absence, and unsafe locators perform no directory,
+   numbering, index, configuration, or artifact write. Exercise Architect's
+   chat-only, personal-workspace, compatible-repository, and repository-handoff
+   modes in the installed projection.
 
 The schemas under `contracts/jsonschema/`, the scripts under the owning
 `.apm/skills/` directories, and their construction tests are mechanically

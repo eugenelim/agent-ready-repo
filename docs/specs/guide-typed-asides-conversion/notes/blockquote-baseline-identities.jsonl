@@ -22,15 +22,15 @@
 {"item": 22, "path": "guides/_shared/reference/pack-config-api.md", "line": 10, "content_sha256": "ebd7120009592cfa61de7e949da9b44a6cf9184e0ec2f4bb148bae50504099b8"}
 {"item": 23, "path": "guides/_shared/tutorials/README.md", "line": 3, "content_sha256": "1d61d80910ffbd0ac719c572b93b9b9550827f97c15bc8dbd64db5cd3f9c1d02"}
 {"item": 24, "path": "guides/architect/how-to/diagram-a-system.md", "line": 7, "content_sha256": "26a2eaa9d6f917dd08a473228b0611d086fc56cce297cc17462882edc720f861"}
-{"item": 25, "path": "guides/architect/how-to/establish-reference-architecture.md", "line": 7, "content_sha256": "3c4dd0777a9bf378fc01cb223d0eaaea12972bf0e234427f890ce6b87e597f59"}
+{"item": 25, "path": "guides/architect/how-to/establish-reference-architecture.md", "line": 7, "content_sha256": "6e9824762ebae8a224d32a69c1f576102610beb168ca384f8014029ae984951a"}
 {"item": 26, "path": "guides/architect/how-to/review-an-architecture-artifact.md", "line": 7, "content_sha256": "fd52df1d78e2854994bdb4118e5e8f94b03b03a4ba768592bcdb2f4480f50400"}
 {"item": 27, "path": "guides/architect/how-to/shape-an-architecture-concept.md", "line": 7, "content_sha256": "63ae39589ee9facaa76467b50dc6131faa58c4635c4e7e88ea756b195d07b978"}
-{"item": 28, "path": "guides/architect/reference/reference-architecture.md", "line": 3, "content_sha256": "9dda2465b4f622097cc6c1f25eac3faa39a1ef37133b191af5af049800cdd44a"}
+{"item": 28, "path": "guides/architect/reference/reference-architecture.md", "line": 3, "content_sha256": "94d791ec8e0ed2dc18403035db9837f5212fc3c72a0ce3ad082b0d0e46b0080f"}
 {"item": 29, "path": "guides/architect/tutorials/architect-first-session.md", "line": 7, "content_sha256": "7545d3bcc190c0559936e1bf09da6a9a31811e162708d886e78b7ecbc54ef510"}
 {"item": 30, "path": "guides/architect/tutorials/architect-first-session.md", "line": 15, "content_sha256": "992f11533a32e0746054d5e47fdc6a207f4e5d216ce725bfd45246435e4d5091"}
 {"item": 31, "path": "guides/architect/tutorials/architect-first-session.md", "line": 25, "content_sha256": "320ef435ed7823bf81641dc3c2aed3f4e3324db6eb0d52e6bc91b8acfd336655"}
 {"item": 32, "path": "guides/architect/tutorials/architect-first-session.md", "line": 45, "content_sha256": "897d8d02adfd95e54b72d76a82ec7bb38908ef9c1901017c213f0359f5a5ac2c"}
-{"item": 33, "path": "guides/architect/tutorials/create-your-reference-architecture.md", "line": 7, "content_sha256": "a297ac33e61a75773b9a9853043e4fd70569db735ea150552e984e671f7b63ae"}
+{"item": 33, "path": "guides/architect/tutorials/create-your-reference-architecture.md", "line": 7, "content_sha256": "acbcc8480d7b2b076a6ab2a57feea5d3daa2c7a8ad232c804c459f38a2621f4f"}
 {"item": 34, "path": "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md", "line": 21, "content_sha256": "cb92313cf7b229adca6fc4fad14a69538b972074b902b62b27d62b610107fec0"}
 {"item": 35, "path": "guides/atlassian/how-to/measure-flow-and-dora-metrics.md", "line": 11, "content_sha256": "935453805ad280456bb8bf55dfd502a1ea2b5b12d9e7015beee1ff5f97727d01"}
 {"item": 36, "path": "guides/atlassian/how-to/report-ai-adoption-as-a-delivery-lead.md", "line": 17, "content_sha256": "4686f48f04c6376a2cc702248dc6855835696aff617fce081fdcecf3d4d69b7d"}
@@ -77,7 +77,7 @@
 {"item": 77, "path": "guides/core/how-to/run-headless-session.md", "line": 224, "content_sha256": "a9255abaf434b6c608dc94eb68927aeba5804cc39aeb480308b4f8ae368a95e0"}
 {"item": 78, "path": "guides/core/reference/product-brief-fields.md", "line": 5, "content_sha256": "29e736c66fab21592fb78714f3add8e4f04c6c4642ac3aaf16dd1197ec40979f"}
 {"item": 79, "path": "guides/core/reference/spec-shape-and-lld.md", "line": 3, "content_sha256": "5c46e0bad7764733738040aacae700e549fd437868d2fdfe2373525a08183660"}
-{"item": 80, "path": "guides/core/tutorials/start-a-new-project.md", "line": 7, "content_sha256": "bc4290d1644f03976600cfb3b476b0a3128506f63e26a7025b8253d7a94c1871"}
+{"item": 80, "path": "guides/core/tutorials/start-a-new-project.md", "line": 7, "content_sha256": "1fc56ef3c5c8e3c0984d1a14c57163d0213a2b20d0ecd86493babf3bd3b82f55"}
 {"item": 81, "path": "guides/core/tutorials/start-a-new-project.md", "line": 36, "content_sha256": "97e37c4583050856a31434af9f71a7cbf7ed4a39dd160eedb870744186ec673d"}
 {"item": 82, "path": "guides/core/tutorials/start-a-new-project.md", "line": 46, "content_sha256": "49ade4c8ad39cdaff373f9a1a086da168fd7b584209a9a66f9194b24f9be2a63"}
 {"item": 83, "path": "guides/core/tutorials/your-first-workspace.md", "line": 14, "content_sha256": "12f4174dc8aadb8626e69840fbe42e3e414d624de6d3d472beebddce5fb85052"}

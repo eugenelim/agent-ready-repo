@@ -11,6 +11,7 @@
   {"query": "Diagnose whether this repo gives agents enough local development context, but don't change files", "should_trigger": true},
   {"query": "Our backend folder has different rules; should it get scoped agent guidance?", "should_trigger": true},
   {"query": "The repository has no AGENTS.md; recommend only the minimum useful scaffold", "should_trigger": true},
+  {"query": "Harvest the implemented architecture into this repo's established architecture destination", "should_trigger": true},
 
   {"query": "Start a brand-new repo from scratch", "should_trigger": false},
   {"query": "Write a spec for a new feature", "should_trigger": false},

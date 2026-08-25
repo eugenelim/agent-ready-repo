@@ -148,6 +148,16 @@ closed candidate records with at most four evidence records each; the resolver
 does not scan the repository, inspect memory, fetch an external locator, or
 load credentials.
 
+Architecture and governance consumers request one exact role per output:
+`architecture-design` for a proposed or future design, `current-architecture`
+for a model of the implemented system, and `decision-record` for an ADR or
+equivalent decision record. A boundary change may request
+`current-architecture` and `decision-record` independently; it never implies a
+product-prose destination. Return each real `semantic-surface-resolution.v1`
+result to the owning workflow unchanged. `work-intake` resolves where the
+artifact belongs; Architect and `new-adr` continue to own how it is reasoned
+about and authored.
+
 Apply the shared precedence encoded by `resolve_surface`: explicit destination;
 declared repository policy or optional configuration adapter; established
 in-repository convention; established external destination. Mandatory policy

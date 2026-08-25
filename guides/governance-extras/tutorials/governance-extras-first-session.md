@@ -7,8 +7,8 @@ kind: tutorial
 
 # Your first governance session
 
-**What you'll build:** A confirmed ADR file in `docs/adr/`, recorded through the `new-adr` skill's preview-confirm write gate.
-**Prerequisites:** `agentbundle` on PATH, a repo with `core` pack installed, and write access to add `docs/adr/`.
+**What you'll build:** A confirmed ADR file in this tutorial's selected `docs/adr/` fallback, recorded through the `new-adr` skill's destination and preview-confirm write gates.
+**Prerequisites:** `agentbundle` on PATH, a repo with compatible `core` installed, and write access to the decision-record destination you confirm.
 **Time:** About fifteen minutes.
 
 In fifteen minutes you'll install the `governance-extras` pack, use `new-adr` to record one architectural decision, and see the preview-confirm write gate in action — the step where you read exactly what will land in your repo and where, before confirming the write.
@@ -18,7 +18,9 @@ This is a tutorial — it leads. For the full `new-adr` procedure, see [How to r
 ## What you need before starting
 
 - `agentbundle` on your PATH. The [install agentbundle](../../_shared/how-to/install-agentbundle-from-clone.md) guide covers the one-time setup.
-- A repo you can work in — any project directory where you'd be happy to add a `docs/adr/` folder. The pack writes one file on confirm; you can delete it before committing if you change your mind.
+- A repo you can work in. This tutorial deliberately accepts `docs/adr/` when
+  Core offers the catalogue fallback; if your repository declares a custom
+  decision-record location, use that location instead.
 - The `core` pack installed at repo scope. `governance-extras` depends on it; the installer will tell you if it's missing.
 
 ## Step 1 — Install governance-extras at repo scope
@@ -31,7 +33,9 @@ agentbundle install --pack governance-extras --scope repo
 
 The pack lands in your agent's skills directory with three skills: `new-adr`, `new-rfc`, and `rfc-status`.
 
-You should see a confirmation that three skills installed. A `docs/adr/README.md` and `docs/rfc/README.md` are seeded if they were absent.
+You should see a confirmation that three skills installed. A seeded
+`docs/adr/README.md` is only a fallback candidate; it does not override adopter
+policy or an established custom decision-record destination.
 
 ## Step 2 — Verify the install
 
@@ -80,7 +84,9 @@ You should see a complete, structured ADR in your conversation before any file i
 
 ## Step 6 — See the target path
 
-The skill names the file it will create before it creates it:
+Before selecting the ordinal, the skill resolves `decision-record`. For this
+tutorial, confirm the offered `docs/adr/` fallback; a custom repository location
+would win. The skill then names the file it will create before it creates it:
 
 > I'll write this to `docs/adr/0001-workspace-coordination-file-format-toml.md` (or the next sequential number if you have existing ADRs) and add a row to `docs/adr/README.md`.
 
@@ -92,7 +98,9 @@ You have three options at this point:
 
 **Confirm:** Say "looks good", "write it", "go ahead", or simply "yes".
 
-The skill writes the ADR file and updates `docs/adr/README.md`. Nothing was written until this moment.
+The skill writes the ADR file and updates the resolved destination's sibling
+index—`docs/adr/README.md` for this tutorial. Nothing was written until this
+moment.
 
 ---
 

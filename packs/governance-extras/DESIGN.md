@@ -8,7 +8,7 @@ This pack provides the RFC mechanism itself, so it has no upstream RFC of its ow
 
 ## TL;DR
 
-`governance-extras` installs the governance layer on top of `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and CONVENTIONS.md edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and the dependency on `core` is required (the scaffold targets `docs/`, which only makes sense after core is in place). RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
+`governance-extras` installs the governance layer on top of `core`: structured RFCs for cross-cutting proposals, ADRs for closed architectural decisions, and CONVENTIONS.md edits through tracked RFC review. Every skill previews its output and target path before writing anything — you confirm before any file is created. The scope is repo-only (governance records are per-project) and the dependency on `core` is required. ADRs resolve the portable `decision-record` role through Core before numbering or indexing, so adopter policy and established custom/external destinations win; `docs/adr/` remains the catalogue fallback. RFC and ADR are separate artifacts by design: an RFC is a live discussion; an ADR is a closed, immutable record. They serve different purposes and must not be conflated.
 
 ---
 
@@ -78,9 +78,26 @@ Every skill in this pack that writes a file — `new-rfc`, `new-adr` — shows y
 
 The file is not created until you confirm. This is not optional behavior or a flag — it is the structural shape of every write skill in the pack.
 
+For `new-adr`, semantic destination resolution happens before the identifier,
+ordinal scan, filename, or sibling index is selected. Compatible Core returns
+`semantic-surface-resolution.v1`; the skill consumes its role, locators,
+evidence, capability, confinement, revision, confirmations, and independent
+authority facts unchanged. The precedence is explicit destination, declared
+policy/configuration, established repository convention, established external
+destination, ambiguity, then absence. Mandatory policy rejects a conflicting
+explicit destination. Without compatible Core, the skill renders a portable
+`decision-record` handoff and stops; human confirmation can correct its
+evidence but cannot authorize a repository write or invent a second resolver.
+External locators remain external, and every terminal or unsafe outcome has zero
+ordinal, index, directory, or file effects.
+
 ### Why it exists
 
-Governance documents are shared artifacts. An RFC or ADR committed to the repo is immediately visible to every contributor who reads `docs/rfc/` or `docs/adr/`. A file created before the author has approved its content creates a window where the repo's governance record is in a half-formed state.
+Governance documents are shared artifacts. An RFC or ADR committed to the repo
+is immediately visible to every contributor who reads `docs/rfc/` or the
+resolved `decision-record` destination. A file created before the author has
+approved its content creates a window where the repo's governance record is in
+a half-formed state.
 
 The preview gate is cheap — it costs one confirmation before a file is written — and it eliminates the failure mode of the wrong content going to a shared location. The cost of fixing a bad ADR after it's committed (triggering a supersession record, updating the index, explaining the correction) is always higher than the cost of reading a preview.
 
@@ -118,7 +135,12 @@ Installing governance-extras at user scope would make every skill write to a use
 
 ### Why core is a required dependency
 
-`governance-extras` writes to `docs/rfc/`, `docs/adr/`, and `docs/CONVENTIONS.md`. These paths only have meaning after `core` has scaffolded the repo structure. An RFC in a repo with no `docs/` directory, no `CONVENTIONS.md`, and no established work loop is documentation in search of a process.
+`governance-extras` writes RFCs to the repository RFC surface, ADRs to the
+resolved `decision-record` destination, and conventions to
+`docs/CONVENTIONS.md`; the catalogue seed paths are only fallbacks. These
+surfaces only have meaning after `core` has scaffolded the repo structure. An
+RFC in a repo with no governance surface, no `CONVENTIONS.md`, and no
+established work loop is documentation in search of a process.
 
 The dependency is version-pinned at `^0.1` — a soft floor that allows `core` to evolve without blocking governance-extras updates, while ensuring the basic scaffold is in place. The dependency is enforced at install time.
 
@@ -148,7 +170,10 @@ Full MADR is designed for large teams and high-ceremony environments. Every sect
 
 These constraints must never be violated by any skill in this pack or any skill that extends it.
 
-1. **Preview before write, always.** No skill may create a file in `docs/rfc/`, `docs/adr/`, or any governance location without first displaying the identifier, target path, and content preview and receiving explicit author confirmation.
+1. **Preview before write, always.** No skill may create a file in a repository
+   RFC, resolved decision-record, or other governance location without first
+   displaying the identifier, target path, and content preview and receiving
+   explicit author confirmation.
 
 2. **ADR bodies are immutable after acceptance.** No skill may edit an accepted ADR's body. A reversal is a new ADR that supersedes the old one, never an in-place edit. The old ADR's body stays as history; only the status line changes.
 

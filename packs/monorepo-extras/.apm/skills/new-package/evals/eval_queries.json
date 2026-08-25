@@ -6,6 +6,7 @@
   {"query": "I need a package for the rate-limiting logic that's shared across services", "should_trigger": true},
   {"query": "Add a library called validation-utils under packages/", "should_trigger": true},
   {"query": "Create a shared logging package for the monorepo", "should_trigger": true},
+  {"query": "Add a new shared package and record its boundary in our custom current-architecture source", "should_trigger": true},
 
   {"query": "Create a new top-level directory for infrastructure scripts", "should_trigger": false},
   {"query": "Add a new app for the admin dashboard", "should_trigger": false},
