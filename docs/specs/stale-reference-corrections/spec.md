@@ -1,6 +1,12 @@
 # Spec: stale-reference-corrections
 
-- **Status:** Shipped
+- **Status:** Shipped (AC4's register anchor `semgrep-mcp-cve-allowlist` was
+  closed on 2026-08-25 when its recorded unblock condition arrived and the four
+  `--ignore-vuln` suppressions were removed from the `sast` target; the entry is
+  gone from `workspace.toml [backlog].open`, and the Makefile citation AC4
+  repointed went with the suppressions it annotated. Not a supersession — every
+  decision here stands, and AC4's repointing was correct for as long as the
+  suppressions existed.)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — every change is a comment or a prose sentence. No

@@ -1673,16 +1673,6 @@ open = [
   # Unblocks when: the sidecar schema is pinned (RFC-0048 Decision-7 spike lands).
   {slug = "sidecar-drift-hard-fail"},
 
-  # Monitoring. semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both with
-  # published CVEs. These are transitive SAST-tooling deps only — never shipped to
-  # end users. The Makefile sast target carries --ignore-vuln flags to suppress them
-  # while upstream semgrep hasn't released an update. Low risk (requires attacker
-  # control of MCP protocol messages or CLI args inside an ephemeral CI runner).
-  # Fix: remove the --ignore-vuln flags from the Makefile sast target once semgrep
-  #   ships mcp>=1.28.1 and click>=8.3.3. Check via `pip show semgrep | grep Requires`.
-  # Unblocks when: semgrep releases with updated mcp + click transitive dep pins.
-  {slug = "semgrep-mcp-cve-allowlist"},
-
   # Unverified: walkthrough and projection checks pass, but four skills have not exercised
   # present, absent, sensitive, and brownfield detection through a live mock MCP tool.
   # Settle when a harness can register a stub MCP retrieval tool and record all four
@@ -2096,7 +2086,7 @@ open = [
   # exits 0 with empty errors under --strict today). Then close the whole-file
   # residue independently: compile each ratcheted target with ast.parse before
   # trusting its silence. Cheap and offline. Re-probe on a semgrep major bump
-  # (pinned semgrep>=1.166,<2).
+  # (pinned semgrep>=1.174,<2 since 2026-08-25; was >=1.166,<2 when this was written).
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
   # A single `# nosemgrep` comment on the offending line leaves the file in
   # paths.scanned with zero findings, zero errors and exit 0 -- indistinguishable

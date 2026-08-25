@@ -9,4 +9,10 @@
 # `make sast`.
 bandit>=1.9,<2
 pip-audit>=2.10,<3
-semgrep>=1.166,<2
+# semgrep 1.174 is the release whose transitive pins (mcp==1.29.0, click~=8.4.2)
+# clear the SAST-toolchain CVEs that `make sast` suppressed until 2026-08-25.
+# The floor is load-bearing for the INSTALL, not for the audit: `pip-audit -r`
+# resolves the newest version the range allows either way, but pip leaves an
+# already-satisfying older semgrep in place, so a lower floor lets a contributor
+# keep running a toolchain carrying the very advisories the gate reports clean.
+semgrep>=1.174,<2

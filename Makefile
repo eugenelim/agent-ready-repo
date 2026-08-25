@@ -292,21 +292,23 @@ sast-unleased:
 	# input fails closed if the optional dependency declaration changes.
 	python3 tools/audit-requirements.py --optional-group lint \
 		packages/agentbundle/pyproject.toml
-	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
-	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
-	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,
-	# never present in shipped artifacts (which declare dependencies=[]); exploiting the
-	# mcp CVEs requires a Semgrep backend compromise + targeted CI attack; the click CVE
-	# requires controlling semgrep's CLI args (i.e. write access to this repo).
-	# Suppression is unblocked once semgrep ships mcp>=1.28.1 + click>=8.3.3 deps.
-	# Full diagnosis and unblock condition: workspace.toml [backlog].open, entry
-	# `semgrep-mcp-cve-allowlist` — the suppressions' only recorded expiry.
-	@echo "pip-audit -r tools/requirements-sast.txt (semgrep transitive-dep CVE allowlist applied)"
-	@pip-audit -r tools/requirements-sast.txt \
-		--ignore-vuln CVE-2026-52870 \
-		--ignore-vuln CVE-2026-52869 \
-		--ignore-vuln CVE-2026-59950 \
-		--ignore-vuln PYSEC-2026-2132
+	# No suppressions. This leg carried four `--ignore-vuln` flags for semgrep's
+	# mcp/click transitive pins until semgrep 1.174 shipped mcp==1.29.0 and
+	# click~=8.4.2, clearing them. The removed flags named CVE ids while
+	# pip-audit now reports the same three advisories under PYSEC ids; OSV
+	# records them as aliases, one to one -- CVE-2026-52870/PYSEC-2026-3481,
+	# CVE-2026-52869/PYSEC-2026-3482, CVE-2026-59950/PYSEC-2026-3483 -- so the
+	# suppressions retired are exactly the advisories measured as cleared.
+	# Note what this command does and does not see: pip-audit RESOLVES the
+	# requirements file, so it always audits the newest version the range allows
+	# and would read clean even at the old `semgrep>=1.166` floor. It says
+	# nothing about the semgrep actually installed on this machine — that is what
+	# requirements-sast.txt's floor is for, and why the floor moved with this
+	# change rather than being left behind.
+	# A new suppression here needs a written diagnosis and a recorded unblock
+	# condition, the discipline that retired the last four.
+	@echo "pip-audit -r tools/requirements-sast.txt"
+	@pip-audit -r tools/requirements-sast.txt
 	# Both shipped packages declare dependencies=[]; their optional extras are
 	# the only third-party code either can pull, so audit those explicitly.
 	# Mirror packages/credbroker/pyproject.toml [crypto] and
