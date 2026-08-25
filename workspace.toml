@@ -2086,7 +2086,7 @@ open = [
   # exits 0 with empty errors under --strict today). Then close the whole-file
   # residue independently: compile each ratcheted target with ast.parse before
   # trusting its silence. Cheap and offline. Re-probe on a semgrep major bump
-  # (pinned semgrep>=1.166,<2).
+  # (pinned semgrep>=1.174,<2 since 2026-08-25; was >=1.166,<2 when this was written).
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
   # A single `# nosemgrep` comment on the offending line leaves the file in
   # paths.scanned with zero findings, zero errors and exit 0 -- indistinguishable

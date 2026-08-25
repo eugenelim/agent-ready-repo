@@ -294,7 +294,11 @@ sast-unleased:
 		packages/agentbundle/pyproject.toml
 	# No suppressions. This leg carried four `--ignore-vuln` flags for semgrep's
 	# mcp/click transitive pins until semgrep 1.174 shipped mcp==1.29.0 and
-	# click~=8.4.2, clearing them.
+	# click~=8.4.2, clearing them. The removed flags named CVE ids while
+	# pip-audit now reports the same three advisories under PYSEC ids; OSV
+	# records them as aliases, one to one -- CVE-2026-52870/PYSEC-2026-3481,
+	# CVE-2026-52869/PYSEC-2026-3482, CVE-2026-59950/PYSEC-2026-3483 -- so the
+	# suppressions retired are exactly the advisories measured as cleared.
 	# Note what this command does and does not see: pip-audit RESOLVES the
 	# requirements file, so it always audits the newest version the range allows
 	# and would read clean even at the old `semgrep>=1.166` floor. It says
