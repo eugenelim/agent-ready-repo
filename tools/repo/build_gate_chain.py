@@ -402,6 +402,16 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-pack-descriptions",
             "tools", "lint-pack-descriptions.py",
         ),
+        # Published marketplace manifests carry these values verbatim, so
+        # protect maintainers from an identifying address reaching that route.
+        _script_step(
+            "test-lint-pack-maintainer-emails",
+            "tools", "test-lint-pack-maintainer-emails.py",
+        ),
+        _script_step(
+            "lint-pack-maintainer-emails",
+            "tools", "lint-pack-maintainer-emails.py",
+        ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
         # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a

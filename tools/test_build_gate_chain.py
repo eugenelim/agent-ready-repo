@@ -502,6 +502,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-check-site-plugin-offers.py",
     "tools/test-lint-pack-descriptions.py",
     "tools/lint-pack-descriptions.py",
+    "tools/test-lint-pack-maintainer-emails.py",
+    "tools/lint-pack-maintainer-emails.py",
     "tools/test-lint-nosec-form.py",
     "tools/lint-nosec-form.py",
     "tools/test-lint-ci-parity.py",
