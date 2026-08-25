@@ -2097,17 +2097,23 @@ open = [
   # trusting its silence. Cheap and offline. Re-probe on a semgrep major bump
   # (pinned semgrep>=1.174,<2 since 2026-08-25; was >=1.166,<2 when this was written).
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
-  # A single `# nosemgrep` comment on the offending line leaves the file in
-  # paths.scanned with zero findings, zero errors and exit 0 -- indistinguishable
-  # from clean, so both the ratchet self-test and make sast's main scan go green.
-  # ADR-0084 built tools/lint-nosec-form.py plus a stderr gate for bandit's
-  # equivalent pragma; there is no nosemgrep counterpart anywhere in the repo, so
-  # the ratchet's five files can be suppressed by one uncommented, unreasoned,
-  # ungated line.
-  # Fix: assert in tools/test-semgrep-argv-boundary.py that none of its targets
-  # contains a nosemgrep/nosem comment, and/or extend the ADR-0084 form-lint to
-  # nosemgrep with a mandatory rule id and reason.
-  {slug = "sast-nosemgrep-has-no-form-lint", summary = "A bare # nosemgrep silently neuters the semgrep ratchet with no signal, and unlike bandit's # nosec it has no form-lint requiring a rule id and reason", source = "spec/semgrep-selftest-batching security review"},
+  # NARROWED 2026-08-25: tools/test-semgrep-argv-boundary.py now rejects
+  # nosemgrep/nosem comments in every target it scans, before its optional
+  # semgrep-availability skip. That closes the ratchet-specific suppression gap.
+  # Remaining: ADR-0084 has no nosemgrep counterpart, so no repository-wide
+  # form-lint requires a suppression rule id and reason.
+  # The one live instance, measured 2026-08-25, is the whole current population
+  # and is what a form-lint would have to accept or reject:
+  # packs/converters/.apm/skills/render-proof/scripts/render-proof.js:327 carries
+  # `// nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml
+  # .react-dangerouslysetinnerhtml`. It names a rule id but gives no reason, so
+  # it would pass an id-only rule and fail an id-and-reason one -- which is
+  # precisely the decision this entry is now reduced to. Note it is a `//`
+  # comment in JS, not `#`, so a form-lint modelled on lint-nosec-form.py's
+  # Python-comment assumption would not see it at all.
+  # Fix: decide whether to extend the ADR-0084 form-lint to nosemgrep with a
+  # mandatory rule id and reason, and in which comment syntaxes.
+  {slug = "sast-nosemgrep-has-no-form-lint", summary = "No repository-wide nosemgrep form-lint requires a suppression rule id and reason", source = "spec/semgrep-selftest-batching security review"},
   # lint-nosec-form.py's unknown-id check degrades silently when bandit's
   # registry is unreachable: id_checker() catches Exception and returns None,
   # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0
