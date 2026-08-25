@@ -98,6 +98,25 @@ def test_allowlisted_address_passes() -> None:
         lint.ALLOWED_EMAILS = original
 
 
+def test_a_malformed_allowlist_entry_does_not_bypass_the_parser() -> None:
+    """The escape hatch must not reopen the defect the rule closed.
+
+    Round-2 review finding: `ALLOWED_EMAILS` was consulted before
+    `_split_address`, so a malformed entry would clear the structural check
+    that exists to refuse malformed addresses.
+    """
+    address = "role@a@example.test"
+    original = lint.ALLOWED_EMAILS
+    lint.ALLOWED_EMAILS = frozenset({address})
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            packs = Path(tmp) / "packs"
+            _pack(packs, "malformed-exception", address)
+            assert len(lint.find_violations(packs)) == 1
+    finally:
+        lint.ALLOWED_EMAILS = original
+
+
 def test_absent_email_is_ignored() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         packs = Path(tmp) / "packs"

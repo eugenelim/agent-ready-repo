@@ -96,13 +96,20 @@ def _split_address(email: str) -> tuple[str, str] | None:
 
 
 def _is_allowed_address(email: str) -> bool:
-    """Return whether *email* is on a reviewed host or is a reviewed address."""
-    if email.strip().lower() in ALLOWED_EMAILS:
-        return True
+    """Return whether *email* is on a reviewed host or is a reviewed address.
+
+    Structural parsing runs before EITHER allowlist, deliberately. Consulting
+    ``ALLOWED_EMAILS`` first would let a malformed entry -- one carrying two
+    ``@`` signs or internal whitespace -- clear the very check that exists to
+    refuse malformed addresses, reintroducing the round-1 defect through the
+    escape hatch instead of through the rule.
+    """
     parts = _split_address(email)
     if parts is None:
         return False
-    _local, host = parts
+    local, host = parts
+    if f"{local}@{host}" in ALLOWED_EMAILS:
+        return True
     return host in ALLOWED_HOSTS
 
 
