@@ -701,6 +701,8 @@ jobs:
         run: |
           python3 tools/test-lint-pack-descriptions.py
           python3 tools/lint-pack-descriptions.py
+          python3 tools/test-lint-pack-maintainer-emails.py
+          python3 tools/lint-pack-maintainer-emails.py
 
   gate-sast:
     name: gate-sast
