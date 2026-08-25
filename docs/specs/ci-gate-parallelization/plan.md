@@ -1,7 +1,7 @@
 # Plan: ci-gate-parallelization
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done (2026-08-17)
+- **Status:** Done (2026-08-17; reconciled 2026-08-25: AC2's required-check widening is live)
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`

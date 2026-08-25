@@ -1,7 +1,7 @@
 # Plan: ci-gate-credbroker
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done (reconciled 2026-08-25: the post-merge measurement and required-check widening are complete) <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`

@@ -1,6 +1,6 @@
 # Spec: ci-gate-parallelization
 
-- **Status:** Shipped (2026-08-17)
+- **Status:** Shipped (2026-08-17; reconciled 2026-08-25: AC2's required-check widening is live and its frozen-body token was removed under owner authorization)
 - **Owner:** eugenelim
 - **Constrained by:** ADR-0017, ADR-0083, ADR-0084, RFC-0082,
   `docs/CONVENTIONS.md` § *Superseding a frozen document*,
@@ -233,9 +233,9 @@ day). It is the floor that keeps rising.
   AC15 proves any narrowing rather than assuming it. And `gate-main` needs bandit
   even though SAST moved: see AC14.
 
-- [ ] **AC2 — branch protection requires the three work jobs by name, and the aggregator keeps its name.** *(deferred: ci-gate-parallelization-branch-protection-widening)* Today `make build-check` is the sole required check
-  (branch-protection API and every ruleset verified). After this change the required
-  set is **`gate-main`, `gate-sast`, `gate-export-boundary`, and `make build-check`**.
+- [x] **AC2 — branch protection requires the three work jobs by name, and the aggregator keeps its name.** Before this change, `make build-check` was the sole required check
+  (branch-protection API and every ruleset verified). The live required set is
+  **`gate-main`, `gate-sast`, `gate-export-boundary`, and `make build-check`**.
 
   **Why, and what it buys.** Eight review rounds found repeated bypasses of the
   aggregator's wiring — a job unwired from `needs:`, a job deleted entirely, an

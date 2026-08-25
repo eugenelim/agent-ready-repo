@@ -2,6 +2,8 @@
 
 Spec: `docs/specs/starlight-migration/spec.md`
 
+- **Status:** Done (reconciled 2026-08-25: RFC-0089 closed the top-level-directory follow-up)
+
 Verification mode for all tasks: **goal-based check** (build command + file-existence assertions).
 
 Declined:
