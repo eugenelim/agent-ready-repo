@@ -1673,16 +1673,6 @@ open = [
   # Unblocks when: the sidecar schema is pinned (RFC-0048 Decision-7 spike lands).
   {slug = "sidecar-drift-hard-fail"},
 
-  # Monitoring. semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both with
-  # published CVEs. These are transitive SAST-tooling deps only — never shipped to
-  # end users. The Makefile sast target carries --ignore-vuln flags to suppress them
-  # while upstream semgrep hasn't released an update. Low risk (requires attacker
-  # control of MCP protocol messages or CLI args inside an ephemeral CI runner).
-  # Fix: remove the --ignore-vuln flags from the Makefile sast target once semgrep
-  #   ships mcp>=1.28.1 and click>=8.3.3. Check via `pip show semgrep | grep Requires`.
-  # Unblocks when: semgrep releases with updated mcp + click transitive dep pins.
-  {slug = "semgrep-mcp-cve-allowlist"},
-
   # Unverified: walkthrough and projection checks pass, but four skills have not exercised
   # present, absent, sensitive, and brownfield detection through a live mock MCP tool.
   # Settle when a harness can register a stub MCP retrieval tool and record all four

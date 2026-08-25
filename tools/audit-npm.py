@@ -10,12 +10,14 @@ whose committed lockfiles ship into built output. This closes that half.
 **Why a wrapper rather than two `npm audit` lines in the Makefile.** `npm audit`
 has no per-advisory ignore. Its only lever is `--audit-level`, which is
 repo-wide: the escape hatch for one unfixable transitive advisory is to stop
-gating an entire severity band. The sibling `pip-audit` leg in `make sast`
-already runs with four live `--ignore-vuln` suppressions, each carrying a
-written diagnosis and an unblock condition — suppressions are the observed
-steady state of this control in this repo, not a hypothetical. So the escape
-hatch is built now, as an ID-keyed allowlist that forces a reason and an unblock
-condition into a reviewed diff, and it ships empty.
+gating an entire severity band. The sibling `pip-audit` leg in `make sast` ran
+for months with four live `--ignore-vuln` suppressions, each carrying a written
+diagnosis and an unblock condition, and they were removed only once that
+condition was met — so suppressions are the observed steady state of this
+control in this repo, not a hypothetical, and the written-expiry discipline is
+what retires them. So the escape hatch is built now, as an ID-keyed allowlist
+that forces a reason and an unblock condition into a reviewed diff, and it ships
+empty.
 
 **Why the verdict comes from the payload, never the exit code.** `npm audit`
 exits non-zero for *both* "found advisories" and "could not reach the registry".
