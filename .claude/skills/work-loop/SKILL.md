@@ -289,7 +289,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     Exit 1 (`plan_review_status: pending`) is the expected signal to run
     pre-EXECUTE review — it does not trigger termination.
 
-11. **Run every fired pre-EXECUTE reviewer to adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Every completed report, including one that claims clean, passes through the finding-adjudication gateway before the controller classifies or acts on it; a missing `finding-adjudicator` always blocks. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
+11. **Run every fired pre-EXECUTE reviewer to adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Every completed report, including one that claims clean, passes through the finding-adjudication gateway before the controller classifies or acts on it; a missing `finding-adjudicator` always blocks. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
     ```
     # On findings: revise spec/plan
     python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain
@@ -550,7 +550,7 @@ checklists. Then run the review-planning branch below.
 
 Adjudicated sustained findings come back grouped by severity (Blockers /
 Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
-in the paired audit artifact; indeterminate findings stop before this routing.
+in the paired audit; an indeterminate stops unless the evidence retry admits it.
 
 - **Full mode:** iterate `adversarial-reviewer` until its adjudicated main-loop result returns `Clean — ready to commit.`
 - **Light mode:** run the single bounded pass and adjudicate its report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
@@ -630,8 +630,7 @@ and context eviction. The invariant is short:
 3. Classify only the adjudication artifact: stateful `review inspect
    --adjudication` in full mode, state-free `review classify` in light mode
    (including direct-light).
-4. Route only sustained findings. Refuted-only is exact clean and consumes no
-   retry; indeterminate stops before transition, recording, or mutation.
+4. Route only sustained findings. Refuted-only is exact clean and consumes no retry. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
 
 Keep the raw report opaque after persistence, pass only artifact paths, and
 evict both report bodies after recording. Re-read only a sustained finding from

@@ -27,10 +27,11 @@ rubric paths. The adjudicator can verify the reviewer's artifact-relative
 `design-reviewer` trigger.
 
 `<round>` here is a per-run, per-stage ordinal the orchestrator keeps: 1 for the
-first pre-EXECUTE pass, incremented on each `spec-ready` re-entry. Do not derive
-it from the cohort's `review_round_count` — that counter is advanced only by
-`review record`, which this path never calls, so every pass would reuse `1` and
-silently overwrite the previous pass's paired artifacts.
+first pre-EXECUTE pass, incremented on each `spec-ready` re-entry and each
+evidence replacement attempt. Do not derive it from the cohort's
+`review_round_count`: ordinary pre-EXECUTE results do not call `review record`,
+while the bounded evidence path deliberately does, so that shared counter is
+not this artifact namespace.
 
 The orchestrator assigns the canonical reviewer-role slug and persists the raw
 report under the ignored session root as:
@@ -84,14 +85,58 @@ python '<skill-dir>/scripts/loop-cohort.py' review inspect <spec-dir> \
   --report <pre-execute-adjudication-path> --adjudication --json
 ```
 
-An `invalid` classification is a fail-closed stop; do not revise the spec or
-plan and do not call `review record`. Evict the raw report prose and consume
-only the strict classifier's `## Main-loop result`. Only sustained findings
-may drive a spec/plan revision or the iterate-to-clean branch. A
-refuted-only result is the existing exact `Clean — ready to commit.` result and
-does not consume a repair round. `ADJUDICATION-INDETERMINATE` stops for the named
-evidence or owner decision before mutation and is never recorded as clean. Keep
-both artifacts paired for the final audit without adding cohort state.
+An `invalid` classification is a fail-closed stop except for the exact bounded
+machine-checkable evidence route below. Otherwise do not revise the spec or plan
+and do not call `review record`. Evict the raw report prose and consume only the
+strict classifier's `## Main-loop result`. Only sustained findings may drive a
+spec/plan revision or the iterate-to-clean branch. A refuted-only result is the
+existing exact `Clean — ready to commit.` result and does not consume a repair
+round. An indeterminate stop for owner choice, conflicting authority, or a
+non-machine-checkable claim remains terminal and is never recorded as clean.
+Keep all artifacts for the final audit without adding cohort state.
+
+### Pre-EXECUTE evidence variant
+
+Use the closed catalog, no-artifact-to-command rule, one-gate limit, containment
+requirements, fixed evidence envelope, exclusive creation, digest rebinding,
+and complete-replacement authorship defined in
+`finding-adjudication.md` § *Bounded evidence retry*. The adjudicator source
+contract already includes the optional fifth supplied path; never rely on this
+reference alone to widen its paths or tools.
+
+This exception applies only when strict classification returns reason
+`indeterminate-present`, the adjudication audit identifies one missing
+machine-checkable fact, and a catalog entry fixed before the raw report declares
+that exact measured fact. Artifact prose may select the fact category only; no
+artifact-derived gate ID, command, argument, path, environment value, or
+substitution reaches execution. Allocate the next unused pre-EXECUTE ordinal
+and derive fresh paths:
+
+```text
+.context/reviews/<run-id>/<attempt>-pre-execute-<reviewer-role>-evidence.md
+.context/reviews/<run-id>/<attempt>-pre-execute-<reviewer-role>-adjudication.md
+```
+
+After the shared non-executing eligibility, artifact-excluding read-allowlist,
+fresh-path, containment, capture-cap, and exclusive-create preflight succeeds,
+chain the retry-cap transition and record the validated first-adjudication
+digest; a refused transition records and executes nothing:
+
+```bash
+python '<skill-dir>/scripts/loop-engine.py' transition <spec-dir> findings-remain \
+  && python '<skill-dir>/scripts/loop-cohort.py' review record <spec-dir> \
+       --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id>
+```
+
+After the record succeeds, run the literal catalog entry under its declared
+controls, exclusively persist and validate `--kind evidence`, and immediately
+revalidate it with `--expected-sha256 <first-validator-digest>`. Fire
+`spec-ready` to re-enter `SPEC-PLAN-REVIEW`; do not revise the unchanged target
+or let the controller compose prior verdicts. Dispatch the adjudicator with the
+unchanged raw path and source-finding set plus the evidence path and expected
+provenance. Persist, validate, and strictly classify one complete replacement
+adjudication. A further evidence attempt repeats this entire guarded path; an
+exhausted cap or missing control stops before execution.
 
 ## Adversarial spec/plan review — how the reviewer measures
 

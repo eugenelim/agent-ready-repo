@@ -5,6 +5,45 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.12.2"
+        }
+      ],
+      "date": "2026-08-25",
+      "heading": "[core][2.12.2] — 2026-08-25",
+      "changelogAnchor": "core2122--2026-08-25",
+      "highlights": [
+        {
+          "source": "**Machine-checkable reviewer claims can now be adjudicated without giving the adjudicator execution tools.** The work loop may supply evidence from one predeclared, confined read-only gate; the attempt consumes the existing review retry budget and produces a complete independent replacement report.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Machine-checkable reviewer claims can now be adjudicated without giving the adjudicator execution tools."
+            },
+            {
+              "type": "text",
+              "value": " The work loop may supply evidence from one predeclared, confined read-only gate; the attempt consumes the existing review retry budget and produces a complete independent replacement report."
+            }
+          ]
+        },
+        {
+          "source": "**A bad proposed fix no longer obscures a real defect.** The adjudicator now distinguishes an ineffective remedy from an effective but over-broad one while staying inside the supplied finding and repository-established repair seams.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A bad proposed fix no longer obscures a real defect."
+            },
+            {
+              "type": "text",
+              "value": " The adjudicator now distinguishes an ineffective remedy from an effective but over-broad one while staying inside the supplied finding and repository-established repair seams."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.12.1"
         },
         {

@@ -19,7 +19,8 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 MAX_REPORT_BYTES = 1_048_576
 REVIEW_STAGES = frozenset({"pre-execute", "post-gates"})
-ARTIFACT_KINDS = frozenset({"raw", "adjudication"})
+ARTIFACT_KINDS = frozenset({"raw", "adjudication", "evidence"})
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ROLE_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 MAX_ROLE_LENGTH = 64
 
@@ -56,6 +57,7 @@ class ArtifactMetadata:
     review_stage: str
     reviewer_role: str
     kind: str
+    expected_sha256: str | None = None
 
     @property
     def filename(self) -> str:
@@ -87,6 +89,11 @@ def _parse_metadata(args: argparse.Namespace) -> ArtifactMetadata:
         raise UsageError("invalid-metadata")
     if args.review_stage not in REVIEW_STAGES or args.kind not in ARTIFACT_KINDS:
         raise UsageError("invalid-metadata")
+    expected_sha256 = args.expected_sha256
+    if expected_sha256 is not None and (
+        args.kind != "evidence" or SHA256_RE.fullmatch(expected_sha256) is None
+    ):
+        raise UsageError("invalid-metadata")
 
     try:
         root = Path(args.root).resolve(strict=True)
@@ -102,6 +109,7 @@ def _parse_metadata(args: argparse.Namespace) -> ArtifactMetadata:
         review_stage=args.review_stage,
         reviewer_role=role,
         kind=args.kind,
+        expected_sha256=expected_sha256,
     )
 
 
@@ -254,6 +262,7 @@ def _build_parser() -> QuietArgumentParser:
     validate.add_argument("--review-stage", required=True)
     validate.add_argument("--reviewer-role", required=True)
     validate.add_argument("--kind", required=True)
+    validate.add_argument("--expected-sha256")
     return parser
 
 
@@ -263,6 +272,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args = _build_parser().parse_args(argv)
         metadata = _parse_metadata(args)
         size, digest = validate_artifact(metadata)
+        if metadata.expected_sha256 is not None and digest != metadata.expected_sha256:
+            raise ArtifactError("unstable-artifact")
     except UsageError:
         print("INVALID invalid-metadata")
         return 2

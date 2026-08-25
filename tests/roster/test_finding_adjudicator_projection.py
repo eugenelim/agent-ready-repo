@@ -120,6 +120,14 @@ def test_finding_adjudicator_projects_read_only_across_all_adapters(
     assert codex_agent["web_search"] == "disabled"
     assert "tools" not in codex_agent
     assert "read-only command equivalents" in codex_agent["developer_instructions"]
+    assert (
+        "Never run project code, an evidence gate"
+        in codex_agent["developer_instructions"]
+    )
+    assert re.search(
+        r"instruction-level prohibition on\s+every adapter",
+        codex_agent["developer_instructions"],
+    )
 
     cursor_agent = _frontmatter_text(
         outputs["cursor"] / ".cursor/agents/finding-adjudicator.md"

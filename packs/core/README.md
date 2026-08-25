@@ -117,8 +117,12 @@ work-loop execute spec/data-export
 
 Every completed reviewer report passes through an independent, read-only
 adjudicator before it can trigger a repair. Evidence-supported findings
-continue into the loop, false positives remain in the audit, and missing
-evidence stops for your decision instead of guessing.
+continue into the loop, false positives remain in the audit, and a missing
+machine-checkable fact can be supplied through one bounded, predeclared
+read-only gate without giving the adjudicator execution tools. Other missing
+evidence still stops for your decision instead of guessing. The adjudicator
+also rejects a wrong or over-broad proposed remedy without losing the real
+defect underneath it.
 
 The agent opens the PR. Read the description, then merge.
 
