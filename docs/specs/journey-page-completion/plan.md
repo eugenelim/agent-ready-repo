@@ -1,7 +1,7 @@
 # Plan: Journey page completion
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Done (reconciled 2026-08-25: the hand-authored journey mapping deferral is complete in `a3eb381e6`)
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.

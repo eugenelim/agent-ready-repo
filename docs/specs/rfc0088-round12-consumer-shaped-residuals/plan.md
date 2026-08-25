@@ -1,7 +1,7 @@
 # Plan: rfc0088-round12-consumer-shaped-residuals
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Done (reconciled 2026-08-25: round 13 completed the staged-member decoy search and mutation coverage)
 
 ## Approach
 

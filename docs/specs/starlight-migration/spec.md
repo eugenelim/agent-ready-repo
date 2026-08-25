@@ -4,7 +4,7 @@ title: Migrate docs site from MkDocs Material to Starlight
 status: Shipped
 ---
 
-- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md) — the assertions that the docs palette derives from `web/src/styles/tokens.css`: AC5, the token-import description at lines 63-66, and the § Boundaries Never-do entry at line 116; the docs palette is now self-contained and site-local, so nothing forks that file. Everything else in this spec stands.) <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
+- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md) — the assertions that the docs palette derives from `web/src/styles/tokens.css`: AC5, the token-import description at lines 63-66, and the § Boundaries Never-do entry at line 116; reconciled 2026-08-25: RFC-0089 closed the top-level-directory follow-up and its frozen-body token was removed under owner authorization; everything else in this spec stands.) <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 
@@ -12,7 +12,7 @@ Mode: full (new dependency, structural change, destructive operation)
 
 **Objective**: Replace the MkDocs Material Python docs build (`site/`) with a standalone Astro + Starlight project (`docs-site/`), preserving all content, URLs, and the amber brand theme. Remove all MkDocs Python tooling.
 
-Governance note: `docs-site/` is a new top-level directory. AGENTS.md § "Check before acting" requires an RFC for new top-level directories; `web/` was gated by RFC-0061. The user's brief explicitly authorised this approach (Option B); this implementation proceeds under that authorisation, and a follow-up RFC should be opened. (deferred: starlight-migration-rfc)
+Governance note: `docs-site/` is a new top-level directory. AGENTS.md § "Check before acting" requires an RFC for new top-level directories; `web/` was gated by RFC-0061. The user's brief explicitly authorised this approach (Option B); the implementation proceeded under that authorisation, and [RFC-0089](../../rfc/0089-starlight-docs-boundary.md) subsequently ratified the boundary.
 
 ## Acceptance Criteria
 

@@ -1,6 +1,6 @@
 # Spec: rfc0088-round12-consumer-shaped-residuals
 
-- **Status:** Shipped
+- **Status:** Shipped (reconciled 2026-08-25: round 13 completed AC4's staged-member decoy search and AC6's mutation coverage; their frozen-body tokens were removed under owner authorization)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -165,7 +165,7 @@ with `dist/` built by the chain and bytecode writing disabled.
       records survival. The note states that this claim remains bounded by
       `rfc0088-same-uid-attach-exposure`: any local process able to connect to the
       loopback listener can obtain a token without client authentication.
-- [ ] **AC4 — The AC3 token surfaces are searched, and absence is claimed only where the detector is proven (deferred: rfc0088-staged-member-decoy-search).** The issuer
+- [x] **AC4 — The AC3 token surfaces are searched, and absence is claimed only where the detector is proven.** The issuer
       scans job input, driver/child environment reports, driver argv report, stdout,
       stderr, results, page address/query, captured console output, trace, HAR,
       video, browser tracing, and every byte of every file beneath user-data and
@@ -180,10 +180,12 @@ with `dist/` built by the chain and bytecode writing disabled.
       byte-verifiable. A surface without a recovered decoy is recorded as
       absence-unverifiable, not clean. Live-token results contain absence booleans only;
       decoy offsets may be recorded. Promotion
-      accepts only T2-verified artifacts. The staged-member decoy search remains
-      deferred; no promoted-state assertion is made by this criterion until it exists.
+      accepts only T2-verified artifacts. Round 13 added the staged-member
+      positive-control, verified-restore, and re-promotion search, so the
+      promoted-state assertion is admitted only when that detector first
+      recovers the planted decoy.
 - [x] **AC5 — Signing identity is measured as a provenance anchor at the observed depth.** For each system and bundled binary, results record redacted verdict categories for strict verification and separate strict requirement verification, plus permitted platform observations. The requirement is read from a file under the run temporary root, never argv or any manifested-member literal; the runner hard-fails if it is unset. The system binary is recorded only as a resolved executable non-user-writable boolean. The absence control is admitted only for a requirement-attributable difference, never an unrelated resource-sealing failure; a modified copy must fail. Update survival alone is deferred.
-- [ ] **AC6 — Every new fact and control is mutation-tested individually (deferred: rfc0088-round12-mutation-coverage).** Gate
+- [x] **AC6 — Every new fact and control is mutation-tested individually.** Gate
       output, not the note, records harness counts. Mutations include missing expected
       row, confined-removal refusals, every token encoding, browser-store decoy,
       empty privacy terms, count-minus-one privacy terms, and

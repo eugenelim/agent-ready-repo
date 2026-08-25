@@ -1,6 +1,6 @@
 # Spec: ci-gate-credbroker
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (reconciled 2026-08-25: AC12's post-merge measurement and AC13's required-check widening are complete; their frozen-body tokens were removed under owner authorization) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0086
@@ -184,12 +184,12 @@ invariant, so no behavior is TDD-mode.
       0**, each read from its own exit code rather than through a pipe.
 - [x] **AC11 — every check on a real PR run concludes `success`**, read from
       `gh pr checks <n>` rather than inferred from local gates.
-- [ ] **AC12 — the move is confirmed on a real post-merge run.** *(deferred: ci-gate-credbroker-critical-path-measurement)*
+- [x] **AC12 — the move is confirmed on a real post-merge run.**
       On the push-to-main run following the merge,
       `pytest credbroker (RFC-0023 Phase 1)` appears in `gate-credbroker`'s step list
       and not in `gate-main`'s, and `gate-credbroker` completes in ≤ 90 s. Both close
       on a single run.
-- [ ] **AC13 — `gate-credbroker` joins `main`'s required checks with its app pinning intact.** *(deferred: ci-gate-credbroker-branch-protection-widening)*
+- [x] **AC13 — `gate-credbroker` joins `main`'s required checks with its app pinning intact.**
       Applied by the owner after the post-merge run has reported the check,
       via `PATCH /repos/{owner}/{repo}/branches/main/protection/required_status_checks`
       with `{"strict": true, "checks": [<the current set> + gate-credbroker]}`, where

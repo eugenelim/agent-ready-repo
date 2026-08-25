@@ -1,6 +1,6 @@
 # Spec: Journey page completion
 
-- **Status:** Shipped
+- **Status:** Shipped (reconciled 2026-08-25: the hand-authored journey mapping deferral is complete in `a3eb381e6`; its frozen-body token was removed under owner authorization)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -118,7 +118,7 @@ raw identifiers and legacy gate codes never leak into the adopter experience.
   storing them as identity.
 - [x] The decision section uses the approved “Where you decide” heading and
   intro; no visible content exposes a raw semantic ID, `globalGate`, or legacy
-  `G…` code. (deferred: legacy-hand-authored-journey-gate-mappings)
+  `G…` code.
 - [x] Every chip is a real link to exactly one
   `#decision-<semantic-id>` heading; click and keyboard activation update the
   URL, bring the heading into view, move focus to it, and show a clear
