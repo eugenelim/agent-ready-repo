@@ -916,7 +916,7 @@ that do not alter those contracts belong in the pilot plan and schemas.
 This RFC was accepted before implementation. The following artifacts remain
 required before the feature is shipped or described as stable:
 
-- **Pilot spec (authored, Draft):** `docs/specs/okf-authoring-projection/` — schemas, the
+- **Pilot spec (Shipped):** `docs/specs/okf-authoring-projection/` — schemas, the
   `catalogue-curation` authoring skill/compiler, generated-output ownership,
   OKF-version support map and upgrade behavior, validation/security rails,
   fixtures, and drift gate.

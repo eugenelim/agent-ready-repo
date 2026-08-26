@@ -1,6 +1,6 @@
 # Spec: OKF authoring projection
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087
@@ -27,6 +27,13 @@ never turns descriptive OKF computation metadata into execution authority.
 
 The canonical/source, generated/output, and instruction/data boundaries in
 RFC-0087 apply to every compiler mode and pilot fixture.
+
+Two behaviours shipped narrower than an earlier reading of these criteria
+suggested, and are tracked as separate work rather than restated as satisfied
+here. Concept `title`, `status`, and `type` values reach generated index link
+text without bounding or escaping, so a hostile `title` can choose a link
+target inside a compiler-owned index. The `OKF012` repeated-compile guard is
+emitted but exercised by no test, so its removal would not fail the suite.
 
 ### Always do
 
@@ -108,9 +115,10 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   AgentBundle extension properties.
 - [x] **AC3:** The compiler supports exactly the mapping
   `agentbundle-okf/v1` → OKF `0.2`, performs no version lookup, and emits
-  `okf_version: "0.2"` into compiler-owned root `index.md` frontmatter. Write
-  mode creates an absent first index; check mode reports it as `OKF011` drift.
-  An existing root with a missing, older, newer, or non-string value conflicts
+  `okf_version: "0.2"` into compiler-owned root `index.md` frontmatter. The
+  bundle-root `okf/<bundle>/index.md` is hand-authored source: both modes fail
+  an absent root as `OKF011` at exit 1, and neither mode creates one. An
+  existing root with a missing, older, newer, or non-string value conflicts
   with the active profile and fails as `OKF002` in either mode.
 - [x] **AC4:** A replacement profile cannot become active unless its checked-in
   behavior map, positive/negative/round-trip fixtures, adapter-preservation
@@ -195,8 +203,7 @@ RFC-0087 apply to every compiler mode and pilot fixture.
 - [x] **AC17:** Executor, attester, runtime, code-fence, script, and remote
   resource metadata never invokes code, grants tools, performs network I/O, or
   enters router control instructions. Hostile fixtures prove instruction
-  override, secret disclosure, tool escalation, and fabricated source paths
-  remain data.
+  override, secret disclosure, and tool escalation remain data.
 - [x] **AC18:** The router's `references/okf/` tree preserves every canonical
   regular file and unknown non-AgentBundle extension byte-for-byte except
   compiler-owned generated `index.md` files, whose bytes match the staged

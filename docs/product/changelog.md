@@ -50,6 +50,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [catalogue-curation][0.4.2] — 2026-08-25
+
+### Highlights
+
+- **Catalogue maintainers now have an end-to-end guide for shipping pack-owned
+  OKF knowledge.** The documented path covers declaration, canonical concept
+  authoring, deterministic compilation, drift and ownership recovery, normal
+  catalogue verification, and inspection through `agentbundle show`.
+
+### Changed
+
+- Added `compile-okf` to the pack's public entry points and operator journey.
+- Added OKF declarations, schemas, generated-output ownership, and the
+  pre-release reference-only boundary to the catalogue format reference.
+
 ## [core][2.12.2] — 2026-08-25
 
 ### Highlights

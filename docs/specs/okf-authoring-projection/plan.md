@@ -1,7 +1,7 @@
 # Plan: OKF authoring projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence changes.
@@ -502,5 +502,8 @@ supersession.
 
 ## Changelog
 
+- 2026-08-25: Closed the legacy full-mode implementation after maintainer
+  documentation, catalogue discovery documentation, focused repository gates,
+  and final review.
 - 2026-08-15: Initial plan following RFC-0087 acceptance, the single OKF 0.2
   support decision, and confirmation of JSON Schema contract locations.

@@ -606,6 +606,36 @@ open = [
   # independent of label, or whether label-derived order is the intended contract.
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
+  # okf_compiler.py renders `- [{title}]({filename}) - {status} {type}` into the
+  # compiler-owned index with `title` taken verbatim from concept frontmatter and never
+  # bounded, escaped, or newline-checked. Reproduced against the shipped compiler: a
+  # concept titled `x](../../../../SKILL.md) [Read this instead` emits a live
+  # attacker-chosen link into references/okf/concepts/index.md at exit 0 with zero
+  # diagnostics, inside the one artifact the router is told to read first. Check mode
+  # stays clean forever because the bytes are stable. AC17's "fabricated source paths
+  # remain data" clause was removed rather than left overclaiming.
+  # Fix: bound and escape title/status/type before index interpolation, and add a
+  # title-variant hostile fixture asserting the generated concepts/index.md bytes.
+  {slug = "okf-index-title-interpolation-unescaped", summary = "Concept title/status/type reach generated OKF index link text unescaped, so a hostile title chooses a link target in a compiler-owned index", source = "spec/okf-authoring-projection (whole-spec quality review)"},
+  # OKF012 is the repeated-compile non-determinism guard the whole determinism claim
+  # rests on. It is emitted at okf_compiler.py:448 and asserted by no test in
+  # packs/catalogue-curation/tests/, tests/roster/, or tools/; nothing makes the two
+  # renders differ. Replacing the second render with `second = first` keeps every OKF
+  # test green while deleting the guard. plan T4 promised a double-compile mismatch
+  # test that was never written.
+  # Fix: monkeypatch render_okf_bundle to differ on the second call and assert exit 2
+  # with diagnostics == ["OKF012"] and no pack mutation.
+  {slug = "okf012-nondeterminism-guard-untested", summary = "The OKF012 repeated-compile guard has zero test coverage, so removing it fails no test", source = "spec/okf-authoring-projection (whole-spec quality review)"},
+  # packs/architect/okf/architecture-lenses/index.md carries okf_version but no
+  # `license`, so okf_discovery.discover_pack() raises "missing content license" and
+  # `agentbundle show architect --format json` exits 1 today. core and
+  # _okf-pilot-cost-engineering both carry it and both resolve. The file's body still
+  # asserts "Write mode replaces this body with the managed hierarchical index", which
+  # is false — the compiler never writes the source bundle root. Pre-existing; found
+  # while correcting the same false claim in the authoring guide.
+  # Fix: add the license field and correct the body; it is pack content, so it bumps
+  # architect's pack.toml + plugin.json and needs a changelog entry.
+  {slug = "architect-okf-bundle-root-missing-license", summary = "packs/architect fails OKF discovery with 'missing content license', so agentbundle show architect --format json exits 1", source = "spec/okf-authoring-projection (adversarial review, reproduced)"},
   # tools/test_guide_typed_asides.py used to assert README-pypi.md names the exact
   # current pyproject version (`## What's new in <version>`). Nothing else in the repo
   # enforces that, and 12 of the last 25 commits that bumped
@@ -2668,10 +2698,9 @@ active = []
 backlog = []
 
 ["ini-007".work]
-active  = [
-  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
-]
+active  = []
 shipped = [
+  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
   # version-bump conflicts (both Wave 3 and verifier-correctness bump the agentbundle

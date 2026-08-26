@@ -4,6 +4,40 @@
     {
       "packages": [
         {
+          "name": "catalogue-curation",
+          "version": "0.4.2"
+        }
+      ],
+      "date": "2026-08-25",
+      "heading": "[catalogue-curation][0.4.2] — 2026-08-25",
+      "changelogAnchor": "catalogue-curation042--2026-08-25",
+      "highlights": [
+        {
+          "source": "**Catalogue maintainers now have an end-to-end guide for shipping pack-owned OKF knowledge.** The documented path covers declaration, canonical concept authoring, deterministic compilation, drift and ownership recovery, normal catalogue verification, and inspection through `agentbundle show`.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Catalogue maintainers now have an end-to-end guide for shipping pack-owned OKF knowledge."
+            },
+            {
+              "type": "text",
+              "value": " The documented path covers declaration, canonical concept authoring, deterministic compilation, drift and ownership recovery, normal catalogue verification, and inspection through "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle show"
+            },
+            {
+              "type": "text",
+              "value": "."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.12.2"
         }

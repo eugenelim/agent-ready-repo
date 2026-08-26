@@ -1,6 +1,6 @@
 ---
 title: "`catalogue-curation` — guides"
-summary: Choose the operator workflow for authoring, surveying, assimilating, governing, or redistributing catalogue primitives.
+summary: Choose the operator workflow for authoring, compiling knowledge, surveying, assimilating, governing, or redistributing catalogue primitives.
 pack: catalogue-curation
 kind: explanation
 ---
@@ -9,7 +9,8 @@ kind: explanation
 
 The operator's toolkit for **growing and maintaining** an agent-skill catalogue:
 write new skills to standard, bring good work in from outside (shaped to our craft),
-survey a whole repo, and export a redistributable copy for another org or domain.
+compile pack-owned knowledge, survey a whole repo, and derive an owned catalogue
+for another org or domain.
 Domain-agnostic — the same toolkit serves a non-SDLC catalogue.
 
 ---
@@ -41,6 +42,13 @@ Bringing external work into the catalogue — safely, and shaped to convention.
    - [Survey a repo](how-to/survey-a-repo.md) — a whole source at once, resumably
 3. [The convergence model](explanation/the-convergence-model.md) — why assimilation shapes rather than pastes; the three convergence layers in full
 
+### Side journey: shipping pack-owned knowledge
+
+Turn a maintained reference corpus into a portable, discoverable router Skill.
+
+1. [Author and compile an OKF bundle](how-to/author-an-okf-bundle.md) — declare a reference-only OKF 0.2 bundle, compile its managed output, check drift, and inspect catalogue discovery
+2. [Catalogue format](../_shared/reference/catalogue-format.md) — the surrounding manifest, schema, ownership, and validation contract
+
 ---
 
 ## Step 3 — Go deeper (when you're ready)
@@ -61,8 +69,9 @@ Bringing external work into the catalogue — safely, and shaped to convention.
 
 ### How-to
 
+- [Author and compile an OKF bundle](how-to/author-an-okf-bundle.md) — project pack-local OKF knowledge into a portable router Skill and verify it is current
 - [Survey a repo for what to adopt](how-to/survey-a-repo.md) — inventory a whole source into a reviewable RFC, resumably
-- [Export a white-label or domain fork](how-to/export-a-fork.md) — produce a redistributable derivative, fail-closed
+- [Create a self-hosted catalogue](../_shared/how-to/create-a-self-hosted-catalogue.md) — derive, brand, validate, and package an owned catalogue for another org or domain
 
 ### Reference
 
