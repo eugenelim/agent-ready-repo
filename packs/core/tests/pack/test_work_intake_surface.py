@@ -41,6 +41,7 @@ _EVAL_QUERY_FILES = {
     "work-intake": _SKILLS / "work-intake" / "evals" / "eval_queries.json",
     "author-brief": _SKILLS / "author-brief" / "evals" / "eval_queries.json",
     "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
+    "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
 }
 _FIXTURE_PATHS = {
     "evals/files/routing/start-minimal-intent.json": (
