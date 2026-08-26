@@ -2155,26 +2155,6 @@ open = [
   # passing is the false positive that spec exists to avoid.
   {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
 
-  # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
-  # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
-  # rule grandfathers existing .sh, but this one is a portability dead end: a
-  # maintainer on Windows cannot run it, and it can never join
-  # build-check-windows.yml. Not urgent -- docs.yml:92 runs it on ubuntu-latest
-  # where bash is fine, and pack tests are never installed into adopter repos,
-  # so no adopter executes it.
-  #
-  # Convert as its own PR, not folded into a security fix: the fixture is
-  # SEQUENTIAL and its counter assertions accumulate, so a naive port silently
-  # changes expected values. Demonstrated 2026-08-07 -- inserting one extra
-  # `review record` case shifted a downstream count from 2/1 to 3/2 and broke
-  # three assertions. Port case-by-case against the current output, and split
-  # the shared-state cases onto independent fixtures while doing it.
-  #
-  # Also measured: the suite exceeds 10 minutes locally. Worth profiling during
-  # the port -- it spawns a Python subprocess per case and invokes the
-  # large test_loop_cohort.py suite as one of them.
-  {slug = "loop-cohort-shell-suite-to-python", summary = "Port test-loop-cohort.sh (493 lines, 51 sequential cases) to pure-stdlib Python so it runs on Windows, decoupling the shared-counter fixtures and profiling its >10min runtime", source = "spec/pack-script-root-boundary-validation"},
-
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
   # from this repo only; it is never installed into an adopter repo, so it
