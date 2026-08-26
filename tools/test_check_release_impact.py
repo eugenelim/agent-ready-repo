@@ -84,6 +84,14 @@ def test_non_impacting_prefixes_still_win() -> None:
     assert is_release_impacting("tools/repo/check_release_impact.py") is False
 
 
+def test_docs_site_replaces_the_legacy_site_governance_prefix() -> None:
+    """The explicit documentation-site carve-out names the current tree."""
+    from check_release_impact import NON_IMPACTING_PREFIXES
+
+    assert "docs-site/" in NON_IMPACTING_PREFIXES
+    assert "site/" not in NON_IMPACTING_PREFIXES
+
+
 def test_catalogue_tooling_and_cli_remain_impacting() -> None:
     """Guard the entries this change did not touch."""
     assert is_release_impacting(
