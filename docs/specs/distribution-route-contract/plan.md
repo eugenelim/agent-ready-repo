@@ -1,7 +1,7 @@
 # Plan: Distribution route contract
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence arrives. A substantial

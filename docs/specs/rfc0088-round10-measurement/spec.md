@@ -1,6 +1,6 @@
 # Spec: rfc0088-round10-measurement
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:**
@@ -118,7 +118,7 @@ suite (`r9-gates.sh`).
       filesystem reads the permission model denies that the profile admits —
       including whether the correction-9 defeat (reading the live browser profile)
       is closed by the composition.
-- [ ] **AC4 — Restored-profile realm.** A fixture creates a profile containing a
+- [x] **AC4 — Restored-profile realm.** A fixture creates a profile containing a
       realm, restarts the browser against it, and records whether the shim is
       registered before that realm exists. Whatever the outcome, it is recorded as
       *measured* — the standing claim today is "requirement, not measurement".

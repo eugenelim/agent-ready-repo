@@ -1,6 +1,6 @@
 # Spec: AGENTS.md lost obligations
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0088](../../adr/0088-risk-triggers-have-a-single-documented-home.md)
@@ -35,97 +35,97 @@ decision. They are enumerated in Boundaries.
 
 Security and refusal semantics (adopter-shipped):
 
-- [ ] AC1 — `packs/AGENTS.md` states the realpath-canonicalisation rule for reads:
+- [x] AC1 — `packs/AGENTS.md` states the realpath-canonicalisation rule for reads:
   `~`-expansion and `..`-rejection alone are insufficient because a symlink inside an
   approved directory bypasses containment.
-- [ ] AC2 — `packs/AGENTS.md` states the instruction-vs-data boundary for files
+- [x] AC2 — `packs/AGENTS.md` states the instruction-vs-data boundary for files
   loaded from a **user-controlled local path** (extract expected fields; ignore
   embedded directives), distinct from the fetched-external-content case that
   `security-checklists` AST05 already covers.
-- [ ] AC3 — `packs/AGENTS.md` states the cross-config confirmation rule: a config
+- [x] AC3 — `packs/AGENTS.md` states the cross-config confirmation rule: a config
   path from a user-level config shared across projects is confirmed to belong to the
   current project before use.
-- [ ] AC4 — `packs/AGENTS.md` states the `.apm/` UTF-8 stream-reconfigure requirement
+- [x] AC4 — `packs/AGENTS.md` states the `.apm/` UTF-8 stream-reconfigure requirement
   as a general rule for scripts that print, not only as the six existing per-pack
   test assertions.
-- [ ] AC5 — `packs/AGENTS.md` states that a non-cosmetic pack update also updates the
+- [x] AC5 — `packs/AGENTS.md` states that a non-cosmetic pack update also updates the
   pack's eval harness.
 
 Carve-outs (losing one causes over-refusal):
 
-- [ ] AC6 — `packs/AGENTS.local.md` states that illustrative examples teaching a
+- [x] AC6 — `packs/AGENTS.local.md` states that illustrative examples teaching a
   skill are permitted in shipped pack content and must not be stripped, **and**
   carries the anti-inference rule that the same ordinal may be internal in one file
   and illustrative in another, judged by what it points at rather than by its number.
-- [ ] AC7 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state that internal
+- [x] AC7 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state that internal
   callers and framework guarantees are trusted, bounding the validate-at-boundaries
   rule.
 
 Prohibitions (losing one causes a leak):
 
-- [ ] AC8 — `packages/AGENTS.local.md` states the prohibition on internal-governance
+- [x] AC8 — `packages/AGENTS.local.md` states the prohibition on internal-governance
   ordinals, spec ACs, and internal spec paths in comments, docstrings, argparse
   `help=` text, and runtime messages, **with** its adopter-visibility rationale and
   the positive duty to state the rule instead of citing where it was decided.
-- [ ] AC9 — root `AGENTS.local.md` states the ban on spec-AC citation comments
+- [x] AC9 — root `AGENTS.local.md` states the ban on spec-AC citation comments
   (`# AC10:` and similar) in `.apm/**` source, which leak spec vocabulary into
   projected adopter artifacts.
 
 Behavioural and process obligations:
 
-- [ ] AC10 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state the duty to push
+- [x] AC10 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state the duty to push
   back when warranted and to record disagreement rather than complying silently.
-- [ ] AC11 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state that a helper is
+- [x] AC11 — root `AGENTS.md` and `packs/core/seeds/AGENTS.md` state that a helper is
   extracted when a second caller appears, not for a single use.
-- [ ] AC12 — `packs/core/seeds/AGENTS.md` states the new-top-level-directory
+- [x] AC12 — `packs/core/seeds/AGENTS.md` states the new-top-level-directory
   obligation that root `AGENTS.md` retained, removing the adopter-facing asymmetry.
 
 Site, guide, and profile surfaces:
 
-- [ ] AC13 — `web/AGENTS.md` and `docs-site/AGENTS.md` state the manual
+- [x] AC13 — `web/AGENTS.md` and `docs-site/AGENTS.md` state the manual
   install-script (`allowScripts`) review duty when the lockfile moves, which is the
   compensating control for the machine check deferred under
   `npm-allowscripts-enforcement`.
-- [ ] AC14 — `web/AGENTS.md` states that the viewport meta tag is defined once in
+- [x] AC14 — `web/AGENTS.md` states that the viewport meta tag is defined once in
   `SiteLayout.astro` and is not duplicated elsewhere.
-- [ ] AC15 — `docs-site/AGENTS.md` states the post-upgrade revalidation duty against
+- [x] AC15 — `docs-site/AGENTS.md` states the post-upgrade revalidation duty against
   the vendored Starlight component contracts.
-- [ ] AC16 — `guides/AGENTS.md` states the in-tree link preference, because links out
+- [x] AC16 — `guides/AGENTS.md` states the in-tree link preference, because links out
   of `guides/` render as GitHub blob URLs that send the reader off-site.
-- [ ] AC17 — `profiles/AGENTS.md` states that a pack name appears at most once in a
+- [x] AC17 — `profiles/AGENTS.md` states that a pack name appears at most once in a
   profile and that packs with a declared `conflicts` relationship do not share a
   profile.
 
 Package surfaces:
 
-- [ ] AC18 — `packages/AGENTS.md` states the test-isolation rules: no hardcoded
+- [x] AC18 — `packages/AGENTS.md` states the test-isolation rules: no hardcoded
   `/tmp`, no direct `os.environ["HOME"]`, `tmp_path` rather than
   `tempfile.mkdtemp()`, and the `os.symlink()` skip guard.
-- [ ] AC19 — `packages/credbroker/AGENTS.md` carries the credbroker-scoped test
+- [x] AC19 — `packages/credbroker/AGENTS.md` carries the credbroker-scoped test
   isolation rules that its own deletion removed.
-- [ ] AC20 — `packages/agentbundle/AGENTS.md` states the UTF-8 subprocess
+- [x] AC20 — `packages/agentbundle/AGENTS.md` states the UTF-8 subprocess
   environment rule, the Windows symlink / execute-bit test-skip rule, and the
   root-path detection form.
-- [ ] AC21 — `packages/credbroker/AGENTS.local.md` and
+- [x] AC21 — `packages/credbroker/AGENTS.local.md` and
   `packages/agentbundle/AGENTS.local.md` state their release procedures: tag
   immediately after a version-bumping merge to `main`, confirm the publish workflow
   is green, and choose the next version against the published index.
-- [ ] AC22 — `packages/_example/AGENTS.md` and its adopter seed
+- [x] AC22 — `packages/_example/AGENTS.md` and its adopter seed
   `packs/monorepo-extras/seeds/packages/_example/AGENTS.md` prompt for the
   cross-package import boundary and the ADR-trigger categories, and remain
   byte-identical to each other.
 
 Falsified surviving instructions:
 
-- [ ] AC23 — the `risk-triggers` marker comment in
+- [x] AC23 — the `risk-triggers` marker comment in
   `packs/core/.apm/skills/work-loop/SKILL.md` agrees with ADR-0088: the skill source
   is the sole home. It no longer instructs copying the block into `AGENTS.md`,
   `packs/core/seeds/AGENTS.md`, or `docs/CONVENTIONS.md`, which
   `tools/test_lint_agents_md_risk_block.py::test_noncanonical_homes_fail` proves
   fails CI.
-- [ ] AC24 — check 10g's comment in `tools/lint-agents-md.py` describes what
+- [x] AC24 — check 10g's comment in `tools/lint-agents-md.py` describes what
   `rt_files` actually contains rather than the retired four-document contract.
-- [ ] AC25 — the rule the two shipped skills quote by name exists verbatim in
+- [x] AC25 — the rule the two shipped skills quote by name exists verbatim in
   `AGENTS.md` and `packs/core/seeds/AGENTS.md`, as a single unbroken line carrying no
   `**` markers inside the phrase, so
   `git grep -cF -- 'Grep to verify a function exists before importing it'` returns
@@ -138,14 +138,14 @@ Falsified surviving instructions:
 
 Maintainer environment:
 
-- [ ] AC26 — root `AGENTS.local.md` states that auto-merge is disabled and that
+- [x] AC26 — root `AGENTS.local.md` states that auto-merge is disabled and that
   branch protection requires the branch to be up to date with base, so a merge needs
   the branch updated and is a manual step. Verified: `allow_auto_merge: false`,
   `required_status_checks.strict: true`.
 
 Test that could not fail (found while proving AC23):
 
-- [ ] AC30 — `tools/test_lint_agents_md_risk_block.py::test_noncanonical_homes_fail`
+- [x] AC30 — `tools/test_lint_agents_md_risk_block.py::test_noncanonical_homes_fail`
   detects removal of the non-canonical-home guard. Its fixture created only the
   offending file, never the canonical source, so the "source must carry one complete
   block" branch emitted the same `risk-trigger-block drift` marker and the assertion
@@ -157,13 +157,13 @@ Test that could not fail (found while proving AC23):
 
 Mechanical invariants:
 
-- [ ] AC27 — every edited `AGENTS.md` / `AGENTS.local.md` remains within its class
+- [x] AC27 — every edited `AGENTS.md` / `AGENTS.local.md` remains within its class
   cap (`tools/lint-agents-md.py`: root 120, root-local 60, core seed 100, scoped and
   local 80, `_example` 35), and the caps themselves are unchanged.
-- [ ] AC28 — `tools/catalogue/sync_authoring_scaffold.py --check` exits 0, and the
+- [x] AC28 — `tools/catalogue/sync_authoring_scaffold.py --check` exits 0, and the
   scaffold projection of `packs/AGENTS.md` and `profiles/AGENTS.md` is byte-identical
   to its source.
-- [ ] AC29 — pack versions are bumped for changed pack content per the
+- [x] AC29 — pack versions are bumped for changed pack content per the
   `packs/AGENTS.md` version-bump rule, and the agentbundle version is bumped because
   the change alters bundled scaffold package data.
 
