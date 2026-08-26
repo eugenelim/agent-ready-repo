@@ -40,6 +40,10 @@ SHARED_TESTS = (
 )
 
 CORE_COLLECTIONS = {
+    # Re-pinned 2026-08-26 (RFC-0096 Wave 4 AC2d): the node count is unchanged at
+    # 31; the sole rename is test_invariant_ii_transition_ok_when_deferred ->
+    # test_invariant_ii_transition_fails_when_deferred, because a
+    # `(deferred: <slug>)` marker no longer makes a newly shipped AC valid.
     SHARED_TESTS[0]: (
         73,
         "c346431405e6debb549079fb0cd23787c160991d2a0d0a9d23c3d629b794494a",
@@ -337,6 +341,10 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # line-continuation normalization.  The composed digest removes only the exact
 # workspace-status pair command from that same baseline; the construction test
 # path is the sole intentional addition and is checked separately below.
+# Re-pinned 2026-08-26 (RFC-0096 Wave 4): the only effective-plan change is one
+# added `packs/core/tests/skills/close-work/` pytest line in both routes,
+# verified by diffing both normalized dry-run plans against `main`'s Makefile —
+# 72->73 standalone and 71->72 composed, with no other line moved or dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
     "36efb486ae79ddbcc1748ab86c022dfcc6177f1e178a9882ffa70f241625df2f"
 )
