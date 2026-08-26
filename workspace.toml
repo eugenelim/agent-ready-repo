@@ -2222,42 +2222,10 @@ open = [
   # Deferred: projection repair needs its own confirmation contract; adding one
   # requires a new trusted input rather than inferring authority from tracker data.
   {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
-  # Anchor-staleness fitness function. Nothing detected that Group 3 (#928) had
-  # invalidated four unstarted Group 4-7 specs — it surfaced only because a human
-  # asked. The reanchor items above are the one-off correction; this is the control
-  # that stops it recurring. Shape: for each spec in work.queue, if any declared
-  # `needs` target reached Shipped AFTER that spec's last revision, emit a
-  # `stale_anchor` finding and refuse dispatch until the spec is re-approved.
-  # Modelled on architectural fitness functions (ThoughtWorks' "dependency drift
-  # fitness function") — a continuously-run check, not a review ritual, because the
-  # documented failure mode of decision records is neglect rather than bad edits.
-  # Typed `spec` (not `design`), because this item will produce a spec anyway.
-  # CORRECTION 2026-08-15: the comment here used to claim `type = "spec"` yields
-  # `legacy_entry`. It does not. `_SHAPING_TYPES`
-  # (.claude/skills/workspace-status/scripts/workspace_status_engine.py:3229) is
-  # exactly {shape, research, strategy, signal, design}; `spec` is not a member, so
-  # `_accepted_legacy_entry`'s backlog.open branch refuses and these five entries —
-  # like the other 136 build items — classify as `unsupported_legacy`. The intended
-  # effect (non-dispatchable) does hold, just by a different route than claimed.
-  # Whether to retype them is tracked as reanchor-entry-typing-decision below.
-  # Needs a design pass first: `needs` carries no timestamp, so the comparison
-  # has to come from git history or a new recorded field.
-  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
-  # LIVE INSTANCE, 2026-08-18 (spec/workspace-queue-reconciliation). This stopped
-  # being hypothetical. That PR moved the Shipped docs/specs/tracker-intake-adapters
-  # entry out of ini-008's queue into its shipped list — the truthful record — and the
-  # immediate effect was that docs/specs/tracker-refresh-writeback/spec.md became
-  # canonically READY, dispatchable by an argless work-loop. It should not be built as
-  # it stands: tracker-refresh-writeback-reanchor (above) says its spec/plan predates
-  # the Group 2/3 contracts it builds on and needs a refresh loop first. Nothing
-  # detected the transition; the ready-set delta was measured by hand before the move,
-  # and the move was made anyway because leaving a Shipped spec in a queue is a false
-  # record that blocks all reconciliation.
-  # So the failure mode is now demonstrated end to end: a routine, correct
-  # reconciliation edit silently promoted a stale spec to dispatchable. The reanchor
-  # entries are the one-off correction; this is the control. Raise the priority
-  # accordingly, and note the guard has to fire on a MEMBERSHIP change, not only on a
-  # dependency shipping — this instance was triggered by the former.
+  # Repository-wide successor to the closed INI-008-scoped anchor. Keep this as
+  # non-dispatchable design work until its revision anchor and enforcement policy
+  # have been shaped.
+  {slug = "workspace-anchor-staleness-invariant", type = "design", source = "rfc/0083 Errata 2026-08-13", summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions"},
 
   # Surfaced 2026-08-15 while auditing every [backlog].open entry against the
   # engine's own classifier. The five reanchor entries above carry `type = "spec"`,
@@ -2574,6 +2542,9 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # Closed 2026-08-25. Successor: `workspace-anchor-staleness-invariant`.
+  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
+
   # Closed 2026-08-25 on human review. The six representative print PDFs were
   # regenerated from a clean build and provided to the owner, who read them for
   # break quality: no unusable break, no orphaned heading, no unexpected blank
@@ -2856,10 +2827,11 @@ shipped = [
   # Group 7 — reconcile legacy workspaces, publish the alias window and removal
   # criteria, finish cross-links, run the full evaluation matrix.
   {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
+  # RFC-0096 Wave 1 — shared read-only semantic-surface resolution.
+  {path = "docs/specs/semantic-surface-resolver/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Resolve semantic roles to repository-owned or external destinations without lifecycle changes", needs = []},
 ]
 active = []
 queue = [
-  {path = "docs/specs/semantic-surface-resolver/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Resolve semantic roles to repository-owned or external destinations without lifecycle changes", needs = []},
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
 ]
