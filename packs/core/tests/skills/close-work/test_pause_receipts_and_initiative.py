@@ -7,7 +7,12 @@ import importlib.util
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[5]
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILLS = PACK_ROOT / ".apm" / "skills"
+CLOSE_WORK_SCRIPT = SKILLS / "close-work" / "scripts" / "close_work.py"
+WORKSPACE_STATUS_SCRIPT = (
+    SKILLS / "workspace-status" / "scripts" / "workspace_status_engine.py"
+)
 
 
 def _load(path: Path, name: str):
@@ -20,18 +25,11 @@ def _load(path: Path, name: str):
 
 
 def _close_work():
-    return _load(
-        ROOT / "packs/core/.apm/skills/close-work/scripts/close_work.py",
-        "close_work_t4_tests",
-    )
+    return _load(CLOSE_WORK_SCRIPT, "close_work_t4_tests")
 
 
 def _workspace_status():
-    return _load(
-        ROOT
-        / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
-        "workspace_status_t4_tests",
-    )
+    return _load(WORKSPACE_STATUS_SCRIPT, "workspace_status_t4_tests")
 
 
 def _authority(close_work, action: str, resource: str) -> dict[str, object]:

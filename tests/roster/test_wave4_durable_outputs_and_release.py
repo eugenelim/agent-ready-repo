@@ -6,7 +6,7 @@ import json
 import tomllib
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[5]
+ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs/specs/close-work-extraction-and-immediate-disposition"
 SURVEY = ROOT / "docs/rfc/0096-notes/open-source-context-lifecycle-survey.md"
 

@@ -476,3 +476,58 @@ def test_close_work_construction_suite_is_in_local_and_ci_pack_gates() -> None:
     assert suite in (
         ROOT / ".github/workflows/catalogue-tooling-ci-gates.yml"
     ).read_text(encoding="utf-8")
+
+
+def test_projected_file_safety_matches_the_agentbundle_canonical() -> None:
+    """Cross-tree parity: the pack copy is byte-identical to the engine helper."""
+    projected = ROOT / "packs/core/.apm/skills/close-work/scripts/file_safety.py"
+    assert projected.read_bytes() == FILE_SAFETY_PATH.read_bytes()
+
+
+def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
+    spec_path = (
+        ROOT / "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
+    )
+    plan_path = spec_path.with_name("plan.md")
+    spec_status = next(
+        line.removeprefix("- **Status:** ")
+        for line in spec_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("- **Status:** ")
+    )
+    plan_status = next(
+        line.removeprefix("- **Status:** ")
+        for line in plan_path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("- **Status:** ")
+    )
+    index_row = next(
+        line
+        for line in (ROOT / "docs/specs/README.md")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if "close-work-extraction-and-immediate-disposition/" in line
+    )
+    workspace = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
+    work = workspace["ini-002"]["work"]
+    locator = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
+    memberships = {
+        state
+        for state in ("active", "queue", "shipped")
+        if any(
+            isinstance(item, dict) and item.get("path") == locator
+            for item in work[state]
+        )
+    }
+
+    expected = {
+        "Draft": ("Drafting", {"queue"}),
+        "Approved": ("Approved", {"queue"}),
+        "Implementing": ("Executing", {"active"}),
+        "Shipped": ("Done", {"shipped"}),
+    }
+    assert spec_status in expected
+    assert plan_status == expected[spec_status][0]
+    assert (
+        f"| {spec_status} | RFC-0096; Waves 1–3 (Shipped); "
+        "Waves 5–7 (live dependencies) |"
+    ) in index_row
+    assert memberships == expected[spec_status][1]

@@ -10,12 +10,17 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT_ROOT = Path(__file__).resolve().parents[3] / ".apm/skills/work-loop/scripts"
-SKILL_ROOT = SCRIPT_ROOT.parent
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "work-loop"
+# Literal, pack-confined subject paths: the boundary lint resolves each script
+# statically, which a name computed from a parameter would defeat.
+ENGINE_PATH = SKILL_ROOT / "scripts" / "loop-engine.py"
+COHORT_PATH = SKILL_ROOT / "scripts" / "loop-cohort.py"
 
 
 def _load(name: str):
-    path = SCRIPT_ROOT / name
+    path = ENGINE_PATH if name == "loop-engine.py" else COHORT_PATH
+    assert path.name == name, f"unknown subject script {name!r}"
     module_name = f"wave4_{name.replace('-', '_').replace('.', '_')}"
     spec = importlib.util.spec_from_file_location(module_name, path)
     assert spec is not None and spec.loader is not None

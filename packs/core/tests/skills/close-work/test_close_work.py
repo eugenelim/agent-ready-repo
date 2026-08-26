@@ -7,18 +7,17 @@ import importlib.util
 import json
 import os
 import sys
-import tomllib
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[5]
-SKILL_ROOT = ROOT / "packs/core/.apm/skills/close-work"
-SCRIPT_PATH = SKILL_ROOT / "scripts/close_work.py"
-PROJECTED_FILE_SAFETY = SKILL_ROOT / "scripts/file_safety.py"
-CANONICAL_FILE_SAFETY = (
-    ROOT / "packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "close-work"
+SCRIPT_PATH = SKILL_ROOT / "scripts" / "close_work.py"
+PROJECTED_FILE_SAFETY = SKILL_ROOT / "scripts" / "file_safety.py"
+RESOLVER_PATH = (
+    PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "surface_resolver.py"
 )
 
 
@@ -206,15 +205,13 @@ def _effect_kwargs(close_work, preview) -> dict[str, object]:
     }
 
 
-def test_projected_file_safety_is_byte_identical_and_resolver_is_sibling() -> None:
+def test_file_safety_and_resolver_load_from_pack_siblings() -> None:
+    """Byte-identity against the agentbundle canonical is a roster check."""
     close_work = _load_close_work()
 
-    assert PROJECTED_FILE_SAFETY.read_bytes() == CANONICAL_FILE_SAFETY.read_bytes()
     assert close_work.file_safety().__file__ == str(PROJECTED_FILE_SAFETY)
     resolver = close_work.surface_resolver()
-    assert Path(resolver.__file__).resolve() == (
-        ROOT / "packs/core/.apm/skills/work-intake/scripts/surface_resolver.py"
-    ).resolve()
+    assert Path(resolver.__file__).resolve() == RESOLVER_PATH.resolve()
     assert "delivery-contract" in resolver.SURFACE_ROLES
 
 
@@ -1586,52 +1583,3 @@ def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
     assert "external-advisory" in rendered
     assert "source, write, and deletion authority" in rendered
     assert "refuses to calculate dates" in rendered
-
-
-def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
-    spec_path = (
-        ROOT / "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
-    )
-    plan_path = spec_path.with_name("plan.md")
-    spec_status = next(
-        line.removeprefix("- **Status:** ")
-        for line in spec_path.read_text(encoding="utf-8").splitlines()
-        if line.startswith("- **Status:** ")
-    )
-    plan_status = next(
-        line.removeprefix("- **Status:** ")
-        for line in plan_path.read_text(encoding="utf-8").splitlines()
-        if line.startswith("- **Status:** ")
-    )
-    index_row = next(
-        line
-        for line in (ROOT / "docs/specs/README.md")
-        .read_text(encoding="utf-8")
-        .splitlines()
-        if "close-work-extraction-and-immediate-disposition/" in line
-    )
-    workspace = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
-    work = workspace["ini-002"]["work"]
-    locator = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
-    memberships = {
-        state
-        for state in ("active", "queue", "shipped")
-        if any(
-            isinstance(item, dict) and item.get("path") == locator
-            for item in work[state]
-        )
-    }
-
-    expected = {
-        "Draft": ("Drafting", {"queue"}),
-        "Approved": ("Approved", {"queue"}),
-        "Implementing": ("Executing", {"active"}),
-        "Shipped": ("Done", {"shipped"}),
-    }
-    assert spec_status in expected
-    assert plan_status == expected[spec_status][0]
-    assert (
-        f"| {spec_status} | RFC-0096; Waves 1–3 (Shipped); "
-        "Waves 5–7 (live dependencies) |"
-    ) in index_row
-    assert memberships == expected[spec_status][1]
