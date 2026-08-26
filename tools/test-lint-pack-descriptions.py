@@ -76,8 +76,25 @@ def test_directory_without_pack_toml_is_skipped() -> None:
 
 
 def test_missing_packs_dir_is_not_a_crash() -> None:
+    """`find_violations` stays pure; the fail-closed decision lives in main."""
     with tempfile.TemporaryDirectory() as tmp:
         assert lint.find_violations(Path(tmp) / "nope") == []
+
+
+def test_scanning_nothing_is_an_error_not_a_pass() -> None:
+    """A run that examined zero manifests must not print the pass line.
+
+    Without this the lint reported "no pack description has run away" for a
+    `--root` aimed at the wrong tree, so a run that checked nothing read
+    identically to one that checked everything.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        # packs/ absent entirely
+        assert lint.main(["--root", tmp]) == 2
+    with tempfile.TemporaryDirectory() as tmp:
+        # packs/ present but carrying no pack.toml
+        (Path(tmp) / "packs" / "not-a-pack").mkdir(parents=True)
+        assert lint.main(["--root", tmp]) == 2
 
 
 def test_backstop_is_not_the_target_vocab_cap() -> None:
