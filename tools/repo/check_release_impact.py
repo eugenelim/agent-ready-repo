@@ -46,7 +46,7 @@ NON_IMPACTING_PREFIXES = (
     "tools/catalogue/",
     "tools/repo/",
     "web/",
-    "site/",
+    "docs-site/",
     "docs/guides/",
     "docs/specs/",
     "docs/adr/",
