@@ -20,7 +20,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased test-after-build-check test-after-build-check-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -48,8 +48,8 @@ endif
 # committed fixture CI copies, so the two cannot drift.
 #
 # Deliberately NOT a prerequisite of `ci`. docs/specs/local-ci-orchestration
-# AC1 pins `make ci`'s direct prerequisites to exactly build-check, lint-ruff,
-# lint-mypy and test, and tools/test-lint-ci-parity.py's
+# ADR-0096 pins `make ci`'s direct prerequisites to exactly build-check,
+# lint-ruff, lint-mypy and test-after-build-check, and tools/test-lint-ci-parity.py's
 # `local-ci-direct-prereqs` case enforces it. Chaining this target would need a
 # frozen-spec amendment; run it directly, or before raising a catalogue-engine
 # PR.
@@ -404,99 +404,115 @@ lint-mypy:
 test:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 
+override define run-test-suite
+$(PYTHON) -m pytest packages/agentbundle/tests/ -q
+$(PYTHON) -m pytest packages/credbroker/ -q
+$(PYTHON) tools/lint-conformance-portability.py --root .
+# spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
+# too, so `make ci` covers what gate-main's contrast step runs.
+$(PYTHON) tools/check-docs-contrast.py
+# spec/docs-site-build-contract-hardening AC6: the rehype plugin suite runs
+# locally too. Without this `make ci` stays green with a red plugin suite —
+# the orphan class the register tracks as tools-test-runner-boundary.
+@command -v npm >/dev/null 2>&1 || { echo "make test: npm not found — install Node.js (>=24, per docs-site/package.json engines)" >&2; exit 1; }
+@test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
+npm run test:plugins --prefix docs-site
+$(PYTHON) tools/test-pages-workflow.py
+$(PYTHON) tools/test-pages-concurrency.py
+$(PYTHON) -m pytest tests/ -q
+$(PYTHON) -m pytest packs/core/tests/hooks/ -q
+$(PYTHON) -m pytest packs/core/tests/pack/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ $(2) -q
+$(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ $(1) -q
+$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
+$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
+$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
+$(PYTHON) -m pytest packs/product-documentation/tests/ -q
+$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+$(PYTHON) -m pytest packs/architect/tests/skills/architect-assess/ -q
+$(PYTHON) -m pytest packs/architect/tests/skills/architect-design/ -q
+$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
+$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
+$(PYTHON) -c "import httpx"
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
+$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
+$(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
+$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
+$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
+$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
+$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
+@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \
+ if [ "$$n" -lt 9 ]; then echo "packs/desk-research/tests/skills/desk-research/ collected $$n, expected >= 9" >&2; exit 1; fi
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q
+@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
+ if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/pack/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-check/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-digest/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-status/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-synthesize/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/devils-advocate/ -q
+$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py -q
+$(3)
+$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
+$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
+$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
+$(PYTHON) -m pytest tools/test_editable_install_guard.py -q
+$(PYTHON) -m pytest tools/test_import_time_path_leaks.py -q
+$(PYTHON) -m pytest tools/test_managed_child.py -q
+$(PYTHON) -m pytest tools/test_coordination_lease.py -q
+$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
+$(PYTHON) -m pytest tools/test_run_slot.py -q
+$(PYTHON) -m pytest tools/test_with_lease_cli.py -q
+$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
+$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
+$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
+$(PYTHON) -m pytest tools/test_bootstrap.py -q
+$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
+$(PYTHON) -m pytest \
+	tools/test_lint_agents_md_diataxis_block.py \
+	tools/test_lint_agents_md_legacy_block.py \
+	tools/test_lint_agents_md_risk_block.py \
+	tools/test_lint_agents_md_frontmatter_scope.py \
+	tools/test_catalogue_curation_guard.py \
+	tools/test_contract_parity.py \
+	tools/test_marketplace_envelope_parity.py \
+	tools/test_guide_authoring_standard.py \
+	tools/test_release_check.py \
+	tools/test_check_release_impact.py \
+	tools/test_scaffold_projection.py \
+	tools/test_conformance_portability.py \
+	tools/test_lint_guides_no_repo_only_refs.py \
+	tools/test_okf_pre_pr.py -q
+endef
+
 test-unleased: lint-editable-install
-	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
-	$(PYTHON) -m pytest packages/credbroker/ -q
-	$(PYTHON) tools/lint-conformance-portability.py --root .
-	# spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
-	# too, so `make ci` covers what gate-main's contrast step runs.
-	$(PYTHON) tools/check-docs-contrast.py
-	# spec/docs-site-build-contract-hardening AC6: the rehype plugin suite runs
-	# locally too. Without this `make ci` stays green with a red plugin suite —
-	# the orphan class the register tracks as tools-test-runner-boundary.
-	@command -v npm >/dev/null 2>&1 || { echo "make test: npm not found — install Node.js (>=24, per docs-site/package.json engines)" >&2; exit 1; }
-	@test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
-	npm run test:plugins --prefix docs-site
-	$(PYTHON) tools/test-pages-workflow.py
-	$(PYTHON) tools/test-pages-concurrency.py
-	$(PYTHON) -m pytest tests/ -q
-	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
-	$(PYTHON) -m pytest packs/core/tests/pack/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ -q
-	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
-	$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
-	$(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
-	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
-	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
-	$(PYTHON) -m pytest packs/architect/tests/skills/architect-assess/ -q
-	$(PYTHON) -m pytest packs/architect/tests/skills/architect-design/ -q
-	$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
-	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
-	$(PYTHON) -c "import httpx"
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
-	$(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
-	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
-	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
-	$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
-	$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
-	$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
-	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \
-	 if [ "$$n" -lt 9 ]; then echo "packs/desk-research/tests/skills/desk-research/ collected $$n, expected >= 9" >&2; exit 1; fi
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q
-	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
-	 if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/pack/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-check/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-digest/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-status/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-synthesize/ -q
-	$(PYTHON) -m pytest packs/desk-research/tests/skills/devils-advocate/ -q
-	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py -q
-	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
-	$(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
-	$(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
-	$(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
-	$(PYTHON) -m pytest tools/test_editable_install_guard.py -q
-	$(PYTHON) -m pytest tools/test_import_time_path_leaks.py -q
-	$(PYTHON) -m pytest tools/test_managed_child.py -q
-	$(PYTHON) -m pytest tools/test_coordination_lease.py -q
-	$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
-	$(PYTHON) -m pytest tools/test_run_slot.py -q
-	$(PYTHON) -m pytest tools/test_with_lease_cli.py -q
-	$(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
-	$(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
-	$(PYTHON) -m pytest tools/test_frontend_runtime.py -q
-	$(PYTHON) -m pytest tools/test_bootstrap.py -q
-	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
-	$(PYTHON) -m pytest \
-		tools/test_lint_agents_md_diataxis_block.py \
-		tools/test_lint_agents_md_legacy_block.py \
-		tools/test_lint_agents_md_risk_block.py \
-		tools/test_lint_agents_md_frontmatter_scope.py \
-		tools/test_catalogue_curation_guard.py \
-		tools/test_contract_parity.py \
-		tools/test_marketplace_envelope_parity.py \
-		tools/test_guide_authoring_standard.py \
-		tools/test_release_check.py \
-		tools/test_check_release_impact.py \
-		tools/test_scaffold_projection.py \
-		tools/test_conformance_portability.py \
-		tools/test_lint_guides_no_repo_only_refs.py \
-		tools/test_okf_pre_pr.py -q
+	$(call run-test-suite,,,$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q)
+
+# build-check has already run the five exact shared files before this composed
+# route starts. Standalone `make test` deliberately calls the same macro above
+# without exclusions and remains the complete public test gate. The reduction
+# is safe only behind test-after-build-check's explicit owner dependency;
+# tools/test_local_ci_shared_test_deduplication.py prevents ownership/exclusion
+# drift and proves recursive and parallel Make retain that ordering.
+test-after-build-check: build-check
+	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-after-build-check-unleased
+
+test-after-build-check-unleased: lint-editable-install
+	$(call run-test-suite,--ignore=packs/core/tests/skills/work-loop/test_lint_spec_status.py --ignore=packs/core/tests/skills/work-loop/test_lint_traceability.py,--ignore=packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py,)
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per
@@ -519,7 +535,7 @@ test-unleased: lint-editable-install
 # build-check already runs pre_pr_catalogue.py --skip-verify after its one
 # portable verification and persistent build. A direct pre-pr prerequisite here
 # would repeat both the aggregator and portable verification in the same CI run.
-ci: build-check lint-ruff lint-mypy test
+ci: build-check lint-ruff lint-mypy test-after-build-check
 	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────

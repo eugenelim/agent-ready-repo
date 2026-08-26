@@ -344,61 +344,61 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "mypy type-check (typed packages only)":
         LOCAL("lint-mypy"),
     "pytest version constants (CLI_VERSION ↔ pyproject drift guard)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest adapter resolver (RFC-0011/0012, ADR-0004 rebrand)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest converters install/uninstall (AC6a)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest pack-profiles (RFC-0034)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest convenient-install-defaults (RFC-0046)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest credbroker floor precedence (credbroker-user-scope T1)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest shared-libs projection retirement (credbroker T9)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest self-host recipe config (externalize-self-host-config)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest self-host fixture guard (windows-build-self-entry)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest make-free gate chains (windows-build-gate-chain)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
-            LOCAL("test"),
+            LOCAL("test-after-build-check"),
         "pytest journey editorial decisions":
-            LOCAL("test"),
+            LOCAL("test-after-build-check"),
     # Both wired by docs/specs/build-check-coverage-gaps. The seven files these
     # two steps run were on `make test`'s Makefile line and in no workflow's
     # run: steps — locally gated, remotely not.
     "pytest guides + catalogue navigation":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest site build + link rewriting":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
-    # `make ci` via the `test` target: the checker on its own line near the top,
-    # and its suite on the site/catalogue pytest line.
+    # `make ci` via the `test-after-build-check` target: the checker on its own
+    # line near the top, and its suite on the site/catalogue pytest line.
     "docs palette contrast gate":
-        LOCAL("test"),
-    # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via the
-    # `test` target, which invokes the same script.
+        LOCAL("test-after-build-check"),
+    # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via
+    # `test-after-build-check`, which invokes the same script.
     "pages.yml deploy-gate posture":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     # The Pages concurrency checker is independently reachable from `make ci`
-    # through `test`, and runs in required gate-main so it cannot become the
-    # unwired workflow-posture anti-pattern.
+    # through `test-after-build-check`, and runs in required gate-main so it
+    # cannot become the unwired workflow-posture anti-pattern.
     "pages.yml concurrency posture":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes
     # red here rather than staying silently green.
     "pytest export-boundary gate":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "Install credbroker (editable, with crypto extra)":
         CI_ONLY(
             "Provisioning."
         ),
     "pytest credbroker (RFC-0023 Phase 1)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
         CI_ONLY(
             "PROVISIONING, and DECIDED to stay here (2026-08-16). The suite "
@@ -425,27 +425,27 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
             "needs httpx>=0.27 (RFC-0035 step installs it)."
         ),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest user-libs vendored floor (credbroker-user-scope T3)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest cursor adapter (cursor-full-parity)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest gemini adapter (gemini-full-parity)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest architect design-reviewer guards (RFC-0032)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest enriched-pack-manifest (RFC-0031)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest catalogue Wave 4 live contracts (roster-owned)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest consolidated-pack-layout installer append (RFC-0040)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest kiro drop-warning contract":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest core work-loop activation hook (roster-owned)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "converters source-attribution scrub (AC2)":
         CI_ONLY(
             "Inline `rg` scrub; needs ripgrep, which the workflow apt-installs. "
@@ -462,9 +462,9 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
             "script to call, so there is no path to wire or exempt."
         ),
     "pytest markdown-to-html installed entry-point contract":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pytest mermaid-renderer installed entry-point contract":
-        LOCAL("test"),
+        LOCAL("test-after-build-check"),
     "pip install the Markdown→Office render libraries (RFC-0036)":
         CI_ONLY(
             "Provisioning."
@@ -876,6 +876,37 @@ def derive_reachable_targets(text: str, entrypoint: str = CI_ENTRYPOINT) -> set[
     return reachable
 
 
+def _expanded_recipe_lines(text: str, recipe_line: str) -> list[str]:
+    """Expand one literal ``$(call <macro>,...)`` recipe for path discovery.
+
+    Local CI's full and composed test targets call the same lexical Make macro.
+    Treating that invocation as opaque made every command inside the composed
+    route disappear from parity reachability. This intentionally supports only
+    a whole-line call with comma-free literal arguments; an unsupported shape
+    remains opaque and therefore fails closed at the disposition check.
+    """
+    match = re.fullmatch(
+        r"\s*\$\(call\s+([A-Za-z0-9_.-]+),(.*)\)\s*",
+        recipe_line,
+    )
+    if match is None:
+        return [recipe_line]
+    name, raw_args = match.groups()
+    macro = re.search(
+        rf"(?ms)^(?:override )?define {re.escape(name)}\n(.*?)^endef$",
+        text,
+    )
+    if macro is None:
+        return [recipe_line]
+    args = raw_args.split(",")
+    expanded = macro.group(1)
+    for index, value in enumerate(args, start=1):
+        expanded = expanded.replace(f"$({index})", value)
+    if re.search(r"\$\([1-9]\)", expanded):
+        return [recipe_line]
+    return expanded.splitlines()
+
+
 def makefile_recipe_targets(text: str, reachable: set[str]) -> set[str]:
     """Invocation targets in the recipes of *reachable* Makefile targets only.
 
@@ -888,13 +919,15 @@ def makefile_recipe_targets(text: str, reachable: set[str]) -> set[str]:
         if not any(name in reachable for name in names):
             continue
         for raw in recipe:
-            for segment in _segments(_strip_inline_comment(raw)):
-                clean = _strip_shell_noise(segment)
-                found.update(
-                    m.group(0).replace("\\", "/").removeprefix("./")
-                    for m in _PATH_TOKEN.finditer(clean)
-                )
-                found.update(_pytest_path_args(clean) or [])
+            for expanded in _expanded_recipe_lines(text, raw):
+                for segment in _segments(_strip_inline_comment(expanded)):
+                    clean = _strip_shell_noise(segment)
+                    path_scan = re.sub(r"(?:^|\s)--ignore=[^\s]+", " ", clean)
+                    found.update(
+                        m.group(0).replace("\\", "/").removeprefix("./")
+                        for m in _PATH_TOKEN.finditer(path_scan)
+                    )
+                    found.update(_pytest_path_args(clean) or [])
     return {t for t in found if t}
 
 

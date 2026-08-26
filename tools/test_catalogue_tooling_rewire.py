@@ -81,12 +81,15 @@ class MakefileRewireTest(unittest.TestCase):
         self.assertIn("mkdir -p /tmp/ext-cat/profiles /tmp/ext-cat/contracts", workflow)
 
         # The target is deliberately standalone. docs/specs/local-ci-orchestration
-        # AC1 pins `make ci`'s direct prerequisites to exactly four, and
+        # ADR-0096 pins `make ci`'s direct prerequisites to exactly four, and
         # tools/test-lint-ci-parity.py's `local-ci-direct-prereqs` case enforces
         # it -- chaining this target reddened that case. Pin the absence so a
         # future edit re-adding it fails here, next to the reason, rather than in
         # a parity suite that cannot say why.
-        self.assertIn("ci: build-check lint-ruff lint-mypy test", self.makefile)
+        self.assertIn(
+            "ci: build-check lint-ruff lint-mypy test-after-build-check",
+            self.makefile,
+        )
         self.assertNotIn("external-catalogue-smoke lint-ruff", self.makefile)
 
         fixture = REPO_ROOT / "tools/tests/fixtures/external-catalogue-smoke"

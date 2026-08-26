@@ -1,6 +1,6 @@
 # Spec: Local CI orchestration
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by ADR-0096 — AC1's direct `test` prerequisite changes only for composed `make ci`; everything else stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017; ADR-0086

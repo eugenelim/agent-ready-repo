@@ -110,6 +110,14 @@ def _recipe_lines(makefile: str, target: str) -> list[str]:
 _VERDICT_ENV_KEYS = ("SKIP_SAST", "GITHUB_WORKFLOW", "GITHUB_ACTIONS")
 
 
+def _make_variable(makefile: str, name: str) -> str:
+    """Return one required single-line Make variable declaration."""
+    match = re.search(rf"(?m)^{re.escape(name)}\s*:?=\s*(.*?)\s*$", makefile)
+    if match is None or not match.group(1):
+        raise AssertionError(f"missing Make variable: {name}")
+    return match.group(1)
+
+
 def _run_verdict(makefile: str, env_extra: dict[str, str]) -> str:
     """Execute the `gate_verdict` macro body under `sh` with exactly *env_extra*.
 
@@ -119,10 +127,14 @@ def _run_verdict(makefile: str, env_extra: dict[str, str]) -> str:
     macro = re.search(r"define gate_verdict\n(.*?)\nendef", makefile, re.S)
     body = macro.group(1) if macro else ""
     body = body.lstrip("@")
-    for var, value in (("$(1)", "make ci"), ("$(SAST_DIRS)", "tools packs packages"),
-                       ("$(SAST_CONFIG)", "bandit.yaml Makefile")):
+    for var, value in (
+        ("$(1)", "make ci"),
+        ("$(SAST_DIRS)", _make_variable(makefile, "SAST_DIRS")),
+        ("$(SAST_CONFIG)", _make_variable(makefile, "SAST_CONFIG")),
+    ):
         body = body.replace(var, value)
     body = body.replace("$(SKIP_SAST)", env_extra.get("SKIP_SAST", ""))
+    body = body.replace("$(origin SAST_DELEGATED)", "undefined")
     body = body.replace("$$", "$")
     env = {k: v for k, v in os.environ.items() if k not in _VERDICT_ENV_KEYS}
     env.update(env_extra)
@@ -191,7 +203,7 @@ def _test_local_ci_orchestration_stub(makefile: str) -> None:
     _check(
         "local-ci-direct-prereqs",
         ci_deps,
-        ["build-check", "lint-ruff", "lint-mypy", "test"],
+        ["build-check", "lint-ruff", "lint-mypy", "test-after-build-check"],
     )
     _check("local-ci-pre-pr-not-direct", "pre-pr" in ci_deps, False)
 
@@ -521,6 +533,27 @@ def main() -> int:
         thin_makefile, M.derive_reachable_targets(thin_makefile))
     _check_true("dropped-prereq-loses-coverage", len(full - thin) >= 2)
 
+    macro_makefile = """\
+define shared-suite
+python3 -m pytest packages/example/tests/ $(1) -q
+$(2)
+endef
+ci: composed
+composed:
+\t$(call shared-suite,--ignore=packages/example/tests/test_shared.py,)
+"""
+    macro_reachable = M.derive_reachable_targets(macro_makefile)
+    macro_targets = M.makefile_recipe_targets(macro_makefile, macro_reachable)
+    _check_true(
+        "make-call-macro-path-is-reachable",
+        "packages/example/tests/" in macro_targets,
+    )
+    _check(
+        "make-call-macro-empty-argument-is-absent",
+        "packages/example/tests/test_shared.py" in macro_targets,
+        False,
+    )
+
     # ── local coverage: invocation positions only ──────────────────────────
     _check_true("makefile-reachable-pytest-dir", "packages/agentbundle/tests/" in full)
     _check_true("makefile-reachable-script", "tools/lint-ruff.py" in full)
@@ -697,11 +730,41 @@ def main() -> int:
     # coverage came from a recipe line.
     real_makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
     _test_local_ci_orchestration_stub(real_makefile)
-    for prereq in ("build-check", "test", "lint-ruff", "lint-mypy"):
-        dropped = re.sub(rf"(?m)^(ci:.*) {re.escape(prereq)}\b", r"\1", real_makefile)
+    # ADR-0096 gave `build-check` a SECOND edge into this graph: it is
+    # `test-after-build-check`'s own prerequisite, which is how the composed
+    # route keeps the gate chain while running the shared tests once. So
+    # removing only the `ci:` edge leaves build-check correctly reachable, and
+    # the mutation has to remove both edges to still prove that reachability
+    # follows prerequisites rather than a hard-coded set. The redundancy is
+    # asserted directly below so a silent loss of the second edge fails here.
+
+    def _drop_ci_edge(text: str, prereq: str) -> str:
+        return re.sub(rf"(?m)^(ci:.*) {re.escape(prereq)}\b", r"\1", text)
+
+    def _drop_composed_edge(text: str) -> str:
+        return re.sub(
+            r"(?m)^(test-after-build-check:.*) build-check\b", r"\1", text)
+
+    ci_edge_only = _drop_ci_edge(real_makefile, "build-check")
+    # Without this the redundancy case passes vacuously on a stale anchor: an
+    # unmatched substitution returns the real Makefile, which is reachable-True
+    # for the uninteresting reason. The drop cases below fail closed on their
+    # own, because a no-op mutation leaves the prerequisite reachable.
+    _check("ci-edge-mutation-applies", ci_edge_only != real_makefile, True)
+    _check("composed-target-keeps-build-check-reachable",
+           "build-check" in M.derive_reachable_targets(ci_edge_only), True)
+    for prereq in (
+        "build-check",
+        "test-after-build-check",
+        "lint-ruff",
+        "lint-mypy",
+    ):
+        dropped = _drop_ci_edge(real_makefile, prereq)
+        if prereq == "build-check":
+            dropped = _drop_composed_edge(dropped)
         _check(f"dropped-prereq-reachability[{prereq}]",
                prereq in M.derive_reachable_targets(dropped), False)
-    dropped_bc = re.sub(r"(?m)^(ci:.*) build-check\b", r"\1", real_makefile)
+    dropped_bc = _drop_composed_edge(_drop_ci_edge(real_makefile, "build-check"))
     _check("dropped-build-check-drops-gate-chain",
            M.GATE_CHAIN in M.makefile_recipe_targets(
                dropped_bc, M.derive_reachable_targets(dropped_bc)), False)
@@ -808,6 +871,22 @@ def main() -> int:
         # The `ci-skip` case is retired (spec/ci-gate-parallelization AC5f): after the
         # split build-check.yml never sets SKIP_SAST=1, so that branch lost its only
         # producer, and a branch no workflow can reach is a gate that gates nothing.
+        exact_verdicts = {
+            "local-skip": (
+                "\n*************************************************************\n"
+                "*** make ci: INCOMPLETE — this is NOT a full pass.\n"
+                "*** The SAST/SCA leg was SKIPPED (SKIP_SAST is set).\n"
+                "*** CI runs that leg on any diff touching: "
+                f"{_make_variable(makefile, 'SAST_DIRS')}\n"
+                f"*** or: {_make_variable(makefile, 'SAST_CONFIG')}\n"
+                "*** Re-run without SKIP_SAST before treating this as green.\n"
+                "*************************************************************\n\n"
+            ),
+            "full-run": (
+                "\nmake ci: complete — every leg of this target was invoked, "
+                "SAST/SCA included.\n\n"
+            ),
+        }
         for label, env, expected, forbidden in (
             ("local-skip", {"SKIP_SAST": "1"},
              "INCOMPLETE — this is NOT a full pass", "complete for this target"),
@@ -816,6 +895,7 @@ def main() -> int:
             out = _run_verdict(makefile, env)
             _check_true(f"verdict-says[{label}]", expected in out)
             _check(f"verdict-omits[{label}]", forbidden in out, False)
+            _check(f"verdict-exact[{label}]", out, exact_verdicts[label])
 
         # The cases above must not depend on the ambient environment. Inside CI,
         # `GITHUB_WORKFLOW` really is `build-check`, which made `local-skip` take
@@ -842,6 +922,13 @@ def main() -> int:
                     "SAST/SCA was NOT invoked here" in out)
         _check("verdict-delegated-cli-claims-no-scan",
                "SAST/SCA included" in out, False)
+        _check(
+            "verdict-delegated-cli-exact",
+            out,
+            "\nmake ci: complete for this target — SAST/SCA was NOT invoked here; "
+            "it is delegated.\n"
+            "This target did not scan. To scan on this machine: make sast\n\n",
+        )
         # An AMBIENT SAST_DELEGATED must not buy the quiet state — AC5c makes the
         # scan run in that case, so the honest verdict is the unchanged "complete".
         out = _run_verdict_make(makefile, {}, {"SAST_DELEGATED": "1"})
@@ -849,6 +936,7 @@ def main() -> int:
                     "complete — every leg of this target was invoked" in out)
         _check("verdict-delegated-ambient-not-mislabelled",
                "SAST/SCA was NOT invoked here" in out, False)
+        _check("verdict-delegated-ambient-exact", out, exact_verdicts["full-run"])
     else:  # pragma: no cover — Windows contributor path
         print("… verdict polarity cases skipped: no `sh` on PATH")
 

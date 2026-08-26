@@ -144,6 +144,7 @@ active  = [
   {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/local-ci-shared-test-deduplication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25"}, summary = "Execute five build-check-owned shared test files only once within one composed make ci", needs = []},
   {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
   {path = "docs/specs/adjudicator-evidence-and-remedy-predicate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-24"}, summary = "Bound machine-checkable adjudication evidence retries and distinguish wrong remedy mechanisms", needs = []},
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
@@ -1005,8 +1006,9 @@ open = [
 
   # Current: make external-catalogue-smoke now reproduces Gate B from the committed
   # fixture; the missing-local-target defect is complete.
-  # Decision remaining: keep it on demand, add it under build-check, or amend the frozen
-  # make-ci prerequisite contract before chaining it directly into make ci.
+  # Decision remaining: keep it on demand, add it under build-check, or amend the
+  # make-ci prerequisite graph ADR-0096 pins (build-check, lint-ruff, lint-mypy,
+  # test-after-build-check) before chaining it directly into make ci.
   {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
 
   # Current: the wheel places agentbundle/_data/install-marker.py at a non-importable

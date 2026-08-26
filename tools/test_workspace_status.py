@@ -24,6 +24,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 
 # Load the production engine from its skill-local location.
@@ -1599,14 +1600,6 @@ def case_work_loop_contract_anchor() -> None:
     )
 
 
-def test_work_loop_contract_anchor() -> None:
-    """pytest entry point for the work-loop Step 0 contract anchor."""
-    before = len(FAILURES)
-    case_work_loop_contract_anchor()
-    after = len(FAILURES)
-    assert after == before, "\n".join(FAILURES[before:])
-
-
 # ── Type 2 cleanup compatibility projection ──────────────────────────────────
 #
 # The legacy status field remains descriptive only. It must route every eligible
@@ -2628,328 +2621,17 @@ def case_analyze_bounded_path_traversal_entry() -> None:
                "[traversal] result must be structurally valid")
 
 
-# ── pytest wrappers for custom-runner cases ───────────────────────────────────
-# Allow `pytest tools/test_workspace_status.py` to discover all cases.
+# ── shared direct/pytest runner adapter ─────────────────────────────────────
 
-def _run_case(fn) -> None:  # noqa: ANN001
+def _run_case(case: Callable[[], None]) -> None:
+    """Run one registry case and translate accumulated failures for pytest."""
     before = len(FAILURES)
-    fn()
+    try:
+        case()
+    except unittest.SkipTest as exc:
+        raise AssertionError(f"unexpected skip: {exc}") from exc
     after = len(FAILURES)
     assert after == before, "\n".join(FAILURES[before:])
-
-
-def test_ac2a_multiple_active_initiatives() -> None:
-    _run_case(case_multiple_active_initiatives)
-
-
-def test_ac2b_paused_closed_initiatives() -> None:
-    _run_case(case_paused_closed_initiatives)
-
-
-def test_ac2c_ordered_queues() -> None:
-    _run_case(case_ordered_queues)
-
-
-def test_ac2d_local_work_deps() -> None:
-    _run_case(case_local_work_deps)
-
-
-def test_ac2e_cross_initiative_deps() -> None:
-    _run_case(case_cross_initiative_deps)
-
-
-def test_ac2f_shape_research_brief_deps() -> None:
-    _run_case(case_shape_research_brief_deps)
-
-
-def test_ac2f_list_valued_needs() -> None:
-    _run_case(case_list_valued_needs)
-
-
-def test_ac2g_ready_and_transitively_blocked() -> None:
-    _run_case(case_ready_and_transitively_blocked)
-
-
-def test_ac2h_spec_statuses() -> None:
-    _run_case(case_spec_statuses)
-
-
-def test_ac2h_spec_status_parser_boundaries() -> None:
-    _run_case(case_spec_status_parser_boundaries)
-
-
-def test_ac2h_spec_status_sister_function_parity() -> None:
-    _run_case(case_spec_status_sister_function_parity)
-
-
-def test_ac2i_missing_spec_paths() -> None:
-    _run_case(case_missing_spec_paths)
-
-
-def test_ac2j_missing_dep_targets() -> None:
-    _run_case(case_missing_dep_targets)
-
-
-def test_ac2k_dependency_cycles() -> None:
-    _run_case(case_dependency_cycles)
-
-
-def test_ac2l_type1_untracked_live_spec() -> None:
-    _run_case(case_type1_untracked_live_spec)
-
-
-def test_ac2m_type2_stale_entries() -> None:
-    _run_case(case_type2_stale_entries)
-
-
-def test_ac2n_type3_premature_shipped() -> None:
-    _run_case(case_type3_premature_shipped)
-
-
-def test_ac2o_multiple_active_for_workloop() -> None:
-    _run_case(case_multiple_active_for_workloop)
-
-
-def test_ac2p_deferred_backlog_anchors() -> None:
-    _run_case(case_deferred_backlog_anchors)
-
-
-def test_strategy_prefix_gap() -> None:
-    _run_case(case_strategy_prefix_gap)
-
-
-def test_ac3f_shaping_item_guard() -> None:
-    _run_case(case_shaping_item_guard)
-
-
-def test_ac3f_shaping_guard_paused_initiative() -> None:
-    _run_case(case_shaping_guard_paused_initiative)
-
-
-def test_ac3f_shaping_guard_top_level_backlog() -> None:
-    _run_case(case_shaping_guard_top_level_backlog)
-
-
-def test_extract_repo_backlog_preserves_declared_display_data() -> None:
-    _run_case(case_extract_repo_backlog_preserves_declared_display_data)
-
-
-def test_ac3g_type2_cleanup_ownership() -> None:
-    _run_case(case_type2_cleanup_ownership)
-
-
-def test_ac2d_active_local_dep() -> None:
-    _run_case(case_local_work_dep_blocked_by_active)
-
-
-def test_ac2d_dup_queue_excluded() -> None:
-    _run_case(case_queue_entries_in_active_or_shipped_excluded)
-
-
-def test_ac3a_dag_all_needs_prefixes() -> None:
-    _run_case(case_dag_all_needs_prefixes)
-
-
-def test_type2_cleanup_mutation_contract() -> None:
-    _run_case(case_type2_cleanup_mutation_contract)
-
-
-def test_type1_type3_no_cleanup() -> None:
-    _run_case(case_type1_type3_no_cleanup)
-
-
-def test_research_type_filter() -> None:
-    _run_case(case_research_type_filter)
-
-
-def test_untyped_backlog_not_shaping() -> None:
-    _run_case(case_untyped_backlog_not_shaping)
-
-
-def test_shaping_classifications() -> None:
-    _run_case(case_shaping_classifications)
-
-
-def test_type2_cleanup_duplicate_source() -> None:
-    _run_case(case_type2_cleanup_duplicate_source)
-
-
-def test_integration_full_analyze() -> None:
-    _run_case(case_full_analyze)
-
-
-def test_shaping_deduplication() -> None:
-    _run_case(case_shaping_deduplication)
-
-
-def test_work_loop_stale_warnings() -> None:
-    _run_case(case_work_loop_stale_warnings)
-
-
-def test_work_loop_stale_both_lists() -> None:
-    _run_case(case_work_loop_stale_both_lists)
-
-
-def test_work_loop_slug_normalization() -> None:
-    _run_case(case_work_loop_slug_normalization)
-
-
-def test_missing_status_not_active() -> None:
-    _run_case(case_missing_status_not_active)
-
-
-def test_nonletter_transition_segment() -> None:
-    _run_case(case_nonletter_transition_segment)
-
-
-def test_safe_spec_path_dot_segments() -> None:
-    _run_case(case_safe_spec_path_dot_segments)
-
-
-def test_analyze_bounded_skips_type1() -> None:
-    _run_case(case_analyze_bounded_skips_type1)
-
-
-def test_analyze_bounded_file_counts() -> None:
-    _run_case(case_analyze_bounded_file_counts)
-
-
-def test_analyze_full_file_counts() -> None:
-    _run_case(case_analyze_full_file_counts)
-
-
-def test_explain_item_ready() -> None:
-    _run_case(case_explain_item_ready)
-
-
-def test_explain_item_blocked() -> None:
-    _run_case(case_explain_item_blocked)
-
-
-def test_explain_item_active() -> None:
-    _run_case(case_explain_item_active)
-
-
-def test_explain_item_active_downstream() -> None:
-    _run_case(case_explain_item_active_downstream)
-
-
-def test_explain_item_shipped() -> None:
-    _run_case(case_explain_item_shipped)
-
-
-def test_explain_item_not_found() -> None:
-    _run_case(case_explain_item_not_found)
-
-
-def test_explain_item_ambiguous_cross_initiative() -> None:
-    _run_case(case_explain_item_ambiguous_cross_initiative)
-
-
-def test_explain_item_within_ini_duplicate_not_ambiguous() -> None:
-    _run_case(case_explain_item_within_ini_duplicate_not_ambiguous)
-
-
-def test_explain_item_shaping_only_not_found() -> None:
-    _run_case(case_explain_item_shaping_only_not_found)
-
-
-def test_explain_item_downstream_sole_blocker() -> None:
-    _run_case(case_explain_item_downstream_sole_blocker)
-
-
-def test_explain_item_downstream_not_sole_blocker() -> None:
-    _run_case(case_explain_item_downstream_not_sole_blocker)
-
-
-def test_explain_item_downstream_cross_ini_excluded() -> None:
-    _run_case(case_explain_item_downstream_cross_ini_excluded)
-
-
-def test_analyze_bounded_path_traversal_entry() -> None:
-    _run_case(case_analyze_bounded_path_traversal_entry)
-
-
-# ── Order 2B: compute_repair_plan ─────────────────────────────────────────────
-
-def test_compute_repair_plan_queue_shipped() -> None:
-    _run_case(case_compute_repair_plan_queue_shipped)
-
-
-def test_compute_repair_plan_queue_archived() -> None:
-    _run_case(case_compute_repair_plan_queue_archived)
-
-
-def test_compute_repair_plan_bare_archived_duplicate_is_manual() -> None:
-    _run_case(case_compute_repair_plan_bare_archived_duplicate_is_manual)
-
-
-def test_compute_repair_plan_bare_archived_unsupported_string_is_manual() -> None:
-    _run_case(case_compute_repair_plan_bare_archived_unsupported_string_is_manual)
-
-
-def test_compute_repair_plan_bare_archived_top_level_duplicate_is_manual() -> None:
-    _run_case(case_compute_repair_plan_bare_archived_top_level_duplicate_is_manual)
-
-
-def test_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual() -> None:
-    _run_case(case_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual)
-
-
-def test_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual() -> None:
-    _run_case(case_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual)
-
-
-def test_compute_repair_plan_active_source_is_manual() -> None:
-    _run_case(case_compute_repair_plan_active_source_is_manual)
-
-
-def test_compute_repair_plan_type1_manual() -> None:
-    _run_case(case_compute_repair_plan_type1_manual)
-
-
-def test_compute_repair_plan_type3_manual() -> None:
-    _run_case(case_compute_repair_plan_type3_manual)
-
-
-def test_compute_repair_plan_approved_not_eligible() -> None:
-    _run_case(case_compute_repair_plan_approved_not_eligible)
-
-
-def test_compute_repair_plan_path_in_queue_and_active() -> None:
-    _run_case(case_compute_repair_plan_path_in_queue_and_active)
-
-
-def test_compute_repair_plan_duplicate_path_in_queue() -> None:
-    _run_case(case_compute_repair_plan_duplicate_path_in_queue)
-
-
-def test_compute_repair_plan_fingerprint_is_sha256() -> None:
-    _run_case(case_compute_repair_plan_fingerprint_is_sha256)
-
-
-def test_compute_repair_plan_empty_reconciliation() -> None:
-    _run_case(case_compute_repair_plan_empty_reconciliation)
-
-
-def test_compute_repair_plan_has_plan_id() -> None:
-    _run_case(case_compute_repair_plan_has_plan_id)
-
-
-def test_compute_repair_plan_operation_has_spec_status_fingerprint() -> None:
-    _run_case(case_compute_repair_plan_operation_has_spec_status_fingerprint)
-
-
-def test_compute_repair_plan_invalid_structured_source_is_manual() -> None:
-    _run_case(case_compute_repair_plan_invalid_structured_source_is_manual)
-
-
-def test_compute_repair_plan_malformed_structured_needs_is_manual() -> None:
-    _run_case(case_compute_repair_plan_malformed_structured_needs_is_manual)
-
-
-def test_compute_repair_plan_provenance_mismatch_is_manual() -> None:
-    _run_case(case_compute_repair_plan_provenance_mismatch_is_manual)
 
 
 def _make_finding(finding_type: int, spec_path: str, spec_status: str,
@@ -3548,6 +3230,8 @@ CASES = [
     ("AC2f-list list_valued_needs", case_list_valued_needs),
     ("AC2g ready_and_transitively_blocked", case_ready_and_transitively_blocked),
     ("AC2h spec_statuses", case_spec_statuses),
+    ("AC2h spec_status_parser_boundaries", case_spec_status_parser_boundaries),
+    ("AC2h spec_status_sister_function_parity", case_spec_status_sister_function_parity),
     ("AC2i missing_spec_paths", case_missing_spec_paths),
     ("AC2j missing_dep_targets", case_missing_dep_targets),
     ("AC2k dependency_cycles", case_dependency_cycles),
@@ -3670,18 +3354,38 @@ CASES = [
 ]
 
 
+class TestWorkspaceStatusCases(unittest.TestCase):
+    """Expose the direct runner's exact semantic registry to test collectors."""
+
+
+def _make_registry_test(case: Callable[[], None]) -> Callable[[unittest.TestCase], None]:
+    """Build one unittest method backed by an exact registry callable."""
+    def test_case(_self: unittest.TestCase) -> None:
+        _run_case(case)
+
+    test_case._workspace_status_case = case  # type: ignore[attr-defined]
+    return test_case
+
+
+for _case_index, (_case_label, _case_callable) in enumerate(CASES):
+    _case_slug = re.sub(r"[^a-z0-9]+", "_", _case_label.lower()).strip("_")
+    setattr(
+        TestWorkspaceStatusCases,
+        f"test_{_case_index:03d}_{_case_slug}",
+        _make_registry_test(_case_callable),
+    )
+del _case_callable, _case_index, _case_label, _case_slug
+
+
 def main() -> int:
     passed = 0
     failed = 0
-    skipped = 0
     for label, fn in CASES:
         before = len(FAILURES)
         try:
             fn()
         except unittest.SkipTest as exc:
-            print(f"  ⊘  {label}: {exc}")
-            skipped += 1
-            continue
+            FAILURES.append(f"{label}: unexpected skip: {exc}")
         except Exception as exc:
             FAILURES.append(f"{label}: exception: {exc}")
         after = len(FAILURES)
@@ -3693,10 +3397,7 @@ def main() -> int:
                 print(f"  ✖  {msg}")
             failed += 1
 
-    summary = f"{passed} passed, {failed} failed"
-    if skipped:
-        summary += f", {skipped} skipped"
-    print(f"\n{summary}")
+    print(f"\n{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
 
