@@ -616,9 +616,11 @@ def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
 
 # STUB: AC16
 def test_noop_paths_do_not_write(tmp: Path) -> None:
-    """test-loop-cohort.sh:426-436 covers the unlocked read-only `status` verb
-    and does NOT cover this: a LOCKED verb's early-return path must still leave
-    the file byte-identical."""
+    """The CLI self-test covers the unlocked read-only ``status`` verb.
+
+    It does not cover this: a locked verb's early-return path must still leave
+    the file byte-identical.
+    """
     root = tmp / "noop"
     root.mkdir(parents=True)
     repo = _init_git_repo(root)

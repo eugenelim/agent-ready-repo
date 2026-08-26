@@ -8,9 +8,9 @@ a cohort that was mid-review when core upgraded holds 40-hex values in its
 state.json, and `review record --fingerprint` would hard-reject them if the
 validator only accepted the new width.
 
-These cases live here rather than in test-loop-cohort.sh because that fixture
-is sequential and its counter assertions accumulate — inserting a successful
-`review record` there shifts every downstream expected count.
+These algorithm-specific cases stay in their focused pytest module rather than
+the cross-platform CLI self-test, whose single legacy-width case protects only
+the end-to-end command contract.
 
 Run with pytest.
 """

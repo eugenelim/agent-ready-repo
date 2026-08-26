@@ -53,7 +53,7 @@ on:
       - 'packs/core/tests/skills/work-loop/test_loop_engine.py'
       - 'packs/core/tests/skills/work-loop/test_statelock.py'
       - 'packs/core/tests/skills/work-loop/test_loop_concurrency.py'
-      - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
+      - 'packs/core/tests/skills/work-loop/test_loop_cohort_cli.py'
       - 'tests/roster/test_work_loop_root_validation.py'
       - 'packs/core/tests/skills/work-loop/test_fingerprint_width.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py'
@@ -200,11 +200,17 @@ jobs:
       - name: Install pytest
         run: python -m pip install pytest
       - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
-        run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
       - name: Python test suite — loop-cohort
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q --durations=10
       - name: Python test suite — loop-engine FSM
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q --durations=10
+      - name: Python test suite — loop state lock
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_statelock.py -q --durations=10
+      - name: Python test suite — loop concurrency
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_concurrency.py -q --durations=10
+      - name: Python test suite — base freshness
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_check_base_freshness.py -q --durations=10
       - name: Python test suite — CLI path-argument boundary validators
         run: python3 -m pytest tests/roster/test_work_loop_root_validation.py -q
       - name: Python test suite — review-fingerprint algorithm + width contract

@@ -26,9 +26,8 @@ name: build-check-windows
 # That command encapsulates the bundler build, the self-host drift gates,
 # and the AgentBundle/pack path-sensitive and encoding-sensitive pytest suite
 # that this job exists to verify. The canonical test list lives in
-# agentbundle/catalogue_tooling/self_host_windows.py — edit it there,
-# not here — so adding a new Windows-specific test requires only a Python
-# change, not a YAML edit.
+# agentbundle/catalogue_tooling/self_host_windows.py. Pack-owned portability
+# tests remain explicit workflow steps so they do not widen the shipped CLI.
 #
 # CredBroker's package suite runs in its own parallel Windows job below. Keep it
 # separate so a slow package suite cannot consume the AgentBundle compatibility
@@ -105,6 +104,9 @@ jobs:
         # → experience lint → pre-pr aggregator → okf compiler checks. Stops on
         # first failure.
         run: agentbundle catalogue self-host --check --windows --root .
+
+      - name: pytest loop-cohort CLI portability
+        run: python -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
 
   credbroker-tests-windows:
     name: pytest credbroker (windows)

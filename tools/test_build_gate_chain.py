@@ -12,6 +12,7 @@ import ast
 import contextlib
 import io
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -76,6 +77,82 @@ class PackSkillPytestShapeTest(unittest.TestCase):
             if legacy:
                 failures.append(f"{path.relative_to(root)}: undiscoverable cases {legacy}")
         self.assertEqual(failures, [], "\n".join(failures))
+
+
+class LoopCohortGateDecouplingTest(unittest.TestCase):
+    """The CLI port and its five delegated suites stay independent gates."""
+
+    def test_test_all_keeps_all_six_loop_gates_independent(self):
+        root = Path(__file__).resolve().parents[1]
+        namespace = runpy.run_path(str(root / "tools/test-all.py"))
+        commands = dict(namespace["TESTS"])
+        expected = {
+            "loop-cohort": "test_loop_cohort_cli.py",
+            "loop-cohort-unit": "test_loop_cohort.py",
+            "loop-engine": "test_loop_engine.py",
+            "loop-statelock": "test_statelock.py",
+            "loop-concurrency": "test_loop_concurrency.py",
+            "loop-base-freshness": "test_check_base_freshness.py",
+        }
+
+        for label, filename in expected.items():
+            with self.subTest(label=label):
+                command = commands[label]
+                self.assertEqual(command[:3], [sys.executable, "-m", "pytest"])
+                self.assertIn("--durations=10", command)
+                self.assertTrue(command[-1].endswith(filename), command)
+
+    def test_docs_workflow_profiles_all_six_loop_gates(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
+        block = workflow.split("  loop-cohort:\n", 1)[1].split("\n  hooks:\n", 1)[0]
+        filenames = (
+            "test_loop_cohort_cli.py",
+            "test_loop_cohort.py",
+            "test_loop_engine.py",
+            "test_statelock.py",
+            "test_loop_concurrency.py",
+            "test_check_base_freshness.py",
+        )
+
+        suite_lines: list[tuple[str, list[str]]] = []
+        for line in block.splitlines():
+            command = line.strip()
+            if not command.startswith("run: python3 -m pytest "):
+                continue
+            matched_filenames = [filename for filename in filenames if filename in command]
+            if matched_filenames:
+                suite_lines.append((command, matched_filenames))
+
+        self.assertEqual(len(suite_lines), len(filenames), suite_lines)
+        for command, matched_filenames in suite_lines:
+            with self.subTest(command=command):
+                self.assertEqual(len(matched_filenames), 1, matched_filenames)
+                self.assertTrue(command.endswith("-q --durations=10"), command)
+        self.assertEqual(
+            {matched_filenames[0] for _, matched_filenames in suite_lines},
+            set(filenames),
+        )
+
+    def test_windows_workflow_runs_portable_cli_suite(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/build-check-windows.yml").read_text(
+            encoding="utf-8"
+        )
+        block = workflow.split("  agentbundle-windows:\n", 1)[1].split(
+            "\n  credbroker-tests-windows:\n", 1
+        )[0]
+        expected = (
+            "run: python -m pytest "
+            "packs/core/tests/skills/work-loop/test_loop_cohort_cli.py "
+            "-q --durations=10"
+        )
+        commands = [
+            line.strip()
+            for line in block.splitlines()
+            if "test_loop_cohort_cli.py" in line
+        ]
+        self.assertEqual(commands, [expected])
 
 
 class BanditRegistryProvisioningTest(unittest.TestCase):
@@ -372,7 +449,10 @@ class CiPytestProvisioningTest(unittest.TestCase):
         workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
         jobs = {
             "lint-knowledge": ("loop-cohort", "run: python3 -m pytest"),
-            "loop-cohort": ("hooks", "run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh"),
+            "loop-cohort": (
+                "hooks",
+                "run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10",
+            ),
         }
 
         for job, (next_job, first_pytest_step) in jobs.items():
