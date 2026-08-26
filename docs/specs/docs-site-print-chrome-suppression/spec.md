@@ -1,6 +1,6 @@
 # Spec: Docs-site print chrome suppression
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -52,8 +52,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   deliberately unlayered, and layering an override component silently demotes its
   `:focus-visible` rules below it.
 - Using `!important` to make `print:hidden` authoritative site-wide. It works,
-  and it generalises past the demonstrated boundary the audit's decision rule
-  confines this change to.
+  and it generalises past the demonstrated boundary this spec voluntarily
+  adopts from the print audit's `shape` bar.
 
 ### Never do
 
@@ -123,10 +123,13 @@ Every acceptance criterion below names its mode.
       unchanged and passing, and the added 717px print case passes alongside it.
       `docs/guides/how-to/verify-a-site-release.md` describes the gate as that
       matrix plus the print case.
-- [ ] `docs-site/AGENTS.md` records, under its action-changing traps, that
-      `print:hidden` does not suppress an element whose own unlayered component
-      rule sets `display`, and that layering a `docs-site` rule to win that
-      contest demotes the component's `:focus-visible` offset.
+- [ ] `docs-site/AGENTS.md` records, under its action-changing traps, three
+      things: that `print:hidden` does not suppress an element whose own unlayered
+      component rule sets `display`; that layering a `docs-site` rule to win that
+      contest demotes the component's `:focus-visible` offset; and that
+      `docs-site` now carries one `@media print` rule, naming `Footer.astro` as
+      its location — so a reader who finds "no print CSS from this programme" in
+      the frozen `notes/print-audit.md` is corrected at the point of use.
 
 ## Assumptions
 
@@ -168,13 +171,13 @@ Every acceptance criterion below names its mode.
   2026-08-25)
 - Governance: `docs/specs/site-browser-quality-gate/notes/print-audit.md` is not
   amended and not superseded. It sits inside a Shipped spec directory, so it is
-  frozen, and `docs/CONVENTIONS.md:170` is explicit that an append is a body edit.
+  frozen, and `docs/CONVENTIONS.md:160-165` is explicit that an append is a body edit.
   No amendment is needed either: the audit's operative sentence is scoped to
   "**this programme**", and this spec carries `Brief: none` — it is its own
   programme, authored after `tech-site-completion` closed. The audit's claims
   therefore all remain true as written, including its `close-stale` disposition,
   its six measured rows, and its `## Residual` reading of surviving chrome, which
-  was accurate on the axes it measured (source: `docs/CONVENTIONS.md:104,146-170`;
+  was accurate on the axes it measured (source: `docs/CONVENTIONS.md:104,160-165`;
   user confirmation 2026-08-25)
 - Governance: the observed failure would satisfy all five of the audit's `shape`
   requirements — an exact failing row, the smallest necessary rule, construction

@@ -64,6 +64,27 @@ const pathname = Astro.url.pathname.startsWith(docsBase)
     gap: 1.5rem;
   }
 
+  /* Navigation-only chrome; content, not this, is what a printed page is for.
+   *
+   * Starlight's `print:hidden` utility CANNOT do this job here. It declares
+   * `display:none` inside `@media print`, but both it and the rule above compile
+   * unlayered at (0,1,0) — Astro's `:where()` scoping adds no specificity — so
+   * the tie falls to source order, and Astro links the print sheet FIRST. The
+   * `display:grid` above wins, silently, and the footer's navigation prints.
+   * Suppressing here instead wins within this file, independent of link order.
+   *
+   * Do NOT "fix" this by wrapping this <style> in `@layer starlight.core`. The
+   * docs custom sheet is deliberately unlayered (src/styles/starlight.css:8-9),
+   * so layering would demote this component's `:focus-visible` rule below it and
+   * drop the focus outline-offset from 3px to 2px on every focusable element in
+   * the footer — a regression the browser gate cannot see, because it never
+   * reads `outlineOffset`. */
+  @media print {
+    .docs-site-footer__groups {
+      display: none;
+    }
+  }
+
   .docs-site-footer__group h2 {
     margin: 0 0 0.65rem;
     color: var(--doc-heading);

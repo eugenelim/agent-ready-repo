@@ -1,14 +1,14 @@
 # Plan: Docs-site print chrome suppression
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved
 - **Repository anchors:** `docs-site/AGENTS.md` (build order, styling
   invariants, vendored-Starlight rule); `web/AGENTS.md` (gate browser,
   preview-server daemonization, snapshot-staging rule);
   `docs/specs/site-shared-chrome/spec.md` (the docs footer's emission contract
   and its mutation-proved AC precedent, § Acceptance Criteria rows 7-9);
   `docs/specs/site-browser-quality-gate/notes/print-audit.md` (the accepted
-  audit this amends, and the 717px measurement method it owns);
+  audit this spec leaves untouched, and the 717px measurement method it owns);
   `web/src/test/e2e/site-quality-gate.spec.ts` + `site-base.ts` (the pinned gate
   spec the new assertion joins, and its configuration-derived base);
   `tools/test-pages-workflow.py:93-96` (the gate-script pin and its rationale).
@@ -34,7 +34,7 @@ Two alternatives were designed and discarded, both recorded in § Changelog
 because each looked right and was not:
 
 - **A global `!important` on `.print\:hidden`.** Wins, but generalises past the
-  demonstrated boundary, contrary to the audit's `shape` bar.
+  demonstrated boundary this spec voluntarily adopts from the audit's `shape` bar.
 - **A cascade-layer wrapper on the override components.** Would demote their
   `:focus-visible` rules below the unlayered custom sheet, flipping
   `outline-offset` 3px→2px across 228 docs pages — invisible to the gate, which
@@ -94,8 +94,8 @@ observe it pass. Both outcomes are written to
   the class does nothing on that element. Keeping it would leave a second
   apparent mechanism that a future reader would trust.
 - **Do not make the utility authoritative.** That is a real improvement and a
-  real generalisation past the demonstrated boundary; the audit's decision rule
-  bars it, and `!important` is now listed under spec Boundaries *Ask first* so
+  real generalisation past the demonstrated boundary this spec adopts from the
+  audit's bar; and `!important` is now listed under spec Boundaries *Ask first* so
   the option is visible rather than forgotten.
 - **Scope to the docs footer.** `PageFrame.astro` and `PageTitle.astro` set no
   `display` on a utility-bearing element, so they exhibit no defect. The general
@@ -123,7 +123,7 @@ and screen rendering are identical before and after.
 ### Quality attributes (NFRs)
 
 Screen rendering unchanged across the gate's 60-case matrix — eight marketing
-routes × five widths, plus two docs routes × five widths × two themes (spec AC8).
+routes × five widths, plus two docs routes × five widths × two themes (spec AC7).
 
 ## Tasks
 
@@ -200,7 +200,7 @@ reporting `grid`, the record exists, and `rendered-output.test.ts` is green.
   solely of navigation chrome. Verifies spec AC5.
 - Goal-based: `npm run test:e2e:gate --prefix web` is green, and a grep confirms
   `docs/guides/how-to/verify-a-site-release.md` describes the gate as the 60-case
-  matrix plus the print case. Verifies spec AC8, both halves.
+  matrix plus the print case. Verifies spec AC7, both halves.
 - Goal-based: `grep` finds the trap text in `docs-site/AGENTS.md`. Verifies spec AC8.
 
 **Approach:**
@@ -210,7 +210,7 @@ reporting `grid`, the record exists, and `rendered-output.test.ts` is green.
   `:focus-visible` offset below `src/styles/starlight.css`.
 - Regenerate the print PDFs for the five documentation routes and read them.
 - **Do not touch `notes/print-audit.md`.** It is inside a Shipped spec directory
-  and therefore frozen; `docs/CONVENTIONS.md:170` counts an append as a body
+  and therefore frozen; `docs/CONVENTIONS.md:160-165` counts an append as a body
   edit. No amendment is owed: the audit's statement is scoped to "this
   programme", and this spec carries `Brief: none`, so the audit stays true as
   written. An earlier draft of this task planned that append and was wrong.
@@ -230,10 +230,17 @@ navigation-only page, the gate is green, and
   passes.
 
 **Approach:**
-- Add the spec to `workspace.toml` and to the active list in
-  `docs/specs/README.md`.
+- Add the spec to `workspace.toml` with `source = {mode = "repo-origin"}` and no
+  `parent` key. This is the shape a brief-less spec takes and it is the majority
+  form, not an improvisation: 113 registered entries use `repo-origin` without a
+  parent against 10 with one, and `docs/specs/work-intake-migration-docs/spec.md`
+  is a verbatim precedent. A `parent` would be wrong here — it back-links a brief
+  this spec deliberately does not claim.
+- Add the spec to the active list in `docs/specs/README.md`.
 
-**Done when:** the spec-status lint is clean.
+**Done when:** the spec-status lint is clean and `workspace-status` reconciles the
+new entry without a finding — the parent-less shape is confirmed by the tool, not
+assumed.
 
 ## Rollout
 
@@ -250,11 +257,14 @@ navigation-only page, the gate is green, and
   component that sets `display` on a `print:hidden` element breaks the same way.
   Mitigated by the `AGENTS.md` trap, not by code; accepted because the audit's
   decision rule bars generalising past the demonstrated boundary.
-- **The audit amendment is a governance edit to an Accepted document.** Mitigated
-  by naming, in the note itself, every section that stands unchanged **and
-  scoping `## Decision rule` and `## Residual` to the axes they measure** —
-  declaring those two unchanged would assert the reconciliation rather than
-  perform it.
+- **The frozen audit keeps a reading this spec's evidence contradicts.** A reader
+  who greps `notes/print-audit.md` finds "no print CSS from this programme" and
+  `## Residual`'s "not a demonstrated contract failure", with no pointer to this
+  spec in view. That residue is real and is accepted rather than patched —
+  `docs/CONVENTIONS.md:160-165` accepts exactly this cost and names the mitigation:
+  the operative instruction lives in a Living file at the point of use, which here
+  is the `docs-site/AGENTS.md` trap (spec AC8). **Do not** discharge this risk by
+  editing the audit; that is the body edit T3 forbids.
 - **E2E print coverage is new.** The gate spec has none today. Mitigated by
   mutation-proving the case and by placing it where CI already runs.
 

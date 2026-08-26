@@ -57,6 +57,20 @@ npm run build --prefix docs-site
   reports nothing running and leaves the orphan holding the port.
 - After a Starlight upgrade, re-verify dependent integration contracts against
   vendored `node_modules/@astrojs/starlight` components.
+- Starlight's `print:hidden` does **not** suppress an element whose own component
+  `<style>` sets `display`, and it fails silently: both compile unlayered at
+  `(0,1,0)` — Astro's `:where()` adds no specificity — and the print sheet links
+  first, so the component wins. Suppress in that component's own `<style>`.
+  Native Starlight components are unaffected; theirs sit in `@layer
+  starlight.core`, which the unlayered utility outranks. Never fix this by
+  layering a `docs-site` rule: `src/styles/starlight.css` is deliberately
+  unlayered, and layering an override drops its `:focus-visible` `outline-offset`
+  3px→2px, which no gate catches — `web/src/test/e2e/quality-assertions.ts` never
+  reads `outlineOffset`. Full reasoning: the comment in `Footer.astro`.
+- `docs-site` carries exactly one `@media print` rule, in `Footer.astro`, hiding
+  the footer's nav groups (`spec/docs-site-print-chrome-suppression`). The frozen
+  `site-browser-quality-gate/notes/print-audit.md` says "no print CSS from this
+  programme" and is still correct — that is a different, earlier programme.
 
 ## Deeper pointers
 

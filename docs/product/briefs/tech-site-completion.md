@@ -314,8 +314,9 @@ from producing print rules. Both are in `workspace.toml [backlog].closed`.
 Completion item 9 is met through its "narrowly scoped follow-up fixes" clause:
 that human review found one print defect — the docs footer's navigation printing,
 producing a navigation-only final page on four of five documentation routes —
-which is owned by `spec/docs-site-print-chrome-suppression` rather than by this
-brief. Completion item 10 is met as written: physical-device review *remains* an
+which was carved out to a separate programme rather than reopening this cut. That
+programme is not a slice of this brief and carries no `Brief:` back-link, so it
+does not appear in the coverage map above. Completion item 10 is met as written: physical-device review *remains* an
 explicit manual release check, and
 [`docs/guides/how-to/verify-a-site-release.md`](../../guides/how-to/verify-a-site-release.md)
 records it as **Blocked** with a named owner. Closing this brief does not
