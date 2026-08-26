@@ -1,37 +1,6 @@
-# workspace.toml
-#
-# Declared-intent coordination artifact for this repo.
-# Each initiative gets its own named section. Skills read this file at session
-# start to orient to the current queue state — run `workspace-status` to surface
-# ready items, blocked items, and active signals.
-#
-# Queue entries are strings (no dependencies) or inline objects {path/slug, needs}
-# (with dependencies). `needs` uses queue-prefix notation:
-#   "work:<path>"      — depends on a work queue entry
-#   "shape:<slug>"     — depends on a shaping queue entry
-#   "research:<slug>"  — depends on a research entry
-#   "brief:<path>"     — depends on a brief queue entry
-#   "backlog:<slug>"   — depends on a repo-level [backlog] item
-# Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
-#
-# shaping_queue entry types: shape | research | strategy | signal | design
-#   shape    → frame-intent (or frame-situation when PE pack is available)
-#   research → desk-research-project-start (requires desk-research pack)
-#   strategy → frame-situation (PE pack — M2); interim: frame-intent
-#   signal   → no action; surfaces in "active context" section only
-#   design   → experience-status (requires experience-design pack); fallback: journey-mapping
-#
-# Note: the top-level [backlog] section (repo-durable — open work not scoped to
-# an active initiative) is distinct from a shaping_queue's `backlog` array (its
-# non-active tier).
-#
-# [backlog] holds two arrays. `open` is live work; `closed` is work whose
-# disposition is settled, kept rather than deleted so a reader arriving from a
-# stale reference finds the reason instead of a silent gap. Neither is
-# dispatchable — `workspace-status` surfaces backlog items as context only, and a
-# "backlog:<slug>" dependency is satisfied by the item appearing in `closed`.
-# Moving an item between them is a deliberate edit that records what closed it and
-# names any residual the closure does not cover.
+# Current declared intent. Structured fields are authoritative; durable rationale
+# belongs in the cited artifact or Git history. Comments state only current facts
+# that the schema cannot express.
 
 ["ini-002"]
 name      = "Platform Core"
@@ -140,17 +109,17 @@ ready     = [
 draft     = []
 
 ["ini-002".work]
-active  = [
-  {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
-]
+active  = []
 shipped = [
+  {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
+  {path = "docs/specs/agents-md-lost-obligations/spec.md", kind = "spec", source = {mode = "repo-origin", revision = "0e1c1b04b0f7b46d9edaee319f6f194569816709"}, summary = "Restore AGENTS.md obligations lost during instruction-surface simplification", needs = []},
+  {path = "docs/specs/rfc0088-round10-measurement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "a02389adad6033ccd684969db66418b25a238d52"}, summary = "Measure the four bounded RFC-0088 round-10 residuals", needs = []},
   {path = "docs/specs/local-ci-shared-test-deduplication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25"}, summary = "Execute five build-check-owned shared test files only once within one composed make ci", needs = []},
   {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
   {path = "docs/specs/adjudicator-evidence-and-remedy-predicate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-24"}, summary = "Bound machine-checkable adjudication evidence retries and distinguish wrong remedy mechanisms", needs = []},
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
   {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
   {path = "docs/specs/rfc0088-round15-reference-consumer/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run the reference-consumer observation on both admitted channels and record the per-group split-cost measurement result", needs = []},
-  # P5 · Adopt — independent slices constrained by adopter-persona evidence.
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
@@ -160,15 +129,6 @@ shipped = [
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
-  # Tech-site design review 2026-08-14 follow-up. Typed callouts were effectively
-  # unused: 3 of 188 guides used Starlight `:::` asides while 74 used plain `>`
-  # blockquotes, including load-bearing recovery notes and pitfalls. They rendered
-  # as an undifferentiated thin grey rule with no icon, tint, or label. Fix:
-  # classify every load-bearing blockquote as note, tip, caution, or danger and
-  # convert it, while leaving genuine quotations as blockquotes; document typed
-  # asides as the default for non-quotation callouts in the catalogue authoring
-  # standards. Decision: use Starlight's fixed vocabulary and do not wait on
-  # site-design-principles.
   {path = "docs/specs/guide-typed-asides-conversion/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Convert load-bearing guide blockquotes to typed Starlight asides while preserving genuine quotations", needs = []},
   {path = "docs/specs/work-loop-step0-observability/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "work-loop-step0-observability", needs = []},
   {path = "docs/specs/product-documentation-pack/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "product-documentation pack (Phase 1)", needs = []},
@@ -221,7 +181,6 @@ shipped = [
   {path = "docs/specs/workspace-status-simplification-order-2b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status simplification — Order 2B", needs = []},
   {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
-  # Tech-site completion programme — shipped 2026-08-17.
   {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
   {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = [{type = "local", kind = "spec", path = "docs/specs/site-ci-contract-closure/spec.md"}]},
   {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
@@ -234,8 +193,6 @@ shipped = [
   {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
   {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
 
-  # Shipped 2026-08-19. All 15 acceptance criteria met; AC15's design-review
-  # clause closed by a third recorded review returning no Major or worse.
   {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
   {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = []},
   {path = "docs/specs/local-ci-orchestration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Remove duplicate local CI orchestration and resolve Make's default Python once", needs = []},
@@ -243,55 +200,9 @@ shipped = [
   {path = "docs/specs/shaping-intake-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "f7660b00820dc06cf7f4618e0b6479d135e5c726"}, summary = "Reuse optional shaping and external work through portable core intake routing", needs = []},
 ]
 queue   = [
-  # Work-loop runtime: one transition, one Python process. `loop-engine.py
-  # transition` shelled out to `loop-cohort.py` and `check-spec-status.py` for
-  # its read-only guards, so a single transition started up to three extra
-  # interpreters (measured 2026-08-17 over nine representative paths). The guard
-  # decisions move to a shared, callable, silent, non-mutating sibling module
-  # that the engine and the existing CLIs both call, so the two surfaces cannot
-  # drift. Read-only guard surface only: no FSM, state-schema, or mutation-verb
-  # change, and no MCP, daemon, or new dependency.
-
-  # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
-  # This sequence is adaptive: at each completed slice, compare measured behavior and
-  # repository evidence with the remaining entries. Update, split, combine, reorder, or
-  # retire later entries through normal review when their assumed shape has changed;
-  # queue comments are a roadmap, while each approved spec is the implementation truth.
-
-  # Slices 1 through 4 are shipped in the work list above. Their measured behavior is
-  # the adaptive starting point for every remaining slice; do not preserve an
-  # assumed integration shape when evidence supports splitting, combining,
-  # reordering, or retiring it.
-
-  # Slice 5 — engineering and operational integrations. Introduce explicit enquiry and
-  # semantic-gate capture where demonstrated useful in work-loop execution, diagnosis,
-  # contract acquisition, verification, and operational workflows. Route recurring
-  # hard-to-discover paths toward scoped agent instructions and repeated verification gaps
-  # toward normal work intake; never edit instructions or tooling automatically. Reassess
-  # the skill set and split boundaries after Slice 4 rather than treating this list as fixed.
   {path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with engineering and operational workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-research-integrations/spec.md"}]},
 
-  # Slice 6 — portable-lifecycle adoption closeout. Audit the catalogue to document which
-  # workflows should and should not integrate, evaluate capture precision, disposition
-  # completeness, retrieval usefulness/abstention, privacy refusals, latency, corpus growth,
-  # and instruction/tool-routing outcomes, then close residual docs and eval gaps. Its
-  # evidence is the gate for retention, richer local indexes, any external capture backend,
-  # and a separately governed multi-project bank. Reassess whether this remains one closeout
-  # spec after Slice 5; it must not implement those conditional follow-ons itself.
   {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
-
-  # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
-  # These entries are independently shippable. `needs` records only hard delivery
-  # ordering; the brief retains the broader wave and evidence sequence.
-  # CI throughput. Independent of the project-knowledge chain above — it touches
-  # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
-  # The critical path is set by one serial job, so the fix is job layout, not
-  # making any gate faster; the export-boundary gate's own cost is deferred.
-  # Follow-on to the spec above, under the same ADR-0086 decision: move the 27s
-  # credbroker suite out of gate-main into its own job. Deliberately the CHEAPEST
-  # extraction that reaches the current ceiling (gate-sast, mean 160s) — extracting
-  # more buys nothing until that job shrinks. The RFC-0082 carve-out step is an
-  # explicit non-goal; its coupling graph defeated four revisions of the spec above.
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -311,148 +222,12 @@ milestone = "M2 · Adoption + Shaping Doctrine"
 ["ini-003".work]
 active  = []
 queue   = [
-
-  # M2a · Product Strategy Adoption Doctrine
-  # Problem: product-strategy pack doesn't explicitly own adoption hypothesis,
-  #   first-success event, value loop, or causal metric tree. A strategy can
-  #   ship polished and choice-free, leaving first-success ownerless until a
-  #   growth pack exists.
-  # Deliver: 14-point strategy output structure (situation+diagnosis through
-  #   strategy-to-experience implications); strategy-to-experience section with
-  #   8 named fields; anti-pattern review (vision-without-choices, launch-as-
-  #   adoption, moat-without-mechanism, etc.); updated triggers + near-misses
-  #   across all PS skills; updated evals with weak fixtures (polished-but-
-  #   choice-free strategy, metric list without causal tree, unsupported moat
-  #   claim, etc.); define-content-strategy / XD content-hierarchy boundary
-  #   clarified in frontmatter.
-  #   Site/guide: update product-strategy pack page (web/ + site/) — jobs-first
-  #   layout; add how-to guide for authoring an adoption hypothesis + causal
-  #   metric tree; update product-strategy journey page to reflect the new
-  #   14-point output and strategy-to-experience handoff.
-  # Done: PS skills explicitly own adoption hypothesis + causal metric tree;
-  #   weak fixtures fail; pack page + journey page + adoption-hypothesis how-to
-  #   guide published.
+  # User-confirmed initiative fit; retained legacy route pending human-authored migration selection and spec materialization.
   {path = "spec/product-strategy-adoption-doctrine", needs = "work:spec/digital-experience-contract"},
-
-  # M2b · Product Engineering Shaping Doctrine
-  # Problem: PE shaping flow produces a complete brief but doesn't require a
-  #   thin end-to-end slice, first-success operationalization, or post-launch
-  #   learning contract. Gate language uses internal IDs. Options divergence is
-  #   a fixed-number ritual, not a decision-exposing minimum.
-  # Deliver: 19-field shaping output structure including thin-slice required
-  #   field and post-launch learning contract; thin-slice requirement in
-  #   place-bet (one user can begin a real task, reach a meaningful result,
-  #   encounter/recover from one material failure, and produce instrumentation);
-  #   evidence ladder (observed/supported/inferred/assumed/unknown); risk-selected
-  #   specialist lenses (product/experience/architecture/safety default + conditional
-  #   additions); plain-English gate language; updated evals with weak fixtures
-  #   (five fake alternatives, no first success, component-layer slice, bet with
-  #   no instrumentation, handoff saying "make it intuitive").
-  #   Site/guide: update product-engineering pack page (web/ + site/) — jobs-first;
-  #   update PE journey page (thin-slice + learning-contract steps visible); update
-  #   place-bet how-to guide to show what a good thin-slice definition looks like;
-  #   add how-to guide for writing a post-launch learning contract.
-  # Done: PE output always includes first-success + thin slice + learning contract;
-  #   gate language is human-readable; weak fixtures fail; pack page + journey
-  #   + relevant how-to guides updated.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
-
-  # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
-  # Problem: design-system produces a token taxonomy (method only; explicitly
-  #   refuses values). No skill bridges "derived taxonomy" → "set up this project's
-  #   token foundation" — phantom handoff. design-system's trigger "set up design
-  #   tokens" would clash with the new design-system-foundations skill. design-system
-  #   also misdescribes DTCG as "the W3C Design Tokens interchange shape."
-  # Deliver: rename design-system → design-token-taxonomy (ADR-0038 alias-free;
-  #   grep-verified sweep required; updated triggers: "derive a token taxonomy /
-  #   name our tokens by semantic role / derive our spacing and type scale"; near-miss
-  #   added: "set up / implement design tokens → design-system-foundations"); corrected
-  #   DTCG description; new design-system-foundations skill (lightweight mode: semantic
-  #   colors, typography, spacing, radius, focus, key statuses, responsive rules, core
-  #   components; full mode: DTCG 2025.10-compatible token source, light/dark themes,
-  #   semantic aliases, full component anatomy, generated platform outputs);
-  #   FE genre routing updated; XD pack version bump + evals.
-  #   Site/guide: update experience-design pack page to list design-system-foundations
-  #   and show the renamed design-token-taxonomy; update design journey page to show
-  #   the two-step design system chain (derive taxonomy → apply foundations); add
-  #   how-to guide covering when to use lightweight vs. full mode; update FE genre
-  #   routing how-to to reference design-system-foundations by name.
-  # Done: phantom handoff eliminated; design-token-taxonomy and design-system-foundations
-  #   have non-overlapping activation triggers; DTCG description accurate; pack page
-  #   + journey + how-to guides updated.
   {path = "spec/xd-design-system-foundations", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-
-  # M3c · XD Information Architecture, Page Archetypes, Product Objects
-  # Problem: XD has no page archetype references for key surface types (12+
-  #   types). No product-object mapping guidance. Card-use test not formalized.
-  #   Attention contract and read/write permission contract undefined.
-  # Deliver: references/page-archetypes.md covering ≥12 surface types (marketing
-  #   landing, onboarding, product workspace, dashboard/admin, transactional
-  #   flow, pack/catalogue, journey, tutorial, task how-to, reference index,
-  #   explanation, multi-surface) each with primary user, job, first-screen
-  #   contract, primary action, expected result, next action, proof, read/write
-  #   consequence, critical states, navigation behavior; product-object mapping
-  #   guidance (object the user creates / receives / inspects / changes / approves;
-  #   visual weight requirement); card-use test and non-card alternatives; attention
-  #   contract (no-action / optional-progress / decision-required / blocked-pending);
-  #   read/write permission contract (read-only / draft / proposed-write /
-  #   confirmed-write / destructive / undo-recovery).
-  #   Site/guide: add IA how-to guide (page archetypes — when to use which, with
-  #   the 12+ archetype quick-reference); update marketing site and docs site
-  #   pages that are the strongest examples of each archetype to link to the
-  #   relevant archetype spec; update design journey page to show IA + product-
-  #   object mapping as named steps.
-  # Done: IA skill references archetypes; product-object mapping is a required
-  #   workflow step; card-use test documented; IA how-to guide + archetype
-  #   reference published; design journey page updated.
   {path = "spec/xd-ia-archetypes-objects", needs = ["work:spec/digital-experience-contract", "work:spec/xd-skill-boundaries"]},
-
-  # M3d · XD State Coverage, Experience Reviewer Three Passes, Evals
-  # Problem: quality-floor.md state set is incomplete (missing offline, blocked,
-  #   destructive-confirmation, long-content, large-data-set, high-zoom, reduced-
-  #   motion, keyboard-only). design-review skill does a single-pass review.
-  #   Weak eval fixtures don't reflect current failure modes.
-  # Deliver: complete state set (18 states) in quality-floor.md; three-pass
-  #   experience-reviewer (pass 1: cold-read with audience+job+rendered only;
-  #   pass 2: primary task + one unhappy path, desktop/tablet/mobile, keyboard
-  #   + focus + zoom + reduced-motion; pass 3: contract review across all
-  #   disciplines); severity tiers (blocker / concern / suggestion) with rules
-  #   (don't soften a11y failure to suggestion; don't present aesthetic preference
-  #   as usability defect); rendered evidence required when rendered surface exists;
-  #   updated evals with weak fixtures (architecture-first hero, inventory-first
-  #   pack page, every-section-as-cards, desktop-only, missing permission states,
-  #   attractive-UI-with-unclear-write-consequences).
-  #   Site/guide: update design-review how-to guide to show the three-pass
-  #   structure and severity rubric; update state coverage reference in docs
-  #   (expand state table to 18 states with example treatment per state);
-  #   update design journey page to show design-review three-pass as the
-  #   explicit gate before handoff to FE.
-  # Done: all 18 states covered; reviewer three passes enforced; rendered
-  #   evidence required; weak fixtures fail; design-review how-to + state
-  #   reference + journey page updated.
   {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
-
-  # M5 · Cross-Pack Experience Eval
-  # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
-  #   through strategy → PE → XD → FE → rendered evidence → measurement. No
-  #   multi-intent routing examples. No deterministic checks for phantom handoffs,
-  #   contract field presence, or pack-copy drift.
-  # Deliver: golden-path eval (≥4 fixture types: public marketing+docs, SaaS
-  #   onboarding+workspace, internal dashboard, transactional service) evaluating
-  #   contract continuity, first-success continuity, strategy traceability, journey
-  #   continuity, product-object visibility, state coverage, responsive behavior,
-  #   accessibility, performance, instrumentation, uncertainty, reviewer findings;
-  #   multi-intent routing examples (audit-and-rebuild / full-stack-from-opportunity /
-  #   unify-marketing-docs-onboarding) that route across disciplines; weak
-  #   regression fixtures generalized from current failure modes; deterministic
-  #   checks (referenced skill exists, no phantom handoff, contract fields present
-  #   for risk mode, pack-copy drift ≤0, evidence manifest entries present);
-  #   all new evals start report-only (calibrate before promoting to gates).
-  #   Site/guide: add a brief how-to guide explaining how to run the cross-pack
-  #   eval, interpret the report-only output, and promote a fixture to a gate.
-  # Done: one cross-pack eval discriminates coherent from locally-polished-but-
-  #   globally-weak; deterministic checks pass; report-only mode green; eval
-  #   how-to guide published.
   {path = "spec/cross-pack-experience-eval", needs = [
     "work:spec/product-strategy-adoption-doctrine",
     "work:spec/product-engineering-shaping-doctrine",
@@ -462,25 +237,6 @@ queue   = [
     "work:spec/xd-state-reviewer-doctrine",
     "work:spec/frontend-engineering-doctrine-update",
   ]},
-
-  # M6 · Cross-Pack Integrative Guides (phase-slice doctrine: per-discipline
-  #   guides ship with their discipline spec above; this spec covers only the
-  #   integrative content that requires all disciplines to be complete first)
-  # Problem: no end-to-end tutorial shows the full
-  #   strategy→PE→XD→FE→rendered-review→measurement arc using a realistic
-  #   example. No cross-pack intent indexes ("I want to…" → skill or workflow).
-  #   No "under the hood" skill inventory restructure for pack pages that spans
-  #   multiple disciplines in one surface (marketing site + docs site + journeys).
-  # Deliver: end-to-end tutorial (realistic digital-product example — marketing
-  #   site or SaaS onboarding — expected outputs at each stage, where assumptions
-  #   remain, first step that changes code or remote state); cross-pack intent
-  #   indexes ("I want to…" → which pack + skill + guide for each common starting
-  #   job); audit of marketing site (web/) and docs site (site/) journey pages to
-  #   confirm all per-discipline guide updates from M2a–M5 are reflected; any
-  #   missing cross-discipline surface link-throughs added.
-  # Done: adopter can follow tutorial cold without repo knowledge; cross-pack
-  #   intent indexes route any common starting job to the right skill; web/ and
-  #   site/ journey pages are consistent with the full updated doctrine.
   {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
@@ -490,7 +246,6 @@ shipped = [
   {path = "docs/specs/frontend-engineering-doctrine-update/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "frontend-engineering-doctrine-update", needs = []},
   {path = "docs/specs/xd-skill-boundaries/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-skill-boundaries", needs = []},
 ]
-
 ["ini-003".shaping_queue]
 active  = []
 backlog = []
@@ -507,234 +262,74 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # Warning-baseline observation, NOT a gate failure. The repository baseline
-  # carries 65 CAT-S003/CAT-S004 skill-spec findings spread across twelve packs
-  # plus the projected `.claude/skills` tree — attributed on 2026-08-24 as
-  # atlassian 18, product-engineering 16, core 8, `.claude/skills` 8, linear 4,
-  # github/figma/converters 2 each, and architect/credential-brokers/
-  # desk-research/frontend-engineering/release-engineering 1 each. They are
-  # emitted as WARN, and `catalogue lint` computes its exit status from ERROR
-  # severity alone, so `catalogue lint --deep`, `pre_pr_catalogue.py`, and
-  # `make build-check` all pass with them present. Nothing is blocked.
-  # Ten of the 65 are on `work-loop/SKILL.md` itself (five in the pack source,
-  # five in its `.claude/` projection) — a file the review-finding-adjudication
-  # diff edits and lengthens past the 500-line body guidance the warning names.
-  # Those are confirmed pre-existing: the same warning fires at HEAD, and this
-  # diff makes the body longer without introducing the finding.
-  # The adjudication evidence, sentinel, and mechanism follow-ons formerly
-  # recorded here shipped under
-  # docs/specs/adjudicator-evidence-and-remedy-predicate/spec.md.
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
-  # Pre-existing enterprise-runtime restriction: bounded directory deletion and
-  # atomic directory rename are denied even beneath approved workspace and
-  # temporary roots. Two unchanged work-loop engine tests pass their
-  # non-regular-event-log assertions and then fail in fixture cleanup;
-  # agentbundle self-host, render/diff, and catalogue verify cannot remove their
-  # generated trees; Astro/Vite cannot rename its project-local dependency cache
-  # into place. The implementation diff does not touch those paths. Fix by making
-  # the managed profile permit bounded cleanup/atomic rename or by providing a
-  # supported enterprise-safe filesystem boundary, then rerun the named gates.
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
-  # Measure the disputed value of code-graph-assisted review before adopting
-  # infrastructure. Compare it with repository-native targeted exploration on
-  # the same review tasks, holding instructions and adjudication constant; track
-  # valid finding yield, false positives, elapsed review time, and graph setup
-  # and maintenance cost. The evidence survey is deliberately inconclusive.
   # Unblocks when: promoted through normal intake into a controlled benchmark.
   {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
 
-  # Current: the distribution-route contract dependency has shipped; this intent is the
-  # next portable Agent Plugin projection slice.
-  # Next: promote the intent through new-spec when an owner starts the slice; no
-  # unresolved predecessor remains.
   {path = "docs/product/intents/portable-agent-plugin-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Project existing canonical skills into deterministic portable Agent Plugin packages", needs = []},
   {path = "docs/product/intents/canonical-mcp-install-parity.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add canonical MCP with same-wave direct agentbundle and route projection parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/portable-agent-plugin-projection.md"}]},
   {path = "docs/product/intents/distribution-route-registry.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Extract generic route dispatch after three real routes exist", needs = [{type = "local", kind = "intent", path = "docs/product/intents/canonical-mcp-install-parity.md"}]},
   {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
   {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
   {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
-  # Hook-adapter audit follow-on. Direct Kiro IDE and CLI projection still targets
-  # superseded hook formats. Shape a coordinated adapter-contract migration to
-  # standalone `.kiro/hooks/*.json` v1 files, and separately prove how Kiro injects
-  # context before claiming session-start nudge parity. Unblocks when the current
-  # Kiro contract is reacquired and the migration receives its own approved spec.
+  # Unblocks when the current Kiro contract is reacquired and the migration
+  # receives its own approved spec.
   {path = "docs/product/intents/kiro-hook-schema-v1.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Migrate direct Kiro hook projection to the standalone v1 schema", needs = []},
-  # Hook-adapter audit follow-on. Copilot, Cursor, and Gemini require distinct JSON
-  # context envelopes, while the portable core hook emits plain stdout; Kiro's
-  # command-output context channel remains unverified. Shape adapter-owned rendering
-  # or wrappers that preserve Claude/Codex plain-stdout behavior. Unblocks when each
-  # runtime contract is reacquired and the output boundary is approved.
+  # Unblocks when each runtime contract is reacquired and the output boundary is
+  # approved.
   {path = "docs/product/intents/adapter-hook-context-output.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Render session-start context through each adapter's documented output protocol", needs = []},
-  # Hook-adapter audit follow-on. Claude Code and Codex can execute repository hooks
-  # from a cwd where `python tools/hooks/session-start.py` does not resolve. Shape a
-  # cross-platform, root-stable dispatch design without weakening trust, hook review,
-  # or managed policy and without editing generated projections directly. Unblocks
-  # when runtime root semantics are reacquired and the command strategy is approved.
+  # Unblocks when runtime root semantics are reacquired and the command strategy
+  # is approved.
   {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
-  # RFC-0095 D3. 59 versioned entries sit nested under a `## [Unreleased]` heading and
-  # are permanently invisible to the `/now/` projection (it applies no date window; a
-  # nested entry simply never publishes). Not a mechanical level-shift: 48 genuinely
-  # unreleased bare `### Added`/`### Fixed` sections are interleaved across three
-  # `[Unreleased]` regions (12 / 5 / 31), and at least one — an `agentbundle pack evals
-  # run` fix directly below `[atlassian][0.9.0]` — would be republished under the wrong
-  # artifact by a uniform promotion. Needs per-section attribution. The ratchet in
-  # `tests/roster/test_workspace_status_projection.py` stops the count growing meanwhile,
-  # and should be lowered as entries are promoted.
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
-  # RFC-0092 D7 deferred direction. The canonical MCP primitive stays transport-first so
-  # a typed acquisition descriptor stays possible; fetch-on-run launchers are already
-  # refused at the build boundary, so this is a permit-something RFC, not a restrict one.
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
-  # === spec/guide-typed-asides-test-gate deferrals ===
-  # tools/test_guide_typed_asides.py pins a frozen 165-row blockquote ledger across
-  # 193 guides/** files (docs/specs/guide-typed-asides-conversion/notes/*.jsonl).
-  # Adding one blockquote to any guide, or editing any classified callout's body,
-  # makes it fail — and there is no regenerator: the only remedy is hand-editing two
-  # JSONL files inside a Shipped spec directory plus the count sentence the test
-  # parses out of that spec. An unrelated PR (8476fc63, tracker-intake adapters)
-  # already had to do exactly that. build-check.yml has no `paths:` filter, so the
-  # file is deliberately NOT wired into a gate; its live invariants were split into
-  # tools/test_guide_authoring_standard.py, which is gated.
-  # Fix: ship a ledger regenerator + document the update procedure, then wire the
-  # ledger tests. Same class as site-test-source-substring-assertions.
   # Unblocks when: someone owns the regenerator.
-  # spec/guide-metadata-completion removed 84 guide-nav-baseline.toml entries so the
-  # reviewed titles reach navigation. project_guide_sidebar sorts kind buckets by
-  # resolved label, so label and order cannot be varied independently: adopting a
-  # title necessarily reorders its bucket. Nine buckets moved as a result, approved
-  # 2026-08-18. Fix: decide whether the projector should carry an explicit order key
-  # independent of label, or whether label-derived order is the intended contract.
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
-  # okf_compiler.py renders `- [{title}]({filename}) - {status} {type}` into the
-  # compiler-owned index with `title` taken verbatim from concept frontmatter and never
-  # bounded, escaped, or newline-checked. Reproduced against the shipped compiler: a
-  # concept titled `x](../../../../SKILL.md) [Read this instead` emits a live
-  # attacker-chosen link into references/okf/concepts/index.md at exit 0 with zero
-  # diagnostics, inside the one artifact the router is told to read first. Check mode
-  # stays clean forever because the bytes are stable. AC17's "fabricated source paths
-  # remain data" clause was removed rather than left overclaiming.
-  # Fix: bound and escape title/status/type before index interpolation, and add a
-  # title-variant hostile fixture asserting the generated concepts/index.md bytes.
   {slug = "okf-index-title-interpolation-unescaped", summary = "Concept title/status/type reach generated OKF index link text unescaped, so a hostile title chooses a link target in a compiler-owned index", source = "spec/okf-authoring-projection (whole-spec quality review)"},
-  # OKF012 is the repeated-compile non-determinism guard the whole determinism claim
-  # rests on. It is emitted at okf_compiler.py:448 and asserted by no test in
-  # packs/catalogue-curation/tests/, tests/roster/, or tools/; nothing makes the two
-  # renders differ. Replacing the second render with `second = first` keeps every OKF
-  # test green while deleting the guard. plan T4 promised a double-compile mismatch
-  # test that was never written.
-  # Fix: monkeypatch render_okf_bundle to differ on the second call and assert exit 2
-  # with diagnostics == ["OKF012"] and no pack mutation.
   {slug = "okf012-nondeterminism-guard-untested", summary = "The OKF012 repeated-compile guard has zero test coverage, so removing it fails no test", source = "spec/okf-authoring-projection (whole-spec quality review)"},
-  # packs/architect/okf/architecture-lenses/index.md carries okf_version but no
-  # `license`, so okf_discovery.discover_pack() raises "missing content license" and
-  # `agentbundle show architect --format json` exits 1 today. core and
-  # _okf-pilot-cost-engineering both carry it and both resolve. The file's body still
-  # asserts "Write mode replaces this body with the managed hierarchical index", which
-  # is false — the compiler never writes the source bundle root. Pre-existing; found
-  # while correcting the same false claim in the authoring guide.
-  # Fix: add the license field and correct the body; it is pack content, so it bumps
-  # architect's pack.toml + plugin.json and needs a changelog entry.
   {slug = "architect-okf-bundle-root-missing-license", summary = "packs/architect fails OKF discovery with 'missing content license', so agentbundle show architect --format json exits 1", source = "spec/okf-authoring-projection (adversarial review, reproduced)"},
-  # tools/test_guide_typed_asides.py used to assert README-pypi.md names the exact
-  # current pyproject version (`## What's new in <version>`). Nothing else in the repo
-  # enforces that, and 12 of the last 25 commits that bumped
-  # packages/agentbundle/pyproject.toml did not touch README-pypi.md — so gating it
-  # would block that shape of PR with no documented step to satisfy.
-  # tools/repo/release_check.sh says nothing about it. The assertion was dropped from
-  # the gated set rather than shipped as an unannounced release obligation.
-  # Fix: decide whether it IS a release obligation; if so add the step to
-  # release_check.sh (or the release guide) and gate it, otherwise leave it dropped.
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
-  # build/self_host.py's `_aggregate_marketplace(description=...)` default restates the
-  # marketplace description literal a fourth time, and that default -- not
-  # build/main.py's _MARKETPLACE_DESCRIPTION -- is what writes the committed root
-  # .claude-plugin/marketplace.json. Reducing four statements to three means importing
-  # _MARKETPLACE_DESCRIPTION in self_host.py: a one-line change, already written and
-  # verified byte-identical via `make build-self`.
-  # Fix: make that import, with an Engine-Change-RFC trailer and a version bump.
   # Deferred rather than bundled: packages/agentbundle/ is a protected tree
-  # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-RFC:`
-  # trailer) and AGENTS.local.md requires a pyproject version bump for an engine change.
-  # A config-drift fix should not become an engine release. The parity gate anchors the
-  # literal instead, which catches divergence but not the duplication.
+  # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-
+  # RFC:` trailer) and AGENTS.local.md requires a pyproject version bump for an
+  # engine change. A config-drift fix should not become an engine release. The
+  # parity gate anchors the literal instead, which catches divergence but not
+  # the duplication.
   # Unblocks when: an engine-scoped RFC is open to cite in the trailer.
   {slug = "marketplace-description-fourth-statement-in-self-host", summary = "self_host.py restates the marketplace description a fourth time; removing it needs an Engine-Change-RFC and a version bump", source = "spec/marketplace-generator-single-source (governance gate)"},
 
-  # Current: six render.py entrypoints bypass catalogue.toml and read marketplace
-  # constants directly.
-  # Fix: move resolution into run_recipe/_run_aggregate after deciding the adopter
-  # scaffold branch default.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "marketplace-envelope-config-authority", summary = "Make catalogue.toml the marketplace-envelope authority for all six render.py entrypoints, after deciding toml_emit's 'main' scaffold default", source = "spec/marketplace-generator-single-source (review blocker 3)"},
 
-  # Current: _step_output_drift returns clean when dist/ is absent, which is the normal CI
-  # state.
-  # Fix: make the check build its input or guarantee dist exists earlier in the required
-  # chain.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "output-drift-silent-without-dist", summary = "CAT-V-014 cannot fire in CI because _step_output_drift early-returns when dist/ is absent", source = "spec/marketplace-generator-single-source (assumption)"},
 
-  # Current: marketplace ref and sha accept arbitrary strings on archive.py and verify.py
-  # ingress paths.
-  # Fix: add git-ref-safe validation to both marketplace schema copies and migration
-  # coverage.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "marketplace-ref-not-git-ref-validated", summary = "marketplace-entry.schema.json's ref and sha are unvalidated strings on an ingress path (archive.py, verify.py --root)", source = "spec/marketplace-generator-single-source (review concern 3)"},
 
-  # Current: a missing claude-plugin-branch is schema-rejected, but an explicit empty
-  # string still passes and leaves the upstream branch constant in effect.
-  # Fix: reject the empty value at the schema/config boundary; the missing-key half is
-  # complete.
   # Blocker: the fix changes protected packages/agentbundle/** and needs an
   # Engine-Change-RFC trailer naming a real RFC.
   {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", summary = "An empty or absent claude-plugin-branch makes a fork's install route resolve to upstream's repo and ref", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # No gate in this repository reads GitHub. lint-claude-plugin-publish-control.py
-  # compares .github/claude-plugin-publish-control.json against hardcoded literals
-  # (:302-312) and against a hand-committed capture,
-  # docs/specs/claude-plugin-hook-parity/publish-control-evidence.json, whose
-  # observed_at need only be a non-empty string (:448-450). The desired file
-  # records live_branch_negative_tested: false, and the canary branch that carried
-  # the 2026-08-12 control test is deleted (404). So the ruleset could be removed
-  # in repository settings with zero commits and every gate stay green -- while
-  # ADR-0072 makes that protection a precondition of its decision. Live state WAS
-  # verified 2026-08-18 and matched
-  # (docs/specs/marketplace-generator-single-source/notes/live-control-evidence.md).
-  # Fix: bound the evidence freshness, and re-run the canary negative arm against
-  # the live branch so the control is demonstrated, not merely configured.
   # Unblocks when: a maintainer runs the canary arm; settings writes are theirs.
-  # Deferred rather than bundled: closing it needs a repository-settings action and a
-  # live canary run, neither of which is a code change this PR could carry.
+  # Deferred rather than bundled: closing it needs a repository-settings action
+  # and a live canary run, neither of which is a code change this PR could
+  # carry.
   {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # The parity gate's two layers bound static bindings and the resolved value at
-  # import time. Neither bounds a rebind that happens AFTER import -- a function
-  # mutating the module global while the build runs. The dynamic-rebinding refusal
-  # is a tripwire over lines naming the symbol, not a proof.
-  # Fix: a runtime assertion inside the build (compare the emitted ref against the
-  # constant at write time), or a semgrep rule over the two anchor modules.
   # Unblocks when: SAST rule authoring is in scope (sast-cwe-delta-review is
   # adjacent).
-  # Deferred rather than bundled: bounding it needs a different instrument entirely —
-  # a runtime assertion inside the build, or a semgrep rule — not more static reading.
+  # Deferred rather than bundled: bounding it needs a different instrument
+  # entirely — a runtime assertion inside the build, or a semgrep rule — not
+  # more static reading.
   {slug = "marketplace-envelope-post-import-rebind-unbounded", summary = "Neither parity layer bounds a post-import rebind of _DIST_BRANCH or _MARKETPLACE_DESCRIPTION", source = "spec/marketplace-generator-single-source (review residual)"},
-  # tools/catalogue/publish_claude_plugins.py:35's BRANCH is the actual push
-  # target (ls-remote at :235, worktree add --orphan at :252, `git push origin
-  # HEAD:{BRANCH}` at :306). The parity gate covers it with the literal layer
-  # only: it will not exec a tools script by path to read a constant, because a
-  # by-path load under a fixture root would execute mutated fixture code inside
-  # the gate. So a tripwire-escaping rebind there would (a) silently stop the
-  # protected ref receiving updates while adopters resolve stale pack content, and
-  # (b) land a complete built pack tree on an arbitrary unprotected branch under
-  # the publisher app's repo-wide contents: write.
-  # Fix: have the publisher import BRANCH from the installed package so the
-  # resolved-value layer covers it without an exec.
   # Unblocks when: the publisher's import surface is next touched.
-  # Deferred rather than bundled: the fix is to change the publisher's import surface,
-  # which is publish-path code this PR deliberately does not touch.
+  # Deferred rather than bundled: the fix is to change the publisher's import
+  # surface, which is publish-path code this PR deliberately does not touch.
   {slug = "marketplace-publisher-branch-layer-2-only", summary = "The publisher's BRANCH push target is covered by the parity gate's literal layer only, not the resolved-value layer", source = "spec/marketplace-generator-single-source (review concern 4)"},
   # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
   # cross-repository reference, so now that a spec's `Brief:` back-link is the
@@ -1057,20 +652,6 @@ open = [
   # reviewer, which is a non-control in a single-maintainer repo.
   {slug = "plugin-publish-required-reviewer", source = "spec/claude-plugin-route-scope"},
 
-  # The publication-control evidence has no upper bound on age.
-  # compare_evidence checks observed_at is a non-empty string and nothing more,
-  # so the committed artifact (observed_at 2026-08-12) keeps the gate green
-  # forever no matter what changes in GitHub settings afterwards: the ruleset
-  # flipped to `evaluate`, a second bypass actor added, the App re-installed
-  # org-wide. Pre-existing, but spec/publish-control-evidence-repo-binding
-  # strengthened the artifact's SUBJECT claim, which makes the unbounded TIME
-  # claim the weaker half of the pair. Surfaced by security review there.
-  # Fix: a max-age check in compare_evidence, with the number declared in
-  # .github/claude-plugin-publish-control.json so it is reviewable rather than
-  # buried in the linter. The hard part is not the check: expiry blocks every
-  # merge until an operator with the App private key re-runs the capture, so
-  # decide the operational answer (how long, who is paged, what the escape
-  # hatch is) before writing it. That is why it is not a ride-along.
   {slug = "publish-control-evidence-max-age", summary = "Bound the age of the publish-control evidence -- observed_at is checked for being a non-empty string and nothing else, so a stale artifact certifies settings that may have changed", source = "spec/publish-control-evidence-repo-binding security review"},
 
   # Current: a schema-valid adopter pack with no adapter-contract resolves repo scope and
@@ -1485,7 +1066,6 @@ open = [
   # have none (a pure-decision or errata spec).
   # Fix: decide whether a missing Acceptance-Criteria section is an error, a
   #   warning, or legal-with-an-explicit-marker; then implement.
-  # Unblocks when: picked up — no dependency.
   {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains"},
 
   # Current: retained runtime messages and their assertions still embed governance
@@ -1542,30 +1122,10 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-
-  # allowScripts enforcement: both docs-site/AGENTS.md and web/AGENTS.md document
-  #   an invariant — the lockfile's `"hasInstallScript": true` entries must stay
-  #   within the versioned `allowScripts` keys in package.json — and *nothing
-  #   checks it*. It is prose. Distinct from the SCA gate: SCA scans for known
-  #   CVEs, allowScripts governs arbitrary code execution at install time.
-  #   Blocked on a disposition, not on effort: web/package-lock.json already
-  #   carries `playwright/node_modules/fsevents@2.3.2`, outside web's
-  #   allowScripts keys (`esbuild@0.28.1`, `fsevents@2.3.3`) — hence the
-  #   `npm warn allow-scripts` on every web install. A checker written today
-  #   lands CI red on arrival, so that entry needs an accept-or-fix decision
-  #   first. Note npm 11 ships `npm approve-scripts`, which may make the checker
-  #   unnecessary — check that before writing one.
   # Unblocks when: web's fsevents@2.3.2 divergence is dispositioned (add to
-  #   allowScripts, or repin so it dedupes to 2.3.3).
+  # allowScripts, or repin so it dedupes to 2.3.3).
   {slug = "npm-allowscripts-enforcement", summary = "Make the documented allowScripts install-script invariant machine-checked for both npm projects, after dispositioning web's pre-existing playwright/fsevents@2.3.2 divergence", source = "spec/npm-sca-gate"},
 
-  # The npm allowlist's `unblocked_when` is prose tools/audit-npm.py never
-  #   reads, so a suppression can sit forever with a stale justification.
-  #   ADR-0017's .snyk policy carries a machine-checked `expires`; mirroring it
-  #   here would make a rotting suppression fail the gate rather than ride
-  #   along. Deliberately not built while tools/npm-audit-allowlist.toml is
-  #   empty — there is nothing to expire yet, and the shape should be decided
-  #   against a real first entry rather than guessed.
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
@@ -1929,7 +1489,6 @@ open = [
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
 
-
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # guides/core/explanation/role-journeys.md covers headless AI execution
   # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension
@@ -1967,204 +1526,32 @@ open = [
   # Issue description.
   {slug = "push-acs-to-linear"},
 
-  # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
-  # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
-  # work-loop scripts we ship, at the adapter-projection path
-  # (.kiro/skills/...). The original report was mixed: several highlighted
-  # argv/environment flows are already confined or intentionally operator-
-  # authorized, while adjacent repository reads, recursive probes, managed
-  # state reads, and the append-only lock implementation had genuine symlink/
-  # traversal gaps. `core-path-confinement` owns that correction. CodeQL's
-  # earlier zero result did not prove the adjacent symlink paths safe.
-  #
-  # ~68 further argv->path boundary sites exist across the other packs and
-  # packages/agentbundle (measured this session: 73 repo-wide, 5 fixed by the
-  # parent spec). Same class, same fix. Not swept in the parent PR because a
-  # 73-site rewrite is a migration, not a fix, and the pattern should be proven
-  # on one skill first. Expand tools/semgrep/argv-path-boundary.yml's
-  # paths.include as each pack adopts the validator.
   {slug = "pack-argv-path-boundary-sweep", summary = "Apply the argv->path boundary validator to the remaining ~68 sites across converters/atlassian/workspace-status/receive-brief packs and packages/agentbundle", source = "spec/pack-script-root-boundary-validation"},
 
-  # Current: agentbundle install has no YAML merge mode, so packs cannot safely share
-  # .snyk or other YAML policy files.
-  # Fix: add a confined YAML merge conflict mode without broadening Snyk Code disposition
-  # authority.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "agentbundle-install-yaml-merge", summary = "Add a YAML-merge conflict mode to `agentbundle install` so packs can ship mergeable .snyk (and other YAML) policy files without clobbering each other", source = "spec/pack-script-root-boundary-validation"},
 
-  # CodeQL runs security-extended on every PR and is the only lens we have with
-  # Snyk-Code-class interprocedural taint (Bandit has no dataflow; OSS Semgrep
-  # taint cannot cross a function boundary -- both verified this session). It is
-  # currently advisory: branch protection requires only "make build-check", so a
-  # genuine taint finding would annotate and still merge. Making it blocking is
-  # a branch-protection setting, not a workflow change (ADR-0017, codeql.yml:10).
   {slug = "codeql-required-check", summary = "Make the CodeQL check required in branch protection so interprocedural taint findings block a merge instead of only annotating", source = "spec/pack-script-root-boundary-validation"},
 
-  # We ship JavaScript to adopters and scan it with nothing. Measured this
-  # session: Bandit is Python-only by construction; codeql.yml:51 sets
-  # `languages: python`; and our Semgrep config (p/python + p/security-audit)
-  # parses the JS but carries none of the JS security rules. Proof: current
-  # gate config over render.js + render-proof.js = 0 findings, while
-  # p/default + p/owasp-top-ten over the same two files = 5
-  # (path-join-resolve-traversal x4, detect-non-literal-regexp x1).
-  #
-  # Two production files ship: packs/converters/.apm/skills/markdown-to-html/
-  # scripts/render.js and .../render-proof/scripts/render-proof.js.
-  #
-  # Split out of the parent spec because enabling coverage is the small half —
-  # the real cost is triaging the findings it turns on. The 5 known ones all
-  # look like sanitizer-blindness (they sit inside render-proof.js's own
-  # validateOutputPath), but that must be confirmed per-finding, and new rules
-  # will surface more. Do both scanners in one pass so the triage happens once.
   {slug = "sast-javascript-coverage", summary = "Give shipped JS real SAST coverage: add JS security rulesets to the Semgrep gate config and add javascript-typescript to codeql.yml languages, then triage and fix the findings both turn on", source = "spec/pack-script-root-boundary-validation"},
 
-  # CWE-delta review against Snyk Code's published rule tables. Measured
-  # 2026-08-07: Snyk Python = 43 rules/43 CWEs, Snyk JS+TS = 53 rules/42 CWEs;
-  # ours = 376 Semgrep rules (74 CWEs) + Bandit (24 CWEs), union 84. Residual
-  # gap is 10 CWEs for Python and 13 for JS/TS -- enumerated in the parent
-  # spec's "CWE coverage vs. Snyk Code" table.
-  #
-  # Deliberately scoped as a REVIEW, not "add all missing rules". We already
-  # nominally cover ~2x Snyk's CWE count; the CWE-23 finding got through on
-  # analysis depth (no dataflow in Bandit, no cross-function taint in OSS
-  # Semgrep), not on a missing rule. CWE tags are a coverage proxy, not proof
-  # of equivalent detection. Judge each of the 23 on whether the class is real
-  # for this codebase before adding anything -- several (CWE-347 signature
-  # verification, CWE-312 cleartext secret storage, CWE-640 password recovery)
-  # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
-  # tools/requirements-sast.txt is installed by range (`bandit>=1.9,<2` etc.)
-  # with no hashes, and after spec/build-check-coverage-gaps its bandit line is
-  # fetched on 100% of build-check runs rather than a subset. The repo already
-  # demonstrates the stronger shape one workflow over: ci-security.yml:107 runs
-  # `pip install --require-hashes -r tools/requirements-ci-security-locked.txt`.
-  # Fix: generate a hash-locked tools/requirements-sast-locked.txt from the range
-  # file and install from it with --require-hashes in both the conditional and
-  # the unconditional step, keeping requirements-sast.txt as the canonical input
-  # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
-  #
-  # SCOPED 2026-08-24, measured not estimated, after this was picked up and put
-  # back down. It is larger than the entry above implies, and the ci-security
-  # precedent does not generalise the way it looks like it should.
-  #   - `--require-hashes` pins the whole transitive closure, not the three
-  #     direct requirements. Measured with `pip install --dry-run
-  #     --ignore-installed --report`: 86 packages, so roughly 250 hash lines.
-  #     A three-line locked file is not an option -- pip refuses the mode
-  #     unless every requirement is pinned with `==`.
-  #   - THE REAL CONSTRAINT IS PLATFORM. The closure carries binary wheels
-  #     (cryptography, pydantic_core, rpds-py, protobuf, cffi, msgpack,
-  #     ruamel.yaml.clib). A file generated on a contributor's macOS pins macOS
-  #     wheels and breaks ubuntu CI. requirements-ci-security-locked.txt sidesteps
-  #     this by pinning ONE package and saying so in its own header ("Other
-  #     platform wheels are not pinned here"); at 86 packages that is not a
-  #     footnote. Target manylinux explicitly, and treat the locked file as
-  #     CI-only -- contributors keep installing requirements-sast.txt, which the
-  #     entry already implies by calling it the canonical input.
-  #   - `pip-compile` is NOT installed here and pip-tools is not a declared
-  #     dependency, so the header's suggested command does not work as written.
-  #     Adding pip-tools is its own dependency decision (AGENTS.md). Viable
-  #     stdlib path instead: `pip install --dry-run --report` emits
-  #     `download_info.archive_info.hashes` with sha256 per package, so a
-  #     generator can be written against the report JSON with no new dependency.
-  #   - Three pins move with the install-step change and are easy to miss:
-  #     `PINNED_SAST_INSTALL` (tools/test-build-check-workflow.py:296) plus the
-  #     `drop-bandit-pin-read` and `echo-wrap-sast-install` mutation lambdas in
-  #     the same file.
   # Unblocks when: picked up with the platform-targeting decision made first.
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
-  # Semgrep's signal for a target it could not parse depends on HOW it failed.
-  # A PARTIAL failure (unbalanced bracket, stray token) does surface as a
-  # path-attributed PartialParsing entry in `errors`, and --strict escalates it
-  # to exit 3 -- gateable today. A whole-file or whole-construct failure
-  # (`def broken(:`, `3 = x`) yields empty `errors`, empty `skipped`, empty
-  # stderr and exit 0 even under --strict -- not gateable. Both were probed
-  # directly; an earlier revision of this entry claimed no signal existed at all,
-  # generalising from the whole-file shape, and security review corrected it.
-  # PRE-EXISTING: the per-target version of the self-test read only paths.scanned
-  # and results, so it had the identical hole.
-  # ADR-0084 is the precedent -- it promoted a scanner diagnostic that does not
-  # move its own exit code into a gate signal, for bandit, and names this very
-  # self-test as one of the two it modelled itself on. So adopting --strict here
-  # is an ADR-shaped decision, not a detail.
-  # Fix: add --strict to the invocation and fail any target appearing in
-  # payload["errors"] as a named FAIL (measured free -- the real five-target run
-  # exits 0 with empty errors under --strict today). Then close the whole-file
-  # residue independently: compile each ratcheted target with ast.parse before
-  # trusting its silence. Cheap and offline. Re-probe on a semgrep major bump
-  # (pinned semgrep>=1.174,<2 since 2026-08-25; was >=1.166,<2 when this was written).
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
-  # NARROWED 2026-08-25: tools/test-semgrep-argv-boundary.py now rejects
-  # nosemgrep/nosem comments in every target it scans, before its optional
-  # semgrep-availability skip. That closes the ratchet-specific suppression gap.
-  # Remaining: ADR-0084 has no nosemgrep counterpart, so no repository-wide
-  # form-lint requires a suppression rule id and reason.
-  # The one live instance, measured 2026-08-25, is the whole current population
-  # and is what a form-lint would have to accept or reject:
-  # packs/converters/.apm/skills/render-proof/scripts/render-proof.js:327 carries
-  # `// nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml
-  # .react-dangerouslysetinnerhtml`. It names a rule id but gives no reason, so
-  # it would pass an id-only rule and fail an id-and-reason one -- which is
-  # precisely the decision this entry is now reduced to. Note it is a `//`
-  # comment in JS, not `#`, so a form-lint modelled on lint-nosec-form.py's
-  # Python-comment assumption would not see it at all.
-  # Fix: decide whether to extend the ADR-0084 form-lint to nosemgrep with a
-  # mandatory rule id and reason, and in which comment syntaxes.
   {slug = "sast-nosemgrep-has-no-form-lint", summary = "No repository-wide nosemgrep form-lint requires a suppression rule id and reason", source = "spec/semgrep-selftest-batching security review"},
-  # lint-nosec-form.py's unknown-id check degrades silently when bandit's
-  # registry is unreachable: id_checker() catches Exception and returns None,
-  # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0
-  # line. That contradicts the tool's own stated rule two guards above it -- an
-  # empty scan exits 2 precisely because "a silent no-op is not a pass".
-  # spec/build-check-coverage-gaps closed every route to this IN CI (the install
-  # step now asserts the registry resolves, in both directions, and runs last),
-  # but a local `SKIP_SAST=1 make build-check` on a machine without bandit still
-  # reports OK on a degraded scan.
-  # Fix: give the script a --require-id-registry flag that turns
-  # `known_ids is None` into exit 2, and pass it from tools/repo/build_gate_chain.py
-  # so local and CI behave identically. Deferred because it makes bandit a hard
-  # prerequisite of `make build-check` for every contributor -- that is a real
-  # cost and deserves its own decision, not a ride-along.
+  # Deferred because it makes bandit a hard prerequisite of `make build-check`
+  # for every contributor -- that is a real cost and deserves its own decision,
+  # not a ride-along.
   {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
-  # Same orphan class one layer up, and deliberately a separate slug: the entry above
-  # is scoped to tools/test*.py, so closing it would not discharge an e2e spec.
   {slug = "e2e-spec-runner-boundary", summary = "docs-wayfinding.spec.ts is invoked by no Makefile line, workflow or package script; decide whether orphaned web/src/test/e2e specs get a runner or an explicit on-demand contract", source = "spec/site-browser-quality-gate review"},
-  # Wiring the seven guides/site suites into build-check.yml (spec/
-  # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
-  # tests substring-assert against. test_check_rendered_site_links.py's
-  # test_pages_gate_runs_after_both_builds_before_upload_and_has_path_filters
-  # asserts on raw text of pages.yml including exact single-quoted `paths:`
-  # entries and their occurrence COUNTS; test_catalogue_navigation.py does the
-  # same against web/src/lib/catalogue-navigation.ts and two .astro files.
-  # build-check.yml has no `paths:` filter, so a cosmetic requote in pages.yml
-  # now reddens the required check for an unrelated PR. Worse, per the
-  # antipattern recorded in docs/knowledge/observations/antipattern/2026-08.jsonl
-  # those assertions do not detect REMOVAL of what they claim to pin -- they are
-  # the source-substring shape that register entry exists to name.
-  # Fix: re-express both against parsed YAML / a parsed module graph, then
-  # confirm each goes red when the pinned control is deleted. Do not simply
-  # loosen them; the ordering they assert is real.
   {slug = "site-test-source-substring-assertions", summary = "Re-express test_check_rendered_site_links' pages.yml ordering assertion and test_catalogue_navigation's web/src assertions against parsed structure, and verify each by deletion", source = "spec/build-check-coverage-gaps review"},
 
-  # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
-  # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
-  # cannot change") -- yet every adapter PR amends it: each one's Constrained-by
-  # says "Amends docs/specs/distribution-adapters/spec.md (v0.N -> v0.N+1
-  # Changelog entry)", and its per-adapter projection table has demonstrably been
-  # edited since it shipped (its Copilot skill cell moved from
-  # .github/instructions/ to .github/skills/ long after ship). So the repo treats
-  # it as Living while its Status says Frozen.
-  # spec/frozen-doc-supersession-annotations annotated it under the frozen rule
-  # rather than reopening this, and said so in its Honest scope.
-  # This is the same shape as frozen-spec-supersession Decision 2, which resolved
-  # the identical ambiguity for plan.md by scoping the licence to a phase. Decide
-  # which class this document is in and make CONVENTIONS.md say so; a document
-  # whose status and treatment disagree is a rule nobody can apply.
   {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
-
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
@@ -2193,8 +1580,8 @@ open = [
   # Deferred: workspace-status receives only a profile id and version, not
   # resolved capabilities, and the processor write path receives no trusted
   # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
-  # and refresh availability can only report False or "unknown", never True.
-  # A defaulted parameter would be bypassable, which is worse than a documented
+  # and refresh availability can only report False or "unknown", never True. A
+  # defaulted parameter would be bypassable, which is worse than a documented
   # gap; closing it means threading resolved capabilities through both surfaces.
   {slug = "tracker-refresh-enforced-capability-state", type = "spec", source = "spec/tracker-refresh-writeback AC11", summary = "Enforce the lifecycle allowlist on remote write-back and report availability affirmatively"},
   # Deferred: the guarded-write receipt check verifies status, action and target
@@ -2207,15 +1594,13 @@ open = [
   # WriteBackResult codes with no closed set, so a typo ships silently. A single
   # shared frozenset would falsely authorize codes an adapter cannot return;
   # closing it properly means one vocabulary per result type plus a deliberate
-  # shared base, which is a multi-file public-result-contract change. Deferred to
-  # avoid widening the reviewed surface after adversarial review round 2.
+  # shared base, which is a multi-file public-result-contract change. Deferred
+  # to avoid widening the reviewed surface after adversarial review round 2.
   {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
   # Deferred: projection repair needs its own confirmation contract; adding one
-  # requires a new trusted input rather than inferring authority from tracker data.
+  # requires a new trusted input rather than inferring authority from tracker
+  # data.
   {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
-  # Repository-wide successor to the closed INI-008-scoped anchor. Keep this as
-  # non-dispatchable design work until its revision anchor and enforcement policy
-  # have been shaped.
   {slug = "workspace-anchor-staleness-invariant", type = "design", source = "rfc/0083 Errata 2026-08-13", summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions"},
 
   # Surfaced 2026-08-15 while auditing every [backlog].open entry against the
@@ -2375,239 +1760,45 @@ open = [
   # untracked leftover). Closing it fully means giving up the end-to-end proof that
   # the production CLI is wired to the real catalogue, or copying the worktree per
   # run — so it needs a design decision, not a patch.
-  # Unblocks when: ready now.
   { slug = "selftest-untracked-plant-window", type = "shape" },
-  # Surfaced by a peer session while coordinating the pages-concurrency-isolation
-  # merge. The deploy lane serializes Pages deployments but does NOT order them:
-  # builds now run in distinct workflow groups, so two Pages-relevant merges to main
-  # build concurrently and their deploy jobs enter the shared "pages" lane in
-  # build-completion order, which need not match merge order. The older commit can
-  # therefore publish last. Self-heals on the next Pages-relevant merge and loses no
-  # data, but it is a real trade: the previous unkeyed group made inversion impossible
-  # by cancelling the older run outright. A "deploy only if still the tip of main"
-  # guard would close it and was declined as unrequested hardening with its own skip
-  # path. Decide whether the burst rate on main justifies it — and note the two
-  # arguments point OPPOSITE ways: a high burst rate makes inversion more likely but
-  # the stale window shorter, while a quiet period makes inversion rarer and the
-  # window unbounded. "Self-heals on the next Pages-relevant merge" is load-bearing on
-  # there BEING a next merge: an inverted pair that is the last Pages-relevant activity
-  # before a weekend or freeze leaves the site on the older commit for the whole gap,
-  # with nothing signalling it. Weigh both cases, not just the burst one.
   # Unblocks when: ready now.
   { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
-  # guides/credential-brokers/ carries an author how-to
-  # (how-to/add-a-credentialed-skill.md), an explanation, and a reference -- and
-  # nothing for the OPERATOR who has to store a credential. The architecture page
-  # docs/architecture/credentials.md correctly does not carry setup steps
-  # (architecture is not a how-to), which left the author guide as the only
-  # available link target for a task it does not cover. The credential-setup skill
-  # exists at packs/credential-brokers/.apm/skills/credential-setup/; the guide
-  # does not.
-  # Fix: write the operator how-to under guides/credential-brokers/how-to/ and
-  # point the credentials architecture page at it.
   # Unblocks when: ready now -- the skill it documents already ships.
   { slug = "credential-operator-setup-guide", source = "docs/architecture/credentials.md; guides/credential-brokers/ operator-guide gap", summary = "guides/credential-brokers/ has an author how-to but nothing for the operator who must store a credential, and the credential-setup skill ships without one" },
-  # docs/architecture/binder-publishing/ is a large STATUS: PLANNED design the
-  # owner intends to build. The only existing spec,
-  # docs/specs/binder-publishing-gate-propagation/, is narrow. The tree's
-  # invariant set is now self-contained rather than citing an absent brief, so
-  # the design is spec-ready.
-  # Fix: decompose the planned design into build units and open the spec(s).
   # Unblocks when: someone applies RFC-0090's tail-triage lane to it -- that is
   # the likely lens for the decomposition, given the design's size.
   { slug = "binder-publishing-build-spec", source = "docs/architecture/binder-publishing/ (STATUS: PLANNED)", summary = "The planned binder-publishing design has no build spec; the only existing spec covers gate propagation only" },
-  # pytest temp trees carry no worktree attribution: the path is
-  # $TMPDIR/pytest-of-<user>/pytest-<N> where N is a global counter, so a tree
-  # cannot be traced to the worktree that produced it and a dead worktree's
-  # trees cannot be targeted. Measured 2026-08-20: 4.52 GB across 56 run dirs on
-  # one host; cleanup had to fall back to liveness-plus-age as a proxy.
-  # Do NOT reach for --basetemp: pytest removes that directory if it exists, so
-  # a shared per-worktree basetemp makes two concurrent runs in one worktree
-  # wipe each other, and it discards pytest's numbered retention.
-  # TMPDIR is the working lever -- verified it preserves both the numbering and
-  # the 3-run retention while making attribution structural.
-  # Detection needs no config and no Orca: local_exclude.derive_worktree_id()
-  # returns the sentinel "primary" for a primary checkout and the worktree name
-  # for a linked one, so a single-checkout CLI user is left untouched. Treat its
-  # RuntimeError as "primary" or a bare clone breaks bootstrap. Two traps: a
-  # non-existent TMPDIR makes tempfile.gettempdir() fall back to /tmp silently
-  # rather than erroring, so bootstrap must mkdir -p and doctor must assert it
-  # exists; and TMPDIR affects everything using tempfile, so it must not resolve
-  # inside the worktree unless gitignored.
-  # Declined by the worktree-runtime-hygiene lane on 2026-08-20 as a disk
-  # concern outside its concurrency scope -- this is unowned, not assigned.
   { slug = "pytest-tmpdir-worktree-attribution", source = "spec/pytest-resource-optimization (measurement, unowned)", summary = "Give pytest temp trees per-worktree attribution via TMPDIR so a dead worktree's trees can be reclaimed; detect workspace vs single-checkout users from git topology, leaving single-checkout behaviour unchanged" },
 
-  # Current: initialized catalogues receive conformance and pack tests but no canonical
-  # command that discovers and runs them with one process per skill.
-  # Fix: add a test command over the ADR-0071 layout while keeping test dependencies
-  # optional and catalogue verify non-executing.
-  # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
-  # an Engine-Change-RFC trailer naming a real RFC.
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   { slug = "agentbundle-catalogue-test-command", source = "spec/pytest-resource-optimization (adopter gap)", summary = "Give catalogue adopters a canonical way to execute the tests they receive, discovering pack and conformance suites from the ADR-0071 layout while preserving one process per skill and keeping test dependencies development-only" },
-  # pages.yml's `build` job is where BOTH site builds, `npm run test:plugins
-  # --prefix docs-site`, web/'s rendered-output invariants and the browser gate
-  # (60 pinned matrix cases — see tools/test_browser_gate_subset.py's
-  # test_the_approved_matrix_is_exactly_sixty_cases; cited by symbol because a
-  # line number in that file has already gone stale once — plus
-  # quality-assertions.spec.ts) actually execute, and it is not a required check.
-  # Required contexts on main are the five from build-check.yml alone:
-  # `make build-check`, `gate-main`, `gate-sast`, `gate-export-boundary`,
-  # `gate-credbroker` (API read 2026-08-23, strict = true; unchanged from the
-  # 2026-08-18 read recorded under ci-gate-credbroker-branch-protection-widening).
-  #
-  # NOT THEORETICAL — measured on #1036. At head 6990d3d7 (2026-08-20) all five
-  # required checks were `success` and `build` was `failure`. That PR was
-  # mergeable green with the Pages deploy broken; only a human noticing the
-  # non-required red stopped it. `gh api repos/OWNER/REPO/commits/6990d3d7/
-  # check-runs` still shows the pair.
-  #
-  # WHY THE OBVIOUS FIX IS THE TRAP, and why this entry exists rather than a
-  # one-line instruction to the owner: pages.yml carries a `paths:` filter on
-  # `pull_request` — fourteen entries covering web/**, docs-site/**, guides/**,
-  # several tools/*.py and more; `.github/workflows/pages.yml`'s own
-  # `on.pull_request.paths` is the canonical set and the only place to read it.
-  # GitHub treats a required context that never reports as PERPETUALLY PENDING, not as
-  # passed. Ticking `build` in branch protection would therefore permanently wedge
-  # every PR touching none of those paths — most PRs in this repo. build-check.yml
-  # can carry required contexts precisely because it has NO paths filter; that is
-  # the property, not a coincidence.
-  #
-  # OPTION TO EVALUATE: a companion always-runs job in a filter-free workflow that
-  # reports the same `build` context and exits 0 when the filtered paths did not
-  # change. The job-level shape is ALREADY IN TREE and is the closest precedent:
-  # build-check.yml:913's aggregator carries `if: ${{ always() }}`, sits in a
-  # workflow with no `paths:` filter, and itself wears one of the five required
-  # contexts (`make build-check`); build-check-windows.yml:162 is the same shape.
-  # Read those before designing anything. The genuinely unprecedented part is
-  # narrower: whether two workflows may report ONE context name without either
-  # masking the other. Settle that first — it decides whether the companion can
-  # reuse the name `build` or must take a new one and be required instead.
-  # (Note the spelling when searching: `if: ${{ always() }}`, not `if: always()`.
-  # Grepping only the bare form finds pack-evals.yml:72 alone and reads as "no
-  # job-level precedent exists", which is how this entry first recorded it.)
-  #
-  # REJECTED, recorded so it is not re-proposed: moving the assertions into
-  # build-check.yml. pages.yml's own comments state that the required workflow
-  # deliberately carries no Node and must carry no paths filter; adding them makes
-  # every PR in the repo wait on two `npm ci` runs.
-  #
-  # THE BRANCH-PROTECTION WRITE IS THE OWNER'S, NOT AN AGENT'S, and it MUST NOT be
-  # done before the companion job exists and has reported once on main — a required
-  # check cannot precede the job that reports it, and the Settings UI only offers
-  # contexts seen on main recently (same constraint as
-  # ci-gate-credbroker-branch-protection-widening; read its FORBIDDEN block before
-  # touching the API instead). main uses CLASSIC branch protection — the repo's only
-  # ruleset is the separate "claude-plugins-dist publisher-only" branch rule — so
-  # the click-path is:
-  #   https://github.com/eugenelim/agent-ready-repo/settings/branches
-  #   -> Branch protection rules -> Edit on `main` -> Require status checks to pass
-  #   -> search `build` -> select -> Save changes
   { slug = "pages-build-job-not-a-required-check", source = "CI observation 2026-08-23, PR #1036", summary = "pages.yml's `build` job carries both site builds, the plugin suite, the rendered-output invariants and the browser gate but is not a required status check, and its `paths:` filter means it cannot simply be ticked as one" },
 
-  # === RFC-0088 follow-on artifacts (authorized for implementation now that the RFC is Accepted) ===
-  # These are the items listed in rfc/0088-web-pilot-foundation.md § Follow-on artifacts.
-  # Each requires a separate implementation authorization from the approver before work begins.
-  # Unblocks when: approver separately authorises implementation of the named item.
-  #
-  # ADR: library-owned broker plus bound Playwright CLI — decides between a library-in-process
-  # broker and a bound Playwright CLI as the broker deployment unit. Source: rfc/0088 follow-on list.
+  # Unblocks when: approver separately authorises implementation of the named
+  # item.
   { slug = "rfc0088-adr-broker-deployment-model", source = "rfc/0088 follow-on list", summary = "Record the ADR choosing between library-owned broker and bound Playwright CLI as the broker deployment unit" },
-  # ADR: immutable adapter artifacts and no remote adapter catalogue in v1.
-  # Decides how adapter artifacts are pinned, distributed, and verified; forbids a remote catalogue.
   { slug = "rfc0088-adr-immutable-adapter-artifacts", source = "rfc/0088 follow-on list", summary = "Record the ADR establishing immutable adapter artifacts and no remote adapter catalogue in v1" },
-  # Convention amendment: add auth: browser-session and its lint contract. Unblocks after Spec 1.
   { slug = "rfc0088-convention-browser-session-lint", source = "rfc/0088 follow-on list", summary = "Add auth: browser-session taxonomy and its pack-lint contract to CONVENTIONS.md" },
-  # Spec 1: synthetic foundation/provider vertical, current-rail runtime delivery, browser lifecycle,
-  # authorization-order fixtures, installation-state fault-injection gate, user guide.
-  # This is the primary CI-testable spec: a pinned container fixture drives the full login →
-  # token → frontend-API path with synthetic credentials. Includes Q3's deferred CI contract clause.
   { slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Spec 1: synthetic foundation/provider vertical — pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, install/admit/activate/upgrade/rollback/repair gate, user guide for login handoff and recovery" },
-  # Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction,
-  # authorization, and network/filesystem policy contracts. Q5's declaration carrier lives here.
   { slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction, authorization, and network/filesystem policy contracts; carries Q5's destination-credential-exposure declaration requirement" },
-  # Spec 3: developer workbench, supervised probes, packaging/provenance review, repair workflow.
   { slug = "rfc0088-spec-3-developer-workbench", source = "rfc/0088 follow-on list", summary = "Spec 3: developer workbench, supervised probes, packaging and provenance review, and repair workflow" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
-  # Closed 2026-08-25. Successor: `workspace-anchor-staleness-invariant`.
-  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
+  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor workspace-anchor-staleness-invariant owns dependency and membership staleness detection"},
 
-  # Scope: living maintainer surfaces, not frozen history.
-  # check_release_impact.py names docs-site/, not the deleted site/ tree; a
-  # focused regression test pins that. Hero source comment is renderer-neutral.
-  # AGENTS files and build/workflow wiring were already current.
-  # Unchanged: frozen ADR/RFC/spec/plan bodies, public guides, Binder/Zensical
-  # stage/site output.
-  # Residual not covered: docs/specs/platform-site/spec.md:58 still states a
-  # site/docs/ MkDocs route. Declined — frozen body.
-  {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Repair living maintainer and tooling residue from the MkDocs-to-Starlight migration without rewriting frozen history"},
+  {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Closed after repairing living MkDocs-to-Starlight residue; frozen historical bodies remain unchanged"},
 
-  # Closed 2026-08-25 on human review. The six representative print PDFs were
-  # regenerated from a clean build and provided to the owner, who read them for
-  # break quality: no unusable break, no orphaned heading, no unexpected blank
-  # page. One defect was found and is NOT covered by this closure — the docs
-  # footer's navigation link groups printed, producing a navigation-only final
-  # page on four of the five documentation routes. That defect is carved out to
-  # spec/docs-site-print-chrome-suppression, which owns it. This entry closes the
-  # break-quality axis only; it makes no claim about chrome paint.
-  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
+  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Closed after six-route review found no unusable page breaks; footer chrome moved to docs-site-print-chrome-suppression"},
 
-  # Retired 2026-08-25 as won't-do — never delivered, and deliberately not
-  # staffed. Four probe generations each produced wrong attributions: computed
-  # style reports zero-box elements as printing; box geometry still reports
-  # `clip:rect(0,0,0,0)` and `transform:translateY(-150%)` as printing, because a
-  # box is not paint; and diffing extracted PDF text against `<main>` has no
-  # discriminating power on the docs routes, where Starlight keeps breadcrumb,
-  # pagination and footer inside `<main>`. A correct answer needs a paint-level
-  # oracle none of the four provided, and the question it would settle is a
-  # legibility preference — which the owning audit's decision rule bars from
-  # producing print rules. The inventory has no consumer.
-  #
-  # Closing this required removing a live `(deferred:)` marker from a Shipped,
-  # frozen spec (`site-browser-quality-gate/spec.md` AC12).
-  # `docs/CONVENTIONS.md:435` makes a Status-line parenthetical the only edit a
-  # frozen spec accepts and `:188` says no body line moves, while
-  # `lint-spec-status.py` invariant (iv) resolves markers only against
-  # `[backlog].open` — the two admit no licensed path between them. Done under an
-  # EXPLICIT OWNER RULING (eugenelim, 2026-08-25), recorded here rather than in
-  # the frozen document. AC12 now reads `[x]`: closed, NOT delivered. A reader who
-  # needs that distinction should read this entry and that spec's Status line.
-  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Establish a paint-level oracle for which navigation chrome prints per route; box and computed style both over-report"},
+  {slug = "print-chrome-paint-inventory", source = "spec/site-browser-quality-gate AC12", summary = "Retired without delivery; four probes lacked a paint-level oracle and the owning audit barred preference-based print rules"},
 
-  # The RFC-0087 OKF projection replaced security-checklists' deterministic
-  # boundary-to-module table with a flat concept index. That made work-loop's
-  # security-reviewer dispatch impossible without guessing or reading every
-  # module, and hid the standards anchors and delegation legend at the routing
-  # point. Resolved by restoring the hand-authored router and moving the OKF
-  # projection into its own sibling skill directory; both pilot callers remain
-  # compiler-managed. The historical operational-safety plan instruction
-  # still names the direct config-misconfig reference and therefore needs no edit.
-  {slug = "security-checklists-okf-router-regression", summary = "The generated security-checklists router lost its boundary-to-module routing table, standards anchors, and delegation legend", source = "RFC-0087 OKF pilot regression"},
+  {slug = "security-checklists-okf-router-regression", summary = "Closed by restoring the hand-authored router and moving OKF projection to a sibling skill", source = "RFC-0087 OKF pilot regression"},
 
-  # Original report (spec/npm-sca-gate): the suite appended a
-  #   deliberately-violating `lint-selftest-scratch` target to the REAL Makefile
-  #   to prove the boundary linter fires, then restored it. Any `git add -A`
-  #   during that window committed the injected violation, and the local re-run
-  #   then passed because the file was restored — so it failed only in CI,
-  #   against a tree the developer could not reproduce. That happened on PR #961.
-  # Resolved by spec/lint-performance-p0 (2026-08-17). The falsification suite
-  # no longer touches any tracked file: individual plants moved to temporary
-  # fixture catalogues driven through the lint's callable API, and the suite now
-  # asserts that the difference it makes to `git status --porcelain` is empty.
-  # The two real-Makefile rewrites behind the PR #961 failure are gone. Reduced,
-  # not eliminated: layer 3 still plants two UNTRACKED files in the real worktree
-  # for one lint launch each, so a concurrent `git add -A` can still stage an
-  # injected violation. Successor: `selftest-untracked-plant-window` in
-  # [backlog].open; bounded meanwhile by refuse-before-plant and a
-  # planting-branch-scoped finally. The
-  # trailing "worth auditing across tools/test-*" note is discharged as well —
-  # all 66 other lint self-tests were audited and none mutates a tracked file
-  # (docs/specs/lint-performance-p0/notes/lint-inventory.md § 4).
-  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
+  {slug = "selftest-mutates-tracked-makefile", summary = "Closed for tracked-file mutation; lint-performance-p0 moved plants to fixtures, while selftest-untracked-plant-window owns the residual untracked-file risk", source = "spec/npm-sca-gate (unrelated find)"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2690,40 +1881,7 @@ backlog = []
 active  = []
 shipped = [
   {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
-  # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
-  # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
-  # version-bump conflicts (both Wave 3 and verifier-correctness bump the agentbundle
-  # minor version; concurrent merges would assign the same release number).
-  # Problem: verify.py has 13 confirmed defects across 11 of 19 steps — no-op step 1
-  # (malformed catalogue.toml escapes as exception), wrong plugin path (steps 4+5),
-  # wrong marketplace source path in step 12 (reads dist/marketplace.json which never
-  # exists; source is config.paths.marketplace), unimplemented stubs (dependency, adapter
-  # compat, output drift, package preflight, fixture checks), parse-only profile validation,
-  # incorrect step count, and host-only leak in portable code. Note: PyYAML guard (step 11)
-  # is already correct at HEAD — T10 adds regression coverage only, not a defect fix.
-  # Affected steps: 1, 4, 5, 6, 7, 8, 11, 12, 14, 17, 18.
-  # Deliver: corrected verify.py with all advertised pipeline steps implemented; host-only
-  # rules extracted to repository-local tooling; accurate step count and help.
-  # Done when: SKIP_SAST=1 make build-check exits 0; pytest packages/agentbundle/ exits 0;
-  # all 13 defects corrected + regression coverage for step 11 PyYAML guard; external-catalogue
-  # portability tests pass.
-  # Non-goals: neutral index generation; JOURNEY indexing; lifecycle; release integrity;
-  # first-party migration; site work.
-  # Source spec: docs/specs/catalogue-verifier-correctness/spec.md
-  # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
-  # exact string, and Wave 3 is registered (and will ship) under the canonical form.
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
-  # Lint execution performance — P0. Shipped 2026-08-17 (ADR-0087).
-  # The boundary lint went from a check-ignore subprocess per candidate path to
-  # one batched call, and from six checks each rebuilding overlapping state to
-  # one per-invocation inventory. Its falsification suite moved off the real
-  # worktree onto fixture catalogues, which closed the tracked-file half of the
-  # `selftest-mutates-tracked-makefile` backlog item (PR #961's failure mode). Two
-  # untracked plants remain for one lint launch each — successor:
-  # `selftest-untracked-plant-window` in [backlog].open.
-  # Behaviour preservation is proven by a captured golden baseline rather than a
-  # prose enumeration. Measured before/after:
-  #   docs/specs/lint-performance-p0/notes/lint-inventory.md § After evidence
   {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
   {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
   {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
@@ -2733,72 +1891,20 @@ shipped = [
   {path = "docs/specs/documentation-entry-navigation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "documentation-entry-navigation", needs = []},
   {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
 
-  # Wave 3 — Enterprise authoring discovery. 0.34.0 — bundled-contract inspection CLI
-  # (agentbundle catalogue contracts list/show/export), init next-step hints, and
-  # authoring-hub section 12 for offline readers.
   {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
   {path = "docs/specs/okf-catalogue-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bounded live OKF metadata through AgentBundle catalogue inspection", needs = []},
 
-  # Wave 4 — Semantic contracts and neutral index. 0.38.0 — JOURNEY.md
-  # conventions, derived content/execution inventory, deterministic neutral
-  # catalogue indexes, and integration views over Wave 2 declarations.
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
-
-  # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
-  # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and
-  # `agentbundle catalogue index`. That index IS what a search verb reads.
-  # Building search first means inventing a second index and then migrating off
-  # it, so this cannot start earlier regardless of who wants it.
-  # Scope: the LOCAL read surface only — query the neutral index that is already
-  # on disk. Hosted search (a service, a remote indexer, a registry API) stays a
-  # non-goal, per RFC-0031's non-goals and ini-007's own boundary. RFC-0031 named
-  # the gap in its diagnosis ("nothing to search or browse by") but made no
-  # decision, so nothing owns this today — which is why it is queued rather than
-  # specced.
-  # Open question for whoever picks it up: whether this lands as a new ini-007
-  # wave or as an RFC-0031 follow-on. Decide that before writing the spec; it
-  # changes whether the verb needs its own RFC.
+  # User-confirmed initiative fit; retained legacy route pending human-authored migration selection and spec materialization.
   {path = "spec/catalogue-search-verb", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
-
-  # Wave 5 — Release integrity. Gated on Wave 4.
-  # Deliver: pack/profile content digests; same-version mutation refusal; human+JSON
-  # release comparison; release evidence in catalogue-manifest.json; regression tests.
   {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
-
-  # Wave 6 — Index-backed technical catalogue reference. Gated on Wave 4 and
-  # the current-route editorial/navigation foundation. The foundation already
-  # delivers outcome/role routing and "Use" vs "Build" home paths without
-  # changing the refreshed visual system. Do not repeat that work here.
-  # Remaining deliverable: a top-level "Build a Catalogue" sidebar/reference
-  # section; generated field references; neutral catalogue-index consumption;
-  # and deep sidebar links verified against the generated inventory. No restyling.
   {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "work:spec/documentation-entry-navigation", "ini-002:work:spec/docs-site-design-refresh"]},
-
-  # Wave 7 — Index-backed marketing evaluator surfaces. Gated on Wave 6.
-  # The current-route foundation already delivers outcome/role discovery,
-  # catalogue breadth, and the self-host story. Do not repeat those sections.
-  # Remaining deliverable: /evaluate/; catalogue and pack pages consuming
-  # neutral-index facts; and the optional-integration relationship view. No
-  # visual system redesign.
   {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
-
-  # Wave 9 — First-party migration and closeout. Gated on Waves 2, 5, 7 and
-  # the Wave 8 replacement.
-  # Deliver: all packs+profiles migrated; drift fixes; strict-resolution policy;
-  # complete site projection; old external catalogues verified valid; security+
-  # quality reviews clean; workspace.toml closed out.
   {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/documentation-entry-navigation"]},
 ]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ini-008 · Work Intake and Artifact Routing
-# Authority: RFC-0083, ADR-0077, ADR-0078
-# Cross-spec execution is intentionally serial. Parallelism belongs only inside
-# each approved plan and is not represented as separate workspace entries.
-# ────────────────────────────────────────────────────────────────────────────
 ["ini-008"]
 name      = "Work Intake and Artifact Routing"
 status    = "complete"
@@ -2813,21 +1919,11 @@ milestone = "Wave 7 · Migration and documentation (complete)"
 # dispatch. Needs are typed objects — the canonical parser rejects bare strings.
 shipped = [
   {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
-  # Group 2 — transient normalized-intake contract + structured workspace entry
-  # schema (provenance, authority, summary, dependencies, lifecycle, validation).
   {path = "docs/specs/normalized-intake-workspace-contracts/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize intake and workspace contracts", needs = []},
-  # Group 3 — parsing, reconciliation, status and dispatch enforce the target
-  # rules: a missing spec or plan fails closed; comments cannot change routing.
   {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
-  # Group 4 — standalone work-intake front door and compatibility alias.
   {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
-  # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
-  # contract. Acquisition and normalization stay adapter-specific.
   {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
-  # Group 7 — reconcile legacy workspaces, publish the alias window and removal
-  # criteria, finish cross-links, run the full evaluation matrix.
   {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
-  # RFC-0096 Wave 1 — shared read-only semantic-surface resolution.
   {path = "docs/specs/semantic-surface-resolver/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Resolve semantic roles to repository-owned or external destinations without lifecycle changes", needs = []},
 ]
 active = []

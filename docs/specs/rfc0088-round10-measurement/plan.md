@@ -1,6 +1,6 @@
 # Plan: rfc0088-round10-measurement
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Assumption trio
