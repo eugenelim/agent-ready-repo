@@ -1,7 +1,7 @@
 # Plan: Local CI orchestration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done
+- **Status:** Done (superseded in part by ADR-0096 — composed `make ci` replaces the direct `test` prerequisite with `test-after-build-check`; everything else stands)
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence develops.

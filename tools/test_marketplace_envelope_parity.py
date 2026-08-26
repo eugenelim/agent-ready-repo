@@ -86,6 +86,14 @@ SELF = Path(__file__).resolve().relative_to(REPO_ROOT)
 #: renamed or unwired, update this anchor — the failure message names it.
 PYTEST_LIST_ANCHOR = "tools/test_contract_parity.py"
 
+#: This gate's own line in the Makefile's pytest list, as the unwiring probes must
+#: delete it. ADR-0096 moved that list out of the `test-unleased` recipe and into
+#: the `run-test-suite` macro both test targets call, which drops one level of
+#: recipe indentation — so the literal carries ONE tab, not two. One definition,
+#: because two probes delete the same line and a half-updated pair would leave a
+#: probe silently anchored on text that no longer exists.
+MAKEFILE_GATE_LINE = "\ttools/test_marketplace_envelope_parity.py \\\n"
+
 #: Every path `check_envelope_parity` reads. A probe materialises exactly these into
 #: a fixture tree; copying the repository would drag ~70 MB plus three symlinked
 #: context files, and a symlink-following copy would write a mutation back into the
@@ -938,7 +946,7 @@ def _coordinated_repo_move(root: Path) -> None:
 
 def _drop_gate_from_both_lists(root: Path) -> None:
     """Unwire the gate from both lists at once, keeping them equal."""
-    _edit(root, MAKEFILE, "\t\ttools/test_marketplace_envelope_parity.py \\\n", "")
+    _edit(root, MAKEFILE, MAKEFILE_GATE_LINE, "")
     _edit(
         root, BUILD_CHECK_WORKFLOW,
         "            tools/test_marketplace_envelope_parity.py \\\n", "",
@@ -1003,7 +1011,7 @@ _MUTATIONS = [
      lambda r: _append(r, SELF_HOST, 'globals()["_MARKETPLACE_DESCRIPTION"] = "x"')),
     # the wiring anchors
     ("gate-unwired-from-makefile", MAKEFILE,
-     lambda r: _edit(r, MAKEFILE, "\t\ttools/test_marketplace_envelope_parity.py \\\n", "")),
+     lambda r: _edit(r, MAKEFILE, MAKEFILE_GATE_LINE, "")),
     ("gate-unwired-from-workflow", BUILD_CHECK_WORKFLOW,
      lambda r: _edit(r, BUILD_CHECK_WORKFLOW,
                      "            tools/test_marketplace_envelope_parity.py \\\n", "")),
