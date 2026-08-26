@@ -284,7 +284,7 @@ rewrite Git history, start the 30-day clock, or hide cooling records.
 - **You decide:** freshness, disposition intent, and each exact persisted effect.
 - **Output:** bounded closeout evidence, owned next actions, and no mutation unless
   a fresh authority-bound confirmation is accepted.
-- **State:** confirmed-write only when an exact effect is separately approved
+- **State:** confirmed-write
 
 ---
 

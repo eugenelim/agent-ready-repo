@@ -1513,8 +1513,14 @@ _WORK_LOOP_CONTRACT_HASH = (
 # Reconciled 2026-08-24: checklist distinguishes mandatory from non-mandatory
 # reviewers and requires a `review-verdict.v1` record; both are reviewer-readiness
 # concerns, engine needs no edit (no spec.md write or workspace.toml mutation).
+# Reconciled 2026-08-26: the checklist adds a completion-evidence handoff item
+# (which explicitly leaves closeout to close-work) and restates the doc-drift
+# bullet so every final accepted AC is `[x]` with separable follow-ons owned
+# outside the AC list. Both are work-loop-side completion concerns; work-loop
+# still owns the spec.md `Status: Shipped` write and workspace-status still owns
+# workspace.toml queue/active/shipped, so the engine needs no edit.
 _WORK_LOOP_FINISH_HASH = (
-    "f562b55548d6aff707e49dc0b67699de8bdc32972885a438495bf56ead172ff6"
+    "5e25461454b1105abaf184b355e2ebfc2b620970baf555b2569fd989e37165ec"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
