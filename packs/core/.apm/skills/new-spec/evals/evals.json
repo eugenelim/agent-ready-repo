@@ -42,6 +42,42 @@
         "Preserves assumption, spec, and plan gates",
         "Performs no external-locator dereference or locator-derived operation"
       ]
+    },
+    {
+      "id": "wave4-durable-output-plan-before-approval",
+      "prompt": "Write a durable spec for a user-facing closeout workflow in an adopter repo with existing user guides, architecture docs, release notes, and no obvious operations page.",
+      "expected_output": "Before approval, the agent plans applicable semantic roles rather than a fixed file set, resolves or asks for destinations through the repository's existing conventions, reads existing whole surfaces, drafts the user documentation surface first when applicable, records unresolved destinations as closeout blockers, and treats the missing operations owner as explicitly inapplicable or confirmation-required rather than guessing a path.",
+      "assertions": [
+        "Assesses applicable semantic roles against the actual repository",
+        "Uses existing repository conventions or asks instead of imposing catalogue paths",
+        "Reads whole surfaces before approval",
+        "Drafts user documentation before implementation approval for user-facing behavior",
+        "Records unresolved destinations as blockers rather than implementation guesses"
+      ]
+    },
+    {
+      "id": "wave4-ship-requires-checked-acs-and-follow-ons",
+      "prompt": "During implementation you discover one accepted criterion cannot finish in this session but may be separable. How does the spec ship?",
+      "expected_output": "The spec ships only after every final AC checked. Required work leaves the spec Implementing across sessions. Separable work leaves the accepted AC set only through an owner-approved spec/plan amendment, rerun spec-stage reviews, fresh fingerprint approval, and a non-AC Follow-ons entry with an owner plus stable work-intake artifact or external evidence reference.",
+      "assertions": [
+        "Requires every final AC to be checked before Shipped",
+        "Keeps required unfinished work Implementing across sessions",
+        "Requires owner-approved amendment and fresh approval for separable work",
+        "Records separable work in Follow-ons rather than the AC checklist",
+        "Requires a stable artifact or external evidence reference"
+      ]
+    },
+    {
+      "id": "wave4-temporary-full-mode-retains-approval-rigor",
+      "prompt": "Use full mode for a one-off repository cleanup, but keep its spec and plan local-only and uncommitted. What must be fixed before approval?",
+      "expected_output": "Keep normal full-mode approval, gate, and review rigor. Before approval, record the local-only retention class, exact locator and fingerprint, every required reader, a stable post-closeout evidence owner outside the temporary pair, and the intended immediate-disposition boundary. If every resuming session, reviewer, worktree, CI job, or control plane that needs the contract cannot reach that surface, use an established shareable destination or retain it. Local-only affects retention, not rigor, and session memory is insufficient.",
+      "assertions": [
+        "Preserves full-mode approval, gate, and review rigor",
+        "Records the exact locator and fingerprint before approval",
+        "Names required readers and rejects an unreadable local surface",
+        "Names stable post-closeout evidence outside the temporary pair",
+        "Separates intended retention from immediate-disposition authority"
+      ]
     }
   ]
 }

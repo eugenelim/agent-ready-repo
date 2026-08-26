@@ -394,6 +394,15 @@ change as you learn things — **while the plan is `Drafting` or `Executing`**.
 Once it is `Done` and the spec `Shipped`, the directory freezes as a unit; see
 § *A spec directory freezes as a unit, when the spec ships*.
 
+**Durable outputs own lasting truth.** A durable spec identifies the semantic
+owners it expects to create or update before implementation starts: user
+documentation, current product truth, current architecture, decision rationale,
+interface or operations contracts, maintainer procedure, release history, and
+reusable learning when applicable. The spec/plan pair may be retained as frozen
+delivery history, but it is not a substitute for those living owners. Tests and
+source remain executable capability proof; they do not preserve product intent,
+rationale, authority, ownership, or non-executable operational promises.
+
 **Lifecycle:** specs are **living documents** for the duration of a feature's
 implementation. If implementation diverges from the spec, the spec is wrong;
 update it in the same PR. After the feature ships the spec **freezes**: at that
@@ -402,6 +411,16 @@ agreed, not a description of current behaviour. A later behaviour change is
 recorded where it belongs — in the code, and in an ADR if it reverses a
 decision — never by rewriting the shipped spec. When a later decision reverses
 part of one, annotate its Status field; see § *Superseding a frozen document*.
+
+**Rigor and retention are separate.** Full-mode work may still use a
+local-only or PR-only spec/plan when the approved record is confined,
+fingerprinted, available to every required participant, and has an independent
+post-closeout evidence owner. That choice affects where the live delivery
+container may reside, not the approval, gate, or review standard. If another
+person, worktree, CI job, or external control plane must read the contract,
+session-local memory is not enough; use an established shareable surface or
+retain the record. After implementation, `close-work` settles durable outputs
+and workspace coordination before any delivery container can be removed.
 
 Guards, pre-checks, and invariant-enforcement added during implementation are
 ACs, not implementation details — if they affect observable behavior (exit
@@ -448,17 +467,20 @@ mechanical rule.
   applies this gate to new specs and to specs whose section is removed in the
   current diff; existing sectionless specs are grandfathered. A reasonless or
   malformed marker, or a marker alongside a real section, is a hard violation.
-- **Deferral token.** A criterion that ships *unmet on purpose* because
-  genuinely deferred in-scope work remains is not left unchecked and silent —
-  it carries an inline `(deferred: <slug>)` marker whose `<slug>` resolves to a
-  `slug` field in `workspace.toml [backlog].open`, the durable register of open
-  work. Form: `- [ ] <outcome> (deferred: <slug>)`. This is not the default
-  disposition for an excluded out-of-scope discovery: acknowledge that work in
-  the PR's *What did you not change that you considered?* answer instead. If
-  its owner explicitly asks to remember it, route that capture through
-  `work-intake`. A deferral recorded only in a PR comment rots; the register is
-  version-controlled and greppable. Run `workspace-status` to see all open
-  backlog items.
+- **No new shipped acceptance debt.** A spec newly transitioning to `Shipped`
+  has every final accepted criterion checked. If required accepted work remains,
+  the spec stays `Implementing` across sessions. If the owner agrees that work
+  is separable, amend the spec/plan, remove it from the final AC set, and
+  record it under `## Follow-ons` with an owner and stable work-intake artifact
+  or external evidence reference. The amended fingerprint receives the normal
+  review and human approval before implementation resumes.
+- **Historical deferral token.** Frozen specs may still contain older inline
+  `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
+  resolve to a `slug` field in `workspace.toml [backlog].open`; Wave 7 owns any
+  historical migration. Do not use this marker as a new shipping exception. A
+  follow-on recorded only in a PR comment rots; the register or external
+  artifact is the stable pointer. Run `workspace-status` to see open backlog
+  items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which
@@ -754,6 +776,15 @@ list order, tracker labels, and profile hints are non-semantic: they cannot
 select a route, satisfy a dependency, choose a processor, or authorize
 dispatch. Only an existing Approved `spec.md` with an existing sibling
 `plan.md` and valid unique workspace membership may start from the queue.
+
+Workspace prose stays terse and present-tense. A generated or materially
+updated entry carries minimal provenance, one short summary of the current
+outcome or next-needed condition, and hard dependencies only. It must not carry
+history, rationale, procedure, review transcript, raw finding, copied source
+text, soft priority, or suggested order in comments or adjacent fields. When
+that context matters, write it to the resolved canonical artifact first and
+index only the pointer. Settled live coordination is removed or compacted; it
+is not replaced with a workspace history.
 
 Repository-origin artifacts are locally authoritative. Tracker-origin
 artifacts record source reference/revision and exactly one closed authority

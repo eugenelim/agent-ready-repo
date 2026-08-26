@@ -1,6 +1,6 @@
 ---
 title: "Spec `Shape:` and the plan's `## Design (LLD)`"
-summary: Look up the feature-shape classification, plan design sections, stack derivation, and boundary between behavioral and implementation decisions.
+summary: Look up durable-output planning, feature-shape classification, plan design sections, stack derivation, and what design detail must survive closeout.
 pack: core
 kind: reference
 ---
@@ -11,7 +11,32 @@ kind: reference
 Authoritative description of the **`Shape:`** spec field, the plan's **`## Design (LLD)`** section, and the **stack-derivation** step that fills it. For why the design lives in the plan rather than the spec, see [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md). These are produced by the `new-spec` skill (and inherited by `receive-brief` when it scaffolds a spec).
 :::
 
-A spec stays the **contract** — objective, boundaries, testing strategy, acceptance criteria. The **low-level design** (the *how*: data model, component decomposition, screen states, resilience, deployment sequencing) lives in the **plan**. Two additive pieces connect them: the spec's `Shape:` selector and the plan's `## Design (LLD)` section.
+A spec stays the **contract** — objective, durable outputs, boundaries, testing
+strategy, acceptance criteria. The **low-level design** (the *how*: data model,
+component decomposition, screen states, resilience, deployment sequencing) lives
+in the **plan**. Three additive pieces connect them: the spec's `Shape:`
+selector, the spec's `## Durable Outputs` table, and the plan's
+`## Design (LLD)` section.
+
+## Durable outputs
+
+`## Durable Outputs` names the lasting records that must exist outside the
+delivery container before closeout can dispose of it. It is repository-specific.
+Authors assess the actual application and repository for user promises, current
+product truth, architecture, decision rationale, interface compatibility,
+operations, maintainer procedure, release history, and reusable learning.
+
+Each applicable output names its semantic role, destination, owner, expected
+evidence, and closeout condition. `none` needs an explicit rationale. Ambiguous
+or absent destinations remain named blockers until a person selects or creates
+the owner; the workflow does not assume this catalogue's paths in another repo.
+
+Shaping reads each applicable existing surface as a whole. A touched page, link,
+or passing test is evidence for freshness, not proof. User-facing behavior gets
+an established user-documentation draft before implementation approval when that
+surface exists. Architecture and maintainer pages stay terse: ownership,
+boundaries, invariants, navigation, and links to implementation, contracts,
+tests, and verified commands.
 
 ## The `Shape:` field
 
@@ -53,6 +78,15 @@ The **tenth** design category — **rollout & deployment** — is *not* a Design
 
 Each sub-section **traces to the acceptance criteria it satisfies and the `contracts/` it implements** — so the design is always anchored to something verifiable. No acceptance criterion lives in the design; the spec keeps the contract. (A user-visible UI state and an NFR with a pass/fail bar each *rise* to the spec as acceptance criteria; the per-screen and per-NFR design sits here.)
 
+At closeout, the LLD is treated as mixed delivery material. Policy, trade-offs,
+rejected alternatives, current ownership, state/control flow, security
+invariants, interface promises, operations, and reusable learning move to their
+applicable durable owners when they cannot be reconstructed faithfully from code
+or tests. Mechanically evident internal shapes stay with code, types,
+docstrings, and tests. One-off construction order and review choreography can
+remain disposable residue. A non-inferable design fact that still lives only in
+the plan blocks disposition.
+
 ### Which `Shape:` selects which sub-sections
 
 A guide, not a gate — prune freely. The **authoritative copy** of this mapping is the shape-map comment in the `plan.md` template (`new-spec`'s `assets/plan.md`); the table below reproduces it for reading — if the two ever disagree, the template wins.
@@ -77,5 +111,6 @@ The Design headings are universal; the prose under them names a **concrete stack
 
 - [`reference.md` sections and the stack-pack contract](../../architect/reference/reference-architecture.md) — the golden path this design conforms to when it's present.
 - [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md) — the reasoning behind this split.
+- [Close work without losing lasting context](../how-to/close-and-disposition-work.md) — how closeout verifies durable owners before disposition.
 - [Product brief fields](product-brief-fields.md) — the sibling spec fields a brief stamps (`Brief:`, `Satisfies:`).
 - [Why a brief layer](../explanation/why-a-brief-layer.md) — where briefs sit relative to specs and plans.

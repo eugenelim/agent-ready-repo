@@ -3713,7 +3713,7 @@ def test_schedule_precheck_wins_over_a_failing_event_guard(tmp: Path) -> None:
         ok(name)
 
 
-def test_engine_names_no_python_script_but_its_two_siblings() -> None:
+def test_engine_names_only_in_process_python_siblings_and_never_spawns_python() -> None:
     """Source-absence signal, independent of the runtime recorder in T5.
 
     Two signals rather than one because they fail differently: a recorder proves no
@@ -3738,6 +3738,7 @@ def test_engine_names_no_python_script_but_its_two_siblings() -> None:
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
         and _re.search(r"\.py$", node.value)
     }
-    assert literals <= {"_statelock.py", "_loop_guards.py"}, (
-        f"the engine names other Python scripts: {sorted(literals - {'_statelock.py', '_loop_guards.py'})}"
+    allowed = {"_statelock.py", "_loop_guards.py", "loop-cohort.py"}
+    assert literals <= allowed, (
+        f"the engine names other Python scripts: {sorted(literals - allowed)}"
     )

@@ -287,6 +287,53 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.13.0"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[core][2.13.0] — 2026-08-26",
+      "changelogAnchor": "core2130--2026-08-26",
+      "highlights": [
+        {
+          "source": "**Delivery work can now close without losing the reasons and promises that code and tests cannot explain.** `close-work` verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Delivery work can now close without losing the reasons and promises that code and tests cannot explain."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition."
+            }
+          ]
+        },
+        {
+          "source": "**Immediate disposal is safe by construction and never automatic.** Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Immediate disposal is safe by construction and never automatic."
+            },
+            {
+              "type": "text",
+              "value": " Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.12.1"
         },
         {

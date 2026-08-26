@@ -426,6 +426,7 @@ $(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/close-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q

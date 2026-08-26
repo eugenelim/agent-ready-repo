@@ -1,0 +1,12 @@
+[
+  {"id": "confirmation-declined", "event": "decline", "expected_code": "confirmation-declined"},
+  {"id": "confirmation-mismatch", "event": "confirmation-mismatch", "expected_code": "confirmation-not-issued"},
+  {"id": "confirmation-reuse", "event": "confirmation-reuse", "expected_code": "confirmation-reused"},
+  {"id": "fingerprint-drift", "event": "content-drift", "expected_code": "confirmation-expired"},
+  {"id": "target-renamed", "event": "rename", "expected_code": "confirmation-expired"},
+  {"id": "target-added", "event": "added-target", "expected_code": "confirmation-expired"},
+  {"id": "push-state-drift", "event": "source-state-drift", "expected_code": "confirmation-expired"},
+  {"id": "symlink-target", "event": "symlink", "expected_code": "unsafe-target"},
+  {"id": "hard-link-target", "event": "hard-link", "expected_code": "unsafe-target"},
+  {"id": "non-regular-target", "event": "non-regular", "expected_code": "unsafe-target"}
+]

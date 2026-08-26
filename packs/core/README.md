@@ -61,6 +61,7 @@ confirmation and pending receipt.
 | `work-intake` | Start work, remember it for later, inspect status, or request a requirements refresh |
 | `workspace-status` | Orient — what's ready, blocked, and done |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
+| `close-work` | Verify lasting context, pause or close delivery work, and preview a safe disposition |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
@@ -125,6 +126,19 @@ also rejects a wrong or over-broad proposed remedy without losing the real
 defect underneath it.
 
 The agent opens the PR. Read the description, then merge.
+
+After delivery, ask `close-work` to verify that lasting product, user,
+architecture, decision, interface, operations, maintainer, release, and reusable
+learning facts reached their established owners. It reads the `work-loop`
+completion handoff, checks affected human-readable surfaces as wholes, and shows
+blockers plus one disposition recommendation before anything changes.
+
+Disposition is never permission. A local deletion or content-removing workspace
+compaction needs a separately resolved authority fact and fresh human confirmation
+bound to the exact current locator, fingerprint, evidence, action, resource, and
+session; drift expires it. `cool-30-days` is classification only in this release.
+Use [Close work without losing lasting context](../../guides/core/how-to/close-and-disposition-work.md)
+for close, pause/resume, temporary full-mode records, and initiative settlement.
 
 ---
 
@@ -201,5 +215,6 @@ for the route and scope differences.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
 - **Migrate legacy workspace entries:** [plan, apply, recover, and roll back one reviewed entry](../../guides/core/how-to/migrate-capture-work.md).
+- **Close or pause delivery work:** [verify durable context and preview a safe disposition](../../guides/core/how-to/close-and-disposition-work.md).
 - **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
 - **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

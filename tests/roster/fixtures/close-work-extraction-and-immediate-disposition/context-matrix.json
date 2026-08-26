@@ -1,0 +1,22 @@
+{
+  "durable_outputs": [
+    {"id": "rationale-owned", "applicable": true, "destination": "docs/rfc/0096.md", "freshness": "confirmed", "finding_status": "incorporated", "expected": "settled"},
+    {"id": "missing-owner", "applicable": true, "destination": null, "freshness": "unknown", "finding_status": "none", "expected": "blocked"},
+    {"id": "stale-whole", "applicable": true, "destination": "docs/architecture/current.md", "freshness": "stale", "finding_status": "incorporated", "expected": "blocked"},
+    {"id": "not-applicable", "applicable": false, "destination": null, "freshness": "not-applicable", "finding_status": "none", "expected": "not-applicable"}
+  ],
+  "workspace_entries": [
+    {"id": "terse", "summary": "Implement close-work after approved Wave 4 contract", "commentary": [], "needs": ["wave-3"], "expected": "accepted"},
+    {"id": "history", "summary": "First we debated this, then reviewers requested changes, and now the remaining story is narrated here", "commentary": ["review chronology"], "needs": [], "expected": "rejected"},
+    {"id": "procedure", "summary": "Run tests, update docs, ask reviewers, then merge in this suggested order", "commentary": [], "needs": [], "expected": "rejected"},
+    {"id": "needs-history", "summary": "Await downstream dependency", "commentary": [], "needs": ["First review the old discussion, then run tests"], "expected": "rejected"}
+  ],
+  "lld_facts": [
+    {"id": "policy", "kind": "policy", "inferable_from_code": false, "owner": "decision-record", "expected": "persist"},
+    {"id": "architecture", "kind": "current-architecture", "inferable_from_code": false, "owner": "current-architecture", "expected": "persist"},
+    {"id": "interface", "kind": "interface-promise", "inferable_from_code": false, "owner": "user-documentation", "expected": "persist"},
+    {"id": "mechanical-shape", "kind": "internal-shape", "inferable_from_code": true, "owner": null, "expected": "implementation-evidence"},
+    {"id": "construction-order", "kind": "task-order", "inferable_from_code": false, "owner": null, "expected": "delivery-residue"},
+    {"id": "orphaned-rationale", "kind": "rationale", "inferable_from_code": false, "owner": null, "expected": "blocked"}
+  ]
+}
