@@ -264,6 +264,7 @@ backlog = []
 open = [
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
+  # Unblocks when: promoted through normal intake into a controlled benchmark.
   {path = "docs/product/intents/code-graph-review-benchmark.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/work-loop-review-verdicts/notes/code-graph-code-review-effectiveness-survey.md", revision = "local-2026-08-23"}, summary = "Benchmark repository-native targeted exploration against graph-assisted code review before adopting graph infrastructure", needs = []},
 
   {path = "docs/product/intents/portable-agent-plugin-projection.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Project existing canonical skills into deterministic portable Agent Plugin packages", needs = []},
@@ -272,28 +273,63 @@ open = [
   {path = "docs/product/intents/codex-plugin-route.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Emit native Codex plugin packages and marketplace with user-scope publication parity", needs = [{type = "local", kind = "intent", path = "docs/product/intents/distribution-route-registry.md"}]},
   {path = "docs/product/intents/kiro-power-route-profile.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Add the Kiro Power route profile over portable package bytes", needs = [{type = "local", kind = "intent", path = "docs/product/intents/codex-plugin-route.md"}]},
   {path = "docs/product/intents/claude-manifest-migration-support-claims.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45"}, summary = "Migrate Claude manifest residue and publish machine-readable support claims", needs = [{type = "local", kind = "intent", path = "docs/product/intents/kiro-power-route-profile.md"}]},
+  # Unblocks when the current Kiro contract is reacquired and the migration
+  # receives its own approved spec.
   {path = "docs/product/intents/kiro-hook-schema-v1.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Migrate direct Kiro hook projection to the standalone v1 schema", needs = []},
+  # Unblocks when each runtime contract is reacquired and the output boundary is
+  # approved.
   {path = "docs/product/intents/adapter-hook-context-output.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Render session-start context through each adapter's documented output protocol", needs = []},
+  # Unblocks when runtime root semantics are reacquired and the command strategy
+  # is approved.
   {path = "docs/product/intents/root-stable-hook-dispatch.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/codex-hook-adaptation-handoff/hook-adapter-audit.md", revision = "sha256-bytes-v1:3e6d9b52c6316d6fb13eacbd46737a12d5acd437b310ba1eb3d1876df959d8c1"}, summary = "Make Claude Code and Codex repository hook dispatch root-stable", needs = []},
   {slug = "changelog-promote-marooned-entries", source = "rfc/0095 D3", summary = "Promote the 59 versioned changelog entries nested under [Unreleased] to free-standing `##` sections so they publish to /now/, separating them from the 48 interleaved genuinely-unreleased bare sections across three [Unreleased] regions; lower _MAROONED_RELEASE_BASELINE as they land, and restore Keep a Changelog ordering with [Unreleased] first"},
   {slug = "mcp-servers-from-package-registries", source = "rfc/0092 D7", summary = "Open an RFC for MCP servers acquired from npm, PyPI, or another registry: a typed acquisition descriptor extending the unused runtime-dependencies shape, an immutable-artifact-identity requirement before execution, a provenance trust policy, and a lifecycle-script policy"},
+  # Unblocks when: someone owns the regenerator.
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
   {slug = "okf-index-title-interpolation-unescaped", summary = "Concept title/status/type reach generated OKF index link text unescaped, so a hostile title chooses a link target in a compiler-owned index", source = "spec/okf-authoring-projection (whole-spec quality review)"},
   {slug = "okf012-nondeterminism-guard-untested", summary = "The OKF012 repeated-compile guard has zero test coverage, so removing it fails no test", source = "spec/okf-authoring-projection (whole-spec quality review)"},
   {slug = "architect-okf-bundle-root-missing-license", summary = "packs/architect fails OKF discovery with 'missing content license', so agentbundle show architect --format json exits 1", source = "spec/okf-authoring-projection (adversarial review, reproduced)"},
+  # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
+  # Deferred rather than bundled: packages/agentbundle/ is a protected tree
+  # (tools/lint-catalogue-curation-guard.py refuses without an `Engine-Change-
+  # RFC:` trailer) and AGENTS.local.md requires a pyproject version bump for an
+  # engine change. A config-drift fix should not become an engine release. The
+  # parity gate anchors the literal instead, which catches divergence but not
+  # the duplication.
+  # Unblocks when: an engine-scoped RFC is open to cite in the trailer.
   {slug = "marketplace-description-fourth-statement-in-self-host", summary = "self_host.py restates the marketplace description a fourth time; removing it needs an Engine-Change-RFC and a version bump", source = "spec/marketplace-generator-single-source (governance gate)"},
 
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "marketplace-envelope-config-authority", summary = "Make catalogue.toml the marketplace-envelope authority for all six render.py entrypoints, after deciding toml_emit's 'main' scaffold default", source = "spec/marketplace-generator-single-source (review blocker 3)"},
 
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "output-drift-silent-without-dist", summary = "CAT-V-014 cannot fire in CI because _step_output_drift early-returns when dist/ is absent", source = "spec/marketplace-generator-single-source (assumption)"},
 
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "marketplace-ref-not-git-ref-validated", summary = "marketplace-entry.schema.json's ref and sha are unvalidated strings on an ingress path (archive.py, verify.py --root)", source = "spec/marketplace-generator-single-source (review concern 3)"},
 
+  # Blocker: the fix changes protected packages/agentbundle/** and needs an
+  # Engine-Change-RFC trailer naming a real RFC.
   {slug = "catalogue-branch-empty-falls-back-to-upstream-constant", summary = "An empty or absent claude-plugin-branch makes a fork's install route resolve to upstream's repo and ref", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  # Unblocks when: a maintainer runs the canary arm; settings writes are theirs.
+  # Deferred rather than bundled: closing it needs a repository-settings action
+  # and a live canary run, neither of which is a code change this PR could
+  # carry.
   {slug = "publish-control-evidence-freshness-unbounded", summary = "Publish-control evidence has no freshness bound and the live-branch negative test was never run; a settings-side ruleset removal leaves every gate green", source = "spec/marketplace-generator-single-source (review concern 4)"},
+  # Unblocks when: SAST rule authoring is in scope (sast-cwe-delta-review is
+  # adjacent).
+  # Deferred rather than bundled: bounding it needs a different instrument
+  # entirely — a runtime assertion inside the build, or a semgrep rule — not
+  # more static reading.
   {slug = "marketplace-envelope-post-import-rebind-unbounded", summary = "Neither parity layer bounds a post-import rebind of _DIST_BRANCH or _MARKETPLACE_DESCRIPTION", source = "spec/marketplace-generator-single-source (review residual)"},
+  # Unblocks when: the publisher's import surface is next touched.
+  # Deferred rather than bundled: the fix is to change the publisher's import
+  # surface, which is publish-path code this PR deliberately does not touch.
   {slug = "marketplace-publisher-branch-layer-2-only", summary = "The publisher's BRANCH push target is covered by the parity gate's literal layer only, not the resolved-value layer", source = "spec/marketplace-generator-single-source (review concern 4)"},
   # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
   # cross-repository reference, so now that a spec's `Brief:` back-link is the
@@ -1030,7 +1066,6 @@ open = [
   # have none (a pure-decision or errata spec).
   # Fix: decide whether a missing Acceptance-Criteria section is an error, a
   #   warning, or legal-with-an-explicit-marker; then implement.
-  # Unblocks when: picked up — no dependency.
   {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains"},
 
   # Current: retained runtime messages and their assertions still embed governance
@@ -1087,8 +1122,11 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
+  # Unblocks when: web's fsevents@2.3.2 divergence is dispositioned (add to
+  # allowScripts, or repin so it dedupes to 2.3.3).
   {slug = "npm-allowscripts-enforcement", summary = "Make the documented allowScripts install-script invariant machine-checked for both npm projects, after dispositioning web's pre-existing playwright/fsevents@2.3.2 divergence", source = "spec/npm-sca-gate"},
 
+  # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
@@ -1490,6 +1528,8 @@ open = [
 
   {slug = "pack-argv-path-boundary-sweep", summary = "Apply the argv->path boundary validator to the remaining ~68 sites across converters/atlassian/workspace-status/receive-brief packs and packages/agentbundle", source = "spec/pack-script-root-boundary-validation"},
 
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   {slug = "agentbundle-install-yaml-merge", summary = "Add a YAML-merge conflict mode to `agentbundle install` so packs can ship mergeable .snyk (and other YAML) policy files without clobbering each other", source = "spec/pack-script-root-boundary-validation"},
 
   {slug = "codeql-required-check", summary = "Make the CodeQL check required in branch protection so interprocedural taint findings block a merge instead of only annotating", source = "spec/pack-script-root-boundary-validation"},
@@ -1498,9 +1538,13 @@ open = [
 
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
+  # Unblocks when: picked up with the platform-targeting decision made first.
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
   {slug = "sast-nosemgrep-has-no-form-lint", summary = "No repository-wide nosemgrep form-lint requires a suppression rule id and reason", source = "spec/semgrep-selftest-batching security review"},
+  # Deferred because it makes bandit a hard prerequisite of `make build-check`
+  # for every contributor -- that is a real cost and deserves its own decision,
+  # not a ride-along.
   {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
@@ -1530,10 +1574,32 @@ open = [
   # conjunctive gates, so this entry has no machine-readable `needs` edge and
   # remains non-dispatchable until a separate spec is approved.
   {slug = "capture-work-alias-removal", source = "spec/work-intake-migration-docs AC14"},
+  # Deferred: refresh has no trusted representation of which brief fields were
+  # materialized into children; adding one requires new trusted inputs.
   {slug = "tracker-refresh-materialized-child-scope", type = "spec", source = "spec/tracker-refresh-writeback AC10", summary = "Define trusted materialized-child scope for Ready brief refresh"},
+  # Deferred: workspace-status receives only a profile id and version, not
+  # resolved capabilities, and the processor write path receives no trusted
+  # lifecycle. So the lifecycle allowlist is not enforced on remote write-back
+  # and refresh availability can only report False or "unknown", never True. A
+  # defaulted parameter would be bypassable, which is worse than a documented
+  # gap; closing it means threading resolved capabilities through both surfaces.
   {slug = "tracker-refresh-enforced-capability-state", type = "spec", source = "spec/tracker-refresh-writeback AC11", summary = "Enforce the lifecycle allowlist on remote write-back and report availability affirmatively"},
+  # Deferred: the guarded-write receipt check verifies status, action and target
+  # structurally, not by runtime class identity, so an in-process caller could
+  # present a receipt-shaped object. Making it exact needs a shared receipt
+  # runtime identity, the same design the cross-loaded store required.
   {slug = "tracker-refresh-receipt-runtime-identity", type = "spec", source = "spec/tracker-refresh-writeback AC25", summary = "Verify the guarded-write receipt by runtime identity, not structurally"},
+  # Deferred: the coordinator RefreshResult vocabulary is closed (RESULT_CODES +
+  # refresh-result.schema.json enum), but each processor returns its own
+  # WriteBackResult codes with no closed set, so a typo ships silently. A single
+  # shared frozenset would falsely authorize codes an adapter cannot return;
+  # closing it properly means one vocabulary per result type plus a deliberate
+  # shared base, which is a multi-file public-result-contract change. Deferred
+  # to avoid widening the reviewed surface after adversarial review round 2.
   {slug = "tracker-refresh-processor-result-vocabulary", type = "spec", source = "spec/tracker-refresh-writeback AC24", summary = "Close the per-processor write-back result code vocabularies"},
+  # Deferred: projection repair needs its own confirmation contract; adding one
+  # requires a new trusted input rather than inferring authority from tracker
+  # data.
   {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
   {slug = "workspace-anchor-staleness-invariant", type = "design", source = "rfc/0083 Errata 2026-08-13", summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions"},
 
@@ -1694,16 +1760,23 @@ open = [
   # untracked leftover). Closing it fully means giving up the end-to-end proof that
   # the production CLI is wired to the real catalogue, or copying the worktree per
   # run — so it needs a design decision, not a patch.
-  # Unblocks when: ready now.
   { slug = "selftest-untracked-plant-window", type = "shape" },
+  # Unblocks when: ready now.
   { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
+  # Unblocks when: ready now -- the skill it documents already ships.
   { slug = "credential-operator-setup-guide", source = "docs/architecture/credentials.md; guides/credential-brokers/ operator-guide gap", summary = "guides/credential-brokers/ has an author how-to but nothing for the operator who must store a credential, and the credential-setup skill ships without one" },
+  # Unblocks when: someone applies RFC-0090's tail-triage lane to it -- that is
+  # the likely lens for the decomposition, given the design's size.
   { slug = "binder-publishing-build-spec", source = "docs/architecture/binder-publishing/ (STATUS: PLANNED)", summary = "The planned binder-publishing design has no build spec; the only existing spec covers gate propagation only" },
   { slug = "pytest-tmpdir-worktree-attribution", source = "spec/pytest-resource-optimization (measurement, unowned)", summary = "Give pytest temp trees per-worktree attribution via TMPDIR so a dead worktree's trees can be reclaimed; detect workspace vs single-checkout users from git topology, leaving single-checkout behaviour unchanged" },
 
+  # Blocker: the fix touches protected packages/agentbundle/**; its landing
+  # commit needs an Engine-Change-RFC trailer naming a real RFC.
   { slug = "agentbundle-catalogue-test-command", source = "spec/pytest-resource-optimization (adopter gap)", summary = "Give catalogue adopters a canonical way to execute the tests they receive, discovering pack and conformance suites from the ADR-0071 layout while preserving one process per skill and keeping test dependencies development-only" },
   { slug = "pages-build-job-not-a-required-check", source = "CI observation 2026-08-23, PR #1036", summary = "pages.yml's `build` job carries both site builds, the plugin suite, the rendered-output invariants and the browser gate but is not a required status check, and its `paths:` filter means it cannot simply be ticked as one" },
 
+  # Unblocks when: approver separately authorises implementation of the named
+  # item.
   { slug = "rfc0088-adr-broker-deployment-model", source = "rfc/0088 follow-on list", summary = "Record the ADR choosing between library-owned broker and bound Playwright CLI as the broker deployment unit" },
   { slug = "rfc0088-adr-immutable-adapter-artifacts", source = "rfc/0088 follow-on list", summary = "Record the ADR establishing immutable adapter artifacts and no remote adapter catalogue in v1" },
   { slug = "rfc0088-convention-browser-session-lint", source = "rfc/0088 follow-on list", summary = "Add auth: browser-session taxonomy and its pack-lint contract to CONVENTIONS.md" },
