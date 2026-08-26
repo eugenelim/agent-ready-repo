@@ -1,6 +1,6 @@
 # Spec: Docs-site print chrome suppression
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -97,33 +97,33 @@ Every acceptance criterion below names its mode.
 
 ## Acceptance Criteria
 
-- [ ] Given a built docs route under print media at 717×900, when
+- [x] Given a built docs route under print media at 717×900, when
       `.docs-site-footer__groups` is measured, its computed `display` is `none`.
-- [ ] Given the same route under screen media at 717×900, when the same element
+- [x] Given the same route under screen media at 717×900, when the same element
       is measured, its computed `display` is `grid`.
-- [ ] The AC1 and AC2 assertions live in `web/src/test/e2e/site-quality-gate.spec.ts`,
+- [x] The AC1 and AC2 assertions live in `web/src/test/e2e/site-quality-gate.spec.ts`,
       a file `npm run test:e2e:gate --prefix web` already runs, so they execute in
       CI without changing `tools/test-pages-workflow.py:96`'s gate-script pin or
       `tools/test_browser_gate_subset.py:341,365,375`'s matrix constants; the gate
       run reports the new case by name.
-- [ ] The AC1 assertion is mutation-proved: with the `@media print` rule removed
+- [x] The AC1 assertion is mutation-proved: with the `@media print` rule removed
       **and the site rebuilt** (`python3 tools/build-site.py` → `npm run build
       --prefix web` → `npm run build --prefix docs-site`, because the gate serves
       `build/`) it fails reporting `grid`; with the rule restored and the site
       rebuilt again it passes. Both outcomes, including the rebuild between them,
       are recorded in
       `docs/specs/docs-site-print-chrome-suppression/notes/mutation-proof.md`.
-- [ ] Printed output for the five documentation routes contains no page
+- [x] Printed output for the five documentation routes contains no page
       consisting solely of navigation chrome; each document's final page is
       content or the copyright line.
-- [ ] `docs-site/src/components/Footer.astro` carries no `print:hidden` class,
+- [x] `docs-site/src/components/Footer.astro` carries no `print:hidden` class,
       and `web/src/test/rendered-output.test.ts` contains no assertion about
       print behaviour; its existing shared-chrome emission assertions pass.
-- [ ] `npm run test:e2e:gate --prefix web` is green — the 60-case matrix is
+- [x] `npm run test:e2e:gate --prefix web` is green — the 60-case matrix is
       unchanged and passing, and the added 717px print case passes alongside it.
       `docs/guides/how-to/verify-a-site-release.md` describes the gate as that
       matrix plus the print case.
-- [ ] `docs-site/AGENTS.md` records, under its action-changing traps, three
+- [x] `docs-site/AGENTS.md` records, under its action-changing traps, three
       things: that `print:hidden` does not suppress an element whose own unlayered
       component rule sets `display`; that layering a `docs-site` rule to win that
       contest demotes the component's `:focus-visible` offset; and that

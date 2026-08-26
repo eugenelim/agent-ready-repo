@@ -1,7 +1,7 @@
 # Plan: Docs-site print chrome suppression
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `docs-site/AGENTS.md` (build order, styling
   invariants, vendored-Starlight rule); `web/AGENTS.md` (gate browser,
   preview-server daemonization, snapshot-staging rule);
@@ -137,9 +137,12 @@ routes × five widths, plus two docs routes × five widths × two themes (spec A
 - Goal-based: after the full build, a browser probe at 717×900 under print media
   reports `display: none` for `.docs-site-footer__groups`, and `grid` under
   screen media. Verifies spec AC1 and AC2.
-- Goal-based: `! grep -q 'print:hidden' docs-site/src/components/Footer.astro`.
-  Stated as a grep rather than a `git diff`, which goes vacuous once the revert
-  is committed. Verifies part of spec AC6.
+- Goal-based: `! grep -qE 'class="[^"]*print:hidden' docs-site/src/components/Footer.astro`.
+  Scoped to the class attribute, not the bare token: the `@media print` block
+  this task adds is commented, and that comment names `print:hidden` — a bare
+  grep would fail on a correct implementation. Stated as a grep rather than a
+  `git diff`, which goes vacuous once the revert is committed. Verifies part of
+  spec AC6.
 
 **Approach:**
 - Revert the uncommitted `print:hidden` class on line 21 so the element's markup
