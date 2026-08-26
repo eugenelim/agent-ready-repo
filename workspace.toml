@@ -157,10 +157,10 @@ draft     = []
 
 ["ini-002".work]
 active  = [
-  {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
   {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
   {path = "docs/specs/adjudicator-evidence-and-remedy-predicate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-24"}, summary = "Bound machine-checkable adjudication evidence retries and distinguish wrong remedy mechanisms", needs = []},
   {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
   {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
