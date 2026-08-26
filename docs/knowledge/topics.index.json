@@ -357,7 +357,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4935d9577b0962521f6dddd52252a18553674dbd"
+        "object_id": "f848f12049e8ec405fcf39391407ad49d8c5e6d1"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -369,7 +369,7 @@
       "lifecycle": "active",
       "path": "topics/a-test-that-shells-out-with-os-environ-inherits-ci-s-variables-and-passes-only-l.json",
       "scopes": [
-        "**"
+        "."
       ],
       "title": "A test that shells out with os.environ inherits CI's variables and passes only locally",
       "topic_key": "a-test-that-shells-out-with-os-environ-inherits-ci-s-variables-and-passes-only-l"
@@ -753,7 +753,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "a35c2f923abe26848a146cad48344ddfdb355863"
+        "object_id": "9c12ae850b89351ab0fd3a6c9f5ca01175b0694a"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -765,7 +765,7 @@
       "lifecycle": "active",
       "path": "topics/git-stash-is-shared-across-worktrees-never-park-work-with-it-when-agents-run-in-.json",
       "scopes": [
-        "**"
+        "."
       ],
       "title": "git stash is shared across worktrees — never park work with it when agents run in parallel",
       "topic_key": "git-stash-is-shared-across-worktrees-never-park-work-with-it-when-agents-run-in-"
@@ -1017,19 +1017,19 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "d41baeb06fd72672d1f3c548b3fd590e780fe60f"
+        "object_id": "4ef520aa01a75eec2700a43de245c08552dda8e4"
       },
       "competency_facets": [
         "CQ-ORIENT"
       ],
       "freshness": {
-        "checked_at": "1970-01-01T00:00:00Z",
-        "state": "review_required"
+        "checked_at": "2026-08-26T00:44:38Z",
+        "state": "fresh"
       },
-      "lifecycle": "needs_review",
+      "lifecycle": "active",
       "path": "topics/one-large-socket-read-is-unbounded-in-wall-clock-even-with-a-socket-timeout.json",
       "scopes": [
-        "**/*.py"
+        "packages/credbroker"
       ],
       "title": "One large socket read is unbounded in wall-clock even with a socket timeout",
       "topic_key": "one-large-socket-read-is-unbounded-in-wall-clock-even-with-a-socket-timeout"
@@ -1215,19 +1215,19 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "8080359c5b23c6a97bfa4b2aa2be1361235ef02f"
+        "object_id": "0e92647c673e0e674b53beaa16838a2c7137e19d"
       },
       "competency_facets": [
         "CQ-ORIENT"
       ],
       "freshness": {
-        "checked_at": "1970-01-01T00:00:00Z",
-        "state": "review_required"
+        "checked_at": "2026-08-26T00:44:38Z",
+        "state": "fresh"
       },
-      "lifecycle": "needs_review",
+      "lifecycle": "active",
       "path": "topics/rename-audits-must-enumerate-docstring-comment-error-message-sites-not-just-code.json",
       "scopes": [
-        "*"
+        "."
       ],
       "title": "Rename audits must enumerate docstring + comment + error-message sites, not just code constants",
       "topic_key": "rename-audits-must-enumerate-docstring-comment-error-message-sites-not-just-code"
@@ -1259,7 +1259,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "3f1588f3bdfde51e299ab681508b2a73368c09e8"
+        "object_id": "f0918463e8c919c11e10e74c49295d41d7b0188a"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1271,7 +1271,7 @@
       "lifecycle": "active",
       "path": "topics/reporting-a-missing-test-manifest-entry-as-a-failing-test.json",
       "scopes": [
-        "**"
+        "."
       ],
       "title": "Reporting a missing test-manifest entry as a failing test",
       "topic_key": "reporting-a-missing-test-manifest-entry-as-a-failing-test"
@@ -1303,19 +1303,19 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ba802c19252bfda0fe16fa57546a4f1fdd870ae6"
+        "object_id": "52582229283a4676f10fb0734dfe2e174751dbd4"
       },
       "competency_facets": [
         "CQ-ORIENT"
       ],
       "freshness": {
-        "checked_at": "1970-01-01T00:00:00Z",
-        "state": "review_required"
+        "checked_at": "2026-08-26T00:44:38Z",
+        "state": "fresh"
       },
-      "lifecycle": "needs_review",
+      "lifecycle": "active",
       "path": "topics/shutil-copytree-follows-symlinks-by-default-supply-chain-hazard-for-published-ar.json",
       "scopes": [
-        "**/*.py"
+        "packages/agentbundle/agentbundle/build"
       ],
       "title": "shutil.copytree follows symlinks by default — supply-chain hazard for published artifacts",
       "topic_key": "shutil-copytree-follows-symlinks-by-default-supply-chain-hazard-for-published-ar"
@@ -1347,19 +1347,19 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "da50b5b6494cd5e91b4204c0b896ddd6bc0de93b"
+        "object_id": "2ca47c21fdf03663f848224653662330b99c9b41"
       },
       "competency_facets": [
         "CQ-ORIENT"
       ],
       "freshness": {
-        "checked_at": "1970-01-01T00:00:00Z",
-        "state": "review_required"
+        "checked_at": "2026-08-26T00:44:38Z",
+        "state": "fresh"
       },
-      "lifecycle": "needs_review",
+      "lifecycle": "active",
       "path": "topics/toml-datetime-round-trip-injection-a-bare-datetime-field-can-come-back-as-str-an.json",
       "scopes": [
-        "**/*.py"
+        "packages/agentbundle"
       ],
       "title": "TOML datetime round-trip injection: a bare-datetime field can come back as `str` and carry phantom payload on re-emit",
       "topic_key": "toml-datetime-round-trip-injection-a-bare-datetime-field-can-come-back-as-str-an"
