@@ -40,6 +40,37 @@ All schemas live in `contracts/`:
 - [`skill-manifest.schema.json`](../../../contracts/skill-manifest.schema.json)
 - [`profile.schema.json`](../../../contracts/profile.schema.json)
 - [`adapter.schema.json`](../../../contracts/adapter.schema.json)
+- [`okf-pack-profile-v1.schema.json`](../../../contracts/jsonschema/okf-pack-profile-v1.schema.json)
+- [`okf-agentbundle-extension-v1.schema.json`](../../../contracts/jsonschema/okf-agentbundle-extension-v1.schema.json)
+
+## Optional OKF knowledge
+
+A pack may declare one or more pack-local OKF 0.2 knowledge bundles:
+
+```toml
+[pack.metadata.okf]
+profile = "agentbundle-okf/v1"
+
+[[pack.metadata.okf.bundles]]
+id = "delivery-practices"
+path = "okf/delivery-practices"
+"router-skill" = "delivery-practices-reference"
+```
+
+The declaration and `packs/<pack>/okf/<bundle>/` tree are canonical source,
+including the bundle-root `index.md`, which is hand-authored and must carry
+`okf_version` and `license`. `compile-okf` owns the generated `index.md` files
+beneath `.apm/skills/<router>/references/okf/`, the portable Skills beneath the
+same pack's `.apm/skills/`, and `.okf-generated.json`. Maintainers edit source
+and regenerate; they do not edit managed output as source.
+
+`compile-okf` and the OKF fields `agentbundle show --format json` reports are
+pre-release and repository-scoped. The authoring path is offline and
+reference-only: bundle content stays inert, generated routers gain no execution
+or network authority, and compilation is not part of install or
+`agentbundle show`. See
+[Author and compile an OKF bundle](../../catalogue-curation/how-to/author-an-okf-bundle.md)
+for the complete write, check, recovery, and discovery workflow.
 
 ## Format version
 

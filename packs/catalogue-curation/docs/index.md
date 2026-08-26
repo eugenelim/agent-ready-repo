@@ -1,6 +1,6 @@
 # Catalogue Curation
 
-> A repo-scope toolkit for catalogue operators — ingest primitives from external sources, survey repositories, and propose pack areas.
+> A repo-scope toolkit for catalogue operators — ingest primitives from external sources, compile pack-owned knowledge, survey repositories, and propose pack areas.
 
 ## Why this pack exists
 
@@ -8,11 +8,12 @@ A catalogue that cannot grow in a governed way becomes a closed system. Without 
 
 ## What it is
 
-**Skills (3):** `assimilate-primitive` (bring a single external skill, subagent, or hook into the catalogue from a local path or URL, producing a reviewable RFC), `assimilate-repo` (survey a whole external repository for ingestion candidates and produce a prioritized RFC with a proposal for each), `propose-catalogue-pack` (justify and scaffold a new pack area, testing the proposal against the catalogue's charter principles and emitting an RFC).
+**Skills (4):** `assimilate-primitive` (bring a single external skill, subagent, or hook into the catalogue from a local path or URL, producing a reviewable RFC), `assimilate-repo` (survey a whole external repository for ingestion candidates and produce a prioritized RFC with a proposal for each), `propose-catalogue-pack` (justify and scaffold a new pack area, testing the proposal against the catalogue's charter principles and emitting an RFC), `compile-okf` (compile a pack's declared OKF knowledge into deterministic portable Skills, or check committed generated output for drift).
 
 To create a new catalogue or a source-derived enterprise catalogue, use `agentbundle catalogue init` (plain or `--preset self-hosted`). Catalogue derivation is a CLI capability, not a skill.
 
-No subagents. No seeds. No required dependencies.
+No subagents. No seeds. No pack dependencies; `compile-okf` needs `pyyaml>=6.0`
+when a maintainer runs the authoring compiler.
 
 See the README for the complete manifest table.
 

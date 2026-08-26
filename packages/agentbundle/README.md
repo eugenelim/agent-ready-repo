@@ -43,7 +43,7 @@ The install auto-detects your agent (`--adapter` overrides). Multi-IDE? Install 
 agentbundle list-packs
 agentbundle list-profiles
 
-# See what a single pack contains — skills and agents, derived live from its tree
+# See what a single pack contains — inventory and catalogue metadata, derived live
 agentbundle show core
 agentbundle show core --format json          # stable object for scripts/agents
 
@@ -72,7 +72,18 @@ agentbundle uninstall --pack core --yes
 
 **`list-installed`** reads your state files (not the catalogue) and reports every installed `(pack, adapter)` at each scope with its version and a four-value status — `up-to-date`, `upgrade-available`, `ahead` (installed version is newer than catalogue), or `unknown`; it degrades to `unknown` (never an error) when the catalogue can't be resolved, and `--no-check` skips the check entirely. `--format json` emits a stable JSON contract (`schema_version: 1`) to stdout — useful for CI automation of upgrade decisions. `--updates-only` hides `up-to-date` rows.
 
-**`show <pack>`** answers "what skills and agents does this pack contain?" by walking the pack's source tree live on each call — so the answer can't drift, and nothing is persisted. `--format json` emits a stable object (`name`, `version`, `description`, `skills`, `agents`, `source`) for scripts and agents. When the catalogue can't be resolved, an *installed* pack still reports its inventory from your state files (marked `source: installed-state`); a not-installed pack errors.
+**`show <pack>`** answers "what does this pack contain?" by walking the pack's
+source tree live on each call, so the answer cannot drift and nothing is
+persisted. `--format json` retains the ordinary `name`, `version`,
+`description`, `skills`, `agents`, `integrations`, and `source` fields and adds
+`pack_metadata`, per-Skill `skill_metadata`, and declared OKF `knowledge` for a
+live catalogue. Those three rich metadata fields are **pre-release**: they are
+source-backed only for live catalogue reads and are not a cross-pack OKF index.
+It is one-pack-at-a-time and read-only: it does not compile
+knowledge, run pack code, or fetch remote OKF content. When the catalogue cannot
+be resolved, an *installed* pack still reports its inventory from state files
+(marked `source: installed-state`), while `pack_metadata`, `skill_metadata`, and
+`knowledge` are exactly `null`; a not-installed pack errors.
 
 A **profile** is a catalogue-curated, single-scope set of packs you install in one command — it declares its own scope, so `--scope` doesn't apply. **Upgrade takes no version** — the target is whatever the catalogue you point at declares; to pin a past version, point the catalogue at that git ref. Install a pack that's **already there** and `agentbundle` offers to `upgrade` it instead (`--yes` runs it straight away).
 

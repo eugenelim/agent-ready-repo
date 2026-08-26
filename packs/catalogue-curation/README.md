@@ -1,6 +1,8 @@
 # catalogue-curation
 
-Grow and maintain an agent-skill catalogue — bring in new skills, survey external repos, propose new packs, and produce redistributable derivatives.
+Grow and maintain an agent-skill catalogue — bring in new skills, compile
+pack-owned knowledge, survey external repos, propose new packs, and produce
+redistributable derivatives.
 
 ---
 
@@ -11,6 +13,7 @@ Grow and maintain an agent-skill catalogue — bring in new skills, survey exter
 | **`propose-catalogue-pack`** | Stand up a **new pack** — justify it's additive and fits the catalogue's charter, scaffold the shell, and emit an RFC (or reject it). |
 | **`assimilate-primitive`** | Bring **one** external skill / subagent / hook (or a small bundle) in from a local path or URL — safely, then **reshaped to our craft** (activation, progressive disclosure, anti-pattern steering), or rejected. |
 | **`assimilate-repo`** | Survey a **whole external repo/catalogue** into a reviewable RFC of per-candidate verdicts, resumable across sessions and worktrees via a ledger. |
+| **`compile-okf`** | Compile a pack's declared **OKF knowledge bundles** into deterministic portable Skills, or check that committed generated output is current. |
 
 ```text
 I found a well-crafted research skill in an external repo.
@@ -21,7 +24,11 @@ Can we bring it into our catalogue?
 I want to stand up a new pack for our data-engineering team.
 ```
 
-The pack identifies the job (assimilate, propose, survey, or export), runs the appropriate gates, and presents a preview before writing anything to the repository. All changes are local — nothing is published remotely. An RFC is emitted wherever the work requires one.
+The pack identifies the job (assimilate, propose, survey, compile, or export)
+and runs the appropriate gates. Change workflows present a preview when their
+contract requires one; `compile-okf` ownership-preflights its output and writes
+only the selected pack's managed files. All changes are local — nothing is
+published remotely. An RFC is emitted wherever the work requires one.
 
 ---
 
@@ -53,13 +60,22 @@ Tests whether the pack is additive (doesn't duplicate an existing pack) and fits
 **Create a self-hosted catalogue**
 Run `agentbundle catalogue init --preset self-hosted` to scaffold a new catalogue from the managed template. No fork required.
 
+**Compile pack-owned reference knowledge**
+Declare a reference-only OKF 0.2 bundle in the owning pack, then ask
+`compile-okf` to compile and check that pack. It produces a portable router
+Skill, compiler-owned indexes, and a manifest without executing or fetching the
+knowledge. Follow [Author and compile an OKF bundle](../../guides/catalogue-curation/how-to/author-an-okf-bundle.md)
+for the source layout, commands, recovery path, and discovery check.
+
 ---
 
 ## Guardrails
 
 - **Never** mutates the `agentbundle` engine or `credential-brokers` through any skill — a path-gate blocks protected-tree changes absent a deliberate, human-authored RFC.
 - **Ingested code runs the repo's own gates** (lints + CodeQL/Snyk) before it lands, and known anti-patterns (a script that triggers a skill/agent, a misused agent, a flooding "skill") are steered to our shape or rejected — never laundered in.
-- **No new engine, no new dependency** — skills plus declarative manifests only.
+- **No base or runtime AgentBundle dependency** — `compile-okf` uses the
+  catalogue tooling Python requirements, including `pyyaml>=6.0`, only when a
+  maintainer runs the authoring compiler.
 
 ---
 

@@ -1,12 +1,12 @@
 [pack]
 name = "catalogue-curation"
-version = "0.4.1"
-description = "For the person who runs a catalogue, not the people installing from it. Bring in an outside skill, survey a repo worth borrowing from, or draft the case for a new pack."
+version = "0.4.2"
+description = "For catalogue maintainers: assimilate outside skills, survey repositories, propose packs, and compile pack-owned OKF knowledge."
 readme = "README.md"
 display_name = "Catalogue Curation"
 license = "Apache-2.0 OR MIT"
 categories = ["governance", "tooling"]
-keywords = ["catalogue", "assimilate"]
+keywords = ["catalogue", "assimilate", "compile-okf", "okf"]
 
 # A catalogue-operator pack — meta-tooling for growing the catalogue,
 # one meta-level above governance-extras. Repo-only ceremony; ships instance

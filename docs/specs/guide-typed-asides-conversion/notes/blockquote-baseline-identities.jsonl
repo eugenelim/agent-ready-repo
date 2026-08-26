@@ -172,3 +172,4 @@
 {"item": 172, "path": "guides/architect/how-to/review-an-architecture-artifact.md", "line": 14, "content_sha256": "525118965f6c367a3a2e1c77b903de0f17ec26634f94eaf472b79ec4c1144cf2"}
 {"item": 173, "path": "guides/_shared/how-to/build-an-org-stack-pack.md", "line": 14, "content_sha256": "c60776453e327c91ae1509c30a4e985a054483e9e85571476865e12440e521d0"}
 {"item": 174, "path": "guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md", "line": 68, "content_sha256": "c45bb91c877d7e1c03463d0ac96dfc6d516e7e5f7515d4939aff94748ba39f8f"}
+{"item": 175, "path": "guides/catalogue-curation/how-to/author-an-okf-bundle.md", "line": 19, "content_sha256": "53df26ca550e55203982ed1d4d47d6894937a45fffaf7811ec4125cf499b3a70"}
