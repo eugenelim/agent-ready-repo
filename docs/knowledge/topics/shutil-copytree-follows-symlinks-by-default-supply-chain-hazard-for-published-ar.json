@@ -4,10 +4,10 @@
     "CQ-ORIENT"
   ],
   "freshness": {
-    "checked_at": "1970-01-01T00:00:00Z",
-    "state": "review_required"
+    "checked_at": "2026-08-26T00:44:38Z",
+    "state": "fresh"
   },
-  "lifecycle": "needs_review",
+  "lifecycle": "active",
   "occurrences": [
     {
       "capture_id": "kco-197001-cf814b0176d00a34cd9e1014faa08b73e24e5cbd2e6b0567664aed882ecad576",
@@ -27,7 +27,7 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "**/*.py"
+    "packages/agentbundle/agentbundle/build"
   ],
   "supporting_sources": [],
   "synthesis": {

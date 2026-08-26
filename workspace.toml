@@ -99,22 +99,6 @@ backlog = [
   # Blocked until the contract is ratified and all three pilots complete.
   {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
 
-  # Four topics carried through the legacy migration (2026-08-16) with
-  # lifecycle `needs_review` rather than `active`, because their legacy scope was
-  # a bare wildcard the migrator would not place automatically:
-  #   K-0002 `**/*.py`  shutil.copytree follows symlinks by default (supply chain)
-  #   K-0004 `*`        rename audits must enumerate docstring/comment/error text
-  #   K-0005 `**/*.py`  TOML datetime round-trip injection
-  #   K-0034 `**/*.py`  one large socket read is unbounded in wall clock
-  # They are preserved and readable, not lost — but `needs_review` keeps them out
-  # of the active set, so three security-shaped lessons are currently invisible to
-  # ordinary enquiry. The scopes are genuinely too broad: `*` and `**/*.py` match
-  # the whole repo, which is why the migrator declined to guess.
-  # Fix: narrow each to the tree the lesson actually governs, then move it to
-  #   active through the normal distill path.
-  # Unblocks when: picked up — no dependency.
-  {slug = "knowledge-needs-review-topic-scopes", source = "spec/knowledge-legacy-migration"},
-
   # Project knowledge measured-scale follow-on. Slice 1 deliberately retains closed
   # classification/month journals unchanged; deleting individual observations would
   # break the append-only evidence model and Git would retain the history anyway.

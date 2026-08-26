@@ -4,10 +4,10 @@
     "CQ-ORIENT"
   ],
   "freshness": {
-    "checked_at": "1970-01-01T00:00:00Z",
-    "state": "review_required"
+    "checked_at": "2026-08-26T00:44:38Z",
+    "state": "fresh"
   },
-  "lifecycle": "needs_review",
+  "lifecycle": "active",
   "occurrences": [
     {
       "capture_id": "kco-197001-25fd7481100d9a3fa30fb86d6c1e8c85e332bfbc83a719d524cda288781cbb7f",
@@ -27,7 +27,7 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "*"
+    "."
   ],
   "supporting_sources": [],
   "synthesis": {
