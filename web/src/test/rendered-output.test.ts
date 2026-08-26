@@ -753,6 +753,11 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
 
     const footer = nested.querySelector('footer.docs-site-footer');
     expect(nested.querySelectorAll('footer').length).toBe(1);
+    // Print suppression of these groups is NOT asserted here. This suite runs
+    // under jsdom, which cannot resolve a cascade across linked stylesheets under
+    // print media, so any assertion here passes on broken output. The real guard
+    // is the browser case in `e2e/site-quality-gate.spec.ts`
+    // (spec/docs-site-print-chrome-suppression AC1-AC3).
     expect([...footer!.querySelectorAll('.docs-site-footer__group h2')].map((heading) => heading.textContent?.trim()))
       .toEqual(expected.footer.map((group: { label: string }) => group.label));
     for (const [index, group] of [...footer!.querySelectorAll('.docs-site-footer__group')].entries()) {

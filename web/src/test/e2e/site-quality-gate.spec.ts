@@ -811,3 +811,47 @@ test.describe('every keyboard focus stop has a ring that clears the non-text flo
     }
   }
 });
+
+/**
+ * Print chrome suppression — `docs-site-print-chrome-suppression` AC1-AC3.
+ *
+ * NOT part of AC1's 60-case matrix, and deliberately outside the `WIDTHS` loop:
+ * `tools/test_browser_gate_subset.py:341,365` pins that array to five widths and
+ * `:375` pins the matrix arithmetic to 60. This is a standalone case at the A4
+ * printable width, added to THIS file rather than a new spec because
+ * `tools/test-pages-workflow.py:96` pins the gate script to a two-file allowlist.
+ *
+ * It must assert both media. Print-only would pass if the groups were hidden
+ * everywhere; screen-only would pass on the defect this fixes.
+ */
+test.describe('docs footer navigation is suppressed in print', () => {
+  /** A4 portrait minus 0.4in margins at 96dpi — the printable width itself. */
+  const PRINTABLE_WIDTH = 717;
+  const GROUPS = '.docs-site-footer__groups';
+
+  for (const route of DOCS_ROUTES) {
+    test(`${route} footer groups print:none screen:grid @${PRINTABLE_WIDTH}`, async ({ page }) => {
+      const ctx = { route, width: PRINTABLE_WIDTH };
+      // Starlight's default theme is `auto`; pin it so a dark-preferring host
+      // measures the theme this contract describes.
+      await page.addInitScript(() => localStorage.setItem('starlight-theme', 'light'));
+      await page.setViewportSize({ width: PRINTABLE_WIDTH, height: 900 });
+      await gotoSettled(page, withDocsBase(route), ctx);
+
+      const groups = page.locator(GROUPS);
+      await expect(groups, `${route}: docs footer groups must exist to be meaningful`)
+        .toHaveCount(1);
+
+      // Screen first: the groups are navigation a reader uses on screen.
+      await page.emulateMedia({ media: 'screen' });
+      const onScreen = await groups.evaluate((el) => getComputedStyle(el).display);
+      expect(onScreen, `${route}: footer groups must stay visible on screen`).toBe('grid');
+
+      // Print: `emulateMedia` switches media queries, which is what resolves the
+      // `@media print` rule in Footer.astro against Starlight's `print:hidden`.
+      await page.emulateMedia({ media: 'print' });
+      const inPrint = await groups.evaluate((el) => getComputedStyle(el).display);
+      expect(inPrint, `${route}: footer groups must not print`).toBe('none');
+    });
+  }
+});

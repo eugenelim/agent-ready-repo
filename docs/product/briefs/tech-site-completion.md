@@ -3,7 +3,7 @@
 - **Slug:** `tech-site-completion`
 - **Received:** 2026-08-17
 - **Owner:** Platform Core (`ini-002`)
-- **Status:** Ready
+- **Status:** Shipped
 
 ## Outcome
 
@@ -303,17 +303,36 @@ spec and plan contracts received explicit human approval on 2026-08-17 and
 were registered in the workspace work queue at approval; each slice moves to the
 shipped list as it lands.
 
+**Closed 2026-08-25.** All nine slices are `Shipped`. The two print-related debt
+entries this programme registered are settled with provenance, satisfying
+completion item 1: `print-audit-page-break-quality` was measured on human review
+of the regenerated representative PDFs and closed; `print-chrome-paint-inventory`
+is retired won't-do, because four probe generations failed and the question it
+would answer is a legibility preference the owning audit's decision rule bars
+from producing print rules. Both are in `workspace.toml [backlog].closed`.
+
+Completion item 9 is met through its "narrowly scoped follow-up fixes" clause:
+that human review found one print defect — the docs footer's navigation printing,
+producing a navigation-only final page on four of five documentation routes —
+which was carved out to a separate programme rather than reopening this cut. That
+programme is not a slice of this brief and carries no `Brief:` back-link, so it
+does not appear in the coverage map above. Completion item 10 is met as written: physical-device review *remains* an
+explicit manual release check, and
+[`docs/guides/how-to/verify-a-site-release.md`](../../guides/how-to/verify-a-site-release.md)
+records it as **Blocked** with a named owner. Closing this brief does not
+discharge that check.
+
 | Spec | Status |
 | --- | --- |
-| `site-contract-provenance-cleanup` | — |
-| `site-ci-contract-closure` | — |
-| `docs-site-build-contract-hardening` | — |
-| `guide-title-clarity` | — |
-| `guide-metadata-completion` | — |
-| `journey-page-completion` | — |
-| `site-now-surface` | — |
-| `site-shared-chrome` | — |
-| `site-browser-quality-gate` | — |
+| `site-contract-provenance-cleanup` | Shipped |
+| `site-ci-contract-closure` | Shipped |
+| `docs-site-build-contract-hardening` | Shipped |
+| `guide-title-clarity` | Shipped |
+| `guide-metadata-completion` | Shipped |
+| `journey-page-completion` | Shipped |
+| `site-now-surface` | Shipped |
+| `site-shared-chrome` | Shipped |
+| `site-browser-quality-gate` | Shipped |
 
 ## Design artifacts
 

@@ -23,12 +23,19 @@ npm run build --prefix docs-site              # writes build/docs/
 npm run test:e2e:gate --prefix web
 ```
 
-The gate exercises the approved 60-case matrix: eight marketing routes at 360, 375,
+The gate exercises the approved 60-case matrix plus two print cases: eight
+marketing routes at 360, 375,
 390, 414 and 1440 CSS pixels
 with no theme mutation, plus `/docs/` and a nested guide route at the same five
-widths in both docs themes. Each case asserts at most 1px document-level
+widths in both docs themes. Each matrix case asserts at most 1px document-level
 horizontal overflow, zero serious or critical axe findings, no page or console
 error, and that every same-document fragment resolves.
+
+The two print cases are separate and deliberately outside that matrix: they run
+the same two docs routes at 717 CSS pixels — the A4 printable width — and assert
+that the footer's navigation link groups compute `display: none` under print
+media and `grid` under screen. They make none of the four assertions above, and
+they are not counted in the 60.
 
 If that is green, responsive layout, contrast and fragment integrity are covered
 on those routes. Landmark structure is NOT: the only landmark rule that fires on
