@@ -44,13 +44,23 @@ if TYPE_CHECKING:
     from agentbundle.safety import Tier
     from agentbundle.user_config import UserConfig
 
-# enumerate_event_dropped_wirings is imported at module level so it is
-# patchable from tests (the mock target is
-# ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
 import contextlib
 from datetime import UTC
 
 from agentbundle.commands._drop_warning import enumerate_event_dropped_wirings
+
+# enumerate_event_dropped_wirings is imported at module level so it is
+# patchable from tests (the mock target is
+# ``agentbundle.commands.install.enumerate_event_dropped_wirings``).
+
+# Preserve the legacy opt-in install surface even as catalogue builds gain new
+# distribution routes. The aggregate marketplace recipe was part of that
+# surface before the portable Agent Plugin route landed.
+_LEGACY_INSTALL_ROUTE_RECIPES = (
+    "per-pack-claude-plugin",
+    "per-pack-apm-package",
+    "marketplace",
+)
 
 
 @dataclass
@@ -1115,7 +1125,10 @@ def run(args: argparse.Namespace) -> int:
             if emit_install_routes:
                 # Legacy dist-tree producer (the catalogue-publishing
                 # opt-in on the CLI surface).
-                repo_projection = render_pack(pack_dir)
+                repo_projection = render_pack(
+                    pack_dir,
+                    recipes=_LEGACY_INSTALL_ROUTE_RECIPES,
+                )
             else:
                 # Default: per-IDE projection at repo scope.
                 # `_render_for_repo_scope` returns (adapter, projection);

@@ -1,11 +1,11 @@
 """`agentbundle render` — project a pack to --output via the F-build pipeline.
 
-Option (b) from the task spec: call `render.render_pack()` in-memory,
-then walk the dict-of-bytes and write each entry via `safety.write_jailed`.
+Option (b) from the task spec: call `render.render_pack_files()` in-memory,
+then walk the mode-aware file map and write each entry via `safety.write_jailed`.
 This is the more defensive shape: the path-jail check fires on every write,
 not just as a pre-flight.
 
-The three default recipes are run when --target is absent. When
+The four default recipes are run when --target is absent. When
 --target is given, distribution recipes are selected by explicit route:
 APM selects only its package route, Claude Code selects its package and
 marketplace route, and unrelated direct-install adapters select neither.
@@ -61,7 +61,7 @@ def run(args) -> int:
 
     # Render in-memory
     try:
-        file_tree = _render.render_pack(pack_path, recipes=recipes)
+        file_tree = _render.render_pack_files(pack_path, recipes=recipes)
     except FileNotFoundError as exc:
         print(f"render: {exc}", file=sys.stderr)
         return 1
@@ -94,7 +94,8 @@ def run(args) -> int:
 
     # Write each file via write_jailed (path-jail is non-optional)
     output_dir.mkdir(parents=True, exist_ok=True)
-    for relpath, content in sorted(file_tree.items()):
+    for relpath, rendered_file in sorted(file_tree.items()):
+        content = rendered_file.content
         target = output_dir / relpath
         if self_host_mode and target.exists():
             from agentbundle import safety as _safety
@@ -109,7 +110,7 @@ def run(args) -> int:
                 print(f"{relpath} (companion)")
                 continue
         try:
-            write_jailed(output_dir, relpath, content)
+            write_jailed(output_dir, relpath, content, mode=rendered_file.mode)
         except PathJailError as exc:
             print(f"render: {exc}", file=sys.stderr)
             return 1

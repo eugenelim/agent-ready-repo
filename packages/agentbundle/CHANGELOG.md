@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.40.0] — 2026-08-25
+
+### Added
+
+- Default catalogue builds now emit deterministic Agent Plugins 1.0.0 packages
+  for skills-only packs under `agent-plugins/<pack>/`. Root manifests validate
+  offline against an immutable vendored schema; privacy-minimal author data,
+  strict portable identities, complete exclusion diagnostics, and confined
+  skill projection fail closed before route output changes.
+- A closed reverse-domain extension allocation contract reserves the Kiro and
+  Copilot namespaces and requires active, versioned schemas before extension
+  manifest or file content can enter a portable package.
+
+### Changed
+
+- The explicit distribution-route contract is version 0.2 and declares the
+  additive `agent-plugin` route alongside unchanged APM and Claude routes.
+
 ## [0.39.4] — 2026-08-24
 
 ### Fixed

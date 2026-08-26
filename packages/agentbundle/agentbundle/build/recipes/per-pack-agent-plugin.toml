@@ -1,0 +1,8 @@
+# Default recipe: project every skills-only pack as an Agent Plugins 1.0.0
+# package into dist/agent-plugins/<pack>/.
+
+[recipe]
+name = "per-pack-agent-plugin"
+type = "per-pack"
+route = "agent-plugin"
+output-subdir = "agent-plugins"

@@ -157,6 +157,34 @@ def test_render_command_matches_library_bytes(tmp_path):
     assert _tree(via_render) == render.render_pack(FIXTURE_CORE)
 
 
+def test_render_command_preserves_executable_mode(
+    tmp_path, monkeypatch
+):
+    """The mode-aware render surface must survive the jailed command write."""
+    import agentbundle.commands.render as render_cmd
+
+    monkeypatch.setattr(
+        render_cmd._render,
+        "render_pack_files",
+        lambda pack_path, **kwargs: {
+            "agent-plugins/portable/skills/example/run.sh": render.RenderedFile(
+                b"#!/bin/sh\n", 0o755
+            )
+        },
+    )
+    out_dir = tmp_path / "out"
+
+    assert run(_args(output=str(out_dir))) == 0
+    assert (
+        out_dir
+        / "agent-plugins"
+        / "portable"
+        / "skills"
+        / "example"
+        / "run.sh"
+    ).stat().st_mode & 0o111
+
+
 # ---------------------------------------------------------------------------
 # Test 5: Missing pack.toml → non-zero exit
 # ---------------------------------------------------------------------------
@@ -236,7 +264,7 @@ def test_render_path_jail_on_malicious_output(tmp_path, capsys):
     to escape (e.g. `../../escape`), write_jailed raises PathJailError and the
     command exits non-zero.
 
-    We simulate this by monkey-patching `render_pack` to return a relpath that
+    We simulate this by monkey-patching `render_pack_files` to return a relpath that
     contains a `..` escape, ensuring the jail fires even if the pack itself is
     clean.
     """
@@ -245,19 +273,21 @@ def test_render_path_jail_on_malicious_output(tmp_path, capsys):
     out_dir = tmp_path / "sub"
     out_dir.mkdir()
 
-    # Patch render.render_pack to return a malicious relpath.
-    original_render_pack = render_cmd._render.render_pack
+    # Patch render.render_pack_files to return a malicious relpath.
+    original_render_pack = render_cmd._render.render_pack_files
 
     def _malicious_render_pack(pack_path, **kwargs):
         # Return a relpath that would escape out_dir if not jailed.
-        return {"../../escape/evil.txt": b"evil content"}
+        return {
+            "../../escape/evil.txt": render.RenderedFile(b"evil content", 0o644)
+        }
 
-    render_cmd._render.render_pack = _malicious_render_pack
+    render_cmd._render.render_pack_files = _malicious_render_pack
     try:
         args = _args(pack_path=str(FIXTURE_CORE), output=str(out_dir))
         rc = run(args)
     finally:
-        render_cmd._render.render_pack = original_render_pack
+        render_cmd._render.render_pack_files = original_render_pack
 
     assert rc != 0
     captured = capsys.readouterr()

@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.40.0"
+        }
+      ],
+      "date": "2026-08-25",
+      "heading": "[agentbundle][0.40.0] — 2026-08-25",
+      "changelogAnchor": "agentbundle0400--2026-08-25",
+      "highlights": [
+        {
+          "source": "**Catalogue maintainers can now build portable Agent Plugins 1.0.0 packages offline.** The normal build emits deterministic, schema-valid root manifests and canonical skill trees for every skills-only pack, with complete reasons for packs the route excludes.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Catalogue maintainers can now build portable Agent Plugins 1.0.0 packages offline."
+            },
+            {
+              "type": "text",
+              "value": " The normal build emits deterministic, schema-valid root manifests and canonical skill trees for every skills-only pack, with complete reasons for packs the route excludes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "catalogue-curation",
           "version": "0.4.2"
         }

@@ -3,7 +3,7 @@
 - **Slug:** `distribution-routes-programme`
 - **Received:** 2026-08-20
 - **Owner:** Platform Core (`ini-002`)
-- **Status:** Ready
+- **Status:** Executing
 
 ## Outcome
 
@@ -167,7 +167,8 @@ independently here. Remaining confirmed slices stay as typed backlog intents unt
 
 | Spec | Status |
 | --- | --- |
-| `distribution-route-contract` | — |
+| `distribution-route-contract` | Shipped |
+| `portable-agent-plugin-projection` | Shipped |
 
 ## Derived work
 

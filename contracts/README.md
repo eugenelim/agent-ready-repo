@@ -19,7 +19,13 @@ disagree, `contracts/` is authoritative.
 | `adapter.toml` | Per-IDE adapter contract: every (primitive × adapter) projection rule | yes |
 | `adapter.schema.json` | JSON Schema for `adapter.toml`'s shape | yes |
 | `distribution-routes.toml` | Package-route identity, layout, projector, capability, marketplace, and lifecycle concerns | yes |
-| `distribution-routes.schema.json` | Closed JSON Schema for the Phase 0 distribution-route contract | yes |
+| `distribution-routes.schema.json` | Closed JSON Schema for the versioned distribution-route contract | yes |
+| `agent-plugin-extension-namespaces.toml` | Agent Plugins reverse-domain extension allocations and lifecycle state | yes |
+| `agent-plugin-extension-namespaces.schema.json` | Closed schema for extension namespace allocations | yes |
+| `vendor/agent-plugins/1.0.0/plugin.schema.json` | Immutable upstream Agent Plugins 1.0.0 manifest schema | yes |
+| `vendor/agent-plugins/1.0.0/mcp.schema.json` | Immutable upstream Agent Plugins 1.0.0 MCP schema, reserved for Phase 1B behavior | yes |
+| `vendor/agent-plugins/1.0.0/LICENSE.md` | Upstream licence notice governing the vendored schemas | yes |
+| `vendor/agent-plugins/1.0.0/PROVENANCE.md` | Upstream commit, paths, blob identities, schema IDs, and offline-use boundary | yes |
 | `pack.schema.json` | JSON Schema for per-pack `pack.toml` manifests | yes |
 | `plugin-manifest.schema.json` | JSON Schema for `.claude-plugin/plugin.json` | yes |
 | `plugin-manifest.derived.schema.json` | Derived schema for `.claude-plugin/plugin.json` after adapter-rule merge | yes |

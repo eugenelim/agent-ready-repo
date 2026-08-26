@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-plugin-extension-namespaces.schema.json",
+  "x-spec": "docs/specs/portable-agent-plugin-projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "namespace"],
+  "properties": {
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string", "enum": ["1.0"]}
+      }
+    },
+    "namespace": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["owner", "state"],
+        "properties": {
+          "owner": {"type": "string", "minLength": 1},
+          "state": {"type": "string", "enum": ["reserved", "active"]},
+          "schema": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[a-zA-Z0-9._/-]+/v?[0-9]+(?:\\.[0-9]+)*/[a-zA-Z0-9._-]+\\.schema\\.json$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"state": {"const": "active"}},
+              "required": ["state"]
+            },
+            "then": {"required": ["schema"]}
+          },
+          {
+            "if": {
+              "properties": {"state": {"const": "reserved"}},
+              "required": ["state"]
+            },
+            "then": {"not": {"required": ["schema"]}}
+          }
+        ]
+      }
+    }
+  }
+}
