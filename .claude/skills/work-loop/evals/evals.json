@@ -303,7 +303,7 @@
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
-      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and one bounded adversarial review; then hand off the requested outcome, implemented scope, verification evidence, non-goals and deferrals, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace entry, or loop state.",
+      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and one bounded adversarial review; then hand off the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace entry, or loop state.",
       "assertions": [
         "Selects direct-light from the explicit current request",
         "Emits all six decision-record fields before implementation",
@@ -584,6 +584,32 @@
         "Returns `ADJUDICATION-INDETERMINATE` to the main loop as its exact signal",
         "Main-loop output does not contain `Clean — ready to commit.`",
         "Stops before any state change, retry accounting, fingerprint, or target mutation"
+      ]
+    },
+    {
+      "id": "wave4-completion-handoff-has-no-closeout-authority",
+      "prompt": "A work-loop finishes an approved spec and all gates/reviews are clean. What does it hand to close-work, and what must it not do?",
+      "expected_output": "The loop prepares bounded completion evidence: delivery or session identity, accepted outcome and authority source, implemented scope, verification evidence, durable-output status and stable references, non-goals and independently scoped follow-ons, unresolved obligations and dependencies, a completion-event candidate, and independent source/write/deletion authority facts. It does not mark Closeout-pending or Post-closeout, does not select a disposition, does not close or compact coordination, and does not authorize deletion; close-work owns those policy and effect decisions.",
+      "assertions": [
+        "Returns bounded completion evidence",
+        "Includes durable-output status and stable evidence references",
+        "Distinguishes independently scoped follow-ons from incomplete intent",
+        "Does not mark Closeout-pending or Post-closeout",
+        "Does not select a disposition or authorize deletion",
+        "Leaves compaction and closeout policy to close-work"
+      ]
+    },
+    {
+      "id": "wave4-contract-amendment-preserves-completed-work",
+      "prompt": "During full-mode implementation, the scope owner agrees that one unfinished AC is separable and work-intake has created a stable follow-on artifact. How does the loop amend and resume?",
+      "expected_output": "From code-mode CODE-IMPLEMENTATION, before editing the contract, invoke contract-amendment with the stable owner-authority reference, follow-on reason reference, and repeated Tn=<stable-ref> evidence entries so every completed task has task-bound evidence. The event snapshots prior approved fingerprints and immutable completed task sections/evidence, preserves run identity and review counters, clears only remaining approval/schedule state, and returns to drafting. Amend the final AC set, plan, and non-AC Follow-ons entry; rerun fired pre-execution reviews and both human gates; approve and schedule only unfinished tasks; resume through the ordinary plan-locked edge. Required work, session end, retry caps, stasis, or model judgment cannot invoke it automatically.",
+      "assertions": [
+        "Requires explicit owner authority and a stable follow-on reference",
+        "Is legal only from code-mode CODE-IMPLEMENTATION",
+        "Preserves completed task sections, evidence, counters, and run identity",
+        "Reruns normal reviews and human approval on the amended fingerprint",
+        "Schedules only unfinished tasks",
+        "Rejects automatic amendment from time, retry, stasis, or model judgment"
       ]
     },
     {

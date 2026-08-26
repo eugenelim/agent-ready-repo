@@ -83,6 +83,25 @@ directly into `workspace.toml`.
 Comments, list order, document titles, tracker type, collection membership, and
 memory are never routing authority.
 
+### Terse workspace capture
+
+`workspace.toml` is the pointer, not the overflow store. Write or update the
+canonical artifact first, then register only one schema-shaped live index entry
+with minimal provenance, one short present-tense summary naming the current
+outcome or next-needed condition, and hard dependencies only.
+
+Do not put chronology, rationale, procedure, review transcript, raw finding,
+copied source text, suggested order, soft priority, or conversation residue in
+adjacent comments, summaries, or workspace-only fields. If the context cannot
+fit that shape, materialize the context-owning artifact first and point to it.
+Legacy prose remains visible during compatibility windows, but an entry that
+this workflow materially updates must adopt the terse form.
+
+For a separated follow-on from an amended spec, materialize the follow-on's
+owning artifact before registration. The follow-on's current state changes in
+that artifact; the workspace entry only indexes it. Do not leave an open AC
+behind as the workspace anchor.
+
 ## Procedure
 
 ### 1. Status
@@ -246,6 +265,11 @@ and repository-relative artifact target to `scripts/intake_transaction.py`; its
 validated target is the only path the materializer may write. Use the same
 helper to sequence registration and the processor handoff. Dispatch is allowed
 only after both writes are durable.
+
+For all routes that create or remember work, apply Terse workspace capture:
+the workspace entry is the current coordination index only. The artifact owns
+requirements, rationale, findings, source excerpts, follow-on scope, and any
+other context a future reader needs.
 
 The direct route performs no transaction, registration, or rollback and leaves
 the repository unchanged until implementation begins.

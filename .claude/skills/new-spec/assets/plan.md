@@ -64,6 +64,30 @@ that verify it live here.
 **Manual verification:** <list, or "none">
 -->
 
+## Durable-output map
+
+<!--
+This section maps each task to the spec's Durable Outputs table so closeout can
+verify planned output, implementation evidence, and closeout evidence without
+copying requirements into a second record.
+
+For each output, name:
+
+- planned output
+- implementing task(s)
+- implementation evidence
+- closeout evidence
+- unresolved destination or freshness blocker, if any
+
+If the plan's Design (LLD) contains a non-inferable design fact, map it to its
+semantic owner here. Mechanically evident details may stay with code, types,
+docstrings, and tests; one-off construction order may remain delivery residue.
+-->
+
+| Durable output | Tasks | Implementation evidence | Closeout evidence |
+| --- | --- | --- | --- |
+| <semantic role / destination> | <Tn> | <test, build, guide, contract, or review artifact> | <what close-work verifies> |
+
 ## Design (LLD)
 
 The low-level design — the *how*, below the Approach and above the per-task

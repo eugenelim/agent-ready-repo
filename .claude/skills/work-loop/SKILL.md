@@ -70,7 +70,7 @@ No trigger fires → **light mode**.
    2. Confirm direct-light eligibility before modifying any implementation file.
    3. Write the assumption trio and a bounded task/verification plan in the active session.
    4. Execute the normal light loop: plan, implement, gates, one bounded adversarial review, repair, decide.
-   5. Produce a final handoff carrying the requested outcome; implemented scope; verification evidence; non-goals and deferrals; and any discovered reason future work should use a durable spec.
+   5. Produce a final handoff carrying the requested outcome; implemented scope; verification evidence; non-goals and independently scoped follow-ons; and any discovered reason future work should use a durable spec.
 
    Direct-light does **not** invoke `new-spec`; create `docs/specs/`; create a sibling plan; update `docs/specs/README.md`; mutate `workspace.toml`; initialize `loop-engine` or `loop-cohort`; run spec-status lint when no spec exists; or perform project-knowledge capture solely because a spec gate did not occur. All ordinary implementation gates and the bounded adversarial review remain.
 2. **Single bounded `adversarial-reviewer` pass** after GATES. A surviving Blocker earns exactly one re-review of the fix; if a Blocker survives that → **escalate to full mode**.
@@ -436,19 +436,8 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     Any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
-    **If the spec is rejected:** fire `spec-rejected` from `SPEC-HUMAN-GATE` → `SPEC-PLAN-DRAFTING`; revise spec/plan, bump both to `Draft`/`Drafting`, fire `spec-ready`:
-    ```
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-rejected
-    # → SPEC-PLAN-DRAFTING; revise spec/plan, bump Status: Draft / Drafting
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-    ```
-
-    **If the plan is rejected:** fire `plan-rejected` from `PLAN-HUMAN-GATE` → `SPEC-PLAN-DRAFTING`, revise the spec/plan (bump both `Status: Draft` / `Drafting`), then fire `spec-ready`:
-    ```
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-rejected
-    # → SPEC-PLAN-DRAFTING; revise spec/plan, bump Status: Draft / Drafting
-    python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-    ```
+    Rejected spec and plan gates use the exact reset commands in
+    [`references/delivery-contract-lifecycle.md`](references/delivery-contract-lifecycle.md).
 
 For durable work, write the plan to disk — don't keep it in memory across turns. Direct-light remains session-local and cannot be resumed after context loss.
 
@@ -461,6 +450,8 @@ Match discipline to verification mode:
 - **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
 - **infra/deploy** — implement, then drive the deploy and read real environment output (run apply, smoke probe, log pull, teardown; read their actual output — don't reason about what they'd say). Anti-pattern: a human pasting deploy errors back by hand. Craft in [`references/infra-verification.md`](references/infra-verification.md).
+
+**Controlled full-mode amendment:** use the exact authority, evidence, recovery, reapproval, and rescheduling [contract](references/delivery-contract-lifecycle.md).
 
 **EXECUTE contract-grounding gate (universal — light and full).** Before generating code against a contract you do not hold, acquire it via [`contract-acquisition`](../contract-acquisition/SKILL.md) (one gate, one skill — extend it, never fork a parallel skill). Two surfaces: **(1) infra** — CLI invocation, IaC resource, or app code on a managed runtime against an unfamiliar platform; **(2) software** — code against an unfamiliar internal framework or third-party library whose contract (versioned signature, deprecation, call-order constraint) the agent does not hold. Not for familiar code. Not every import.
 
@@ -540,7 +531,7 @@ Fix the failure and return to EXECUTE.
 
 **Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `[backlog].open` for the test/file name; if no entry exists, add `{slug = "pre-existing-…", source = "pre-flight/<iso-date>"}` with a cold-start-sufficient comment, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
 
-**Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to `loop-cohort.py`) checks: status vocabulary, ACs checked-or-deferred at ship transition, dangling references (warn-only), deferral anchors in `[backlog].open`. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`.
+**Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to `loop-cohort.py`) checks: status vocabulary, every AC checked at a new ship transition, dangling references (warn-only), and historical deferral anchors in `[backlog].open`. A `(deferred: <slug>)` marker no longer makes a newly shipped AC valid. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`.
 
 ## Step 4. REVIEW
 
@@ -778,18 +769,12 @@ independently reviewed unit in the same session: use the existing human-gate
 
 Emit exactly one fenced `json review-verdict.v1` block per review unit; full mode copies the pre-gate block byte-identical into the PR `Review verdict` section. States are `BLOCKED` → `CHANGES_REQUIRED` → `READY_WITH_RESIDUAL_RISK` → `READY`; no score is a gate; it never replaces the human merge decision. Load schema, state precedence, and residual-eligibility from [`references/review-verdict-record.md`](references/review-verdict-record.md).
 
+**Completion handoff:** produce the bounded evidence [record](references/delivery-contract-lifecycle.md); it never performs closeout or grants authority.
+
 When gates are green and the mode's review requirements are satisfied → proceed to [Finish checklist](#finish-checklist).
 
 ## Termination
-
-Stop when **any** of these is true:
-
-1. **Gates green AND the mode's review requirements are satisfied for the current review unit** — proceed to [Finish checklist](#finish-checklist). A merged or clean review unit does not complete the accepted intent while matching work remains for a later unit.
-2. **`scripts/loop-cohort.py check` exits non-zero** — except the expected `plan_review_status: pending` in PLAN (step 10 above), which is the cue to run pre-EXECUTE reviewers, not a stop signal. All other non-zero exits stop the current iteration and surface. Fires on: implementation retry cap (`check --phase gates-failed`), review retry cap (`check --phase review`). The exit message identifies the condition.
-   **Stasis** (same findings two review rounds in a row) is detected by `review inspect` returning `matches_previous_round=True` — not by `check`. Surface immediately for human replanning; do not run another review round. A retry cap or stasis never completes the accepted intent or creates backlog work automatically.
-3. **Diff is shrinking but findings aren't** — spot-fixing without addressing root cause. Stop and rethink the approach (back to PLAN).
-
-If you hit any of these and the work isn't done: stop, write down what you learned, re-plan. Never silently expand scope to make a finding go away.
+Apply the linked [stop conditions](references/delivery-contract-lifecycle.md); an intermediate clean unit, retry cap, or stasis never completes accepted intent.
 
 ## Finish checklist
 
@@ -802,13 +787,18 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 - [ ] Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only): same select-or-note rule.
 - [ ] The resolve-vs-surface disposition record exists and every REVIEW finding is resolved. In light mode "every REVIEW finding" means the single bounded `adversarial-reviewer` pass's findings; a surviving Blocker escalates to full mode.
 - [ ] One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
-- [ ] **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and deferrals, and any discovered reason future work should use a durable spec.
+- [ ] **Implementation completion only (code mode and direct-light):** the
+  completion evidence handoff exists, including durable-output status
+  and stable evidence references; tests and implementation evidence are
+  capability proof, not product intent, rationale, ownership, or authority, and
+  close-work remains separate.
+- [ ] **Direct-light only:** the session handoff states the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any discovered reason future work should use a durable spec.
 - [ ] The original accepted intent is complete, or its owner explicitly narrowed
   or waived the remaining matching work. A merged PR, retry cap, or review
   stasis alone is not completion; excluded work needs no backlog entry unless
   the owner explicitly requested capture through `work-intake`.
 - [ ] `git status` shows no uncommitted or untracked files (except gitignored scratch).
-- [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done` — use spec vocabulary only (`Draft | Approved | Implementing | Shipped | Archived`; plan vocabulary `Drafting/Executing/Done` is invalid and will fail `lint-spec-status.py`); every AC is `[x]` or `(deferred: <slug>)`; each deferral resolves in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. When no spec exists, do not run the spec-status lint.
+- [ ] **When a persisted spec exists, doc-drift invariants hold**: spec `**Status:**` set to `Shipped` (code mode) or `Approved` (spec-plan mode, which ends after plan approval without proceeding to EXECUTE); **full mode:** also `plan.md` `**Status:**` `Done`; every final accepted AC is `[x]`; any separable follow-on is outside the AC list with its own owner/artifact reference; historical `(deferred: <slug>)` anchors still resolve in `[backlog].open`; intra-repo references the change touches resolve. Run `python '<skill-dir>/scripts/lint-spec-status.py' --root .` where Python is available. When no spec exists, do not run the spec-status lint.
 - [ ] Conventional commit format used; no force-push to shared branches.
 - [ ] Learnings captured per [Capture learnings](#capture-learnings).
 - [ ] **Tail-triage check completed.** Inspect raw diff lines, material volume,
