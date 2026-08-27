@@ -1545,6 +1545,118 @@ def test_a_comment_inside_a_fenced_block_is_sample_text_not_a_comment():
     assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "pkg"]
 
 
+def test_a_backticked_comment_opener_does_not_swallow_later_releases():
+    """A code-span mention must not open a comment or trigger the final raise.
+
+    Without code-span precedence, this prose opened an unterminated HTML
+    comment and generation failed instead of publishing the later release.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+### Highlights
+
+- First.
+
+A note mentioning `<!--` in backticks.
+
+## [later][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Later.
+"""
+    assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "first"]
+
+
+def test_backticked_comment_markers_on_separate_lines_are_both_inert():
+    """Separate code-span mentions must not hide a release between them.
+
+    A code-span-blind parser paired these mentions as an HTML comment and
+    published only one of the three releases.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+A note mentioning `<!--` in backticks.
+
+## [middle][2.0.0] — 2026-08-06
+
+A note mentioning `-->` in backticks.
+
+## [last][3.0.0] — 2026-08-07
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "middle", "last",
+    ]
+
+
+def test_backticks_inside_a_real_comment_do_not_mask_its_closer():
+    """Backticks are literal inside HTML comments, so `-->` still closes one.
+
+    Applying the code-span mask while already inside a comment would leave this
+    real comment unterminated and swallow both releases below it.
+    """
+    text = """# Changelog
+
+<!--
+Backticks are literal inside a comment, so this `-->` closes it.
+
+## [first][1.0.0] — 2026-08-05
+
+## [later][2.0.0] — 2026-08-06
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "later",
+    ]
+
+
+def test_a_backticked_comment_opener_inside_a_fence_remains_sample_text():
+    """Fence handling must stay ahead of code-span-aware comment handling.
+
+    Moving the new masking ahead of the established fence state machine could
+    make a backticked sample opener swallow the later real release.
+    """
+    text = """# Changelog
+
+```markdown
+A sample mentions `<!--` without a closer.
+```
+
+## [real][1.0.0] — 2026-08-05
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == ["real"]
+
+
+def test_comment_mentions_respect_matching_backtick_run_lengths():
+    """Only an equal-length backtick run closes an inline code span.
+
+    Treating any nearby backtick as a delimiter would miss the double-backtick
+    span and the single-backtick span nested inside a longer run.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+A double-backtick span mentions ``<!--`` safely.
+
+## [middle][2.0.0] — 2026-08-06
+
+A longer span contains a single-backtick span: ``` `<!--` ```.
+
+## [last][3.0.0] — 2026-08-07
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "middle", "last",
+    ]
+
+
 def test_an_unterminated_html_comment_fails_instead_of_swallowing_the_file():
     text = """# Changelog
 
@@ -1707,6 +1819,9 @@ def test_the_window_does_not_filter_the_projection():
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
+# Measured at 171 releases on 2026-08-27. A floor of 130 is about 76% of that,
+# leaving headroom for ordinary changelog churn while still detecting collapse.
+_MIN_REAL_CHANGELOG_RELEASES = 130
 _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
 _MARKETING_SHARED_CHROME_PROJECTION = (
     _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
@@ -1791,6 +1906,20 @@ def test_the_real_changelog_has_no_silently_withheld_highlights():
         for lineno, title in parsed.diagnostics["unreleased_regions"]
     ]
     assert not regions, "\n".join(regions)
+
+
+def test_the_real_changelog_parser_keeps_a_sane_release_population():
+    """A parser state leak must not silently collapse the real release history."""
+    parsed = build_site.parse_changelog_releases(
+        _CHANGELOG.read_text(encoding="utf-8")
+    )
+    actual = len(parsed.releases)
+    assert actual >= _MIN_REAL_CHANGELOG_RELEASES, (
+        f"the real changelog parsed only {actual} releases, below the safety floor "
+        f"of {_MIN_REAL_CHANGELOG_RELEASES}; parser state likely swallowed the "
+        "remaining release history — inspect HTML-comment and fenced-code handling "
+        "in tools/build-site.py::parse_changelog_releases"
+    )
 
 
 def test_no_projected_release_heading_lives_under_an_unreleased_region():

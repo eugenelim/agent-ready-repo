@@ -1455,7 +1455,85 @@ _BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
 #    highlight prose. Being permissive here fails closed: more content skipped,
 #    never less.
 _FENCE_RE_CHANGELOG = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
-_COMMENT_INLINE_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+# Copied from packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py.
+# Importing from a shipped pack would couple this repository tool to a
+# content-pinned, independently versioned artifact.
+def _code_span_ranges(line: str) -> list[tuple[int, int]]:
+    r"""Inline code spans on one line, by a linear scan over backtick runs.
+
+    A run of N backticks opens; the next run of exactly N closes. Deliberately
+    not a regex: the obvious ``(`+)(?:(?!\1).)*?\1`` backtracks cubically on a
+    long backtick run -- measured, a 12 KB backtick line took 106 s.
+
+    RAW docstring on purpose. The upstream copy is not, so its two `\1`
+    backreferences parse as chr(1) and the regex it warns you off is unreadable
+    at runtime -- which defeats the only job this docstring has.
+    """
+    runs: list[tuple[int, int]] = []
+    index, length = 0, len(line)
+    while index < length:
+        if line[index] == "`":
+            end = index
+            while end < length and line[end] == "`":
+                end += 1
+            runs.append((index, end - index))
+            index = end
+        else:
+            index += 1
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    while cursor < len(runs):
+        open_at, open_len = runs[cursor]
+        probe = cursor + 1
+        while probe < len(runs) and runs[probe][1] != open_len:
+            probe += 1
+        if probe < len(runs):
+            spans.append((open_at, runs[probe][0] + runs[probe][1]))
+            cursor = probe + 1
+        else:
+            cursor += 1
+    return spans
+
+
+def _strip_changelog_comments(line: str) -> tuple[str, bool]:
+    """Strip real HTML comments and report an unclosed opener on this line.
+
+    An opener inside a same-line code span is a mention, not a comment. Once a
+    real opener is found its closer stays code-span blind: Markdown is not
+    parsed inside HTML comments, so backticks there are literal text.
+    """
+    code_spans = _code_span_ranges(line)
+    pieces: list[str] = []
+    search_from = 0
+    kept_from = 0
+    span_index = 0
+
+    while True:
+        opener = line.find("<!--", search_from)
+        if opener < 0:
+            pieces.append(line[kept_from:])
+            return "".join(pieces), False
+
+        while (
+            span_index < len(code_spans)
+            and code_spans[span_index][1] <= opener
+        ):
+            span_index += 1
+        if (
+            span_index < len(code_spans)
+            and code_spans[span_index][0] <= opener < code_spans[span_index][1]
+        ):
+            search_from = opener + len("<!--")
+            continue
+
+        pieces.append(line[kept_from:opener])
+        closer = line.find("-->", opener + len("<!--"))
+        if closer < 0:
+            return "".join(pieces), True
+        kept_from = closer + len("-->")
+        search_from = kept_from
 
 
 def _slug_base(text: str) -> str:
@@ -1637,16 +1715,20 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
         # slot that `github-slugger` never sees, which would shift every later
         # `-N` suffix and point source links at the wrong release.
         if in_comment:
+            # Deliberately code-span blind: Markdown is not parsed inside an
+            # HTML comment, so backticks cannot mask its real closer.
             if "-->" not in raw:
                 continue
             in_comment = False
             comment_opened_at = None
             raw = raw.split("-->", 1)[1]
-        raw = _COMMENT_INLINE_RE.sub("", raw)
-        if "<!--" in raw:
-            raw = raw.split("<!--", 1)[0]
+        raw, opens_comment = _strip_changelog_comments(raw)
+        if opens_comment:
             in_comment = True
             comment_opened_at = lineno
+            # Deliberate divergence from lint-spec-status.py: this builder does
+            # not treat an unterminated real opener as literal text. The final
+            # raise prevents one typo from silently swallowing later releases.
 
         opener = _FENCE_RE_CHANGELOG.match(raw)
         if opener is not None:
