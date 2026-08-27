@@ -86,7 +86,7 @@ this change into adapter repairs.
   The audit note, rather than duplicated generated matrices, records current
   first-party contract findings.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — Deterministic core handoff.** Successful core repo and local
   installs print exactly: `Next:     Ask your agent to run adapt-to-project for

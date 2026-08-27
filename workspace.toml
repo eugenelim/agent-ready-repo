@@ -1038,26 +1038,13 @@ open = [
   #   same commit. `pre-RFC-0012` needs a naming decision for the legacy on-disk
   #   layout first; the RFC-0008 refusal needs its `or` branch dropped so the
   #   assertion stops silently passing on the second clause.
-  # Unblocks when: picked up — no dependency.
-    # Split out of spec-ac-heading-casing-silent-gate 2026-08-16 when its casing
-  # half shipped (spec/spec-ac-gate-and-fixture-domains). The matcher is now
-  # case-insensitive and all 323 spec headings are canonical, so the casing hole
-  # is closed. THIS half is not: three specs carry no Acceptance-Criteria heading
-  # at all, and invariant (ii) has nothing to read for them — the same vacuous
-  # pass, reached by a different route. Deliberately not folded into the casing
-  # fix: "should a spec with no criteria fail loudly?" is a policy call about
-  # what a spec must contain, not a bug in a regex. Some specs may legitimately
-  # have none (a pure-decision or errata spec).
-  # Fix: decide whether a missing Acceptance-Criteria section is an error, a
-  #   warning, or legal-with-an-explicit-marker; then implement.
-  {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains"},
-
   # Current: retained runtime messages and their assertions still embed governance
   # markers, including the legacy dist-tree name and config errors.
   # Fix: decide the legacy-layout rename and update each pinned message with its assertion
   # in one reviewed change.
   # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
   # an Engine-Change-RFC trailer naming a real RFC.
+  # Unblocks when: picked up — no dependency.
 {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
 
   # Current: the workspace-mcp spec has shipped, but Claude permissions.allow projection
@@ -1105,6 +1092,40 @@ open = [
   # explicitly bars proposing from preference. Print is settled for correctness and
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
+
+  # tools/build-site.py strips HTML comments with a bare `<!--.*?-->` and, per
+  # its own comment at :1609, resolves fenced code first -- but has no notion of
+  # INLINE code spans. Not latent: it fired on PR #1139. Changelog prose that
+  # mentioned comment syntax inside backticks opened a span that paired with a
+  # closer 5,083 lines later, leaving parse_changelog_releases with 1 release
+  # instead of ~100 and reddening the launch-window test. Split out of the spec
+  # intent deliberately -- it is a different module reading a different file, and
+  # nobody picking up "enforce the spec format" would think to fix a changelog
+  # parser.
+  # Fix: give build-site's comment stripper inline-code-span precedence --
+  #   lint-spec-status.py's `_code_span_ranges` is a linear, working reference.
+  # Unblocks when: picked up -- no dependency.
+  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "build-site.py's HTML-comment stripper has no notion of inline code spans, so backticked comment syntax in changelog prose can open a real comment span and swallow thousands of lines"},
+
+  # What is LEFT of the spec-format work after PR #1139. The heading half, the
+  # commented-out-section rule, the marker-shape diagnostics, the base-ref
+  # verification, and the unreadable-spec warning all shipped there. This entry
+  # is the residue that enforcement does NOT reach: the four Acceptance-Criteria
+  # readers still hold different notions of which text counts, and the shipped
+  # guard makes the one dangerous shape a hard error rather than reconciling
+  # them. Four review rounds of reconciling them produced a cubically
+  # backtracking regex, a Theta(L^1.5) replacement, fence state read from raw
+  # text, and comment-blind fence pairing -- each passing its own verification.
+  # Comments and code spans cannot simply be banned: 251 of 407 specs carry a
+  # real comment, 245 in the preamble, all 407 use code spans, and the template
+  # emits 16 comments itself.
+  # Fix: decide whether the remaining divergence is worth closing at all now
+  #   that its one reachable shape is gated. If yes, it is a parsing decision
+  #   (real Markdown parser vs. narrowing what the readers must understand),
+  #   not a regex tweak.
+  # Unblocks when: picked up -- no dependency.
+  {path = "docs/product/intents/spec-ac-text-normalization.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py", revision = "sha256-bytes-v1:45492bdceb9a6ddb3d3fa7ec03c0aeacd9d27d7d970105f83e14905c511c2c9c"}, summary = "Residual Acceptance-Criteria reader divergence after the format enforcement shipped; its one reachable shape is now a hard error, so what remains is a parsing decision rather than a defect", needs = []},
+
 
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
@@ -1819,6 +1840,8 @@ closed = [
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
 
   {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
+
+  {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains", summary = "Closed by enforcement rather than parsing: invariant (vi) requires `- **Acceptance Criteria:** none — <reason>` when a spec has no AC section, diff-triggered and grandfathered so no frozen body or adopter corpus is retroactively gated. The scan found four such specs, not three -- two were not opt-out candidates at all but had spelled their criteria as a bold label the collector could not read. Also lands one supported heading (exact, near-miss warned), a hard error for a commented-out section, specific diagnostics for every attempted opt-out shape, base-ref verification, and a warning for an unreadable spec"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

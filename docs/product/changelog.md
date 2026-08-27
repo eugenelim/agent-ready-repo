@@ -50,6 +50,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [Unreleased]
+
+
+## [core][2.12.5] — 2026-08-27
+
+### Highlights
+
+- **Newly sectionless specs say why without retroactively gating adopters.**
+  The work-loop linter requires an explicit reason when a new spec omits its
+  Acceptance-Criteria section or an existing spec removes that section, while
+  grandfathering sectionless specs already present in an adopter's base ref.
+
+### Fixed
+
+- An Acceptance-Criteria section that is commented out is now a hard error
+  rather than a section, so a disabled section can no longer satisfy the
+  presence check while its checkboxes are read as real criteria.
+- Every attempted opt-out marker is now diagnosed with the specific fix needed.
+  An indented marker, a `*` bullet, a colon outside the bold, or a double space
+  after the bullet previously escaped both readers, so a spec passed clean with
+  a malformed marker on the page and the author got no signal.
+- An explicit `--base-ref` that does not resolve now warns and skips the
+  diff-triggered invariants, as the documented contract always said. It
+  previously made every spec look new, red-lining a clean corpus and telling
+  each author to add an opt-out for a section that was there all along.
+- A spec that cannot be read, or is over the size cap, is now reported instead
+  of skipped in silence — it was previously counted as clean.
+- The Acceptance-Criteria heading now has one supported spelling,
+  `## Acceptance Criteria`. A heading differing only in case, level, or
+  indentation no longer satisfies invariant (vi) and is reported with the exact
+  form to use. Its criteria are still read, so invariant (ii) keeps checking
+  them -- a heading defect never silently un-gates a spec.
+- Diff-trigger invariant (vi) for new specs and specs that remove their
+  Acceptance-Criteria section. Authors opt out with the exact metadata line
+  `- **Acceptance Criteria:** none — <one-line reason>`. Existing sectionless
+  specs, including frozen adopter history, do not acquire a retroactive hard
+  gate; malformed markers and a real section plus a marker remain hard errors.
 ## [core][2.12.4] — 2026-08-27
 
 ### Highlights

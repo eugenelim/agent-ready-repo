@@ -1689,7 +1689,26 @@ def test_load_failure_is_a_one_line_refusal(
     elif mode == "syntax-error":
         target.write_text("def broken(:\n", encoding="utf-8")
     elif mode == "truncated-mid-statement":
-        target.write_text(original[: len(original) // 2], encoding="utf-8")
+        # Start at the midpoint, then walk back to the first cut that genuinely
+        # will not parse. A bare `len // 2` is content-dependent: adding lines
+        # anywhere in the target can move the midpoint onto a clean statement
+        # boundary, at which point the truncated module imports fine, an
+        # unrelated later check produces the refusal, and this case silently
+        # stops exercising the loader's syntax-error path. Observed when
+        # `lint-spec-status.py` gained invariant (vi): the half-file compiled.
+        cut = len(original) // 2
+        while cut > 0:
+            try:
+                compile(original[:cut], "<truncation-fixture>", "exec")
+            except SyntaxError:
+                break
+            cut -= 1
+        assert cut > 0, (
+            f"{loader}: no syntactically invalid truncation of {target_name} "
+            f"exists at or below the midpoint — this fixture can no longer "
+            f"discriminate"
+        )
+        target.write_text(original[:cut], encoding="utf-8")
     elif mode == "truncated-clean":
         cut = original.index(cut_anchor)
         target.write_text(original[:cut], encoding="utf-8")

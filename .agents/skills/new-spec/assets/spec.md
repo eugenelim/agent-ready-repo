@@ -8,6 +8,7 @@
 - **Discovery:** <!-- optional: the upstream discovery artifact this spec descended from (a decision brief / intent produced by an upstream discovery process), named by its stable id; the discovery-side sibling of Brief: (the spec→discovery up-edge a traceability check walks). Omit, or "none", for a spec authored without an upstream discovery. -->
 - **Contract:** <!-- contracts/<type>/<name> this spec defines or touches (see new-spec step 4b / CONVENTIONS § 4 Contracts), or "none" for a non-API feature. A contract surface is not just a synchronous REST API — an event interface or a backend-for-frontend (BFF) boundary is a contract too; name it here and author it under contracts/<type>/. -->
 - **Shape:** <!-- optional: ui | service | data | integration | mixed — selects which `## Design (LLD)` sub-sections scaffold in plan.md (e.g. ui pulls in component decomposition + state & control flow; service pulls in interfaces & contracts + data & schema + resilience — the plan template carries the authoritative map). Omit, or "mixed", when the feature spans several or you're unsure; the plan then scaffolds the full set and you prune. Stack-neutral: it names the *kind* of work, never a framework. -->
+<!-- If this spec intentionally has no criteria, remove the section below and add `- **Acceptance Criteria:** none — <one-line reason>` to the metadata header. -->
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

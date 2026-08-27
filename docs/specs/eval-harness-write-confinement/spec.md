@@ -48,7 +48,7 @@ that cwd, finds the host repo, and writes there.
 
 This spec closes the drift. It does **not** change where results are stored.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — the run cwd is outside the repository.** When `run_pack_evals` performs its own
   projection (`project_root` not supplied), the directory passed to

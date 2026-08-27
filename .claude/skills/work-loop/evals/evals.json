@@ -14,6 +14,17 @@
       ]
     },
     {
+      "id": "spec-missing-ac-section-explicit-opt-out",
+      "prompt": "The finish-time spec lint reports invariant (vi) because a spec has no `## Acceptance Criteria` section. When is that legal, and what exact metadata is required?",
+      "expected_output": "A missing Acceptance-Criteria section is legal only when the spec intentionally has no criteria and carries `- **Acceptance Criteria:** none — <one-line reason>` in its metadata header. The reason is required: bare `none` is a hard violation. A real section and the opt-out together are also a hard contradiction.",
+      "assertions": [
+        "Response gives the exact `- **Acceptance Criteria:** none — <one-line reason>` marker",
+        "Response requires a non-empty one-line reason",
+        "Response says missing section without the marker is a hard violation",
+        "Response says a real section plus the marker is a hard contradiction"
+      ]
+    },
+    {
       "id": "phase1-sequential-wave-routing",
       "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
       "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",

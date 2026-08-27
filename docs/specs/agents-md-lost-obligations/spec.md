@@ -31,7 +31,7 @@ Deliberately retired items are **not** restored. Four candidates were retired by
 later decision with a stated reason; re-adding them would reverse a ratified
 decision. They are enumerated in Boundaries.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 Security and refusal semantics (adopter-shipped):
 
