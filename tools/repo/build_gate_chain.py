@@ -473,6 +473,13 @@ def build_check(args: argparse.Namespace) -> int:
             "test-ci-security-workflow",
             "tools", "test-ci-security-workflow.py",
         ),
+        # ADR-0017's advisory CodeQL signal is security-load-bearing even though
+        # branch protection does not yet require it. The posture test proves the
+        # query suite, permission split, analyzed surface and per-ref concurrency.
+        _script_step(
+            "test-codeql-workflow",
+            "tools", "test-codeql-workflow.py",
+        ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
         # ADR-0086, so nothing else would notice it being deleted or made
         # unreachable. Skips cleanly where `make` is absent.

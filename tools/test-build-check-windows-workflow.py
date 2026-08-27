@@ -1,96 +1,270 @@
 #!/usr/bin/env python3
-"""Pin the blocking topology of the split Windows compatibility workflow."""
+"""Pin and mutation-test the split Windows workflow's blocking topology."""
 
 from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-WORKFLOW = ROOT / ".github" / "workflows" / "build-check-windows.yml"
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "build-check-windows.yml"
+
+Mutation = tuple[str, str, Callable[[str], str]]
 
 
-def fail(message: str) -> None:
-    print(f"build-check-windows workflow: {message}", file=sys.stderr)
-    raise SystemExit(1)
-
-
-def job_block(workflow: str, job_name: str) -> str:
-    """Return one top-level job block from the repository-owned workflow."""
+def _job_block(workflow: str, job_name: str) -> str:
+    """Return one top-level job block, or the empty string when absent."""
     match = re.search(
         rf"(?ms)^  {re.escape(job_name)}:\n(.*?)(?=^  [a-z0-9_-]+:\n|\Z)",
         workflow,
     )
-    if match is None:
-        fail(f"job {job_name!r} is missing")
-    return match.group(1)
+    return match.group(1) if match is not None else ""
 
 
-def main() -> int:
-    workflow = WORKFLOW.read_text(encoding="utf-8")
-    agentbundle = job_block(workflow, "agentbundle-windows")
-    credbroker = job_block(workflow, "credbroker-tests-windows")
-    lock_semantics = job_block(workflow, "lock-semantics-windows")
-    aggregate = job_block(workflow, "build-check-windows")
+def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
+    """Return stable violation labels for one workflow text."""
+    violations: list[str] = []
 
-    if "    runs-on: windows-latest\n" not in agentbundle:
-        fail("AgentBundle compatibility job must run on windows-latest")
-    if "    runs-on: windows-latest\n" not in credbroker:
-        fail("CredBroker test job must run on windows-latest")
-    if "    runs-on: windows-latest\n" not in lock_semantics:
-        fail("lock semantics job must run on windows-latest")
-    for job_name, block, expected_timeout in (
-        ("AgentBundle", agentbundle, 15),
-        ("CredBroker", credbroker, 10),
-        ("aggregate", aggregate, 5),
+    def check(label: str, condition: bool) -> None:
+        if evaluated is not None:
+            evaluated.append(label)
+        if not condition:
+            violations.append(label)
+
+    check("workflow-file-present", bool(text))
+    if not text:
+        return violations
+
+    blocks = {
+        "agentbundle-windows": _job_block(text, "agentbundle-windows"),
+        "credbroker-tests-windows": _job_block(text, "credbroker-tests-windows"),
+        "lock-semantics-windows": _job_block(text, "lock-semantics-windows"),
+        "build-check-windows": _job_block(text, "build-check-windows"),
+    }
+    for job_name, block in blocks.items():
+        check(f"job-present[{job_name}]", bool(block))
+
+    for job_name in (
+        "agentbundle-windows",
+        "credbroker-tests-windows",
+        "lock-semantics-windows",
     ):
-        if f"    timeout-minutes: {expected_timeout}\n" not in block:
-            fail(f"{job_name} job must retain its bounded timeout")
+        check(
+            f"windows-runner[{job_name}]",
+            "    runs-on: windows-latest\n" in blocks[job_name],
+        )
+
+    for job_name, expected_timeout in (
+        ("agentbundle-windows", 15),
+        ("credbroker-tests-windows", 10),
+        ("build-check-windows", 5),
+    ):
+        check(
+            f"bounded-timeout[{job_name}]",
+            f"    timeout-minutes: {expected_timeout}\n" in blocks[job_name],
+        )
 
     suite_step = (
         "      - name: Run CredBroker suite\n"
         "        working-directory: packages/credbroker\n"
         "        run: python -m pytest\n"
     )
-    if credbroker.count(suite_step) != 1:
-        fail("CredBroker job must run its complete package suite")
-    lease_suite_step = "        run: python -m pytest tools/test_coordination_lease.py -q\n"
-    if lock_semantics.count(lease_suite_step) != 1:
-        fail("lock semantics job must run the real coordination lease suite")
+    check(
+        "credbroker-full-suite",
+        blocks["credbroker-tests-windows"].count(suite_step) == 1,
+    )
 
-    if "    name: make build-check (windows)\n" not in aggregate:
-        fail("aggregate must preserve the required check name")
+    lease_suite_step = "        run: python -m pytest tools/test_coordination_lease.py -q\n"
+    check(
+        "lock-semantics-real-suite",
+        blocks["lock-semantics-windows"].count(lease_suite_step) == 1,
+    )
+
+    aggregate = blocks["build-check-windows"]
+    check(
+        "aggregate-required-name",
+        "    name: make build-check (windows)\n" in aggregate,
+    )
     required_needs = (
         "    needs:\n"
         "      - agentbundle-windows\n"
         "      - credbroker-tests-windows\n"
         "      - lock-semantics-windows\n"
     )
-    if required_needs not in aggregate:
-        fail("aggregate must depend on all Windows jobs")
-    if "    if: ${{ always() }}\n" not in aggregate:
-        fail("aggregate must run even when a dependency fails or is cancelled")
+    check("aggregate-needs-all", required_needs in aggregate)
+    check("aggregate-always-runs", "    if: ${{ always() }}\n" in aggregate)
 
     for result in (
         "needs.agentbundle-windows.result",
         "needs.credbroker-tests-windows.result",
         "needs.lock-semantics-windows.result",
     ):
-        if result not in aggregate:
-            fail(f"aggregate does not check {result}")
+        check(f"aggregate-result-reference[{result}]", result in aggregate)
+
     for result_variable in (
         "AGENTBUNDLE_RESULT",
         "CREDBROKER_RESULT",
         "LOCK_SEMANTICS_RESULT",
     ):
         comparison = f'[ "${result_variable}" != "success" ]'
-        if comparison not in aggregate:
-            fail(f"aggregate does not require {result_variable} to succeed")
+        check(
+            f"aggregate-requires-success[{result_variable}]",
+            comparison in aggregate,
+        )
 
-    print("build-check-windows workflow: ok")
+    return violations
+
+
+def _baseline() -> str:
+    """Return the real workflow, or the empty missing-file sentinel."""
+    if WORKFLOW.is_file():
+        return WORKFLOW.read_text(encoding="utf-8")
+    return ""
+
+
+_MUTATIONS: list[Mutation] = [
+    ("remove-workflow-file", "workflow-file-present", lambda _text: ""),
+    (
+        "rename-agentbundle-job",
+        "job-present[agentbundle-windows]",
+        lambda text: text.replace(
+            "  agentbundle-windows:\n", "  agentbundle-windows-disabled:\n", 1
+        ),
+    ),
+    (
+        "move-agentbundle-off-windows",
+        "windows-runner[agentbundle-windows]",
+        lambda text: text.replace("    runs-on: windows-latest\n", "    runs-on: ubuntu-latest\n", 1),
+    ),
+    (
+        "remove-agentbundle-timeout",
+        "bounded-timeout[agentbundle-windows]",
+        lambda text: text.replace("    timeout-minutes: 15\n", "    timeout-minutes: 16\n", 1),
+    ),
+    (
+        "narrow-credbroker-suite",
+        "credbroker-full-suite",
+        lambda text: text.replace(
+            "        run: python -m pytest\n",
+            "        run: python -m pytest -q\n",
+            1,
+        ),
+    ),
+    (
+        "replace-real-lease-suite",
+        "lock-semantics-real-suite",
+        lambda text: text.replace(
+            "python -m pytest tools/test_coordination_lease.py -q",
+            "python -m pytest tools/test_windows_lock_semantics.py -q",
+            1,
+        ),
+    ),
+    (
+        "rename-required-check",
+        "aggregate-required-name",
+        lambda text: text.replace(
+            "    name: make build-check (windows)\n",
+            "    name: Windows aggregate\n",
+            1,
+        ),
+    ),
+    (
+        "drop-lock-semantics-need",
+        "aggregate-needs-all",
+        lambda text: text.replace("      - lock-semantics-windows\n", "", 1),
+    ),
+    (
+        "make-aggregate-conditional",
+        "aggregate-always-runs",
+        lambda text: text.replace(
+            "    if: ${{ always() }}\n", "    if: ${{ success() }}\n", 1
+        ),
+    ),
+    (
+        "drop-lock-result-reference",
+        "aggregate-result-reference[needs.lock-semantics-windows.result]",
+        lambda text: text.replace(
+            "${{ needs.lock-semantics-windows.result }}",
+            "${{ needs.agentbundle-windows.result }}",
+            1,
+        ),
+    ),
+    (
+        "stop-requiring-lock-success",
+        "aggregate-requires-success[LOCK_SEMANTICS_RESULT]",
+        lambda text: text.replace(
+            '[ "$LOCK_SEMANTICS_RESULT" != "success" ]',
+            '[ "$LOCK_SEMANTICS_RESULT" = "failure" ]',
+            1,
+        ),
+    ),
+]
+
+
+def _family(label: str) -> str:
+    """Collapse repeated indexed assertions into one mutation family."""
+    return re.sub(r"\[.*\]$", "[*]", label)
+
+
+def self_test() -> int:
+    """Prove the real baseline and every evaluated assertion family."""
+    failures: list[str] = []
+    good = _baseline()
+    evaluated: list[str] = []
+    baseline_violations = audit(good, evaluated)
+    if baseline_violations:
+        failures.append(f"baseline should be clean, got {baseline_violations}")
+
+    for mutation_id, expected, transform in _MUTATIONS:
+        mutated = transform(good)
+        if mutated == good:
+            failures.append(f"{mutation_id}: transform was a no-op — proves nothing")
+            continue
+        got = audit(mutated)
+        if expected not in got:
+            failures.append(f"{mutation_id}: expected {expected!r}, got {got}")
+
+    covered = {_family(expected) for _, expected, _ in _MUTATIONS}
+    uncovered = sorted({_family(label) for label in evaluated} - covered)
+    if uncovered:
+        failures.append(f"assertion families evaluated but unmutated: {uncovered}")
+
+    if failures:
+        print(f"✖ self-test: {len(failures)} problem(s):", file=sys.stderr)
+        for failure in failures:
+            print(f"  - {failure}", file=sys.stderr)
+        return 1
+    print(
+        f"✓ self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
+        f"every one of {len(covered)} assertion families has ≥1 mutation"
+    )
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    """Run the harness, then audit the repository workflow."""
+    if "--self-test" in argv:
+        return self_test()
+    if self_test() != 0:
+        return 1
+
+    violations = audit(_baseline())
+    if violations:
+        print(
+            f"✖ build-check-windows.yml: {len(violations)} posture violation(s):",
+            file=sys.stderr,
+        )
+        for violation in violations:
+            print(f"  - {violation}", file=sys.stderr)
+        return 1
+    print("✓ build-check-windows.yml posture OK")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

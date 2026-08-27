@@ -416,46 +416,16 @@ open = [
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
   {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
-  # Two defects shared this entry. The FIRST IS CLOSED (2026-08-26):
-  # tools/test-ci-security-workflow.py asserted ci-security.yml's security posture
-  # and was invoked by nothing, which also left a shipped AC in
-  # spec/secret-scanner-for-api-key-workflows live and false. It is now a step in
-  # tools/repo/build_gate_chain.py's build-check chain, pinned in
-  # test_build_gate_chain.py's EXPECTED_SCRIPT_STEPS — that list is the sole source
-  # of the step count, so there is no separate literal to keep in step.
-  # Recorded on the way past, because wiring it did not make its assertions
-  # trustworthy: unlike its chain neighbour test-build-check-workflow.py, which runs
-  # a mutation matrix on every invocation, that file has no --self-test and no
-  # fixture. Its eight assertions now BLOCK make build-check with no automated proof
-  # they can fail, so a silently-weakened one would pass. Building that harness was
-  # outside the wiring chore and needs an owner decision.
-  # The SECOND IS ALSO CLOSED (2026-08-27). ci-security.yml and codeql.yml both
-  # keyed their concurrency group on bare github.ref, and GitHub allows one
-  # running plus one PENDING run per group regardless of cancel-in-progress, so a
-  # third queued run evicted the pending one and a commit could go unscanned with
-  # no signal. Both now carry AC12's expression from spec/ci-gate-parallelization
-  # — PR runs share a ref group, every non-PR run keys on github.run_id — and
-  # ci-security.yml's literal is pinned in test-ci-security-workflow.py, so a
-  # regression to the bare-ref form now fails build-check. codeql.yml's
-  # cancel-in-progress moved to the pull_request gate, so pushes to main and the
-  # weekly re-scan run to completion instead of superseding each other. The two
-  # frozen citations (docs/adr/0086 lines 111-118, spec/ci-gate-parallelization)
-  # stand as the historical record; ADR-0086's "note for the next author" is what
-  # authorised the fix. Accepted consequence, recorded rather than discovered
-  # later: two concurrent CodeQL runs on different main commits can now upload
-  # SARIF out of order, so the Security tab can transiently reflect the older
-  # commit until the next analysis. That is judged better than the previous
-  # behaviour, where the newer commit was simply never scanned.
-  # THE RESIDUAL, and the only reason the slug survives: test-ci-security-workflow.py
-  # still has no --self-test and no fixture. Unlike its chain neighbour
-  # test-build-check-workflow.py, which runs a mutation matrix on every
-  # invocation, its now-nine assertions block make build-check with no automated
-  # proof they can fail, so a silently-weakened one would pass. codeql.yml has no
-  # posture test at all — a mutation of its group expression is caught by nothing,
-  # confirmed by a deliberate control run on 2026-08-27.
-  # To close: decide whether the posture test earns a mutation harness, and
-  # whether codeql.yml earns a posture test of its own. Owner decision, not a chore.
-  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
+  # Five workflow-posture tests now carry the pages-form baseline/mutation/family
+  # harness: pages, ci-security, pack-evals, build-check-windows and CodeQL. The
+  # sixth posture test, build-check, has the same core contract plus a specialized
+  # bash differential and shape-stable fixture. A shared helper is now plausible,
+  # but extracting it means changing two already-working harness shapes and should
+  # be reviewed independently rather than riding with the assertion-proof work.
+  # To close: identify the genuinely common surface, preserve build-check's
+  # differential and pages' crafted-input predicates, and prove every caller's
+  # mutation count/family coverage is unchanged by the extraction.
+  {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
   # block. Deliberately NOT bundled into spec/ci-gate-parallelization's Gate A
@@ -1864,6 +1834,8 @@ closed = [
   # as build-site-fence-info-string-opens-a-comment. Pre-existing, different
   # root cause, and the fence state machine was explicitly out of scope.
   {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
+
+  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13", summary = "Closed by mutation harnesses for ci-security, pack-evals and build-check-windows plus a new mutation-tested CodeQL posture check wired into build-check"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
