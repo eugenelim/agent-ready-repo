@@ -27,7 +27,9 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "packages/agentbundle/**,contracts/**,.github/workflows/**"
+    "packages/agentbundle",
+    "contracts",
+    ".github/workflows"
   ],
   "supporting_sources": [],
   "synthesis": {

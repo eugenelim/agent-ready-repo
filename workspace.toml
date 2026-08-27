@@ -486,15 +486,31 @@ open = [
   # "retryable":false}. Both fields are wrong and actively misleading: nothing about
   # the request needs fixing, it is not a capacity breach, and a deadline breach IS
   # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
-  # which reuses the journal_capacity code for an elapsed deadline. Git is not the
-  # cause — `git ls-files` and `git status` are ~0.2-0.4s here, and the process burns
-  # only ~2.4s of system time across 33s wall, so it is waiting on something.
+  # which reuses the journal_capacity code for an elapsed deadline.
+  # CAUSE FOUND 2026-08-27 — the earlier "git is not the cause" line was wrong and is
+  # retracted. It IS git. _assert_v1_writer_allowed() -> _committed_v1_map_is_coherent()
+  # -> _read_committed_topic_map() calls _committed_blob_id() once per committed topic,
+  # and each spawns `git ls-tree -z <commit> -- <path>` through _git_read(). That is
+  # 64+ SEQUENTIAL subprocess spawns; the original probe timed single `git ls-files` /
+  # `git status` calls, which never touch this loop. The "~2.4s system time across 33s
+  # wall" observation is the confirming detail, not a counter-indication: the parent
+  # blocks on children, so their cost never lands in the parent's own accounting.
+  # Measured here at 65 topics: the coherence check alone takes 22-31s (two runs) of
+  # the 30s whole-script budget, and one batched `git ls-tree -r -z` over the same
+  # tree takes 0.064s. Not capture-only: the same check runs on all four writer paths
+  # — capture_observation:2809, write_terminal_disposition:1658,
+  # _apply_guarded_mutation_body:1683, distill_observation:3254 — so every promotion
+  # through the --distill CLI also fails, there reported as `map_mismatch` because
+  # _git_read() catches TimeoutExpired alongside CalledProcessError.
   # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
   # so lessons are silently not captured by anyone who does not read the exit code.
   # To close: (1) give a deadline breach its own reason_code with retryable=true and a
-  # recovery_action that is not fix_request; (2) find what consumes the 30s (suspect a
-  # lock acquire or a filesystem walk, not git) and either speed it up or raise
-  # script_seconds for capture.
+  # recovery_action that is not fix_request, and stop _git_read() reporting a timeout
+  # as map_mismatch; (2) batch the per-topic lookup into one `git ls-tree -r -z`,
+  # following the existing precedent at _committed_topic_paths:1222 — and decide
+  # explicitly what a non-success exit means for the batch, treating a partial answer
+  # as unusable (see topic batching-n-subprocess-calls-into-one-changes-the-blast-radius).
+  # Raising script_seconds is not the fix; the loop is O(topics) and will re-breach.
   {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
 
   # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
@@ -1768,6 +1784,39 @@ open = [
   # those instead of paths.
   # Unblocks when: the tool layer can express a checked-then-bound read.
   { slug = "adjudicator-cited-read-toctou", source = "spec-less adjudicator read-envelope change (adversarial review round 2)", summary = "The finding-adjudicator checks a cited path's confinement before reading but nothing binds the read to the checked object, so a concurrent swap to an external symlink is followed; identical pre-existing race applies to the orchestrator-supplied paths" },
+
+  # ── From the 2026-08-27 maintainer knowledge-distillation run ──
+  # Distilling 16 pending observations produced 12 topics; five of them are one
+  # family — assertions that cannot fail. quality-engineer.md already carries the
+  # mutation-testing mindset (:157) and tautological tests (#3) but not the four
+  # shapes the run surfaced, and security-reviewer.md has NO coverage of the
+  # control-pin obligation (zero hits for mutation / substring / delete-the-control)
+  # — the one shape with a demonstrated security consequence, where deleting the
+  # method left two gates green while a bearer JWT would have been forwarded across
+  # an origin change. Both agents ship to adopters from packs/core/.apm/agents/.
+  # quality-engineer.md is 464 lines; +~25 stays under the 500-line warn threshold.
+  # Fix: add the four shapes (empty-set without a positive control; negative case
+  # green from an unstubbed collaborator; source-substring control pin; golden
+  # baseline over prose enumeration) to quality-engineer's Test design list, and the
+  # control-pin-by-mutation obligation to security-reviewer. Non-cosmetic pack
+  # change: bump pack.toml + plugin.json + changelog, then FORCE=1 make build-self.
+  # Unblocks: now.
+  {path = "docs/product/intents/reviewer-agent-vacuous-assertion-coverage.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Extend the quality and security reviewers to catch the four assertion shapes that cannot fail", needs = []},
+
+
+  # Surfaced while specing knowledge-enquiry-scope-reachability, and required by
+  # that spec's round-2 review (Concern 12) before it can pin selection-level
+  # reachability. The topic corpus is too coarsely scoped for a bounded envelope:
+  # 17 of 76 topics apply corpus-wide (14 exclusively) and 20 share the base
+  # `tools`, so a `tools` query has 20 matches tied at one specificity tier against
+  # a 12-body envelope and the tiebreak decides. Measured 69 of 76 topics returned
+  # across the committed query set; 7 are starved. No ranking rule fixes this — it
+  # is scope granularity, not matching. Fix: curate scopes so the largest tier fits
+  # the envelope, most likely by narrowing `tools` and re-scoping corpus-wide topics.
+  # Unblocks when: knowledge-enquiry-scope-reachability ships, since its matcher
+  # decides which topics land in which tier.
+  {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
+
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
@@ -1881,6 +1930,17 @@ queue   = [
 # Authority: RFC-0097 (Accepted; implementation waits for approved specs).
 # Portable workflows + governed knowledge are the product. AgentBundle
 # packaging, projections, versions, and publication remain external mechanics.
+#
+# Staged-delivery constraint (routed from the 2026-08-27 distillation of an
+# observation captured at RFC-0097's adversarial-review-clean gate):
+# advertised workflow modes, required knowledge topics, and validation fixtures
+# must share the same milestone boundary. Two failure directions follow, and
+# they pull opposite ways, so each milestone needs both checked:
+#   - a later-stage fixture must not gate an earlier foundation release, and
+#   - a mode that is not yet available must not be advertised as complete.
+# Check per milestone that it lists its own advertised modes, required topics,
+# and fixtures, and that no fixture cites a mode belonging to a later
+# milestone. This binds M0 onward, not only the first release.
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-009"]
 name      = "Agent Skill Engineering"

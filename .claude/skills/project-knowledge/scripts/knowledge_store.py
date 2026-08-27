@@ -1176,6 +1176,53 @@ def _committed_blob_id(repo_root: Path | str, commit_id: str, relative_path: str
     return fields[2]
 
 
+def _committed_blob_ids(
+    repo_root: Path | str,
+    commit_id: str,
+    tree_path: str,
+) -> dict[str, str]:
+    """Map every committed blob under one tree path to its object id in a single call.
+
+    The per-path alternative spawns one `git ls-tree` per entry, which is
+    O(topics) subprocesses inside a single script budget and is why the writer
+    coherence check exhausted its 30s deadline at 65 topics.
+
+    A non-success exit means the whole batch is unusable, not that the missing
+    rows are absent: `_git_read_bounded` refuses, and the caller treats the
+    refusal as incoherence rather than reading a partial answer as data.
+    """
+    try:
+        PK._expect_repo_path(tree_path)
+    except ValueError:
+        _refuse("confinement")
+    raw = _git_read_bounded(
+        repo_root,
+        ["ls-tree", "-r", "-z", commit_id, "--", tree_path],
+        max_bytes=budget_contract()["map_bytes"],
+    )
+    blobs: dict[str, str] = {}
+    for record in raw.split(b"\0"):
+        if not record:
+            continue
+        try:
+            header, encoded_path = record.split(b"\t", 1)
+            fields = header.decode("ascii", errors="strict").split()
+            listed_path = encoded_path.decode("utf-8", errors="strict")
+        except (UnicodeDecodeError, ValueError):
+            _refuse("map_mismatch")
+        if (
+            len(fields) != 3
+            or fields[0] not in {"100644", "100755"}
+            or fields[1] != "blob"
+            or listed_path in blobs
+        ):
+            _refuse("map_mismatch")
+        blobs[listed_path] = fields[2]
+    if len(blobs) > budget_contract()["map_entries"]:
+        _refuse("journal_capacity")
+    return blobs
+
+
 def _committed_path_exists(repo_root: Path | str, commit_id: str, relative_path: str) -> bool:
     try:
         PK._expect_repo_path(relative_path)
@@ -1995,11 +2042,12 @@ def _read_committed_topic_map(
         _refuse("map_mismatch")
     if paths != _committed_topic_paths(repo_root, snapshot["commit_id"]):
         _refuse("map_mismatch")
+    committed_blobs = _committed_blob_ids(
+        repo_root, snapshot["commit_id"], "docs/knowledge/topics"
+    )
     for entry in entries:
         committed_path = f"docs/knowledge/{entry['path']}"
-        if _committed_blob_id(repo_root, snapshot["commit_id"], committed_path) != entry["blob"][
-            "object_id"
-        ]:
+        if committed_blobs.get(committed_path) != entry["blob"]["object_id"]:
             _refuse("map_mismatch")
     return {"schema_version": parsed["schema_version"], "entries": entries}
 
@@ -2046,6 +2094,98 @@ def _entry_matches_query(
         return False
     question_id = query.get("question_id")
     return question_id is None or question_id in entry["competency_facets"]
+
+
+def _committed_blobs_by_id(
+    repo_root: Path | str,
+    object_ids: Sequence[str],
+) -> dict[str, bytes]:
+    """Read many committed blobs in one `git cat-file --batch` call.
+
+    Reading them one at a time costs three subprocesses per object -- `ls-tree`
+    for the id, `cat-file -s` for the size, `show` for the bytes -- which is
+    what exhausted the writer's script budget once the corpus grew.
+
+    Any malformed record, missing object, or short read fails the whole batch:
+    a partial answer here would understate the corpus and silently weaken the
+    coherence check that calls this.
+    """
+    if not object_ids:
+        return {}
+    for object_id in object_ids:
+        if len(object_id) not in _GIT_OBJECT_LENGTHS.values() or not all(
+            character in "0123456789abcdef" for character in object_id
+        ):
+            _refuse("map_mismatch")
+    per_object = budget_contract()["topic_bytes"]
+    corpus = budget_contract()["topic_corpus_bytes"]
+    try:
+        with tempfile.TemporaryFile() as output:
+            completed = subprocess.run(
+                ["git", "cat-file", "--batch"],
+                cwd=repo_root,
+                input="\n".join(object_ids).encode("ascii") + b"\n",
+                stdout=output,
+                stderr=subprocess.DEVNULL,
+                env=_git_environment(),
+                timeout=_remaining_timeout(),
+                check=False,
+            )
+            if completed.returncode != 0:
+                _refuse("map_mismatch")
+            if output.tell() > corpus:
+                _refuse("journal_capacity")
+            output.seek(0)
+            raw = output.read(corpus + 1)
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        _refuse("map_mismatch")
+    blobs: dict[str, bytes] = {}
+    cursor = 0
+    for _ in object_ids:
+        newline = raw.find(b"\n", cursor)
+        if newline == -1:
+            _refuse("map_mismatch")
+        try:
+            header = raw[cursor:newline].decode("ascii", errors="strict").split()
+        except UnicodeDecodeError:
+            _refuse("map_mismatch")
+        if len(header) != 3 or header[1] != "blob":
+            _refuse("map_mismatch")
+        try:
+            size = int(header[2])
+        except ValueError:
+            _refuse("map_mismatch")
+        if size < 0 or size > per_object:
+            _refuse("journal_capacity")
+        start = newline + 1
+        end = start + size
+        if end + 1 > len(raw):
+            _refuse("map_mismatch")
+        blobs[header[0]] = raw[start:end]
+        cursor = end + 1
+    if cursor != len(raw) or len(blobs) != len(set(object_ids)):
+        _refuse("map_mismatch")
+    return blobs
+
+
+def _validate_committed_topic(
+    raw: bytes,
+    entry: dict[str, Any],
+    *,
+    body_budget: list[int] | None = None,
+    body_budget_limit: int | None = None,
+) -> dict[str, Any]:
+    if body_budget is not None:
+        body_budget[0] += len(raw)
+        limit = body_budget_limit or budget_contract()["enquiry_body_read_bytes"]
+        if body_budget[0] > limit:
+            _refuse("journal_capacity")
+    if _git_blob_digest(raw, algorithm=entry["blob"]["algorithm"]) != entry["blob"]:
+        _refuse("map_mismatch")
+    topic = validate_topic(_parse_committed_json(raw))
+    if topic["topic_key"] != entry["topic_key"]:
+        _refuse("map_mismatch")
+    return topic
 
 
 def _read_committed_topic(
@@ -2099,10 +2239,16 @@ def _verify_committed_topic_headers(
     topic_map: dict[str, Any],
 ) -> None:
     corpus_budget = [0]
-    for entry in topic_map["entries"]:
-        topic = _read_committed_topic(
-            repo_root,
-            snapshot,
+    entries = topic_map["entries"]
+    blobs = _committed_blobs_by_id(
+        repo_root, [entry["blob"]["object_id"] for entry in entries]
+    )
+    for entry in entries:
+        raw = blobs.get(entry["blob"]["object_id"])
+        if raw is None:
+            _refuse("map_mismatch")
+        topic = _validate_committed_topic(
+            raw,
             entry,
             body_budget=corpus_budget,
             body_budget_limit=budget_contract()["topic_corpus_bytes"],

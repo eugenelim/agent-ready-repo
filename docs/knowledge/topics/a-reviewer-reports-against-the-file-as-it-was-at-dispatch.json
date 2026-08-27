@@ -1,0 +1,45 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-REVIEW",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-20T05:43:16Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-8f661258f943d6cec07c76d45015069d6e3224f1da67df6c56a608b233f065f2",
+      "mutation_id": "0a3846af55a9a578f60a30742baeb6c0f8dca6cbc7fe8ba47ffdb0c5b383e247",
+      "observed_at": "2026-08-20T05:43:16Z",
+      "producer": "new-rfc",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/rfc",
+      "semantic_gate": "rfc-handoff-ready",
+      "source": {
+        "path": "docs/rfc/0092-first-class-distribution-routes.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 75632,
+      "kind": "sha256-bytes-v1",
+      "sha256": "dfb9f4ca6dbf1035843512a00437408e6d3029906c9937a7f94d9177aef7b628"
+    },
+    "path": "docs/rfc/0092-first-class-distribution-routes.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/rfc"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A reviewer subagent reports against the file as it stood when the review was dispatched, not as it stands when the report arrives. During RFC-0092's review, a round-3 finding named an inconsistency between two statements of the same control that an edit landing minutes after dispatch had already removed by giving the control a single home. Applying the reviewer's prescribed fix verbatim would have re-edited text that was already correct, and would have counted a resolved item as an open defect in the handoff. Re-check each finding against current file state before remediating: it separates a live defect from a stale snapshot and costs one grep whenever the finding cites a path and line. This is the discovery-side reason the finding-adjudicator agent exists; where no adjudicator is in the loop, the re-check is the author's job. A related tell is a finding whose origin is the previous round's fix rather than the artifact — that means the review has stopped converging.",
+    "kind": "gotcha"
+  },
+  "title": "A reviewer reports against the file as it was at dispatch, not as it is at report time",
+  "topic_key": "a-reviewer-reports-against-the-file-as-it-was-at-dispatch"
+}

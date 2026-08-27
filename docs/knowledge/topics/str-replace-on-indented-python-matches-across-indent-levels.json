@@ -1,0 +1,47 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-CHANGE",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-16T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-baa9595170129ff4c21d86c76569f143e800bfe8c0d36df6f73b26c9e18d974f",
+      "mutation_id": "72e6c9ed053395526302f08baae05b577945b79be9703cef59f5d19e4f9ed54d",
+      "observed_at": "2026-08-16T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packages",
+      "semantic_gate": "work-loop",
+      "source": {
+        "path": "Makefile"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 34545,
+      "kind": "sha256-bytes-v1",
+      "sha256": "d89653eb2e7c15517b2e19f598e73aa6d0e8fb209e703ce8dc031b2cbd73110c"
+    },
+    "path": "Makefile"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages",
+    "packs",
+    "tools"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "`str.replace` on indented source matches ACROSS indent levels, because an 8-space pattern is a substring of the same text at 12 spaces. Rewriting call sites with `str.replace('        return x()', '        return self._x()')` also rewrites the helper's own body into a self-call — infinite recursion, and it happened once per client in a two-client change. The same class ate a newline in a YAML sweep and emitted `# v4.4.0with:`, which would have broken every workflow in the repository. Two mechanisms fix it. Anchor the rewrite to a whole line: iterate `splitlines()` and `re.match` with `^`, or require the match to be preceded by a newline. Then check the diff SHAPE afterwards — a pure call-site swap must be N insertions for N deletions, so any net line-count change means the pattern consumed something it should not have. Asserting the match count before replacing catches the other direction, where the anchor is not unique.",
+    "kind": "gotcha"
+  },
+  "title": "str.replace on indented Python matches across indent levels",
+  "topic_key": "str-replace-on-indented-python-matches-across-indent-levels"
+}

@@ -1,0 +1,55 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-CHANGE",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-67f668edb31edfe08cfe4a20b0044fa5113769a86dd78cb22351aca34c0ee350",
+      "mutation_id": "4a52f0185024db9596dafc8d4b34c8f6687748110d17c9156313b17d1407bff6",
+      "observed_at": "2026-08-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "docs/specs/lint-performance-p0/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 38287,
+      "kind": "sha256-bytes-v1",
+      "sha256": "5b4cca48f13e1cc107b14a71e6ab6bedde87c5563f85ea2c329a7f2b9bbc1927"
+    },
+    "path": "tools/test-lint-boundary-golden.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 41456,
+        "kind": "sha256-bytes-v1",
+        "sha256": "ee8af3c30a5bbbe74ac41458f15ac4cd7b66da2fe965a56cf92528a92142b73d"
+      },
+      "path": "docs/specs/lint-performance-p0/plan.md"
+    }
+  ],
+  "synthesis": {
+    "body": "When a refactor must preserve the exact behaviour of a large existing check, capture that behaviour as a baseline instead of enumerating it in prose. A hand-written list of expected messages, sites, counts and attributions is a second implementation with no compiler, and it drifts: three review rounds each found the enumeration wrong somewhere new, and fixes for one round introduced contradictions in the next. Capturing the subject's exact stdout, stderr and exit code from a PINNED revision removes the class of error. Two properties make the baseline trustworthy rather than theatre. First, anchor the subject by content hash as well as revision, or moving the pin silently makes the baseline describe the code it polices. Second, test the baseline by mutation — deliberately weaken the subject and confirm the comparison reds — because a baseline that detects nothing looks identical to one that detects everything. Compare a canonicalised surface rather than raw bytes wherever the output legitimately varies (filesystem ordering, interpreter-version-dependent text), and state explicitly what capture cannot observe (process counts, side effects) so those get their own assertions.",
+    "kind": "pattern"
+  },
+  "title": "Pin a refactor's preserved behaviour with a golden baseline, not a prose enumeration",
+  "topic_key": "pin-a-refactors-preserved-behaviour-with-a-golden-baseline"
+}

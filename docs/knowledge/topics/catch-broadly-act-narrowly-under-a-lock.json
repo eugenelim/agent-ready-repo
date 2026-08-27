@@ -1,0 +1,46 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-CHANGE",
+    "CQ-DIAGNOSE"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T19:14:14Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-fb94e0493f5cd94b7e2f7339216618eadb753d60b9beb03e6920ae1373e248eb",
+      "mutation_id": "e0ea27d6a6fc605ebc02f2c9d568c7418a8910f203da4e80c7d90b855af8cf12",
+      "observed_at": "2026-08-17T19:14:14Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core/.apm/skills/work-loop",
+      "semantic_gate": "catch-broadly-act-narrowly-under-a-lock",
+      "source": {
+        "path": "docs/specs/work-loop-in-process-guards/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 57416,
+      "kind": "sha256-bytes-v1",
+      "sha256": "e2fcac44357b173512491cbb1781ce4797f7af1f1d18e5ff543e328c6a1f82e2"
+    },
+    "path": "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Narrowing an `except` clause at a lock-holding boundary requires checking the exception taxonomy first, not just the exceptions you have seen. Narrowing `_recover_engine_state_tmp` to `(FileNotFoundError, ValueError)` to stop it deleting valid artifacts also stopped it catching `RecursionError`, which `json.loads` raises on a deeply nested document and which is not a ValueError. main() handled only two exception types, so a planted `.engine-state-*.json.tmp` tracebacked out of `sl.exclusive()` — and because the dotfile was never removed, every later transition on that spec failed identically. One line was carrying two requirements and they pull in opposite directions. The durable shape is: catch BROADLY so nothing escapes the lock holder, and act NARROWLY on a typed predicate inside the handler. Two properties, two mechanisms; conflating them produced a bug in each direction on the same line. The typed predicate is the subject of the destructive-action exception-typing topic.",
+    "kind": "gotcha"
+  },
+  "title": "Catch broadly, act narrowly under a lock",
+  "topic_key": "catch-broadly-act-narrowly-under-a-lock"
+}

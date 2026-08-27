@@ -27,7 +27,8 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "tools/**,packages/agentbundle/**"
+    "tools",
+    "packages/agentbundle"
   ],
   "supporting_sources": [],
   "synthesis": {

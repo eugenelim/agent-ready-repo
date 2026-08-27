@@ -27,7 +27,8 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "docs/**, guides/**"
+    "docs",
+    "guides"
   ],
   "supporting_sources": [],
   "synthesis": {

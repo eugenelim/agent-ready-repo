@@ -52,7 +52,32 @@ authority. Canonical artifacts retain authority for their concerns.
 3. `--enquire` resolves a task question against the committed topic map and
    returns a bounded evidence receipt or abstains.
 
-## 6. Failure and recovery behavior
+## 6. Provenance for a multi-artifact terminal gate
+
+The capture contract names one artifact per observation, while several terminal
+gates close over more than one. A gate in that shape supplies deterministic
+provenance through three separate fields rather than by choosing one artifact
+and dropping the rest:
+
+- a **named primary owning artifact**, which is the observation's single
+  `semantic_gate.artifact`;
+- an explicit **companion-artifact provenance set**, carried in
+  `provenance.sources`, naming every other artifact the gate closed over; and
+- a **freshness anchor on the artifact that closes the gate**, which is not
+  necessarily the primary owning artifact — it is whichever artifact's content
+  determines that the gate is satisfied.
+
+Separating the anchor from the owner matters because the two answer different
+questions. The owner answers "which artifact is this observation about"; the
+anchor answers "what content would have to change for this observation to go
+stale". A gate that reuses one artifact for both silently ties staleness to the
+wrong file.
+
+Construction tests reference one canonical gate-to-artifact mapping. Restating
+the path rules per test duplicates a fact that has no owner, and the copies
+drift at the first gate whose artifact set changes.
+
+## 7. Failure and recovery behavior
 
 Invalid privacy, provenance, schema, path, or size input is refused before a
 body is persisted. Refusals use redacted diagnostics.
@@ -64,7 +89,7 @@ idempotent missing step or refuses recovery.
 Uncertain, stale, retired, malformed, or out-of-scope topics are excluded from
 ordinary enquiry. Enquiry abstains when it cannot verify eligible evidence.
 
-## 7. Observability and evidence
+## 8. Observability and evidence
 
 Capture returns receipts. Distillation records dispositions and proposed store
 changes. Enquiry returns selected topic identifiers, source pointers, limits,
@@ -73,7 +98,7 @@ and abstention state.
 The store, committed topic map, Git history, and redacted refusal diagnostics
 provide the durable evidence trail.
 
-## 8. Mechanical invariants
+## 9. Mechanical invariants
 
 - `tools/lint-knowledge-surface-parity.py` prevents silent drift among the
   duplicated knowledge-surface taxonomy copies used by architecture skills.
@@ -81,12 +106,12 @@ provide the durable evidence trail.
 The mode authority boundary is documented here. This page does not claim a
 named command enforces it.
 
-## 9. Relevant ADRs
+## 10. Relevant ADRs
 
 - [ADR-0081 — Canonical project knowledge uses per-topic JSON](../adr/0081-canonical-project-knowledge-uses-per-topic-json.md)
 - [ADR-0082 — Project-knowledge modes separate authority](../adr/0082-project-knowledge-modes-separate-authority.md)
 
-## 10. Last verified against commit
+## 11. Last verified against commit
 
 `c8cf4b37`
 

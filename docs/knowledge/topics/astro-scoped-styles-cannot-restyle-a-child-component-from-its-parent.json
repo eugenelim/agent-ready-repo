@@ -27,7 +27,8 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "web/**,docs-site/**"
+    "web",
+    "docs-site"
   ],
   "supporting_sources": [],
   "synthesis": {

@@ -27,7 +27,10 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "packs/**/skills/**,.claude/skills/**,.agents/skills/**,.codex/**"
+    "packs",
+    ".claude/skills",
+    ".agents/skills",
+    ".codex"
   ],
   "supporting_sources": [],
   "synthesis": {

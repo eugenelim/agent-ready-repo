@@ -1,0 +1,46 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT",
+    "CQ-CHANGE"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-16T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-35d61d509a4afcd207aa1640aafebd78239b99a0c74b4b6895ad7f79b719d25c",
+      "mutation_id": "07839a109d42297f9fce39449583d17b6547671a4d80bfa8252f3752249b4472",
+      "observed_at": "2026-08-16T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "workspace.toml",
+      "semantic_gate": "work-loop",
+      "source": {
+        "path": "workspace.toml"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 169663,
+      "kind": "sha256-bytes-v1",
+      "sha256": "c4a5e7fd7b17648afdb1ff2b73968999747b09ece0e0cd8ce518ea29bf114143"
+    },
+    "path": "workspace.toml"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "workspace.toml",
+    "docs/specs"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A backlog entry's description of a PROBLEM ages well; its claim about why the problem is BLOCKED ages badly, because the blocker is inferred once at capture and never re-checked while the tree moves underneath it. Seen three times in a single clearing session: one entry listed four CLIs as missing a warning when two already had it and a third had no such flag at all; another said a helper needed lifting into a shared module when four of six call sites already had it and the two that did not were following a documented spec invariant; a third named a suite as blocked on missing step vocabulary when it was actually blocked on package provisioning. Each time the problem statement was still true and the blocker claim was wrong, and following the stale blocker produced work that had to be reverted. Re-derive the blocker against the current tree as the first step of picking an entry up, and correct the entry in place when it has drifted.",
+    "kind": "gotcha"
+  },
+  "title": "A backlog entry's blocker claim ages badly — re-derive it before building on it",
+  "topic_key": "a-backlog-entrys-blocker-claim-ages-badly-re-derive-it"
+}
