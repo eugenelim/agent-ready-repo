@@ -25,7 +25,8 @@ npm run build --prefix docs-site
 - The repository, not Starlight, checks rendered internal links after both builds.
 - Styling changes must preserve no horizontal scroll at 375 px, usable focus in
   both themes, and reduced-motion behavior.
-- Check `allowScripts` against install-script entries by eye when the lockfile moves.
+- Run `python3 tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
+  `allowScripts` entry or repin the dependency so it dedupes to a reviewed version.
 - `astro.config.ts` imports `@astrojs/markdown-remark` directly — it builds the
   site's Markdown processor with `unified({...})` and passes it as
   `markdown.processor`. Astro and Starlight both carry the package as an

@@ -1,6 +1,6 @@
 # Spec: npm-sca-gate
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (AC5's deferral anchor `npm-allowscripts-enforcement` is now closed in `workspace.toml [backlog].closed` — web's `playwright/fsevents@2.3.2` divergence was repinned away and `tools/lint-npm-allow-scripts.py` machine-checks the invariant; the "deferred" and "pre-existing and untouched" wording below is accurate as of ship time only. Not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017, ADR-0083

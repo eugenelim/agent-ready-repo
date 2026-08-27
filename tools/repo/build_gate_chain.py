@@ -414,6 +414,18 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-pack-maintainer-emails",
             "tools", "lint-pack-maintainer-emails.py",
         ),
+        # npm install scripts execute dependency code during installation, so
+        # keep this supply-chain permission check in the unfiltered policy
+        # chain. Its mutation self-test runs first: a broken detector would
+        # otherwise report green on the clean repository it is meant to guard.
+        _script_step(
+            "test-lint-npm-allow-scripts",
+            "tools", "test-lint-npm-allow-scripts.py",
+        ),
+        _script_step(
+            "lint-npm-allow-scripts",
+            "tools", "lint-npm-allow-scripts.py",
+        ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
         # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a
