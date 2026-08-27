@@ -2132,6 +2132,11 @@ def apply_confirmed_deletion(
 
     def rollback_staged_link() -> DeletionResult | None:
         nonlocal staged, original_removed
+        # Subsumed: unreachable as written. Every call site is downstream of the
+        # `descriptor` assignment, whose failure returns before staging, and the
+        # outermost caller is itself guarded on `descriptor is not None`. Kept
+        # as a total function rather than an assert so a future call site added
+        # ahead of that assignment degrades to a refusal rather than a crash.
         if descriptor is None:
             return DeletionResult(
                 "rollback-failed",
@@ -2209,11 +2214,22 @@ def apply_confirmed_deletion(
             os.unlink(staging_name, dir_fd=descriptor)
             staged = False
         except OSError:
+            # `staging_path` is a path built once from `target.parent`. One
+            # trigger for reaching rollback is a *proven* parent-directory
+            # substitution, and in that case this path no longer names the
+            # directory the descriptor holds open, so reporting it would aim
+            # maintainer recovery at content of unknown origin — under the very
+            # `identity-confirmed` label that the guide says is safe to restore.
+            # The inode evidence stays: it identifies the residue without
+            # depending on the path resolving anywhere.
+            parent_still_matches = _directory_path_matches_fd(
+                target.parent, descriptor
+            )
             return DeletionResult(
                 "rollback-failed",
                 (target,) if original_removed else (),
                 original_removed,
-                (staging_path,),
+                (staging_path,) if parent_still_matches else (),
                 residual_evidence(staged_fingerprint, link_count),
                 residue_state="identity-confirmed",
             )

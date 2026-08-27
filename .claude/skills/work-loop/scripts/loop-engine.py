@@ -1306,9 +1306,17 @@ def cmd_transition(args: argparse.Namespace) -> int:
     if err:
         return stop(err)
 
-    # Recovery for the narrow crash window where engine-state reached drafting
-    # but the cohort mutation did not. Reissuing the exact event completes only
-    # the missing cohort write and does not increment the transition sequence.
+    # Recovery for a divergence between the two per-spec scratch files, where
+    # engine-state records the amendment at drafting but the cohort state does
+    # not. Reissuing the exact event completes only the missing cohort write and
+    # does not increment the transition sequence.
+    #
+    # Note this is NOT the ordinary crash window. `cmd_transition` mutates the
+    # cohort first and writes engine-state last, so a crash between them always
+    # leaves the cohort ahead, never behind — that direction is handled on the
+    # normal path by `contract_amendment_replay_status`. Reaching this branch
+    # requires the two untracked files to have diverged by some other means, so
+    # the plan cannot be assumed to still match what was approved.
     if (
         event == "contract-amendment"
         and mode == "code"
@@ -1331,6 +1339,18 @@ def cmd_transition(args: argparse.Namespace) -> int:
             != completed_task_evidence
         ):
             return stop("contract-amendment replay facts do not match engine state")
+        # The engine-side facts above only prove the caller reissued the same
+        # event. They say nothing about `plan.md`, and this branch does not fall
+        # through to Step 1b, so without this check the cohort mutation reaches
+        # its derive path — `task_section_hashes` over whatever the plan now
+        # holds — and an edit to an already-completed task section is laundered
+        # into the baseline that `validate_completed_task_sections` later
+        # ratifies. Verify the plan still matches the scheduled baseline first;
+        # canonical form normalises the status token and checkbox brackets, so
+        # ordinary task check-offs do not trip it.
+        err = _schedule_check_current(spec_dir)
+        if err:
+            return stop(err)
         try:
             _cohort_mutator().apply_contract_amendment(
                 spec_dir,

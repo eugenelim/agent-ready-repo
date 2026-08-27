@@ -125,9 +125,14 @@ without following links and verifies its fingerprint, device, inode, size, and
 link count immediately before any rollback effect. A surviving added link on the
 confirmed inode produces `residual-hardlink`. Any other rollback identity/content
 corruption or operation failure produces `rollback-failed`. Both are terminal
-mutated outcomes: the report identifies bounded inode evidence, any `.pending`
-recovery residue, and — when the original was already unlinked — the affected
-original path. A rollback that refuses before that unlink reports no original path,
+mutated outcomes: the report identifies bounded inode evidence when a descriptor
+established the residue's identity, any `.pending` recovery residue whose path
+still resolves under the validated parent handle, and — when the original was
+already unlinked — the affected original path. Where identity could not be
+established, or where a parent-directory substitution was proven, the report
+omits that locator rather than inventing one: the inode evidence identifies the
+residue without depending on a path. A rollback that refuses before that unlink
+reports no original path,
 because there is none; do not claim success, restoration, or an unchanged refusal.
 
 Each such report also names the residue's identity, and you must read it before
@@ -215,7 +220,11 @@ checks as any other persisted change.
 
 A minimal completion receipt retains only the delivery ID, accepted outcome,
 completion event, and stable evidence reference, and only while a live dependency
-cites it. If the established coordination surface cannot carry that receipt, the
+cites it. Every field is a locator or a short outcome statement: the receipt
+carries no requirements, rationale, source payload, artifact content, or personal
+identity, and references an evidence locator rather than a person. This matters
+because the receipt is written into a coordination surface that is normally
+committed. If the established coordination surface cannot carry that receipt, the
 delivery record stays as a retained exception. `workspace.toml` remains an index;
 it does not become the receipt, rationale, or cooling store.
 

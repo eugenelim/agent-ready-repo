@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -109,7 +110,14 @@ def test_core_release_metadata_and_history_agree() -> None:
     assert pack["pack"]["version"] == "2.13.0"
     assert plugin["version"] == "2.13.0"
     assert "close-work" in pack["pack"]["evals"]["skills"]
-    assert "## [core][2.13.0] — 2026-08-27" in changelog
+    # Assert the invariant, not the calendar day. The release date is not this
+    # test's to own — it moved twice while this branch was in review, and each
+    # slip reddened a suite for a reason unrelated to the declaration here. The
+    # version coupling above is the real contract; a dated top-level heading in
+    # the documented shape is all this line needs.
+    assert re.search(
+        r"^## \[core\]\[2\.13\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
+    ), "no dated top-level core 2.13.0 changelog heading"
     assert "allowed-tools: Read Write Edit Bash" in skill
     for forbidden in ("WebFetch", "WebSearch", "MCP", "Browser", "Task"):
         assert forbidden not in skill.split("---", 2)[1]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
@@ -20,6 +21,29 @@ CLOSE_WORK_SCRIPT_SOURCE = SCRIPT_PATH.read_text(encoding="utf-8")
 RESOLVER_PATH = (
     PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "surface_resolver.py"
 )
+
+
+def _enumeration_call_keywords(source: str) -> set[str]:
+    """Return the bound keywords on the materialising enumeration call.
+
+    Locates the single `list_confined_regular_files` call inside
+    `_confined_target_set` and reports which bounds it actually passes. Fails
+    loudly rather than returning an empty set if the seam moves, so a rename
+    cannot be mistaken for an absent bound.
+    """
+    for node in ast.walk(ast.parse(source)):
+        if not (isinstance(node, ast.FunctionDef) and node.name == "_confined_target_set"):
+            continue
+        calls = [
+            call
+            for call in ast.walk(node)
+            if isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and call.func.attr == "list_confined_regular_files"
+        ]
+        assert len(calls) == 1, f"expected one enumeration call, found {len(calls)}"
+        return {kw.arg for kw in calls[0].keywords if kw.arg}
+    raise AssertionError("_confined_target_set not found in close_work.py")
 
 
 def _load_close_work():
@@ -694,9 +718,13 @@ def test_materialising_walk_carries_both_preflight_bounds(tmp_path: Path) -> Non
     helper = close_work.file_safety()
     source = CLOSE_WORK_SCRIPT_SOURCE
 
-    # The call site passes both bounds.
-    assert "max_files=MAX_TARGETS" in source
-    assert "max_entries=MAX_ENUMERATION_ENTRIES" in source
+    # The call site passes both bounds. Asserted over the parsed script, not as
+    # a substring: `source` is the whole 2300-line module, so a substring test
+    # stays green when the keyword is commented out — the commented line still
+    # contains the literal — and green again if the text merely moves into the
+    # adjacent prose. Only the call node answers the question.
+    bounds = _enumeration_call_keywords(source)
+    assert bounds == {"max_files", "max_entries"}, bounds
 
     # And the helper enforces the entry bound on a directory-only tree, which
     # the file bound alone cannot see.
@@ -806,6 +834,19 @@ def test_unverifiable_residue_is_reported_as_unverified(
     assert result.residue_state == "unverified"
     assert result.residual_evidence is None
 
+    # AC19 wants the exact result and mutation trace, not just the
+    # discriminator: without these a refactor reaching `unverified` through a
+    # different terminal would keep this case green. The refusal happens on the
+    # staged inspection, which is *before* the target unlink, so nothing was
+    # mutated and the original is still in place — the staging link is the only
+    # residue, and it survives because its own unlink was refused too.
+    staging = next(p for p in tmp_path.iterdir() if p.name.endswith(".pending"))
+    assert result.code == "rollback-failed"
+    assert result.mutated == ()
+    assert result.permission_granted is False
+    assert result.recovery_residue == (staging,)
+    assert target.read_bytes() == b"temporary\n"
+
 
 def test_post_unlink_parent_substitution_reports_no_effect(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -828,14 +869,20 @@ def test_post_unlink_parent_substitution_reports_no_effect(
         close_work, preview, "confirmation:post-unlink-parent-swap"
     )
     real_matches = close_work._directory_path_matches_fd
-    calls = 0
+    refused_after_unlink = False
 
     def fail_on_the_post_unlink_check(directory: Path, descriptor: int) -> bool:
-        nonlocal calls
-        calls += 1
-        # The pre-unlink checks must pass so the effect proceeds to the staged
-        # verification; only the post-unlink call refuses.
-        if calls >= 3:
+        # Keyed on a fact true ONLY after the original was unlinked, never on a
+        # call count. A count discriminator cannot fail: the fake refuses on
+        # whichever call happens to be third, so inserting or reordering a
+        # pre-unlink parent check silently relocates this case onto the
+        # pre-unlink sibling — whose result is identical in every asserted
+        # field — and the arm under test goes unguarded again.
+        nonlocal refused_after_unlink
+        original_gone = not target.exists()
+        staged = any(p.name.endswith(".pending") for p in tmp_path.iterdir())
+        if original_gone and staged:
+            refused_after_unlink = True
             return False
         return real_matches(directory, descriptor)
 
@@ -850,6 +897,11 @@ def test_post_unlink_parent_substitution_reports_no_effect(
         **_effect_kwargs(close_work, preview),
     )
 
+    # Proves this case landed on the post-unlink arm and not the pre-unlink
+    # sibling. Every assertion below holds for both arms, so without this the
+    # case can relocate and still pass.
+    assert refused_after_unlink, "never reached the post-unlink parent check"
+
     assert result.code == "confirmation-expired"
     assert result.mutated == ()
     assert result.recovery_residue == ()
@@ -858,6 +910,63 @@ def test_post_unlink_parent_substitution_reports_no_effect(
     # staging residue survives.
     assert target.read_bytes() == before
     assert not tuple(tmp_path.glob(".close-work-*.pending"))
+
+
+def test_an_extra_link_appearing_before_the_unlink_refuses_with_no_effect(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A third link on the staged inode, observed before the target unlink.
+
+    Reachable when a local writer links the confirmed inode between close-work's
+    own `os.link` and its staged verification: the link count is then 3 where 2
+    was bound, the fingerprint check raises, and rollback finds the staging link
+    intact with the original still present. The arm unlinks staging and reports
+    a bare `confirmation-expired`.
+
+    It had no driving case, and neither guard could see it — `confirmation-expired`
+    is asserted for other reasons, and the residue guard skips a call that passes
+    no residue. Nothing was mutated, so this is a zero-effect refusal and not one
+    of the two terminal mutated outcomes the doctrine's dichotomy covers.
+    """
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    before = target.read_bytes()
+    preview = _preview(close_work, tmp_path, target)
+    confirmation = _confirmation(close_work, preview, "confirmation:extra-link")
+
+    real_link = close_work.os.link
+    extra = tmp_path / "concurrent.hardlink"
+    linked = False
+
+    def link_then_add_a_third(*args, **kwargs):
+        # Only on close-work's own staging link, not on rollback's relink.
+        nonlocal linked
+        result = real_link(*args, **kwargs)
+        if not linked:
+            linked = True
+            real_link(str(target), str(extra))
+        return result
+
+    monkeypatch.setattr(close_work.os, "link", link_then_add_a_third)
+
+    result = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview,
+        confirmation=confirmation,
+        **_effect_kwargs(close_work, preview),
+    )
+
+    assert linked, "the staging link was never created, so the arm was not reached"
+    assert result.code == "confirmation-expired"
+    assert result.mutated == ()
+    assert result.permission_granted is False
+    assert result.recovery_residue == ()
+    assert result.residue_state is None
+    # Zero effect: the original is untouched and no staging residue survives.
+    assert target.read_bytes() == before
+    assert not tuple(tmp_path.glob(".close-work-*.pending"))
+    assert extra.read_bytes() == before
 
 
 def test_post_stage_identity_mismatch_rolls_back_before_unlink(
@@ -1947,6 +2056,115 @@ def test_post_confirmation_evidence_refusals_consume_the_confirmation(
     )
     assert replay.code == "confirmation-reused"
     assert target.read_bytes() == before
+
+
+def test_a_non_typed_argument_is_refused_on_the_destructive_entry_point(
+    tmp_path: Path,
+) -> None:
+    """AC19: the type guard at the deletion seam reports `confirmation-mismatch`.
+
+    Neither `confirmation-mismatch` emitter had an asserted trace before this
+    case. The roster coverage guard read the code as covered because
+    refusal-matrix.json names a row `"id"`/`"event"` after it while asserting
+    `confirmation-not-issued` — an input field, not an assertion — so the guard
+    was satisfied by the fixture's own naming. Both emitters are now driven:
+    this case covers the type guard, the next covers preview substitution.
+
+    This arm precedes the consumption bookkeeping, so it must not burn the
+    confirmation: a caller who passes the wrong type twice gets the same
+    refusal, not a `confirmation-reused` on the retry.
+    """
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    before = target.read_bytes()
+    preview = _preview(close_work, tmp_path, target)
+    confirmation = _confirmation(close_work, preview, "confirmation:typed-guard")
+
+    for bad in ({"preview": None}, {"confirmation": "not-a-confirmation"}):
+        kwargs = {
+            "repository_root": tmp_path,
+            "preview": preview,
+            "confirmation": confirmation,
+            **_effect_kwargs(close_work, preview),
+        }
+        kwargs.update(bad)
+        result = close_work.apply_confirmed_deletion(**kwargs)
+
+        assert result.code == "confirmation-mismatch", bad
+        assert result.mutated == (), bad
+        assert result.permission_granted is False, bad
+        assert result.recovery_residue == (), bad
+        assert result.residue_state is None, bad
+        assert target.read_bytes() == before, bad
+
+    # Pre-effect, so the approval is still live and refuses on its own merits.
+    assert (
+        close_work.apply_confirmed_deletion(
+            repository_root=tmp_path,
+            preview=preview,
+            confirmation=confirmation,
+            **_effect_kwargs(close_work, preview),
+        ).code
+        != "confirmation-reused"
+    )
+
+
+def test_a_confirmation_cannot_be_applied_against_a_substituted_preview(
+    tmp_path: Path,
+) -> None:
+    """AC19: an approval bound to preview A is refused against preview B.
+
+    This is the second `confirmation-mismatch` emitter and the one that carries
+    the security weight: `_ISSUED_CONFIRMATIONS` is keyed on `issue_digest`
+    alone, so the issued-object equality check passes when A's own confirmation
+    is replayed against a different preview. Only `_confirmation_matches`
+    catches it, on `binding_digest`.
+
+    The refusal sits after the single-use bookkeeping, so the approval is also
+    consumed — a substitution attempt must not leave a reusable approval.
+    """
+    close_work = _load_close_work()
+    first = tmp_path / "first.md"
+    second = tmp_path / "second.md"
+    first.write_text("temporary\n", encoding="utf-8")
+    second.write_text("also temporary\n", encoding="utf-8")
+    before = (first.read_bytes(), second.read_bytes())
+
+    preview_a = _preview(close_work, tmp_path, first)
+    preview_b = _preview(
+        close_work,
+        tmp_path,
+        second,
+        logical_locator="delivery-contract:other",
+    )
+    assert preview_a.binding_digest != preview_b.binding_digest
+
+    confirmation_a = _confirmation(close_work, preview_a, "confirmation:substituted")
+
+    result = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview_b,
+        confirmation=confirmation_a,
+        **_effect_kwargs(close_work, preview_b),
+    )
+
+    assert result.code == "confirmation-mismatch"
+    assert result.mutated == ()
+    assert result.permission_granted is False
+    assert result.recovery_residue == ()
+    assert result.residue_state is None
+    assert (first.read_bytes(), second.read_bytes()) == before
+
+    # Consumed: the substitution attempt spent the approval.
+    replay = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview_a,
+        confirmation=confirmation_a,
+        **_effect_kwargs(close_work, preview_a),
+    )
+    assert replay.code == "confirmation-reused"
+    assert (first.read_bytes(), second.read_bytes()) == before
 
 
 def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:

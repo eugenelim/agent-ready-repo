@@ -318,6 +318,66 @@ def test_engine_finishes_engine_first_contract_amendment_crash_window(
     assert len(cohort_state["amendment_history"]) == 1
 
 
+def test_engine_first_recovery_refuses_when_the_plan_no_longer_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The recovery branch may complete a pinned baseline, never derive a new one.
+
+    Reaching this branch means the two untracked scratch files diverged, so the
+    plan cannot be assumed to still be what was approved. The branch returns
+    before the main critical section, so nothing downstream re-checks the plan;
+    without its own check, `apply_contract_amendment` lands on the derive path
+    and recomputes `task_section_hashes` from whatever `plan.md` now holds —
+    laundering an edit to an already-completed task section into the baseline
+    that `validate_completed_task_sections` later ratifies.
+
+    The refusal must also be total: a rejected recovery leaves the cohort state
+    byte-identical, so no partial pin is left behind for a second attempt.
+    """
+    engine, _cohort, spec_dir, args, evidence = _integration_fixture(
+        tmp_path, monkeypatch
+    )
+    amendment_id = engine._contract_amendment_id(
+        "integration-run",
+        9,
+        "approval:scope-owner",
+        "follow-on:owned-record",
+        evidence,
+    )
+    engine_first = json.loads((spec_dir / "engine-state.json").read_text())
+    engine_first.update(
+        {
+            "state": "SPEC-PLAN-DRAFTING",
+            "last_event": "contract-amendment",
+            "last_event_context": {
+                "amendment_id": amendment_id,
+                "owner_authority_ref": "approval:scope-owner",
+                "reason_ref": "follow-on:owned-record",
+                "completed_task_evidence": evidence,
+            },
+            "transition_sequence": 9,
+        }
+    )
+    _write_json(spec_dir / "engine-state.json", engine_first)
+
+    # Substantive drift, not a checkbox or status change: canonical form
+    # normalises those two, so they are hash-neutral by design and would not
+    # exercise the check.
+    plan_path = spec_dir / "plan.md"
+    plan_path.write_text(
+        plan_path.read_text(encoding="utf-8") + "\nSmuggled plan content.\n",
+        encoding="utf-8",
+    )
+
+    cohort_before = (spec_dir / "state.json").read_bytes()
+    engine_before = (spec_dir / "engine-state.json").read_bytes()
+
+    assert engine.cmd_transition(args) == 1
+
+    assert (spec_dir / "state.json").read_bytes() == cohort_before
+    assert (spec_dir / "engine-state.json").read_bytes() == engine_before
+
+
 def test_public_transition_refusal_leaves_both_states_and_outbox_unchanged(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

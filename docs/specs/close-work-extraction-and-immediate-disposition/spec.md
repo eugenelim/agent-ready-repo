@@ -183,7 +183,6 @@ slice. *Always do* applies without asking; *Ask first* requires human sign-off;
 - Never let `workspace.toml` become a requirements, rationale, lifecycle-record,
   or cooling database; it remains a coordination index or pointer.
 
-
 ## Testing Strategy
 
 - **Durable-output and lifecycle doctrine: goal-based prompt/template checks.**

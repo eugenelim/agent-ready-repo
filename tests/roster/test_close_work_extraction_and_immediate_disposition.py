@@ -36,11 +36,24 @@ EXPECTED_RESOLVER_SHA256 = (
 EXPECTED_SCHEMA_SHA256 = (
     "df66ac4455316a9b9edf1664a9966415afaed2048ffa415a7db95bafce0c28d8"
 )
-# Re-pinned 2026-08-26: main's `feat(agentbundle): add portable Agent Plugin
-# projection` widened `list_confined_regular_files` with keyword-only
-# `max_files`/`max_depth` traversal bounds. The change is backward compatible
-# (both default to None) and close-work's single call site passes positionally,
-# so the pack's byte-identical duplicate was re-synced rather than diverged.
+# This digest is the only guard that the pack's projected duplicate of the
+# blessed helper is byte-identical to the canonical one, so its provenance is an
+# audit trail: state what moved the bytes, and nothing else.
+#
+# Two widenings have moved it, both keyword-only and both defaulting to None, so
+# each was backward compatible and the duplicate was re-synced rather than
+# diverged:
+#
+#   1. main's `feat(agentbundle): add portable Agent Plugin projection` added
+#      `max_files` and `max_depth`.
+#   2. RFC-0096 Wave 4's `fix(agentbundle,core): close the enumeration bound
+#      asymmetry` added `max_entries`, because `max_files` alone leaves a
+#      directory-only tree unbounded between close-work's preflight and its
+#      materialising walk.
+#
+# close-work's single call site now passes `max_files` and `max_entries` by
+# keyword (`_confined_target_set` in close_work.py), asserted structurally by
+# `test_materialising_walk_carries_both_preflight_bounds` in the pack suite.
 EXPECTED_FILE_SAFETY_SHA256 = (
     "5a6cb2c8f13850556cec17f94d312ab85f481fac4739f65d1619d16a2cfea02c"
 )
@@ -534,6 +547,43 @@ def _result_codes(source: str) -> set[str]:
     return codes
 
 
+# The fixture keys the drivers actually assert a result against. Measured from
+# the drivers, not guessed: `expected_phase`/`expected_blocker` (lifecycle),
+# `expected` and `blocker` (disposition and context), `expected_code`
+# (refusal). Every other key in these matrices is *input* — `id` is a failure
+# label and `event` selects a driver behaviour — so a code named only there is
+# not asserted by anything.
+_ASSERTION_KEYS = (
+    "expected",
+    "expected_code",
+    "expected_phase",
+    "expected_blocker",
+    "blocker",
+)
+
+
+def _json_asserted_codes(text: str) -> set[str]:
+    """Return code-shaped values a fixture asserts, ignoring input fields."""
+    codes: set[str] = set()
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in _ASSERTION_KEYS and isinstance(value, str):
+                    if re.fullmatch(r"[a-z][a-z0-9-]{3,}", value):
+                        codes.add(value)
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    try:
+        walk(json.loads(text))
+    except json.JSONDecodeError:  # pragma: no cover - corpus is valid JSON
+        return codes
+    return codes
+
+
 def test_committed_matrices_are_byte_identical_on_a_second_run() -> None:
     """AC19: two runs over the committed matrices produce equal results.
 
@@ -598,12 +648,18 @@ def test_every_result_code_has_an_asserted_trace() -> None:
         ROOT / "tests/roster",
         ROOT / "packs/core/.apm/skills/close-work/evals",
     ]
-    # Two weaknesses this loop must not have. (1) This module is inside the
+    # Three weaknesses this loop must not have. (1) This module is inside the
     # searched tree and names live codes in its own constants and comments, so
     # including its text would let the guard satisfy itself. It is excluded
     # entirely rather than by stripping one declaration. (2) A whole-file
     # substring test is satisfied by a bare comment, so membership is decided by
     # string *constants* recovered from the parsed source, never by prose.
+    # (3) A fixture row's *input* fields are not evidence that anything asserts
+    # the code they happen to spell. A sweep of every quoted token counted
+    # `confirmation-mismatch` as covered purely because refusal-matrix.json
+    # names a row `"id"`/`"event"` after it while asserting a different
+    # `expected_code`, so both of its emitters shipped undriven. JSON membership
+    # is therefore read only from the keys the drivers actually assert on.
     asserted: set[str] = set()
     scanned = 0
     for base in searched:
@@ -615,7 +671,7 @@ def test_every_result_code_has_an_asserted_trace() -> None:
             scanned += 1
             text = path.read_text(encoding="utf-8", errors="replace")
             if path.suffix == ".json":
-                asserted |= set(re.findall(r'"([a-z][a-z0-9-]{3,})"', text))
+                asserted |= _json_asserted_codes(text)
                 continue
             try:
                 parsed = ast.parse(text)
@@ -626,9 +682,16 @@ def test_every_result_code_has_an_asserted_trace() -> None:
                     asserted.add(node.value)
     assert scanned > 40, f"corpus looks broken: scanned {scanned} files"
 
-    # Positive control: prove the two failure modes above are actually closed.
-    # Both of these appear in THIS module (a constant and a comment) and must not
-    # be counted from it.
+    # Two checks with different jobs; only the second is a control.
+    #
+    # The loop proves each exempt or terminal code is still *emitted* by the
+    # module. That is a staleness check on this file's own constants — it would
+    # pass whatever the corpus contained — not a control.
+    #
+    # The disjointness assertion after it is the actual positive control, and it
+    # covers `_UNREACHABLE_BY_SUBSUMPTION` only. `_TERMINAL_MUTATED_CODES` cannot
+    # serve as controls: they are legitimately asserted by the pack suite, so
+    # their presence in `asserted` proves nothing about self-seeding.
     for seeded in _UNREACHABLE_BY_SUBSUMPTION | _TERMINAL_MUTATED_CODES:
         assert seeded in _result_codes(
             CLOSE_WORK_PATH.read_text(encoding="utf-8")
@@ -686,11 +749,12 @@ def test_every_result_reporting_residue_names_its_identity() -> None:
             continue
         keywords = {kw.arg: kw.value for kw in node.keywords}
         # A call reports residue when it passes recovery_residue (4th
-        # positional or keyword) or residual_evidence (5th or keyword).
+        # positional or keyword) or residual_evidence, which this module only
+        # ever passes by keyword. A `len(node.args) >= 5` term would be dead:
+        # it is strictly subsumed by the `>= 4` test below.
         reports_residue = (
             len(node.args) >= 4
             or "recovery_residue" in keywords
-            or len(node.args) >= 5
             or "residual_evidence" in keywords
         )
         if not reports_residue:

@@ -122,8 +122,13 @@ fingerprint, device, inode, size, and link count immediately before any rollback
 effect. A surviving added link on the confirmed inode produces
 `residual-hardlink`; any other rollback identity/content corruption or operation
 failure produces `rollback-failed`. Both are terminal mutated outcomes: report
-bounded inode evidence, any `.pending` recovery residue, and — when the original was
-already unlinked — the affected original path. A rollback that refuses before that
+bounded inode evidence when a descriptor established the residue's identity, any
+`.pending` recovery residue whose path still resolves under the validated parent
+handle, and — when the original was
+already unlinked — the affected original path. Report no inode evidence when
+identity could not be established, and no residue path when a parent-directory
+substitution was proven: an invented locator aims recovery at unknown content.
+A rollback that refuses before that
 unlink has no original path to report, and must not invent one. Every such outcome also names the residue's
 identity, because recovery is only safe when the residue is known to be the
 confirmed inode: `identity-confirmed` when a descriptor proved it is,
@@ -154,7 +159,10 @@ coordination locator; drift refuses restoration.
 
 Keep a completion receipt only while a live dependency cites it, and only on an
 established compatible surface. Its complete shape is `{delivery_id, outcome,
-completion_event, evidence_ref}`. Missing storage retains the delivery record by
+completion_event, evidence_ref}`. Every field is a locator or a short outcome
+statement: the receipt carries no requirements, rationale, source payload,
+artifact content, or personal identity. Reference an evidence locator, never a
+person. Missing storage retains the delivery record by
 exception. Writing a receipt and removing the last receipt are separate, freshly
 confirmed mutations; the latter is bound to the current receipt fingerprint.
 

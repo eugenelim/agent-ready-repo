@@ -3606,7 +3606,13 @@ _TRANSITION_STEPS = [
     ("schema_version check", "unsupported schema_version"),
     ("run-ID preflight", "_run_id_preflight(spec_dir, run_id)"),
     ("transition-table validation", "illegal transition"),
-    ("CODE schedule pre-check", "_schedule_check_current(spec_dir)"),
+    # Anchored on Step 1b's own condition, not on the `_schedule_check_current`
+    # call, because that call now has two sites: this one and the pre-Step-1
+    # contract-amendment recovery branch, which verifies the plan against the
+    # scheduled baseline before it may derive new completed-section pins. A
+    # `find` on the shared callee would report the recovery branch's position
+    # and make this ordering assertion fail for a step that had not moved.
+    ("CODE schedule pre-check", "and not cohort_amendment_already_applied"),
     ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
     # The DECISION and the FINALIZATION are two steps, and they were previously one
     # anchor: the label said "state decision" while the anchor was the atomic write,
