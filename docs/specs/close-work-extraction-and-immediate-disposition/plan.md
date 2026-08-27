@@ -1,7 +1,7 @@
 # Plan: Close-work extraction and immediate disposition
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** `ARCHITECTURE.md`, `docs/CONVENTIONS.md`, and
   `docs/architecture/work-intake-and-artifact-routing.md` own workflow and
   routing boundaries; `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`

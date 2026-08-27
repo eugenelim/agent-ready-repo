@@ -1,6 +1,6 @@
 # Spec: Close-work extraction and immediate disposition
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096; `semantic-surface-resolver` (Shipped); `shaping-intake-handoff` (Shipped); `architecture-decision-surface-portability` (Shipped)
@@ -487,7 +487,7 @@ out of this wave's slice.
   residue, all authority combinations, confirmation decline/mismatch/reuse, unsafe
   paths, and fingerprint drift; every case asserts the exact result and mutation trace,
   and two runs are byte-identical.
-- [ ] **AC20 — Portable doctrine, release, and installed surfaces agree.** Core
+- [x] **AC20 — Portable doctrine, release, and installed surfaces agree.** Core
   pack/plugin versions and evals move under repository rules; public README/JOURNEY,
   close-work how-to/reference, current architecture, and release history state the
   same ownership and safety contract; every changed boundary-crossing skill declares
