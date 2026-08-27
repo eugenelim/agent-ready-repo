@@ -1041,3 +1041,197 @@ def test_near_miss_heading_is_warned_not_silently_accepted() -> None:
         rc, out, err = run_lint(root, base_ref="HEAD")
         assert rc == 0, f"a near miss must warn, not fail: {out}\n{err}"
         assert "`## Acceptance Criteria`" in err, err
+
+
+def test_a_commented_out_ac_section_is_a_hard_error() -> None:
+    """The one shape the body readers get wrong, turned into a hard error.
+
+    `acceptance_criteria_section_present` and the collector read raw text, so a
+    commented-out heading counts as a section and its checkboxes are harvested:
+    (vi) satisfied and (ii) checking criteria the author disabled. Rather than
+    teach both readers to parse comments -- the change that failed four review
+    rounds -- the shape is rejected, which makes their disagreement unreachable
+    in a passing state.
+    """
+    lint = load_linter_module()
+    spec = (
+        "# Spec: s\n\n- **Status:** Shipped\n\n"
+        "<!--\n## Acceptance Criteria\n\n- [ ] disabled\n-->\n"
+    )
+    found = lint.commented_out_ac_heading(spec)
+    assert found is not None and found[0] == 6, found
+
+
+def test_a_commented_draft_beside_a_live_section_is_allowed() -> None:
+    """Only when EVERY heading is commented out. A retained draft beside a live
+    section is the author's business, and flagging it would push authors to
+    delete history to satisfy a linter."""
+    lint = load_linter_module()
+    spec = (
+        "# Spec: s\n\n## Acceptance Criteria\n\n- [x] real\n\n"
+        "<!--\n## Acceptance Criteria\n- [ ] superseded\n-->\n"
+    )
+    assert lint.commented_out_ac_heading(spec) is None
+
+
+def test_backticked_comment_syntax_does_not_trigger_the_rule() -> None:
+    """The false-positive that makes a code-span-blind rule unusable.
+
+    `docs/specs/digital-experience-contract/spec.md` documents a template whose
+    fields carry comment-syntax annotations, writing an opener and a closer in
+    backticks 23 lines apart. A reader with no notion of code spans pairs those
+    two *mentions* into a span covering that spec's real heading and all 17 of
+    its criteria, and would red-line a perfectly good spec.
+    """
+    lint = load_linter_module()
+    spec = (
+        "# Spec: s\n\n- **Status:** Shipped\n\n"
+        "- A field marked with a `<!-- Required:` annotation.\n\n"
+        "## Acceptance Criteria\n\n- [x] real\n\n"
+        "- Written as `<!-- Required: <tier>+ -->` on the next line.\n"
+    )
+    assert lint.commented_out_ac_heading(spec) is None
+    assert len(lint.acceptance_criteria_lines(spec)) == 1
+
+
+def test_an_unterminated_comment_opener_does_not_trigger_the_rule() -> None:
+    """An opener with no closer is literal text. Treating it as a comment
+    running to end of document would swallow a real section and make invariant
+    (ii) vacuous on that spec."""
+    lint = load_linter_module()
+    spec = (
+        "# Spec: s\n\n<!-- stray opener, never closed\n\n"
+        "## Acceptance Criteria\n\n- [x] real\n"
+    )
+    assert lint.commented_out_ac_heading(spec) is None
+
+
+def test_code_span_scan_is_linear_on_a_long_backtick_run() -> None:
+    """A regex formulation of this scan backtracked cubically -- a 12 KB
+    backtick line took 106 s end-to-end, against a file-size cap admitting 8 MB
+    of untrusted repository content."""
+    import time
+
+    lint = load_linter_module()
+    start = time.monotonic()
+    lint._code_span_ranges("`" * 12000)
+    assert time.monotonic() - start < 1.0
+
+
+@pytest.mark.parametrize(
+    "line,expect",
+    [
+        ("  - **Acceptance Criteria:** none — r", "column 0"),
+        ("* **Acceptance Criteria:** none — r", "`-` bullet"),
+        ("- **Acceptance Criteria**: none — r", "colon belongs inside"),
+        ("-  **Acceptance Criteria:** none — r", "exactly one space"),
+        ("- **Acceptance criteria:** none — r", "exact casing"),
+        ("- **Acceptance Criteria:** none - r", "em dash"),
+    ],
+    ids=["indented", "asterisk", "colon-outside", "double-space",
+         "casing", "hyphen"],
+)
+def test_every_attempted_opt_out_shape_is_diagnosed(line: str, expect: str) -> None:
+    """A visibly attempted opt-out must never pass in silence.
+
+    The near-miss pattern anchored on a literal `^- `, so four of these six
+    escaped BOTH readers: the spec passed clean with a malformed marker on the
+    page, and the author got no signal at all. Widening what is DIAGNOSED is not
+    widening what is ACCEPTED -- the accepting pattern stays exact.
+    """
+    lint = load_linter_module()
+    assert lint.acceptance_criteria_opt_out(line + "\n") is None, line
+    found = lint.acceptance_criteria_opt_out_near_miss(line + "\n")
+    assert found is not None, f"{line!r} escaped both readers"
+    assert expect in found[1], found
+
+
+def test_the_canonical_marker_is_still_accepted() -> None:
+    """The control for the case above: widening the diagnostic must not turn a
+    correct marker into a near miss."""
+    lint = load_linter_module()
+    line = "- **Acceptance Criteria:** none — a stated reason\n"
+    assert lint.acceptance_criteria_opt_out(line) is not None
+    assert lint.acceptance_criteria_opt_out_near_miss(line) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["tracked in the linked issue", "n/a", "see RFC-0001"],
+    ids=["prose", "n-a", "cross-reference"],
+)
+def test_a_prose_value_is_not_an_attempted_opt_out(value: str) -> None:
+    """Claiming prose in this field would hard-fail a spec that has a perfectly
+    good Acceptance-Criteria section -- the regression that made gating the
+    near-miss on the diff trigger look necessary."""
+    lint = load_linter_module()
+    line = f"- **Acceptance Criteria:** {value}\n"
+    assert lint.acceptance_criteria_opt_out_near_miss(line) is None
+
+
+def test_an_unreadable_spec_is_reported_not_silently_skipped() -> None:
+    """A spec the linter cannot read must not be reported as clean.
+
+    `_read` returns None for an unreadable file or one over the size cap, and
+    skipping quietly is a vacuous pass over an entire file -- the failure mode
+    every invariant here exists to prevent, applied to the whole document.
+    """
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root can read a mode-000 file")
+    if sys.platform == "win32":
+        pytest.skip("POSIX mode bits")
+    lint = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        # Resolve: `check()` is called directly here rather than through the CLI,
+        # so it does not get `_validated_root`'s canonicalisation. On macOS
+        # mkdtemp returns /var/... while resolve() gives /private/var/..., and
+        # `_confined_path`'s relative_to() would then drop every spec silently.
+        root = Path(tmp).resolve()
+        _write_spec_with_header(
+            root, "a", "Shipped", "- [x] done\n", "## Acceptance Criteria\n\n"
+        )
+        git_init_commit(root)
+        target = root / "docs" / "specs" / "a" / "spec.md"
+        target.chmod(0o000)
+        try:
+            _hard, warn = lint.check(root, "HEAD")
+        finally:
+            target.chmod(0o644)
+    assert any("could not be read" in w for w in warn), warn
+
+
+def test_an_unresolvable_base_ref_skips_instead_of_red_lining() -> None:
+    """A base ref was taken on trust; verifying it is the whole fix.
+
+    When an explicit `--base-ref` did not resolve, `base_spec_text` returned
+    None for EVERY spec, which the diff-triggered invariants read as "new spec".
+    A typo'd or unfetched ref therefore red-lined a clean corpus and told each
+    author to add an opt-out marker for a section that was there all along --
+    while the module docstring promised the opposite. A CI job with an
+    unfetched ref got a confident, wrong failure.
+    """
+    lint = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        _write_spec_with_header(root, "sectionless", "Shipped", "", "")
+        git_init_commit(root)
+        good_hard, _ = lint.check(root, "HEAD")
+        bad_hard, bad_warn = lint.check(root, "origin/definitely-not-a-ref")
+    assert good_hard == [], good_hard
+    assert bad_hard == [], f"an unresolvable ref must not red-line: {bad_hard}"
+    assert any("does not resolve" in w for w in bad_warn), bad_warn
+    assert any("invariant (vi)" in w for w in bad_warn), bad_warn
+
+
+def test_a_resolvable_base_ref_still_drives_the_diff_triggers() -> None:
+    """The control: verification must not disable the invariants it guards."""
+    lint = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        _write_spec_with_header(
+            root, "old", "Draft", "- [x] a\n", "## Acceptance Criteria\n\n"
+        )
+        git_init_commit(root)
+        _write_spec_with_header(root, "newborn", "Shipped", "", "")
+        hard, _warn = lint.check(root, "HEAD")
+    assert any("invariant (vi)" in v for v in hard), hard

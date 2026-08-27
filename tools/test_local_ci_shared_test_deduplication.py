@@ -41,8 +41,8 @@ SHARED_TESTS = (
 
 CORE_COLLECTIONS = {
     SHARED_TESTS[0]: (
-        52,
-        "df8ff46dbc79af38d2b82bd35366534c9e5f5af6547d0a08d470b4b35b17a6dd",
+        70,
+        "b4e63d34dfeafd452e023f4466ab2e0b2ad5dd117061b068d10cd711a0341879",
     ),
     SHARED_TESTS[1]: (
         15,
@@ -363,6 +363,11 @@ MAKE_BASELINE_DIGESTS = {
 EXPECTED_SKIP_XFAIL_CALLS = {
     SHARED_TESTS[0]: {
         "pytest.skip(f'{name}: symlink creation unavailable ({exc})')": 1,
+        # Guards on the unreadable-spec case: POSIX mode bits do not stop a
+        # read for root, and do not exist on Windows. The test asserts a spec
+        # the linter cannot read is warned about rather than reported clean.
+        "pytest.skip('root can read a mode-000 file')": 1,
+        "pytest.skip('POSIX mode bits')": 1,
     },
     SHARED_TESTS[1]: {},
     SHARED_TESTS[2]: {

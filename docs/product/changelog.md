@@ -64,6 +64,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An Acceptance-Criteria section that is commented out is now a hard error
+  rather than a section, so a disabled section can no longer satisfy the
+  presence check while its checkboxes are read as real criteria.
+- Every attempted opt-out marker is now diagnosed with the specific fix needed.
+  An indented marker, a `*` bullet, a colon outside the bold, or a double space
+  after the bullet previously escaped both readers, so a spec passed clean with
+  a malformed marker on the page and the author got no signal.
+- An explicit `--base-ref` that does not resolve now warns and skips the
+  diff-triggered invariants, as the documented contract always said. It
+  previously made every spec look new, red-lining a clean corpus and telling
+  each author to add an opt-out for a section that was there all along.
+- A spec that cannot be read, or is over the size cap, is now reported instead
+  of skipped in silence — it was previously counted as clean.
 - The Acceptance-Criteria heading now has one supported spelling,
   `## Acceptance Criteria`. A heading differing only in case, level, or
   indentation no longer satisfies invariant (vi) and is reported with the exact

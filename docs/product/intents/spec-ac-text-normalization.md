@@ -1,73 +1,69 @@
-# Enforce one spec format tightly, instead of parsing every variant
+# Residual Acceptance-Criteria reader divergence
 
 - **Status:** Draft
 - **Level:** feature
 
 ## Outcome
 
-`docs/specs/*/spec.md` has one supported shape and the linter enforces it, so
-the tooling never has to decide what a variant means. Where a spec can still
-express something the readers disagree about, that shape is a lint error rather
-than a parsing problem.
+A decision on whether the remaining disagreement between the four
+Acceptance-Criteria readers is worth closing, now that its one reachable shape
+is a hard error. Either close it deliberately, or record that the guard is the
+answer and stop revisiting it.
 
 ## Opportunity
 
-The format half of this is already done and it worked: 6 drifted specs were
-normalized, the corpus is 405 canonical / 0 variants, and the heading matcher is
-now exact with a near-miss warning, so drift cannot reseed silently. What
-remains is smaller than it first looked, and the measurements say so.
+Enforcement did the work that was worth doing, and this is what it did not
+reach.
 
-**Comments and code spans cannot be removed, so "ban the constructs" is not the
-route.** Measured across 407 specs: 251 contain a real HTML comment, 245 contain
-one in the metadata preamble, and all 407 use inline code spans. The new-spec
-template itself emits 16 comments, including on the `- **Status:**` line. Both
-constructs are load-bearing spec detail.
+Shipped in PR #1139: one supported heading (`## Acceptance Criteria`, exact,
+with a near-miss warning naming the exact form); six drifted specs normalized,
+verified meaning-preserving; a commented-out Acceptance-Criteria section is a
+hard error; every attempted opt-out shape is diagnosed rather than silently
+escaping; an unresolvable `--base-ref` warns and skips instead of red-lining a
+clean corpus; and a spec the linter cannot read is warned about rather than
+reported clean.
 
-**The readers are not accidentally inconsistent; they have different jobs.**
-`acceptance_criteria_opt_out` scans only the metadata preamble, where 245 specs
-carry template comments, so it *must* strip them — a commented-out marker must
-never count. The section detector and criterion collector scan the body, where
-**0 specs** have a commented-out Acceptance-Criteria section, so stripping buys
-them nothing and costs correctness: the naive `<!--.*?-->` pattern has no notion
-of code spans, and `docs/specs/digital-experience-contract/spec.md` pairs two
-backticked *mentions* at `:163` and `:186` into a false span over its real
-heading at `:177`.
+What remains is only this: the readers still hold different notions of which
+text counts. `acceptance_criteria_opt_out` and its near-miss sibling strip HTML
+comments — they must, because 245 of 407 specs carry template comments in the
+metadata preamble they scan. The section detector and criterion collector do
+not, because no spec needs it. The shipped guard makes the one shape where that
+disagreement is reachable — a commented-out section — a hard error, so the
+divergence cannot produce a passing spec. It is bounded, not resolved.
 
-So the residual risk is one shape — an Acceptance-Criteria section that is
-commented out or fenced — and the cheap answer is to make that shape a lint
-error, not to teach four readers CommonMark. Four review rounds of the parsing
-approach produced a cubically-backtracking regex, a Θ(L^1.5) replacement,
-fence state read from raw text, and comment-blind fence pairing; each passed its
-own verification. Enforcement is the smaller and more durable lever.
+The question is whether bounded is enough. Four review rounds of *resolving* it
+produced, in sequence, a cubically backtracking code-span regex (12 KB line →
+106 s), a Θ(L^1.5) replacement (1 MB → 15.0 s), fence state read from raw text
+that let a commented-out fence swallow a live section, and comment-blind fence
+pairing that made an example heading count as a real section. Each passed its
+own verification before review caught it.
 
 ## Assumptions
 
-- Enforcement covers the format-shaped residue. The opt-out marker regex anchors
-  on a literal `^- `, so an indented marker, a `*` bullet, or a colon outside the
-  bold escapes both readers and passes clean; pinning the exact marker line
-  closes that by construction rather than by widening the matcher.
-- Enforcement does NOT cover two robustness defects, which are unrelated to
-  format: an explicit `--base-ref` is never validated, so an unresolvable one
-  makes every spec look new and converts grandfathering into a repo-wide hard
-  failure with none of the documented warnings; and a spec that is unreadable or
-  over the size cap is skipped silently, so the invariant passes vacuously on it.
-  Both need fixing on their own terms.
-- Enforcement does NOT cover `tools/build-site.py`, which strips HTML comments
-  with the same code-span-blind pattern over changelog prose rather than spec
-  text. That one is not hypothetical: it already fired, pairing a backticked
-  opener with a closer 5,083 lines later and leaving
-  `parse_changelog_releases` with 1 release instead of ~100. Different module,
-  different file, different reader — it needs its own change and is recorded
-  here only so it is not lost.
-- Our own specs are ours to clean up; adopter specs are not. Any new enforcement
-  should warn adopters toward the supported shape rather than red-lining a
-  corpus they did not write, and must never silently stop checking a spec —
-  measured this session, a strict collector took an adopter shipping an unmet
-  criterion from a hard invariant (ii) violation to exit 0.
-- Complexity claims in this area need at least three doublings. A withdrawn fix
-  was declared correct on a single benchmark point, which moved a constant and
-  hid an exponent.
-- Full history, reproducing fixtures, and measurements are in PR #1139.
+- Banning the constructs is not available. 251 of 407 specs carry a real HTML
+  comment, 245 of those in the metadata preamble, all 407 use inline code spans,
+  and the new-spec template emits 16 comments itself — including on the
+  `- **Status:**` line. Both are load-bearing spec detail.
+- The readers having different jobs is not itself the bug. The preamble reader
+  must strip comments; the body readers gain nothing by it and lose correctness,
+  because the naive `<!--.*?-->` pattern has no notion of code spans and
+  `docs/specs/digital-experience-contract/spec.md` pairs two backticked
+  *mentions* into a false span over its real heading and all 17 criteria.
+- If this is picked up, it is a parsing decision, not a regex tweak: a real
+  Markdown parser (a dependency decision for a script that projects into adopter
+  trees) versus narrowing what the readers must understand so the question does
+  not arise.
+- Any complexity claim here needs at least three doublings. A withdrawn fix was
+  declared correct on a single benchmark point, which moved a constant and hid
+  an exponent.
+- Every precedence rule needs a test that dies under mutation. Three rules in a
+  withdrawn attempt could each be neutered with the whole suite green, including
+  the one whose docstring cited a live spec.
+- `tools/build-site.py` carries the same code-span blindness over changelog
+  prose. It is tracked separately as
+  `build-site-comment-strip-ignores-code-spans` — different module, different
+  file, and it has already fired.
+- Reproducing fixtures and measurements are in PR #1139's review history.
 
 ## Source
 

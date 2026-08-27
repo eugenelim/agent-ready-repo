@@ -1093,16 +1093,38 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # Consolidates the PR #1139 follow-on findings. Direction is enforcement, not
-  # parsing. The heading half shipped: 6 specs normalized, corpus 405/0, matcher
-  # exact with a near-miss warning. Comments and code spans CANNOT be banned --
-  # 251 of 407 specs carry a real comment, 245 in the preamble, all 407 use code
-  # spans, and the template emits 16 comments itself -- so the residual risk is
-  # one shape (a commented-out or fenced AC section, 0 specs today) and is a lint
-  # rule, not a CommonMark parser. Four rounds of the parser route are the
-  # evidence. Two robustness defects and build-site's stripper are NOT covered.
+  # tools/build-site.py strips HTML comments with a bare `<!--.*?-->` and, per
+  # its own comment at :1609, resolves fenced code first -- but has no notion of
+  # INLINE code spans. Not latent: it fired on PR #1139. Changelog prose that
+  # mentioned comment syntax inside backticks opened a span that paired with a
+  # closer 5,083 lines later, leaving parse_changelog_releases with 1 release
+  # instead of ~100 and reddening the launch-window test. Split out of the spec
+  # intent deliberately -- it is a different module reading a different file, and
+  # nobody picking up "enforce the spec format" would think to fix a changelog
+  # parser.
+  # Fix: give build-site's comment stripper inline-code-span precedence --
+  #   lint-spec-status.py's `_code_span_ranges` is a linear, working reference.
   # Unblocks when: picked up -- no dependency.
-  {path = "docs/product/intents/spec-ac-text-normalization.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py", revision = "sha256-bytes-v1:45492bdceb9a6ddb3d3fa7ec03c0aeacd9d27d7d970105f83e14905c511c2c9c"}, summary = "Enforce the one supported spec format tightly rather than parsing every variant; the heading half is done, what remains is the marker shape, two robustness defects, and build-site's separate comment stripper", needs = []},
+  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "build-site.py's HTML-comment stripper has no notion of inline code spans, so backticked comment syntax in changelog prose can open a real comment span and swallow thousands of lines"},
+
+  # What is LEFT of the spec-format work after PR #1139. The heading half, the
+  # commented-out-section rule, the marker-shape diagnostics, the base-ref
+  # verification, and the unreadable-spec warning all shipped there. This entry
+  # is the residue that enforcement does NOT reach: the four Acceptance-Criteria
+  # readers still hold different notions of which text counts, and the shipped
+  # guard makes the one dangerous shape a hard error rather than reconciling
+  # them. Four review rounds of reconciling them produced a cubically
+  # backtracking regex, a Theta(L^1.5) replacement, fence state read from raw
+  # text, and comment-blind fence pairing -- each passing its own verification.
+  # Comments and code spans cannot simply be banned: 251 of 407 specs carry a
+  # real comment, 245 in the preamble, all 407 use code spans, and the template
+  # emits 16 comments itself.
+  # Fix: decide whether the remaining divergence is worth closing at all now
+  #   that its one reachable shape is gated. If yes, it is a parsing decision
+  #   (real Markdown parser vs. narrowing what the readers must understand),
+  #   not a regex tweak.
+  # Unblocks when: picked up -- no dependency.
+  {path = "docs/product/intents/spec-ac-text-normalization.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py", revision = "sha256-bytes-v1:45492bdceb9a6ddb3d3fa7ec03c0aeacd9d27d7d970105f83e14905c511c2c9c"}, summary = "Residual Acceptance-Criteria reader divergence after the format enforcement shipped; its one reachable shape is now a hard error, so what remains is a parsing decision rather than a defect", needs = []},
 
 
   # Unblocks when: the allowlist gains its first entry.

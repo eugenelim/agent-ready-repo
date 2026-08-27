@@ -63,6 +63,7 @@ Usage: lint-spec-status.py [--root DIR] [--base-ref REF]
 from __future__ import annotations
 
 import argparse
+import bisect
 import re
 import subprocess
 import sys
@@ -152,16 +153,125 @@ _AC_HEADING_NEAR_MISS_RE = re.compile(
 # invariant (vi) exists to close. Over-reading is the safe direction here;
 # under-reading is how a gate goes quiet.
 _AC_COLLECTOR_HEADING_RE = _AC_HEADING_NEAR_MISS_RE
+
+
+def _code_span_ranges(line: str) -> list[tuple[int, int]]:
+    """Inline code spans on one line, by a linear scan over backtick runs.
+
+    A run of N backticks opens; the next run of exactly N closes. Deliberately
+    not a regex: the obvious ``(`+)(?:(?!\1).)*?\1`` backtracks cubically on a
+    long backtick run -- measured, a 12 KB backtick line took 106 s, against a
+    file-size cap that admits 8 MB of untrusted repository content.
+    """
+    runs: list[tuple[int, int]] = []
+    index, length = 0, len(line)
+    while index < length:
+        if line[index] == "`":
+            end = index
+            while end < length and line[end] == "`":
+                end += 1
+            runs.append((index, end - index))
+            index = end
+        else:
+            index += 1
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    while cursor < len(runs):
+        open_at, open_len = runs[cursor]
+        probe = cursor + 1
+        while probe < len(runs) and runs[probe][1] != open_len:
+            probe += 1
+        if probe < len(runs):
+            spans.append((open_at, runs[probe][0] + runs[probe][1]))
+            cursor = probe + 1
+        else:
+            cursor += 1
+    return spans
+
+
+def commented_out_ac_heading(spec_text: str) -> tuple[int, str] | None:
+    """Return an Acceptance-Criteria heading that is inside an HTML comment.
+
+    Only when the spec has NO heading outside one -- a commented-out draft
+    beside a live section is the author's business.
+
+    This is a DETECTOR, not a change to what the readers read. The readers
+    deliberately keep their current notions: `acceptance_criteria_opt_out`
+    strips comments because 245 of 407 specs carry template comments in the
+    preamble, while the body readers do not because no spec needs it. Making
+    the body readers comment-aware is the change that failed four review
+    rounds. Turning the one dangerous shape into a hard error instead makes
+    their disagreement unreachable in a passing state, which is the same
+    guarantee for a fraction of the machinery.
+
+    An opener inside an inline code span does not open a comment. That is not
+    hypothetical: `docs/specs/digital-experience-contract/spec.md` writes
+    ``<!-- Required:`` and a matching closer in backticks 23 lines apart, and a
+    code-span-blind reader pairs those two *mentions* into a false span over
+    that spec's real heading and all 17 of its criteria.
+    """
+    lines = spec_text.splitlines()
+    headings = {n for n, line in _unfenced_lines(spec_text)
+                if _AC_COLLECTOR_HEADING_RE.match(line)}
+    if not headings:
+        return None
+
+    offsets: list[int] = []
+    position = 0
+    for raw in spec_text.splitlines(keepends=True):
+        offsets.append(position)
+        position += len(raw)
+
+    masked: set[int] = set()
+    for index, line in enumerate(lines):
+        for span_start, span_end in _code_span_ranges(line):
+            masked.update(range(offsets[index] + span_start,
+                                offsets[index] + span_end))
+
+    commented: set[int] = set()
+    cursor = 0
+    while True:
+        opener = spec_text.find("<!--", cursor)
+        if opener < 0:
+            break
+        if opener in masked:
+            cursor = opener + 4
+            continue
+        closer = spec_text.find("-->", opener + 4)
+        if closer < 0:
+            break  # an unterminated opener is literal text, not a comment
+        first = bisect.bisect_right(offsets, opener)
+        last = bisect.bisect_right(offsets, closer + 2)
+        commented.update(n for n in headings if first <= n <= last)
+        cursor = closer + 3
+
+    # Only when EVERY heading is commented out. A commented draft beside a live
+    # section is the author's business, not a defect.
+    if commented and commented == headings:
+        lineno = min(commented)
+        return lineno, lines[lineno - 1].strip()
+    return None
 # Explicit opt-out for a spec that intentionally has no AC section. The reason
 # group is optional so the parser can distinguish a missing marker (None) from
 # a present but reasonless marker (an empty string).
+
+
 _AC_OPT_OUT_HEADER_RE = re.compile(
     r"^- \*\*Acceptance Criteria:\*\*\s*none(?:[ \t]+—[ \t]*(.*?))?[ \t]*$"
 )
 # Case-insensitive candidate used only to produce a precise diagnostic when an
 # author intended the opt-out but missed its exact casing or separator syntax.
+# Deliberately WIDER than `_AC_OPT_OUT_HEADER_RE`, which stays exact. This one
+# only decides "did the author try to write an opt-out", so it must recognise
+# the attempt however it was spelled -- otherwise a visibly attempted marker
+# escapes both readers and the spec passes clean with a malformed opt-out on the
+# page. Measured before this widened: four of five plausible shapes escaped --
+# an indented marker, a `*` bullet, a colon outside the bold, and a double space
+# after the bullet. Widening what we DIAGNOSE is not widening what we ACCEPT.
 _AC_OPT_OUT_NEAR_MISS_RE = re.compile(
-    r"^- \*\*Acceptance Criteria:\*\*(.*)$", re.IGNORECASE
+    r"^(?P<indent> {0,3})(?P<bullet>[-*+])(?P<gap>[ \t]+)"
+    r"\*\*Acceptance[ \t]+Criteria(?:\*\*[ \t]*:|:\*\*)(?P<value>.*)$",
+    re.IGNORECASE,
 )
 _PLACEHOLDER_REASON_RE = re.compile(r"^<[^<>]*>$")
 
@@ -445,9 +555,28 @@ def acceptance_criteria_opt_out_near_miss(
         match = _AC_OPT_OUT_NEAR_MISS_RE.match(line)
         if match is None:
             continue
+        value = match.group("value").strip()
+        # Claim only a `none`-variant value. Prose in this field is not an
+        # attempted opt-out, and claiming it would hard-fail a spec that has a
+        # perfectly good Acceptance-Criteria section.
+        if not re.match(r"^none\b", value, re.IGNORECASE):
+            continue
+        if match.group("indent"):
+            return lineno, "marker must start at column 0, not indented"
+        if match.group("bullet") != "-":
+            return lineno, (
+                f"marker must use a `-` bullet, not "
+                f"`{match.group('bullet')}`"
+            )
+        if match.group("gap") != " ":
+            return lineno, "marker must have exactly one space after the `-`"
         if not line.startswith("- **Acceptance Criteria:**"):
+            if line.startswith("- **Acceptance Criteria**:"):
+                return lineno, (
+                    "the colon belongs inside the bold: "
+                    "`**Acceptance Criteria:**`, not `**Acceptance Criteria**:`"
+                )
             return lineno, "field name must use exact casing `Acceptance Criteria`"
-        value = match.group(1).strip()
         if value.lower().startswith("none") and not value.startswith("none"):
             return lineno, "marker value must use exact lowercase casing `none`"
         if re.match(r"^none[ \t]+-[ \t]*", value):
@@ -518,6 +647,27 @@ def resolve_default_base_ref(root: Path) -> str | None:
         capture_output=True, text=True, check=False,
     )
     return "origin/main" if r.returncode == 0 else None
+
+
+def base_ref_resolves(root: Path, base_ref: str) -> bool:
+    """Whether *base_ref* names a real commit in *root*.
+
+    An explicit `--base-ref` was taken on trust. When it did not resolve,
+    `base_spec_text` returned None for EVERY spec, which the diff-triggered
+    invariants read as "this spec is new" -- so a typo'd or unfetched ref
+    red-lined an entire clean corpus, telling each author to add an opt-out
+    marker for a section that was there all along. The module docstring
+    promises the opposite: an unresolvable base ref skips with a warning.
+    """
+    try:
+        probe = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet",
+             f"{base_ref}^{{commit}}"],
+            capture_output=True, text=True, check=False,
+        )
+    except OSError:
+        return False  # git absent: no base ref is resolvable
+    return probe.returncode == 0
 
 
 def base_spec_text(root: Path, relpath: str, base_ref: str) -> str | None:
@@ -646,6 +796,14 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
     anchors = backlog_open_slugs(workspace_path) if workspace_path is not None else set()
 
     base_resolvable = base_ref is not None
+    if base_resolvable and not base_ref_resolves(root, base_ref):
+        # Verified, not assumed. Falls into the same warn-and-skip path as a
+        # missing ref rather than reporting every spec as new.
+        warn.append(
+            f"base ref {base_ref!r} does not resolve to a commit — "
+            f"diff-triggered invariants (ii) and (vi) skipped"
+        )
+        base_resolvable = False
     if not base_resolvable:
         warn.append(
             "invariant (ii): no base ref resolvable — ship-transition AC check "
@@ -661,6 +819,14 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         rel = spec_path.relative_to(root).as_posix()
         text = _read(spec_path)
         if text is None:
+            # Never silent. `_read` returns None for an unreadable file or one
+            # over the size cap, and skipping quietly reports that spec as
+            # clean -- a vacuous pass over an entire file, which is the failure
+            # mode every invariant here exists to prevent.
+            warn.append(
+                f"{rel}: could not be read (unreadable, or over the size cap); "
+                f"no invariant was checked against it"
+            )
             continue
         base_text = (
             base_spec_text(root, rel, base_ref)  # type: ignore[arg-type]
@@ -693,6 +859,20 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         # sectionless specs are grandfathered, but any marker an author writes
         # remains subject to the marker-shape invariants.
         has_ac_section = acceptance_criteria_section_present(text)
+        # A commented-out Acceptance-Criteria section is a hard error, not a
+        # section. The body readers still read raw text, so without this the
+        # heading would count and its criteria would be harvested -- (vi)
+        # satisfied and (ii) checking text the author disabled.
+        commented_ac = commented_out_ac_heading(text)
+        if commented_ac is not None:
+            _lineno, _line = commented_ac
+            hard.append(
+                f"{rel}:{_lineno}: invariant (vi) — the Acceptance-Criteria "
+                f"section is inside an HTML comment ({_line!r}); uncomment it, "
+                f"or add `- **Acceptance Criteria:** none — <reason>` if the "
+                f"spec genuinely has no criteria"
+            )
+
         ac_heading_near_miss = None
         if not has_ac_section:
             # Warn rather than accept or ignore: an adopter whose spec reads
