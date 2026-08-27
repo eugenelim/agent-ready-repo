@@ -1132,10 +1132,6 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # Unblocks when: web's fsevents@2.3.2 divergence is dispositioned (add to
-  # allowScripts, or repin so it dedupes to 2.3.3).
-  {slug = "npm-allowscripts-enforcement", summary = "Make the documented allowScripts install-script invariant machine-checked for both npm projects, after dispositioning web's pre-existing playwright/fsevents@2.3.2 divergence", source = "spec/npm-sca-gate"},
-
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
