@@ -416,15 +416,20 @@ open = [
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
   {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
-  # Five workflow-posture tests now carry the pages-form baseline/mutation/family
-  # harness: pages, ci-security, pack-evals, build-check-windows and CodeQL. The
-  # sixth posture test, build-check, has the same core contract plus a specialized
-  # bash differential and shape-stable fixture. A shared helper is now plausible,
-  # but extracting it means changing two already-working harness shapes and should
-  # be reviewed independently rather than riding with the assertion-proof work.
+  # Seven callers, in three different harness shapes. Five carry the pages-form
+  # baseline/mutation/family harness: pages, ci-security, pack-evals,
+  # build-check-windows and CodeQL. build-check has the same core contract plus
+  # a specialized bash differential and shape-stable fixture. test-pages-
+  # concurrency.py is the odd one out — a mutation-tested pages.yml posture check
+  # whose _MUTATIONS is a four-element (id, expected, old, new) tuple with no
+  # _family rule at all — and it is the caller an extraction scoped from a
+  # five-or-six count would silently miss. A shared helper is now plausible, but
+  # extracting it means changing already-working harness shapes and should be
+  # reviewed independently rather than riding with the assertion-proof work.
   # To close: identify the genuinely common surface, preserve build-check's
-  # differential and pages' crafted-input predicates, and prove every caller's
-  # mutation count/family coverage is unchanged by the extraction.
+  # differential and pages' crafted-input predicates, decide whether the
+  # four-element tuple converges or stays out, and prove every caller's mutation
+  # count/family coverage is unchanged by the extraction.
   {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions

@@ -11,7 +11,11 @@ Security-load-bearing invariants:
 * no Actions expression interpolation in the gitleaks shell body;
 * ``--redact`` on every gitleaks detect invocation;
 * a checksum command *naming the archive* before *every* archive extraction in
-  a step, however the extraction is spelled; and
+  a step. "Extraction" is recognized for a ``tar``/``bsdtar`` invocation
+  carrying an extract flag, ``unzip``, or ``7z x``/``7z e``, path-qualified or
+  not, with shell comments stripped first. Deliberately not recognized, and so
+  not claimed: an extraction split across a backslash continuation, or an
+  alternative binary such as ``7za``; and
 * pull-request-only concurrency cancellation with unique non-PR groups.
 
 The mutation matrix runs on every invocation.  It uses the real workflow as its
@@ -24,7 +28,7 @@ from __future__ import annotations
 import re
 import sys
 from collections.abc import Callable, Iterable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -66,16 +70,48 @@ _CHECKSUM_RE = re.compile(r"\b(?:sha256sum|shasum)\b")
 _ARCHIVE_RE = re.compile(r"[\w.@/-]+\.(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)\b")
 
 
+def _strip_comments(text: str) -> str:
+    """Remove shell comments so a comment cannot satisfy a posture assertion.
+
+    Same seam and semantics as ``tools/test-pages-concurrency.py``. Without it a
+    line reading ``# sha256sum gl.tar.gz was checked upstream`` discharges the
+    checksum assertion on prose, and a line mentioning an extraction inside a
+    comment injects a phantom member into the audited step list.
+    """
+    lines: list[str] = []
+    for line in text.splitlines():
+        quote: str | None = None
+        cut = len(line)
+        for index, char in enumerate(line):
+            if quote:
+                if char == quote:
+                    quote = None
+            elif char in "\"'":
+                quote = char
+            elif char == "#":
+                cut = index
+                break
+        lines.append(line[:cut].rstrip())
+    return "\n".join(lines)
+
+
 def _is_extraction(line: str) -> bool:
-    """Return whether one shell line extracts an archive, however spelled.
+    """Return whether one shell line extracts an archive.
 
     Structural, not substring. The two literal markers this replaced (``tar xz``
     and ``tar xzf``, the second subsumed by the first) matched one spelling, so
     respelling an extraction as ``tar -xzf`` dropped its step out of the audited
     set entirely — losing the assertion rather than failing it.
+
+    The command token is compared by basename, because an exact-token test
+    silently stopped recognizing ``/usr/bin/tar xzf`` — which the substring form
+    did match. Recognized: ``tar``/``bsdtar`` with an extract flag, ``unzip``,
+    ``7z x``/``7z e``. Not recognized, and not claimed: a backslash-continued
+    invocation, or an alternative binary such as ``7za``.
     """
     tokens = line.split()
-    for index, token in enumerate(tokens):
+    for index, raw_token in enumerate(tokens):
+        token = PurePosixPath(raw_token).name
         if token == "unzip":
             return True
         if token == "7z" and tokens[index + 1 : index + 2] in (["x"], ["e"]):
@@ -100,7 +136,7 @@ def _unverified_archives(run_body: str) -> list[str]:
     return: a step with no extraction yields no extraction loop iterations and
     therefore an empty list, without a fail-open branch to reach.
     """
-    lines = run_body.splitlines()
+    lines = _strip_comments(run_body).splitlines()
     checksum_at: dict[str, int] = {}
     for index, line in enumerate(lines):
         if not _CHECKSUM_RE.search(line):
@@ -224,7 +260,10 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     install_steps = [
         step
         for _job_name, step in _steps(jobs)
-        if any(_is_extraction(line) for line in str(step.get("run", "")).splitlines())
+        if any(
+            _is_extraction(line)
+            for line in _strip_comments(str(step.get("run", ""))).splitlines()
+        )
     ]
     # Presence floor, matching `checkout-present` and `gitleaks-step-present`.
     # Without it the whole family can collapse to zero members and the
@@ -282,6 +321,29 @@ def _misname_first_checksum_archive(text: str) -> str:
         return text
     index = pairs[0]
     lines[index] = _ARCHIVE_RE.sub("unrelated.tar.gz", lines[index], count=1)
+    return "".join(lines)
+
+
+def _drop_first_checksum(text: str) -> str:
+    """Delete the first checksum line outright."""
+    lines = text.splitlines(keepends=True)
+    pairs = _checksum_extract_pairs(lines)
+    if not pairs:
+        return text
+    index = pairs[0]
+    return "".join(lines[:index] + lines[index + 1 :])
+
+
+def _comment_out_first_checksum(text: str) -> str:
+    """Turn the first checksum line into a comment that still names it."""
+    lines = text.splitlines(keepends=True)
+    pairs = _checksum_extract_pairs(lines)
+    if not pairs:
+        return text
+    index = pairs[0]
+    body = lines[index]
+    indent = body[: len(body) - len(body.lstrip(" "))]
+    lines[index] = f"{indent}# {body.strip()}\n"
     return "".join(lines)
 
 
@@ -419,6 +481,22 @@ _MUTATIONS: list[Mutation] = [
         "respell-second-extraction-and-drop-its-checksum",
         "binary-checksum-before-extract[1]",
         _respell_second_extraction_unverified,
+    ),
+    (
+        # The net regression an exact-token test introduced: this spelling was
+        # caught by the substring form it replaced.
+        "path-qualify-the-extraction-and-drop-its-checksum",
+        "binary-checksum-before-extract[0]",
+        lambda text: _drop_first_checksum(text).replace(
+            "          tar xzf gl.tar.gz", "          /usr/bin/tar xzf gl.tar.gz", 1
+        ),
+    ),
+    (
+        # A comment is not a command: prose naming the archive must not
+        # discharge the assertion.
+        "replace-the-first-checksum-with-a-comment",
+        "binary-checksum-before-extract[0]",
+        lambda text: _comment_out_first_checksum(text),
     ),
     (
         "remove-every-install-extraction",

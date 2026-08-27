@@ -30,17 +30,31 @@ def _job_block(workflow: str, job_name: str) -> str:
     return match.group(1) if match is not None else ""
 
 
-def _guard_blocks_on_failure(aggregate: str) -> bool:
-    """Return whether the results guard's failure branch exits non-zero.
+RESULT_VARIABLES = (
+    "AGENTBUNDLE_RESULT",
+    "CREDBROKER_RESULT",
+    "LOCK_SEMANTICS_RESULT",
+)
 
-    The three ``!= "success"`` comparisons prove only that the aggregate reads
-    the work jobs' results. Without this, flipping the guard body's ``exit 1``
-    to ``exit 0`` leaves every other label satisfied while the required check
-    reports success on a failing Windows job.
+
+def _guard_blocks_on_failure(aggregate: str) -> bool:
+    """Return whether one guard makes *every* work job's failure exit non-zero.
+
+    The comparisons alone prove only that the aggregate reads the results, and
+    a first-match scan proves only that *some* guard exits. Splitting the guard
+    into one blocking `if` plus two advisory ones satisfied both, leaving two of
+    three Windows suites non-blocking behind the required check. So the matched
+    condition must carry all three comparisons itself before the body is
+    scanned for `exit 1`.
     """
     lines = aggregate.splitlines()
     for index, line in enumerate(lines):
-        if '!= "success"' not in line or not line.rstrip().endswith("; then"):
+        if not line.rstrip().endswith("; then"):
+            continue
+        if any(
+            f'[ "${variable}" != "success" ]' not in line
+            for variable in RESULT_VARIABLES
+        ):
             continue
         for following in lines[index + 1 :]:
             stripped = following.strip()
@@ -131,11 +145,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     ):
         check(f"aggregate-result-reference[{result}]", result in aggregate)
 
-    for result_variable in (
-        "AGENTBUNDLE_RESULT",
-        "CREDBROKER_RESULT",
-        "LOCK_SEMANTICS_RESULT",
-    ):
+    for result_variable in RESULT_VARIABLES:
         comparison = f'[ "${result_variable}" != "success" ]'
         check(
             f"aggregate-requires-success[{result_variable}]",
@@ -236,6 +246,24 @@ _MUTATIONS: list[Mutation] = [
         "make-the-guard-exit-zero",
         "aggregate-blocks-on-failure",
         lambda text: text.replace("            exit 1\n", "            exit 0\n", 1),
+    ),
+    (
+        # The subtler fail-open: every comparison string survives, so the
+        # per-variable family stays satisfied, but only one job blocks.
+        "split-the-guard-so-only-one-job-blocks",
+        "aggregate-blocks-on-failure",
+        lambda text: text.replace(
+            '          if [ "$AGENTBUNDLE_RESULT" != "success" ]'
+            ' || [ "$CREDBROKER_RESULT" != "success" ]'
+            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n',
+            '          if [ "$AGENTBUNDLE_RESULT" != "success" ]; then\n'
+            '            echo "agentbundle failed" >&2\n'
+            "            exit 1\n"
+            "          fi\n"
+            '          if [ "$CREDBROKER_RESULT" != "success" ]'
+            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n',
+            1,
+        ),
     ),
 ]
 
