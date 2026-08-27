@@ -30,3 +30,7 @@ CONVENTIONS.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
+- **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
+  describes the portable workflow, compiled knowledge-provider, runtime-profile,
+  and self-host migration architecture accepted by
+  [RFC-0097](../rfc/0097-agent-skill-engineering.md).

@@ -1931,3 +1931,23 @@ queue = [
   # Group 6 — origin-aware refresh, conflict resolution, execution locks and
   # limited post-execution write-back across supported trackers.
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ini-009 · Agent Skill Engineering
+# Authority: RFC-0097 (Accepted; implementation waits for approved specs).
+# Portable workflows + governed knowledge are the product. AgentBundle
+# packaging, projections, versions, and publication remain external mechanics.
+# ─────────────────────────────────────────────────────────────────────────────
+["ini-009"]
+name      = "Agent Skill Engineering"
+status    = "active"
+milestone = "M0 · RFC decision and delivery decomposition"
+
+["ini-009".shaping_queue]
+active  = []
+backlog = []
+
+["ini-009".work]
+active  = []
+queue   = []
+shipped = []
