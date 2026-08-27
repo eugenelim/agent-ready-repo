@@ -929,14 +929,48 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
     count below rather than required to be zero.
     """
 
-    #: Counts measured at core 2.12.4. Lower is always allowed; higher fails.
-    _TOLERATED_CEILINGS = {
-        "unsupported_legacy": 183,
-        "legacy_entry": 2,
-        "unsatisfied_dependency": 8,
-        "missing_plan": 5,
-        "impossible_transition": 1,
+    #: Legacy-shaped entries per collection, measured at core 2.12.4. Lower is
+    #: always allowed; higher fails. `[backlog].closed` is deliberately absent:
+    #: it is append-only history, every closure record there is legacy-shaped by
+    #: established practice, and ratcheting it would nag on every future
+    #: closure without preventing any drift.
+    _LEGACY_SHAPE_CEILINGS = {
+        "backlog.open": 160,
+        "ini-002.shaping_queue.backlog": 1,
+        "ini-002.work.shipped": 1,
     }
+
+    @staticmethod
+    def _is_legacy_shaped(entry: object) -> bool:
+        """A bare string, or an inline table with no `path` key."""
+        if isinstance(entry, str):
+            return True
+        return isinstance(entry, dict) and "path" not in entry
+
+    def _legacy_counts(self) -> dict[str, int]:
+        with (REPO_ROOT / "workspace.toml").open("rb") as handle:
+            data = tomllib.load(handle)
+        counts: dict[str, int] = {}
+        for key, section in data.items():
+            if not (isinstance(section, dict) and key.startswith("ini-")):
+                continue
+            for name in ("work", "shaping_queue", "brief_queue"):
+                sub = section.get(name)
+                if not isinstance(sub, dict):
+                    continue
+                for list_name, entries in sub.items():
+                    if isinstance(entries, str):
+                        entries = [entries] if entries else []
+                    if not isinstance(entries, list):
+                        continue
+                    total = sum(1 for e in entries if self._is_legacy_shaped(e))
+                    if total:
+                        counts[f"{key}.{name}.{list_name}"] = total
+        open_entries = data.get("backlog", {}).get("open", [])
+        total = sum(1 for e in open_entries if self._is_legacy_shaped(e))
+        if total:
+            counts["backlog.open"] = total
+        return counts
 
     def _canonical(self):
         engine = _load_workspace_status_engine()
@@ -958,16 +992,39 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
             offenders = sorted(f.path for f in canonical.findings if f.code == code)
             self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
 
+    def test_legacy_shaped_entries_do_not_grow(self) -> None:
+        """New work must be registered canonically, not by copying a neighbour.
+
+        This is the write-side ratchet: legacy records are retained
+        deliberately as later cleanup groups, but no collection may gain one.
+        """
+        counts = self._legacy_counts()
+        for collection, total in sorted(counts.items()):
+            ceiling = self._LEGACY_SHAPE_CEILINGS.get(collection, 0)
+            self.assertLessEqual(
+                total,
+                ceiling,
+                f"{collection} now holds {total} legacy-shaped entries "
+                f"(ceiling {ceiling}). Register the new entry canonically as "
+                f"{{path, kind, source, summary, needs}} -- see the shape "
+                f"guidance at the top of workspace.toml. Do not raise this "
+                f"ceiling to make the check pass.",
+            )
+
     def test_tolerated_finding_counts_do_not_regress(self) -> None:
+        """Fail-open finding classes stay bounded, so drift cannot hide in them."""
         canonical = self._canonical()
         counts = collections.Counter(f.code for f in canonical.findings)
-        for code, ceiling in self._TOLERATED_CEILINGS.items():
+        for code, ceiling in (
+            ("legacy_entry", 2),
+            ("unsatisfied_dependency", 8),
+            ("missing_plan", 5),
+            ("impossible_transition", 1),
+        ):
             self.assertLessEqual(
                 counts.get(code, 0),
                 ceiling,
-                f"{code} rose above its 2.12.4 ceiling; new legacy-shaped "
-                f"entries must not be added -- see the shape guidance at the "
-                f"top of workspace.toml",
+                f"{code} rose above its 2.12.4 ceiling: {counts.get(code, 0)}",
             )
 
     def test_every_legacy_finding_is_individually_attributable(self) -> None:

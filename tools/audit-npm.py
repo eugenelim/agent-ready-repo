@@ -56,7 +56,8 @@ facts, and reporting the second as the first is how a gate sits green for weeks)
   1  at least one non-allowlisted advisory at or above the blocking threshold.
   2  the gate could not run: npm absent, unreadable or unparseable audit output,
      an error payload, an unrecognised report schema, a malformed allowlist,
-     no lockfile discovered at all, or a canary probe that came back silent.
+     an unreadable directory during lockfile discovery, no lockfile discovered
+     at all, or a canary probe that came back silent.
 """
 
 from __future__ import annotations
@@ -150,20 +151,23 @@ def discover_lockfiles(root: Path) -> list[Path]:
         try:
             entries = list(current.iterdir())
         except OSError as exc:
-            # Not silent: an unreadable directory is almost always a permissions
-            # artifact, but a walk that quietly skipped the one directory holding
-            # a lockfile would under-cover and still print green. The
-            # no-lockfile-found guard in main() only catches total failure, so
-            # partial failure has to announce itself.
-            print(f"audit-npm: warning: cannot read {current}: {exc}", file=sys.stderr)
-            continue
+            # A partial walk could skip a project and report a clean audit over
+            # an under-covered tree, so it is a tool error rather than a warning.
+            raise AuditError(f"cannot read {current}: {exc}") from exc
         for entry in entries:
-            if entry.is_dir():
+            try:
+                is_directory = entry.is_dir()
+                is_symlink = entry.is_symlink()
+            except OSError as exc:
+                # A directory may list successfully but deny traversal, making
+                # per-child classification fail after iterdir() has succeeded.
+                raise AuditError(f"cannot classify {entry}: {exc}") from exc
+            if is_directory:
                 # Symlinked directories are skipped for loop safety; symlinked
                 # *files* are not, so a lockfile linked into place is still
                 # audited rather than silently dropped.
                 if (
-                    entry.is_symlink()
+                    is_symlink
                     or entry.name in _PRUNED_DIR_NAMES
                     or entry.name.startswith(".")
                 ):
@@ -455,7 +459,11 @@ def main(argv: list[str]) -> int:
         print(f"audit-npm: {exc}", file=sys.stderr)
         return 2
 
-    lockfiles = discover_lockfiles(root)
+    try:
+        lockfiles = discover_lockfiles(root)
+    except AuditError as exc:
+        print(f"audit-npm: {exc}", file=sys.stderr)
+        return 2
     if not lockfiles:
         # Fail closed. Zero lockfiles means discovery broke or the tree moved —
         # both of which would otherwise present as a green gate over nothing.

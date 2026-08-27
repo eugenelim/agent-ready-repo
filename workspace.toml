@@ -426,16 +426,32 @@ open = [
   # fixture. Its eight assertions now BLOCK make build-check with no automated proof
   # they can fail, so a silently-weakened one would pass. Building that harness was
   # outside the wiring chore and needs an owner decision.
-  # The SECOND IS STILL OPEN. This is why the slug survives — docs/adr/0086 and
-  # spec/ci-gate-parallelization both cite it, and both are frozen:
-  # ci-security.yml documents "cancel-in-progress gated to pull_request only —
-  # push-to-main scans run to completion", and codeql.yml uses unconditional
-  # cancel-in-progress on a push trigger. Both rest on a false belief — GitHub
-  # allows one running plus one PENDING run per concurrency group regardless of
-  # that flag, so a third queued run cancels the pending one. See AC12 of
-  # spec/ci-gate-parallelization for the group expression that avoids it.
-  # To close: fix both workflows' concurrency-group expressions, and decide whether
-  # the posture test earns a mutation harness.
+  # The SECOND IS ALSO CLOSED (2026-08-27). ci-security.yml and codeql.yml both
+  # keyed their concurrency group on bare github.ref, and GitHub allows one
+  # running plus one PENDING run per group regardless of cancel-in-progress, so a
+  # third queued run evicted the pending one and a commit could go unscanned with
+  # no signal. Both now carry AC12's expression from spec/ci-gate-parallelization
+  # — PR runs share a ref group, every non-PR run keys on github.run_id — and
+  # ci-security.yml's literal is pinned in test-ci-security-workflow.py, so a
+  # regression to the bare-ref form now fails build-check. codeql.yml's
+  # cancel-in-progress moved to the pull_request gate, so pushes to main and the
+  # weekly re-scan run to completion instead of superseding each other. The two
+  # frozen citations (docs/adr/0086 lines 111-118, spec/ci-gate-parallelization)
+  # stand as the historical record; ADR-0086's "note for the next author" is what
+  # authorised the fix. Accepted consequence, recorded rather than discovered
+  # later: two concurrent CodeQL runs on different main commits can now upload
+  # SARIF out of order, so the Security tab can transiently reflect the older
+  # commit until the next analysis. That is judged better than the previous
+  # behaviour, where the newer commit was simply never scanned.
+  # THE RESIDUAL, and the only reason the slug survives: test-ci-security-workflow.py
+  # still has no --self-test and no fixture. Unlike its chain neighbour
+  # test-build-check-workflow.py, which runs a mutation matrix on every
+  # invocation, its now-nine assertions block make build-check with no automated
+  # proof they can fail, so a silently-weakened one would pass. codeql.yml has no
+  # posture test at all — a mutation of its group expression is caught by nothing,
+  # confirmed by a deliberate control run on 2026-08-27.
+  # To close: decide whether the posture test earns a mutation harness, and
+  # whether codeql.yml earns a posture test of its own. Owner decision, not a chore.
   {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
@@ -1089,21 +1105,6 @@ open = [
   # explicitly bars proposing from preference. Print is settled for correctness and
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
-
-  # Both npm gates decide "the walk could not complete" and neither has a
-  # regression test for it. lint-npm-allow-scripts.py now raises CheckError and
-  # exits 2 on an iterdir failure AND on a per-child stat failure (a dir at mode
-  # 0o400 lists but does not traverse) — the second path shipped broken and was
-  # caught by review, not by a test, because no fixture plants an unreadable
-  # directory. Its sibling tools/audit-npm.py still warns-and-continues on the
-  # same error, which is the "never actually ran, reported as clean" outcome its
-  # own three-outcome exit contract exists to prevent.
-  # Fix: plant chmod 0o000 and chmod 0o400 fixtures in
-  #   tools/test-lint-npm-allow-scripts.py asserting exit 2 with no traceback
-  #   (skip under root and on Windows), and give audit-npm.py the same
-  #   could-not-run treatment.
-  # Unblocks when: picked up — no dependency.
-  {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Neither npm gate has a regression test for a partial directory walk, and audit-npm.py still treats one as a clean result"},
 
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
@@ -1816,6 +1817,8 @@ closed = [
   {slug = "rfc0088-token-replay-consumer-contract", type = "shape", source = "rfc/0088 open question 5", summary = "Closed by the Q5 ruling of 2026-08-22 -- scoped-token replay is supported and the residual exposure is declared per destination. The declaration carrier is owned by open entry rfc0088-spec-2-result-policy-contracts; note RFC-0088 assigns that carrier to Spec 1 while the open entry places it on Spec 2, which the Spec 1/2 authors must reconcile"},
 
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
+
+  {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

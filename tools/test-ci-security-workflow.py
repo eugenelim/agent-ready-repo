@@ -75,8 +75,17 @@ def main() -> int:
                 f"workflow-level contents:read is sufficient — no escalation allowed"
             )
 
-    # Concurrency: cancel-in-progress must be conditional on pull_request only.
+    # Concurrency: PR runs share a ref group; non-PR runs must be unique.
     concurrency = doc.get("concurrency", {})
+    expected_group = (
+        "ci-security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}"
+    )
+    if concurrency.get("group") != expected_group:
+        fail(
+            "concurrency.group must be "
+            f"{expected_group!r} so non-PR scans cannot be evicted; "
+            f"got: {concurrency.get('group')!r}"
+        )
     cancel = str(concurrency.get("cancel-in-progress", ""))
     if "pull_request" not in cancel:
         fail(

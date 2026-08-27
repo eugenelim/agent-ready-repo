@@ -28,10 +28,13 @@ on:
     # Weekly re-scan catches newly-published queries against unchanged code.
     - cron: "27 4 * * 1"
 
-# A newer push to the same ref supersedes an in-flight scan.
+# Pull-request runs share a ref group, so a newer PR push supersedes an in-flight
+# scan. Every non-PR run (push or schedule) gets a unique run_id group, preventing
+# a push-to-main from evicting the weekly re-scan; for a security scanner, a
+# redundant scan is safer than one silently evicted while pending.
 concurrency:
-  group: codeql-${{ github.ref }}
-  cancel-in-progress: true
+  group: codeql-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default floor for any future job. The analyzer's elevated permissions remain
 # scoped to that job below.
