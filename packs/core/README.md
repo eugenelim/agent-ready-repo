@@ -216,5 +216,4 @@ for the route and scope differences.
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
 - **Migrate legacy workspace entries:** [plan, apply, recover, and roll back one reviewed entry](../../guides/core/how-to/migrate-capture-work.md).
 - **Close or pause delivery work:** [verify durable context and preview a safe disposition](../../guides/core/how-to/close-and-disposition-work.md).
-- **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
 - **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

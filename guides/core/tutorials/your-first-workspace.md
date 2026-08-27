@@ -159,6 +159,11 @@ Follow the loop's commit and PR instructions. When the PR merges:
 
 **You should see:** `workspace-core` no longer in the Ready section, and `workspace-status-phase2` now unblocked — ready to start.
 
+Shipping is not closeout. Before the delivery contract itself is disposed of, ask
+`close-work` for a mutation-free preview of what the spec and plan still hold that
+no other document does — see
+[Close work without losing lasting context](../how-to/close-and-disposition-work.md).
+
 ## What you learned
 
 In this session you:
@@ -174,4 +179,5 @@ In this session you:
 - To orient faster at future session starts: [How to orient at the start of a session](../how-to/orient-at-session-start.md).
 - To understand the two-room model behind the queue: [The two-room model](../explanation/two-room-model.md).
 - To remember future items mid-session: [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
+- To close a finished delivery without losing its lasting context: [Close work without losing lasting context](../how-to/close-and-disposition-work.md).
 - To start the next spec: run `workspace-status`, then `work-loop docs/specs/<next-slug>/`.

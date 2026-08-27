@@ -67,7 +67,7 @@ Disposition is intent, not deletion permission.
 | `delete-before-merge` | A removal change exists but has not been integrated | The workflow can prepare removal before that change merges. An integrated removal uses an ordinary follow-up change. |
 | `cool-30-days` | Delivered, closed work has a persistent record | Wave 4 records only the disposition intent and retains the record. It does not calculate dates, start a timer, or retire anything. |
 | `retain-exception` | A longer obligation requires retention | Record a bounded reason, an owner role, and a human-supplied review date. Nothing is deleted. |
-| `external-advisory` | The current environment lacks deletion authority for an external target | Report the target, evidence, and missing authority without probing or changing it. |
+| `external-advisory` | The current environment lacks authority over the target — an external system, or a local target whose deletion authority cannot be resolved | Report the target, evidence, and missing authority without probing or changing it. Resolve the authority or leave the artifact retained, then re-run; the workflow refuses rather than deleting. |
 
 Immediate disposal is the default recommendation when no lasting fact,
 obligation, dependency, or anchor remains. It is never automatic.
@@ -91,31 +91,6 @@ separate coordination residue. A never-pushed local record may qualify for
 `delete-before-push`; a PR-only record removed before integration may qualify for
 `delete-before-merge`. Both are recommendations and still require a fresh exact
 confirmation.
-
-### Amend the contract instead of shipping an open AC
-
-If one accepted AC needs another session, leave the spec Implementing and resume;
-session length does not narrow the outcome. If the work is genuinely separable,
-pause and ask the owner to approve an amended outcome, AC set, and plan. Record the
-separated item under `Follow-ons` with its owner and stable artifact or external
-reference, rerun the applicable spec-stage reviews, and approve the new fingerprint
-before implementation resumes.
-
-A newly Shipped spec has every final AC checked. Do not use an unchecked
-`(deferred: <slug>)` item as a shipping exception. Existing frozen specs that used
-that older form remain unchanged until a separately governed migration.
-
-### Keep workspace follow-ons terse
-
-When `work-intake` captures the follow-on, it writes the context-owning artifact
-first. Its `workspace.toml` entry contains minimal source provenance, one short
-sentence naming the current outcome or next-needed condition, and hard dependencies
-only. Do not add comment blocks with chronology, rationale, procedures, review
-history, findings, or copied discussion. Those belong in the referenced artifact.
-
-At closeout, remove settled live coordination rather than replacing it with a
-workspace history. Legacy prose that this closeout did not touch remains for a later
-migration; any entry materially updated now must use the terse form.
 
 ## Confirm an exact change
 
@@ -153,13 +128,19 @@ corruption or operation failure produces `rollback-failed`. Both are terminal
 mutated outcomes: the report identifies bounded inode evidence, any `.pending`
 recovery residue, and — when the original was already unlinked — the affected
 original path. A rollback that refuses before that unlink reports no original path,
-because there is none; do not claim success, restoration, or an unchanged refusal. Each such report also
-names the residue's identity, and you must read it before recovering anything:
-`identity-confirmed` means a descriptor proved the residue is the confirmed
-inode, `identity-mismatch` means a descriptor proved it is not, and `unverified`
-means no descriptor could establish it. **Restore only an `identity-confirmed`
-residue.** Restoring an `identity-mismatch` or `unverified` residue puts content
-of unknown origin back at the original path. Changed, stale, or unavailable
+because there is none; do not claim success, restoration, or an unchanged refusal.
+
+Each such report also names the residue's identity, and you must read it before
+recovering anything: `identity-confirmed` means a descriptor proved the residue is
+the confirmed inode, `identity-mismatch` means a descriptor proved it is not, and
+`unverified` means no descriptor could establish it.
+
+:::caution
+Restore only an `identity-confirmed` residue. Restoring an `identity-mismatch` or
+`unverified` residue puts content of unknown origin back at the original path.
+:::
+
+Changed, stale, or unavailable
 push/integration evidence, or drift in source, write, or deletion authority,
 refuses before content is read. An effect attempt consumes the confirmation even
 when it refuses, so every later attempt needs a new preview and a new confirmation.
@@ -179,6 +160,31 @@ weaker path-based fallback.
 Committed files leave the current tree through an ordinary reviewed change.
 `close-work` never resets, rebases, filters, force-pushes, or otherwise rewrites
 Git history.
+
+## Amend the contract instead of shipping an open AC
+
+If one accepted AC needs another session, leave the spec Implementing and resume;
+session length does not narrow the outcome. If the work is genuinely separable,
+pause and ask the owner to approve an amended outcome, AC set, and plan. Record the
+separated item under `Follow-ons` with its owner and stable artifact or external
+reference, rerun the applicable spec-stage reviews, and approve the new fingerprint
+before implementation resumes.
+
+A newly Shipped spec has every final AC checked. Do not use an unchecked
+`(deferred: <slug>)` item as a shipping exception. Existing frozen specs that used
+that older form remain unchanged until a separately governed migration.
+
+## Keep workspace follow-ons terse
+
+When `work-intake` captures the follow-on, it writes the context-owning artifact
+first. Its `workspace.toml` entry contains minimal source provenance, one short
+sentence naming the current outcome or next-needed condition, and hard dependencies
+only. Do not add comment blocks with chronology, rationale, procedures, review
+history, findings, or copied discussion. Those belong in the referenced artifact.
+
+At closeout, remove settled live coordination rather than replacing it with a
+workspace history. Legacy prose that this closeout did not touch remains for a later
+migration; any entry materially updated now must use the terse form.
 
 ## Pause work instead of closing it
 

@@ -9,9 +9,11 @@ journey: core
 
 # Work-intake routing and lifecycle
 
-This Core page remains the compatibility route for the original reference.
-The cross-profile canonical lookup now lives at
-[Work-intake routing and lifecycle reference](../../_shared/reference/work-intake-routing-and-lifecycle.md).
+This Core page is authoritative for the closeout, pause, and disposition
+lifecycle: the phases, the six disposition intents, and which workflow owns each
+mutation. For the cross-profile *intake* routes shared with other profiles, see
+[Work-intake routing and lifecycle reference](../../_shared/reference/work-intake-routing-and-lifecycle.md),
+which does not cover closeout.
 
 `work-intake` owns four user intents: start work, remember work, inspect status,
 and request requirements refresh. It accepts ordinary prose, normalizes the
