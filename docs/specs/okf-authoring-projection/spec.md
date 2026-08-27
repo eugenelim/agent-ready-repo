@@ -28,13 +28,6 @@ never turns descriptive OKF computation metadata into execution authority.
 The canonical/source, generated/output, and instruction/data boundaries in
 RFC-0087 apply to every compiler mode and pilot fixture.
 
-Two behaviours shipped narrower than an earlier reading of these criteria
-suggested, and are tracked as separate work rather than restated as satisfied
-here. Concept `title`, `status`, and `type` values reach generated index link
-text without bounding or escaping, so a hostile `title` can choose a link
-target inside a compiler-owned index. The `OKF012` repeated-compile guard is
-emitted but exercised by no test, so its removal would not fail the suite.
-
 ### Always do
 
 - Treat `packs/<pack>/okf/<bundle>/` plus `[pack.metadata.okf]` as canonical and
@@ -203,7 +196,8 @@ emitted but exercised by no test, so its removal would not fail the suite.
 - [x] **AC17:** Executor, attester, runtime, code-fence, script, and remote
   resource metadata never invokes code, grants tools, performs network I/O, or
   enters router control instructions. Hostile fixtures prove instruction
-  override, secret disclosure, and tool escalation remain data.
+  override, secret disclosure, tool escalation, and fabricated source paths
+  remain data.
 - [x] **AC18:** The router's `references/okf/` tree preserves every canonical
   regular file and unknown non-AgentBundle extension byte-for-byte except
   compiler-owned generated `index.md` files, whose bytes match the staged

@@ -71,7 +71,16 @@ The compiler's own managed indexes are written elsewhere, under
 `.apm/skills/<router>/references/okf/`. Those are the wholly generated files;
 this one is yours.
 
-Create each canonical concept under `concepts/`. For example,
+Create each canonical concept under `concepts/`. **Name concept files with
+lowercase ASCII slugs** — letters, digits, and hyphens, as in
+`release-readiness.md`. Accented and non-ASCII names are fine too; the generated
+index cites them literally. What a slug avoids is the small set of characters a
+Markdown link destination cannot carry — a space, brackets of the `(`/`)` kind, or
+an `&`/`#`/`;` — which the compiler must percent-encode, so `two words.md` is
+cited as `two%20words.md`. Compilation still succeeds either way, so nothing
+warns you; a slug keeps the cited path and the on-disk path identical.
+
+For example,
 `packs/engineering/okf/delivery-practices/concepts/release-readiness.md` can
 start like this:
 

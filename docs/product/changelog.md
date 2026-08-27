@@ -85,6 +85,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heading near-miss check now share one notion of what is commented; HTML
   comments elsewhere in a spec remain welcome and untouched.
 
+## [catalogue-curation][0.4.3] — 2026-08-26
+
+### Highlights
+
+- **Generated OKF routers now keep hostile concept metadata inside its intended
+  index entry.** Titles, statuses, and concept types are bounded and escaped
+  before they reach compiler-owned Markdown indexes, preventing metadata from
+  fabricating links or additional entries.
+
+### Changed
+
+- **Recompile committed OKF output after upgrading.** Generated index bytes
+  change in four independent ways, so `compile-okf --check` reports `OKF011`
+  output drift against output built by an earlier version until you recompile:
+  concept `title`, `status`, and `type` are now escaped and capped at 200 input
+  characters, so any of those values containing `\`, `[`, `]`, `(`, `)`, `<`,
+  `>`, a carriage return, or a newline — or exceeding the cap — renders
+  differently; path-derived index display text is escaped the same way, so a
+  directory named `patterns(v2)` changes both its root-index link text and its
+  own `# OKF index:` heading; index link destinations percent-encode the
+  characters a Markdown destination cannot carry, so a concept filename holding a
+  space, `( ) < > " ' \ ^ ` { | }`, or `& # ; %` changes while letters, digits,
+  `- . _ ~` and non-ASCII stay literal; and root-index entries
+  are ordered by normalized source path rather than by rendered line bytes, so a
+  root index holding a directory that is a byte prefix of another reorders.
+- Destination encoding is deliberately narrow so a cited path stays openable: a
+  non-ASCII filename such as `café.md` is cited literally, and only characters a
+  Markdown destination cannot carry are encoded (`two words.md` becomes
+  `two%20words.md`). A filename that does get encoded was already unusable as a
+  literal destination before this release.
+
+### Fixed
+
+- Added exact hostile-title and all-field boundary coverage for generated index
+  bytes, including visible newline encoding and Markdown delimiter escaping.
+- Added exact-byte coverage proving a concept filename carrying an HTML
+  character reference cannot render an attacker-chosen link destination.
+- Added mutation-sensitive coverage for the `OKF012` repeated-render
+  determinism guard.
+- Replaced release-version literals with pack/plugin/changelog invariants.
+
+## [architect][0.15.3] — 2026-08-26
+
+### Highlights
+
+- **The shipped architect pack is discoverable again.** Its architecture-lenses
+  source now declares the required content licence, so `agentbundle show
+  architect` resolves it, and it accurately describes authored source versus
+  generated router projections.
+
+### Fixed
+
+- Recompiled the architect OKF projection from the corrected authored bundle
+  root and added pack/plugin/changelog release invariants.
 ## [core][2.12.5] — 2026-08-27
 
 ### Highlights

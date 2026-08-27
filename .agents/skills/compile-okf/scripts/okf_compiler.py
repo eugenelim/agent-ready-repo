@@ -55,11 +55,13 @@ PACK_TOML_MAX_BYTES = 64 * 1024
 PRIOR_MANIFEST_MAX_BYTES = 4 * 1024 * 1024
 MANAGED_OUTPUT_MAX_BYTES = 32 * 1024 * 1024
 PRIOR_MANIFEST_INTEGER_MAX_DIGITS = 128
+INDEX_DISPLAY_INPUT_MAX_CHARS = 200
 _SAFE_DIR_FD_SUPPORTED = all(
     function in os.supports_dir_fd
     for function in (os.open, os.mkdir, os.rename, os.stat, os.unlink)
 )
 _WINDOWS_DEVICE = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)", re.IGNORECASE)
+_REMOTE_REFERENCE = re.compile(r"(?:https?://|www\.|mailto:)", re.IGNORECASE)
 _UNSAFE_METADATA_KEYS = {
     "attester",
     "executor",
@@ -72,6 +74,38 @@ _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGED_INDEX_MARKER = "<!-- agentbundle-managed: profile=agentbundle-okf/v1 kind=okf-index -->"
 ROUTER_HANDOFF_MARKER = "<!-- agentbundle-okf: router-handoff=author-owned -->"
 ASSET_ROOT = Path(__file__).resolve().parent.parent / "assets"
+# A path acts as syntax two ways inside a CommonMark link destination: it can
+# break out structurally, or it can form a character reference the renderer
+# resolves. Both classes are encoded; everything else, including non-ASCII, is
+# left literal so the destination stays the path a reader can open.
+_LINK_DESTINATION_UNSAFE = re.compile(r"""[\x00-\x20\x7f-\x9f"#%&'();<>\\^`{|}]""")
+_INDEX_DISPLAY_ESCAPES = str.maketrans(
+    {
+        "\\": r"\\",
+        # Line separators. `\r` and `\n` render visibly; the other five are the
+        # ones a `splitlines()` reader also treats as breaks, so an unescaped one
+        # makes a single entry look like several.
+        "\r": r"\r",
+        "\n": r"\n",
+        "\x0b": r"\x0b",
+        "\x0c": r"\x0c",
+        "\x85": r"\x85",
+        "\u2028": r"\u2028",
+        "\u2029": r"\u2029",
+        # Link and autolink structure.
+        "[": r"\[",
+        "]": r"\]",
+        "(": r"\(",
+        ")": r"\)",
+        "<": r"\<",
+        ">": r"\>",
+        # Code-span and emphasis delimiters. A backtick pair spanning two fields
+        # swallows the entry's own destination; `*` and `_` distort the entry.
+        "`": r"\`",
+        "*": r"\*",
+        "_": r"\_",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -634,6 +668,70 @@ def _parsed_records(records: Iterable[_FileRecord]) -> dict[str, Concept]:
     return parsed
 
 
+def _utf8_safe(text: str) -> str:
+    r"""Return `text` with any unpaired surrogate rendered as visible `\uXXXX`.
+
+    Scope is the **index display** leg only. `yaml.safe_load` accepts a `\uD800`
+    escape and hands back a lone surrogate, which would otherwise raise
+    `UnicodeEncodeError` when the rendered index is encoded — a traceback
+    carrying no `OKF0xx` line, breaking the diagnostic contract this compiler
+    promises. Applying this to `title`/`status`/`type` closes that leg.
+
+    The other two non-encodable legs are closed at their own gates rather than
+    here: `_is_safe_relative_path` refuses a path that cannot be encoded, so it
+    never reaches the directory scan or `_sort_path`, and `_metadata_diagnostics`
+    refuses a non-encodable frontmatter value before it reaches the manifest and
+    digest path. Both reuse existing diagnostic codes. The call in
+    `_index_link_destination` remains defence in depth for a value arriving from
+    elsewhere.
+
+    `backslashreplace` rather than `replace`: it keeps the value legible and
+    matches this compiler's existing convention of rendering `\r` and `\n`
+    visibly instead of dropping them. The emitted backslash is then escaped by
+    the display table, so the result stays inert. Substitution is deterministic,
+    so a repeated compile still matches and `OKF012` cannot fire on it.
+    """
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def _index_display_value(value: object) -> str:
+    """Return bounded text escaped for a Markdown index display field.
+
+    Order is load-bearing: cap the raw value first, then normalize, then escape.
+    Capping first keeps the bound on *input* characters as specified, and keeps
+    both later expansions atomic — normalizing before the slice would let it cut
+    a generated `\\uXXXX` sequence in half, and escaping before the slice would
+    let it cut an escape pair. A surrogate is a single code point, so slicing the
+    raw value cannot split one.
+    """
+    bounded = _utf8_safe(str(value)[:INDEX_DISPLAY_INPUT_MAX_CHARS])
+    return bounded.translate(_INDEX_DISPLAY_ESCAPES)
+
+
+def _index_link_destination(path: str) -> str:
+    """Return a deterministic Markdown-safe destination for a source-relative path.
+
+    Encodes exactly the characters that let a path act as syntax, and nothing
+    else, so an ordinary filename stays the literal path the router tells an
+    agent to open. Two classes are unsafe and both are covered: structural ones
+    that break or escape a CommonMark destination (C0/C1 controls, space, and
+    ``" ' ( ) < > \\ ^ ` { | }``), and reference-forming ones (``&``, ``#``,
+    ``;`` and ``%``) because a renderer resolves character references *inside* a
+    destination — leaving those literal is what let a concept named
+    ``..&#x2F;..&#x2F;SKILL.md`` render an attacker-chosen ``href``, and ``%`` is
+    encoded so an emitted escape can never be confused with a literal one.
+
+    Letters, digits, ``- . _ ~``, ``/`` as the separator, and all non-ASCII are
+    left alone. Encoding the whole path instead was tried and rejected: it turned
+    a legitimately named ``café.md`` into ``caf%C3%A9.md``, a path no reader can
+    open, for no security gain.
+    """
+    return _LINK_DESTINATION_UNSAFE.sub(
+        lambda match: "".join(f"%{byte:02X}" for byte in match.group().encode("utf-8")),
+        _utf8_safe(path),
+    )
+
+
 def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str, bytes]:
     active_concepts = {
         path: concept
@@ -647,26 +745,33 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
         by_directory.setdefault("" if directory == "." else directory, []).append(concept)
 
     indexes: dict[str, bytes] = {}
-    root_entries: list[str] = []
+    root_entries: list[tuple[str, str]] = []
     for directory, directory_concepts in sorted(by_directory.items()):
         if not directory:
             continue
         entries = []
         for concept in sorted(directory_concepts, key=lambda item: _sort_path(item.path)):
-            title = str(concept.metadata.get("title") or concept.path)
-            status = str(concept.metadata.get("status") or "Active")
-            concept_type = str(concept.metadata.get("type") or "Concept")
+            title = _index_display_value(concept.metadata.get("title") or concept.path)
+            status = _index_display_value(concept.metadata.get("status") or "Active")
+            concept_type = _index_display_value(concept.metadata.get("type") or "Concept")
             filename = PurePosixPath(concept.path).name
-            entries.append(f"- [{title}]({filename}) - {status} {concept_type}\n")
+            destination = _index_link_destination(filename)
+            entries.append(f"- [{title}]({destination}) - {status} {concept_type}\n")
         if entries:
             name = PurePosixPath(directory).name
+            heading = _index_display_value(name)
             indexes[f"{directory}/index.md"] = (
                 f"{MANAGED_INDEX_MARKER}\n"
-                f"# OKF index: {name}\n\n"
+                f"# OKF index: {heading}\n\n"
                 + "".join(entries)
             ).encode("utf-8")
+            directory_text = _index_display_value(directory)
+            directory_target = _index_link_destination(f"{directory}/index.md")
             root_entries.append(
-                f"- [{directory}]({directory}/index.md) - {len(entries)} concepts\n"
+                (
+                    directory,
+                    f"- [{directory_text}]({directory_target}) - {len(entries)} concepts\n",
+                )
             )
 
     indexes["index.md"] = (
@@ -675,7 +780,10 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
         "---\n"
         f"{MANAGED_INDEX_MARKER}\n"
         f"# OKF index: {bundle_id}\n\n"
-        + "".join(sorted(root_entries, key=lambda item: item.encode("utf-8")))
+        + "".join(
+            entry
+            for _, entry in sorted(root_entries, key=lambda item: _sort_path(item[0]))
+        )
     ).encode("utf-8")
     return dict(sorted(indexes.items(), key=lambda item: _sort_path(item[0])))
 
@@ -2216,6 +2324,17 @@ def _metadata_diagnostics(path: str, metadata: Mapping[str, Any]) -> list[Diagno
                 _diagnostic("OKF009", path, "execution metadata is inert and not accepted here")
             )
             continue
+        if not _is_utf8_encodable(value):
+            # `yaml.safe_load` accepts a `\uD800` escape, and values such as
+            # `license`, `boundaries` and an `x-agentbundle` skill `description`
+            # reach strict encodes on the manifest and digest path. Without this
+            # the process aborts on an uncaught UnicodeEncodeError with no
+            # diagnostic; a value that cannot be encoded is malformed, which is
+            # what `OKF003` already covers.
+            diagnostics.append(
+                _diagnostic("OKF003", path, "frontmatter value is not encodable as UTF-8")
+            )
+            continue
         if _contains_remote_reference(value):
             diagnostics.append(
                 _diagnostic("OKF009", path, "remote retrieval metadata is not allowed")
@@ -2439,6 +2558,14 @@ def _collision_diagnostics(paths: Iterable[str]) -> list[Diagnostic]:
 def _is_safe_relative_path(path: str) -> bool:
     if not path or path.startswith("/") or "\\" in path or "//" in path or path.endswith("/"):
         return False
+    # A name the filesystem yields as surrogate-escaped bytes is not encodable, and
+    # every downstream sink here encodes strictly. Rejecting it at the gate keeps it
+    # out of the scan and the sort, so it fails with this function's existing
+    # `OKF004` instead of aborting the process on an uncaught UnicodeEncodeError.
+    try:
+        path.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
     if re.match(r"^[A-Za-z]:", path):
         return False
     parts = path.split("/")
@@ -2511,9 +2638,42 @@ def _contains_non_finite_number(value: Any) -> bool:
     return False
 
 
-def _contains_remote_reference(value: Any) -> bool:
+def _is_utf8_encodable(value: Any) -> bool:
+    """Return whether every string inside `value` survives a strict UTF-8 encode."""
     if isinstance(value, str):
-        return value.startswith(("http://", "https://"))
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            return False
+        return True
+    if isinstance(value, Mapping):
+        return all(
+            _is_utf8_encodable(key) and _is_utf8_encodable(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return all(_is_utf8_encodable(item) for item in value)
+    return True
+
+
+def _contains_remote_reference(value: Any) -> bool:
+    """Return whether `value` carries a remote reference anywhere inside it.
+
+    Frontmatter is display and governance metadata. This compiler never fetches a
+    URL or dereferences a remote resource, so a URL here is never dereferenced and
+    has no function the format supports. What it can do is survive display escaping into
+    a compiler-owned index that an agent treats as authoritative, where a GFM
+    extended autolink turns it into a live link. Matching anywhere rather than at
+    the start closes that, and covers `www.` and `mailto:` because GFM linkifies
+    those too.
+
+    Concept **bodies** are deliberately not scanned. An organization-specific
+    corpus legitimately points a reader at an internal app or runbook for manual
+    follow-up, and the body is where such a pointer belongs: it reaches the agent
+    on descent, is never fetched, and renders as authored.
+    """
+    if isinstance(value, str):
+        return bool(_REMOTE_REFERENCE.search(value))
     if isinstance(value, Mapping):
         return any(_contains_remote_reference(item) for item in value.values())
     if isinstance(value, list):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -183,6 +184,20 @@ def test_pack_declares_one_reference_router_without_projection_entries() -> None
     assert 'path = "okf/architecture-lenses"' in pack
     assert '"router-skill" = "architecture-lenses-reference"' in pack
     assert "projected-concepts" not in pack
+
+
+def test_architect_version_is_synchronized() -> None:
+    # STUB: AC8 — pack and plugin release surfaces move together. Assert the
+    # invariant, not a literal, for the reasons recorded on the
+    # catalogue-curation counterpart. The third surface — the topmost changelog
+    # heading — lives in tests/roster/ because a pack test may not read above
+    # its own pack.
+    pack = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    plugin = json.loads(
+        (PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+
+    assert plugin["version"] == pack["pack"]["version"]
 
 
 def test_generated_router_is_hierarchical_reference_only_and_manifest_owned() -> None:
