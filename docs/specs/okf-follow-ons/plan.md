@@ -1,7 +1,7 @@
 # Plan: OKF follow-ons
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** RFC-0087 D2/D4/D6/D7;
   `ARCHITECTURE.md` pack-source ownership;
   `packs/catalogue-curation/.apm/skills/compile-okf/scripts/okf_compiler.py`;

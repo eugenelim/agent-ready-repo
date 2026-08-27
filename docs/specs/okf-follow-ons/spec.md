@@ -1,6 +1,6 @@
 # Spec: OKF follow-ons
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0087, ADR-0093
@@ -100,7 +100,7 @@ affected packs ship internally consistent release metadata.
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** `title`, `status`, and `type` are each converted to a string,
+- [x] **AC1:** `title`, `status`, and `type` are each converted to a string,
   capped at 200 input characters, and escaped before compiler-owned index
   interpolation. Each escape rule is stated as a **class**, not as a list of
   members; an enumeration is what let three members slip through review.
@@ -145,7 +145,8 @@ affected packs ship internally consistent release metadata.
     lets a concept named `..&#x2F;..&#x2F;SKILL.md` render an attacker-chosen
     `href`, and `%` is encoded so an emitted escape is never read as a literal.
   - *RFC-3986-excluded* — `'`, `^`, `` ` ``, `{`, `}`. These are **not**
-    security-relevant here: `[t](don't.md)` already produced a working `href`.
+    security-relevant here: a link whose destination is `don't.md` already
+    produced a working `href`.
     They are encoded for URL validity, and that knowingly trades literal
     fidelity for it — a legitimately named `don't-panic.md` is cited as
     `don%27t-panic.md`.
@@ -158,20 +159,20 @@ affected packs ship internally consistent release metadata.
   so a test pins the refusal and names the dependency. Encoding the whole path
   was tried and rejected twice: it turned a legitimate `café.md` into
   `caf%C3%A9.md` for no security gain.
-- [ ] **AC2:** A title-variant hostile fixture pins the complete generated
+- [x] **AC2:** A title-variant hostile fixture pins the complete generated
   `references/okf/concepts/index.md` bytes and proves no attacker-selected link
   or extra index entry is emitted.
-- [ ] **AC3:** `docs/specs/okf-authoring-projection/spec.md` AC17 again states
+- [x] **AC3:** `docs/specs/okf-authoring-projection/spec.md` AC17 again states
   that fabricated source paths remain data, and its temporary "Two behaviours
   shipped narrower" boundary paragraph is absent. This is the user-authorized
   exception to the frozen shipped-spec convention.
-- [ ] **AC4:** A focused `compile_pack` test makes the second
+- [x] **AC4:** A focused `compile_pack` test makes the second
   `render_okf_bundle` call return different files, observes exit code 2 and
   diagnostics exactly `["OKF012"]`, and proves the selected pack is not
   mutated.
-- [ ] **AC5:** The AC4 test fails when the compiler is temporarily mutated to
+- [x] **AC5:** The AC4 test fails when the compiler is temporarily mutated to
   assign `second = first`, then passes again after the real guard is restored.
-- [ ] **AC6:** `packs/architect/okf/architecture-lenses/index.md` declares
+- [x] **AC6:** `packs/architect/okf/architecture-lenses/index.md` declares
   `license: "Apache-2.0 OR MIT"` and accurately describes the authored root as
   the compiler input rather than compiler-owned output; production OKF
   discovery and `agentbundle show architect --format json` succeed **against a
@@ -182,9 +183,9 @@ affected packs ship internally consistent release metadata.
   Re-verify with an editable install of this worktree, or by pointing the
   configured source at it; the durable artifact is the roster test, which drives
   `show.run` with this repository as the catalogue.
-- [ ] **AC7:** Recompiling architect updates only its compiler-owned outputs,
+- [x] **AC7:** Recompiling architect updates only its compiler-owned outputs,
   and `python3 tools/check-okf-managed-packs.py` passes.
-- [ ] **AC8:** `catalogue-curation` is released as 0.4.3 and `architect` as
+- [x] **AC8:** `catalogue-curation` is released as 0.4.3 and `architect` as
   0.15.3 with matching `pack.toml`, plugin metadata, and free-standing
   changelog entries. Each pack's own test asserts generic pack/plugin parity,
   and a repository roster test asserts the topmost matching changelog heading
@@ -192,7 +193,7 @@ affected packs ship internally consistent release metadata.
   surface is asserted from `tests/roster/` rather than in-pack because
   `tools/lint-pack-test-boundary.py` forbids a pack test from reading above its
   own pack, and `docs/product/changelog.md` is repository-level.
-- [ ] **AC9:** Focused pack tests, spec-status lint, pack verification, and the
+- [x] **AC9:** Focused pack tests, spec-status lint, pack verification, and the
   repository CI chain pass; any SAST or cleanup-sensitive case unavailable in
   the managed profile is recorded as an explicit incomplete leg rather than a
   green local claim.
@@ -262,7 +263,8 @@ affected packs ship internally consistent release metadata.
 - Technical: **The confirmed escape set is knowingly wider than security
   requires in two places, and the descriptions now say so.** `'`, `^`,
   `` ` ``, `{`, `}` are percent-encoded in destinations for RFC-3986 validity,
-  not safety — `[t](don't.md)` already produced a working `href` — so a
+  not safety — a link whose destination is `don't.md` already produced a working
+  `href` — so a
   legitimately named `don't-panic.md` is cited as `don%27t-panic.md`. Intraword
   `_` is escaped although CommonMark never emphasises it, so `cost_model` renders
   as `cost\_model`. Both were left as shipped on owner decision; what changed is
@@ -280,6 +282,18 @@ affected packs ship internally consistent release metadata.
   `same-keys-different-bytes` parameter is the one that kills a `files.keys()`
   comparison; the run therefore attests the parametrized test as shipped, not its
   pre-parametrize predecessor.
+- Process: **The round-21 escape guards were mutation-proven in both
+  directions**, 6/6 killed on 2026-08-27, again with the fix committed first: drop
+  `\x1c`–`\x1f` from the control class; drop the line separators from the
+  destination class; drop the bare-address autolink trigger; drop `_utf8_safe`
+  from the diagnostic constructor; drop the bare-address alternation from the
+  remote-reference predicate; and re-encode the whole path as the twice-rejected
+  wholesale version. The last one is the *permitting* direction — it reddens
+  `test_destination_encoding_permits_every_legitimate_filename_shape`, the check
+  a suite proving only the blocking direction would have passed. Each mutation
+  asserted its anchor matched exactly once before applying, so a stale anchor
+  reports a failure rather than skipping green, and the harness verified the
+  restore byte-for-byte.
 - Process: **AC9's incomplete leg, recorded rather than claimed green.** SAST did
   not run in this environment: the local chain is invoked as `SKIP_SAST=1 make
   ci` because the managed profile does not provide the scanner. The
