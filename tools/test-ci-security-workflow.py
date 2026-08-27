@@ -20,6 +20,15 @@ import sys
 
 import yaml
 
+# Windows cp1252 guard — this script prints non-ASCII verdict marks, and
+# `build_gate_chain.py`'s own guard covers only the parent process: `_script_step`
+# spawns children with the inherited environment and nothing forcing PYTHONUTF8.
+# A redirected or piped stdout on Windows falls back to the legacy ANSI code page,
+# where even the SUCCESS print raises UnicodeEncodeError and a passing check
+# returns non-zero. Same shape as `tools/test-test-all.py`.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci-security.yml"
 

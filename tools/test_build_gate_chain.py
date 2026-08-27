@@ -859,6 +859,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-ci-parity.py",
     "tools/test-build-check-windows-workflow.py",
     "tools/test-build-check-workflow.py",
+    "tools/test-ci-security-workflow.py",
     "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
