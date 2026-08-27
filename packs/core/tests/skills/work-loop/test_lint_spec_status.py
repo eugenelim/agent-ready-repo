@@ -160,7 +160,7 @@ def test_invariant_ii_transition_fails() -> None:
         expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
 
 
-def test_invariant_ii_transition_ok_when_deferred() -> None:
+def test_invariant_ii_transition_fails_when_deferred() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace_backlog(root, ["later-work"])
@@ -171,7 +171,9 @@ def test_invariant_ii_transition_ok_when_deferred() -> None:
             "- [x] AC1 done\n- [ ] AC2 later (deferred: later-work)\n",
         )
         rc, _, err = run_lint(root, base_ref="HEAD")
-        expect(rc == 0, f"ship w/ checked+deferred ACs should exit 0, got {rc}: {err}")
+        expect(rc == 1, f"new ship with a deferred AC should exit 1, got {rc}")
+        expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
+        expect("unchecked" in err, f"expected unchecked diagnostic: {err}")
 
 
 def test_invariant_ii_grandfather() -> None:

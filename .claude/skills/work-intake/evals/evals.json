@@ -304,6 +304,18 @@
         "Leaves architecture authoring with Architect and ADR authoring with new-adr",
         "Does not create current-product-truth, product-history, release-history, or user-documentation prose"
       ]
+    },
+    {
+      "id": 30,
+      "prompt": "Capture a separated follow-on from an amended spec. The source text includes rationale, review findings, suggested order, and a long chronology.",
+      "expected_output": "The agent writes the canonical artifact first, registers only a terse workspace entry with minimal provenance, one short current/next summary, and hard dependencies, and emits no narrative comments, chronology, rationale, procedure, raw findings, suggested order, or copied source text in workspace.toml.",
+      "assertions": [
+        "Materializes the follow-on artifact before workspace registration",
+        "Uses one short current/next summary",
+        "Keeps only hard dependencies in needs",
+        "Writes no narrative comments or copied source text",
+        "Does not use workspace.toml as the rationale or finding store"
+      ]
     }
   ]
 }

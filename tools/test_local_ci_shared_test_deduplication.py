@@ -40,9 +40,16 @@ SHARED_TESTS = (
 )
 
 CORE_COLLECTIONS = {
+    # Re-pinned by RFC-0096 Wave 4 (AC2d). Reconciled on every rebase by the
+    # same check: this branch's node set must match main's exactly except for
+    # one rename, `test_invariant_ii_transition_ok_when_deferred` ->
+    # `..._fails_when_deferred`, because a `(deferred: <slug>)` marker no
+    # longer makes a newly shipped AC valid. The count therefore tracks main
+    # unchanged while the digest moves; if a future rebase shows any other
+    # delta, disposition it before re-pinning rather than taking either side.
     SHARED_TESTS[0]: (
         73,
-        "c346431405e6debb549079fb0cd23787c160991d2a0d0a9d23c3d629b794494a",
+        "d049527415098b80da1f748d19fb4eff618cc0482df9f42bdeb4cae66bbc2555",
     ),
     SHARED_TESTS[1]: (
         15,
@@ -337,11 +344,18 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # line-continuation normalization.  The composed digest removes only the exact
 # workspace-status pair command from that same baseline; the construction test
 # path is the sole intentional addition and is checked separately below.
+# Re-pinned 2026-08-26 (RFC-0096 Wave 4), then again after rebasing onto the
+# collection-floor fold. `main` shrank both plans (72->66 standalone, 71->65
+# composed) by folding the pytest collection floors into their real executions.
+# Our delta on top of that remains exactly one added
+# `packs/core/tests/skills/close-work/` pytest line in each route, verified by
+# diffing both normalized dry-run plans against `main`'s Makefile: 66->67 and
+# 65->66, with no other line moved, reordered, or dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "36efb486ae79ddbcc1748ab86c022dfcc6177f1e178a9882ffa70f241625df2f"
+    "0b7d823b3048e2d1b34ae4ca8012661936a9468490a6442d969512e78dbb53c1"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "22407146b88fbf5be5f7e9d1b4b39eb050a7441f50e7edc4a8a1a64b8e76be9b"
+    "a5c7dd338ce08a5e029e5d4f3ed8c1d3eddcd2f46dc4e094aa200c3fed316e8b"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

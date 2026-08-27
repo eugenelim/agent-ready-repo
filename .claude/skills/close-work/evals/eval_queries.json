@@ -1,0 +1,66 @@
+[
+  {
+    "query": "Close this completed work and tell me what can be removed",
+    "should_trigger": true
+  },
+  {
+    "query": "Disposition this abandoned local delivery artifact",
+    "should_trigger": true
+  },
+  {
+    "query": "Check durable outputs and close the initiative",
+    "should_trigger": true
+  },
+  {
+    "query": "Pause this implementing work so it can be restored",
+    "should_trigger": true
+  },
+  {
+    "query": "Preview deletion of this never-pushed temporary spec",
+    "should_trigger": true
+  },
+  {
+    "query": "Reconcile the completion receipt and live dependencies",
+    "should_trigger": true
+  },
+  {
+    "query": "Implement the approved plan",
+    "should_trigger": false
+  },
+  {
+    "query": "Show workspace status",
+    "should_trigger": false
+  },
+  {
+    "query": "Create a new feature spec",
+    "should_trigger": false
+  },
+  {
+    "query": "Migrate all old specs to the new lifecycle schema",
+    "should_trigger": false
+  },
+  {
+    "query": "This work was superseded — close it out without claiming delivery",
+    "should_trigger": true
+  },
+  {
+    "query": "Recommend a safe disposition for this delivery contract",
+    "should_trigger": true
+  },
+  {
+    "query": "Queue this follow-up work item for later",
+    "should_trigger": false
+  },
+  {
+    "query": "Record this architecture decision as an ADR",
+    "should_trigger": false
+  },
+  {
+    "query": "Draft an RFC for the lifecycle policy change",
+    "should_trigger": false
+  },
+  {
+    "query": "Refactor the surface resolver to reduce duplication",
+    "should_trigger": false
+  }
+]

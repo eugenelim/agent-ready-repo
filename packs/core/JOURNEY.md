@@ -15,11 +15,12 @@ contract:
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
     - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
+    - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
     - approve-plan
     - merge-reviewed-change
-whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
+whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
 skills:
   - name: work-intake
     description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
@@ -27,6 +28,9 @@ skills:
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice, while one bounded CQ-REVIEW enquiry may inform candidate checks without changing reviewer authority."
     humanTouches: 2
+  - name: close-work
+    description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
+    humanTouches: 1
   - name: new-spec
     description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
     humanTouches: 1
@@ -120,6 +124,7 @@ goodOutputDescription: |-
 | `work-intake` | Route a start, remember, status, or refresh request into durable state |
 | `workspace-status` | Orient — what's ready, blocked, and done |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
+| `close-work` | Pause or close delivery work after verifying lasting context and exact authority |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `project-knowledge` | Capture, distill, and explicitly enquire over committed project lessons |
@@ -260,6 +265,26 @@ Scratch before capture can be lost if the workflow or worktree disappears. Reten
 
 - **Output:** committed topic evidence and receipts for explicit competency questions.
 - **State:** read-only
+
+---
+
+### 7. Close or pause delivery work
+
+Use `close-work` after delivery, abandonment, or supersession. It consumes the
+bounded `work-loop` evidence handoff, verifies that lasting facts reached their
+established owners, and asks you to confirm that affected human-readable surfaces
+remain coherent as wholes. Tests stay capability proof; they do not become the
+sole owner of intent, rationale, user promises, ownership, or operations.
+
+For resumable work, pause writes only a reference overlay to an existing writable
+coordination surface and keeps Ready or Implementing status. For closeout, the
+workflow shows blockers and one of six disposition intents. It does not delete,
+rewrite Git history, start the 30-day clock, or hide cooling records.
+
+- **You decide:** freshness, disposition intent, and each exact persisted effect.
+- **Output:** bounded closeout evidence, owned next actions, and no mutation unless
+  a fresh authority-bound confirmation is accepted.
+- **State:** confirmed-write
 
 ---
 

@@ -34,6 +34,36 @@ look like for them? Frame from the user's perspective, not the implementer's.
 Implementation detail belongs in `plan.md`.
 -->
 
+## Durable Outputs
+
+<!--
+Plan the lasting records this delivery must create or update before the spec is
+approved. This is repository-specific, not a fixed checklist. Consider user
+promise, current product truth, current architecture, decision rationale,
+interface compatibility, operations, maintainer procedure, release history, and
+reusable learning. Include only applicable roles.
+
+For each row, name:
+
+- Semantic role
+- Applicability
+- Destination
+- Owner
+- Expected evidence
+- Closeout condition
+
+If no durable output is applicable, write `none` with an explicit rationale.
+If a destination is ambiguous or absent, record the still-required decision as
+the closeout blocker; do not guess or create a placeholder. Read each applicable
+existing human-readable surface as a whole and name any refresh work before
+approval. For user-facing behavior, draft the established user-documentation
+surface before implementation approval.
+-->
+
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| <role> | <why applicable / why absent> | <resolved path, external locator, or required decision> | <owner role or workflow> | <test, guide, contract, release, or review evidence> | <what close-work must verify> |
+
 ## Boundaries
 
 The three-tier guard that keeps an implementing agent inside the lines.
@@ -96,7 +126,7 @@ a behavior, the behavior is too vague — sharpen it before moving on.
 The verifiable goals that close this spec. Each item should be checkable
 without subjective judgement — a reviewer can read it and know whether it
 holds. Notation: `- [ ]` open, `- [x]` met (see CONVENTIONS § 4 Spec
-metadata contract).
+metadata contract). A newly Shipped spec has no open Acceptance Criteria.
 
 Two recurring sources of criteria, so they don't slip into the plan as
 mere design detail:
@@ -123,13 +153,16 @@ mere design detail:
 - [ ] <observable outcome>
 - [ ] <observable outcome>
 
-A criterion that ships unmet *on purpose* is never left silently unchecked —
-mark it deferred with a slug that resolves in `workspace.toml [backlog].open`:
+Do not use `(deferred: <slug>)` as a new shipping exception. If an accepted AC
+is still required, keep the spec `Implementing` and resume it. If a separable
+item no longer belongs in the final accepted contract, pause for a reviewed
+spec/plan amendment, remove it from this checklist, and record it under
+`Follow-ons` with its owner and stable artifact or external evidence reference.
+Historical frozen specs may still contain older `(deferred: <slug>)` markers;
+do not copy that pattern into new shipped work.
+-->
 
-- [ ] <observable outcome> (deferred: <slug>)
-
-where <slug> matches a `slug` field in `workspace.toml [backlog].open`.
-
+<!--
 Optional story trace: when this spec was derived from a product brief that
 carries user stories (Shape B; see receive-brief), append `Satisfies: US-n`
 to each acceptance criterion that satisfies that story, so coverage is
@@ -139,6 +172,16 @@ story-granular:
 
 The marker is optional — omit it for a no-stories brief (Shape A) or a spec
 authored directly.
+-->
+
+## Follow-ons
+
+<!--
+Separately scoped work that does not belong to the final accepted AC set. Each
+entry needs an owner and a stable work-intake artifact or external evidence
+reference. Do not use this section to hide unfinished accepted intent.
+
+- <owner>: <stable artifact or external ref> — <one-sentence scope>
 -->
 
 ## Assumptions

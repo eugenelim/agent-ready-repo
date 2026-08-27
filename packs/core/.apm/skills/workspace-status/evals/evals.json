@@ -86,6 +86,22 @@
         "output_contains": ["tracker-origin", "example-service", "remote-rev-2", "remote-rev-1", "unknown"],
         "output_excludes": ["Outcome", "Example Approver", "Traceback", "workspace-status error:"]
       }
+    },
+    {
+      "id": 6,
+      "prompt": "Show whether this all-shipped initiative can be closed and what I should do next.",
+      "expected_output": "The agent uses workspace-status only for a read-only projection of pause, closeout blockers, all-specs-shipped eligibility, cooling-context visibility, and the instruction to invoke close-work. It does not distil content, choose a disposition, confirm authority, compact coordination, remove entries, or delete.",
+      "assertions": [
+        "Projects eligibility and blockers without choosing policy",
+        "Directs the user to close-work for closeout",
+        "Performs no write, compaction, or deletion"
+      ],
+      "files": ["evals/files/workspace.toml"],
+      "expect": {
+        "produces": [],
+        "output_contains": ["close-work"],
+        "output_excludes": ["deleted", "compacted", "Traceback", "workspace-status error:"]
+      }
     }
   ]
 }

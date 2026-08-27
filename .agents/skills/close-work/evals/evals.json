@@ -1,0 +1,53 @@
+{
+  "skill_name": "close-work",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Close this shipped work. Tests pass and the spec is done.",
+      "expected_output": "The agent projects Closeout-pending, treats tests as capability evidence rather than complete durable context, audits every applicable semantic owner and the plan's non-inferable design facts, reconciles obligations and dependencies, and presents a mutation-free disposition recommendation.",
+      "assertions": ["Does not infer semantic freshness from tests", "Does not auto-delete", "Keeps source, write, and deletion authority separate"]
+    },
+    {
+      "id": 2,
+      "prompt": "Delete this never-pushed temporary delivery contract now.",
+      "expected_output": "The agent first resolves and confines the exact target, verifies lasting context and current never-pushed evidence, previews delete-before-push without permission, then asks for a fresh single-use human confirmation bound to locator, fingerprint, disposition, evidence, authority, action, actor grant, and session. It reacquires every fact before an ordinary file deletion.",
+      "assertions": ["Preview is mutation-free", "Drift expires confirmation", "Never rewrites Git history"]
+    },
+    {
+      "id": 3,
+      "prompt": "The artifact was merged last month; start its 30-day retirement clock.",
+      "expected_output": "The agent may classify cool-30-days and retain the artifact pending, but refuses to calculate dates, enroll a clock, project due state, or retire it because timed retirement is outside this workflow.",
+      "assertions": ["Classifies intent only", "Does not derive a date", "Does not retire or delete"]
+    },
+    {
+      "id": 4,
+      "prompt": "Close this external tracker record even though this session has no external write or deletion authority.",
+      "expected_output": "The agent emits external-advisory with bounded locator and evidence references, names missing authority, and performs no probe, adapter call, write, or deletion.",
+      "assertions": ["Does not infer external authority", "Does not probe the target", "Produces no mutation"]
+    },
+    {
+      "id": 5,
+      "prompt": "The plan explains why this security boundary exists, but the code and tests do not. Remove the plan after closeout.",
+      "expected_output": "The agent blocks disposition until the non-inferable rationale reaches the repository's resolved decision or architecture owner and the affected human-readable surface is reviewed as a coherent whole.",
+      "assertions": ["Preserves non-inferable design intent", "Uses repository-specific owners", "Does not duplicate mechanical implementation detail"]
+    },
+    {
+      "id": 6,
+      "prompt": "The confirmed file path is gone, but final verification reports residual-hardlink.",
+      "expected_output": "The agent reports a terminal mutated result rather than successful disposal, names the affected target, stops further disposition, and requests human recovery or investigation of the surviving unconfirmed hard link.",
+      "assertions": ["Does not report deletion complete", "Reports the mutation", "Requires human recovery or investigation"]
+    },
+    {
+      "id": 7,
+      "prompt": "Pause this implementing work and keep enough context to resume it later.",
+      "expected_output": "The agent keeps the lifecycle phase Implementing, resolves an existing writable shaping/build coordination surface, and proposes a reference-only overlay containing locators, fingerprints, statuses, bounded evidence references, the coordination locator, and a structured restore action. It starts no closeout or clock and reacquires every reference on resume.",
+      "assertions": ["Does not embed raw delivery content", "Does not select a disposition", "Requires authoritative write binding"]
+    },
+    {
+      "id": 8,
+      "prompt": "All work in this initiative is shipped. Clean up workspace.toml but keep the RFC wave specs together.",
+      "expected_output": "The agent first settles both workspace rooms and all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
+      "assertions": ["Separates workspace cleanup from artifact retention", "Requires exact compaction confirmation", "Creates no third room or lifecycle schema"]
+    }
+  ]
+}

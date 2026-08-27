@@ -72,7 +72,7 @@ def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
 
     assert spec_gate < plan_gate
     spec_section = text[spec_gate:plan_gate]
-    plan_section = text[plan_gate:text.index("**If the spec is rejected:**", plan_gate)]
+    plan_section = text[plan_gate:text.index("For durable work", plan_gate)]
     assert "capture only" in spec_section
     assert "must not transfer" in spec_section
     assert "workflow-receipts" in plan_section
@@ -84,7 +84,7 @@ def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
 def test_approval_gate_requests_use_public_typed_capture_only() -> None:
     text = _skill_text()
     section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
-    section = section.split("**If the spec is rejected:**", 1)[0]
+    section = section.split("For durable work", 1)[0]
 
     for field in (
         "contract_version",
@@ -128,7 +128,7 @@ def test_work_loop_declares_its_file_boundaries() -> None:
 def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
     text = _skill_text()
     section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
-    section = section.split("**If the spec is rejected:**", 1)[0]
+    section = section.split("For durable work", 1)[0]
 
     assert "objective, boundaries, testing strategy, or acceptance criteria" in section
     assert re.search(

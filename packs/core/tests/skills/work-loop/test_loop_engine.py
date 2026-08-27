@@ -3606,7 +3606,13 @@ _TRANSITION_STEPS = [
     ("schema_version check", "unsupported schema_version"),
     ("run-ID preflight", "_run_id_preflight(spec_dir, run_id)"),
     ("transition-table validation", "illegal transition"),
-    ("CODE schedule pre-check", "_schedule_check_current(spec_dir)"),
+    # Anchored on Step 1b's own condition, not on the `_schedule_check_current`
+    # call, because that call now has two sites: this one and the pre-Step-1
+    # contract-amendment recovery branch, which verifies the plan against the
+    # scheduled baseline before it may derive new completed-section pins. A
+    # `find` on the shared callee would report the recovery branch's position
+    # and make this ordering assertion fail for a step that had not moved.
+    ("CODE schedule pre-check", "and not cohort_amendment_already_applied"),
     ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
     # The DECISION and the FINALIZATION are two steps, and they were previously one
     # anchor: the label said "state decision" while the anchor was the atomic write,
@@ -3713,7 +3719,7 @@ def test_schedule_precheck_wins_over_a_failing_event_guard(tmp: Path) -> None:
         ok(name)
 
 
-def test_engine_names_no_python_script_but_its_two_siblings() -> None:
+def test_engine_names_only_in_process_python_siblings_and_never_spawns_python() -> None:
     """Source-absence signal, independent of the runtime recorder in T5.
 
     Two signals rather than one because they fail differently: a recorder proves no
@@ -3738,6 +3744,7 @@ def test_engine_names_no_python_script_but_its_two_siblings() -> None:
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
         and _re.search(r"\.py$", node.value)
     }
-    assert literals <= {"_statelock.py", "_loop_guards.py"}, (
-        f"the engine names other Python scripts: {sorted(literals - {'_statelock.py', '_loop_guards.py'})}"
+    allowed = {"_statelock.py", "_loop_guards.py", "loop-cohort.py"}
+    assert literals <= allowed, (
+        f"the engine names other Python scripts: {sorted(literals - allowed)}"
     )

@@ -52,6 +52,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.13.0] — 2026-08-27
+
+### Highlights
+
+- **Delivery work can now close without losing the reasons and promises that
+  code and tests cannot explain.** `close-work` verifies repository-specific
+  durable outputs, whole-document semantic freshness, obligations, dependencies,
+  and authority before recommending a disposition.
+- **Immediate disposal is safe by construction and never automatic.** Every
+  file removal needs a fresh human confirmation bound to the exact current
+  target, fingerprint, disposition, evidence, authority, and session; any drift
+  expires it.
+
+### Added
+
+- Core's `close-work` workflow for completed, abandoned, superseded, paused, and
+  initiative-level delivery work, with six RFC-0096 dispositions and stable
+  refusal evidence.
+- Durable-output planning and Design/LLD extraction guidance for `new-spec`, plus
+  bounded completion-evidence handoff from `work-loop`.
+- Restorable reference-only pause overlays, dependency-scoped four-field
+  completion receipts, and read-only closeout projection in `workspace-status`.
+
+### Changed
+
+- Newly shipped specs require every final acceptance criterion to be checked.
+  Genuinely separable work moves through a reviewed, reapproved contract
+  amendment to an independently owned follow-on.
+- New and materially updated `workspace.toml` entries contain terse live state
+  and pointers rather than working history, rationale, or review narrative.
+- Full-mode rigor no longer implies permanent spec/plan retention: approved
+  local-only and PR-only records are supported when every required reader and
+  stable evidence owner is explicit.
+
+### Security
+
+- Source, write, and deletion authority remain independent. Local deletion
+  reuses the shipped semantic resolver and canonical confinement/file-safety
+  helpers, revalidates immediately before effect, and reports terminal residual
+  hard-link or rollback failure rather than claiming successful disposal.
+- Disposition intent grants no authority. Prompt-facing evidence is untrusted
+  data, and external targets remain advisory without a separately authorized
+  adapter.
+
+### Scope
+
+- Wave 4 classifies `cool-30-days` but adds no clock, dates, due state,
+  retirement, ordinary-context exclusion, historical migration, or pruning.
+  Those remain RFC-0096 Waves 5–7.
 
 ## [core][2.12.7] — 2026-08-27
 

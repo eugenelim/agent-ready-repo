@@ -161,6 +161,7 @@ jobs:
             packs/core/tests/skills/adapt-to-project/ \
             packs/core/tests/skills/bug-fix/ \
             packs/core/tests/skills/capture-work/ \
+            packs/core/tests/skills/close-work/ \
             packs/core/tests/skills/project-knowledge/ \
             packs/core/tests/skills/receive-brief/ \
             packs/core/tests/skills/work-intake/ \
