@@ -774,6 +774,7 @@ Emit exactly one fenced `json review-verdict.v1` block per review unit; full mod
 When gates are green and the mode's review requirements are satisfied → proceed to [Finish checklist](#finish-checklist).
 
 ## Termination
+
 Apply the linked [stop conditions](references/delivery-contract-lifecycle.md); an intermediate clean unit, retry cap, or stasis never completes accepted intent.
 
 ## Finish checklist

@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import pathlib
 import re
 import sys
 import tomllib
@@ -488,6 +489,134 @@ def _declared_boundaries(frontmatter: str) -> set[str]:
         for line in block.group(1).splitlines()
         if line.strip()
     }
+
+
+_RESULT_TYPES = frozenset({
+    "DeletionResult",
+    "PauseResult",
+    "ReceiptResult",
+    "InitiativeCloseoutResult",
+    "ArtifactCloseoutResult",
+    "Assessment",
+    "DispositionDecision",
+    "LifecycleProjection",
+})
+_TERMINAL_MUTATED_CODES = frozenset({"rollback-failed", "residual-hardlink"})
+# Provably unreachable emitters, retained as defence in depth behind
+# `_mutation_binding`'s identical checks on the identical values. No fixture can
+# reach them, so an assertion would have to fake the call rather than drive the
+# seam. Each carries an inline subsumption note at its site.
+_UNREACHABLE_BY_SUBSUMPTION = frozenset({
+    "action-not-authorized",
+    "grant-not-authoritative",
+    "session-provenance-invalid",
+})
+
+
+def _result_codes(source: str) -> set[str]:
+    """Every string literal close_work.py hands to a result constructor."""
+    codes: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in _RESULT_TYPES
+        ):
+            continue
+        for value in list(node.args) + [kw.value for kw in node.keywords]:
+            if (
+                isinstance(value, ast.Constant)
+                and isinstance(value.value, str)
+                and re.fullmatch(r"[a-z][a-z0-9-]{3,}", value.value)
+            ):
+                codes.add(value.value)
+    return codes
+
+
+def test_every_result_code_has_an_asserted_trace() -> None:
+    """No close-work outcome ships without a test that names it.
+
+    Plan T1's Done-when clause requires every refusal to have an asserted
+    zero-effect trace, and AC19 requires every case to assert the exact result.
+    Reviewers kept re-discovering this one code at a time, so the invariant is
+    mechanised here: a newly added result code fails this test until something
+    asserts it, and the only permitted exceptions are the provably unreachable
+    emitters named above.
+    """
+    codes = _result_codes(CLOSE_WORK_PATH.read_text(encoding="utf-8"))
+    assert len(codes) > 80, f"code extraction looks broken: found {len(codes)}"
+
+    searched = [
+        ROOT / "packs/core/tests/skills/close-work",
+        ROOT / "packs/core/tests/skills/work-loop",
+        ROOT / "tests/roster",
+        ROOT / "packs/core/.apm/skills/close-work/evals",
+    ]
+    corpus: list[str] = []
+    for base in searched:
+        for path in sorted(base.rglob("*")):
+            if path.suffix not in {".py", ".json"} or not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if path.resolve() == pathlib.Path(__file__).resolve():
+                # This module declares the allowlist literals, so leaving them in
+                # the corpus would let the guard satisfy itself: every exempt code
+                # would read as "asserted" because its own exemption names it.
+                text = re.sub(
+                    r"_UNREACHABLE_BY_SUBSUMPTION = frozenset\(\{.*?\}\)",
+                    "",
+                    text,
+                    flags=re.DOTALL,
+                )
+            corpus.append(text)
+    blob = "".join(corpus)
+
+    # Positive control: the de-seeding above must actually remove them, or the
+    # comparison below passes for the wrong reason.
+    for exempt in _UNREACHABLE_BY_SUBSUMPTION:
+        assert exempt not in blob, f"corpus still seeds {exempt}"
+
+    unasserted = sorted(c for c in codes if c not in blob)
+    assert unasserted == sorted(_UNREACHABLE_BY_SUBSUMPTION), unasserted
+
+    # The allowlist must stay honest: each entry must still be emitted by the
+    # module, so a deleted branch cannot leave a stale exemption behind.
+    assert codes >= _UNREACHABLE_BY_SUBSUMPTION
+
+
+def test_every_terminal_mutated_result_names_its_residue_identity() -> None:
+    """AC11: a mutated failure must say whether its residue is the confirmed inode.
+
+    Asserted over the parsed source rather than per call site, so a tenth
+    terminal construction added later cannot default `residue_state` to None.
+    """
+    source = CLOSE_WORK_PATH.read_text(encoding="utf-8")
+    seen = 0
+    for node in ast.walk(ast.parse(source)):
+        if not (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "DeletionResult"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and node.args[0].value in _TERMINAL_MUTATED_CODES
+        ):
+            continue
+        seen += 1
+        keywords = {kw.arg: kw.value for kw in node.keywords}
+        state = keywords.get("residue_state")
+        assert state is not None, f"line {node.lineno}: no residue_state"
+        assert isinstance(state, ast.Constant), f"line {node.lineno}: not a literal"
+        assert state.value in {
+            "identity-confirmed",
+            "identity-mismatch",
+            "unverified",
+        }, f"line {node.lineno}: {state.value!r} outside the closed vocabulary"
+    # Floor guards against the AST matcher silently matching nothing; the
+    # per-site assertions above are the real contract. 8 sites today, down
+    # from 9 since the successful-rollback path now reports
+    # `confirmation-expired` instead of a false `rollback-failed`.
+    assert seen >= 8, f"expected at least 8 terminal mutated sites, found {seen}"
 
 
 def test_close_work_declares_only_filesystem_boundaries() -> None:

@@ -62,11 +62,22 @@ def test_current_docs_form_one_closeout_story() -> None:
     # AC14: the user-facing how-to must keep naming every required record field
     # for the two non-deleting dispositions; without this they are deletable
     # table prose.
+    # Whitespace-normalized: these phrases are long enough to wrap, and a
+    # reflow must not silently disarm the pin.
+    how_to_flat = " ".join(how_to.split())
     for phrase in (
         "Record a bounded reason, an owner role, and a human-supplied review date",
         "Report the target, evidence, and missing authority without probing",
+        # AC11/AC20: the maintainer-facing recovery instruction must carry the
+        # same residue-identity contract the skill and the code do, or a
+        # maintainer can restore residue the tool proved is not the confirmed
+        # inode.
+        "identity-confirmed",
+        "identity-mismatch",
+        "unverified",
+        "Restore only an `identity-confirmed` residue",
     ):
-        assert phrase in how_to
+        assert phrase in how_to_flat, phrase
 
 
 def test_work_loop_keeps_detail_in_a_linked_reference() -> None:

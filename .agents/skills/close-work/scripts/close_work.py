@@ -275,8 +275,10 @@ class DeletionResult:
     permission_granted: bool = False
     recovery_residue: tuple[Path, ...] = ()
     residual_evidence: ResidualHardlinkEvidence | None = None
-    # Closed vocabulary, set on every terminal mutated outcome so the maintainer
-    # recovery the skill directs is aimed at content of known identity:
+    # Closed vocabulary, set on every terminal mutated *failure* outcome
+    # (`rollback-failed`, `residual-hardlink`) so the maintainer recovery the
+    # skill directs is aimed at content of known identity. A successful
+    # `deleted` leaves it None: there is no residue to identify.
     #   "identity-confirmed"  a descriptor proved the residue is the confirmed inode
     #   "identity-mismatch"   a descriptor proved it is NOT the confirmed inode
     #   "unverified"          no descriptor, or inspection failed: identity unknown
@@ -1107,7 +1109,17 @@ def classify_lld_fact(
 def validate_workspace_capture(
     *, summary: str, commentary: Sequence[str], needs: Sequence[str]
 ) -> Assessment:
-    """Accept only terse present-state coordination, never working history."""
+    """Reject the mechanically detectable shapes of working history.
+
+    This seam enforces exactly four things: a non-empty summary, a length bound,
+    an empty `commentary`, and a well-formed `needs` list. It also rejects a
+    small closed list of procedural fragments, which catches the common phrasings
+    and nothing more — it is a tripwire, not a classifier.
+
+    Judging whether prose is genuinely terse present-state coordination stays
+    with the skill's eval set and the human reviewing the entry. A caller must
+    not read an `accepted` result as a semantic guarantee.
+    """
     if not isinstance(summary, str) or not summary.strip():
         return Assessment("rejected", "summary-required")
     if len(summary) > MAX_SUMMARY_LENGTH:
@@ -1203,7 +1215,14 @@ def _confined_target_set(
         _preflight_enumeration_limits(repository_root, enumeration_root)
         enumerated = tuple(
             sorted(
-                helper.list_confined_regular_files(repository_root, enumeration_root),
+                # `max_files` bounds the traversal that materialises the list.
+                # The preflight above measured a separate, earlier walk, so a
+                # concurrent local writer under `enumeration_root` could grow
+                # the tree in between and be materialised in full before the
+                # `MAX_TARGETS` check below ever runs.
+                helper.list_confined_regular_files(
+                    repository_root, enumeration_root, max_files=MAX_TARGETS
+                ),
                 key=lambda path: path.relative_to(repository_root).as_posix(),
             )
         )
@@ -1563,7 +1582,7 @@ def preview_deletion(
     # `actor` is already refused by `_mutation_binding` against the same regex;
     # `proposer` is checked nowhere else, so it is the reachable half.
     if not _ACTOR_ROLE_RE.fullmatch(proposer):
-        return DeletionResult("actor-role-invalid")
+        return DeletionResult("proposer-role-invalid")
     # Both subsumed today by `_mutation_binding`'s prefix checks on the same two
     # values; retained as defence in depth against a future relaxation there.
     if not grant.startswith(_GRANT_PREFIXES):
@@ -1576,6 +1595,10 @@ def preview_deletion(
         source != "tool-session"
         or write != "tool-session"
         or delete != "tool-owned"
+        # These last two are subsumed today: `classify_disposition` only yields
+        # `discard-local` for an unpushed, unintegrated candidate, and the
+        # facts-conflict guard above already refuses a candidate whose facts
+        # differ from these scalars. Retained as defence in depth.
         or pushed
         or removal_integrated
     ):
@@ -2255,15 +2278,16 @@ def apply_confirmed_deletion(
                 target.parent, descriptor
             ):
                 rollback_result = rollback_staged_link()
-                # Reached only when rollback itself reported nothing; the staged
-                # fingerprint just failed to match, so identity is not proven.
-                return rollback_result or DeletionResult(
-                    "rollback-failed",
-                    (target,),
-                    True,
-                    (staging_path,),
-                    residue_state="unverified",
-                )
+                # `rollback_staged_link` returns None only after it relinked the
+                # original and unlinked the staging path, i.e. restoration
+                # succeeded. That is reachable here through the parent-path half
+                # of the condition above, which the helper does not re-test. So
+                # report no effect, exactly as the sibling seam does; claiming
+                # `rollback-failed` with a staging path that was just unlinked
+                # would aim maintainer recovery at a path that does not exist,
+                # and under a substituted parent it could resolve to foreign
+                # content.
+                return rollback_result or DeletionResult("confirmation-expired")
             try:
                 os.unlink(staging_name, dir_fd=descriptor)
             except OSError:

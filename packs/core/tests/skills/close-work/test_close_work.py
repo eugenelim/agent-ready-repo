@@ -361,9 +361,11 @@ def _candidate(close_work, **overrides):
             {"disposition_candidate": "REMOVAL_INTEGRATED_MISMATCH"},
             "disposition-facts-conflict",
         ),
-        # `actor-role-invalid` through its reachable `proposer` half; the actor
-        # half is already refused by `_mutation_binding`.
-        ({"proposer_role": "proposer@example.test"}, "actor-role-invalid"),
+        # `proposer-role-invalid`: the reachable half of the old
+        # `actor-role-invalid` guard. The `actor` half is refused upstream by
+        # `_mutation_binding` against the same regex, so the code was renamed
+        # to name the one field it can still concern.
+        ({"proposer_role": "proposer@example.test"}, "proposer-role-invalid"),
         # `source-state-invalid`: a non-bool `pushed` that still compares equal to
         # the candidate's real bool, so facts-conflict does not fire first.
         ({"disposition_candidate": "NON_BOOL_PUSHED"}, "source-state-invalid"),
@@ -1663,6 +1665,56 @@ def test_rollback_never_restores_a_swapped_staging_path(
     )
 
 
+@pytest.mark.parametrize(
+    ("dropped", "expected"),
+    [
+        ("current_disposition_candidate", "disposition-evidence-unavailable"),
+        ("current_surface_candidates", "surface-evidence-unavailable"),
+    ],
+)
+def test_post_confirmation_evidence_refusals_consume_the_confirmation(
+    tmp_path: Path, dropped: str, expected: str
+) -> None:
+    """AC11/AC19: the post-confirmation half of the destructive path.
+
+    These two guards sit after the confirmation is consumed, so the contract is
+    both a zero-effect refusal AND single-use consumption — a replay must not
+    become a second chance. The shared `_effect_kwargs` helper always supplied
+    both arguments, so neither guard had ever been driven.
+    """
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    before = target.read_bytes()
+    preview = _preview(close_work, tmp_path, target)
+    confirmation = _confirmation(close_work, preview, f"confirmation:{dropped}")
+
+    kwargs = _effect_kwargs(close_work, preview)
+    kwargs[dropped] = None
+
+    result = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview,
+        confirmation=confirmation,
+        **kwargs,
+    )
+
+    assert result.code == expected
+    assert result.mutated == ()
+    assert target.read_bytes() == before
+
+    # The confirmation was consumed before the guard, so a well-formed retry
+    # with the same confirmation must be refused as reused, not honoured.
+    replay = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview,
+        confirmation=confirmation,
+        **_effect_kwargs(close_work, preview),
+    )
+    assert replay.code == "confirmation-reused"
+    assert target.read_bytes() == before
+
+
 def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
     skill = " ".join((SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8").split())
     for phrase in (
@@ -1676,6 +1728,12 @@ def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
         # prose and could be deleted with every gate green.
         "Retain with bounded reason, owner role, and human-supplied review date",
         "Emit a bounded advisory; do not probe or mutate the external system",
+        # The residue-identity vocabulary is declared once in code and restated
+        # in shipped doctrine; without this pin a rename in one leaves the other
+        # silently wrong.
+        "identity-confirmed",
+        "identity-mismatch",
+        "unverified",
     ):
         assert phrase in skill
 

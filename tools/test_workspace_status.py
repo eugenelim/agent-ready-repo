@@ -1522,6 +1522,11 @@ _WORK_LOOP_CONTRACT_HASH = (
 # inherited from `main`; it is restored here, scoped to `spec.md`, because the
 # `lint-spec-status.py` failure warning has no other home —
 # `docs/CONVENTIONS.md` owns the vocabularies but not that warning.
+# (4) The Direct-light handoff bullet inside the same window now reads
+# "non-goals and independently scoped follow-ons" instead of "non-goals and
+# deferrals" — this wave's AC3 wording, pinned by
+# `packs/core/tests/skills/work-loop/test_close_work_handoff_wave4.py`. It
+# renames what the handoff lists, not who writes it.
 # Ownership is unchanged throughout: work-loop still writes spec.md
 # `Status: Shipped` and workspace-status still owns workspace.toml
 # queue/active/shipped, so the engine needs no edit.

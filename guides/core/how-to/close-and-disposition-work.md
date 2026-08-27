@@ -152,7 +152,13 @@ confirmed inode produces `residual-hardlink`. Any other rollback identity/conten
 corruption or operation failure produces `rollback-failed`. Both are terminal
 mutated outcomes: the report identifies the affected original path, bounded inode
 evidence, and any `.pending` recovery residue for deliberate maintainer recovery;
-do not claim success, restoration, or an unchanged refusal. Changed, stale, or unavailable
+do not claim success, restoration, or an unchanged refusal. Each such report also
+names the residue's identity, and you must read it before recovering anything:
+`identity-confirmed` means a descriptor proved the residue is the confirmed
+inode, `identity-mismatch` means a descriptor proved it is not, and `unverified`
+means no descriptor could establish it. **Restore only an `identity-confirmed`
+residue.** Restoring an `identity-mismatch` or `unverified` residue puts content
+of unknown origin back at the original path. Changed, stale, or unavailable
 push/integration evidence, or drift in source, write, or deletion authority,
 refuses before content is read. An effect attempt consumes the confirmation even
 when it refuses, so every later attempt needs a new preview and a new confirmation.

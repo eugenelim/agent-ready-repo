@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -652,37 +653,250 @@ def test_artifact_closeout_requires_review_of_a_contextual_anchor() -> None:
 
 
 def test_deterministic_seams_return_equal_results_on_a_second_run() -> None:
-    """AC19: two runs of the classification seams are byte-identical.
+    """AC19: two runs over the committed matrices are byte-identical.
 
-    `preview_deletion` is deliberately excluded: it embeds a fresh
-    `secrets.token_hex` challenge and is required to differ between runs.
+    The earlier version of this test called three pure constructors with literal
+    arguments, which could only have failed through global mutable state. This
+    drives every committed classification fixture twice and compares the
+    serialized result lists, so an ordering or dict-iteration change in the
+    seams actually reddens it. `preview_deletion` stays excluded on purpose: it
+    embeds a fresh `secrets.token_hex` challenge and is required to differ
+    between runs.
+    """
+    close_work = _close_work()
+    fixture_root = (
+        PACK_ROOT.parent.parent
+        / "tests/roster/fixtures/close-work-extraction-and-immediate-disposition"
+    )
+    assert fixture_root.is_dir(), fixture_root
+
+    def run() -> str:
+        rendered: list[str] = []
+
+        for raw in json.loads(
+            (fixture_root / "disposition-matrix.json").read_text(encoding="utf-8")
+        ):
+            candidate = close_work.DispositionCandidate(
+                lifecycle_outcome=raw.get(
+                    "lifecycle_outcome",
+                    "completed" if raw["delivered"] else "abandoned",
+                ),
+                persisted=raw["persisted"],
+                delivered=raw["delivered"],
+                pushed=raw["pushed"],
+                removal_change=raw["removal_change"],
+                removal_integrated=raw["removal_integrated"],
+                lasting_facts_settled=raw["lasting_facts_settled"],
+                obligations_settled=raw["obligations_settled"],
+                live_dependencies=raw["live_dependencies"],
+                retain_exception=raw["retain_exception"],
+                source_authority=raw["source_authority"],
+                write_authority=raw["write_authority"],
+                deletion_authority=raw["deletion_authority"],
+            )
+            rendered.append(
+                f"{raw['id']}|{dataclasses.asdict(close_work.classify_disposition(candidate))}"
+            )
+
+        for raw in json.loads(
+            (fixture_root / "lifecycle-matrix.json").read_text(encoding="utf-8")
+        ):
+            inputs = {
+                key: (tuple(value) if isinstance(value, list) else value)
+                for key, value in raw.items()
+                if key not in {"id", "expected", "expected_phase", "expected_blocker"}
+            }
+            rendered.append(
+                f"{raw['id']}|{dataclasses.asdict(close_work.project_lifecycle(**inputs))}"
+            )
+
+        return "\n".join(rendered)
+
+    first = run()
+    second = run()
+    assert first == second
+    # A non-trivial corpus, so the equality is not vacuous.
+    assert first.count("\n") >= 20, first.count("\n")
+
+
+# ── Systematic result-code coverage (plan T1 Done-when, AC19) ────────────────
+#
+# Reviewers re-discovered unasserted result codes one at a time across two
+# rounds. Rather than cover only the ones they named, these cases close the
+# whole class: `test_every_result_code_has_an_asserted_trace` in the close-work
+# roster file now fails when any newly added code lands without an assertion.
+# Every case below drives the real public seam and asserts the exact code.
+
+
+def test_classification_seams_reject_malformed_evidence() -> None:
+    """Every `classify_*` / `assess_*` refusal names its exact cause."""
+    close_work = _close_work()
+
+    def candidate(**overrides):
+        values = {
+            "lifecycle_outcome": "completed",
+            "persisted": True,
+            "delivered": False,
+            "pushed": False,
+            "removal_change": False,
+            "removal_integrated": False,
+            "lasting_facts_settled": True,
+            "obligations_settled": True,
+            "source_authority": "repository-origin",
+            "write_authority": "repository-maintainer",
+            "deletion_authority": "repository-owned",
+        }
+        values.update(overrides)
+        return close_work.DispositionCandidate(**values)
+
+    assert close_work.classify_disposition(
+        candidate(lifecycle_outcome="in-flight")
+    ).blocker == "lifecycle-outcome-invalid"
+    assert close_work.classify_disposition(
+        candidate(pushed="yes")
+    ).blocker == "disposition-facts-invalid"
+    assert close_work.classify_disposition(
+        candidate(write_authority="whoever")
+    ).blocker == "write-authority-invalid"
+    assert close_work.classify_disposition(
+        candidate(deletion_authority="whatever")
+    ).blocker == "deletion-authority-invalid"
+
+    # `assess_durable_output` refusals.
+    assert close_work.assess_durable_output(
+        applicable=True, destination=None,
+        freshness="confirmed", finding_status="none",
+    ).code == "destination-unresolved"
+    assert close_work.assess_durable_output(
+        applicable=True, destination="docs/product/intent.md",
+        freshness="stale", finding_status="none",
+    ).code == "semantic-freshness-unconfirmed"
+    assert close_work.assess_durable_output(
+        applicable=True, destination="docs/product/intent.md",
+        freshness="confirmed", finding_status="open",
+    ).code == "implementation-finding-unsettled"
+
+    # A non-inferable fact with no resolved owner blocks disposition.
+    assert close_work.classify_lld_fact(
+        kind="rationale", inferable_from_code=False, owner=None,
+    ).code == "durable-owner-unresolved"
+
+    # A `str` reads as a Sequence of characters, so the guard must type-check.
+    assert close_work.classify_artifact_closeout(
+        delivery_status="Shipped", live_dependencies="rfc-0096",
+        contextual_anchor=None, durable_outputs_settled=True,
+    ).code == "artifact-evidence-invalid"
+
+
+def test_artifact_closeout_success_terminal_is_asserted() -> None:
+    """The only success terminal of `classify_artifact_closeout`.
+
+    Without this, inverting the anchor branch or renaming the success code ships
+    with the whole suite green.
     """
     close_work = _close_work()
 
-    def sample() -> tuple[object, ...]:
-        return (
-            close_work.project_lifecycle(
-                spec_status="Implementing",
-                plan_status="Executing",
-                work_mode="spec-backed",
-                outcome=None,
-                paused=False,
-                receipt_present=False,
-                workspace_room="active",
-                post_closeout_result=None,
-                live_dependencies=("rfc-0096-wave-5",),
-                initiative_residue=False,
-            ),
-            close_work.classify_artifact_closeout(
-                delivery_status="Shipped",
-                live_dependencies=(),
-                contextual_anchor="rfc-family:0096",
-                durable_outputs_settled=True,
-            ),
-            close_work.wave4_capabilities(),
-        )
+    result = close_work.classify_artifact_closeout(
+        delivery_status="Shipped",
+        live_dependencies=(),
+        contextual_anchor=None,
+        durable_outputs_settled=True,
+    )
 
-    first = sample()
-    second = sample()
-    assert first == second
-    assert repr(first) == repr(second)
+    assert result.code == "disposition-classification-ready"
+    assert result.lifecycle_phase == "Closeout-pending"
+
+
+def test_lifecycle_projection_refusals_are_asserted() -> None:
+    """`project_lifecycle` names an invalid post-closeout result and a missing outcome."""
+    close_work = _close_work()
+
+    def project(**overrides):
+        values = {
+            "spec_status": "Shipped",
+            "plan_status": "Done",
+            "work_mode": "spec-backed",
+            "outcome": "completed",
+            "paused": False,
+            "receipt_present": False,
+            "workspace_room": "shipped",
+            "post_closeout_result": None,
+            "live_dependencies": (),
+            "initiative_residue": False,
+        }
+        values.update(overrides)
+        return close_work.project_lifecycle(**values)
+
+    assert project(post_closeout_result="vibes").blocker == (
+        "post-closeout-result-invalid"
+    )
+    # Same refusal on the direct-light branch.
+    assert project(
+        work_mode="direct-light", post_closeout_result="vibes"
+    ).blocker == "post-closeout-result-invalid"
+    assert project(outcome=None).blocker == "completion-outcome-required"
+
+
+def test_workspace_capture_refusals_are_asserted() -> None:
+    """AC2e: every `validate_workspace_capture` rejection names its exact cause."""
+    close_work = _close_work()
+    ok = {"summary": "Close Wave 4", "commentary": (), "needs": ()}
+
+    def capture(**overrides):
+        return close_work.validate_workspace_capture(**{**ok, **overrides})
+
+    assert capture(summary="   ").code == "summary-required"
+    assert capture(summary="x" * 5000).code == "summary-too-long"
+    assert capture(commentary=("we discussed this",)).code == "commentary-forbidden"
+    assert capture(
+        summary="First we run tests, then merge"
+    ).code == "procedure-or-history-forbidden"
+    # A `str` is a Sequence of characters, so it must be type-rejected.
+    assert capture(needs="docs/specs/other/spec.md").code == (
+        "hard-dependencies-invalid"
+    )
+    # And a structurally invalid member is rejected by the second guard.
+    assert capture(needs=("../escape",)).code == "hard-dependencies-invalid"
+    assert capture().status == "accepted"
+
+
+def test_receipt_and_initiative_evidence_refusals_are_asserted() -> None:
+    """Receipt and initiative seams refuse malformed evidence with zero effect."""
+    close_work = _close_work()
+    resource = "runtime-coordination:workspace"
+
+    # A non-bool dependency fact.
+    bad_dependency = close_work.plan_completion_receipt(
+        live_dependency="maybe",
+        compatible_surface=resource,
+        delivery_id="delivery:current",
+        outcome="completed",
+        completion_event="event:shipped",
+        **_authority(close_work, "write-completion-receipt", resource),
+    )
+    assert bad_dependency.code == "dependency-evidence-invalid"
+    assert bad_dependency.mutated == ()
+
+    # A malformed bounded-text field after a valid binding.
+    bad_receipt = close_work.plan_completion_receipt(
+        live_dependency=True,
+        compatible_surface=resource,
+        delivery_id="",
+        outcome="completed",
+        completion_event="event:shipped",
+        **_authority(close_work, "write-completion-receipt", resource),
+    )
+    assert bad_receipt.code == "receipt-evidence-required"
+    assert bad_receipt.mutated == ()
+
+    # A `str` residue reads as a Sequence of characters.
+    bad_residue = close_work.plan_initiative_closeout(
+        **_initiative_kwargs(close_work, resource, shaping_residue="leftover")
+    )
+    assert bad_residue.code == "initiative-evidence-invalid"
+
+    # A malformed anchor reaches the second emitter.
+    bad_anchor = close_work.plan_initiative_closeout(
+        **_initiative_kwargs(close_work, resource, contextual_anchor="")
+    )
+    assert bad_anchor.code == "initiative-evidence-invalid"
