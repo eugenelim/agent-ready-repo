@@ -1618,13 +1618,20 @@ Backticks are literal inside a comment, so this `-->` closes it.
 def test_a_backticked_comment_opener_inside_a_fence_remains_sample_text():
     """Fence handling must stay ahead of code-span-aware comment handling.
 
-    Moving the new masking ahead of the established fence state machine could
-    make a backticked sample opener swallow the later real release.
+    The backtick here is deliberately UNMATCHED, so it forms no code span and
+    the new mask cannot rescue this line. Only the fence can, which is what
+    makes the assertion discriminating: hoisting comment handling ahead of the
+    fence state machine turns this sample into a real unterminated comment and
+    the later release vanishes.
+
+    Written with a matched pair first, it was inert for two independent reasons
+    and passed under both that hoist and the code-span-blind parser it was
+    added to catch — a test that could not go red for the reason it named.
     """
     text = """# Changelog
 
 ```markdown
-A sample mentions `<!--` without a closer.
+A sample mentions `<!-- without a closing backtick or closer.
 ```
 
 ## [real][1.0.0] — 2026-08-05
