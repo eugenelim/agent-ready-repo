@@ -58,9 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cold status read.** Findings now retain a safe object slug instead of
   collapsing unrelated records under `workspace.toml`.
 - **Deferring an acceptance criterion no longer forces a legacy workspace
-  record.** `lint-spec-status` invariant (iv) now resolves a `(deferred: …)`
-  anchor from a canonical `{path, kind}` entry as well as a legacy `{slug}`
-  one, so the canonical shape is finally writable in `[backlog].open`.
+  record.** A `(deferred: …)` anchor now resolves from a canonical
+  `{path, kind}` entry as well as a legacy `{slug}` one, so a new deferral can
+  be recorded in the canonical shape.
 
 ### Fixed
 

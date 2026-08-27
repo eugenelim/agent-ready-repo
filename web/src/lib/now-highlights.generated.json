@@ -34,7 +34,7 @@
           ]
         },
         {
-          "source": "**Deferring an acceptance criterion no longer forces a legacy workspace record.** `lint-spec-status` invariant (iv) now resolves a `(deferred: …)` anchor from a canonical `{path, kind}` entry as well as a legacy `{slug}` one, so the canonical shape is finally writable in `[backlog].open`.",
+          "source": "**Deferring an acceptance criterion no longer forces a legacy workspace record.** A `(deferred: …)` anchor now resolves from a canonical `{path, kind}` entry as well as a legacy `{slug}` one, so a new deferral can be recorded in the canonical shape.",
           "segments": [
             {
               "type": "strong",
@@ -42,15 +42,7 @@
             },
             {
               "type": "text",
-              "value": " "
-            },
-            {
-              "type": "code",
-              "value": "lint-spec-status"
-            },
-            {
-              "type": "text",
-              "value": " invariant (iv) now resolves a "
+              "value": " A "
             },
             {
               "type": "code",
@@ -58,7 +50,7 @@
             },
             {
               "type": "text",
-              "value": " anchor from a canonical "
+              "value": " anchor now resolves from a canonical "
             },
             {
               "type": "code",
@@ -74,15 +66,7 @@
             },
             {
               "type": "text",
-              "value": " one, so the canonical shape is finally writable in "
-            },
-            {
-              "type": "code",
-              "value": "[backlog].open"
-            },
-            {
-              "type": "text",
-              "value": "."
+              "value": " one, so a new deferral can be recorded in the canonical shape."
             }
           ]
         }
