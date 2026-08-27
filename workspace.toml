@@ -1801,7 +1801,7 @@ open = [
   # control-pin-by-mutation obligation to security-reviewer. Non-cosmetic pack
   # change: bump pack.toml + plugin.json + changelog, then FORCE=1 make build-self.
   # Unblocks: now.
-  {slug = "reviewer-agents-miss-four-vacuous-assertion-shapes", source = "maintainer distill run 2026-08-27 (impact assessment item A)", summary = "quality-engineer.md and security-reviewer.md do not cover the four vacuous-assertion shapes distilled on 2026-08-27; security-reviewer has no control-pin-by-mutation obligation at all"},
+  {path = "docs/product/intents/reviewer-agent-vacuous-assertion-coverage.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Extend the quality and security reviewers to catch the four assertion shapes that cannot fail", needs = []},
 
 
   # Surfaced while specing knowledge-enquiry-scope-reachability, and required by
@@ -1815,21 +1815,8 @@ open = [
   # the envelope, most likely by narrowing `tools` and re-scoping corpus-wide topics.
   # Unblocks when: knowledge-enquiry-scope-reachability ships, since its matcher
   # decides which topics land in which tier.
-  {slug = "knowledge-topic-scope-granularity-starves-the-envelope", source = "spec/knowledge-enquiry-scope-reachability (adversarial review round 2, Concern 12)", summary = "17 topics apply corpus-wide and 20 share the base `tools`, so one specificity tier exceeds the 12-body enquiry envelope and 7 topics are never returned by any query"},
+  {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
 
-  # The knowledge topic a-pack-version-bump-is-three-files-build-self-syncs-none-of-them
-  # says "Bump all three by hand" (pack.toml, plugin.json, root marketplace.json)
-  # with no qualifier. That is wrong for 8 of 22 packs — core, example-pack,
-  # catalogue-curation, governance-extras, iac-terraform, monorepo-extras,
-  # release-engineering, user-guide-diataxis all ship a plugin.json but have no
-  # marketplace entry, because the Claude plugin marketplace is the user-profile
-  # install route and these are repo-scope (ADR-0002:34, ADR-0004:41). For those
-  # packs the third file is docs/product/changelog.md (CONVENTIONS.md:661-663,
-  # RFC-0095), not the marketplace manifest. Following the topic unqualified sends a
-  # reader looking for a file that cannot exist. Fix: add the qualifier through the
-  # capture -> distill guarded-mutation path; do not hand-edit the topic JSON.
-  # Unblocks: now.
-  {slug = "pack-version-bump-topic-is-over-general", source = "maintainer distill run 2026-08-27 (found while specing item E)", summary = "The three-files version-bump topic has no marketplace-listed qualifier and is wrong for the 8 repo-scope packs, whose third file is the changelog"},
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
