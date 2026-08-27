@@ -7,10 +7,26 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 AUTHOR_ROOT = PACK_ROOT / ".apm" / "skills" / "author-or-update-agent-skill"
+# Literal so every path this suite opens is statically confined to its own
+# pack; the routes the SKILL.md actually names are asserted against these.
+AUTHOR_ROUTES = (
+    "references/create.md",
+    "references/frame.md",
+    "references/knowledge-surfaces.md",
+    "references/language-extension-seams.md",
+    "references/provider-contract.md",
+    "references/safety-and-authority.md",
+    "references/update.md",
+)
+AUTHOR_EVIDENCE_SOURCES = (
+    "evals/evals.json",
+    "evals/files/update-existing-SKILL.md",
+)
 
 
 def _frontmatter(text: str) -> dict[str, object]:
@@ -87,19 +103,14 @@ def test_every_unsupported_mode_has_the_exact_versioned_unavailable_result() -> 
 def test_authoring_skill_routes_progressively_and_keeps_local_links_valid() -> None:
     text = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
     routes = re.findall(r"\((references/[^)]+\.md)\)", text)
-    assert set(routes) == {
-        "references/create.md",
-        "references/frame.md",
-        "references/knowledge-surfaces.md",
-        "references/language-extension-seams.md",
-        "references/provider-contract.md",
-        "references/safety-and-authority.md",
-        "references/update.md",
-    }
-    for route in routes:
-        assert (AUTHOR_ROOT / route).is_file()
+    assert set(routes) == set(AUTHOR_ROUTES)
     assert text.index("references/frame.md") < text.index("references/create.md")
     assert text.index("references/create.md") < text.index("references/update.md")
+
+
+@pytest.mark.parametrize("route", AUTHOR_ROUTES)
+def test_authoring_reference_route_resolves(route: str) -> None:
+    assert (AUTHOR_ROOT / route).is_file()
 
 
 def test_boundary_contract_confines_before_read_and_isolates_authentication() -> None:
@@ -136,7 +147,7 @@ def test_authoring_behavior_evals_cover_frame_and_existing_update() -> None:
     assert cases["frame-new-skill"].get("files") is None
     update_files = cases["update-existing-skill"]["files"]
     assert update_files == ["evals/files/update-existing-SKILL.md"]
-    assert all((AUTHOR_ROOT / path).is_file() for path in update_files)
+    assert (AUTHOR_ROOT / "evals" / "files" / "update-existing-SKILL.md").is_file()
     assert all(case["assertions"] for case in cases.values())
     assert all(case["expect"]["output_contains"] for case in cases.values())
 
@@ -159,10 +170,29 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         result = results[eval_id]
         assert all(result["assertions"])
         assert result["actual_markers"]
-        for relative_path, digest in result["source_files"].items():
-            path = AUTHOR_ROOT / relative_path
-            assert path.is_file()
-            assert "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest() == digest
+        # Every source the evidence binds must be one this suite digests below,
+        # so a newly named source cannot arrive unverified.
+        assert set(result["source_files"]) <= set(AUTHOR_EVIDENCE_SOURCES)
+
+
+@pytest.mark.parametrize("relative_path", AUTHOR_EVIDENCE_SOURCES)
+def test_authoring_behavior_evidence_matches_its_source_digest(
+    relative_path: str,
+) -> None:
+    evidence = json.loads(
+        (
+            PACK_ROOT / "tests" / "fixtures" / "behavior-results.json"
+        ).read_text(encoding="utf-8")
+    )
+    path = AUTHOR_ROOT / relative_path
+    assert path.is_file()
+    digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    recorded = {
+        result["source_files"][relative_path]
+        for result in evidence["results"]
+        if relative_path in result.get("source_files", {})
+    }
+    assert recorded == {digest}
 
 
 def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:

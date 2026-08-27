@@ -450,6 +450,10 @@ $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
 $(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
+$(PYTHON) -m pytest packs/agent-skill-engineering/tests/pack/ -q
+$(PYTHON) -m pytest packs/agent-skill-engineering/tests/integration/ -q
+$(PYTHON) -m pytest packs/agent-skill-engineering/tests/skills/author_or_update/ -q
+$(PYTHON) -m pytest packs/agent-skill-engineering/tests/skills/review_or_optimize/ -q
 $(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
 $(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
 $(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q

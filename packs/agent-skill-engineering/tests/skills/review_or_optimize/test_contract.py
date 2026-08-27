@@ -4,13 +4,38 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os.path
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 REVIEW_ROOT = PACK_ROOT / ".apm" / "skills" / "review-or-optimize-agent-skill"
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills"
+AUTHOR_SKILL_ROOT = SKILL_ROOT / "author-or-update-agent-skill"
+# Each route the SKILL.md may name, mapped to its target anchored from the
+# pack root rather than joined through `..`, so every path this suite opens
+# is statically confined. `test_review_route_targets_are_faithful` proves
+# each key really is the relative route from REVIEW_ROOT to its target, so
+# the map cannot drift from the routes the skill actually writes.
+ROUTE_TARGETS = {
+    "references/review-checklist.md":
+        REVIEW_ROOT / "references" / "review-checklist.md",
+    "references/optimization.md":
+        REVIEW_ROOT / "references" / "optimization.md",
+    "../author-or-update-agent-skill/references/provider-contract.md":
+        AUTHOR_SKILL_ROOT / "references" / "provider-contract.md",
+    "../author-or-update-agent-skill/references/language-extension-seams.md":
+        AUTHOR_SKILL_ROOT / "references" / "language-extension-seams.md",
+}
+REVIEW_ROUTES = tuple(ROUTE_TARGETS)
+REVIEW_EVAL_FILES = (
+    "evals/files/catchall-SKILL.md",
+    "evals/files/nondeterministic-SKILL.md",
+    "evals/files/nondeterministic-helper.py",
+)
 
 
 def _frontmatter(text: str) -> dict[str, object]:
@@ -43,6 +68,9 @@ def test_review_precedes_measured_optimization() -> None:
     # other's territory or an update request lands here instead.
     assert "do not use to frame, create, or update a skill" in description
     assert "belongs to the authoring workflow instead" in description
+    # "activation boundary" appears in both descriptions; naming a property
+    # to preserve must not reclassify an update request as a review.
+    assert "keeping its activation boundary or any other property intact is still an update" in description
     assert "Review is the default and remains read-only" in text
     assert "observed failure or measured\nbaseline" in text
     assert "explicit mode transition" in text
@@ -92,18 +120,23 @@ def test_review_skill_routes_resolve_including_sibling_pack_references() -> None
 
     text = (REVIEW_ROOT / "SKILL.md").read_text(encoding="utf-8")
     routes = re.findall(r"\(((?:\.\./|references/)[^)]+\.md)\)", text)
-    assert set(routes) == {
-        "references/review-checklist.md",
-        "references/optimization.md",
-        "../author-or-update-agent-skill/references/provider-contract.md",
-        "../author-or-update-agent-skill/references/language-extension-seams.md",
-    }
-    for route in routes:
-        assert (REVIEW_ROOT / route).is_file(), route
-        # A sibling route must stay inside the pack's own skill tree.
-        assert (REVIEW_ROOT / route).resolve().is_relative_to(
-            (PACK_ROOT / ".apm" / "skills").resolve()
-        ), route
+    assert set(routes) == set(REVIEW_ROUTES)
+
+
+@pytest.mark.parametrize("route", REVIEW_ROUTES)
+def test_review_reference_route_resolves_inside_the_pack(route: str) -> None:
+    target = ROUTE_TARGETS[route]
+    assert target.is_file(), route
+    # A sibling route must stay inside the pack's own skill tree.
+    assert target.resolve().is_relative_to(SKILL_ROOT.resolve()), route
+
+
+@pytest.mark.parametrize("route", REVIEW_ROUTES)
+def test_review_route_targets_are_faithful(route: str) -> None:
+    """The mapped target must be exactly what the written route resolves to."""
+
+    target = ROUTE_TARGETS[route]
+    assert os.path.relpath(target, REVIEW_ROOT).replace(os.sep, "/") == route
 
 
 def test_seeded_cases_have_exact_applicable_check_coverage() -> None:
@@ -143,7 +176,7 @@ def test_review_behavior_evals_seed_activation_and_script_failures() -> None:
         "detect-script-contract-failure",
     }
     seeded = {path for case in cases.values() for path in case["files"]}
-    assert all((REVIEW_ROOT / path).is_file() for path in seeded)
+    assert seeded <= set(REVIEW_EVAL_FILES)
     assert "evals/files/catchall-SKILL.md" in seeded
     assert "evals/files/nondeterministic-helper.py" in seeded
     assert all(case["assertions"] for case in cases.values())
@@ -190,10 +223,26 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         }
         assert set(result["actual_findings"]) == expected
         assert all(result["assertions"])
-        for relative_path, digest in result["source_files"].items():
-            path = REVIEW_ROOT / relative_path
-            assert path.is_file()
-            assert "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest() == digest
+        # Every source the evidence binds must be one this suite digests below.
+        assert set(result["source_files"]) <= set(REVIEW_EVAL_FILES)
+
+
+@pytest.mark.parametrize("relative_path", REVIEW_EVAL_FILES)
+def test_review_seeded_fixture_matches_its_recorded_digest(relative_path: str) -> None:
+    evidence = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "behavior-results.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    path = REVIEW_ROOT / relative_path
+    assert path.is_file()
+    digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    recorded = {
+        result["source_files"][relative_path]
+        for result in evidence["results"]
+        if relative_path in result.get("source_files", {})
+    }
+    assert recorded == {digest}
 
 
 def test_review_refuses_untrusted_instruction_and_authentication_escalation() -> None:

@@ -269,7 +269,16 @@ behavioral or artifact contract instead.
   register and build the pack uses the repository's existing external pack
   format and contains no portable workflow behavior. This slice does not
   define or change AgentBundle manifests, adapters, projections, installation,
-  publication, catalogue admission, or catalogue governance.
+  publication, catalogue admission, or catalogue governance. The repository's
+  required build gates additionally demand one catalogue-parity record per
+  pack: a `web/src/content/packs/<slug>.md` page whose `pluginInstallable`
+  mirrors `allowed-scopes`, and a guide-index entry or a recorded exemption.
+  That parity record is in scope and is delivery metadata, not portable
+  behavior; the pack still ships no `.claude-plugin/plugin.json`, its
+  marketplace projection stays empty, and its public guide belongs to a later
+  planned documentation slice (owner decision 2026-08-27). Until that guide
+  exists the page's `docsUrl` resolves to the guides index rather than to a
+  page that would 404.
 - [ ] **AC22 — Release gate.** The M1 corpus/router and workflow behavior gates
   in AC6, AC8, AC9, AC18, and AC19 pass before the foundation is considered
   implementation-ready for release. A failing optional consumer integration

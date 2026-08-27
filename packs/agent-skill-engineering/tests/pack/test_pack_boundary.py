@@ -12,6 +12,12 @@ import yaml
 PACK_ROOT = Path(__file__).resolve().parents[2]
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills"
 ROUTER_SKILL = "ase-okf-reference"
+# Anchored literally rather than joined from the evidence file's keys, so every
+# path this module opens is statically confined to its owning pack.
+WORKFLOW_ROOTS = {
+    "author-or-update-agent-skill": SKILL_ROOT / "author-or-update-agent-skill",
+    "review-or-optimize-agent-skill": SKILL_ROOT / "review-or-optimize-agent-skill",
+}
 
 
 def _boundaries(path: Path) -> list[str]:
@@ -89,12 +95,9 @@ def test_independent_activation_results_bind_all_queries_and_descriptions() -> N
     assert evidence["evaluation_mode"] == "headless-observed"
     assert evidence["adapter"] == "claude-code"
     assert evidence["runs"] >= 1
-    assert set(evidence["skills"]) == {
-        "author-or-update-agent-skill",
-        "review-or-optimize-agent-skill",
-    }
+    assert set(evidence["skills"]) == set(WORKFLOW_ROOTS)
     for skill, result in evidence["skills"].items():
-        skill_root = SKILL_ROOT / skill
+        skill_root = WORKFLOW_ROOTS[skill]
         skill_digest = hashlib.sha256((skill_root / "SKILL.md").read_bytes()).hexdigest()
         query_path = skill_root / "evals" / "eval_queries.json"
         query_digest = hashlib.sha256(query_path.read_bytes()).hexdigest()
