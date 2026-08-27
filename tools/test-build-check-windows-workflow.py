@@ -249,19 +249,30 @@ _MUTATIONS: list[Mutation] = [
     ),
     (
         # The subtler fail-open: every comparison string survives, so the
-        # per-variable family stays satisfied, but only one job blocks.
+        # per-variable family stays satisfied, but only agentbundle blocks —
+        # credbroker and lock-semantics merely log. Replacing the whole guard
+        # block matters: substituting only the `if` line would leave the
+        # original `exit 1` body attached to the second branch, and the mutant
+        # would still block on all three.
         "split-the-guard-so-only-one-job-blocks",
         "aggregate-blocks-on-failure",
         lambda text: text.replace(
             '          if [ "$AGENTBUNDLE_RESULT" != "success" ]'
             ' || [ "$CREDBROKER_RESULT" != "success" ]'
-            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n',
+            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n'
+            '            echo "Windows suites failed: agentbundle='
+            "$AGENTBUNDLE_RESULT credbroker=$CREDBROKER_RESULT "
+            'lock-semantics=$LOCK_SEMANTICS_RESULT" >&2\n'
+            "            exit 1\n"
+            "          fi\n",
             '          if [ "$AGENTBUNDLE_RESULT" != "success" ]; then\n'
             '            echo "agentbundle failed" >&2\n'
             "            exit 1\n"
             "          fi\n"
             '          if [ "$CREDBROKER_RESULT" != "success" ]'
-            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n',
+            ' || [ "$LOCK_SEMANTICS_RESULT" != "success" ]; then\n'
+            '            echo "credbroker/lock-semantics failed (advisory)" >&2\n'
+            "          fi\n",
             1,
         ),
     ),
