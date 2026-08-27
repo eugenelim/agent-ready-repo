@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Acceptance-Criteria heading now has one supported spelling,
+  `## Acceptance Criteria`. A heading differing only in case, level, or
+  indentation no longer satisfies invariant (vi) and is reported with the exact
+  form to use. Its criteria are still read, so invariant (ii) keeps checking
+  them -- a heading defect never silently un-gates a spec.
 - Diff-trigger invariant (vi) for new specs and specs that remove their
   Acceptance-Criteria section. Authors opt out with the exact metadata line
   `- **Acceptance Criteria:** none — <one-line reason>`. Existing sectionless

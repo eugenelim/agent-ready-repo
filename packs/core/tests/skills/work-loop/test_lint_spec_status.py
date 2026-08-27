@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import importlib.util
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -621,21 +620,37 @@ def test_unchecked_ac_is_caught_whatever_the_heading_casing(header: str) -> None
     ["## Acceptance Criteria\n\n", _LOWER_AC_HEADER],
     ids=["title-case", "sentence-case"],
 )
-def test_fully_checked_spec_passes_under_either_casing(header: str) -> None:
-    """The tolerant match must not turn a clean spec red."""
+def test_fully_checked_spec_under_either_casing(header: str) -> None:
+    """A clean spec stays clean under the canonical heading; a near miss is
+    reported as a heading defect, never as a missing section.
+
+    The casings are no longer interchangeable: (vi) enforces the canonical form
+    on a new spec. What must NOT happen is the near-miss arm being told to add a
+    `none` opt-out — that would put a false "no criteria" marker on a spec that
+    has one.
+    """
+    canonical = header == "## Acceptance Criteria\n\n"
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         _write_spec_with_header(root, "preexisting", "Draft", "- [x] AC1\n", header)
         git_init_commit(root)
         _write_spec_with_header(root, "newborn", "Shipped", "- [x] AC1 done\n", header)
         rc, out, err = run_lint(root, base_ref="HEAD")
-        assert rc == 0, f"clean spec under {header!r} should exit 0, got {rc}\n{out}\n{err}"
+        if canonical:
+            assert rc == 0, f"clean spec should exit 0, got {rc}\n{out}\n{err}"
+        else:
+            assert rc == 1, f"a near-miss heading must be reported\n{out}\n{err}"
+            assert "heading must be exactly" in err, err
+            assert "do NOT add a `none` opt-out" in err, err
 
 
 # ---------------------------------------------------------------------------
 # Invariant (vi): an absent Acceptance-Criteria section requires an explicit,
-# reasoned metadata opt-out. The section detector and criterion collector share
-# one heading matcher so this invariant cannot pass a spelling that (ii) misses.
+# reasoned metadata opt-out. The section detector is EXACT while the criterion
+# collector stays permissive -- deliberately one-directional. (vi) enforces the
+# canonical heading so drift cannot reseed; (ii) keeps reading criteria it can
+# plainly see. Collapsing them either way regresses: a strict collector silently
+# un-gates (ii), a permissive detector reopens the drift path.
 # ---------------------------------------------------------------------------
 
 
@@ -909,12 +924,17 @@ def test_vi_fenced_opt_out_marker_does_not_satisfy() -> None:
     ["### Acceptance Criteria\n\n", "  ## Acceptance Criteria\n\n"],
     ids=["h3", "indented-h2"],
 )
-def test_vi_commonmark_heading_shapes_are_present(header: str) -> None:
+def test_vi_commonmark_heading_shapes_are_not_the_canonical_section(
+    header: str,
+) -> None:
+    """`###` and an indented `##` are legal CommonMark but are NOT the one
+    supported shape. They no longer satisfy (vi) -- accepting them is the drift
+    path that let six specs diverge -- while the collector still reads their
+    criteria so (ii) keeps working."""
     lint = load_linter_module()
-    text = f"{header}- [ ] AC1 open\n"
-
-    assert lint.acceptance_criteria_section_present(text)
-    assert lint.acceptance_criteria_lines(text) == [(3, "- [ ] AC1 open")]
+    spec = f"# Spec: s\n\n- **Status:** Shipped\n\n{header}\n- [x] a\n"
+    assert lint.acceptance_criteria_section_present(spec) is False, header
+    assert len(lint.acceptance_criteria_lines(spec)) == 1, header
 
 
 def test_vi_placeholder_reason_is_rejected() -> None:
@@ -934,18 +954,28 @@ def test_vi_placeholder_reason_is_rejected() -> None:
         assert "non-placeholder one-line reason" in err
 
 
-def test_ac_section_detector_and_collector_share_one_pattern() -> None:
-    lint = load_linter_module()
-    lint._AC_SECTION_HEADING_RE = re.compile(
-        r"^##\s+Verification Criteria\b", re.IGNORECASE
-    )
-    shared_match = "## Verification Criteria\n\n- [ ] AC1 open\n"
-    old_match = "## Acceptance Criteria\n\n- [ ] AC1 open\n"
+def test_collector_accepts_a_superset_of_what_the_detector_accepts() -> None:
+    """The two matchers diverge on purpose, in one direction only.
 
-    assert lint.acceptance_criteria_section_present(shared_match)
-    assert lint.acceptance_criteria_lines(shared_match) == [(3, "- [ ] AC1 open")]
-    assert not lint.acceptance_criteria_section_present(old_match)
-    assert lint.acceptance_criteria_lines(old_match) == []
+    Superset, never the reverse. If the DETECTOR ever accepted a spelling the
+    collector could not read, (vi) would report a section that (ii) reads
+    nothing from -- the vacuous pass this invariant exists to close. The other
+    direction is safe: the collector over-reading only means (ii) checks more.
+    """
+    lint = load_linter_module()
+    shapes = [
+        "## Acceptance Criteria",
+        "## Acceptance criteria",
+        "### Acceptance Criteria",
+        "  ## Acceptance Criteria",
+    ]
+    for heading in shapes:
+        spec = f"# Spec: s\n\n{heading}\n\n- [ ] AC1 open\n"
+        detected = lint.acceptance_criteria_section_present(spec)
+        collected = bool(lint.acceptance_criteria_lines(spec))
+        assert not (detected and not collected), (
+            f"{heading!r}: detector accepts a shape the collector cannot read"
+        )
 
 
 def test_vi_mutation_missing_section_fires_until_only_marker_is_added() -> None:
@@ -975,3 +1005,39 @@ def test_vi_mutation_missing_section_fires_until_only_marker_is_added() -> None:
 
         assert hard_before != hard_after, "marker mutation must change the result"
         assert hard_after == []
+
+
+def test_ac_heading_presence_is_exact_while_the_collector_is_permissive() -> None:
+    """One-directional strictness, pinned in both directions.
+
+    (vi) enforces the canonical heading so drift cannot reseed; the collector
+    stays permissive so (ii) never stops reading criteria it can plainly see.
+    """
+    lint = load_linter_module()
+    for heading in ("## Acceptance criteria", "### Acceptance Criteria",
+                    "  ## Acceptance Criteria"):
+        spec = f"# Spec: s\n\n- **Status:** Shipped\n\n{heading}\n\n- [x] a\n"
+        assert lint.acceptance_criteria_section_present(spec) is False, heading
+        assert len(lint.acceptance_criteria_lines(spec)) == 1, heading
+    canonical = (
+        "# Spec: s\n\n- **Status:** Shipped\n\n## Acceptance Criteria\n\n- [x] a\n"
+    )
+    assert lint.acceptance_criteria_section_present(canonical) is True
+    assert len(lint.acceptance_criteria_lines(canonical)) == 1
+
+
+def test_near_miss_heading_is_warned_not_silently_accepted() -> None:
+    """Silence would un-gate an adopter's spec without telling anyone.
+
+    Measured before this warning existed: making the collector strict took an
+    adopter shipping an unmet criterion under `## Acceptance criteria` from a
+    hard invariant (ii) violation to exit 0. Not breaking a build is not the
+    same as still working.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_spec_with_header(root, "legacy", "Draft", "- [x] AC1\n", _LOWER_AC_HEADER)
+        git_init_commit(root)
+        rc, out, err = run_lint(root, base_ref="HEAD")
+        assert rc == 0, f"a near miss must warn, not fail: {out}\n{err}"
+        assert "`## Acceptance Criteria`" in err, err

@@ -93,7 +93,7 @@ is implied that did not happen.
 - Put terms-of-service or case-law reasoning in any repository artifact. The amendment
   layer receives architectural statements only.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — Open question 3's bar is amended in one place, and no earlier reading of
   it survives.** The amendment layer states the bar as a destination adapter contract

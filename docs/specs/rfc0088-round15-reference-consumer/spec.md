@@ -162,7 +162,7 @@ that would close it — never by prose that is true whichever way the measuremen
 - Mutate any live account state, or enumerate identifiers against a third party.
 - Put terms-of-service or case-law reasoning in any repository artifact.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — The sign-in window is a three-state sequence, and each blind-phase conjunct
   is separately asserted.** The states are **blind** (nothing read at all), **probe-only**

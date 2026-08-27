@@ -123,9 +123,35 @@ _AC_DONE_RE = re.compile(r"^\s*-\s*\[[xX]\]\s")
 # The section-presence invariant and the criterion collector must share this
 # matcher: accepting a spelling that the collector cannot read recreates the
 # vacuous pass invariant (vi) exists to close.
-_AC_SECTION_HEADING_RE = re.compile(
+#
+# EXACT on purpose. This was case-insensitive and accepted `###` and up to three
+# leading spaces, which is how six specs drifted to `## Acceptance criteria`
+# despite the new-spec template emitting the canonical form all along: a
+# hand-written variant passed silently, so nothing corrected it. One supported
+# shape, read exactly, is what stops the residue reappearing.
+_AC_SECTION_HEADING_RE = re.compile(r"^## Acceptance Criteria\b")
+# A heading differing only in case, level, or indentation. Not accepted --
+# accepting it IS the drift path -- but not silent either: it earns a warning
+# naming the exact form. Silence would un-gate an adopter's spec without telling
+# anyone, which is the failure this invariant exists to prevent.
+_AC_HEADING_NEAR_MISS_RE = re.compile(
     r"^ {0,3}#{2,3}[ \t]+Acceptance Criteria\b", re.IGNORECASE
 )
+# What the CRITERION COLLECTOR matches. Deliberately looser than
+# `_AC_SECTION_HEADING_RE`, and the direction is the whole point.
+#
+# Invariant (vi) -- "is there a section?" -- uses the EXACT matcher, so the
+# canonical heading is enforced and drift cannot reseed. The collector uses this
+# one, so invariant (ii) never stops reading criteria it can plainly see.
+#
+# Measured before this split existed: an adopter shipping a spec with an unmet
+# criterion under `## Acceptance criteria` went from
+# `invariant (ii) — AC is unchecked and not deferred` (exit 1) to a warning and
+# exit 0. Making the collector strict did not break their build; it silently
+# stopped catching a real violation, which is worse -- and is the vacuous pass
+# invariant (vi) exists to close. Over-reading is the safe direction here;
+# under-reading is how a gate goes quiet.
+_AC_COLLECTOR_HEADING_RE = _AC_HEADING_NEAR_MISS_RE
 # Explicit opt-out for a spec that intentionally has no AC section. The reason
 # group is optional so the parser can distinguish a missing marker (None) from
 # a present but reasonless marker (an empty string).
@@ -460,7 +486,7 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     in_ac = False
     opened_level = 0
     for lineno, line in _unfenced_lines(spec_text):
-        if _AC_SECTION_HEADING_RE.match(line):
+        if _AC_COLLECTOR_HEADING_RE.match(line):
             in_ac = True
             stripped = line.lstrip()
             opened_level = len(stripped) - len(stripped.lstrip("#"))
@@ -667,6 +693,21 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         # sectionless specs are grandfathered, but any marker an author writes
         # remains subject to the marker-shape invariants.
         has_ac_section = acceptance_criteria_section_present(text)
+        ac_heading_near_miss = None
+        if not has_ac_section:
+            # Warn rather than accept or ignore: an adopter whose spec reads
+            # `## Acceptance criteria` is told the exact form instead of
+            # silently losing its criteria to invariant (ii).
+            for _lineno, _line in enumerate(text.splitlines(), start=1):
+                if _AC_HEADING_NEAR_MISS_RE.match(_line):
+                    ac_heading_near_miss = (_lineno, _line.strip())
+                    warn.append(
+                        f"{rel}:{_lineno}: Acceptance-Criteria heading should be "
+                        f"exactly `## Acceptance Criteria` (found "
+                        f"{_line.strip()!r}); its criteria are still checked, "
+                        f"but the section does not satisfy invariant (vi)"
+                    )
+                    break
         ac_opt_out = acceptance_criteria_opt_out(text)
         ac_opt_out_near_miss = acceptance_criteria_opt_out_near_miss(text)
         if ac_opt_out_near_miss is not None:
@@ -699,6 +740,12 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             )
         ):
             hard.append(
+                f"{rel}:{ac_heading_near_miss[0]}: invariant (vi) — "
+                f"Acceptance-Criteria heading must be exactly "
+                f"`## Acceptance Criteria` (found {ac_heading_near_miss[1]!r}); "
+                f"fix the heading — do NOT add a `none` opt-out to a spec that "
+                f"has criteria"
+                if ac_heading_near_miss is not None else
                 f"{rel}: invariant (vi) — spec has no `## Acceptance Criteria` "
                 "section and no `- **Acceptance Criteria:** none — <reason>` "
                 "opt-out header"

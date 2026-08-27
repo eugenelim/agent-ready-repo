@@ -1093,6 +1093,18 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
+  # Consolidates the PR #1139 follow-on findings. Direction is enforcement, not
+  # parsing. The heading half shipped: 6 specs normalized, corpus 405/0, matcher
+  # exact with a near-miss warning. Comments and code spans CANNOT be banned --
+  # 251 of 407 specs carry a real comment, 245 in the preamble, all 407 use code
+  # spans, and the template emits 16 comments itself -- so the residual risk is
+  # one shape (a commented-out or fenced AC section, 0 specs today) and is a lint
+  # rule, not a CommonMark parser. Four rounds of the parser route are the
+  # evidence. Two robustness defects and build-site's stripper are NOT covered.
+  # Unblocks when: picked up -- no dependency.
+  {path = "docs/product/intents/spec-ac-text-normalization.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py", revision = "sha256-bytes-v1:45492bdceb9a6ddb3d3fa7ec03c0aeacd9d27d7d970105f83e14905c511c2c9c"}, summary = "Enforce the one supported spec format tightly rather than parsing every variant; the heading half is done, what remains is the marker shape, two robustness defects, and build-site's separate comment stripper", needs = []},
+
+
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
