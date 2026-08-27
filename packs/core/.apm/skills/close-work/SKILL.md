@@ -123,7 +123,11 @@ effect. A surviving added link on the confirmed inode produces
 `residual-hardlink`; any other rollback identity/content corruption or operation
 failure produces `rollback-failed`. Both are terminal mutated outcomes: report the
 affected original path, bounded inode evidence, and any `.pending` recovery residue
-for deliberate maintainer recovery. Never claim success, restoration, or an
+for deliberate maintainer recovery. Every such outcome also names the residue's
+identity, because recovery is only safe when the residue is known to be the
+confirmed inode: `identity-confirmed` when a descriptor proved it is,
+`identity-mismatch` when a descriptor proved it is not, and `unverified` when no
+descriptor could establish it. Never claim success, restoration, or an
 unchanged refusal. A new attempt needs a new preview and confirmation. After final
 unlink, prove through the still open inode descriptor that no link survives. Never
 recurse implicitly.

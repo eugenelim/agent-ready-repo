@@ -328,6 +328,87 @@ def test_fresh_exact_confirmation_deletes_once_and_never_rewrites_history(
     assert target.read_text(encoding="utf-8") == "replacement\n"
 
 
+def _candidate(close_work, **overrides):
+    """A DispositionCandidate that classifies as `delete-before-push` by default."""
+    values = {
+        "lifecycle_outcome": "completed",
+        "persisted": True,
+        "delivered": False,
+        "pushed": False,
+        "removal_change": False,
+        "removal_integrated": False,
+        "lasting_facts_settled": True,
+        "obligations_settled": True,
+        "source_authority": "repository-origin",
+        "write_authority": "repository-maintainer",
+        "deletion_authority": "repository-owned",
+    }
+    values.update(overrides)
+    return close_work.DispositionCandidate(**values)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        # `surface-role-invalid`: only the delivery-contract role may be deleted.
+        ({"surface_role": "delivery-residue"}, "surface-role-invalid"),
+        # `disposition-eligibility-invalid`: the candidate must be the real type.
+        ({"disposition_candidate": None}, "disposition-eligibility-invalid"),
+        # `disposition-facts-conflict`: candidate facts must equal the bound
+        # scalars. `removal_integrated` differs here while classification is
+        # unaffected, so this branch is reached rather than an earlier one.
+        (
+            {"disposition_candidate": "REMOVAL_INTEGRATED_MISMATCH"},
+            "disposition-facts-conflict",
+        ),
+        # `actor-role-invalid` through its reachable `proposer` half; the actor
+        # half is already refused by `_mutation_binding`.
+        ({"proposer_role": "proposer@example.test"}, "actor-role-invalid"),
+        # `source-state-invalid`: a non-bool `pushed` that still compares equal to
+        # the candidate's real bool, so facts-conflict does not fire first.
+        ({"disposition_candidate": "NON_BOOL_PUSHED"}, "source-state-invalid"),
+        # `source-state-ineligible`: discard-local demands tool-session write
+        # authority; a repository-maintainer write reaches this branch.
+        ({"disposition_candidate": "DISCARD_LOCAL_WRONG_WRITE"}, "source-state-ineligible"),
+    ],
+)
+def test_pre_effect_refusals_on_the_deletion_path_have_zero_effect(
+    tmp_path: Path, overrides: dict[str, object], expected: str
+) -> None:
+    """Every guard past authority binding refuses with an exact code and no effect."""
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    before = target.read_bytes()
+
+    resolved = dict(overrides)
+    sentinel = resolved.get("disposition_candidate")
+    if sentinel == "REMOVAL_INTEGRATED_MISMATCH":
+        resolved["disposition_candidate"] = _candidate(
+            close_work, removal_integrated=True
+        )
+    elif sentinel == "NON_BOOL_PUSHED":
+        resolved["disposition_candidate"] = _candidate(close_work)
+        resolved["pushed"] = 0
+    elif sentinel == "DISCARD_LOCAL_WRONG_WRITE":
+        resolved["disposition_candidate"] = _candidate(
+            close_work,
+            persisted=False,
+            source_authority="tool-session",
+            write_authority="repository-maintainer",
+            deletion_authority="tool-owned",
+        )
+        resolved["disposition"] = "discard-local"
+        resolved["source_authority"] = "tool-session"
+        resolved["deletion_authority"] = "tool-owned"
+
+    result = _preview(close_work, tmp_path, target, **resolved)
+
+    assert result.code == expected
+    assert result.mutated == ()
+    assert target.read_bytes() == before
+
+
 @pytest.mark.parametrize(
     ("overrides", "expected"),
     [
@@ -1515,6 +1596,13 @@ def test_rollback_failure_reports_original_move_and_recovery_residue(
     assert result.permission_granted is True
     assert len(result.recovery_residue) == 1
     assert result.recovery_residue[0].exists()
+    # The descriptor proved the residue is the confirmed inode, so a maintainer
+    # may restore it. Bounded inode evidence travels with that claim.
+    assert result.residue_state == "identity-confirmed"
+    assert result.residual_evidence is not None
+    assert result.residual_evidence.confirmed_fingerprint.sha256 == (
+        preview.target_fingerprints[0].sha256
+    )
 
 
 def test_rollback_never_restores_a_swapped_staging_path(
@@ -1564,6 +1652,15 @@ def test_rollback_never_restores_a_swapped_staging_path(
     assert result.recovery_residue[0].read_text(encoding="utf-8") == (
         "attacker-controlled\n"
     )
+    # This is the discriminating case: the residue survived but the descriptor
+    # proved it is NOT the confirmed inode, so the maintainer must not restore
+    # it. Without a discriminator this result is shape-identical to the
+    # identity-confirmed rollback failure above.
+    assert result.residue_state == "identity-mismatch"
+    assert result.residual_evidence is not None
+    assert result.residual_evidence.observed_inode != (
+        preview.target_fingerprints[0].inode
+    )
 
 
 def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
@@ -1575,6 +1672,10 @@ def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
         "Confirmation is single-use",
         "Never reset, rebase, filter, force-push",
         "Do not start a timer",
+        # AC14's record-field obligations, which otherwise live only as table
+        # prose and could be deleted with every gate green.
+        "Retain with bounded reason, owner role, and human-supplied review date",
+        "Emit a bounded advisory; do not probe or mutate the external system",
     ):
         assert phrase in skill
 

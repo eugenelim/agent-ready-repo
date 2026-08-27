@@ -479,3 +479,210 @@ def test_workspace_status_refuses_wave6_context_exclusion() -> None:
         assert "cannot exclude cooling context" in str(exc)
     else:
         raise AssertionError("Wave 6 context exclusion became representable")
+
+
+# ── Uncovered refusal codes (AC6, AC17, AC19) ────────────────────────────────
+#
+# Each code below was reachable but asserted nowhere, so the guard producing it
+# could be deleted or inverted with the whole suite green. Every case asserts
+# the exact code and that nothing was mutated.
+
+
+def _pause_kwargs(close_work, surface: str, **overrides) -> dict[str, object]:
+    values: dict[str, object] = {
+        "work_mode": "spec-backed",
+        "artifact_status": "Implementing",
+        "coordination_surface": surface,
+        "writable": True,
+        "contract_locator": "delivery-contract:current",
+        "contract_fingerprint": "sha256:contract",
+        "plan_locator": "delivery-plan:current",
+        "plan_fingerprint": "sha256:plan",
+        "restore_action": "resume-from-pinned-contract",
+    }
+    values.update(_authority(close_work, "write-pause-overlay", surface))
+    values.update(overrides)
+    return values
+
+
+def test_pause_state_ineligible_when_the_artifact_is_not_ready_or_implementing() -> None:
+    close_work = _close_work()
+    surface = "runtime-coordination:workspace"
+
+    result = close_work.plan_pause(
+        **_pause_kwargs(close_work, surface, artifact_status="Shipped")
+    )
+
+    assert result.code == "pause-state-ineligible"
+    assert result.overlay is None
+    assert result.mutated == ()
+
+
+def test_pause_envelope_invalid_when_the_restore_action_is_unstructured() -> None:
+    close_work = _close_work()
+    surface = "runtime-coordination:workspace"
+
+    result = close_work.plan_pause(
+        **_pause_kwargs(close_work, surface, restore_action="do whatever")
+    )
+
+    assert result.code == "pause-envelope-invalid"
+    assert result.overlay is None
+    assert result.record is None
+    assert result.mutated == ()
+
+
+def test_resume_refuses_an_envelope_that_is_not_a_pause_overlay() -> None:
+    close_work = _close_work()
+
+    result = close_work.validate_pause_resume(
+        {"contract_locator": "delivery-contract:current"},
+        contract_locator="delivery-contract:current",
+        contract_fingerprint="sha256:contract",
+        plan_locator="delivery-plan:current",
+        plan_fingerprint="sha256:plan",
+        artifact_status="Implementing",
+        evidence_refs=("evidence:current",),
+        coordination_locator="runtime-coordination:workspace",
+        restore_action="resume-from-pinned-contract",
+    )
+
+    assert result.code == "pause-envelope-invalid"
+    assert result.overlay is None
+    assert result.mutated == ()
+
+
+def test_receipt_removal_refuses_a_malformed_current_fingerprint() -> None:
+    close_work = _close_work()
+    resource = "runtime-coordination:workspace"
+
+    result = close_work.plan_receipt_removal(
+        receipt_fingerprint="sha256:receipt",
+        current_receipt_fingerprint="not-a-fingerprint",
+        current_receipt_evidence_ref="evidence:current",
+        **_authority(close_work, "remove-last-completion-receipt", resource),
+    )
+
+    assert result.code == "receipt-fingerprint-invalid"
+
+
+def test_receipt_removal_stops_at_a_separate_confirmation_request() -> None:
+    close_work = _close_work()
+    resource = "runtime-coordination:workspace"
+
+    result = close_work.plan_receipt_removal(
+        receipt_fingerprint="sha256:receipt",
+        current_receipt_fingerprint="sha256:receipt",
+        current_receipt_evidence_ref="evidence:current",
+        **_authority(close_work, "remove-last-completion-receipt", resource),
+    )
+
+    # Intent only: the workflow asks, it does not remove.
+    assert result.code == "receipt-removal-confirmation-required"
+    assert result.confirmation_fingerprint == "sha256:receipt"
+
+
+def _initiative_kwargs(close_work, resource: str, **overrides) -> dict[str, object]:
+    values: dict[str, object] = {
+        "shaping_residue": (),
+        "build_residue": (),
+        "live_dependencies": (),
+        "contextual_anchor": None,
+        "coordination_fingerprint": "sha256:coordination",
+        "current_coordination_fingerprint": "sha256:coordination",
+        "current_coordination_evidence_ref": "evidence:current",
+    }
+    values.update(_authority(close_work, "compact-settled-coordination", resource))
+    values.update(overrides)
+    return values
+
+
+def test_initiative_closeout_refuses_without_a_current_coordination_fingerprint() -> None:
+    close_work = _close_work()
+    resource = "runtime-coordination:workspace"
+
+    result = close_work.plan_initiative_closeout(
+        **_initiative_kwargs(
+            close_work, resource, current_coordination_fingerprint=None
+        )
+    )
+
+    assert result.code == "coordination-fingerprint-unavailable"
+
+
+def test_initiative_closeout_stops_at_a_separate_compaction_confirmation() -> None:
+    close_work = _close_work()
+    resource = "runtime-coordination:workspace"
+
+    result = close_work.plan_initiative_closeout(
+        **_initiative_kwargs(close_work, resource)
+    )
+
+    assert result.code == "initiative-compaction-confirmation-required"
+    assert result.workspace_action == "compact-settled-coordination"
+    assert result.coordination_fingerprint == "sha256:coordination"
+
+
+def test_artifact_closeout_blocks_on_unsettled_durable_outputs() -> None:
+    close_work = _close_work()
+
+    result = close_work.classify_artifact_closeout(
+        delivery_status="Shipped",
+        live_dependencies=(),
+        contextual_anchor=None,
+        durable_outputs_settled=False,
+    )
+
+    assert result.code == "durable-output-blocker"
+    assert result.lifecycle_phase == "Closeout-pending"
+
+
+def test_artifact_closeout_requires_review_of_a_contextual_anchor() -> None:
+    close_work = _close_work()
+
+    result = close_work.classify_artifact_closeout(
+        delivery_status="Shipped",
+        live_dependencies=(),
+        contextual_anchor="rfc-family:0096",
+        durable_outputs_settled=True,
+    )
+
+    assert result.code == "anchor-review-required"
+    assert result.lifecycle_phase == "Closeout-pending"
+
+
+def test_deterministic_seams_return_equal_results_on_a_second_run() -> None:
+    """AC19: two runs of the classification seams are byte-identical.
+
+    `preview_deletion` is deliberately excluded: it embeds a fresh
+    `secrets.token_hex` challenge and is required to differ between runs.
+    """
+    close_work = _close_work()
+
+    def sample() -> tuple[object, ...]:
+        return (
+            close_work.project_lifecycle(
+                spec_status="Implementing",
+                plan_status="Executing",
+                work_mode="spec-backed",
+                outcome=None,
+                paused=False,
+                receipt_present=False,
+                workspace_room="active",
+                post_closeout_result=None,
+                live_dependencies=("rfc-0096-wave-5",),
+                initiative_residue=False,
+            ),
+            close_work.classify_artifact_closeout(
+                delivery_status="Shipped",
+                live_dependencies=(),
+                contextual_anchor="rfc-family:0096",
+                durable_outputs_settled=True,
+            ),
+            close_work.wave4_capabilities(),
+        )
+
+    first = sample()
+    second = sample()
+    assert first == second
+    assert repr(first) == repr(second)

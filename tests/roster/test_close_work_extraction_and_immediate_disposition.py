@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
@@ -416,7 +417,13 @@ def test_refusal_matrix_proves_reported_and_physical_zero_effect(
 
 
 def test_wave4_excludes_later_wave_and_history_rewrite_behaviour() -> None:
-    """Wave 4 classifies only and never grows timed or history-rewrite effects."""
+    """Wave 4 classifies only and never grows timed or history-rewrite effects.
+
+    The declared-capability equality below is a self-report: it mirrors the
+    literal `wave4_capabilities()` returns, so on its own it would stay green
+    while a date engine was added beside it. The source-level assertions after it
+    are the ones that can actually fail on that change (AC13, AC21).
+    """
     close_work = _load_close_work()
 
     capabilities = close_work.wave4_capabilities()
@@ -429,9 +436,82 @@ def test_wave4_excludes_later_wave_and_history_rewrite_behaviour() -> None:
         "second_resolver": False,
     }
 
+    tree = ast.parse(CLOSE_WORK_PATH.read_text(encoding="utf-8"))
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module.split(".")[0])
+    # A clock is the mechanism every later-wave capability would need first.
+    assert imported.isdisjoint({"datetime", "time", "calendar", "zoneinfo"})
 
-def test_close_work_source_and_projection_declare_minimal_tool_authority() -> None:
-    """The destructive workflow never inherits undeclared external authority."""
+    # Date-shaped state field names only. `cooling_started: bool` is deliberately
+    # NOT in this list: it is a boundary marker the pause path asserts is False,
+    # so it is evidence for the boundary rather than a violation of it.
+    source = CLOSE_WORK_PATH.read_text(encoding="utf-8")
+    for token in (
+        "completed_on",
+        "review_on",
+        "review_date",
+        "due_at",
+        "due_date",
+        "enrolled_at",
+        "retire_at",
+        "expires_at",
+        "cooling_started_at",
+    ):
+        assert token not in source, token
+
+
+def _declared_boundaries(frontmatter: str) -> set[str]:
+    """Parse `metadata.boundaries` in either flow or block sequence form.
+
+    close-work writes the flow form (`[a, b]`); most core skills write the block
+    form. An exact-set assertion has to read both, or it silently passes on the
+    shape it cannot parse.
+    """
+    flow = re.search(r"^\s*boundaries:\s*\[(.+?)\]\s*$", frontmatter, re.MULTILINE)
+    if flow is not None:
+        return {item.strip() for item in flow.group(1).split(",") if item.strip()}
+    block = re.search(
+        r"^\s*boundaries:\s*\n((?:\s*-\s*\S+\s*\n)+)", frontmatter, re.MULTILINE
+    )
+    assert block is not None, "no parsable boundaries declaration"
+    return {
+        line.strip().removeprefix("-").strip()
+        for line in block.group(1).splitlines()
+        if line.strip()
+    }
+
+
+def test_close_work_declares_only_filesystem_boundaries() -> None:
+    """AC20a's declared boundaries are pinned as an exact set, not a substring.
+
+    A substring check passes when a boundary is added, and passes vacuously when
+    the declaration is deleted. Both are the failure this pins: widening to
+    `network_fetch` or dropping line 6 must redden.
+    """
+    expected = {"filesystem_read_untrusted", "filesystem_write"}
+    paths = {
+        "canonical": SOURCE_SKILL_PATH,
+        ".claude": ROOT / ".claude/skills/close-work/SKILL.md",
+        ".agents": ROOT / ".agents/skills/close-work/SKILL.md",
+    }
+    for label, path in paths.items():
+        assert path.is_file(), label
+        frontmatter = path.read_text(encoding="utf-8").split("---", 2)[1]
+        assert "metadata:" in frontmatter, label
+        assert _declared_boundaries(frontmatter) == expected, label
+
+
+def test_close_work_source_and_adapter_contract_declare_minimal_authority() -> None:
+    """Canonical tool authority plus the codex adapter-contract stanza.
+
+    Projected-frontmatter parity is the self-host drift gate's job, not this
+    test's; the canonical `boundaries` set is pinned by
+    `test_close_work_declares_only_filesystem_boundaries`.
+    """
     expected = {"Read", "Write", "Edit", "Bash"}
     forbidden = {
         "Agent",
@@ -531,3 +611,22 @@ def test_wave4_spec_index_plan_and_workspace_lifecycle_are_aligned() -> None:
         "Waves 5–7 (live dependencies) |"
     ) in index_row
     assert memberships == expected[spec_status][1]
+
+    # A shipped spec carries no unchecked acceptance criterion; a separable
+    # follow-on lives outside the AC list with its own owner.
+    if spec_status == "Shipped":
+        assert "- [ ] **AC" not in spec_path.read_text(encoding="utf-8")
+
+    # Exactly one membership row, RFC-pinned, with no hard dependency.
+    rows = [
+        item
+        for item in work[next(iter(expected[spec_status][1]))]
+        if isinstance(item, dict) and item.get("path") == locator
+    ]
+    assert len(rows) == 1
+    assert rows[0]["source"] == {
+        "mode": "repo-origin",
+        "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
+        "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
+    }
+    assert rows[0]["needs"] == []

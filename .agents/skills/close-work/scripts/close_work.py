@@ -275,6 +275,12 @@ class DeletionResult:
     permission_granted: bool = False
     recovery_residue: tuple[Path, ...] = ()
     residual_evidence: ResidualHardlinkEvidence | None = None
+    # Closed vocabulary, set on every terminal mutated outcome so the maintainer
+    # recovery the skill directs is aimed at content of known identity:
+    #   "identity-confirmed"  a descriptor proved the residue is the confirmed inode
+    #   "identity-mismatch"   a descriptor proved it is NOT the confirmed inode
+    #   "unverified"          no descriptor, or inspection failed: identity unknown
+    residue_state: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1542,6 +1548,10 @@ def preview_deletion(
     eligibility_fingerprint = _disposition_fingerprint(
         disposition_candidate, decision
     )
+    # Subsumed today: `_mutation_binding` above is called with
+    # expected_action="delete-confirmed-file-set" and returns None on a
+    # mismatch, which becomes `authority-unavailable`. Retained as
+    # defence in depth so relaxing that guard cannot silently open this path.
     if requested_action != "delete-confirmed-file-set":
         return DeletionResult("action-not-authorized")
     if (
@@ -1550,8 +1560,12 @@ def preview_deletion(
         or delete not in _DELETE_AUTHORITIES
     ):
         return DeletionResult("authority-conflict")
-    if not _ACTOR_ROLE_RE.fullmatch(actor) or not _ACTOR_ROLE_RE.fullmatch(proposer):
+    # `actor` is already refused by `_mutation_binding` against the same regex;
+    # `proposer` is checked nowhere else, so it is the reachable half.
+    if not _ACTOR_ROLE_RE.fullmatch(proposer):
         return DeletionResult("actor-role-invalid")
+    # Both subsumed today by `_mutation_binding`'s prefix checks on the same two
+    # values; retained as defence in depth against a future relaxation there.
     if not grant.startswith(_GRANT_PREFIXES):
         return DeletionResult("grant-not-authoritative")
     if not provenance.startswith(_PROVENANCE_PREFIXES):
@@ -2097,6 +2111,7 @@ def apply_confirmed_deletion(
                 (target,) if original_removed else (),
                 original_removed,
                 (staging_path,),
+                residue_state="unverified",
             )
         try:
             staged_fingerprint, link_count = _inspect_fingerprint_at(
@@ -2108,13 +2123,18 @@ def apply_confirmed_deletion(
                 (target,) if original_removed else (),
                 original_removed,
                 (staging_path,),
+                residue_state="unverified",
             )
         if staged_fingerprint != fingerprint:
+            # The descriptor proved the residue is not the confirmed inode, so
+            # restoring it would restore unknown content.
             return DeletionResult(
                 "rollback-failed",
                 (target,) if original_removed else (),
                 original_removed,
                 (staging_path,),
+                residual_evidence(staged_fingerprint, link_count),
+                residue_state="identity-mismatch",
             )
         expected_links = 1 if original_removed else 2
         if link_count != expected_links:
@@ -2125,13 +2145,19 @@ def apply_confirmed_deletion(
                     True,
                     (staging_path,),
                     residual_evidence(staged_fingerprint, link_count),
+                    residue_state="identity-confirmed",
                 )
             if not original_removed and link_count > expected_links:
                 try:
                     os.unlink(staging_name, dir_fd=descriptor)
                 except OSError:
                     return DeletionResult(
-                        "rollback-failed", (), False, (staging_path,)
+                        "rollback-failed",
+                        (),
+                        False,
+                        (staging_path,),
+                        residual_evidence(staged_fingerprint, link_count),
+                        residue_state="identity-confirmed",
                     )
                 staged = False
                 return DeletionResult("confirmation-expired")
@@ -2140,6 +2166,8 @@ def apply_confirmed_deletion(
                 (target,) if original_removed else (),
                 original_removed,
                 (staging_path,),
+                residual_evidence(staged_fingerprint, link_count),
+                residue_state="identity-confirmed",
             )
         try:
             if original_removed:
@@ -2159,6 +2187,8 @@ def apply_confirmed_deletion(
                 (target,) if original_removed else (),
                 original_removed,
                 (staging_path,),
+                residual_evidence(staged_fingerprint, link_count),
+                residue_state="identity-confirmed",
             )
         return None
 
@@ -2225,8 +2255,14 @@ def apply_confirmed_deletion(
                 target.parent, descriptor
             ):
                 rollback_result = rollback_staged_link()
+                # Reached only when rollback itself reported nothing; the staged
+                # fingerprint just failed to match, so identity is not proven.
                 return rollback_result or DeletionResult(
-                    "rollback-failed", (target,), True, (staging_path,)
+                    "rollback-failed",
+                    (target,),
+                    True,
+                    (staging_path,),
+                    residue_state="unverified",
                 )
             try:
                 os.unlink(staging_name, dir_fd=descriptor)
@@ -2253,6 +2289,7 @@ def apply_confirmed_deletion(
                 residual_evidence=residual_evidence(
                     observed, after_final_unlink.st_nlink
                 ),
+                residue_state="identity-confirmed",
             )
         return DeletionResult("deleted", (target,), True)
     except (OSError, RuntimeError, ValueError):

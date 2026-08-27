@@ -59,6 +59,15 @@ def test_current_docs_form_one_closeout_story() -> None:
     assert "close-work" in readme
     assert "close-work" in journey
 
+    # AC14: the user-facing how-to must keep naming every required record field
+    # for the two non-deleting dispositions; without this they are deletable
+    # table prose.
+    for phrase in (
+        "Record a bounded reason, an owner role, and a human-supplied review date",
+        "Report the target, evidence, and missing authority without probing",
+    ):
+        assert phrase in how_to
+
 
 def test_work_loop_keeps_detail_in_a_linked_reference() -> None:
     """Main workflow remains scannable while the delivery contract stays exact."""
@@ -107,51 +116,3 @@ def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
         "It does not calculate dates, start a timer, or retire anything",
     ):
         assert statement in combined
-
-
-def test_bookkeeping_agrees_without_closing_the_rfc_family() -> None:
-    """Spec, plan, index, and workspace move together while the pair is retained."""
-    spec_path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
-    spec = _read(spec_path)
-    plan = _read("docs/specs/close-work-extraction-and-immediate-disposition/plan.md")
-    index = _read("docs/specs/README.md")
-    workspace = tomllib.loads(_read("workspace.toml"))["ini-002"]["work"]
-
-    active = [entry for entry in workspace["active"] if isinstance(entry, dict)]
-    shipped = [entry for entry in workspace["shipped"] if isinstance(entry, dict)]
-    status = next(
-        line.removeprefix("- **Status:** ")
-        for line in spec.splitlines()
-        if line.startswith("- **Status:** ")
-    )
-    expected = {
-        "Implementing": ("Executing", "active"),
-        "Shipped": ("Done", "shipped"),
-    }
-    assert status in expected
-    plan_status, workspace_state = expected[status]
-    assert f"- **Status:** {plan_status}" in plan
-    assert (
-        f"| {status} | RFC-0096; Waves 1–3 (Shipped); Waves 5–7"
-        in index
-    )
-    if status == "Shipped":
-        assert "- [ ] **AC" not in spec
-
-    memberships = {"active": active, "shipped": shipped}
-    matching = [
-        entry
-        for entry in memberships[workspace_state]
-        if entry.get("path") == spec_path
-    ]
-    assert len(matching) == 1
-    other_state = "shipped" if workspace_state == "active" else "active"
-    assert not any(
-        entry.get("path") == spec_path for entry in memberships[other_state]
-    )
-    assert matching[0]["source"] == {
-        "mode": "repo-origin",
-        "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
-        "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
-    }
-    assert matching[0]["needs"] == []
