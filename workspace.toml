@@ -1099,25 +1099,6 @@ open = [
   # Unblocks when: picked up -- no dependency.
   {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "build-site.py's HTML-comment stripper has no notion of inline code spans, so backticked comment syntax in changelog prose can open a real comment span and swallow thousands of lines"},
 
-  # What is LEFT of the spec-format work after PR #1139. The heading half, the
-  # commented-out-section rule, the marker-shape diagnostics, the base-ref
-  # verification, and the unreadable-spec warning all shipped there. This entry
-  # is the residue that enforcement does NOT reach: the four Acceptance-Criteria
-  # readers still hold different notions of which text counts, and the shipped
-  # guard makes the one dangerous shape a hard error rather than reconciling
-  # them. Four review rounds of reconciling them produced a cubically
-  # backtracking regex, a Theta(L^1.5) replacement, fence state read from raw
-  # text, and comment-blind fence pairing -- each passing its own verification.
-  # Comments and code spans cannot simply be banned: 251 of 407 specs carry a
-  # real comment, 245 in the preamble, all 407 use code spans, and the template
-  # emits 16 comments itself.
-  # Fix: decide whether the remaining divergence is worth closing at all now
-  #   that its one reachable shape is gated. If yes, it is a parsing decision
-  #   (real Markdown parser vs. narrowing what the readers must understand),
-  #   not a regex tweak.
-  # Unblocks when: picked up -- no dependency.
-  {path = "docs/product/intents/spec-ac-text-normalization.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py", revision = "sha256-bytes-v1:45492bdceb9a6ddb3d3fa7ec03c0aeacd9d27d7d970105f83e14905c511c2c9c"}, summary = "Residual Acceptance-Criteria reader divergence after the format enforcement shipped; its one reachable shape is now a hard error, so what remains is a parsing decision rather than a defect", needs = []},
-
 
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
@@ -1836,6 +1817,8 @@ closed = [
   {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 
   {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains", summary = "Closed by enforcement rather than parsing: invariant (vi) requires `- **Acceptance Criteria:** none — <reason>` when a spec has no AC section, diff-triggered and grandfathered so no frozen body or adopter corpus is retroactively gated. The scan found four such specs, not three -- two were not opt-out candidates at all but had spelled their criteria as a bold label the collector could not read. Also lands one supported heading (exact, near-miss warned), a hard error for a commented-out section, specific diagnostics for every attempted opt-out shape, base-ref verification, and a warning for an unreadable spec"},
+
+  {slug = "spec-ac-text-normalization", source = "spec/spec-ac-gate-and-fixture-domains follow-on (PR #1139, #1145)", summary = "Closed by deciding the shape rather than parsing it: a commented-out Acceptance-Criteria section is not supported in any position, so the criterion collector never meets one and its comment-blindness stops being a latent divergence. Criteria that no longer apply are deleted; git history holds superseded ones. The four withdrawn parsing attempts are recorded in PR #1139"}
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

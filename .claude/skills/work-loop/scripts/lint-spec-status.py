@@ -189,20 +189,66 @@ def _code_span_ranges(line: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _commented_line_numbers(spec_text: str) -> set[int]:
+    """Line numbers that fall inside a REAL HTML comment.
+
+    ONE notion of "commented", shared by every caller. An opener inside an
+    inline code span does not open a comment: one live spec documents a
+    template whose fields carry comment-syntax annotations, writing an opener
+    and a closer in backticks 23 lines apart, and a code-span-blind reader
+    pairs those two *mentions* into a false span over that spec's real heading
+    and all 17 of its criteria. An opener with no closer is literal text.
+    """
+    lines = spec_text.splitlines()
+    offsets: list[int] = []
+    position = 0
+    for raw in spec_text.splitlines(keepends=True):
+        offsets.append(position)
+        position += len(raw)
+
+    masked: set[int] = set()
+    for index, line in enumerate(lines):
+        for span_start, span_end in _code_span_ranges(line):
+            masked.update(range(offsets[index] + span_start,
+                                offsets[index] + span_end))
+
+    commented: set[int] = set()
+    cursor = 0
+    while True:
+        opener = spec_text.find("<!--", cursor)
+        if opener < 0:
+            return commented
+        if opener in masked:
+            cursor = opener + 4
+            continue
+        closer = spec_text.find("-->", opener + 4)
+        if closer < 0:
+            return commented  # unterminated opener is literal text
+        first = bisect.bisect_right(offsets, opener)
+        last = bisect.bisect_right(offsets, closer + 2)
+        commented.update(range(first, last + 1))
+        cursor = closer + 3
+
+
 def commented_out_ac_heading(spec_text: str) -> tuple[int, str] | None:
     """Return an Acceptance-Criteria heading that is inside an HTML comment.
 
-    Only when the spec has NO heading outside one -- a commented-out draft
-    beside a live section is the author's business.
+    A commented-out Acceptance-Criteria section is not a supported shape, in
+    any position. Criteria that no longer apply are DELETED -- git history is
+    where superseded ones live, not a comment block the linter has to reason
+    about. HTML comments themselves stay welcome in a spec: the template emits
+    16 of them and 245 of 407 specs carry one in the metadata preamble. It is
+    specifically a commented-out AC SECTION that is rejected.
 
-    This is a DETECTOR, not a change to what the readers read. The readers
-    deliberately keep their current notions: `acceptance_criteria_opt_out`
-    strips comments because 245 of 407 specs carry template comments in the
-    preamble, while the body readers do not because no spec needs it. Making
-    the body readers comment-aware is the change that failed four review
-    rounds. Turning the one dangerous shape into a hard error instead makes
-    their disagreement unreachable in a passing state, which is the same
-    guarantee for a fraction of the machinery.
+    Fires wherever one appears -- alone, beside a live section, or beside an
+    opt-out marker. Rejecting it in every position is what stops the criterion
+    collector ever meeting one, which is why the collector can stay
+    comment-blind without that being a latent divergence.
+
+    An earlier version excluded the beside-a-live-section and beside-a-marker
+    cases as "the author's business". That let a commented, superseded `- [ ]`
+    be collected as a real criterion and block a ship on work nobody intended
+    to do.
 
     An opener inside an inline code span does not open a comment. That is not
     hypothetical: `docs/specs/digital-experience-contract/spec.md` writes
@@ -215,6 +261,12 @@ def commented_out_ac_heading(spec_text: str) -> tuple[int, str] | None:
                 if _AC_COLLECTOR_HEADING_RE.match(line)}
     if not headings:
         return None
+
+    commented = _commented_line_numbers(spec_text) & headings
+    if commented:
+        lineno = min(commented)
+        return lineno, lines[lineno - 1].strip()
+    return None
 
     offsets: list[int] = []
     position = 0
@@ -591,9 +643,23 @@ def acceptance_criteria_opt_out_near_miss(
 
 
 def acceptance_criteria_section_present(spec_text: str) -> bool:
-    """Return whether the criterion collector's section heading is present."""
+    """Return whether a LIVE canonical section heading is present.
+
+    A heading inside an HTML comment is not a section. Counting one made a spec
+    that correctly opted out AND kept an abandoned draft in a comment fail the
+    "both a section and an opt-out header" contradiction check.
+
+    Deliberately stricter than the collector, which still reads a commented
+    heading's criteria. The asymmetry is safe in this direction: the collector
+    over-reading can only add criteria to check, never hide one. The reverse --
+    presence accepting a shape the collector cannot read -- is the vacuous pass
+    this invariant exists to close.
+    """
+    commented = _commented_line_numbers(spec_text)
     return any(
-        _AC_SECTION_HEADING_RE.match(line) for _, line in _unfenced_lines(spec_text)
+        _AC_SECTION_HEADING_RE.match(line)
+        for lineno, line in _unfenced_lines(spec_text)
+        if lineno not in commented
     )
 
 
@@ -867,10 +933,10 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         if commented_ac is not None:
             _lineno, _line = commented_ac
             hard.append(
-                f"{rel}:{_lineno}: invariant (vi) — the Acceptance-Criteria "
-                f"section is inside an HTML comment ({_line!r}); uncomment it, "
-                f"or add `- **Acceptance Criteria:** none — <reason>` if the "
-                f"spec genuinely has no criteria"
+                f"{rel}:{_lineno}: invariant (vi) — an Acceptance-Criteria "
+                f"section is commented out ({_line!r}); delete it. Criteria "
+                f"that no longer apply are removed, not commented — git "
+                f"history is where superseded ones live"
             )
 
         ac_heading_near_miss = None
@@ -878,7 +944,10 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             # Warn rather than accept or ignore: an adopter whose spec reads
             # `## Acceptance criteria` is told the exact form instead of
             # silently losing its criteria to invariant (ii).
+            _commented = _commented_line_numbers(text)
             for _lineno, _line in enumerate(text.splitlines(), start=1):
+                if _lineno in _commented:
+                    continue  # a commented heading is not a near miss
                 if _AC_HEADING_NEAR_MISS_RE.match(_line):
                     ac_heading_near_miss = (_lineno, _line.strip())
                     warn.append(

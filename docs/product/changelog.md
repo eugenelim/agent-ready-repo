@@ -53,6 +53,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [core][2.12.6] — 2026-08-27
+
+### Fixed
+
+- A commented-out Acceptance-Criteria section is now rejected wherever it
+  appears — alone, beside a live section, or beside an opt-out marker. Criteria
+  that no longer apply are deleted rather than commented out; git history is
+  where superseded ones live. Previously a commented, superseded `- [ ]` beside
+  a live section was collected as a real criterion and blocked the ship
+  transition on work nobody intended to do.
+- The rejection now names the right remedy. It previously told an author who
+  had correctly opted out to add the marker they already had, and reported both
+  a section and a marker at once, because section presence counted commented
+  text as a live section. Presence, the commented-section check, and the
+  heading near-miss check now share one notion of what is commented; HTML
+  comments elsewhere in a spec remain welcome and untouched.
+
 ## [core][2.12.5] — 2026-08-27
 
 ### Highlights
