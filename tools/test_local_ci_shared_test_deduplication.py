@@ -40,13 +40,16 @@ SHARED_TESTS = (
 )
 
 CORE_COLLECTIONS = {
-    # Re-pinned 2026-08-26 (RFC-0096 Wave 4 AC2d): the node count is unchanged at
-    # 31; the sole rename is test_invariant_ii_transition_ok_when_deferred ->
-    # test_invariant_ii_transition_fails_when_deferred, because a
-    # `(deferred: <slug>)` marker no longer makes a newly shipped AC valid.
+    # Re-pinned by RFC-0096 Wave 4 (AC2d). Reconciled on every rebase by the
+    # same check: this branch's node set must match main's exactly except for
+    # one rename, `test_invariant_ii_transition_ok_when_deferred` ->
+    # `..._fails_when_deferred`, because a `(deferred: <slug>)` marker no
+    # longer makes a newly shipped AC valid. The count therefore tracks main
+    # unchanged while the digest moves; if a future rebase shows any other
+    # delta, disposition it before re-pinning rather than taking either side.
     SHARED_TESTS[0]: (
         73,
-        "c346431405e6debb549079fb0cd23787c160991d2a0d0a9d23c3d629b794494a",
+        "d049527415098b80da1f748d19fb4eff618cc0482df9f42bdeb4cae66bbc2555",
     ),
     SHARED_TESTS[1]: (
         15,

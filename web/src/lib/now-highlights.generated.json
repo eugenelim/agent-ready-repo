@@ -31,6 +31,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.12.5"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[core][2.12.5] — 2026-08-27",
+      "changelogAnchor": "core2125--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Newly sectionless specs say why without retroactively gating adopters.** The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Newly sectionless specs say why without retroactively gating adopters."
+            },
+            {
+              "type": "text",
+              "value": " The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.12.4"
         }
       ],
