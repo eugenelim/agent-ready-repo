@@ -1545,6 +1545,301 @@ def test_a_comment_inside_a_fenced_block_is_sample_text_not_a_comment():
     assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "pkg"]
 
 
+def test_a_backticked_comment_opener_does_not_swallow_later_releases():
+    """A code-span mention must not open a comment or trigger the final raise.
+
+    Without code-span precedence, this prose opened an unterminated HTML
+    comment and generation failed instead of publishing the later release.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+### Highlights
+
+- First.
+
+A note mentioning `<!--` in backticks.
+
+## [later][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Later.
+"""
+    assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "first"]
+
+
+def test_backticked_comment_markers_on_separate_lines_are_both_inert():
+    """Separate code-span mentions must not hide a release between them.
+
+    A code-span-blind parser paired these mentions as an HTML comment and
+    published only one of the three releases.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+A note mentioning `<!--` in backticks.
+
+## [middle][2.0.0] — 2026-08-06
+
+A note mentioning `-->` in backticks.
+
+## [last][3.0.0] — 2026-08-07
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "middle", "last",
+    ]
+
+
+def test_backticks_inside_a_real_comment_do_not_mask_its_closer():
+    """Backticks are literal inside HTML comments, so `-->` still closes one.
+
+    Applying the code-span mask while already inside a comment would leave this
+    real comment unterminated and swallow both releases below it.
+    """
+    text = """# Changelog
+
+<!--
+Backticks are literal inside a comment, so this `-->` closes it.
+
+## [first][1.0.0] — 2026-08-05
+
+## [later][2.0.0] — 2026-08-06
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "later",
+    ]
+
+
+def test_a_backticked_comment_opener_inside_a_fence_remains_sample_text():
+    """Fence handling must stay ahead of code-span-aware comment handling.
+
+    The backtick here is deliberately UNMATCHED, so it forms no code span and
+    the new mask cannot rescue this line. Only the fence can, which is what
+    makes the assertion discriminating: hoisting comment handling ahead of the
+    fence state machine turns this sample into a real unterminated comment and
+    the later release vanishes.
+
+    Written with a matched pair first, it was inert for two independent reasons
+    and passed under both that hoist and the code-span-blind parser it was
+    added to catch — a test that could not go red for the reason it named.
+    """
+    text = """# Changelog
+
+```markdown
+A sample mentions `<!-- without a closing backtick or closer.
+```
+
+## [real][1.0.0] — 2026-08-05
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == ["real"]
+
+
+def test_comment_mentions_respect_matching_backtick_run_lengths():
+    """Only an equal-length backtick run closes an inline code span.
+
+    Treating any nearby backtick as a delimiter would miss the double-backtick
+    span and the single-backtick span nested inside a longer run.
+    """
+    text = """# Changelog
+
+## [first][1.0.0] — 2026-08-05
+
+A double-backtick span mentions ``<!--`` safely.
+
+## [middle][2.0.0] — 2026-08-06
+
+A longer span contains a single-backtick span: ``` `<!--` ```.
+
+## [last][3.0.0] — 2026-08-07
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [release["packages"][0]["name"] for release in releases] == [
+        "first", "middle", "last",
+    ]
+
+
+def test_a_backtick_in_one_comment_does_not_mask_the_next_comments_opener():
+    """Two real comments on one line are both stripped, not just the first.
+
+    A skipped comment's interior is never scanned, so it contributes no pairing
+    delimiter. Pairing once over the whole line instead paired the lone backtick
+    inside comment one with the backtick inside comment two; the bogus span
+    covered comment two's opener, so it read as a mention and its body
+    published. This bullet shipped an internal maintainer note to the public
+    /now/ page.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Ship it <!-- don`t publish --> <!-- TODO: internal `note` for us -->.
+"""
+    assert _bullets(_groups(text)[0]) == ["Ship it  ."]
+
+
+def test_a_backtick_in_a_comment_does_not_steal_a_later_mentions_partner():
+    """A comment interior must not supply a PAIRING delimiter either.
+
+    The near-miss this pins is subtler than masking a later opener, and it
+    survived the first repair: an unbalanced backtick inside a real comment
+    paired with the backtick that should have OPENED the mention below, leaving
+    that mention unpaired and therefore unmasked. Generation then raised
+    "unterminated HTML comment" for a line containing no such thing, failing
+    the whole site build rather than publishing wrongly.
+
+    Only interleaving comment detection with pairing fixes this; filtering a
+    whole-line span list cannot, because the partner is already consumed.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- <!-- reviewer: drop the ` here --> Write `<!--` to mention the opener.
+"""
+    assert _bullets(_groups(text)[0]) == [
+        "Write `<!--` to mention the opener."
+    ]
+
+
+def test_a_code_span_that_swallows_a_comment_opener_is_reported():
+    """The one leak CommonMark leaves open is reported, not shipped silently.
+
+    An unbalanced backtick pairs into the following real comment, so that
+    comment's opener sits inside a code span, is never stripped, and its body
+    publishes as literal code. Rendering stays CommonMark-faithful — the old
+    whole-line regex stripped it, which was not — but this pipeline errs toward
+    withholding, so the case earns a diagnostic that fails the required suite.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Fixed a `quote issue <!-- TODO: don`t publish this internal note -->
+"""
+    parsed = build_site.parse_changelog_releases(text)
+    assert [line for line, _ in parsed.diagnostics["code_span_split_comments"]] == [7]
+
+
+def test_an_ordinary_backticked_mention_is_not_reported_as_a_split_comment():
+    """The diagnostic must not fire on the shape this whole change exists for.
+
+    Both legitimate forms stay silent: a mention with no closer anywhere, and
+    one that fully encloses its own `-->`. The changelog carries many of each,
+    and a diagnostic that flagged them would be noise on every correct line —
+    which is how a fail-closed check gets disabled.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- A note mentioning `<!--` in backticks.
+- A fully enclosed `<!-- x -->` mention.
+"""
+    parsed = build_site.parse_changelog_releases(text)
+    assert parsed.diagnostics["code_span_split_comments"] == []
+
+
+def test_every_inline_comment_pair_on_a_line_is_stripped_not_just_the_first():
+    """The deleted `_COMMENT_INLINE_RE.sub` was GLOBAL; that must not regress.
+
+    A stripper handling only the first pair per line passes every other test
+    here and still parses the real changelog identically, so nothing else
+    pins this. Its real failure is the companion test below: the trailing
+    unterminated opener goes unnoticed and later releases publish silently.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Fixed <!-- t1 --> a bug <!-- TODO --> today <!-- t3 -->.
+"""
+    assert _bullets(_groups(text)[0]) == ["Fixed  a bug  today ."]
+
+
+def test_an_opener_after_a_closed_pair_on_the_same_line_still_opens_a_comment():
+    """`<!-- a --><!--` leaves a real comment open, and the parse must say so.
+
+    This is what a first-pair-only stripper gets wrong in a way that matters:
+    it would consume the pair, never see the trailing opener, and publish the
+    release below instead of failing.
+    """
+    text = """# Changelog
+
+<!-- a --><!--
+
+## [b][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Would vanish.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "unterminated HTML comment" in str(exc)
+        assert "line 3" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("a trailing opener after a closed pair was missed")
+
+
+def test_the_code_span_scan_stays_linear_on_a_long_backtick_run():
+    """The copied scan must not be "simplified" into the backtracking regex.
+
+    Upstream pins its own copy at packs/core/tests/skills/work-loop/
+    test_lint_spec_status.py; this one needs its own guard, because no changelog
+    line would ever exercise it and either trap is a one-line edit away.
+
+    TWO independent axes, because each catches a different regression and
+    neither catches the other:
+
+    1. One long run — the SCAN. Substituting ``(`+)(?:(?!\\1).)*?\\1`` here was
+       measured at 74 s against 0.4 ms (the source docstring cites 106 s from
+       its own measurement of the same trap).
+    2. A few hundred distinct-length runs followed by a long tail of length-1
+       runs — the PAIRING. Reverting `next_same` to upstream's probe loop, which
+       rescans on every unmatched run, was measured at 8.8 s against 0.11 s.
+
+    The generator for (2) is load-bearing and was got wrong once: with only
+    strictly-increasing runs the line length grows quadratically in run count,
+    so BOTH implementations come out effectively linear in input size and the
+    probe loop passed at 0.19 s — a guard that could not fail on the axis it
+    named. The lead-plus-tail shape is what separates them.
+
+    The 5 s ceiling sits ~45x above the real cost so a loaded CI box cannot
+    flake it, and still well below either regression.
+    """
+    import time
+
+    scan_axis = "`" * 12_000
+    pairing_axis = "x".join("`" * (n + 2) for n in range(600)) + "x" + "`x" * 240_000
+    for line in (scan_axis, pairing_axis):
+        started = time.monotonic()
+        build_site._strip_changelog_comments(line + "<!--")
+        elapsed = time.monotonic() - started
+        assert elapsed < 5.0, (
+            f"the code-span scan took {elapsed:.1f}s on a {len(line)}-char "
+            "backtick input; the backtracking regex measured 74s on the scan "
+            "axis and the probe-loop pairing 8.8s on this one — restore the "
+            "linear scan and the precomputed pairing"
+        )
+
+
 def test_an_unterminated_html_comment_fails_instead_of_swallowing_the_file():
     text = """# Changelog
 
@@ -1707,6 +2002,13 @@ def test_the_window_does_not_filter_the_projection():
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
+# CANONICAL statement of this figure; cite it from elsewhere rather than
+# restating it. Measured at 172 releases on 2026-08-27. A floor of 130 is about
+# 76% of that, leaving headroom for ordinary churn while still catching a
+# collapse. Deliberately NOT an exact pin: the count moved 171 -> 172 during
+# this change from one unrelated merge, which is precisely how an exact floor
+# breaks on the next release.
+_MIN_REAL_CHANGELOG_RELEASES = 130
 _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
 _MARKETING_SHARED_CHROME_PROJECTION = (
     _REPO_ROOT / "web" / "src" / "lib" / "shared-chrome.generated.json"
@@ -1791,6 +2093,32 @@ def test_the_real_changelog_has_no_silently_withheld_highlights():
         for lineno, title in parsed.diagnostics["unreleased_regions"]
     ]
     assert not regions, "\n".join(regions)
+
+    # Fails closed for the same reason as the two above: the leak is invisible
+    # on the page, because what publishes is a maintainer note that reads as
+    # ordinary copy. Zero on the changelog today, so pinning it is free.
+    split = [
+        f"{rel}:{lineno}: an unbalanced backtick pairs into the HTML comment on "
+        f"this line, so the comment's body publishes as code instead of being "
+        f"stripped — close the backtick, or move the comment to its own line: "
+        f"{source!r}"
+        for lineno, source in parsed.diagnostics["code_span_split_comments"]
+    ]
+    assert not split, "\n".join(split)
+
+
+def test_the_real_changelog_parser_keeps_a_sane_release_population():
+    """A parser state leak must not silently collapse the real release history."""
+    parsed = build_site.parse_changelog_releases(
+        _CHANGELOG.read_text(encoding="utf-8")
+    )
+    actual = len(parsed.releases)
+    assert actual >= _MIN_REAL_CHANGELOG_RELEASES, (
+        f"the real changelog parsed only {actual} releases, below the safety floor "
+        f"of {_MIN_REAL_CHANGELOG_RELEASES}; parser state likely swallowed the "
+        "remaining release history — inspect HTML-comment and fenced-code handling "
+        "in tools/build-site.py::parse_changelog_releases"
+    )
 
 
 def test_no_projected_release_heading_lives_under_an_unreleased_region():
