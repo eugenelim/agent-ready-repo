@@ -34,8 +34,13 @@ EXPECTED_RESOLVER_SHA256 = (
 EXPECTED_SCHEMA_SHA256 = (
     "df66ac4455316a9b9edf1664a9966415afaed2048ffa415a7db95bafce0c28d8"
 )
+# Re-pinned 2026-08-26: main's `feat(agentbundle): add portable Agent Plugin
+# projection` widened `list_confined_regular_files` with keyword-only
+# `max_files`/`max_depth` traversal bounds. The change is backward compatible
+# (both default to None) and close-work's single call site passes positionally,
+# so the pack's byte-identical duplicate was re-synced rather than diverged.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "f4295ab918d9754a68680b33cf8e566ca06da69abee94e48ce0c27593830bfdc"
+    "7f7e6a02d20524dcf083d7e88cc9a67b44cad062780e9689a784eb8be5a56c7b"
 )
 
 

@@ -7,7 +7,7 @@ import stat
 from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
-from typing import BinaryIO, Iterator
+from typing import BinaryIO, Iterator, Literal, overload
 
 
 class UnsafeContentError(ValueError):
@@ -50,8 +50,28 @@ def validate_confined_directory(root: Path, path: Path) -> None:
         ) from exc
 
 
-def list_confined_regular_files(root: Path, directory: Path) -> list[Path]:
-    """List regular files without following link-like directory entries."""
+def list_confined_regular_files(
+    root: Path,
+    directory: Path,
+    *,
+    max_files: int | None = None,
+    max_depth: int | None = None,
+) -> list[Path]:
+    """List regular files without following link-like directory entries.
+
+    When ``max_files`` or ``max_depth`` is supplied, refuse during traversal as
+    soon as the next entry would exceed the bound.  Callers can therefore
+    apply source-tree limits without first walking or materialising an
+    attacker-controlled unbounded tree.  Depth is relative to ``directory``.
+    """
+    if max_files is not None and (
+        isinstance(max_files, bool) or not isinstance(max_files, int) or max_files < 0
+    ):
+        raise ValueError("max_files must be a non-negative integer or None")
+    if max_depth is not None and (
+        isinstance(max_depth, bool) or not isinstance(max_depth, int) or max_depth < 0
+    ):
+        raise ValueError("max_depth must be a non-negative integer or None")
     validate_confined_directory(root, directory)
     files: list[Path] = []
     pending = [directory]
@@ -60,34 +80,44 @@ def list_confined_regular_files(root: Path, directory: Path) -> list[Path]:
         validate_confined_directory(root, current)
         try:
             with os.scandir(current) as iterator:
-                entries = sorted(iterator, key=lambda entry: entry.name)
+                for entry in iterator:
+                    entry_path = Path(entry.path)
+                    relative = entry_path.relative_to(root).as_posix()
+                    source_relative = entry_path.relative_to(directory)
+                    if max_depth is not None and len(source_relative.parts) > max_depth:
+                        raise UnsafeContentError(
+                            "source tree exceeds path-depth limit"
+                        )
+                    try:
+                        inspected = entry.stat(follow_symlinks=False)
+                    except OSError as exc:
+                        raise UnsafeContentError(
+                            f"source entry cannot be inspected: {relative}"
+                        ) from exc
+                    if stat.S_ISLNK(inspected.st_mode) or _is_reparse_point(
+                        inspected
+                    ):
+                        raise UnsafeContentError(
+                            f"source entry is not a regular file: {relative}"
+                        )
+                    if stat.S_ISDIR(inspected.st_mode):
+                        pending.append(entry_path)
+                    elif stat.S_ISREG(inspected.st_mode):
+                        if max_files is not None and len(files) >= max_files:
+                            raise UnsafeContentError(
+                                "source tree exceeds file-count limit"
+                            )
+                        files.append(entry_path)
+                    else:
+                        raise UnsafeContentError(
+                            f"source entry is not a regular file: {relative}"
+                        )
         except OSError as exc:
             relative = current.relative_to(root).as_posix()
             raise UnsafeContentError(
                 f"directory boundary cannot be traversed safely: {relative}"
             ) from exc
-        for entry in entries:
-            entry_path = Path(entry.path)
-            relative = entry_path.relative_to(root).as_posix()
-            try:
-                inspected = entry.stat(follow_symlinks=False)
-            except OSError as exc:
-                raise UnsafeContentError(
-                    f"source entry cannot be inspected: {relative}"
-                ) from exc
-            if stat.S_ISLNK(inspected.st_mode) or _is_reparse_point(inspected):
-                raise UnsafeContentError(
-                    f"source entry is not a regular file: {relative}"
-                )
-            if stat.S_ISDIR(inspected.st_mode):
-                pending.append(entry_path)
-            elif stat.S_ISREG(inspected.st_mode):
-                files.append(entry_path)
-            else:
-                raise UnsafeContentError(
-                    f"source entry is not a regular file: {relative}"
-                )
-    return files
+    return sorted(files, key=lambda path: path.relative_to(root).as_posix())
 
 
 def list_confined_directories(root: Path, directory: Path) -> list[Path]:
@@ -191,13 +221,39 @@ def _open_confined_regular_file(
             os.close(descriptor)
 
 
+@overload
 def read_confined_regular_file(
     root: Path,
     path: Path,
     *,
     max_bytes: int | None = None,
-) -> bytes:
-    """Read a bounded, confined, no-follow, single-link regular file."""
+    include_mode: Literal[False] = False,
+) -> bytes: ...
+
+
+@overload
+def read_confined_regular_file(
+    root: Path,
+    path: Path,
+    *,
+    max_bytes: int | None = None,
+    include_mode: Literal[True],
+) -> tuple[bytes, int]: ...
+
+
+def read_confined_regular_file(
+    root: Path,
+    path: Path,
+    *,
+    max_bytes: int | None = None,
+    include_mode: bool = False,
+) -> bytes | tuple[bytes, int]:
+    """Read a bounded, confined, no-follow, single-link regular file.
+
+    ``include_mode=True`` returns the permission mode sampled from the same
+    validated descriptor as the bytes.  Projection callers must not combine a
+    confined read with a later path stat, which could observe a replacement.
+    """
     with _open_confined_regular_file(root, path, max_bytes=max_bytes) as handle:
         data = handle.read() if max_bytes is None else handle.read(max_bytes + 1)
         if max_bytes is not None and len(data) > max_bytes:
@@ -205,6 +261,15 @@ def read_confined_regular_file(
             raise UnsafeContentError(
                 f"source file changed beyond byte limit: {relative}"
             )
+        if include_mode:
+            try:
+                mode = stat.S_IMODE(os.fstat(handle.fileno()).st_mode)
+            except OSError as exc:
+                relative = path.relative_to(root).as_posix()
+                raise UnsafeContentError(
+                    f"source file mode cannot be inspected: {relative}"
+                ) from exc
+            return data, mode
         return data
 
 
