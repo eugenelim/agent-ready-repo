@@ -455,23 +455,29 @@ open = [
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
   {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
-  # tools/test-ci-security-workflow.py asserts ci-security.yml's security posture
-  # (permissions, pull_request_target absence) — and is invoked by NOTHING. Found
-  # while looking for a precedent to model a new posture test on: only
-  # test-build-check-windows-workflow.py is genuinely wired (via
-  # tools/repo/build_gate_chain.py, and pinned in test_build_gate_chain.py's
-  # EXPECTED_SCRIPT_STEPS). A shipped AC in spec/secret-scanner-for-api-key-workflows
-  # claims that file gates ci-security.yml, so the claim is live and false. This is
-  # the repo's own "wire it explicitly or it never gates" failure, in a file whose
-  # whole job is to prevent it. To close: wire it into the gate chain (and update
-  # EXPECTED_SCRIPT_STEPS + its pinned count), or delete it and correct the AC.
-  # Second, smaller item, recorded so the next author does not copy the shape:
+  # Two defects shared this entry. The FIRST IS CLOSED (2026-08-26):
+  # tools/test-ci-security-workflow.py asserted ci-security.yml's security posture
+  # and was invoked by nothing, which also left a shipped AC in
+  # spec/secret-scanner-for-api-key-workflows live and false. It is now a step in
+  # tools/repo/build_gate_chain.py's build-check chain, pinned in
+  # test_build_gate_chain.py's EXPECTED_SCRIPT_STEPS — that list is the sole source
+  # of the step count, so there is no separate literal to keep in step.
+  # Recorded on the way past, because wiring it did not make its assertions
+  # trustworthy: unlike its chain neighbour test-build-check-workflow.py, which runs
+  # a mutation matrix on every invocation, that file has no --self-test and no
+  # fixture. Its eight assertions now BLOCK make build-check with no automated proof
+  # they can fail, so a silently-weakened one would pass. Building that harness was
+  # outside the wiring chore and needs an owner decision.
+  # The SECOND IS STILL OPEN. This is why the slug survives — docs/adr/0086 and
+  # spec/ci-gate-parallelization both cite it, and both are frozen:
   # ci-security.yml documents "cancel-in-progress gated to pull_request only —
   # push-to-main scans run to completion", and codeql.yml uses unconditional
   # cancel-in-progress on a push trigger. Both rest on a false belief — GitHub
   # allows one running plus one PENDING run per concurrency group regardless of
   # that flag, so a third queued run cancels the pending one. See AC12 of
   # spec/ci-gate-parallelization for the group expression that avoids it.
+  # To close: fix both workflows' concurrency-group expressions, and decide whether
+  # the posture test earns a mutation harness.
   {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions

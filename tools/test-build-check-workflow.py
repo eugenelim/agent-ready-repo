@@ -4,11 +4,12 @@
 # STUB: AC13 — red stub materialised at PLAN per CONVENTIONS § Stub → EXECUTE
 handoff.
 
-Pure stdlib, matching `tools/test-build-check-windows-workflow.py`, the repo's only
-*wired* posture test. (`tools/test-ci-security-workflow.py` imports PyYAML and is
-invoked nowhere.) Staying stdlib is load-bearing: this runs inside the aggregator
-job that wears the sole required status check, and a test that can fail on a missing
-import is a test someone import-guards under pressure.
+Pure stdlib, matching `tools/test-build-check-windows-workflow.py`.
+(`tools/test-ci-security-workflow.py` is wired too, but imports PyYAML — tolerable
+there because it runs only as a `tools/repo/build_gate_chain.py` chain step, not
+inside the aggregator job.) Staying stdlib is load-bearing *here*: this runs inside
+the aggregator job that wears the sole required status check, and a test that can
+fail on a missing import is a test someone import-guards under pressure.
 
 ## Controls are matched as shell COMMAND WORDS, never as substrings
 
