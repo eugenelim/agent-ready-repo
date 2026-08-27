@@ -1664,6 +1664,93 @@ A longer span contains a single-backtick span: ``` `<!--` ```.
     ]
 
 
+def test_a_backtick_in_one_comment_does_not_mask_the_next_comments_opener():
+    """Two real comments on one line are both stripped, not just the first.
+
+    Code spans are resolved per comment-free segment for exactly this input.
+    Resolving them once over the whole line paired the lone backtick inside
+    comment one with the backtick inside comment two; the bogus span covered
+    comment two's opener, so it read as a mention and its body published. This
+    bullet shipped an internal maintainer note to the public /now/ page.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Ship it <!-- don`t publish --> <!-- TODO: internal `note` for us -->.
+"""
+    assert _bullets(_groups(text)[0]) == ["Ship it  ."]
+
+
+def test_every_inline_comment_pair_on_a_line_is_stripped_not_just_the_first():
+    """The deleted `_COMMENT_INLINE_RE.sub` was GLOBAL; that must not regress.
+
+    A stripper handling only the first pair per line passes every other test
+    here and still parses the real changelog identically, so nothing else
+    pins this. Its real failure is the companion test below: the trailing
+    unterminated opener goes unnoticed and later releases publish silently.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Fixed <!-- t1 --> a bug <!-- TODO --> today <!-- t3 -->.
+"""
+    assert _bullets(_groups(text)[0]) == ["Fixed  a bug  today ."]
+
+
+def test_an_opener_after_a_closed_pair_on_the_same_line_still_opens_a_comment():
+    """`<!-- a --><!--` leaves a real comment open, and the parse must say so.
+
+    This is what a first-pair-only stripper gets wrong in a way that matters:
+    it would consume the pair, never see the trailing opener, and publish the
+    release below instead of failing.
+    """
+    text = """# Changelog
+
+<!-- a --><!--
+
+## [b][2.0.0] — 2026-08-06
+
+### Highlights
+
+- Would vanish.
+"""
+    try:
+        build_site.project_now_highlights(text)
+    except ValueError as exc:
+        assert "unterminated HTML comment" in str(exc)
+        assert "line 3" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("a trailing opener after a closed pair was missed")
+
+
+def test_the_code_span_scan_stays_linear_on_a_long_backtick_run():
+    """The copied scan must not be "simplified" into the cubic regex.
+
+    Upstream pins this at packs/core/tests/skills/work-loop/
+    test_lint_spec_status.py; the copy needs its own guard, since no changelog
+    line would ever exercise it. The regex the docstring warns off took a
+    measured 106 s on this input; the scan takes under a millisecond, so a
+    generous ceiling still fails loudly if someone swaps it back.
+    """
+    import time
+
+    line = "`" * 12_000
+    started = time.monotonic()
+    build_site._code_span_ranges(line)
+    build_site._strip_changelog_comments(line + "<!--")
+    elapsed = time.monotonic() - started
+    assert elapsed < 5.0, (
+        f"the code-span scan took {elapsed:.1f}s on a 12 KB backtick run; a "
+        "backtracking regex was measured at 106s here — restore the linear scan"
+    )
+
+
 def test_an_unterminated_html_comment_fails_instead_of_swallowing_the_file():
     text = """# Changelog
 
@@ -1826,8 +1913,12 @@ def test_the_window_does_not_filter_the_projection():
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _CHANGELOG = _REPO_ROOT / "docs" / "product" / "changelog.md"
-# Measured at 171 releases on 2026-08-27. A floor of 130 is about 76% of that,
-# leaving headroom for ordinary changelog churn while still detecting collapse.
+# CANONICAL statement of this figure; cite it from elsewhere rather than
+# restating it. Measured at 172 releases on 2026-08-27. A floor of 130 is about
+# 76% of that, leaving headroom for ordinary churn while still catching a
+# collapse. Deliberately NOT an exact pin: the count moved 171 -> 172 during
+# this change from one unrelated merge, which is precisely how an exact floor
+# breaks on the next release.
 _MIN_REAL_CHANGELOG_RELEASES = 130
 _PROJECTION = _REPO_ROOT / "web" / "src" / "lib" / "now-highlights.generated.json"
 _MARKETING_SHARED_CHROME_PROJECTION = (

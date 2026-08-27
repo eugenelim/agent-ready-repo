@@ -1828,7 +1828,7 @@ closed = [
   # Also closed the measurement gap that let this reach production: nothing
   # asserted a release-count FLOOR, and _MAROONED_RELEASE_BASELINE is an upper
   # bound on a different population that passes when releases collapse to zero.
-  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a >=130-release floor on the real changelog (measured 171); the backticked-opener case went 0 -> 171 releases while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled"},
+  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 

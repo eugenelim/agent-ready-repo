@@ -1503,11 +1503,27 @@ def _strip_changelog_comments(line: str) -> tuple[str, bool]:
     An opener inside a same-line code span is a mention, not a comment. Once a
     real opener is found its closer stays code-span blind: Markdown is not
     parsed inside HTML comments, so backticks there are literal text.
+
+    A span is honoured only while it starts inside the CURRENT segment — the
+    text after the last comment already consumed. Without that rule a backtick
+    inside one real comment paired with a backtick inside the NEXT one, and the
+    bogus span covered the second comment's opener, so it read as a mention and
+    its body published. Measured on
+    ``- Ship it <!-- don`t publish --> <!-- TODO: internal `note` --> ``, whose
+    maintainer note reached the public page instead of being stripped. Same rule
+    as the blind closer search: a comment's interior contributes no delimiters,
+    because Markdown is not parsed inside it.
+
+    Recomputing spans per segment would also be correct, but is quadratic —
+    measured 4.6 s on 3,000 inline pairs, reintroducing the denial-of-service
+    the linear scan exists to avoid. Both cursors below only move forward, so
+    one pass over the span list serves every segment.
     """
     code_spans = _code_span_ranges(line)
     pieces: list[str] = []
     search_from = 0
     kept_from = 0
+    segment_start = 0
     span_index = 0
 
     while True:
@@ -1516,9 +1532,11 @@ def _strip_changelog_comments(line: str) -> tuple[str, bool]:
             pieces.append(line[kept_from:])
             return "".join(pieces), False
 
-        while (
-            span_index < len(code_spans)
-            and code_spans[span_index][1] <= opener
+        # Skip spans that cannot mask this opener: one that ends before it, and
+        # one that starts in a comment already consumed (or straddles it).
+        while span_index < len(code_spans) and (
+            code_spans[span_index][0] < segment_start
+            or code_spans[span_index][1] <= opener
         ):
             span_index += 1
         if (
@@ -1533,6 +1551,7 @@ def _strip_changelog_comments(line: str) -> tuple[str, bool]:
         if closer < 0:
             return "".join(pieces), True
         kept_from = closer + len("-->")
+        segment_start = kept_from
         search_from = kept_from
 
 
