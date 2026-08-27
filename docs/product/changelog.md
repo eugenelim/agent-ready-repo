@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [Unreleased]
+
 ## [core][2.13.0] — 2026-08-27
 
 ### Highlights
@@ -99,9 +101,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wave 4 classifies `cool-30-days` but adds no clock, dates, due state,
   retirement, ordinary-context exclusion, historical migration, or pruning.
   Those remain RFC-0096 Waves 5–7.
-
-## [Unreleased]
-
 
 ## [core][2.12.7] — 2026-08-27
 

@@ -3,7 +3,7 @@ title: Close work without losing lasting context
 summary: Verify durable context, settle live coordination, and choose a safe disposition without granting automatic deletion.
 pack: core
 kind: how-to
-order: 11
+order: 12
 journey: core
 ---
 
