@@ -4,10 +4,10 @@
     "CQ-ORIENT"
   ],
   "freshness": {
-    "checked_at": "1970-01-01T00:00:00Z",
-    "state": "fresh"
+    "checked_at": "2026-08-27T00:00:00Z",
+    "state": "retired"
   },
-  "lifecycle": "active",
+  "lifecycle": "retired",
   "occurrences": [
     {
       "capture_id": "kco-197001-d91cf60ba7fc6bb0e0b3379785574112c5fe77863b6e9e3b1208a923b99f68b2",
@@ -25,13 +25,20 @@
     }
   ],
   "owning_source": null,
+  "retirement": {
+    "coverage_verified": true,
+    "reason": "enforced",
+    "successors": [
+      "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py"
+    ]
+  },
   "schema_version": "knowledge-topic.v1",
   "scopes": [
     "docs/specs"
   ],
   "supporting_sources": [],
   "synthesis": {
-    "body": "lint-spec-status.py collects checklist items with `^##\\s+Acceptance Criteria\\b` and no re.IGNORECASE, so a spec whose heading reads `criteria` collects zero and invariant (ii) — every AC checked or deferred at the ship transition — passes vacuously forever. Eight specs in this repo are in that state and three more carry no criteria heading at all. Copy the heading from packs/core/.apm/skills/new-spec/assets/spec.md rather than typing it.",
+    "body": "RETIRED — enforced. lint-spec-status.py collected checklist items with `^##\\s+Acceptance Criteria\\b` and no re.IGNORECASE, so a spec whose heading read `criteria` collected zero items and invariant (ii) passed vacuously. The matcher now carries re.IGNORECASE, so a lowercase heading is gated like any other and the failure this topic warned about can no longer occur. Retained for a reader who arrives from a stale reference; the successor is the lint itself.",
     "kind": "gotcha"
   },
   "title": "`## Acceptance criteria` is silently ungated — lint-spec-status matches case-sensitively",
