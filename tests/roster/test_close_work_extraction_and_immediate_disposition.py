@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -531,6 +532,51 @@ def _result_codes(source: str) -> set[str]:
             ):
                 codes.add(value.value)
     return codes
+
+
+def test_committed_matrices_are_byte_identical_on_a_second_run() -> None:
+    """AC19: two runs over the committed matrices produce equal results.
+
+    Lives here rather than in the pack suite because it reads this directory's
+    fixtures; a pack test may not reach above its owning pack. `preview_deletion`
+    is excluded on purpose — it embeds a fresh `secrets.token_hex` challenge and
+    is required to differ between runs.
+    """
+    close_work = _load_close_work()
+
+    def run() -> str:
+        rendered: list[str] = []
+        for raw in _fixture("disposition-matrix.json"):
+            candidate = close_work.DispositionCandidate(
+                lifecycle_outcome=raw.get(
+                    "lifecycle_outcome",
+                    "completed" if raw["delivered"] else "abandoned",
+                ),
+                persisted=raw["persisted"],
+                delivered=raw["delivered"],
+                pushed=raw["pushed"],
+                removal_change=raw["removal_change"],
+                removal_integrated=raw["removal_integrated"],
+                lasting_facts_settled=raw["lasting_facts_settled"],
+                obligations_settled=raw["obligations_settled"],
+                live_dependencies=raw["live_dependencies"],
+                retain_exception=raw["retain_exception"],
+                source_authority=raw["source_authority"],
+                write_authority=raw["write_authority"],
+                deletion_authority=raw["deletion_authority"],
+            )
+            decision = close_work.classify_disposition(candidate)
+            rendered.append(f"{raw['id']}|{dataclasses.asdict(decision)}")
+        for raw in _fixture("lifecycle-matrix.json"):
+            projection = close_work.project_lifecycle(**_inputs(raw))
+            rendered.append(f"{raw['id']}|{dataclasses.asdict(projection)}")
+        return "\n".join(rendered)
+
+    first = run()
+    second = run()
+    assert first == second
+    # A non-trivial corpus, so the equality is not vacuous.
+    assert first.count("\n") >= 20, first.count("\n")
 
 
 def test_every_result_code_has_an_asserted_trace() -> None:

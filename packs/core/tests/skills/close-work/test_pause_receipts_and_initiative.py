@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 import importlib.util
-import json
 import sys
 from pathlib import Path
 
@@ -650,75 +649,6 @@ def test_artifact_closeout_requires_review_of_a_contextual_anchor() -> None:
 
     assert result.code == "anchor-review-required"
     assert result.lifecycle_phase == "Closeout-pending"
-
-
-def test_deterministic_seams_return_equal_results_on_a_second_run() -> None:
-    """AC19: two runs over the committed matrices are byte-identical.
-
-    The earlier version of this test called three pure constructors with literal
-    arguments, which could only have failed through global mutable state. This
-    drives every committed classification fixture twice and compares the
-    serialized result lists, so an ordering or dict-iteration change in the
-    seams actually reddens it. `preview_deletion` stays excluded on purpose: it
-    embeds a fresh `secrets.token_hex` challenge and is required to differ
-    between runs.
-    """
-    close_work = _close_work()
-    fixture_root = (
-        PACK_ROOT.parent.parent
-        / "tests/roster/fixtures/close-work-extraction-and-immediate-disposition"
-    )
-    assert fixture_root.is_dir(), fixture_root
-
-    def run() -> str:
-        rendered: list[str] = []
-
-        for raw in json.loads(
-            (fixture_root / "disposition-matrix.json").read_text(encoding="utf-8")
-        ):
-            candidate = close_work.DispositionCandidate(
-                lifecycle_outcome=raw.get(
-                    "lifecycle_outcome",
-                    "completed" if raw["delivered"] else "abandoned",
-                ),
-                persisted=raw["persisted"],
-                delivered=raw["delivered"],
-                pushed=raw["pushed"],
-                removal_change=raw["removal_change"],
-                removal_integrated=raw["removal_integrated"],
-                lasting_facts_settled=raw["lasting_facts_settled"],
-                obligations_settled=raw["obligations_settled"],
-                live_dependencies=raw["live_dependencies"],
-                retain_exception=raw["retain_exception"],
-                source_authority=raw["source_authority"],
-                write_authority=raw["write_authority"],
-                deletion_authority=raw["deletion_authority"],
-            )
-            rendered.append(
-                f"{raw['id']}|{dataclasses.asdict(close_work.classify_disposition(candidate))}"
-            )
-
-        for raw in json.loads(
-            (fixture_root / "lifecycle-matrix.json").read_text(encoding="utf-8")
-        ):
-            inputs = {
-                key: (tuple(value) if isinstance(value, list) else value)
-                for key, value in raw.items()
-                if key not in {"id", "expected", "expected_phase", "expected_blocker"}
-            }
-            rendered.append(
-                f"{raw['id']}|{dataclasses.asdict(close_work.project_lifecycle(**inputs))}"
-            )
-
-        return "\n".join(rendered)
-
-    first = run()
-    second = run()
-    assert first == second
-    # A non-trivial corpus, so the equality is not vacuous.
-    assert first.count("\n") >= 20, first.count("\n")
-
-
 # ── Systematic result-code coverage (plan T1 Done-when, AC19) ────────────────
 #
 # Reviewers re-discovered unasserted result codes one at a time across two
