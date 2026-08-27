@@ -16,6 +16,16 @@ non-PR run keys on ``github.run_id``, and a substring test for ``github.ref``
 would accept the bare-ref form that ADR-0086 lines 111-117 tells the next
 author not to copy.
 
+Recognition boundary, stated because a check that silently fails to enumerate
+is worse than one that admits its edge: job headers and ``permissions`` blocks
+are recognized only in block style — a bare ``  <name>:`` header line and a
+``    permissions:`` mapping. A job written with a flow mapping
+(``permissions: {security-events: write}``), a ``write-all`` scalar, or a header
+carrying a trailing comment is not enumerated, so
+``security-events-only-analyze`` is a claim about block-style jobs, not about
+every spelling YAML admits. Widening it is registered follow-up work, not a
+claim made here.
+
 Known limitation: CodeQL is advisory until the repository owner makes it a
 required branch-protection check. This posture test protects that advisory
 signal; it does not claim to make the signal merge-blocking.
@@ -50,6 +60,10 @@ EXPECTED_GROUP = (
     "codeql-${{ github.event_name == 'pull_request' && github.ref || "
     "github.run_id }}"
 )
+# Pinned by equality for the same reason as the group: a substring test for
+# "pull_request" accepts the inverted `!=` form, which stops PR runs superseding
+# one another while reading as if it were asserted.
+EXPECTED_CANCEL = "${{ github.event_name == 'pull_request' }}"
 
 Mutation = tuple[str, str, Callable[[str], str]]
 
@@ -249,8 +263,10 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("concurrency-block-present", bool(concurrency_block))
     concurrency = _mapping(concurrency_block, 2)
     check("concurrency-group", concurrency.get("group") == EXPECTED_GROUP)
-    cancel = str(concurrency.get("cancel-in-progress", ""))
-    check("concurrency-cancel", "pull_request" in cancel)
+    check(
+        "concurrency-cancel",
+        concurrency.get("cancel-in-progress") == EXPECTED_CANCEL,
+    )
 
     return violations
 
@@ -393,6 +409,14 @@ _MUTATIONS: list[Mutation] = [
             "  cancel-in-progress: true\n",
             1,
         ),
+    ),
+    (
+        # A one-character inversion the previous substring test walked past: PR
+        # runs stop superseding one another while the line still names the
+        # trigger the assertion looked for.
+        "invert-cancel-condition",
+        "concurrency-cancel",
+        lambda text: text.replace(EXPECTED_CANCEL, "${{ github.event_name != 'pull_request' }}", 1),
     ),
 ]
 

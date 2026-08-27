@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 """Pin and mutation-test the split Windows workflow's blocking topology.
 
-Blocking means two things and both are asserted: the aggregate reads every work
-job's result, and its guard exits non-zero when one of them is not `success`.
+Two properties are asserted about the aggregate: it reads every work job's
+result, and its guard — which must be the run body's first statement, with the
+failing `exit 1` directly inside it and no nested opener or subshell wrapper in
+between — exits non-zero when one of them is not `success`.
+
+Deliberately not asserted, and so not claimed: anything outside that run body.
+A step-level `continue-on-error: true` or `if:` on the aggregate step defeats
+the required check while both properties above stay true, and no assertion here
+covers it.
+
+The blocking property is additionally checked against bash rather than only
+modelled, because a text model of a shell is not the shell: see
+``_differential_failures``. That seam is ported from
+``tools/test-build-check-workflow.py``, which found the same class by execution.
 """
 
 from __future__ import annotations
@@ -37,31 +49,61 @@ RESULT_VARIABLES = (
 )
 
 
-def _guard_blocks_on_failure(aggregate: str) -> bool:
-    """Return whether one guard makes *every* work job's failure exit non-zero.
+GUARD_RUN_MARKER = "        run: |\n"
+# A statement that opens a block bash may never enter. An `exit 1` beneath one
+# of these is conditional on something this checker does not model, so it is
+# refused rather than guessed at.
+_BLOCK_OPENERS = ("if ", "case ", "while ", "until ", "for ", "select ")
 
-    The comparisons alone prove only that the aggregate reads the results, and
-    a first-match scan proves only that *some* guard exits. Splitting the guard
-    into one blocking `if` plus two advisory ones satisfied both, leaving two of
-    three Windows suites non-blocking behind the required check. So the matched
-    condition must carry all three comparisons itself before the body is
-    scanned for `exit 1`.
+
+def _guard_body(aggregate: str) -> str:
+    """Return the aggregate guard step's run body, dedented, or the empty string."""
+    if GUARD_RUN_MARKER not in aggregate:
+        return ""
+    tail = aggregate[aggregate.index(GUARD_RUN_MARKER) + len(GUARD_RUN_MARKER) :]
+    body: list[str] = []
+    for line in tail.splitlines():
+        if line.strip() and not line.startswith("          "):
+            break
+        body.append(line[10:])
+    return "\n".join(body).rstrip("\n")
+
+
+def _guard_blocks_on_failure(aggregate: str) -> bool:
+    """Return whether one guard makes every work job's failure exit non-zero.
+
+    The comparisons alone prove only that the aggregate reads the results, and a
+    first-match scan proves only that some guard exits. Splitting the guard into
+    one blocking `if` plus two advisory ones satisfied both, leaving two of three
+    Windows suites non-blocking behind the required check.
+
+    Three structural requirements, each fail-closed, and each answering a body
+    bash takes green that a looser reading accepted: the guard is the run body's
+    first statement (anything before it can `exit 0`, reassign a result, or open
+    a wrapper); its condition carries all three comparisons itself; and the
+    `exit 1` is reached without crossing a nested block opener or a subshell.
     """
-    lines = aggregate.splitlines()
-    for index, line in enumerate(lines):
-        if not line.rstrip().endswith("; then"):
-            continue
-        if any(
-            f'[ "${variable}" != "success" ]' not in line
-            for variable in RESULT_VARIABLES
-        ):
-            continue
-        for following in lines[index + 1 :]:
-            stripped = following.strip()
-            if stripped == "fi":
-                return False
-            if stripped == "exit 1":
-                return True
+    body = [line for line in _guard_body(aggregate).splitlines() if line.strip()]
+    if not body:
+        return False
+    first = body[0].strip()
+    if first.startswith(("(", "{")):
+        return False
+    if not first.endswith("; then"):
+        return False
+    if any(
+        f'[ "${variable}" != "success" ]' not in first
+        for variable in RESULT_VARIABLES
+    ):
+        return False
+    for line in body[1:]:
+        stripped = line.strip()
+        if stripped == "fi":
+            return False
+        if stripped == "exit 1":
+            return True
+        if stripped.startswith(_BLOCK_OPENERS) or stripped.startswith(("(", "{")):
+            return False
     return False
 
 
@@ -279,6 +321,125 @@ _MUTATIONS: list[Mutation] = [
 ]
 
 
+# ── Differential check: this file's model of bash, against bash ──────────────
+#
+# `aggregate-blocks-on-failure` encodes a BELIEF about what a shell does with a
+# guard body. The mutation matrix proves the assertion fires; it cannot prove
+# the belief is true. So for the one body whose behaviour decides the required
+# Windows status check, ask bash directly.
+#
+# The property is an implication, not an equality: if bash exits 0 with a suite
+# reported `failure`, `audit` MUST reject. The converse is not required —
+# rejecting a body bash would also fail is merely conservative. That asymmetry
+# is what makes this a safety check rather than a brittle equivalence test.
+_EXIT_LINE = "  exit 1"
+
+_DIFFERENTIAL_VARIANTS: list[tuple[str, Callable[[str], str]]] = [
+    ("baseline", lambda body: body),
+    ("exit-0-prefix", lambda body: f"exit 0\n{body}"),
+    ("bare-exit-prefix", lambda body: f"exit\n{body}"),
+    ("exit-000-prefix", lambda body: f"exit 000\n{body}"),
+    (
+        "reassign-every-result",
+        lambda body: "".join(f"{name}=success\n" for name in RESULT_VARIABLES) + body,
+    ),
+    (
+        "default-if-unset",
+        lambda body: "".join(
+            f"{name}=${{{name}:+success}}\n" for name in RESULT_VARIABLES
+        )
+        + body,
+    ),
+    (
+        "unreachable-nested-exit",
+        lambda body: body.replace(
+            _EXIT_LINE, "  if false; then\n    exit 1\n  fi", 1
+        ),
+    ),
+    (
+        "unmatched-case-arm-exit",
+        lambda body: body.replace(
+            _EXIT_LINE, "  case unmatched in matched)\n    exit 1\n  ;;\n  esac", 1
+        ),
+    ),
+    (
+        "subshell-or-true",
+        lambda body: body.replace("if [", "( if [", 1).replace(
+            "\nfi", "\nfi ) || true", 1
+        ),
+    ),
+]
+
+
+def _differential_failures() -> list[str]:
+    """Guard bodies bash takes green with a suite failed, that `audit` accepts."""
+    import os
+    import shutil
+    import subprocess
+
+    if not shutil.which("bash"):
+        # The make-free Windows contributor path is a shipped acceptance
+        # criterion, so a hard shell dependency would fail a gate it has no
+        # business failing. Same reasoning as the build-check sibling.
+        return []
+    good = _baseline()
+    body = _guard_body(_job_block(good, "build-check-windows"))
+    if not body:
+        return ["differential: guard body not found — the harness is blind"]
+    indented = "\n".join(f"          {line}".rstrip() for line in body.splitlines())
+    if indented not in good:
+        return ["differential: guard body did not round-trip — the harness is blind"]
+
+    # EVERY result variable must be bound: an unset one is not a failure signal,
+    # it just changes which comparison short-circuits, and a variant that is
+    # never green is never reported green-and-accepted — it silently stops
+    # proving anything.
+    env = dict(os.environ)
+    env.update(dict.fromkeys(RESULT_VARIABLES, "success"))
+    env["LOCK_SEMANTICS_RESULT"] = "failure"
+
+    out: list[str] = []
+    for name, transform in _DIFFERENTIAL_VARIANTS:
+        variant = transform(body)
+        if name != "baseline" and variant == body:
+            out.append(f"differential[{name}]: transform was a no-op — proves nothing")
+            continue
+        spliced = good.replace(
+            indented,
+            "\n".join(f"          {line}".rstrip() for line in variant.splitlines()),
+            1,
+        )
+        accepted = not audit(spliced)
+        green = (
+            subprocess.run(
+                ["bash", "-c", variant],
+                env=env,
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            ).returncode
+            == 0
+        )
+        if name == "baseline":
+            # The harness's own premise. If an unmodified guard is green with a
+            # suite failed, every "blocked" verdict below is vacuous.
+            if green:
+                out.append(
+                    "differential[baseline]: the clean guard exits 0 with "
+                    "lock-semantics failed — the harness proves nothing"
+                )
+            if not accepted:
+                out.append("differential[baseline]: the clean guard is rejected by audit")
+            continue
+        if green and accepted:
+            out.append(
+                f"differential[{name}]: bash exits 0 with lock-semantics failed, "
+                "and audit accepts it"
+            )
+    return out
+
+
 def _family(label: str) -> str:
     """Collapse repeated indexed assertions into one mutation family."""
     return re.sub(r"\[.*\]$", "[*]", label)
@@ -306,6 +467,8 @@ def self_test() -> int:
     uncovered = sorted({_family(label) for label in evaluated} - covered)
     if uncovered:
         failures.append(f"assertion families evaluated but unmutated: {uncovered}")
+
+    failures.extend(_differential_failures())
 
     if failures:
         print(f"✖ self-test: {len(failures)} problem(s):", file=sys.stderr)

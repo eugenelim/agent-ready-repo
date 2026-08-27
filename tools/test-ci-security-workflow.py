@@ -3,7 +3,8 @@
 
 Security-load-bearing invariants:
 
-* pull-request and push triggers only; never ``pull_request_target``;
+* pull-request and push triggers only, asserted as an allowlist — a denylist
+  admits ``workflow_run`` and ``issue_comment``, which run in base context;
 * top-level ``contents: read`` and no job-level ``permissions`` key at all —
   deliberately stricter than "no escalation", because AC12's posture is that a
   job inherits the top-level grant rather than restating it;
@@ -39,6 +40,7 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci-security.yml"
+ALLOWED_TRIGGERS = frozenset({"pull_request", "push"})
 EXPECTED_GROUP = (
     "ci-security-${{ github.event_name == 'pull_request' && github.ref || "
     "github.run_id }}"
@@ -67,7 +69,9 @@ def _steps(jobs: object) -> Iterable[tuple[str, dict[Any, Any]]]:
 # in an extract cluster.
 _TAR_SHORT_FLAGS = frozenset("xzjJfvkOCp")
 _CHECKSUM_RE = re.compile(r"\b(?:sha256sum|shasum)\b")
-_ARCHIVE_RE = re.compile(r"[\w.@/-]+\.(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)\b")
+# Bounded quantifier: the unbounded form backtracked quadratically, so one
+# very long committed line stalled this control instead of answering it.
+_ARCHIVE_RE = re.compile(r"[\w.@/-]{1,200}\.(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)\b")
 
 
 def _strip_comments(text: str) -> str:
@@ -197,6 +201,13 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
             "trigger-forbidden[pull_request_target]",
             "pull_request_target" not in triggers,
         )
+        # The named denial stays so a regression to it reports the specific
+        # trigger; the allowlist closes the gap between it and the "only" the
+        # docstring claims.
+        check(
+            "triggers-allowlist",
+            {str(name) for name in triggers} <= set(ALLOWED_TRIGGERS),
+        )
 
     check("permissions-read", doc.get("permissions") == {"contents": "read"})
 
@@ -288,12 +299,31 @@ def _baseline() -> str:
     return ""
 
 
+def _replace_once(text: str, old: str, new: str) -> str:
+    """Substitute exactly one occurrence, or raise.
+
+    A compound mutation can go half-inert: if the literal below drifts, the
+    other half still changes the text, so the no-op rule stays satisfied and the
+    mutation reports caught while the property it names is proven by nothing.
+    Raising converts that silent hole into a harness failure.
+    """
+    if text.count(old) < 1:
+        raise AssertionError(
+            f"mutation literal no longer present in the workflow: {old!r} — "
+            "re-pin it against .github/workflows/ci-security.yml"
+        )
+    return text.replace(old, new, 1)
+
+
 def _checksum_extract_pairs(lines: list[str]) -> list[int]:
     """Return indexes of checksum lines immediately followed by an extraction.
 
-    Every transform below is derived from these pairs rather than from a pinned
-    digest or version string, so a routine tool bump cannot turn a mutation into
-    a no-op and redden the gate with a message about the harness.
+    Transforms locate their edit point through these pairs rather than through a
+    pinned digest or version string, so a routine tool bump cannot turn a
+    mutation into a no-op. Two of them additionally substitute a literal drawn
+    from the workflow; those go through ``_replace_once``, because a compound
+    transform whose other half still fires is not a no-op and would otherwise
+    stay green while proving nothing.
     """
     return [
         index
@@ -359,7 +389,7 @@ def _respell_second_extraction_unverified(text: str) -> str:
     if len(pairs) < 2:
         return text
     index = pairs[1]
-    respelled = lines[index + 1].replace("tar xzf", "tar -xzf", 1)
+    respelled = _replace_once(lines[index + 1], "tar xzf", "tar -xzf")
     return "".join(lines[:index] + [respelled] + lines[index + 2 :])
 
 
@@ -375,6 +405,19 @@ _MUTATIONS: list[Mutation] = [
         "drop-push-trigger",
         "triggers-required",
         lambda text: text.replace("  push:\n", "  publish:\n", 1),
+    ),
+    (
+        # Not on the denylist, and it runs in base repository context with
+        # secrets: a workflow_run-triggered scan would check out base main and
+        # report green over commits it never read.
+        "add-workflow-run-trigger",
+        "triggers-allowlist",
+        lambda text: text.replace(
+            "\non:\n",
+            "\non:\n  workflow_run:\n    workflows: [build-check]\n"
+            "    types: [completed]\n",
+            1,
+        ),
     ),
     (
         "add-pull-request-target",
@@ -487,8 +530,10 @@ _MUTATIONS: list[Mutation] = [
         # caught by the substring form it replaced.
         "path-qualify-the-extraction-and-drop-its-checksum",
         "binary-checksum-before-extract[0]",
-        lambda text: _drop_first_checksum(text).replace(
-            "          tar xzf gl.tar.gz", "          /usr/bin/tar xzf gl.tar.gz", 1
+        lambda text: _replace_once(
+            _drop_first_checksum(text),
+            "          tar xzf gl.tar.gz",
+            "          /usr/bin/tar xzf gl.tar.gz",
         ),
     ),
     (
