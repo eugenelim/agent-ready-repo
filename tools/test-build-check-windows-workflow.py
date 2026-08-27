@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Pin and mutation-test the split Windows workflow's blocking topology."""
+"""Pin and mutation-test the split Windows workflow's blocking topology.
+
+Blocking means two things and both are asserted: the aggregate reads every work
+job's result, and its guard exits non-zero when one of them is not `success`.
+"""
 
 from __future__ import annotations
 
@@ -24,6 +28,27 @@ def _job_block(workflow: str, job_name: str) -> str:
         workflow,
     )
     return match.group(1) if match is not None else ""
+
+
+def _guard_blocks_on_failure(aggregate: str) -> bool:
+    """Return whether the results guard's failure branch exits non-zero.
+
+    The three ``!= "success"`` comparisons prove only that the aggregate reads
+    the work jobs' results. Without this, flipping the guard body's ``exit 1``
+    to ``exit 0`` leaves every other label satisfied while the required check
+    reports success on a failing Windows job.
+    """
+    lines = aggregate.splitlines()
+    for index, line in enumerate(lines):
+        if '!= "success"' not in line or not line.rstrip().endswith("; then"):
+            continue
+        for following in lines[index + 1 :]:
+            stripped = following.strip()
+            if stripped == "fi":
+                return False
+            if stripped == "exit 1":
+                return True
+    return False
 
 
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
@@ -117,6 +142,8 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
             comparison in aggregate,
         )
 
+    check("aggregate-blocks-on-failure", _guard_blocks_on_failure(aggregate))
+
     return violations
 
 
@@ -202,6 +229,13 @@ _MUTATIONS: list[Mutation] = [
             '[ "$LOCK_SEMANTICS_RESULT" = "failure" ]',
             1,
         ),
+    ),
+    (
+        # The fail-open shape: the guard still reads every result, still logs,
+        # and still reports the required check green.
+        "make-the-guard-exit-zero",
+        "aggregate-blocks-on-failure",
+        lambda text: text.replace("            exit 1\n", "            exit 0\n", 1),
     ),
 ]
 

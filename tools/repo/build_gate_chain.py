@@ -475,7 +475,11 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         # ADR-0017's advisory CodeQL signal is security-load-bearing even though
         # branch protection does not yet require it. The posture test proves the
-        # query suite, permission split, analyzed surface and per-ref concurrency.
+        # query suite, the read-only default floor against the analyzer's
+        # elevated grant, an exhaustive analysis-config `paths-ignore` list, the
+        # presence of the analyze step, and the literal AC12 concurrency group
+        # and cancellation expressions. It does not pin the analyze job's own
+        # permission mapping or forbid a `pull_request_target` trigger.
         _script_step(
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",

@@ -1835,7 +1835,13 @@ closed = [
   # root cause, and the fence state machine was explicitly out of scope.
   {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
 
-  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13", summary = "Closed by mutation harnesses for ci-security, pack-evals and build-check-windows plus a new mutation-tested CodeQL posture check wired into build-check"},
+  # Carries forward the accepted consequence the open entry recorded, because
+  # this closed entry is now the only place in the repository that holds it:
+  # keying non-PR concurrency on run_id means two concurrent CodeQL runs on
+  # different main commits can upload SARIF out of order, so the Security tab
+  # can transiently reflect the older commit until the next analysis. Judged
+  # better than the previous behaviour, where the newer commit went unscanned.
+  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13", summary = "Closed by mutation harnesses for ci-security, pack-evals and build-check-windows plus a new mutation-tested CodeQL posture check wired into build-check. Accepted consequence retained: concurrent CodeQL runs on different main commits can upload SARIF out of order, so the Security tab can transiently show the older commit"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 

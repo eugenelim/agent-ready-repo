@@ -2,9 +2,19 @@
 """Posture test for ``.github/workflows/codeql.yml``.
 
 The workflow supplies ADR-0017's interprocedural taint lens. This checker pins
-only the security-extended query suite, split permissions, the two intentional
-``paths-ignore`` surfaces, Python language containment, and per-ref
-concurrency. Action SHA pinning remains zizmor-owned.
+only the security-extended query suite, the split between the read-only default
+floor and the analyzer's elevated grant, both ``paths-ignore`` surfaces (the
+trigger-level one and the analysis-config one, the latter as an exhaustive list
+so a widening entry cannot silently exempt everything), the presence of the
+analyze step that turns extraction into an uploaded result, Python language
+containment, and the literal concurrency group and cancellation expressions.
+Action SHA pinning remains zizmor-owned.
+
+The concurrency group is pinned as a literal, not as a property: AC12 of
+spec/ci-gate-parallelization requires PR runs to share a ref group while every
+non-PR run keys on ``github.run_id``, and a substring test for ``github.ref``
+would accept the bare-ref form that ADR-0086 lines 111-117 tells the next
+author not to copy.
 
 Known limitation: CodeQL is advisory until the repository owner makes it a
 required branch-protection check. This posture test protects that advisory
@@ -32,6 +42,13 @@ CONFIG_PATH_IGNORES = (
     "**/tests/**",
     "**/test_*.py",
     "**/test-*.py",
+)
+# Pinned as the literal expression, matching the ci-security sibling. AC12's
+# shape is "PR runs share a ref group; every non-PR run is unique", which a
+# property test cannot express.
+EXPECTED_GROUP = (
+    "codeql-${{ github.event_name == 'pull_request' && github.ref || "
+    "github.run_id }}"
 )
 
 Mutation = tuple[str, str, Callable[[str], str]]
@@ -211,11 +228,29 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         ignored = _sequence(config, "paths-ignore", 12)
         for path in CONFIG_PATH_IGNORES:
             check(f"config-path-ignore[{path}]", path in ignored)
+        # Presence alone is not enough: one added `- '**'` exempts the whole
+        # repository while every per-glob check above still passes, which would
+        # zero the analysis and leave this gate green.
+        check(
+            "config-path-ignore-exhaustive",
+            set(ignored) == set(CONFIG_PATH_IGNORES),
+        )
+
+    analyze_steps = [
+        step
+        for step in _steps(analyze)
+        if re.search(r"^        uses: github/codeql-action/analyze@", step, re.MULTILINE)
+    ]
+    # Initialization extracts; only the analyze step uploads a result. Without
+    # this, a workflow that inits and never analyzes reports no violation.
+    check("analyze-step-present", len(analyze_steps) == 1)
 
     concurrency_block = _named_block(text, "concurrency", 0)
     check("concurrency-block-present", bool(concurrency_block))
-    group = _mapping(concurrency_block, 2).get("group", "")
-    check("concurrency-per-ref", "github.ref" in group)
+    concurrency = _mapping(concurrency_block, 2)
+    check("concurrency-group", concurrency.get("group") == EXPECTED_GROUP)
+    cancel = str(concurrency.get("cancel-in-progress", ""))
+    check("concurrency-cancel", "pull_request" in cancel)
 
     return violations
 
@@ -312,19 +347,51 @@ _MUTATIONS: list[Mutation] = [
         lambda text: text.replace("              - '**/test-*.py'\n", "", 1),
     ),
     (
+        "widen-config-path-ignores",
+        "config-path-ignore-exhaustive",
+        lambda text: text.replace(
+            "              - '**/test-*.py'\n",
+            "              - '**/test-*.py'\n              - '**'\n",
+            1,
+        ),
+    ),
+    (
+        "remove-analyze-step",
+        "analyze-step-present",
+        lambda text: text.replace(
+            "github/codeql-action/analyze@", "github/codeql-action/upload@", 1
+        ),
+    ),
+    (
         "remove-concurrency-block",
         "concurrency-block-present",
         lambda text: text.replace("concurrency:\n", "run-concurrency:\n", 1),
     ),
     (
         "make-concurrency-group-constant",
-        "concurrency-per-ref",
+        "concurrency-group",
         lambda text: re.sub(
             r"^  group: .*github\.ref.*$",
             "  group: codeql",
             text,
             count=1,
             flags=re.MULTILINE,
+        ),
+    ),
+    (
+        # The specific regression ADR-0086 lines 111-117 warns about: a bare-ref
+        # group lets a third queued non-PR run evict the pending one.
+        "make-concurrency-group-bare-ref",
+        "concurrency-group",
+        lambda text: text.replace(EXPECTED_GROUP, "codeql-${{ github.ref }}", 1),
+    ),
+    (
+        "cancel-non-pr-runs",
+        "concurrency-cancel",
+        lambda text: text.replace(
+            "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n",
+            "  cancel-in-progress: true\n",
+            1,
         ),
     ),
 ]

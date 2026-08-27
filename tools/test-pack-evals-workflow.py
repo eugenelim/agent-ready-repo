@@ -27,6 +27,10 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pack-evals.yml"
+# The workflow header claims "schedule + workflow_dispatch ONLY", so the check
+# has to be an allowlist. A denylist of the three obvious fork triggers admits
+# `workflow_run` and `issue_comment`, which do run in base context with secrets.
+ALLOWED_TRIGGERS = frozenset({"schedule", "workflow_dispatch"})
 
 Mutation = tuple[str, str, Callable[[str], str]]
 
@@ -85,6 +89,13 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         )
         for forbidden in ("push", "pull_request", "pull_request_target"):
             check(f"trigger-forbidden[{forbidden}]", forbidden not in triggers)
+        # The named three stay above so a regression to any of them reports the
+        # specific trigger. This closes the gap between them and the "only"
+        # claimed by the docstring and the printed verdict.
+        check(
+            "triggers-allowlist",
+            {str(name) for name in triggers} <= set(ALLOWED_TRIGGERS),
+        )
 
     check("permissions-read", doc.get("permissions") == {"contents": "read"})
 
@@ -165,6 +176,18 @@ _MUTATIONS: list[Mutation] = [
         "add-fork-pr-trigger",
         "trigger-forbidden[pull_request]",
         lambda text: text.replace("on:\n", "on:\n  pull_request:\n", 1),
+    ),
+    (
+        # Not on the denylist, and it runs in base context with secrets — the
+        # case that made presence-of-three insufficient.
+        "add-workflow-run-trigger",
+        "triggers-allowlist",
+        lambda text: text.replace(
+            "on:\n",
+            "on:\n  workflow_run:\n    workflows: [build-check]\n"
+            "    types: [completed]\n",
+            1,
+        ),
     ),
     (
         "widen-token-permissions",

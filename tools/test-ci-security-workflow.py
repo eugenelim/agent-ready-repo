@@ -4,11 +4,14 @@
 Security-load-bearing invariants:
 
 * pull-request and push triggers only; never ``pull_request_target``;
-* top-level ``contents: read`` and no job-level permission escalation;
+* top-level ``contents: read`` and no job-level ``permissions`` key at all —
+  deliberately stricter than "no escalation", because AC12's posture is that a
+  job inherits the top-level grant rather than restating it;
 * full-history checkout for the gitleaks range scan;
 * no Actions expression interpolation in the gitleaks shell body;
 * ``--redact`` on every gitleaks detect invocation;
-* checksum verification before every binary archive extraction; and
+* a checksum command *naming the archive* before *every* archive extraction in
+  a step, however the extraction is spelled; and
 * pull-request-only concurrency cancellation with unique non-PR groups.
 
 The mutation matrix runs on every invocation.  It uses the real workflow as its
@@ -55,22 +58,71 @@ def _steps(jobs: object) -> Iterable[tuple[str, dict[Any, Any]]]:
                 yield str(job_name), step
 
 
-def _checksum_precedes_extract(run_body: str) -> bool:
-    """Return whether a checksum command occurs before the first tar extract."""
-    extract_positions = [
-        position
-        for marker in ("tar xz", "tar xzf")
-        if (position := run_body.find(marker)) != -1
-    ]
-    if not extract_positions:
-        return True
-    extract_at = min(extract_positions)
-    checksum_positions = [
-        position
-        for marker in ("sha256sum", "shasum")
-        if (position := run_body.find(marker)) != -1
-    ]
-    return bool(checksum_positions) and min(checksum_positions) < extract_at
+# Short flags a tar extraction can legitimately carry. Membership is checked as
+# a set so `--exclude=` on a *create* invocation cannot be mistaken for the `x`
+# in an extract cluster.
+_TAR_SHORT_FLAGS = frozenset("xzjJfvkOCp")
+_CHECKSUM_RE = re.compile(r"\b(?:sha256sum|shasum)\b")
+_ARCHIVE_RE = re.compile(r"[\w.@/-]+\.(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)\b")
+
+
+def _is_extraction(line: str) -> bool:
+    """Return whether one shell line extracts an archive, however spelled.
+
+    Structural, not substring. The two literal markers this replaced (``tar xz``
+    and ``tar xzf``, the second subsumed by the first) matched one spelling, so
+    respelling an extraction as ``tar -xzf`` dropped its step out of the audited
+    set entirely — losing the assertion rather than failing it.
+    """
+    tokens = line.split()
+    for index, token in enumerate(tokens):
+        if token == "unzip":
+            return True
+        if token == "7z" and tokens[index + 1 : index + 2] in (["x"], ["e"]):
+            return True
+        if token not in ("tar", "bsdtar"):
+            continue
+        for candidate in tokens[index + 1 :]:
+            if candidate == "--extract":
+                return True
+            flags = candidate.lstrip("-")
+            if flags and set(flags) <= _TAR_SHORT_FLAGS and "x" in flags:
+                return True
+    return False
+
+
+def _unverified_archives(run_body: str) -> list[str]:
+    """Return archives this step extracts with no prior checksum naming them.
+
+    Every extraction is checked, not just the first, and the checksum has to
+    name the archive the extraction consumes — a bare ``sha256sum --version``
+    earlier in the body verifies nothing. Deliberately no vacuously-true early
+    return: a step with no extraction yields no extraction loop iterations and
+    therefore an empty list, without a fail-open branch to reach.
+    """
+    lines = run_body.splitlines()
+    checksum_at: dict[str, int] = {}
+    for index, line in enumerate(lines):
+        if not _CHECKSUM_RE.search(line):
+            continue
+        for archive in _ARCHIVE_RE.findall(line):
+            checksum_at.setdefault(archive, index)
+
+    unverified: list[str] = []
+    for index, line in enumerate(lines):
+        if not _is_extraction(line):
+            continue
+        archives = _ARCHIVE_RE.findall(line)
+        if not archives:
+            # An extraction naming no archive path cannot be tied to any
+            # checksum, so it is reported rather than waved through.
+            unverified.append(line.strip())
+            continue
+        for archive in archives:
+            verified_at = checksum_at.get(archive)
+            if verified_at is None or verified_at >= index:
+                unverified.append(archive)
+    return unverified
 
 
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
@@ -172,14 +224,19 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     install_steps = [
         step
         for _job_name, step in _steps(jobs)
-        if "tar xz" in str(step.get("run", ""))
-        or "tar xzf" in str(step.get("run", ""))
+        if any(_is_extraction(line) for line in str(step.get("run", "")).splitlines())
     ]
+    # Presence floor, matching `checkout-present` and `gitleaks-step-present`.
+    # Without it the whole family can collapse to zero members and the
+    # family-coverage rule — which compares evaluated labels against mutated
+    # ones — reports nothing, because an unevaluated family is not uncovered.
+    check("install-steps-present", bool(install_steps))
     for index, step in enumerate(install_steps):
-        name = str(step.get("name", index))
+        # Keyed on the index, not the step name: the name carries the pinned
+        # tool version, so a routine bump would silently retarget the label.
         check(
-            f"binary-checksum-before-extract[{name}]",
-            _checksum_precedes_extract(str(step.get("run", ""))),
+            f"binary-checksum-before-extract[{index}]",
+            not _unverified_archives(str(step.get("run", ""))),
         )
 
     return violations
@@ -190,6 +247,58 @@ def _baseline() -> str:
     if WORKFLOW.is_file():
         return WORKFLOW.read_text(encoding="utf-8")
     return ""
+
+
+def _checksum_extract_pairs(lines: list[str]) -> list[int]:
+    """Return indexes of checksum lines immediately followed by an extraction.
+
+    Every transform below is derived from these pairs rather than from a pinned
+    digest or version string, so a routine tool bump cannot turn a mutation into
+    a no-op and redden the gate with a message about the harness.
+    """
+    return [
+        index
+        for index in range(len(lines) - 1)
+        if _CHECKSUM_RE.search(lines[index]) and _is_extraction(lines[index + 1])
+    ]
+
+
+def _swap_first_checksum_and_extract(text: str) -> str:
+    """Move the first checksum line to after the extraction it guards."""
+    lines = text.splitlines(keepends=True)
+    pairs = _checksum_extract_pairs(lines)
+    if not pairs:
+        return text
+    index = pairs[0]
+    lines[index], lines[index + 1] = lines[index + 1], lines[index]
+    return "".join(lines)
+
+
+def _misname_first_checksum_archive(text: str) -> str:
+    """Point the first checksum at an archive nothing extracts."""
+    lines = text.splitlines(keepends=True)
+    pairs = _checksum_extract_pairs(lines)
+    if not pairs:
+        return text
+    index = pairs[0]
+    lines[index] = _ARCHIVE_RE.sub("unrelated.tar.gz", lines[index], count=1)
+    return "".join(lines)
+
+
+def _respell_second_extraction_unverified(text: str) -> str:
+    """Drop the second step's checksum and respell its extraction.
+
+    This is the exact pair of edits the previous literal-marker filter could not
+    see: the step left the audited set, so no label failed and no family was
+    reported uncovered.
+    """
+    lines = text.splitlines(keepends=True)
+    pairs = _checksum_extract_pairs(lines)
+    if len(pairs) < 2:
+        return text
+    index = pairs[1]
+    respelled = lines[index + 1].replace("tar xzf", "tar -xzf", 1)
+    return "".join(lines[:index] + [respelled] + lines[index + 2 :])
 
 
 _MUTATIONS: list[Mutation] = [
@@ -296,14 +405,25 @@ _MUTATIONS: list[Mutation] = [
     ),
     (
         "move-first-binary-checksum-after-extract",
-        "binary-checksum-before-extract[Install gitleaks v8.30.1]",
-        lambda text: text.replace(
-            "          echo \"551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz\" | sha256sum -c\n"
-            "          tar xzf gl.tar.gz -C /usr/local/bin gitleaks\n",
-            "          tar xzf gl.tar.gz -C /usr/local/bin gitleaks\n"
-            "          echo \"551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz\" | sha256sum -c\n",
-            1,
-        ),
+        "binary-checksum-before-extract[0]",
+        _swap_first_checksum_and_extract,
+    ),
+    (
+        # Ordering alone is not verification: the checksum has to name the
+        # archive the extraction consumes.
+        "verify-an-archive-nothing-extracts",
+        "binary-checksum-before-extract[0]",
+        _misname_first_checksum_archive,
+    ),
+    (
+        "respell-second-extraction-and-drop-its-checksum",
+        "binary-checksum-before-extract[1]",
+        _respell_second_extraction_unverified,
+    ),
+    (
+        "remove-every-install-extraction",
+        "install-steps-present",
+        lambda text: text.replace("tar xzf", "tar czf"),
     ),
 ]
 
