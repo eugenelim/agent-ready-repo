@@ -16,8 +16,8 @@ name: ci-security
 #   - gitleaks --redact: matched secret values never reach (public) CI logs.
 #   - Binary checksums: SHA-256 hardcoded in this file (not fetched from the same
 #     origin as the binary) — upstream tampering fails the gate at-rest.
-#   - cancel-in-progress: gated to pull_request events only — push-to-main scans
-#     run to completion.
+#   - concurrency: pull-request runs share a ref group; each non-PR run gets a
+#     unique run_id group, so push-to-main scans cannot be evicted while pending.
 
 on:
   pull_request:
@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-security-${{ github.ref }}
+  group: ci-security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
