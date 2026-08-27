@@ -1,0 +1,147 @@
+{
+  "evaluation_mode": "independent-read-only-subcontext",
+  "evaluated_at": "2026-08-27",
+  "source_digest": "sha256:da0ca5f3b9b02afa022b65358d3fe563a94b88781af711142f18b4b3b733946b",
+  "router_digest": "sha256:4d5e51713b14e5aae77c2889696e1df6de96889be69bf634dc0fa5729c981204",
+  "generated_tree_digest": "sha256:b169e077148eafa9eb24fb37f45db666159cba33055eb8538d55a553780a0f67",
+  "results": [
+    {
+      "id": "new-skill-purpose",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "activation-positive-negative",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "description-catchall",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "skill-or-normal-capability",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "authorization-at-trigger",
+      "actual_topics": [
+        "framing-and-trigger-quality",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "split-large-skill",
+      "actual_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "orphan-reference",
+      "actual_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "duplicate-rule",
+      "actual_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "mode-loading",
+      "actual_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "asset-or-reference",
+      "actual_topics": [
+        "instruction-density-and-progressive-disclosure",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "script-exit",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "script-determinism",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "interrupted-write",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "cleanup-denied",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "python-extension",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "node-extension",
+      "actual_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "full-new-skill",
+      "actual_topics": [
+        "framing-and-trigger-quality",
+        "instruction-density-and-progressive-disclosure",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "review-existing-skill",
+      "actual_topics": [
+        "framing-and-trigger-quality",
+        "instruction-density-and-progressive-disclosure",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "near-miss-generic-code",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-architecture",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-prose",
+      "actual_topics": []
+    },
+    {
+      "id": "integration-org-standards",
+      "actual_topics": []
+    },
+    {
+      "id": "integration-framework-library",
+      "actual_topics": []
+    },
+    {
+      "id": "integration-agent-reference",
+      "actual_topics": []
+    }
+  ]
+}

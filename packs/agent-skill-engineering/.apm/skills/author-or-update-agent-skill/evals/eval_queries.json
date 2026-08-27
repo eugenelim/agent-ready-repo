@@ -1,0 +1,12 @@
+[
+  {"query": "Help me frame a new skill for reviewing database migrations", "should_trigger": true},
+  {"query": "Create a portable agent skill that triages failed CI jobs", "should_trigger": true},
+  {"query": "Update this existing SKILL.md without changing its activation boundary", "should_trigger": true},
+  {"query": "Design the trigger boundary for an agent skill before we write it", "should_trigger": true},
+  {"query": "Write a product announcement", "should_trigger": false},
+  {"query": "Fix the flaky Python test", "should_trigger": false},
+  {"query": "How should we architect our event pipeline?", "should_trigger": false},
+  {"query": "Review this pull request", "should_trigger": false},
+  {"query": "Clean up the repository", "should_trigger": false}
+]
+

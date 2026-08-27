@@ -1,0 +1,54 @@
+{
+  "skill_name": "review-or-optimize-agent-skill",
+  "evals": [
+    {
+      "id": "detect-activation-failure",
+      "prompt": "Review the supplied agent skill. Report applicable foundation findings with their identifiers; do not edit it.",
+      "files": ["evals/files/catchall-SKILL.md"],
+      "expected_output": "A read-only review that reports ASE-ACT-01, ASE-PORT-01, ASE-AUTH-01, and ASE-SEC-01 because the catch-all description, adapter-specific path, credential read, and standing write authority violate the foundation contract.",
+      "assertions": [
+        "Keeps review read-only and does not enter optimization",
+        "Reports ASE-ACT-01 as applicable",
+        "Reports ASE-PORT-01 for the runtime-specific filesystem dependency",
+        "Reports ASE-AUTH-01 and ASE-SEC-01 for credential access and unauthorized mutation",
+        "Proposes narrower activation and least-authority portable behavior"
+      ],
+      "expect": {
+        "output_contains": [
+          "ASE-ACT-01",
+          "ASE-PORT-01",
+          "ASE-AUTH-01",
+          "ASE-SEC-01",
+          "Mode: review"
+        ]
+      }
+    },
+    {
+      "id": "detect-script-contract-failure",
+      "prompt": "Review the supplied agent skill and helper contract. Report applicable foundation findings with their identifiers; do not execute or edit the helper.",
+      "files": [
+        "evals/files/nondeterministic-SKILL.md",
+        "evals/files/nondeterministic-helper.py"
+      ],
+      "expected_output": "A read-only review that reports ASE-PROG-01, ASE-DET-01, ASE-CTX-01, ASE-WRITE-01, ASE-CONC-01, and ASE-FAIL-01 because instructions are duplicated, the helper is time-dependent, and concurrent overlapping writes have no bounded failure or cleanup contract.",
+      "assertions": [
+        "Keeps review read-only and does not execute untrusted code",
+        "Reports ASE-DET-01 for time-dependent output",
+        "Reports ASE-PROG-01 and ASE-CTX-01 for duplicated unrouted instructions",
+        "Reports ASE-WRITE-01 and ASE-CONC-01 for unbounded overlapping writes",
+        "Reports ASE-FAIL-01 and names the deterministic replay, exit, and cleanup contract needed before optimization"
+      ],
+      "expect": {
+        "output_contains": [
+          "ASE-PROG-01",
+          "ASE-DET-01",
+          "ASE-CTX-01",
+          "ASE-WRITE-01",
+          "ASE-CONC-01",
+          "ASE-FAIL-01",
+          "Mode: review"
+        ]
+      }
+    }
+  ]
+}

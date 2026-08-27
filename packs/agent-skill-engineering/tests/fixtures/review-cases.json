@@ -1,0 +1,7 @@
+[
+  {"id":"activation-failure","applicable":["ASE-ACT-01"],"seeded":["ASE-ACT-01"]},
+  {"id":"portability-and-authority","applicable":["ASE-PORT-01","ASE-AUTH-01","ASE-SEC-01"],"seeded":["ASE-PORT-01","ASE-AUTH-01","ASE-SEC-01"]},
+  {"id":"script-contract-failure","applicable":["ASE-DET-01","ASE-FAIL-01"],"seeded":["ASE-DET-01","ASE-FAIL-01"]},
+  {"id":"context-write-concurrency","applicable":["ASE-PROG-01","ASE-CTX-01","ASE-WRITE-01","ASE-CONC-01"],"seeded":["ASE-PROG-01","ASE-CTX-01","ASE-WRITE-01","ASE-CONC-01"]}
+]
+

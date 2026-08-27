@@ -1,0 +1,37 @@
+{
+  "id": "eligible-unmanifested-reference",
+  "surface_class": "agent-skills-reference",
+  "candidates": [{
+    "provider_id": "agent-skills-reference",
+    "contract_version": "agent-skill-engineering-reference/v1",
+    "task_kinds": ["skill-authoring"],
+    "authority": ["filesystem_read_untrusted"],
+    "manifest_valid": true
+  }],
+  "request": {
+    "contract_version": "agent-skill-engineering-reference/v1",
+    "task_kind": "skill-authoring",
+    "question": "Which foundation topic applies to this skill frame?",
+    "capabilities": ["agent-skills-reference"],
+    "max_topics": 3
+  },
+  "response": {
+    "contract_version": "agent-skill-engineering-reference/v1",
+    "status": "ok",
+    "topic_ids": ["framing-and-trigger-quality"],
+    "guidance": {
+      "framing-and-trigger-quality": "Check realistic positive and negative activation prompts."
+    },
+    "provenance": {
+      "provider_id": "agent-skills-reference",
+      "contract_version": "agent-skill-engineering-reference/v1",
+      "source_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ownership_manifest_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "profile_provenance": [],
+    "warnings": [],
+    "diagnostic": null
+  },
+  "provider_reads": [{"path": "references/okf/concepts/framing-and-trigger-quality.md", "digest_matches": true, "manifest_member": false}],
+  "expected": {"status": "unavailable", "diagnostic": "provider integrity unavailable", "baseline_continues": true}
+}

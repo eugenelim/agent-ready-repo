@@ -1,0 +1,43 @@
+[pack]
+name = "agent-skill-engineering"
+version = "0.1.0"
+description = "Frame, create, update, review, and optimize portable agent skills with governed reference knowledge."
+display_name = "Agent Skill Engineering"
+readme = "README.md"
+license = "Apache-2.0 OR MIT"
+categories = ["ai-agent", "documentation", "testing"]
+keywords = ["agent-skills", "skill-authoring", "skill-review", "progressive-disclosure"]
+
+[pack.adapter-contract]
+version = "0.10"
+
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+allowed-adapters = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
+
+[pack.evals]
+skills = ["author-or-update-agent-skill", "review-or-optimize-agent-skill"]
+
+[pack.metadata.okf]
+profile = "agentbundle-okf/v1"
+
+[[pack.metadata.okf.bundles]]
+id = "agent-skill-engineering-foundation"
+path = "okf/agent-skill-engineering-foundation"
+# The router name deliberately shares no vocabulary with the requests the two
+# user-facing workflows serve. Named `agent-skill-engineering-reference`, the
+# headless activation eval showed the runtime selecting this inert router
+# instead of `author-or-update-agent-skill` for prompts such as "design the
+# trigger boundary for an agent skill" — the name outweighed a description
+# that explicitly refuses user selection. Do not rename it back to a
+# domain-matching form without re-running `agentbundle pack evals run`.
+"router-skill" = "ase-okf-reference"
+
+[pack.metadata.okf.bundles.provider]
+contract-version = "agent-skill-engineering-reference/v1"
+domain = "agent skill engineering"
+purpose = "Provide bounded compiled guidance for authoring, review, evaluation, and extension-design questions."
+task-kinds = ["skill-authoring", "skill-review", "skill-eval-ci", "agent-extension-design"]
+invocation = "explicit-workflow-only"
+ownership-manifest = ".okf-generated.json"

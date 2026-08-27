@@ -1,0 +1,36 @@
+{
+  "evaluation_mode": "independent-read-only-subcontext",
+  "evaluated_at": "2026-08-27",
+  "skills": {
+    "author-or-update-agent-skill": {
+      "skill_digest": "sha256:8ff6d1f8e3f8c9845f51a878cd4497fa6a62ddc09c5717b6f641eae32f7849fa",
+      "query_fixture_digest": "sha256:d2a622163876f164817cafbc625a02504addf44d40a07065e4e30973da3d19bb",
+      "cases": [
+        {"query_id":"q00","query":"Help me frame a new skill for reviewing database migrations","expected":"author-or-update-agent-skill","actual":"author-or-update-agent-skill"},
+        {"query_id":"q01","query":"Create a portable agent skill that triages failed CI jobs","expected":"author-or-update-agent-skill","actual":"author-or-update-agent-skill"},
+        {"query_id":"q02","query":"Update this existing SKILL.md without changing its activation boundary","expected":"author-or-update-agent-skill","actual":"author-or-update-agent-skill"},
+        {"query_id":"q03","query":"Design the trigger boundary for an agent skill before we write it","expected":"author-or-update-agent-skill","actual":"author-or-update-agent-skill"},
+        {"query_id":"q04","query":"Write a product announcement","expected":null,"actual":null},
+        {"query_id":"q05","query":"Fix the flaky Python test","expected":null,"actual":null},
+        {"query_id":"q06","query":"How should we architect our event pipeline?","expected":null,"actual":null},
+        {"query_id":"q07","query":"Review this pull request","expected":null,"actual":null},
+        {"query_id":"q08","query":"Clean up the repository","expected":null,"actual":null}
+      ]
+    },
+    "review-or-optimize-agent-skill": {
+      "skill_digest": "sha256:98f6116da126c11860698a26b0fb0c1b76a1afbbcdfa8aa2aaaf67bbb3a6d860",
+      "query_fixture_digest": "sha256:05d45723e30747b538d88ddef892c8233cd1445aa2023d088640e198e06fb63f",
+      "cases": [
+        {"query_id":"q00","query":"Review this agent skill for trigger precision and portability","expected":"review-or-optimize-agent-skill","actual":"review-or-optimize-agent-skill"},
+        {"query_id":"q01","query":"Audit this SKILL.md for progressive disclosure and unsafe authority","expected":"review-or-optimize-agent-skill","actual":"review-or-optimize-agent-skill"},
+        {"query_id":"q02","query":"Optimize this skill against the activation false-positive baseline I measured","expected":"review-or-optimize-agent-skill","actual":"review-or-optimize-agent-skill"},
+        {"query_id":"q03","query":"The helper fails determinism checks; review and then optimize the skill","expected":"review-or-optimize-agent-skill","actual":"review-or-optimize-agent-skill"},
+        {"query_id":"q04","query":"Review this pull request for Python bugs","expected":null,"actual":null},
+        {"query_id":"q05","query":"Edit this paragraph to be more concise","expected":null,"actual":null},
+        {"query_id":"q06","query":"Clean up these repository files","expected":null,"actual":null},
+        {"query_id":"q07","query":"Refactor this module to look nicer","expected":null,"actual":null},
+        {"query_id":"q08","query":"Review our distributed architecture","expected":null,"actual":null}
+      ]
+    }
+  }
+}

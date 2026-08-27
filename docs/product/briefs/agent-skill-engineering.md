@@ -178,11 +178,12 @@ and plan are approved and registered under `ini-009`.
 ## Spec map
 
 Status is derived from linked delivery specs rather than maintained independently
-here. The confirmed slices have not yet been promoted to specs; an empty map therefore
-means the programme is shaped but no implementation work is dispatchable.
+here. Remaining confirmed slices stay as typed programme work until `new-spec`
+promotes and approves them.
 
 | Spec | Status |
 | --- | --- |
+| `agent-skill-engineering-foundation` | — |
 
 ## Backlog and prerequisites
 
