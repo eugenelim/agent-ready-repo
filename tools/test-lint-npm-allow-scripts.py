@@ -9,6 +9,7 @@ least one assertion failed.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -95,8 +96,67 @@ def combined(proc: subprocess.CompletedProcess[str]) -> str:
     return f"{proc.stdout}\n{proc.stderr}"
 
 
+def permission_fixtures_supported() -> bool:
+    """Whether POSIX mode bits can make the synthetic walk paths inaccessible."""
+    return os.name == "posix" and os.geteuid() != 0
+
+
+# Avoid a test_ prefix: these stdlib self-tests run through main(), while pytest would pass this because check() accumulates failures.
+def case_discovery_iterdir_permission_failure() -> None:
+    """An unreadable directory makes the checker exit 2 without a traceback."""
+    if not permission_fixtures_supported():
+        print("  skip discovery_iterdir_permission_failure (root or non-POSIX)")
+        return
+    root = fixture_root("npm-allow-unreadable-")
+    unreadable = root / "unreadable"
+    try:
+        unreadable.mkdir()
+        unreadable.chmod(0o000)
+        proc = run(root)
+        check(
+            "discovery iterdir permission failure exits 2",
+            proc.returncode == 2,
+            combined(proc),
+        )
+        check("discovery iterdir permission failure names the read error",
+              "cannot read" in proc.stderr, combined(proc))
+        check("discovery iterdir permission failure has no traceback",
+              "Traceback" not in combined(proc), combined(proc))
+    finally:
+        unreadable.chmod(0o700)
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_discovery_child_classification_permission_failure() -> None:
+    """A listable but untraversable directory reaches the child-stat guard."""
+    if not permission_fixtures_supported():
+        print(
+            "  skip discovery_child_classification_permission_failure "
+            "(root or non-POSIX)"
+        )
+        return
+    root = fixture_root("npm-allow-listable-")
+    listable = root / "listable"
+    try:
+        (listable / "child").mkdir(parents=True)
+        listable.chmod(0o400)
+        proc = run(root)
+        check("discovery child classification permission failure exits 2",
+              proc.returncode == 2, combined(proc))
+        check("discovery child classification permission failure names the classification error",
+              "cannot inspect" in proc.stderr, combined(proc))
+        check("discovery child classification permission failure has no traceback",
+              "Traceback" not in combined(proc), combined(proc))
+    finally:
+        listable.chmod(0o700)
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main() -> int:
     print("test-lint-npm-allow-scripts:")
+
+    case_discovery_iterdir_permission_failure()
+    case_discovery_child_classification_permission_failure()
 
     root = fixture_root("npm-allow-clean-")
     try:
