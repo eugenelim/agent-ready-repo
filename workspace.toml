@@ -167,6 +167,7 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
+  {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
