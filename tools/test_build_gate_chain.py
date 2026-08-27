@@ -21,12 +21,127 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 # Import from tools/repo/ (the real implementation, not the shim at tools/).
 sys.path.insert(0, str(Path(__file__).resolve().parent / "repo"))
 import build_gate_chain as gc  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "catalogue"))
 import pre_pr_catalogue as pre_pr  # noqa: E402
+
+
+def _cwd_pytest_stream_errors(source: str) -> list[str]:
+    """Return structural stream/process drift in ``_pytest_step_cwd``."""
+    tree = ast.parse(source)
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_pytest_step_cwd"
+    )
+    calls = [
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "subprocess"
+        and node.func.attr == "run"
+    ]
+    errors: list[str] = []
+    if len(calls) != 1:
+        return [f"expected one scoped pytest child, found {len(calls)}"]
+    keywords = {keyword.arg for keyword in calls[0].keywords}
+    prohibited = {"capture_output", "stdout", "stderr", "shell"}
+    unexpected = sorted(prohibited & keywords)
+    if unexpected:
+        errors.append(f"scoped pytest stream/process override: {unexpected}")
+    return errors
+
+
+def _mutate_cwd_pytest_run(source: str, keyword: str) -> str:
+    """Add one subprocess keyword to the real cwd-step body for a red control."""
+    start = source.index("def _pytest_step_cwd")
+    end = source.index("\ndef _module_step", start)
+    body = source[start:end]
+    mutated = body.replace(
+        "check=False,",
+        f"check=False,\n            {keyword},",
+        1,
+    )
+    if mutated == body:
+        raise AssertionError("cwd pytest subprocess call shape drifted")
+    return source[:start] + mutated + source[end:]
+
+
+def test_real_deep_cwd_floor_plugin_preserves_pytest_contract(
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    """Both real cwd shapes load the plugin and keep native failures."""
+    primitive = Path("packs/catalogue-curation/tests/skills/assimilate-primitive")
+    repo = Path("packs/catalogue-curation/tests/skills/assimilate-repo")
+    created: list[Path] = []
+
+    def write_test(directory: Path, body: str) -> Path:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix="test_floor_deep_cwd_",
+            suffix=".py",
+            dir=gc.REPO_ROOT / directory,
+            delete=False,
+        ) as handle:
+            handle.write(body)
+            path = Path(handle.name)
+        created.append(path)
+        return path
+
+    try:
+        contract = write_test(
+            primitive,
+            "from pathlib import Path\n"
+            "def test_runtime_contract(request):\n"
+            "    root = Path(__file__).resolve().parents[5]\n"
+            "    assert request.config.rootpath == root\n"
+            "    assert request.config.inifile == root / 'pyproject.toml'\n"
+            "    assert request.config.pluginmanager.hasplugin(\n"
+            "        'tools.pytest_collection_floor'\n"
+            "    )\n",
+        )
+        success = gc._pytest_step_cwd(
+            "deep cwd success", str(primitive), str(contract), floor=1
+        )[1]()
+        success_output = "".join(capfd.readouterr())
+        assert success == 0, success_output
+        assert "1 passed" in success_output
+
+        failure = write_test(
+            repo,
+            "def test_body_must_not_run():\n"
+            "    raise AssertionError('body executed')\n",
+        )
+        below_floor = gc._pytest_step_cwd(
+            "deep cwd floor", str(repo), str(failure), floor=2
+        )[1]()
+        floor_output = "".join(capfd.readouterr())
+        assert below_floor == 1, floor_output
+        assert "collected 1 test(s), expected at least 2" in floor_output
+        assert "body executed" not in floor_output
+
+        failure.write_text(
+            "raise RuntimeError('deep cwd collection sentinel')\n",
+            encoding="utf-8",
+        )
+        collection_error = gc._pytest_step_cwd(
+            "deep cwd collection error", str(repo), str(failure), floor=1
+        )[1]()
+        collection_output = "".join(capfd.readouterr())
+        assert collection_error == 2, collection_output
+        assert "deep cwd collection sentinel" in collection_output
+        assert "expected at least" not in collection_output
+    finally:
+        for path in created:
+            path.unlink(missing_ok=True)
 
 
 class PackSkillPytestShapeTest(unittest.TestCase):
@@ -544,6 +659,161 @@ class BuildSelfChainTest(unittest.TestCase):
         self.assertNotIn("--write", argv)
 
 
+class CollectionFloorPluginTest(unittest.TestCase):
+    """The opt-in floor uses the real collection and never runs low suites."""
+
+    def _run_pytest(
+        self,
+        *sources: str,
+        minimum: int,
+        use_floor: bool = True,
+    ) -> tuple[subprocess.CompletedProcess[str], list[Path]]:
+        paths: list[Path] = []
+        try:
+            for source in sources:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    prefix="test_collection_floor_",
+                    suffix=".py",
+                    delete=False,
+                ) as handle:
+                    handle.write(source)
+                    paths.append(Path(handle.name))
+            argv = [
+                sys.executable,
+                "-m",
+                "pytest",
+                *(str(path) for path in paths),
+                "-q",
+                "-p",
+                "no:cacheprovider",
+            ]
+            if use_floor:
+                argv.extend(
+                    [
+                        "-p",
+                        "tools.pytest_collection_floor",
+                        f"--minimum-collected={minimum}",
+                        "--collection-floor-suite=temporary-floor-suite",
+                    ]
+                )
+            env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+            env.pop("PYTEST_ADDOPTS", None)
+            result = subprocess.run(
+                argv,
+                cwd=gc.REPO_ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
+            )
+            return result, paths
+        except Exception:
+            for path in paths:
+                path.unlink(missing_ok=True)
+            raise
+
+    def _cleanup_paths(self, paths: list[Path]) -> None:
+        for path in paths:
+            cache = path.parent / "__pycache__"
+            self.assertEqual(list(cache.glob(f"{path.stem}.*.pyc")), [])
+            path.unlink(missing_ok=True)
+
+    def test_accepts_exact_and_above_floor_collection(self):
+        source = "def test_one(): pass\n\ndef test_two(): pass\n"
+        for minimum in (1, 2):
+            with self.subTest(minimum=minimum):
+                result, paths = self._run_pytest(source, minimum=minimum)
+                try:
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                finally:
+                    self._cleanup_paths(paths)
+
+    def test_below_floor_reports_suite_actual_and_expected_on_stderr(self):
+        result, paths = self._run_pytest("def test_one(): pass\n", minimum=2)
+        try:
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("temporary-floor-suite", result.stderr)
+            self.assertIn("collected 1 test(s), expected at least 2", result.stderr)
+            self.assertNotIn("collected 1 test(s), expected at least 2", result.stdout)
+        finally:
+            self._cleanup_paths(paths)
+
+    def test_zero_collection_is_a_floor_failure(self):
+        result, paths = self._run_pytest("VALUE = 1\n", minimum=1)
+        try:
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("collected 0 test(s), expected at least 1", result.stderr)
+        finally:
+            self._cleanup_paths(paths)
+
+    def test_floor_failure_precedes_test_body_execution(self):
+        with tempfile.NamedTemporaryFile(delete=False) as handle:
+            sentinel = Path(handle.name)
+        sentinel.unlink()
+        source = (
+            "from pathlib import Path\n"
+            f"SENTINEL = Path({str(sentinel)!r})\n"
+            "def test_body(): SENTINEL.write_text('ran')\n"
+        )
+        result, paths = self._run_pytest(source, minimum=2)
+        try:
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("expected at least 2", result.stderr)
+            self.assertFalse(sentinel.exists())
+        finally:
+            sentinel.unlink(missing_ok=True)
+            self._cleanup_paths(paths)
+
+    def test_collection_errors_and_partial_collection_keep_native_exit_two(self):
+        broken = "import module_that_does_not_exist_for_floor_test\n"
+        cases = ((broken,), ("def test_valid(): pass\n", broken))
+        for sources in cases:
+            with self.subTest(partial=len(sources) == 2):
+                result, paths = self._run_pytest(*sources, minimum=20)
+                try:
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertIn("ModuleNotFoundError", result.stdout + result.stderr)
+                    self.assertNotIn("expected at least 20", result.stdout + result.stderr)
+                finally:
+                    self._cleanup_paths(paths)
+
+    def test_interrupted_collection_keeps_native_exit_two(self):
+        result, paths = self._run_pytest("raise KeyboardInterrupt\n", minimum=1)
+        try:
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("KeyboardInterrupt", result.stdout + result.stderr)
+            self.assertNotIn("expected at least 1", result.stdout + result.stderr)
+        finally:
+            self._cleanup_paths(paths)
+
+    def test_real_test_failure_propagates_after_floor_succeeds(self):
+        result, paths = self._run_pytest(
+            "def test_failure(): assert False\n",
+            minimum=1,
+        )
+        try:
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("FAILED", result.stdout + result.stderr)
+            self.assertNotIn("expected at least", result.stdout + result.stderr)
+        finally:
+            self._cleanup_paths(paths)
+
+    def test_ordinary_pytest_is_unchanged_without_floor_opt_in(self):
+        result, paths = self._run_pytest(
+            "def test_ordinary(): pass\n",
+            minimum=999,
+            use_floor=False,
+        )
+        try:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn("expected at least", result.stdout + result.stderr)
+        finally:
+            self._cleanup_paths(paths)
+
+
 # The `build-check` chain's spawned script steps, in order. Single source for
 # both the ordering assertion and the step count — a literal count drifts out of
 # step with the list it is supposed to describe.
@@ -819,12 +1089,113 @@ class BuildCheckChainTest(unittest.TestCase):
 
         self.assertEqual(rc, 0)
         # 2 module steps (catalogue verify + build) + the script steps + the two
-        # directory-scoped steps, each of which spawns twice: a `--collect-only`
-        # floor probe and then the run itself.
+        # one-pass directory-scoped pytest steps.
         _CWD_STEPS = 2
-        self.assertEqual(
-            len(order), 2 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS * 2
+        self.assertEqual(len(order), 2 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS)
+
+    def test_floor_scoped_steps_use_one_exact_windows_clean_child(self):
+        """Each catalogue floor is enforced by its real inherited-stream child."""
+        seen: list[dict[str, object]] = []
+
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append(
+                {
+                    "argv": list(argv),
+                    "check": check,
+                    "env": env,
+                    "cwd": cwd,
+                    "kwargs": dict(kwargs),
+                }
+            )
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            rc = gc.build_check(
+                argparse.Namespace(packs_dir="packs", output_dir="dist")
+            )
+
+        self.assertEqual(rc, 0)
+        scoped = [call for call in seen if call["cwd"] is not None]
+        expected = {
+            "packs/catalogue-curation/tests/skills/assimilate-primitive": 30,
+            "packs/catalogue-curation/tests/skills/assimilate-repo": 7,
+        }
+        self.assertEqual(len(scoped), len(expected))
+        for call in scoped:
+            cwd = Path(str(call["cwd"]))
+            relative = cwd.relative_to(gc.REPO_ROOT).as_posix()
+            floor = expected[relative]
+            self.assertEqual(
+                call["argv"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    "-q",
+                    "-p",
+                    "no:cacheprovider",
+                    "-p",
+                    "tools.pytest_collection_floor",
+                    f"--minimum-collected={floor}",
+                    f"--collection-floor-suite={relative}",
+                ],
+            )
+            self.assertEqual(call["env"], gc._source_packages_env())
+            self.assertFalse(call["check"])
+            self.assertEqual(call["kwargs"], {})
+
+    def test_scoped_pytest_stream_mutations_fail_closed(self):
+        """Capture, redirection, DEVNULL, and shell changes cannot be hidden."""
+        source = Path(gc.__file__).read_text(encoding="utf-8")
+        self.assertEqual(_cwd_pytest_stream_errors(source), [])
+        for keyword in (
+            "capture_output=True",
+            "stdout=subprocess.PIPE",
+            "stderr=subprocess.PIPE",
+            "stdout=subprocess.DEVNULL",
+            "stderr=subprocess.DEVNULL",
+            "shell=True",
+        ):
+            with self.subTest(keyword=keyword):
+                mutated = _mutate_cwd_pytest_run(source, keyword)
+                self.assertTrue(_cwd_pytest_stream_errors(mutated), keyword)
+
+    def test_floor_child_failure_stops_later_chain_steps_with_same_status(self):
+        """Floor, collection, and test failures all retain fail-fast status."""
+        primitive = str(
+            gc.REPO_ROOT
+            / "packs/catalogue-curation/tests/skills/assimilate-primitive"
         )
+        later = str(
+            gc.REPO_ROOT / "packs/catalogue-curation/tests/skills/assimilate-repo"
+        )
+        for failure_status in (1, 2):
+            seen_cwds: list[str] = []
+
+            def fake_run(
+                argv,
+                check=False,
+                env=None,
+                cwd=None,
+                _seen_cwds=seen_cwds,
+                _failure_status=failure_status,
+                **kwargs,
+            ):
+                del argv, check, env, kwargs
+                if cwd is not None:
+                    _seen_cwds.append(str(cwd))
+                return mock.Mock(
+                    returncode=_failure_status if str(cwd) == primitive else 0
+                )
+
+            with self.subTest(failure_status=failure_status):
+                with mock.patch.object(gc.subprocess, "run", fake_run):
+                    rc = gc.build_check(
+                        argparse.Namespace(packs_dir="packs", output_dir="dist")
+                    )
+                self.assertEqual(rc, failure_status)
+                self.assertIn(primitive, seen_cwds)
+                self.assertNotIn(later, seen_cwds)
 
     def test_pre_pr_step_uses_new_path(self):
         """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""

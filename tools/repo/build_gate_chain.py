@@ -151,28 +151,30 @@ def _pytest_step_cwd(label: str, cwd: str, *targets: str, floor: int | None = No
     def _thunk(directory=directory, targets=targets, floor=floor) -> int:
         workdir = str(REPO_ROOT / directory)
         env = _source_packages_env()
+        argv = [
+            sys.executable,
+            "-m",
+            "pytest",
+            *targets,
+            "-q",
+            "-p",
+            "no:cacheprovider",
+        ]
         if floor is not None:
-            # A directory-scoped run with no filenames exits 0 when it collects
-            # NOTHING, so a suite that fails to land — renamed, moved, broken
-            # import — reduces the count and the gate still passes. Assert a
-            # floor first. CI does this with a shell subshell and `grep -c`;
-            # here it is a count in Python, so the step stays Windows-clean.
-            probe = subprocess.run(
-                [sys.executable, "-m", "pytest", *targets,
-                 "-q", "-p", "no:cacheprovider", "--collect-only"],
-                cwd=workdir, check=False, env=env,
-                capture_output=True, text=True,
+            # The explicitly loaded plugin counts this execution's real items
+            # and fails during collection before any test body runs.  Keeping
+            # the floor on this argv avoids a second interpreter/collection and
+            # preserves inherited stdout/stderr and native pytest failures.
+            argv.extend(
+                [
+                    "-p",
+                    "tools.pytest_collection_floor",
+                    f"--minimum-collected={floor}",
+                    f"--collection-floor-suite={directory.as_posix()}",
+                ]
             )
-            collected = sum(1 for line in probe.stdout.splitlines() if "::" in line)
-            if collected < floor:
-                print(
-                    f"build chain: {directory} collected {collected} test(s), "
-                    f"expected at least {floor} — did a suite fail to land?",
-                    file=sys.stderr,
-                )
-                return 1
         return subprocess.run(
-            [sys.executable, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider"],
+            argv,
             cwd=workdir,
             check=False,
             env=env,
