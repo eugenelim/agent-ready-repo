@@ -19,6 +19,14 @@ function from a hyphenated executable rather than an importable helper module;
 mirroring the small walk keeps both standalone tools conventional and avoids
 dynamic execution of one gate from another.
 
+The binding limit is not that prune, though — it is ``.gitignore``, which
+ignores ``package-lock.json`` tree-wide and negates exactly ``web/`` and
+``docs-site/``. So in a clean checkout the discovered set is pinned at those
+two, and a third npm project cannot enter it without a new negation. The walk
+never consults git, so the reverse also holds locally: an in-place skill install
+under a non-dot ``packs/**`` path leaves an untracked lockfile that IS
+discovered, and it exits 2 for want of an ``allowScripts`` key in its manifest.
+
 Usage:
     lint-npm-allow-scripts.py [--root DIR]
 
