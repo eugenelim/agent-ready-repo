@@ -1104,6 +1104,28 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
+  # PRE-EXISTING and verified identical on origin/main -- NOT introduced by the
+  # code-span fix, which is why that change left it alone. In
+  # parse_changelog_releases, comment stripping runs BEFORE the fence-opener
+  # match, so a `<!--` in a fence opener's INFO STRING (```bash <!-- setup)
+  # sets in_fence and in_comment together. The `if in_fence` branch then
+  # `continue`s past the in_comment handler, and the first `-->` after the
+  # fence silently absorbs everything between. Measured: a 2-release fixture
+  # with such an opener parses ONE release, no raise, no diagnostic -- the same
+  # silent-collapse class as build-site-comment-strip-ignores-code-spans, and
+  # the >=130 release floor has ~42 releases of slack before it notices.
+  # Without a trailing `-->` it instead hard-fails naming the fence line.
+  # The comment at :1795 claims "fenced code wins over comment syntax"; that
+  # holds for lines INSIDE a fence, not for the opener line itself.
+  # Fix: when _FENCE_RE_CHANGELOG matches, do not honour that line's
+  #   opens_comment -- the `<!--` was sample text in the info string -- or
+  #   strip comments only from the text preceding the fence marker.
+  # Deliberately NOT bundled: the fence state machine has a documented history
+  #   of fail-open regressions, and this is a different root cause from
+  #   code-span blindness. It wants its own change and its own review.
+  # Unblocks when: picked up -- no dependency.
+  {slug = "build-site-fence-info-string-opens-a-comment", source = "adversarial review of the code-span fix (2026-08-27)", summary = "build-site.py strips HTML comments before matching a fence opener, so `<!--` in a fence info string sets in_fence and in_comment together and the next `-->` swallows every release between; pre-existing on origin/main, silent, and invisible to the release floor"},
+
 
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
@@ -1818,9 +1840,12 @@ closed = [
   {slug = "architect-okf-bundle-root-missing-license", source = "spec/okf-authoring-projection (adversarial review, reproduced)", summary = "Closed by spec/okf-follow-ons; architect's authored OKF root declares the shared content licence, distinguishes source from projection, and passes discovery and show with a regression test. Owner review by architect's maintainer is still outstanding and is required before architect becomes the INI-009 M3 integration pilot; see the variance record in docs/product/initiatives/ini-009-agent-skill-engineering.md"},
 
   # Two of the three sites that read comment syntax in parse_changelog_releases
-  # are now code-span aware, via a linear-scan `_code_span_ranges` COPIED from
-  # lint-spec-status.py rather than imported -- tools/ must not couple to a
-  # content-pinned pack tree. The third, the `-->` search inside an open
+  # are now code-span aware. The run scan of lint-spec-status.py's
+  # `_code_span_ranges` was COPIED into `_backtick_runs` rather than imported --
+  # tools/ must not couple to a content-pinned pack tree -- and its pairing half
+  # is interleaved with comment detection instead of applied whole-line, because
+  # a whole-line span list cannot express "a comment's interior contributes no
+  # delimiters". The third site, the `-->` search inside an open
   # comment, deliberately stays blind and now carries a comment saying so:
   # Markdown is not parsed inside an HTML comment, so masking there would be a
   # NEW bug. build-site keeps its raise where lint-spec-status returns what it
@@ -1828,6 +1853,16 @@ closed = [
   # Also closed the measurement gap that let this reach production: nothing
   # asserted a release-count FLOOR, and _MAROONED_RELEASE_BASELINE is an upper
   # bound on a different population that passes when releases collapse to zero.
+  # One residual is reported rather than stripped: leftmost-wins pairing is
+  # CommonMark-faithful, so an UNBALANCED backtick pairs into a following real
+  # comment and that comment's body publishes as code where the old whole-line
+  # regex stripped it. Rendering stays CommonMark; the new
+  # `code_span_split_comments` diagnostic fails the required suite on it, since
+  # this pipeline errs toward withholding. Fires only when a span cuts a
+  # comment in half -- an enclosed or closer-less mention is the ordinary shape.
+  # Separately found and NOT fixed here: the fence-info-string collapse, filed
+  # as build-site-fence-info-string-opens-a-comment. Pre-existing, different
+  # root cause, and the fence state machine was explicitly out of scope.
   {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},

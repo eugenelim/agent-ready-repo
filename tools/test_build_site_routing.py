@@ -1711,6 +1711,48 @@ def test_a_backtick_in_a_comment_does_not_steal_a_later_mentions_partner():
     ]
 
 
+def test_a_code_span_that_swallows_a_comment_opener_is_reported():
+    """The one leak CommonMark leaves open is reported, not shipped silently.
+
+    An unbalanced backtick pairs into the following real comment, so that
+    comment's opener sits inside a code span, is never stripped, and its body
+    publishes as literal code. Rendering stays CommonMark-faithful — the old
+    whole-line regex stripped it, which was not — but this pipeline errs toward
+    withholding, so the case earns a diagnostic that fails the required suite.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Fixed a `quote issue <!-- TODO: don`t publish this internal note -->
+"""
+    parsed = build_site.parse_changelog_releases(text)
+    assert [line for line, _ in parsed.diagnostics["code_span_split_comments"]] == [7]
+
+
+def test_an_ordinary_backticked_mention_is_not_reported_as_a_split_comment():
+    """The diagnostic must not fire on the shape this whole change exists for.
+
+    Both legitimate forms stay silent: a mention with no closer anywhere, and
+    one that fully encloses its own `-->`. The changelog carries many of each,
+    and a diagnostic that flagged them would be noise on every correct line —
+    which is how a fail-closed check gets disabled.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- A note mentioning `<!--` in backticks.
+- A fully enclosed `<!-- x -->` mention.
+"""
+    parsed = build_site.parse_changelog_releases(text)
+    assert parsed.diagnostics["code_span_split_comments"] == []
+
+
 def test_every_inline_comment_pair_on_a_line_is_stripped_not_just_the_first():
     """The deleted `_COMMENT_INLINE_RE.sub` was GLOBAL; that must not regress.
 
@@ -1761,27 +1803,40 @@ def test_the_code_span_scan_stays_linear_on_a_long_backtick_run():
 
     Upstream pins its own copy at packs/core/tests/skills/work-loop/
     test_lint_spec_status.py; this one needs its own guard, because no changelog
-    line would ever exercise it and the trap is a one-line edit away. Measured
-    here: the scan takes under 2 ms on both inputs, while substituting
-    ``(`+)(?:(?!\\1).)*?\\1`` took 74 s on the first (the source docstring cites
-    106 s from its own measurement). The ceiling is deliberately far above the
-    real cost so a loaded CI box cannot flake it, and still 4 orders of
-    magnitude below the regex.
+    line would ever exercise it and either trap is a one-line edit away.
 
-    Both shapes are covered: one long run exercises the scan, and many
-    strictly-increasing runs exercise the PAIRING, which is the axis upstream's
-    probe loop rescans on.
+    TWO independent axes, because each catches a different regression and
+    neither catches the other:
+
+    1. One long run — the SCAN. Substituting ``(`+)(?:(?!\\1).)*?\\1`` here was
+       measured at 74 s against 0.4 ms (the source docstring cites 106 s from
+       its own measurement of the same trap).
+    2. A few hundred distinct-length runs followed by a long tail of length-1
+       runs — the PAIRING. Reverting `next_same` to upstream's probe loop, which
+       rescans on every unmatched run, was measured at 8.8 s against 0.11 s.
+
+    The generator for (2) is load-bearing and was got wrong once: with only
+    strictly-increasing runs the line length grows quadratically in run count,
+    so BOTH implementations come out effectively linear in input size and the
+    probe loop passed at 0.19 s — a guard that could not fail on the axis it
+    named. The lead-plus-tail shape is what separates them.
+
+    The 5 s ceiling sits ~45x above the real cost so a loaded CI box cannot
+    flake it, and still well below either regression.
     """
     import time
 
-    for line in ("`" * 12_000, "x".join("`" * (n + 1) for n in range(2_000))):
+    scan_axis = "`" * 12_000
+    pairing_axis = "x".join("`" * (n + 2) for n in range(600)) + "x" + "`x" * 240_000
+    for line in (scan_axis, pairing_axis):
         started = time.monotonic()
         build_site._strip_changelog_comments(line + "<!--")
         elapsed = time.monotonic() - started
         assert elapsed < 5.0, (
             f"the code-span scan took {elapsed:.1f}s on a {len(line)}-char "
-            "backtick input; a backtracking regex was measured at 74s here — "
-            "restore the linear scan and the precomputed pairing"
+            "backtick input; the backtracking regex measured 74s on the scan "
+            "axis and the probe-loop pairing 8.8s on this one — restore the "
+            "linear scan and the precomputed pairing"
         )
 
 
@@ -2038,6 +2093,18 @@ def test_the_real_changelog_has_no_silently_withheld_highlights():
         for lineno, title in parsed.diagnostics["unreleased_regions"]
     ]
     assert not regions, "\n".join(regions)
+
+    # Fails closed for the same reason as the two above: the leak is invisible
+    # on the page, because what publishes is a maintainer note that reads as
+    # ordinary copy. Zero on the changelog today, so pinning it is free.
+    split = [
+        f"{rel}:{lineno}: an unbalanced backtick pairs into the HTML comment on "
+        f"this line, so the comment's body publishes as code instead of being "
+        f"stripped — close the backtick, or move the comment to its own line: "
+        f"{source!r}"
+        for lineno, source in parsed.diagnostics["code_span_split_comments"]
+    ]
+    assert not split, "\n".join(split)
 
 
 def test_the_real_changelog_parser_keeps_a_sane_release_population():
