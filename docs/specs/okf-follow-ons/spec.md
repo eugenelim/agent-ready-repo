@@ -313,8 +313,11 @@ affected packs ship internally consistent release metadata.
   `same-keys-different-bytes` parameter is the one that kills a `files.keys()`
   comparison; the run therefore attests the parametrized test as shipped, not its
   pre-parametrize predecessor.
-- Process: **The round-21 escape guards were mutation-proven in both
-  directions**, 6/6 killed on 2026-08-27, again with the fix committed first: drop
+- Process: **The final escape and refusal guards were mutation-proven in both
+  directions**, 8/8 killed on 2026-08-27: the six below plus `drop ftp from the
+  escapable scheme triggers`, `remove the @ anchor, restoring the quadratic scan`,
+  `accept a numeric final label`, and `stop refusing an address shape in a path
+  component`. The earlier 6/6 run covered: drop
   `\x1c`–`\x1f` from the control class; drop the line separators from the
   destination class; drop the bare-address autolink trigger; drop `_utf8_safe`
   from the diagnostic constructor; drop the bare-address alternation from the
