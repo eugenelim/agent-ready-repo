@@ -324,7 +324,7 @@ _MUTATIONS: list[Mutation] = [
         ),
     ),
     (
-        "remove-init-step",
+        "retarget-init-action",
         "init-step-present",
         lambda text: text.replace("github/codeql-action/init@", "github/codeql-action/setup@", 1),
     ),
@@ -372,7 +372,7 @@ _MUTATIONS: list[Mutation] = [
         ),
     ),
     (
-        "remove-analyze-step",
+        "retarget-analyze-action",
         "analyze-step-present",
         lambda text: text.replace(
             "github/codeql-action/analyze@", "github/codeql-action/upload@", 1
@@ -433,12 +433,27 @@ def self_test() -> int:
     evaluated: list[str] = []
     baseline_violations = audit(good, evaluated)
     if baseline_violations:
-        failures.append(f"baseline should be clean, got {baseline_violations}")
+        # Return before the matrix. Every transform is pinned to the real
+        # workflow's text, so a dirty or missing baseline turns each one into a
+        # no-op — or, where a transform asserts its literal, into an exception —
+        # burying the one true cause under a wall of derived noise that names
+        # neither the cause nor the file to edit.
+        print(
+            f"\u2716 self-test: {WORKFLOW} is not clean; "
+            f"{len(baseline_violations)} posture violation(s) before any mutation:",
+            file=sys.stderr,
+        )
+        for violation in baseline_violations:
+            print(f"  - {violation}", file=sys.stderr)
+        return 1
 
     for mutation_id, expected, transform in _MUTATIONS:
         mutated = transform(good)
         if mutated == good:
-            failures.append(f"{mutation_id}: transform was a no-op — proves nothing")
+            failures.append(
+                f"{mutation_id}: transform was a no-op against {WORKFLOW.name} — "
+                "proves nothing; re-pin its literal against that file"
+            )
             continue
         got = audit(mutated)
         if expected not in got:

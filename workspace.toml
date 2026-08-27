@@ -416,14 +416,22 @@ open = [
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
   {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
-  # Seven callers, in three different harness shapes. Five carry the pages-form
+  # The caller set is defined by a predicate, not a count, so a future extraction
+  # re-derives it instead of trusting a number that drifts: a module under tools/
+  # with a module-level `audit()` plus a `_MUTATIONS` self-test whose baseline is
+  # a real .github/workflows/*.yml file. That predicate admits exactly seven
+  # today, in three harness shapes. Five carry the pages-form
   # baseline/mutation/family harness: pages, ci-security, pack-evals,
   # build-check-windows and CodeQL. build-check has the same core contract plus
   # a specialized bash differential and shape-stable fixture. test-pages-
   # concurrency.py is the odd one out — a mutation-tested pages.yml posture check
   # whose _MUTATIONS is a four-element (id, expected, old, new) tuple with no
   # _family rule at all — and it is the caller an extraction scoped from a
-  # five-or-six count would silently miss. A shared helper is now plausible, but
+  # five-or-six count would silently miss. Deliberately OUTSIDE the predicate:
+  # tools/test_marketplace_envelope_parity.py, whose _MUTATIONS is a
+  # pytest-parametrized three-tuple over filesystem fixtures with no `audit()`
+  # and no workflow baseline, so a grep for _MUTATIONS alone returns eight.
+  # A shared helper is now plausible, but
   # extracting it means changing already-working harness shapes and should be
   # reviewed independently rather than riding with the assertion-proof work.
   # To close: identify the genuinely common surface, preserve build-check's
@@ -477,7 +485,14 @@ open = [
   #    `--config`; confirm gitleaks' config auto-load precedence before acting.
   #  - The pack-evals `secret-source` check is comment-satisfiable and should
   #    assert the parsed eval-step `env` value, matching the `_strip_comments`
-  #    discipline now used in test-ci-security-workflow.py.
+  #    discipline now used in test-ci-security-workflow.py. Not done inline
+  #    because both routes cost more than they look: duplicating _strip_comments
+  #    into a fifth file cuts against the extraction entry above, and retargeting
+  #    the assertion to the parsed env widens what the check claims.
+  #  - `pull_request_target` is not forbidden on codeql.yml by any checker. It is
+  #    disclosed rather than asserted, in tools/repo/build_gate_chain.py's step
+  #    comment; low impact today because the analyze job runs no repo-controlled
+  #    script, but it is the one disclosure that is not backed by a mutation.
   # Workflow-side, needing a repository-settings change and so not closable here:
   # `ANTHROPIC_API_KEY` is repository-scoped with no GitHub Environment gate, so
   # any write-access holder can dispatch pack-evals against an arbitrary ref with
