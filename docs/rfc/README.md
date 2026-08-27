@@ -98,6 +98,7 @@
 | [0093](0093-intent-scoped-completion.md) | Intent-scoped completion | Accepted | 2026-08-19 | 2026-08-20 |
 | [0095](0095-changelog-entry-obligation.md) | Changelog entry obligation and the release publication path | Accepted | 2026-08-20 | 2026-08-20 |
 | [0096](0096-portable-delivery-artifact-lifecycle.md) | Portable delivery-artifact lifecycle | Accepted | 2026-08-23 | 2026-08-23 |
+| [0097](0097-agent-skill-engineering.md) | Agent skill engineering — portable author/review workflows, governed progressive knowledge, runtime profiles, and repository footprint adaptation | Accepted | 2026-08-26 | 2026-08-26 |
 
 ## Adding a new RFC
 
