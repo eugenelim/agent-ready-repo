@@ -569,9 +569,12 @@ def _json_asserted_codes(text: str) -> set[str]:
     def walk(node: object) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
-                if key in _ASSERTION_KEYS and isinstance(value, str):
-                    if re.fullmatch(r"[a-z][a-z0-9-]{3,}", value):
-                        codes.add(value)
+                if (
+                    key in _ASSERTION_KEYS
+                    and isinstance(value, str)
+                    and re.fullmatch(r"[a-z][a-z0-9-]{3,}", value)
+                ):
+                    codes.add(value)
                 walk(value)
         elif isinstance(node, list):
             for item in node:
