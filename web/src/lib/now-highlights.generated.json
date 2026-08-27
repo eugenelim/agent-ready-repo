@@ -5,23 +5,44 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.12.5"
+          "version": "2.13.0"
         }
       ],
       "date": "2026-08-27",
-      "heading": "[core][2.12.5] — 2026-08-27",
-      "changelogAnchor": "core2125--2026-08-27",
+      "heading": "[core][2.13.0] — 2026-08-27",
+      "changelogAnchor": "core2130--2026-08-27",
       "highlights": [
         {
-          "source": "**Newly sectionless specs say why without retroactively gating adopters.** The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref.",
+          "source": "**Delivery work can now close without losing the reasons and promises that code and tests cannot explain.** `close-work` verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition.",
           "segments": [
             {
               "type": "strong",
-              "value": "Newly sectionless specs say why without retroactively gating adopters."
+              "value": "Delivery work can now close without losing the reasons and promises that code and tests cannot explain."
             },
             {
               "type": "text",
-              "value": " The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref."
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition."
+            }
+          ]
+        },
+        {
+          "source": "**Immediate disposal is safe by construction and never automatic.** Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Immediate disposal is safe by construction and never automatic."
+            },
+            {
+              "type": "text",
+              "value": " Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it."
             }
           ]
         }
@@ -239,58 +260,6 @@
     {
       "packages": [
         {
-          "name": "core",
-          "version": "2.12.3"
-        }
-      ],
-      "date": "2026-08-26",
-      "heading": "[core][2.12.3] — 2026-08-26",
-      "changelogAnchor": "core2123--2026-08-26",
-      "highlights": [
-        {
-          "source": "**Adjudicators can settle a cited repository-file claim without an avoidable stop.** A finding may now point to the current, confined file needed to test its own predicate, while review artifacts and all other scope boundaries remain excluded.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Adjudicators can settle a cited repository-file claim without an avoidable stop."
-            },
-            {
-              "type": "text",
-              "value": " A finding may now point to the current, confined file needed to test its own predicate, while review artifacts and all other scope boundaries remain excluded."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "agentbundle",
-          "version": "0.40.0"
-        }
-      ],
-      "date": "2026-08-25",
-      "heading": "[agentbundle][0.40.0] — 2026-08-25",
-      "changelogAnchor": "agentbundle0400--2026-08-25",
-      "highlights": [
-        {
-          "source": "**Catalogue maintainers can now build portable Agent Plugins 1.0.0 packages offline.** The normal build emits deterministic, schema-valid root manifests and canonical skill trees for every skills-only pack, with complete reasons for packs the route excludes.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Catalogue maintainers can now build portable Agent Plugins 1.0.0 packages offline."
-            },
-            {
-              "type": "text",
-              "value": " The normal build emits deterministic, schema-valid root manifests and canonical skill trees for every skills-only pack, with complete reasons for packs the route excludes."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
           "name": "catalogue-curation",
           "version": "0.4.2"
         }
@@ -356,53 +325,6 @@
             {
               "type": "text",
               "value": " The adjudicator now distinguishes an ineffective remedy from an effective but over-broad one while staying inside the supplied finding and repository-established repair seams."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "core",
-          "version": "2.13.0"
-        }
-      ],
-      "date": "2026-08-26",
-      "heading": "[core][2.13.0] — 2026-08-26",
-      "changelogAnchor": "core2130--2026-08-26",
-      "highlights": [
-        {
-          "source": "**Delivery work can now close without losing the reasons and promises that code and tests cannot explain.** `close-work` verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Delivery work can now close without losing the reasons and promises that code and tests cannot explain."
-            },
-            {
-              "type": "text",
-              "value": " "
-            },
-            {
-              "type": "code",
-              "value": "close-work"
-            },
-            {
-              "type": "text",
-              "value": " verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition."
-            }
-          ]
-        },
-        {
-          "source": "**Immediate disposal is safe by construction and never automatic.** Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Immediate disposal is safe by construction and never automatic."
-            },
-            {
-              "type": "text",
-              "value": " Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it."
             }
           ]
         }
