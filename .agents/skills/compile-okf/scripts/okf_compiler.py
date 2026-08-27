@@ -61,7 +61,12 @@ _SAFE_DIR_FD_SUPPORTED = all(
     for function in (os.open, os.mkdir, os.rename, os.stat, os.unlink)
 )
 _WINDOWS_DEVICE = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)", re.IGNORECASE)
-_REMOTE_REFERENCE = re.compile(r"(?:https?://|www\.|mailto:)", re.IGNORECASE)
+# The four shapes GFM turns into a link with no delimiter around them. A bare
+# address is one of them, so matching `mailto:` alone left the common case open.
+_REMOTE_REFERENCE = re.compile(
+    r"(?:https?://|www\.|mailto:|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)",
+    re.IGNORECASE,
+)
 _UNSAFE_METADATA_KEYS = {
     "attester",
     "executor",
@@ -78,20 +83,38 @@ ASSET_ROOT = Path(__file__).resolve().parent.parent / "assets"
 # break out structurally, or it can form a character reference the renderer
 # resolves. Both classes are encoded; everything else, including non-ASCII, is
 # left literal so the destination stays the path a reader can open.
-_LINK_DESTINATION_UNSAFE = re.compile(r"""[\x00-\x20\x7f-\x9f"#%&'();<>\\^`{|}]""")
+_LINK_DESTINATION_UNSAFE = re.compile(
+    r"""[\x00-\x20\x7f-\x9f\u2028\u2029"#%&'();<>\\^`{|}]"""
+)
+
+
+def _line_break_escapes() -> dict[str, str]:
+    """Map every code point a reader can treat as a line break to a visible escape.
+
+    Covering the class rather than listing its members is deliberate. An
+    enumeration named seven separators and still omitted three that
+    ``str.splitlines()`` breaks on, so one entry could read as two to a
+    plain-text reader while the list looked complete. The destination encoder
+    covers the same range, so both legs of a rendered line agree.
+    """
+    friendly = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
+    table = {
+        chr(code_point): friendly.get(chr(code_point), f"\\x{code_point:02x}")
+        for code_point in (*range(0x20), 0x7F, *range(0x80, 0xA0))
+    }
+    table["\u2028"] = r"\u2028"
+    table["\u2029"] = r"\u2029"
+    return table
+
+
 _INDEX_DISPLAY_ESCAPES = str.maketrans(
     {
         "\\": r"\\",
-        # Line separators. `\r` and `\n` render visibly; the other five are the
-        # ones a `splitlines()` reader also treats as breaks, so an unescaped one
-        # makes a single entry look like several.
-        "\r": r"\r",
-        "\n": r"\n",
-        "\x0b": r"\x0b",
-        "\x0c": r"\x0c",
-        "\x85": r"\x85",
-        "\u2028": r"\u2028",
-        "\u2029": r"\u2029",
+        # C0 controls, DEL, C1 controls, and the Unicode line and paragraph
+        # separators. Any of these lets one entry look like several, and a few
+        # act below Markdown entirely: an escape sequence repaints a terminal,
+        # and a NUL truncates a null-terminating reader.
+        **_line_break_escapes(),
         # Link and autolink structure.
         "[": r"\[",
         "]": r"\]",
@@ -105,6 +128,18 @@ _INDEX_DISPLAY_ESCAPES = str.maketrans(
         "*": r"\*",
         "_": r"\_",
     }
+)
+
+# GFM linkifies a bare `www.` host, a `scheme://` URL, and an `a@b.tld` address
+# with no surrounding Markdown at all, so a display value can render as a live
+# link without containing a single delimiter. Escaping the one punctuation mark
+# each trigger requires leaves the rendered text byte-identical and the link
+# inert. Frontmatter carrying a reference is refused outright; this covers the
+# path-derived text a frontmatter refusal cannot reach.
+_AUTOLINK_TRIGGERS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"@"), r"\\@"),
+    (re.compile(r"(www)(\.)", re.IGNORECASE), r"\1\\\2"),
+    (re.compile(r"(https?|mailto)(:)", re.IGNORECASE), r"\1\\\2"),
 )
 
 
@@ -697,34 +732,52 @@ def _utf8_safe(text: str) -> str:
 def _index_display_value(value: object) -> str:
     """Return bounded text escaped for a Markdown index display field.
 
-    Order is load-bearing: cap the raw value first, then normalize, then escape.
-    Capping first keeps the bound on *input* characters as specified, and keeps
-    both later expansions atomic — normalizing before the slice would let it cut
-    a generated `\\uXXXX` sequence in half, and escaping before the slice would
-    let it cut an escape pair. A surrogate is a single code point, so slicing the
-    raw value cannot split one.
+    Order is load-bearing: cap the raw value, then normalize, then escape, then
+    neutralize autolinks. Capping first keeps the bound on *input* characters as
+    specified, and keeps both later expansions atomic — normalizing before the
+    slice would let it cut a generated `\\uXXXX` sequence in half, and escaping
+    before the slice would let it cut an escape pair. A surrogate is a single code
+    point, so slicing the raw value cannot split one. Neutralizing last is
+    required: the escape table doubles a literal backslash, so a backslash added
+    before it would be escaped into an inert one and the trigger would survive.
     """
     bounded = _utf8_safe(str(value)[:INDEX_DISPLAY_INPUT_MAX_CHARS])
-    return bounded.translate(_INDEX_DISPLAY_ESCAPES)
+    escaped = bounded.translate(_INDEX_DISPLAY_ESCAPES)
+    for trigger, replacement in _AUTOLINK_TRIGGERS:
+        escaped = trigger.sub(replacement, escaped)
+    return escaped
 
 
 def _index_link_destination(path: str) -> str:
     """Return a deterministic Markdown-safe destination for a source-relative path.
 
-    Encodes exactly the characters that let a path act as syntax, and nothing
-    else, so an ordinary filename stays the literal path the router tells an
-    agent to open. Two classes are unsafe and both are covered: structural ones
-    that break or escape a CommonMark destination (C0/C1 controls, space, and
-    ``" ' ( ) < > \\ ^ ` { | }``), and reference-forming ones (``&``, ``#``,
-    ``;`` and ``%``) because a renderer resolves character references *inside* a
-    destination — leaving those literal is what let a concept named
-    ``..&#x2F;..&#x2F;SKILL.md`` render an attacker-chosen ``href``, and ``%`` is
-    encoded so an emitted escape can never be confused with a literal one.
+    The encoded set is the authority; this list is not a summary of it. Three
+    classes are encoded:
 
-    Letters, digits, ``- . _ ~``, ``/`` as the separator, and all non-ASCII are
-    left alone. Encoding the whole path instead was tried and rejected: it turned
-    a legitimately named ``café.md`` into ``caf%C3%A9.md``, a path no reader can
-    open, for no security gain.
+    - *Structural* — C0/C1 controls, space, the Unicode line and paragraph
+      separators, and ``" ( ) < > \\ | ``. These break or escape a CommonMark
+      destination. The separators are covered here as well as in the display
+      table so both legs of one rendered line agree on where it ends.
+    - *Reference-forming* — ``&``, ``#``, ``;`` and ``%``. A renderer resolves
+      character references *inside* a destination, which is what let a concept
+      named ``..&#x2F;..&#x2F;SKILL.md`` render an attacker-chosen ``href``;
+      ``%`` is encoded so an emitted escape can never be read as a literal one.
+    - *RFC-3986-excluded* — ``'``, ``^``, ``` ` ```, ``{`` and ``}``. These are
+      not security-relevant here: ``[t](don't.md)`` already produced a working
+      ``href``. They are encoded for URL validity, and that trades literal
+      fidelity for it — a legitimately named ``don't-panic.md`` is cited as
+      ``don%27t-panic.md``.
+
+    Letters, digits, ``- . _ ~``, ``/`` as the separator, ``! $ + , = @ [ ]``,
+    ``:`` and all non-ASCII are left literal. Encoding the whole path instead was
+    tried and rejected: it turned a legitimately named ``café.md`` into
+    ``caf%C3%A9.md``, a path no reader can open, for no security gain.
+
+    ``:`` staying literal is safe only because `_is_safe_relative_path` rejects
+    it in a path component. Without that gate a concept named
+    ``javascript:alert(1).md`` would yield a live scheme URL for any renderer
+    that does not sanitize schemes. Relaxing the gate therefore requires
+    encoding ``:`` here; a test asserts the refusal so the two cannot drift.
     """
     return _LINK_DESTINATION_UNSAFE.sub(
         lambda match: "".join(f"%{byte:02X}" for byte in match.group().encode("utf-8")),
@@ -2693,7 +2746,16 @@ def _normalize_host_path(path: Path) -> str:
 
 
 def _diagnostic(code: str, path: str, message: str) -> Diagnostic:
-    normalized_path = path.replace("\\", "/")
+    """Build a diagnostic whose path is safe for every downstream sink.
+
+    Normalizing here rather than at each gate is what makes the refusal total. A
+    path that is not valid UTF-8 reaches this constructor carrying surrogates,
+    and `_sort_diagnostics` then does a strict `encode("utf-8")` on it — so
+    refusing such a path at its own gate still ended in a `UnicodeEncodeError`
+    with no `OKF0xx` line, one layer past the gate. Every diagnostic is built
+    here, so one call closes every sink. It is a no-op for an ASCII path.
+    """
+    normalized_path = _utf8_safe(path.replace("\\", "/"))
     return Diagnostic(code=code, path=normalized_path, message=message)
 
 
