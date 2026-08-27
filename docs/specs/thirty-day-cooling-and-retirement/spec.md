@@ -212,8 +212,11 @@ disposed of here.
   `surface_resolver.py` and its published contract are unchanged and their pinned
   digests hold. (source: `packs/core/.apm/skills/work-intake/scripts/surface_resolver.py`)
 - Technical: `datetime`, `date`, `timedelta`, and `zoneinfo` are stdlib on the
-  supported Python floor; none of `dateutil`, `pendulum`, `arrow`, or `pytz` is
-  installed or needed. (source: repository dependency check 2026-08-27)
+  `>=3.11` floor both packages declare; none of `dateutil`, `pendulum`, `arrow`,
+  or `pytz` is declared by any manifest here, and none is needed. Some are
+  present transitively in the developer interpreter, which is not a licence to
+  import them. (source: `pyproject.toml`, `packages/*/pyproject.toml`,
+  `tools/requirements.txt`, checked 2026-08-27)
 - Technical: Wave 4's `preview_deletion` / `confirm_deletion` /
   `apply_confirmed_deletion` seams already implement confirmed deletion, so
   Wave 5 adds no deletion path. (source: `packs/core/.apm/skills/close-work/scripts/close_work.py`)

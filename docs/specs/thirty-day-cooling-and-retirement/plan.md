@@ -246,3 +246,16 @@ restored, and the restoration is confirmed byte-identical.
   blocker set treats an unresolved locator as blocking rather than as retirable.
 - A pack version bump reddens three literals in the Wave 4 roster test. They are
   updated in Task 5, not weakened.
+- `zoneinfo` resolves IANA keys from the platform's tz database. On Windows
+  without the `tzdata` package there is none, so `ZoneInfo` raises. Wave 5 adds
+  no dependency: the existing `unknown-timezone` refusal already covers it and
+  fails closed. Task 5 records the platform condition in the architecture
+  document rather than adding an acceptance criterion for a behaviour AC8
+  already pins. The Windows CI workflow runs four named test files and not
+  `tests/roster/`, so this is an adopter-runtime note, not a CI risk.
+- `close_work.py` must end this wave byte-unchanged. Wave 4's roster test proves
+  it has no clock by parsing its imports for `datetime`, `time`, `calendar`, and
+  `zoneinfo`, and by grepping its source for date-shaped field names including
+  `completed_on`, `review_on`, and `cooling_started_at`. Putting the engine in a
+  sibling module keeps that guard both green and meaningful; folding it into
+  `close_work.py` would force the guard to be weakened, which Task 5 must not do.
