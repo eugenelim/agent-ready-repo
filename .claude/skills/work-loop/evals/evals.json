@@ -587,32 +587,6 @@
       ]
     },
     {
-      "id": "wave4-completion-handoff-has-no-closeout-authority",
-      "prompt": "A work-loop finishes an approved spec and all gates/reviews are clean. What does it hand to close-work, and what must it not do?",
-      "expected_output": "The loop prepares bounded completion evidence: delivery or session identity, accepted outcome and authority source, implemented scope, verification evidence, durable-output status and stable references, non-goals and independently scoped follow-ons, unresolved obligations and dependencies, a completion-event candidate, and independent source/write/deletion authority facts. It does not mark Closeout-pending or Post-closeout, does not select a disposition, does not close or compact coordination, and does not authorize deletion; close-work owns those policy and effect decisions.",
-      "assertions": [
-        "Returns bounded completion evidence",
-        "Includes durable-output status and stable evidence references",
-        "Distinguishes independently scoped follow-ons from incomplete intent",
-        "Does not mark Closeout-pending or Post-closeout",
-        "Does not select a disposition or authorize deletion",
-        "Leaves compaction and closeout policy to close-work"
-      ]
-    },
-    {
-      "id": "wave4-contract-amendment-preserves-completed-work",
-      "prompt": "During full-mode implementation, the scope owner agrees that one unfinished AC is separable and work-intake has created a stable follow-on artifact. How does the loop amend and resume?",
-      "expected_output": "From code-mode CODE-IMPLEMENTATION, before editing the contract, invoke contract-amendment with the stable owner-authority reference, follow-on reason reference, and repeated Tn=<stable-ref> evidence entries so every completed task has task-bound evidence. The event snapshots prior approved fingerprints and immutable completed task sections/evidence, preserves run identity and review counters, clears only remaining approval/schedule state, and returns to drafting. Amend the final AC set, plan, and non-AC Follow-ons entry; rerun fired pre-execution reviews and both human gates; approve and schedule only unfinished tasks; resume through the ordinary plan-locked edge. Required work, session end, retry caps, stasis, or model judgment cannot invoke it automatically.",
-      "assertions": [
-        "Requires explicit owner authority and a stable follow-on reference",
-        "Is legal only from code-mode CODE-IMPLEMENTATION",
-        "Preserves completed task sections, evidence, counters, and run identity",
-        "Reruns normal reviews and human approval on the amended fingerprint",
-        "Schedules only unfinished tasks",
-        "Rejects automatic amendment from time, retry, stasis, or model judgment"
-      ]
-    },
-    {
       "id": "finding-adjudication-evidence-resolved",
       "prompt": "A pre-EXECUTE reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-pre-execute-adversarial-reviewer-raw.md`. It claims required `config/policy.yaml` is absent. The first adjudication cannot prove the filename-only absence with Read/Grep and names that one machine-checkable fact. Before the raw report existed, effective repository guidance separately declared `policy-manifest-presence` in its Evidence gate catalog with a literal non-shell argv, confined cwd, clean environment, bound revision, read-only filesystem, a process-level read allowlist that excludes `.context/reviews/` and all review artifacts, disabled network, five-second timeout, and bounded capture. Its declared measured fact is tracked policy-manifest presence. Route the evidence attempt and state what the main loop may consume after the gate confirms the file is absent.",
       "expected_output": "Validate the first adjudication and use its SHA-256 as the retry fingerprint. Select only the predeclared `policy-manifest-presence` entry, derive fresh unused artifact paths, and complete every non-executing catalog, revision, artifact-excluding read-confinement, containment, capture-cap, and exclusive-create preflight before state changes. Then chain the guarded `findings-remain` transition and `review record --fingerprint`; if either fails, run no gate. Execute the literal argv once under the declared controls, exclusively create the fresh evidence artifact, validate it, and immediately revalidate the same digest. Re-enter the existing pre-EXECUTE review state with `spec-ready`. Dispatch `finding-adjudicator` with the unchanged raw report and source-finding set plus the validated evidence path and expected provenance. The adjudicator independently authors one complete replacement report; the controller carries forward or merges no verdict. The replacement records the proposed-mechanism outcome and returns one `sustained` finding because the evidence confirms the required file is absent. The literal indeterminate stop token appeared only as the first adjudication's exact main-loop signal and is never quoted in either audit or replacement prose.",
@@ -641,6 +615,32 @@
         "Uses only the current target-established repair seam",
         "Does not invent architecture or generate solution options",
         "Does not originate another defect"
+      ]
+    },
+    {
+      "id": "wave4-completion-handoff-has-no-closeout-authority",
+      "prompt": "A work-loop finishes an approved spec and all gates/reviews are clean. What does it hand to close-work, and what must it not do?",
+      "expected_output": "The loop prepares bounded completion evidence: delivery or session identity, accepted outcome and authority source, implemented scope, verification evidence, durable-output status and stable references, non-goals and independently scoped follow-ons, unresolved obligations and dependencies, a completion-event candidate, and independent source/write/deletion authority facts. It does not mark Closeout-pending or Post-closeout, does not select a disposition, does not close or compact coordination, and does not authorize deletion; close-work owns those policy and effect decisions.",
+      "assertions": [
+        "Returns bounded completion evidence",
+        "Includes durable-output status and stable evidence references",
+        "Distinguishes independently scoped follow-ons from incomplete intent",
+        "Does not mark Closeout-pending or Post-closeout",
+        "Does not select a disposition or authorize deletion",
+        "Leaves compaction and closeout policy to close-work"
+      ]
+    },
+    {
+      "id": "wave4-contract-amendment-preserves-completed-work",
+      "prompt": "During full-mode implementation, the scope owner agrees that one unfinished AC is separable and work-intake has created a stable follow-on artifact. How does the loop amend and resume?",
+      "expected_output": "From code-mode CODE-IMPLEMENTATION, before editing the contract, invoke contract-amendment with the stable owner-authority reference, follow-on reason reference, and repeated Tn=<stable-ref> evidence entries so every completed task has task-bound evidence. The event snapshots prior approved fingerprints and immutable completed task sections/evidence, preserves run identity and review counters, clears only remaining approval/schedule state, and returns to drafting. Amend the final AC set, plan, and non-AC Follow-ons entry; rerun fired pre-execution reviews and both human gates; approve and schedule only unfinished tasks; resume through the ordinary plan-locked edge. Required work, session end, retry caps, stasis, or model judgment cannot invoke it automatically.",
+      "assertions": [
+        "Requires explicit owner authority and a stable follow-on reference",
+        "Is legal only from code-mode CODE-IMPLEMENTATION",
+        "Preserves completed task sections, evidence, counters, and run identity",
+        "Reruns normal reviews and human approval on the amended fingerprint",
+        "Schedules only unfinished tasks",
+        "Rejects automatic amendment from time, retry, stasis, or model judgment"
       ]
     }
   ]
