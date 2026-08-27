@@ -1,6 +1,6 @@
 ---
 **Feature:** product-documentation-pack
-**Status:** Shipped
+- **Status:** Shipped
 **Mode:** full (structural public-interface change, multi-feature, multi-dependent-task)
 ---
 

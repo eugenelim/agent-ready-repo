@@ -162,6 +162,11 @@ Every canonical refusal carries a stable code, repository-relative path,
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
 
+For an unsupported object that carries a safe single-segment `slug`, the
+`unsupported_legacy` finding preserves that slug as its identifier. This makes
+manual-routing inventories attributable without treating the object as
+supported or dispatchable.
+
 ### 1b. Coordination receipts
 
 Cross-repository dependencies that reference a containing brief require exactly

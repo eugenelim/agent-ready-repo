@@ -1089,6 +1089,8 @@ def _legacy_path_finding(collection: str, raw: object) -> LegacyWorkspaceEntry:
     path = raw if isinstance(raw, str) else ""
     if isinstance(raw, dict) and isinstance(raw.get("path"), str):
         path = raw["path"]
+    elif isinstance(raw, dict) and _is_legacy_slug(raw.get("slug")):
+        path = raw["slug"]
     code = "unsupported_legacy"
     if path:
         path_like = (

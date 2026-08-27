@@ -377,6 +377,12 @@ def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:
     wrong_result = mod.run_canonical_reconciliation(wrong_collection)
     assert not wrong_result.legacy_memberships
     assert {finding.code for finding in wrong_result.findings} == {"unsupported_legacy"}
+    assert {finding.path for finding in wrong_result.findings} == {
+        "shape-in-work",
+        "spec/work-in-shaping",
+        "comment-rich",
+        "spec/not-a-brief",
+    }
 
 
 def test_t2_legacy_aliases_participate_in_duplicate_detection() -> None:

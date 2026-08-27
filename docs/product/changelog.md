@@ -50,6 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.12.4] — 2026-08-27
+
+### Highlights
+
+- **Maintainers can identify every unsupported legacy workspace record from a
+  cold status read.** Findings now retain a safe object slug instead of
+  collapsing unrelated records under `workspace.toml`.
+
+### Fixed
+
+- Preserve safe single-segment slugs in `unsupported_legacy` findings without
+  admitting those object shapes as supported or dispatchable entries.
+
 ## [core][2.12.3] — 2026-08-26
 
 ### Highlights

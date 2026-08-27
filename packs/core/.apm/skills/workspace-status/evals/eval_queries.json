@@ -12,6 +12,7 @@
   {"query": "Clean up stale specs from the workspace queue", "should_trigger": true},
   {"query": "Run repair-plan to see what automatic workspace fixes are available", "should_trigger": true},
   {"query": "Apply the workspace repair plan", "should_trigger": true},
+  {"query": "Which legacy workspace entries still require manual routing?", "should_trigger": true},
 
   {"query": "Start a new spec for a rate-limiting feature", "should_trigger": false},
   {"query": "Fix this failing test in the parser", "should_trigger": false},
