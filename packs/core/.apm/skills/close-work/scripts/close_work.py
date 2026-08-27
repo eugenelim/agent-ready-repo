@@ -1215,13 +1215,17 @@ def _confined_target_set(
         _preflight_enumeration_limits(repository_root, enumeration_root)
         enumerated = tuple(
             sorted(
-                # `max_files` bounds the traversal that materialises the list.
-                # The preflight above measured a separate, earlier walk, so a
-                # concurrent local writer under `enumeration_root` could grow
-                # the tree in between and be materialised in full before the
-                # `MAX_TARGETS` check below ever runs.
+                # Both bounds are passed, so the traversal that materialises
+                # the list is bounded the same way the preflight walk was.
+                # `max_files` alone left a directory-only tree unbounded: the
+                # preflight measured a separate, earlier walk, so a concurrent
+                # local writer under `enumeration_root` could grow the tree in
+                # between and have it traversed in full.
                 helper.list_confined_regular_files(
-                    repository_root, enumeration_root, max_files=MAX_TARGETS
+                    repository_root,
+                    enumeration_root,
+                    max_files=MAX_TARGETS,
+                    max_entries=MAX_ENUMERATION_ENTRIES,
                 ),
                 key=lambda path: path.relative_to(repository_root).as_posix(),
             )

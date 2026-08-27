@@ -183,16 +183,6 @@ slice. *Always do* applies without asking; *Ask first* requires human sign-off;
 - Never let `workspace.toml` become a requirements, rationale, lifecycle-record,
   or cooling database; it remains a coordination index or pointer.
 
-Accepted limitation, recorded rather than fixed in this wave: enumeration is
-bounded twice, and the two bounds are not symmetric. The preflight walk bounds
-directory *entries* and files; the materialising walk that follows carries only
-the blessed helper's file-count bound, because that helper exposes no
-entry-count parameter. A local writer with working-tree access can therefore
-grow a directory-only tree between the two walks and be traversed without an
-entry bound. The outcome stays fail-closed with no mutation and no confinement
-or deletion bypass, and closing it properly means widening a blessed
-`catalogue_tooling` helper rather than changing close-work, so it is deliberately
-out of this wave's slice.
 
 ## Testing Strategy
 

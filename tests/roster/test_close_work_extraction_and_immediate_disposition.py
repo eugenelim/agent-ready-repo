@@ -42,7 +42,7 @@ EXPECTED_SCHEMA_SHA256 = (
 # (both default to None) and close-work's single call site passes positionally,
 # so the pack's byte-identical duplicate was re-synced rather than diverged.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "7f7e6a02d20524dcf083d7e88cc9a67b44cad062780e9689a784eb8be5a56c7b"
+    "5a6cb2c8f13850556cec17f94d312ab85f481fac4739f65d1619d16a2cfea02c"
 )
 
 

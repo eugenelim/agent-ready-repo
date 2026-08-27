@@ -16,6 +16,7 @@ PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "close-work"
 SCRIPT_PATH = SKILL_ROOT / "scripts" / "close_work.py"
 PROJECTED_FILE_SAFETY = SKILL_ROOT / "scripts" / "file_safety.py"
+CLOSE_WORK_SCRIPT_SOURCE = SCRIPT_PATH.read_text(encoding="utf-8")
 RESOLVER_PATH = (
     PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "surface_resolver.py"
 )
@@ -633,6 +634,84 @@ def test_forged_multi_file_preview_cannot_receive_confirmation(
 
     assert first.read_text(encoding="utf-8") == "first\n"
     assert second.read_text(encoding="utf-8") == "second\n"
+
+
+def test_preflight_bounds_refuse_each_oversized_dimension(tmp_path: Path) -> None:
+    """The count and byte bounds, driven at the layer that owns them.
+
+    These three layers are not independently observable through
+    `preview_deletion`: an oversized tree with one declared target refuses on the
+    enumeration mismatch first, and declaring every file refuses on
+    `one-file-confirmation-required` first, because Wave 4 deletes exactly one
+    file. The public-seam case below covers the observable contract; this case
+    drives `_preflight_enumeration_limits` directly so each bound has a test that
+    fails when its own check is deleted.
+    """
+    close_work = _load_close_work()
+
+    def surface(**kinds) -> Path:
+        root = tmp_path / f"surface-{len(list(tmp_path.iterdir()))}"
+        root.mkdir()
+        for index in range(kinds.get("files", 0)):
+            (root / f"f{index:03d}.md").write_text("x\n", encoding="utf-8")
+        for index in range(kinds.get("dirs", 0)):
+            (root / f"d{index:03d}").mkdir()
+        if kinds.get("oversized_file"):
+            (root / "big.md").write_bytes(b"x" * (close_work.MAX_FILE_BYTES + 1))
+        return root
+
+    # Within every bound.
+    close_work._preflight_enumeration_limits(tmp_path, surface(files=2))
+
+    # One regular file past MAX_TARGETS.
+    with pytest.raises(ValueError, match="target limit"):
+        close_work._preflight_enumeration_limits(
+            tmp_path, surface(files=close_work.MAX_TARGETS + 1)
+        )
+
+    # One directory entry past MAX_ENUMERATION_ENTRIES, collecting no files.
+    with pytest.raises(ValueError, match="enumeration entry limit"):
+        close_work._preflight_enumeration_limits(
+            tmp_path, surface(dirs=close_work.MAX_ENUMERATION_ENTRIES + 1)
+        )
+
+    # One file past MAX_FILE_BYTES.
+    with pytest.raises(ValueError, match="per-file byte limit"):
+        close_work._preflight_enumeration_limits(
+            tmp_path, surface(oversized_file=True)
+        )
+
+
+def test_materialising_walk_carries_both_preflight_bounds(tmp_path: Path) -> None:
+    """The asymmetry that was previously recorded as accepted, now closed.
+
+    The preflight bounds entries and files; the materialising walk used to carry
+    only the file bound, so a directory-only tree grown by a concurrent local
+    writer between the two walks was traversed unbounded. close-work now passes
+    `max_entries` as well, and this asserts the call site actually does so.
+    """
+    close_work = _load_close_work()
+    helper = close_work.file_safety()
+    source = CLOSE_WORK_SCRIPT_SOURCE
+
+    # The call site passes both bounds.
+    assert "max_files=MAX_TARGETS" in source
+    assert "max_entries=MAX_ENUMERATION_ENTRIES" in source
+
+    # And the helper enforces the entry bound on a directory-only tree, which
+    # the file bound alone cannot see.
+    root = tmp_path / "wide"
+    root.mkdir()
+    for index in range(close_work.MAX_ENUMERATION_ENTRIES + 1):
+        (root / f"d{index:04d}").mkdir()
+    assert helper.list_confined_regular_files(tmp_path, root, max_files=1) == []
+    with pytest.raises(helper.UnsafeContentError, match="entry-count limit"):
+        helper.list_confined_regular_files(
+            tmp_path,
+            root,
+            max_files=close_work.MAX_TARGETS,
+            max_entries=close_work.MAX_ENUMERATION_ENTRIES,
+        )
 
 
 def test_enumeration_entry_bound_refuses_an_oversized_tree(tmp_path: Path) -> None:

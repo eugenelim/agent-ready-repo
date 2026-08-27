@@ -56,13 +56,21 @@ def list_confined_regular_files(
     *,
     max_files: int | None = None,
     max_depth: int | None = None,
+    max_entries: int | None = None,
 ) -> list[Path]:
     """List regular files without following link-like directory entries.
 
-    When ``max_files`` or ``max_depth`` is supplied, refuse during traversal as
-    soon as the next entry would exceed the bound.  Callers can therefore
-    apply source-tree limits without first walking or materialising an
-    attacker-controlled unbounded tree.  Depth is relative to ``directory``.
+    When ``max_files``, ``max_depth`` or ``max_entries`` is supplied, refuse
+    during traversal as soon as the next entry would exceed the bound.  Callers
+    can therefore apply source-tree limits without first walking or
+    materialising an attacker-controlled unbounded tree.  Depth is relative to
+    ``directory``.
+
+    ``max_files`` bounds only the regular files collected, so a tree made
+    entirely of directories is unbounded under it; ``max_entries`` bounds every
+    directory entry visited, which is what a caller needs when a concurrent
+    local writer can grow the tree between a preflight measurement and this
+    traversal.
     """
     if max_files is not None and (
         isinstance(max_files, bool) or not isinstance(max_files, int) or max_files < 0
@@ -72,8 +80,15 @@ def list_confined_regular_files(
         isinstance(max_depth, bool) or not isinstance(max_depth, int) or max_depth < 0
     ):
         raise ValueError("max_depth must be a non-negative integer or None")
+    if max_entries is not None and (
+        isinstance(max_entries, bool)
+        or not isinstance(max_entries, int)
+        or max_entries < 0
+    ):
+        raise ValueError("max_entries must be a non-negative integer or None")
     validate_confined_directory(root, directory)
     files: list[Path] = []
+    entries_seen = 0
     pending = [directory]
     while pending:
         current = pending.pop()
@@ -81,6 +96,11 @@ def list_confined_regular_files(
         try:
             with os.scandir(current) as iterator:
                 for entry in iterator:
+                    entries_seen += 1
+                    if max_entries is not None and entries_seen > max_entries:
+                        raise UnsafeContentError(
+                            "source tree exceeds entry-count limit"
+                        )
                     entry_path = Path(entry.path)
                     relative = entry_path.relative_to(root).as_posix()
                     source_relative = entry_path.relative_to(directory)
