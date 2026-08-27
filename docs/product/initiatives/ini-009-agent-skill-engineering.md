@@ -75,7 +75,7 @@ Authors and agent loops can use one portable, progressively disclosed engineerin
 - `workspace.toml` initiative section: `["ini-009"]`
 - Governing RFC: [RFC-0097](../../rfc/0097-agent-skill-engineering.md)
 - Planned architecture: [agent skill engineering](../../architecture/agent-skill-engineering.md)
+- Delivery brief: [deliver agent skill engineering](../briefs/agent-skill-engineering.md)
 - Evidence: [practice inventory](../../rfc/0097-notes/practice-inventory.md), [execution-economics archaeology](../../rfc/0097-notes/execution-economics-archaeology.md)
 - Parent: none
-- Briefs: none; RFC-0097 is the approved shaping input
 - Shaping artifacts: RFC-0097 and its notes

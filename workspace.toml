@@ -1941,7 +1941,14 @@ queue = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M0 · RFC decision and delivery decomposition"
+milestone = "M0 · provider ADR and foundation-spec decomposition"
+
+["ini-009".brief_queue]
+executing = ""
+ready = [
+  { path = "docs/product/briefs/agent-skill-engineering.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "sha256-bytes-v1:bcafd5c77e8a849d831b8a8a47aaeeda24f35d124e423ec28ccacb0146c23098" }, summary = "Deliver the agent-skill-engineering pack, corpus, integrations, and repository adaptation", needs = [] },
+]
+draft = []
 
 ["ini-009".shaping_queue]
 active  = []
