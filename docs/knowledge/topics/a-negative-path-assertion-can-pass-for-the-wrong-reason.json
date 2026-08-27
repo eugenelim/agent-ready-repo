@@ -1,0 +1,63 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-4f82226d6f5452d01ab3f552bb260871e341eda03f008fd52ee06a4855fbb24a",
+      "mutation_id": "9d2f446c1725df5c8db553abeaddec4e6a24a24078522624fc7a67061a418907",
+      "observed_at": "2026-08-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "bandit.yaml"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 4227,
+      "kind": "sha256-bytes-v1",
+      "sha256": "9ffa379eb37c9b3b4dabb110b4ac3386f5c53f76faf33044af387c41b0280d63"
+    },
+    "path": "bandit.yaml"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools",
+    ".github/workflows"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 10307,
+        "kind": "sha256-bytes-v1",
+        "sha256": "9c07a6287077f6d0aaef2c00648a0bf9a982365d76085b99000f51e5ec20c634"
+      },
+      "path": "tools/test-capture-publish-control-evidence.py"
+    },
+    {
+      "digest": {
+        "byte_length": 55945,
+        "kind": "sha256-bytes-v1",
+        "sha256": "785e19b8aa2a4f4d823dbb7e710fd3cf6bc10b7a2c09414fd113b331d8f4845a"
+      },
+      "path": ".github/workflows/build-check.yml"
+    }
+  ],
+  "synthesis": {
+    "body": "A case asserting \"invalid input is rejected\" means something only if the code under test is the only thing that can reject it. Stub the collaborators around the positive case but not the negative one, and a real collaborator raises the same exception type for an unrelated reason: the assertion is green, the control is absent, and nothing says so. Observed on a case asserting that a builder validates its subject argument — it was catching the error from an unstubbed network read, and deleting the validation left the suite green. Two rules follow. Stub every collaborator around the negative case, not only the positive one. Then delete the control and re-run: if the suite does not go red, the assertion is not testing what its name says. The same reasoning covers shell gates in CI, where the failure is quieter: `pip install \"\"` exits 0 with no output, and a command substitution that fails inside a `run` block does not fail the step unless it sits in an assignment under `set -e`. A provisioning step can therefore install nothing, stay green, and silently no-op the gate it exists to enable.",
+    "kind": "antipattern"
+  },
+  "title": "A negative-path assertion can pass for the wrong reason",
+  "topic_key": "a-negative-path-assertion-can-pass-for-the-wrong-reason"
+}

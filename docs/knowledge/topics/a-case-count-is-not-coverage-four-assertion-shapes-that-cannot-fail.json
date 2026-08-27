@@ -1,0 +1,54 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-REVIEW",
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-16e541b2088a486db16521e07a3ac434bf235c1c5aca7c83f5c69ccef14cf2a4",
+      "mutation_id": "645c3e9b64e2ce285028fe952dd234b46bb78f9ea347b7c225d2bdb5165034de",
+      "observed_at": "2026-08-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "docs/specs/lint-performance-p0/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 38114,
+      "kind": "sha256-bytes-v1",
+      "sha256": "91ea774cd3328b941364415f8c18296c3d41a3334e148cd1bee79b259be4a5a7"
+    },
+    "path": "tools/test-lint-pack-test-boundary.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 47396,
+        "kind": "sha256-bytes-v1",
+        "sha256": "a27db40cb34caec5a87ec9c8f0077b2906ac56bbba39ac857fce49e5f70e2769"
+      },
+      "path": "tools/test-lint-boundary-structural.py"
+    }
+  ],
+  "synthesis": {
+    "body": "A reported case count measures effort, not coverage, and an assertion that cannot fail is worse than a missing one because it reports confidence. One review of otherwise careful test code found four distinct shapes, all green, all unable to red: a helper that pre-filtered the very field the assertion then checked, so attribution could not fail for any input; two string literals defined in the test file compared to each other while the subject was never invoked; `assert X or <non-empty constant>`; and `len(dict) == len(set(dict))`, true by construction. Each looked like coverage and each cost maintenance. Two habits catch the class cheaply. Derive coverage mechanically instead of counting cases: an AST sweep for the subject's finding-emission sites, driven with a recording collector, found four unexercised branches sitting behind a growing case count. Then mutation-test any assertion you rely on — weaken the subject and confirm the test reds. See also the empty-set positive-control topic, the unstubbed-negative-case topic, and the source-substring-pin topic; they are three further members of the same family.",
+    "kind": "antipattern"
+  },
+  "title": "A case count is not coverage — four assertion shapes that cannot fail",
+  "topic_key": "a-case-count-is-not-coverage-four-assertion-shapes-that-cannot-fail"
+}

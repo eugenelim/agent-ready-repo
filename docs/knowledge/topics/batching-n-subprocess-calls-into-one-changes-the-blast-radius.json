@@ -1,0 +1,62 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-DIAGNOSE"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-8ba09fca41f8afce4e5bf5a29bf62b3419bab038255aa27a6815c8e4435bc91a",
+      "mutation_id": "0abd6078dcd663a6e58015f15510dbbb804fcc29d3f42b54cd1cef2fce627384",
+      "observed_at": "2026-08-17T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "docs/specs/lint-performance-p0/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 65225,
+      "kind": "sha256-bytes-v1",
+      "sha256": "04fa8c0fbbfd9549190ce8ad089d2b7303b1931649b4f580a9daf530d52f248d"
+    },
+    "path": "tools/lint-pack-test-boundary.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 18061,
+        "kind": "sha256-bytes-v1",
+        "sha256": "c26349639a3d750fd4878cd1e64eb805bbf0222e19857535f5522bb718577444"
+      },
+      "path": "tools/lint_git_ignore.py"
+    },
+    {
+      "digest": {
+        "byte_length": 12066,
+        "kind": "sha256-bytes-v1",
+        "sha256": "54af427f2f47d27b2a81ce6c42b1d6b75383e0c88ae0cbccc90947210caa95d5"
+      },
+      "path": "docs/adr/0087-batch-git-check-ignore-over-stdin.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A batched subprocess changes the blast radius of one bad input, and the batch API may return a PARTIAL result on failure. `git check-ignore --stdin -z` exits 128 for the whole invocation on a single unusable path — outside the repo, inside a nested git root, or carrying pathspec magic — while still echoing the candidates it processed before the failure. Discarding that output silently loses information; trusting it silently under-reports. Under the per-path loop it replaced, the damage from one bad input was one path. So when replacing N calls with one, decide explicitly what a non-success exit means for the whole batch, and treat a partial answer as unusable rather than as data. Preserving the loop as a documented fallback for the failing input is usually cheaper than making the batch total. The same reasoning applies to any fan-in rewrite, not just git. See ADR-0087.",
+    "kind": "gotcha"
+  },
+  "title": "Batching N subprocess calls into one changes the blast radius, and the batch may return a partial result",
+  "topic_key": "batching-n-subprocess-calls-into-one-changes-the-blast-radius"
+}

@@ -1,0 +1,54 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T19:14:14Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-29a7e00ddaf67a9ffcd2be76af4acd9cae8989508d9d4ff0f7d6aaefac620d22",
+      "mutation_id": "bf588c5b75be46dca3890990e172c30f285c2524263cd4cebdb56b17b7ee3dac",
+      "observed_at": "2026-08-17T19:14:14Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core/.apm/skills/work-loop",
+      "semantic_gate": "positive-control-for-empty-set-assertions",
+      "source": {
+        "path": "docs/specs/work-loop-in-process-guards/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 40931,
+      "kind": "sha256-bytes-v1",
+      "sha256": "4e4f5278a900452bab127e530fc0db3c1597af4971ada491347710723e63862d"
+    },
+    "path": "packs/core/tests/skills/work-loop/test_loop_concurrency.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 4507,
+        "kind": "sha256-bytes-v1",
+        "sha256": "4b84c6993fd44e36b5f130b994d7a638686b1898cce124443921ca3adb64fb0b"
+      },
+      "path": "packs/core/tests/skills/work-loop/spawn_support.py"
+    }
+  ],
+  "synthesis": {
+    "body": "A reachability or call-graph assertion can be vacuous in a way its own vacuity guard misses. The AC21 test walked lint-spec-status.py from the guard-path entry symbols, asserted no spawn was reachable, and additionally asserted the spawning functions were disjoint from the reachable set. Both claims are trivially true when the walk resolves nothing — and it resolved nothing, because those entry symbols call no other same-module function. Patching `reachable_from` to return `set()` left the test green, while workspace.toml cited the assertion by name as the reason four unbounded git calls were allowed to stay unbounded. Any assertion whose subject is an empty set needs a POSITIVE CONTROL alongside it: a root known to reach the thing, asserted to reach it. Proving the walker traverses is a different claim from proving the target set is empty, and only the pair is evidence.",
+    "kind": "antipattern"
+  },
+  "title": "An empty-set assertion needs a positive control",
+  "topic_key": "an-empty-set-assertion-needs-a-positive-control"
+}

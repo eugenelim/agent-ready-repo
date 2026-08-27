@@ -1,0 +1,54 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-DESIGN",
+    "CQ-OPERATE"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-17T19:14:14Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-b03374fe10b3e2295d06a54ceefdcca371010004f500898eee21b1be19ade0a4",
+      "mutation_id": "2498000401fa941607ef3c33030d031798f84f73546f5ec9fa7789527552c1e6",
+      "observed_at": "2026-08-17T19:14:14Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "packs/core/.apm/skills/work-loop",
+      "semantic_gate": "sanitise-at-every-output-chokepoint",
+      "source": {
+        "path": "docs/specs/work-loop-in-process-guards/spec.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 62978,
+      "kind": "sha256-bytes-v1",
+      "sha256": "f51ef015e09ea70b06dda4dd706458342580d92a7384ef6a109f867dfa4a557f"
+    },
+    "path": "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 57416,
+        "kind": "sha256-bytes-v1",
+        "sha256": "e2fcac44357b173512491cbb1781ce4797f7af1f1d18e5ff543e328c6a1f82e2"
+      },
+      "path": "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
+    }
+  ],
+  "synthesis": {
+    "body": "Control-character neutralisation for an agent-captured stream belongs at every tool's output chokepoint, not only at a shared result type. Escaping was added to GuardResult's reason and message, which covered the guard layer — but loop-engine.py formats its own warnings and had zero uses of the sanitiser, so a planted `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` put a real screen-clear and colour change into the agent transcript. The filename came from a `glob()`, under the same planted-file threat model that function already accepted for the file's CONTENT; content was sanitised and the name was not. Two durable points. Collapsing whitespace is not sanitising: `str.split()` consumes only the whitespace controls and leaves ESC intact. And the sanitiser is worth duplicating per tool rather than importing, because these diagnostic lines fire on paths where the shared module is unloadable, which is exactly when the diagnostic matters most. Enumerate chokepoints by grepping for the formatting calls, not by trusting the layer boundary.",
+    "kind": "gotcha"
+  },
+  "title": "Sanitise at every output chokepoint, not only at the shared result type",
+  "topic_key": "sanitise-at-every-output-chokepoint-not-only-the-shared-result-type"
+}

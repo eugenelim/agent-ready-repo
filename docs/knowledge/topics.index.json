@@ -5,6 +5,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "db6918daea3c15890341f9417160536313a88750"
+      },
+      "competency_facets": [
+        "CQ-ORIENT",
+        "CQ-CHANGE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-16T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-backlog-entrys-blocker-claim-ages-badly-re-derive-it.json",
+      "scopes": [
+        "workspace.toml",
+        "docs/specs"
+      ],
+      "title": "A backlog entry's blocker claim ages badly — re-derive it before building on it",
+      "topic_key": "a-backlog-entrys-blocker-claim-ages-badly-re-derive-it"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "9b1910c731cc03da1c0eab4e9762ad7f9dfeae73"
       },
       "competency_facets": [
@@ -65,6 +89,29 @@
       ],
       "title": "A blank line silently ends a markdown table, and a row-presence grep still passes",
       "topic_key": "a-blank-line-silently-ends-a-markdown-table-and-a-row-presence-grep-still-passes"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "739fe470c811cc8c18cc4cbdbe972bb87fb5b784"
+      },
+      "competency_facets": [
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-case-count-is-not-coverage-four-assertion-shapes-that-cannot-fail.json",
+      "scopes": [
+        "tools"
+      ],
+      "title": "A case count is not coverage — four assertion shapes that cannot fail",
+      "topic_key": "a-case-count-is-not-coverage-four-assertion-shapes-that-cannot-fail"
     },
     {
       "audience": "project",
@@ -225,6 +272,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "850707082a31c5dfe3a8cede7ccaa7b3671e3948"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-negative-path-assertion-can-pass-for-the-wrong-reason.json",
+      "scopes": [
+        "tools",
+        ".github/workflows"
+      ],
+      "title": "A negative-path assertion can pass for the wrong reason",
+      "topic_key": "a-negative-path-assertion-can-pass-for-the-wrong-reason"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "177f029593962534c7e75cec3b27e3186f959016"
       },
       "competency_facets": [
@@ -285,6 +356,52 @@
       ],
       "title": "A platform-skipped assertion inside a cross-platform parity suite reads as coverage and proves nothing",
       "topic_key": "a-platform-skipped-assertion-inside-a-cross-platform-parity-suite-reads-as-cover"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "6e6f0d1f43e23e09aa69c4a0c34f4f48a57782a3"
+      },
+      "competency_facets": [
+        "CQ-REVIEW",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-20T05:43:16Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-reviewer-reports-against-the-file-as-it-was-at-dispatch.json",
+      "scopes": [
+        "docs/rfc"
+      ],
+      "title": "A reviewer reports against the file as it was at dispatch, not as it is at report time",
+      "topic_key": "a-reviewer-reports-against-the-file-as-it-was-at-dispatch"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "4af823fb24740e624980cc279a63de099ac068ad"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-16T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-source-substring-pin-cannot-detect-the-controls-removal.json",
+      "scopes": [
+        "tools"
+      ],
+      "title": "A source-substring pin cannot detect the control's removal",
+      "topic_key": "a-source-substring-pin-cannot-detect-the-controls-removal"
     },
     {
       "audience": "project",
@@ -423,6 +540,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "e28653391efacff68b6c0a0225728a2acde56126"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T19:14:14Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/an-empty-set-assertion-needs-a-positive-control.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "An empty-set assertion needs a positive control",
+      "topic_key": "an-empty-set-assertion-needs-a-positive-control"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "e009f0bf1f1e72cfb1cf4aa5da4caf2456ca2f9b"
       },
       "competency_facets": [
@@ -549,6 +689,53 @@
       ],
       "title": "Bash-to-Python port: heredoc rc was normalised; naked `return violations` leaks the raw count",
       "topic_key": "bash-to-python-port-heredoc-rc-was-normalised-naked-return-violations-leaks-the-"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "548b36ad02b025f780caac0eade25dccdd1dd9ef"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-DIAGNOSE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/batching-n-subprocess-calls-into-one-changes-the-blast-radius.json",
+      "scopes": [
+        "tools"
+      ],
+      "title": "Batching N subprocess calls into one changes the blast radius, and the batch may return a partial result",
+      "topic_key": "batching-n-subprocess-calls-into-one-changes-the-blast-radius"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "bca6e04a6db0d5e62568ccde4d9801aca29af032"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-CHANGE",
+        "CQ-DIAGNOSE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T19:14:14Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/catch-broadly-act-narrowly-under-a-lock.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "Catch broadly, act narrowly under a lock",
+      "topic_key": "catch-broadly-act-narrowly-under-a-lock"
     },
     {
       "audience": "project",
@@ -1061,6 +1248,30 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "2bd4985a2fefdf0333fe2d72b4b94157e257907d"
+      },
+      "competency_facets": [
+        "CQ-VERIFY",
+        "CQ-CHANGE",
+        "CQ-REVIEW"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/pin-a-refactors-preserved-behaviour-with-a-golden-baseline.json",
+      "scopes": [
+        "tools"
+      ],
+      "title": "Pin a refactor's preserved behaviour with a golden baseline, not a prose enumeration",
+      "topic_key": "pin-a-refactors-preserved-behaviour-with-a-golden-baseline"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "cf14f99acc2356f2535efcdf6ad36dc65066de62"
       },
       "competency_facets": [
@@ -1303,6 +1514,29 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "37fb8128e6e294557314ba5718691777c35298f3"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-OPERATE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T19:14:14Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/sanitise-at-every-output-chokepoint-not-only-the-shared-result-type.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "Sanitise at every output chokepoint, not only at the shared result type",
+      "topic_key": "sanitise-at-every-output-chokepoint-not-only-the-shared-result-type"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "52582229283a4676f10fb0734dfe2e174751dbd4"
       },
       "competency_facets": [
@@ -1347,6 +1581,31 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "39ded8ad7ab511137732637c2213dfa5ee286926"
+      },
+      "competency_facets": [
+        "CQ-CHANGE",
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-16T00:00:00Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/str-replace-on-indented-python-matches-across-indent-levels.json",
+      "scopes": [
+        "packages",
+        "packs",
+        "tools"
+      ],
+      "title": "str.replace on indented Python matches across indent levels",
+      "topic_key": "str-replace-on-indented-python-matches-across-indent-levels"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "2ca47c21fdf03663f848224653662330b99c9b41"
       },
       "competency_facets": [
@@ -1363,6 +1622,29 @@
       ],
       "title": "TOML datetime round-trip injection: a bare-datetime field can come back as `str` and carry phantom payload on re-emit",
       "topic_key": "toml-datetime-round-trip-injection-a-bare-datetime-field-can-come-back-as-str-an"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
+        "object_id": "632f64284d8cbaec9ebc74a10d92d49aba6aeb7f"
+      },
+      "competency_facets": [
+        "CQ-DESIGN",
+        "CQ-DIAGNOSE"
+      ],
+      "freshness": {
+        "checked_at": "2026-08-17T19:14:14Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/type-the-exception-that-authorises-a-destructive-action.json",
+      "scopes": [
+        "packs/core/.apm/skills/work-loop"
+      ],
+      "title": "Type the exception that authorises a destructive action — never match its message",
+      "topic_key": "type-the-exception-that-authorises-a-destructive-action"
     },
     {
       "audience": "project",

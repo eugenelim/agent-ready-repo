@@ -1,0 +1,45 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY",
+    "CQ-REVIEW"
+  ],
+  "freshness": {
+    "checked_at": "2026-08-16T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202608-cda56b0e8c6383ed23b412cf05446d82a027d9cde7d9c608030bf4d0b83f0d7b",
+      "mutation_id": "043ab7582fd55d25f9519b19c3089f2074087ab86141ea483770646fed0a14c2",
+      "observed_at": "2026-08-16T00:00:00Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "tools",
+      "semantic_gate": "capture-learnings",
+      "source": {
+        "path": "docs/adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 8233,
+      "kind": "sha256-bytes-v1",
+      "sha256": "bf83a79eaed2b2283c4bdab9571034a9d9c4ede248dad9a68a3bf6c46825b138"
+    },
+    "path": "docs/adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A test that pins a security control by substring-matching the source cannot detect that control being removed. Two gates asserted text like `build_opener(_NoRedirect)` appearing in the source; deleting the method the control actually lives in left both fully green while the behaviour was gone — in one case a bearer JWT would have been forwarded across an origin change. The substring survives the deletion because it names where the control is CALLED, not what it DOES. Pin a control by observing the production path instead: spy the collaborator (monkeypatch the opener factory, the subprocess runner, the request builder), invoke the real entry point, and assert on what it was handed. Then verify the pin by deleting the control and confirming the test goes red — an unmutated assertion is an unverified one. The same reasoning applies to scope rather than behaviour: a gate whose scanned file set can collapse to zero while still exiting 0 is silent when it works and silent when it is broken, so assert a non-zero scanned count.",
+    "kind": "antipattern"
+  },
+  "title": "A source-substring pin cannot detect the control's removal",
+  "topic_key": "a-source-substring-pin-cannot-detect-the-controls-removal"
+}
