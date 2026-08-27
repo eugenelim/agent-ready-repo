@@ -87,9 +87,20 @@ def discover_lockfiles(root: Path) -> list[Path]:
             # checked, so it is a could-not-run result rather than a warning.
             raise CheckError(f"cannot read directory {current}: {exc}") from exc
         for entry in entries:
-            if entry.is_dir():
+            # Classifying a child stats it, and that is a SECOND way the walk can
+            # fail: a directory at mode 0o400 lists fine but is not traversable,
+            # so `iterdir()` above succeeds and `is_dir()` here raises EACCES.
+            # Leaving it uncaught exited 1 -- the code reserved for policy
+            # violations -- with a traceback, which is the misclassification this
+            # function's could-not-run contract exists to prevent.
+            try:
+                is_dir = entry.is_dir()
+                is_symlink = entry.is_symlink()
+            except OSError as exc:
+                raise CheckError(f"cannot inspect {entry}: {exc}") from exc
+            if is_dir:
                 if (
-                    entry.is_symlink()
+                    is_symlink
                     or entry.name in _PRUNED_DIR_NAMES
                     or entry.name.startswith(".")
                 ):
@@ -119,7 +130,18 @@ def _install_script_key(
         raise CheckError(
             f"{lockfile}: packages entry {package_path!r} is not a JSON object"
         )
-    if entry.get("hasInstallScript") is not True:
+    # Symmetry with the allowScripts value check below: a non-boolean there is a
+    # could-not-run fact rather than a silent grant, so a non-boolean HERE must
+    # not be a silent "no install script" either. This is the fail-open
+    # direction -- it is the field npm's arborist reads to decide whether to run
+    # the script -- so an unrecognised shape has to stop the gate, not pass it.
+    has_install_script = entry.get("hasInstallScript")
+    if has_install_script is not None and not isinstance(has_install_script, bool):
+        raise CheckError(
+            f"{lockfile}: packages entry {package_path!r} has a non-boolean "
+            f"hasInstallScript ({has_install_script!r}); refusing to guess"
+        )
+    if has_install_script is not True:
         return None
 
     if package_path == "":

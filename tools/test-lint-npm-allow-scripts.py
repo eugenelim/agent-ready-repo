@@ -422,9 +422,13 @@ def main() -> int:
             combined(proc),
         )
         check(
-            "pruned project paths are absent from stdout",
+            # Against COMBINED output, not stdout: the planted projects are
+            # deliberately violating, and a violation prints to STDERR. Checking
+            # stdout alone was true whether or not pruning happened, so this
+            # assertion was inert against the very mutant it exists to catch.
+            "pruned project paths are absent from all output",
             all(
-                project.relative_to(root).as_posix() not in proc.stdout
+                project.relative_to(root).as_posix() not in combined(proc)
                 for project in (ignored_project, hidden_project)
             ),
             combined(proc),

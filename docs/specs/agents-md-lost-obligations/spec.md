@@ -1,6 +1,6 @@
 # Spec: AGENTS.md lost obligations
 
-- **Status:** Shipped (AC13's register anchor `npm-allowscripts-enforcement` was closed by [`npm-allowscripts-enforcement`](../npm-sca-gate/spec.md), which replaced the manual `allowScripts` review duty in both `AGENTS.md` files with the machine check that AC13 recorded as deferred; AC13's compensating-control rationale is therefore historical. Not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (AC13's register anchor `npm-allowscripts-enforcement` is now resolved in `workspace.toml [backlog].closed`; `tools/lint-npm-allow-scripts.py` replaced the manual `allowScripts` review duty in both `AGENTS.md` files, so AC13's compensating-control rationale is historical. Not a supersession — every decision here stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0088](../../adr/0088-risk-triggers-have-a-single-documented-home.md)
