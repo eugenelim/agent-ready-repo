@@ -53,6 +53,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [core][2.12.7] — 2026-08-27
+
+### Fixed
+
+- **Capturing and distilling project knowledge no longer times out as the topic
+  corpus grows.** The writer's coherence check read every committed topic with
+  three Git subprocesses each — one for the object id, one for its size, one
+  for its bytes — so a repository with a few dozen topics spent its whole
+  script budget before writing anything, and reported the exhaustion as a
+  corrupt store. The check now reads the whole corpus in one batched call:
+  546 subprocesses become 16, and the check runs 23x faster on a 76-topic
+  store. Every coherence guarantee is unchanged, verified by mutating a
+  committed topic's identity, title, scopes and lifecycle and confirming each
+  is still rejected.
+
 ## [core][2.12.6] — 2026-08-27
 
 ### Fixed
