@@ -29,7 +29,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "9b1910c731cc03da1c0eab4e9762ad7f9dfeae73"
+        "object_id": "9ac697c2cad75a0ec68e59e1b3fcfdba9341c339"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -41,7 +41,8 @@
       "lifecycle": "active",
       "path": "topics/a-backlog-item-can-duplicate-a-task-inside-an-approved-spec.json",
       "scopes": [
-        "workspace.toml,docs/specs/**"
+        "workspace.toml",
+        "docs/specs"
       ],
       "title": "A backlog item can duplicate a task inside an Approved spec",
       "topic_key": "a-backlog-item-can-duplicate-a-task-inside-an-approved-spec"
@@ -51,7 +52,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ca07f9cdee02b539092808413e3778e23ad7ef18"
+        "object_id": "dd2ca842996686b6a591645f461a7c25b21db930"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -63,7 +64,8 @@
       "lifecycle": "active",
       "path": "topics/a-bare-ssl-sslcontext-still-permits-tls-1-0-and-1-1.json",
       "scopes": [
-        "packages/**,tools/**"
+        "packages",
+        "tools"
       ],
       "title": "A bare ssl.SSLContext still permits TLS 1.0 and 1.1",
       "topic_key": "a-bare-ssl-sslcontext-still-permits-tls-1-0-and-1-1"
@@ -73,7 +75,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "10eb5f53fbc48d8fb9005a6b08163007fda691b3"
+        "object_id": "462efa03e0681817d802248534c69c52b25cd380"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -85,7 +87,7 @@
       "lifecycle": "active",
       "path": "topics/a-blank-line-silently-ends-a-markdown-table-and-a-row-presence-grep-still-passes.json",
       "scopes": [
-        "**/*.md"
+        "."
       ],
       "title": "A blank line silently ends a markdown table, and a row-presence grep still passes",
       "topic_key": "a-blank-line-silently-ends-a-markdown-table-and-a-row-presence-grep-still-passes"
@@ -118,7 +120,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2778008886b9490a7b87fde02b65f0e7f7a1a097"
+        "object_id": "fbf5f874288b792768ec0b1ba2c6f70b72b6ef89"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -130,7 +132,8 @@
       "lifecycle": "active",
       "path": "topics/a-check-whose-green-state-coincides-with-the-feature-being-broken.json",
       "scopes": [
-        "docs/**,packs/**"
+        "docs",
+        "packs"
       ],
       "title": "A check whose green state coincides with the feature being broken",
       "topic_key": "a-check-whose-green-state-coincides-with-the-feature-being-broken"
@@ -140,7 +143,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "b3a6db9a01a76b772ace53f5e1b20d313c9f88e1"
+        "object_id": "04e9d287f63b8a910b0a67ce9e8cfce720f7b435"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -152,7 +155,8 @@
       "lifecycle": "active",
       "path": "topics/a-coverage-linter-that-reads-makefile-variable-assignments-is-permanently-green.json",
       "scopes": [
-        "tools/**,Makefile"
+        "tools",
+        "Makefile"
       ],
       "title": "A coverage linter that reads Makefile variable assignments is permanently green",
       "topic_key": "a-coverage-linter-that-reads-makefile-variable-assignments-is-permanently-green"
@@ -162,7 +166,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "0acee3d07fa3018568ae996d2642cf80c2b7296c"
+        "object_id": "51cacbb9ad7b264a9d5df4bbf79e348a7d1b00b5"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -174,7 +178,9 @@
       "lifecycle": "active",
       "path": "topics/a-gate-is-not-a-gate-until-you-have-watched-it-reject-something.json",
       "scopes": [
-        "packages/agentbundle/**,contracts/**,.github/workflows/**"
+        "packages/agentbundle",
+        "contracts",
+        ".github/workflows"
       ],
       "title": "A gate is not a gate until you have watched it reject something",
       "topic_key": "a-gate-is-not-a-gate-until-you-have-watched-it-reject-something"
@@ -184,7 +190,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "5d434e9a1deb49511f8eaf0786b0b6899efd0c29"
+        "object_id": "3f0a2ffeee22857df4658a57e00291163e99ce1f"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -196,7 +202,8 @@
       "lifecycle": "active",
       "path": "topics/a-house-style-rule-put-in-the-shipped-package-becomes-an-adopter-s-build-break.json",
       "scopes": [
-        "packages/agentbundle/**,tools/**"
+        "packages/agentbundle",
+        "tools"
       ],
       "title": "A house-style rule put in the shipped package becomes an adopter's build break",
       "topic_key": "a-house-style-rule-put-in-the-shipped-package-becomes-an-adopter-s-build-break"
@@ -206,7 +213,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "d9296e245ad35c48513407748171b8296c2e0bf5"
+        "object_id": "443bc9f312c7a17873698c8b0e4e85b479883141"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -218,7 +225,8 @@
       "lifecycle": "active",
       "path": "topics/a-lint-that-reads-runner-call-sites-will-parse-the-comment-that-documents-the-ru.json",
       "scopes": [
-        "packs/**,tools/**"
+        "packs",
+        "tools"
       ],
       "title": "A lint that reads runner call sites will parse the comment that documents the rule",
       "topic_key": "a-lint-that-reads-runner-call-sites-will-parse-the-comment-that-documents-the-ru"
@@ -228,7 +236,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "cb144d1d700f38b67249e095d587818f5b4faa40"
+        "object_id": "5d2904823d99293345379e7acd9addccb93c0455"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -240,7 +248,7 @@
       "lifecycle": "active",
       "path": "topics/a-local-npm-install-under-packs-slows-every-test-that-builds-a-catalogue.json",
       "scopes": [
-        "packs/**"
+        "packs"
       ],
       "title": "A local `npm install` under packs/ slows every test that builds a catalogue",
       "topic_key": "a-local-npm-install-under-packs-slows-every-test-that-builds-a-catalogue"
@@ -250,7 +258,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ac2e304cf989124d5a9f320b408d51011c309f54"
+        "object_id": "6d5f3eda6f2b67ae62b40024f5371f19629e2097"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -262,7 +270,8 @@
       "lifecycle": "active",
       "path": "topics/a-monorepo-editable-install-resolves-to-one-workspace-for-the-whole-machine.json",
       "scopes": [
-        "packages/**,tools/**"
+        "packages",
+        "tools"
       ],
       "title": "A monorepo editable install resolves to one workspace for the whole machine",
       "topic_key": "a-monorepo-editable-install-resolves-to-one-workspace-for-the-whole-machine"
@@ -296,21 +305,22 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "177f029593962534c7e75cec3b27e3186f959016"
+        "object_id": "4c959fcd1bc884905aa139d1bfb98f6461379d94"
       },
       "competency_facets": [
-        "CQ-ORIENT"
+        "CQ-ORIENT",
+        "CQ-CHANGE"
       ],
       "freshness": {
-        "checked_at": "1970-01-01T00:00:00Z",
+        "checked_at": "2026-08-27T00:00:00Z",
         "state": "fresh"
       },
       "lifecycle": "active",
       "path": "topics/a-pack-version-bump-is-three-files-build-self-syncs-none-of-them.json",
       "scopes": [
-        "packs/**"
+        "packs"
       ],
-      "title": "A pack version bump is three files; build-self syncs none of them",
+      "title": "A pack version bump spans three or four files; build-self syncs none of them",
       "topic_key": "a-pack-version-bump-is-three-files-build-self-syncs-none-of-them"
     },
     {
@@ -318,7 +328,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "11255e4def4c572e8b7e8a8459cc1115b294e22f"
+        "object_id": "797a38596029270c4a67ae2fee5ce2c0561e74f8"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -330,7 +340,9 @@
       "lifecycle": "active",
       "path": "topics/a-partly-generated-content-directory-hides-two-traps-a-projected-file-reverts-a-.json",
       "scopes": [
-        "web/src/content/**, packs/*/JOURNEY.md, tools/build-site.py"
+        "web/src/content",
+        "packs",
+        "tools/build-site.py"
       ],
       "title": "A partly-generated content directory hides two traps: a projected file reverts, a gitignored one absorbs the edit",
       "topic_key": "a-partly-generated-content-directory-hides-two-traps-a-projected-file-reverts-a-"
@@ -340,7 +352,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c8b82fbb3ad57ccf519ec4b0ff91042e5a0d6cb7"
+        "object_id": "1430fe0b22dd79d6f2947091805cd0fa1ad0ea71"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -352,7 +364,7 @@
       "lifecycle": "active",
       "path": "topics/a-platform-skipped-assertion-inside-a-cross-platform-parity-suite-reads-as-cover.json",
       "scopes": [
-        "**/tests/**"
+        "."
       ],
       "title": "A platform-skipped assertion inside a cross-platform parity suite reads as coverage and proves nothing",
       "topic_key": "a-platform-skipped-assertion-inside-a-cross-platform-parity-suite-reads-as-cover"
@@ -408,7 +420,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4358b3fd092eb4a90060bb0b8f7593b8ac0b7909"
+        "object_id": "6a733211fc29f6cd273e1716c9267462793028d3"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -420,7 +432,8 @@
       "lifecycle": "active",
       "path": "topics/a-sync-check-that-compares-content-can-still-pass-on-a-stale-manifest.json",
       "scopes": [
-        "tools/**,packages/agentbundle/**"
+        "tools",
+        "packages/agentbundle"
       ],
       "title": "A sync --check that compares content can still pass on a stale manifest",
       "topic_key": "a-sync-check-that-compares-content-can-still-pass-on-a-stale-manifest"
@@ -430,7 +443,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "04c7956388412baad7f203a66ffe00c9d32e9c24"
+        "object_id": "06d8caebd30ab9cfb695b7457e489942d637e0f6"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -442,7 +455,8 @@
       "lifecycle": "active",
       "path": "topics/a-test-directory-named-build-is-invisible-to-pytest-and-ruff.json",
       "scopes": [
-        "packages/**,tools/**"
+        "packages",
+        "tools"
       ],
       "title": "A test directory named `build` is invisible to pytest and ruff",
       "topic_key": "a-test-directory-named-build-is-invisible-to-pytest-and-ruff"
@@ -452,7 +466,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ffc25bae49c8224071e7cbd93024d589a6fecadf"
+        "object_id": "48e1b9834e74877a02b3809e2bea678bc8bc70a4"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -464,7 +478,7 @@
       "lifecycle": "active",
       "path": "topics/a-test-that-moves-with-the-code-cannot-catch-the-code-being-wrong.json",
       "scopes": [
-        "**/test_*.py"
+        "."
       ],
       "title": "A test that moves with the code cannot catch the code being wrong",
       "topic_key": "a-test-that-moves-with-the-code-cannot-catch-the-code-being-wrong"
@@ -496,7 +510,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c906dd7f0b310bcf77c797326acc9f8e8cf6c1af"
+        "object_id": "afeded67acd36bf6f71fac96eb395c57eaa36928"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -508,7 +522,7 @@
       "lifecycle": "active",
       "path": "topics/a-test-that-supplies-the-wiring-it-is-meant-to-verify.json",
       "scopes": [
-        "**/tests/**,**/test_*.py"
+        "."
       ],
       "title": "A test that supplies the wiring it is meant to verify",
       "topic_key": "a-test-that-supplies-the-wiring-it-is-meant-to-verify"
@@ -518,7 +532,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "9453d75f944f2c8e55b75ed141f309ff51c022a7"
+        "object_id": "f85dc0639c8a28b1f38f981d2e972107e6b1d2fe"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -530,7 +544,7 @@
       "lifecycle": "active",
       "path": "topics/acceptance-criteria-is-silently-ungated-lint-spec-status-matches-case-sensitivel.json",
       "scopes": [
-        "docs/specs/**"
+        "docs/specs"
       ],
       "title": "`## Acceptance criteria` is silently ungated — lint-spec-status matches case-sensitively",
       "topic_key": "acceptance-criteria-is-silently-ungated-lint-spec-status-matches-case-sensitivel"
@@ -563,7 +577,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e009f0bf1f1e72cfb1cf4aa5da4caf2456ca2f9b"
+        "object_id": "31e1da3cc7d0968e41ec04462cd70af97802d15e"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -575,7 +589,8 @@
       "lifecycle": "active",
       "path": "topics/an-sca-gate-resolves-requirement-pins-against-the-public-index-so-a-pin-cannot-l.json",
       "scopes": [
-        "**/requirements.txt, Makefile"
+        ".",
+        "Makefile"
       ],
       "title": "An SCA gate resolves requirement pins against the public index, so a pin cannot lead its release",
       "topic_key": "an-sca-gate-resolves-requirement-pins-against-the-public-index-so-a-pin-cannot-l"
@@ -607,7 +622,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4356a1d6872e08c73b1dea552e033b6ee6f40b98"
+        "object_id": "08a9b61802ecaba4e48aa6b70d1895c4f8702717"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -619,7 +634,8 @@
       "lifecycle": "active",
       "path": "topics/astro-scoped-styles-cannot-restyle-a-child-component-from-its-parent.json",
       "scopes": [
-        "web/**,docs-site/**"
+        "web",
+        "docs-site"
       ],
       "title": "Astro scoped styles cannot restyle a child component from its parent",
       "topic_key": "astro-scoped-styles-cannot-restyle-a-child-component-from-its-parent"
@@ -629,7 +645,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "88054dc13c411c4847290c186caeb0f79709a38c"
+        "object_id": "a9c7ddf9193cd98a6632d7b15c07f81f9a71632b"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -641,7 +657,7 @@
       "lifecycle": "active",
       "path": "topics/attr-list-attribute-values-are-not-escape-safe-and-the-sink-may-not-be-html.json",
       "scopes": [
-        "**/*.py,**/*.md"
+        "."
       ],
       "title": "attr_list attribute values are not escape-safe, and the sink may not be HTML",
       "topic_key": "attr-list-attribute-values-are-not-escape-safe-and-the-sink-may-not-be-html"
@@ -651,7 +667,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4ddcfcd5b591e2bd23c0261cccd5e81245d17dc8"
+        "object_id": "e13071ddedb75c0d2b4afed090dc879397ea30d2"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -663,7 +679,7 @@
       "lifecycle": "active",
       "path": "topics/bash-to-python-port-foo-in-path-parts-matches-segment-at-any-depth-where-bash-no.json",
       "scopes": [
-        "tools/lint-*.py"
+        "tools"
       ],
       "title": "Bash-to-Python port: `\"foo\" in path.parts` matches segment at *any* depth where bash `-not -path './foo/*'` was top-level-anchored",
       "topic_key": "bash-to-python-port-foo-in-path-parts-matches-segment-at-any-depth-where-bash-no"
@@ -673,7 +689,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "55bb88084e31d30532525484d64f6727d406c84c"
+        "object_id": "700ddaca1316fe80348d14be7ac2aa9d890affc9"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -685,7 +701,7 @@
       "lifecycle": "active",
       "path": "topics/bash-to-python-port-heredoc-rc-was-normalised-naked-return-violations-leaks-the-.json",
       "scopes": [
-        "tools/lint-*.py"
+        "tools"
       ],
       "title": "Bash-to-Python port: heredoc rc was normalised; naked `return violations` leaks the raw count",
       "topic_key": "bash-to-python-port-heredoc-rc-was-normalised-naked-return-violations-leaks-the-"
@@ -742,7 +758,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "5e10cc77006af26f6cf9c838ffca6a095bad49bb"
+        "object_id": "7d749ad75189c6288445d421df0894503c7c0c54"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -754,7 +770,7 @@
       "lifecycle": "active",
       "path": "topics/classifying-a-git-failure-by-its-message-needs-lc-all-c.json",
       "scopes": [
-        "**/*.py,**/*.sh"
+        "."
       ],
       "title": "Classifying a git failure by its message needs LC_ALL=C",
       "topic_key": "classifying-a-git-failure-by-its-message-needs-lc-all-c"
@@ -764,7 +780,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e5aee38fe325221aaa3f8ca2f2897231f65e8971"
+        "object_id": "2c5e394e8be18240a4caff0c7f278876ccda2168"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -776,7 +792,8 @@
       "lifecycle": "active",
       "path": "topics/collate-source-material-into-a-declared-inventory-before-projecting-it.json",
       "scopes": [
-        "tools/**,**/build*.py"
+        "tools",
+        "."
       ],
       "title": "Collate source material into a declared inventory before projecting it",
       "topic_key": "collate-source-material-into-a-declared-inventory-before-projecting-it"
@@ -786,7 +803,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c42a3abaf69de62c72a8ea70c5508e7961f5826b"
+        "object_id": "eb7ec68d2b71d499fae7ab6fdfb371b70a7d92b4"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -798,7 +815,7 @@
       "lifecycle": "active",
       "path": "topics/coverage-recorded-only-in-a-spec-note-freezes-when-the-spec-ships.json",
       "scopes": [
-        "packs/**"
+        "packs"
       ],
       "title": "Coverage recorded only in a spec note freezes when the spec ships",
       "topic_key": "coverage-recorded-only-in-a-spec-note-freezes-when-the-spec-ships"
@@ -808,7 +825,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "dd387c778e304adfb6245a572eaa2e7f3c8fffdd"
+        "object_id": "5fcd20b26ca6d1658c9cdaf8af13a6916611e434"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -820,7 +837,7 @@
       "lifecycle": "active",
       "path": "topics/cross-surface-parity-lint-vs-drift-gate-bytes-strip-and-str-strip-are-not-equiva.json",
       "scopes": [
-        "packages/agentbundle/agentbundle/build/**/*.py"
+        "packages/agentbundle/agentbundle/build"
       ],
       "title": "Cross-surface parity (lint vs drift gate): `bytes.strip()` and `str.strip()` are not equivalent — Unicode whitespace creates a silent acceptance gap",
       "topic_key": "cross-surface-parity-lint-vs-drift-gate-bytes-strip-and-str-strip-are-not-equiva"
@@ -830,7 +847,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "134f1962208d4a61624de5480cb8c25a8225c9c9"
+        "object_id": "3b29e91bb7d5fdcba9a1bf93e8fc4519c12de1c4"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -842,7 +859,7 @@
       "lifecycle": "active",
       "path": "topics/document-a-json-schema-subset-in-spec-plan-validator-docstring-all-three-in-sync.json",
       "scopes": [
-        "packages/agentbundle/agentbundle/build/**"
+        "packages/agentbundle/agentbundle/build"
       ],
       "title": "Document a JSON-Schema subset in spec + plan + validator docstring, all three in sync",
       "topic_key": "document-a-json-schema-subset-in-spec-plan-validator-docstring-all-three-in-sync"
@@ -852,7 +869,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "98a5e6e1def0c8a477e9fbd0d8b70ecf8429a22a"
+        "object_id": "97296eb88e40d337988ee0585a6e07ed74dcb46f"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -864,7 +881,8 @@
       "lifecycle": "active",
       "path": "topics/don-t-wire-any-lint-into-the-projected-pre-pr-py-a-lint-can-ship-to-adopters-as-.json",
       "scopes": [
-        "tools/hooks/**, packs/core/.apm/skills/**/scripts/**"
+        "tools/hooks",
+        "packs/core/.apm/skills"
       ],
       "title": "Don't wire any lint into the projected pre-pr.py; a lint CAN ship to adopters as a skill script",
       "topic_key": "don-t-wire-any-lint-into-the-projected-pre-pr-py-a-lint-can-ship-to-adopters-as-"
@@ -874,7 +892,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "49385738a7d2d8a1d86b7a060295f44678eff162"
+        "object_id": "8c4e37923090d4552f08870278a2069ed2a06eae"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -886,7 +904,8 @@
       "lifecycle": "active",
       "path": "topics/editing-a-scaffold-projected-guide-requires-a-package-data-resync-and-the-curati.json",
       "scopes": [
-        "guides/**,packages/agentbundle/_data/catalogue-scaffold/**"
+        "guides",
+        "packages/agentbundle/agentbundle/_data/catalogue-scaffold"
       ],
       "title": "Editing a scaffold-projected guide requires a package-data resync AND the curation-guard trailer",
       "topic_key": "editing-a-scaffold-projected-guide-requires-a-package-data-resync-and-the-curati"
@@ -896,7 +915,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "d5d84b5e547e5be6618410b2552f63a761e20d38"
+        "object_id": "9dc3bb5d8851a060e312dbb463140ff978ce22e0"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -908,7 +927,7 @@
       "lifecycle": "active",
       "path": "topics/fontsource-variable-packages-default-index-css-is-wght-only.json",
       "scopes": [
-        "docs-site/**"
+        "docs-site"
       ],
       "title": "Fontsource variable packages: default index.css is wght-only",
       "topic_key": "fontsource-variable-packages-default-index-css-is-wght-only"
@@ -918,7 +937,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "b36c55562e9e7df5f68d7a38c6d71c8aa30e030d"
+        "object_id": "122bb7b368aa26bbee05408b8964193302824a5d"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -930,7 +949,7 @@
       "lifecycle": "active",
       "path": "topics/git-commit-a-commits-conflict-markers-git-stash-and-plain-git-commit-refuse.json",
       "scopes": [
-        "**/*.py,**/*.md"
+        "."
       ],
       "title": "'git commit -a' commits conflict markers; 'git stash' and plain 'git commit' refuse",
       "topic_key": "git-commit-a-commits-conflict-markers-git-stash-and-plain-git-commit-refuse"
@@ -962,7 +981,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "76eafc46764f360bf93425fe22280d014ca71bb2"
+        "object_id": "a4b01bcea60eb52761128ef2e9f743d37711bea4"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -974,7 +993,7 @@
       "lifecycle": "active",
       "path": "topics/grep-c-in-a-ci-floor-assertion-silences-the-case-the-floor-exists-for.json",
       "scopes": [
-        "**/*.yml,**/Makefile"
+        "."
       ],
       "title": "`grep -c` in a CI floor assertion silences the case the floor exists for",
       "topic_key": "grep-c-in-a-ci-floor-assertion-silences-the-case-the-floor-exists-for"
@@ -984,7 +1003,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "4803724454e29f867ca4274fbae088ad4ec02eee"
+        "object_id": "4dab1442c3253e627f6076edd9150f1697e901cc"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -996,7 +1015,7 @@
       "lifecycle": "active",
       "path": "topics/grep-e-with-an-escaped-pipe-matches-a-literal-so-a-negated-guard-always-passes.json",
       "scopes": [
-        "**/*.sh,**/Makefile,**/*.md"
+        "."
       ],
       "title": "grep -E with an escaped pipe matches a literal, so a negated guard always passes",
       "topic_key": "grep-e-with-an-escaped-pipe-matches-a-literal-so-a-negated-guard-always-passes"
@@ -1006,7 +1025,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "aa54222f429037cb8bcdddf6630ca17629932b1f"
+        "object_id": "11062d130337e3e557adbe6043b6a9ecb23c343b"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1018,7 +1037,8 @@
       "lifecycle": "active",
       "path": "topics/guarding-the-collision-that-announces-itself-instead-of-the-one-that-is-silent.json",
       "scopes": [
-        "packs/**,tools/**"
+        "packs",
+        "tools"
       ],
       "title": "Guarding the collision that announces itself instead of the one that is silent",
       "topic_key": "guarding-the-collision-that-announces-itself-instead-of-the-one-that-is-silent"
@@ -1028,7 +1048,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "5a16fbff676a78be9ffdd4ceaf5adf7a32806570"
+        "object_id": "db81280866b4fd81ea6e5bc439841c9999ec2734"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1040,7 +1060,8 @@
       "lifecycle": "active",
       "path": "topics/hashing-an-artifact-your-own-workflow-mandates-editing-breaks-by-construction.json",
       "scopes": [
-        "packs/core/.apm/skills/work-loop/**, tools/**"
+        "packs/core/.apm/skills/work-loop",
+        "tools"
       ],
       "title": "Hashing an artifact your own workflow mandates editing breaks by construction",
       "topic_key": "hashing-an-artifact-your-own-workflow-mandates-editing-breaks-by-construction"
@@ -1050,7 +1071,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "2702d9854357a8f86351b6f88acb4dbf6fe39a62"
+        "object_id": "897461eafc1a438d47f016b011f5845195576b02"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1062,7 +1083,7 @@
       "lifecycle": "active",
       "path": "topics/in-repository-tmpdir-changes-git-fixture-semantics.json",
       "scopes": [
-        "tests/**"
+        "tests"
       ],
       "title": "In-repository TMPDIR changes Git fixture semantics",
       "topic_key": "in-repository-tmpdir-changes-git-fixture-semantics"
@@ -1072,7 +1093,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c49e45c8ad985c0610ee808ad57683061c108be6"
+        "object_id": "954a21fa3598c74c4ff099e4d7186d235ad9d31d"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1084,7 +1105,7 @@
       "lifecycle": "active",
       "path": "topics/load-verify-locations-cafile-drops-every-anchor-on-one-bad-pem-block.json",
       "scopes": [
-        "packages/**"
+        "packages"
       ],
       "title": "load_verify_locations(cafile=) drops every anchor on one bad PEM block",
       "topic_key": "load-verify-locations-cafile-drops-every-anchor-on-one-bad-pem-block"
@@ -1094,7 +1115,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e39f7bf4ae7ff230ba40547c728f8ca7d8b1c59c"
+        "object_id": "56f3851d39ca85acb0f2120acffb9e287cdb95d2"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1106,7 +1127,10 @@
       "lifecycle": "active",
       "path": "topics/local-make-build-check-does-not-run-what-ci-build-check-runs.json",
       "scopes": [
-        "docs/product/changelog.md,packages/**,tools/**,Makefile"
+        "docs/product/changelog.md",
+        "packages",
+        "tools",
+        "Makefile"
       ],
       "title": "Local make build-check does not run what CI build-check runs",
       "topic_key": "local-make-build-check-does-not-run-what-ci-build-check-runs"
@@ -1116,7 +1140,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "9346c5444b5e2b86fa6751888fe34dd57d795dff"
+        "object_id": "29725655bf949f9569842e9344ad1d5ea97c861c"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1128,7 +1152,7 @@
       "lifecycle": "active",
       "path": "topics/macos-is-the-only-platform-where-python-ignores-the-os-trust-store.json",
       "scopes": [
-        "packages/**"
+        "packages"
       ],
       "title": "macOS is the only platform where Python ignores the OS trust store",
       "topic_key": "macos-is-the-only-platform-where-python-ignores-the-os-trust-store"
@@ -1138,7 +1162,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "9b1c45d9e80afc488f64b83620a6264ff961069e"
+        "object_id": "c9862e45f17da756976a424cff7c82b54bb40866"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1150,7 +1174,8 @@
       "lifecycle": "active",
       "path": "topics/make-build-check-runs-the-gate-chain-it-cannot-detect-a-step-missing-from-the-ch.json",
       "scopes": [
-        "tools/repo/**,.github/workflows/**"
+        "tools/repo",
+        ".github/workflows"
       ],
       "title": "make build-check runs the gate chain; it cannot detect a step missing from the chain's own pinned list",
       "topic_key": "make-build-check-runs-the-gate-chain-it-cannot-detect-a-step-missing-from-the-ch"
@@ -1160,7 +1185,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ed580c58fd279a47bb4838cf049a20fccb2ded76"
+        "object_id": "5ea77b417460a913c18ee33474a6193465b2b94e"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1172,7 +1197,7 @@
       "lifecycle": "active",
       "path": "topics/map-adjacent-contracts-explicitly-at-their-boundary.json",
       "scopes": [
-        "packs/core/.apm/skills/work-intake/**"
+        "packs/core/.apm/skills/work-intake"
       ],
       "title": "Map adjacent contracts explicitly at their boundary",
       "topic_key": "map-adjacent-contracts-explicitly-at-their-boundary"
@@ -1182,7 +1207,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "ed4aa40c99f239a7d1559519f0e28e3428b91827"
+        "object_id": "248b41ccf212727b6fc415ded31657e6e79a44df"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1194,7 +1219,8 @@
       "lifecycle": "active",
       "path": "topics/no-gate-resolves-relative-markdown-links-a-directory-move-leaves-silent-404s-for.json",
       "scopes": [
-        "docs/**, guides/**"
+        "docs",
+        "guides"
       ],
       "title": "No gate resolves relative Markdown links — a directory move leaves silent 404s for months",
       "topic_key": "no-gate-resolves-relative-markdown-links-a-directory-move-leaves-silent-404s-for"
@@ -1226,7 +1252,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "e1c872031e9fe59b5b6242c99d19e63057d5df6c"
+        "object_id": "671a0236942bdf8cdb3886af3c3b89a6c428dea0"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1238,7 +1264,8 @@
       "lifecycle": "active",
       "path": "topics/per-file-subprocess-loops-in-test-harnesses-scale-with-spawn-cost-not-file-size.json",
       "scopes": [
-        "tools/**, *.sh"
+        "tools",
+        "."
       ],
       "title": "Per-file subprocess loops in test harnesses scale with spawn cost, not file size",
       "topic_key": "per-file-subprocess-loops-in-test-harnesses-scale-with-spawn-cost-not-file-size"
@@ -1272,7 +1299,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "cf14f99acc2356f2535efcdf6ad36dc65066de62"
+        "object_id": "aa338c9804f29af0283a8f9d13ce6c916661b660"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1284,7 +1311,7 @@
       "lifecycle": "active",
       "path": "topics/pin-sys-platform-when-asserting-on-platform-conditional-output.json",
       "scopes": [
-        "packages/**/tests/**"
+        "packages"
       ],
       "title": "Pin sys.platform when asserting on platform-conditional output",
       "topic_key": "pin-sys-platform-when-asserting-on-platform-conditional-output"
@@ -1294,7 +1321,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "42956a622476dfbe64f722648c187c9e404f340b"
+        "object_id": "9ccdb0cc42aa2afec43099b8eabed159d148e2cc"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1306,7 +1333,7 @@
       "lifecycle": "active",
       "path": "topics/plan-md-is-byte-pinned-from-approve-plan-until-the-run-s-final-cohort-verb.json",
       "scopes": [
-        "docs/specs/**"
+        "docs/specs"
       ],
       "title": "plan.md is byte-pinned from approve-plan until the run's final cohort verb",
       "topic_key": "plan-md-is-byte-pinned-from-approve-plan-until-the-run-s-final-cohort-verb"
@@ -1338,7 +1365,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "a1211312e69cbc7b240fba38eecddcfc64baf14b"
+        "object_id": "87f8a366159e3b22fe2203339a8ad29f12163dcc"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1350,7 +1377,7 @@
       "lifecycle": "active",
       "path": "topics/prove-a-process-makes-no-network-request-with-kill-on-egress-and-run-the-negativ.json",
       "scopes": [
-        "**/*.py,**/*.sh"
+        "."
       ],
       "title": "Prove a process makes no network request with kill-on-egress, and run the negative control first",
       "topic_key": "prove-a-process-makes-no-network-request-with-kill-on-egress-and-run-the-negativ"
@@ -1360,7 +1387,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "cba10de6f72bbce739cd26422a82131ac3352003"
+        "object_id": "de0b71441d9c8dd0a4002519f5f5638dfa1202ea"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1372,7 +1399,7 @@
       "lifecycle": "active",
       "path": "topics/pytest-mark-parametrize-list-items-evaluated-at-collection-time.json",
       "scopes": [
-        "packages/*/tests/**"
+        "packages"
       ],
       "title": "pytest.mark.parametrize list items evaluated at collection time",
       "topic_key": "pytest-mark-parametrize-list-items-evaluated-at-collection-time"
@@ -1382,7 +1409,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "045ac52d4c02209dac4d94c990b2194fdc62369c"
+        "object_id": "5948aee21be4c52f7acd8dd8dc68164c3883c3ec"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1394,7 +1421,7 @@
       "lifecycle": "active",
       "path": "topics/pytest-tmp-path-hides-symlinked-ancestor-path-bugs.json",
       "scopes": [
-        "packages/agentbundle/**"
+        "packages/agentbundle"
       ],
       "title": "pytest tmp_path hides symlinked-ancestor path bugs",
       "topic_key": "pytest-tmp-path-hides-symlinked-ancestor-path-bugs"
@@ -1404,7 +1431,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "be9924a616c35f9404db9299dcb6e863d5057280"
+        "object_id": "c1bb2d19e3c2ba5fcb577843a11c8e9a9a2c4a01"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1416,7 +1443,7 @@
       "lifecycle": "active",
       "path": "topics/python-3-13-create-default-context-enables-verify-x509-strict.json",
       "scopes": [
-        "packages/**/tests/**"
+        "packages"
       ],
       "title": "Python 3.13 create_default_context enables VERIFY_X509_STRICT",
       "topic_key": "python-3-13-create-default-context-enables-verify-x509-strict"
@@ -1448,7 +1475,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "54af2f20197513c3c23f4cf7a812317b4ac0cc18"
+        "object_id": "df54d76656233eec97877c3aa3223cc816702f6c"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1460,7 +1487,7 @@
       "lifecycle": "active",
       "path": "topics/render-to-temp-copy-breaks-merge-splice-on-conflict-against-the-working-tree.json",
       "scopes": [
-        "packages/agentbundle/agentbundle/build/**"
+        "packages/agentbundle/agentbundle/build"
       ],
       "title": "Render-to-temp + copy breaks merge/splice on-conflict against the working tree",
       "topic_key": "render-to-temp-copy-breaks-merge-splice-on-conflict-against-the-working-tree"
@@ -1492,7 +1519,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "01fc701f90eeeff071e2c9a4b19283a37406064e"
+        "object_id": "dd09cbbfc69ee0bfcb4995663be64ef08ac90874"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1504,7 +1531,10 @@
       "lifecycle": "active",
       "path": "topics/resolve-and-preflight-installed-skill-entry-points-before-interpreting-exit-code.json",
       "scopes": [
-        "packs/**/skills/**,.claude/skills/**,.agents/skills/**,.codex/**"
+        "packs",
+        ".claude/skills",
+        ".agents/skills",
+        ".codex"
       ],
       "title": "Resolve and preflight installed skill entry points before interpreting exit codes",
       "topic_key": "resolve-and-preflight-installed-skill-entry-points-before-interpreting-exit-code"
@@ -1559,7 +1589,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "59b5c659a004303afe488ddc400f6f0631033d2b"
+        "object_id": "3c83d9ffc6d24eab5e2116ef6c0a02c2fb038b4b"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1571,7 +1601,7 @@
       "lifecycle": "active",
       "path": "topics/starlight-renders-headings-display-inline-inside-sl-heading-wrapper.json",
       "scopes": [
-        "docs-site/**"
+        "docs-site"
       ],
       "title": "Starlight renders headings display:inline inside .sl-heading-wrapper",
       "topic_key": "starlight-renders-headings-display-inline-inside-sl-heading-wrapper"
@@ -1651,7 +1681,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "c75737efd564594603f6ecf57257f97b45ce97a9"
+        "object_id": "73d1bfb674bb5f978716dfdb375d3b5370e07469"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1663,7 +1693,7 @@
       "lifecycle": "active",
       "path": "topics/urlopen-wraps-sslcertverificationerror-inside-urlerror-reason.json",
       "scopes": [
-        "packages/**"
+        "packages"
       ],
       "title": "urlopen wraps SSLCertVerificationError inside URLError.reason",
       "topic_key": "urlopen-wraps-sslcertverificationerror-inside-urlerror-reason"
@@ -1673,7 +1703,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "9a2405fc0e95d83d3d0f23c7d3271277f639c612"
+        "object_id": "311bde1eb41bd86312a4c5f6fe8ac91529c2cc3e"
       },
       "competency_facets": [
         "CQ-ORIENT"
@@ -1685,7 +1715,7 @@
       "lifecycle": "active",
       "path": "topics/verify-remark-plugins-fire-by-grepping-built-output-wrong-registration-fails-sil.json",
       "scopes": [
-        "docs-site/**"
+        "docs-site"
       ],
       "title": "Verify remark plugins fire by grepping built output — wrong registration fails silently",
       "topic_key": "verify-remark-plugins-fire-by-grepping-built-output-wrong-registration-fails-sil"

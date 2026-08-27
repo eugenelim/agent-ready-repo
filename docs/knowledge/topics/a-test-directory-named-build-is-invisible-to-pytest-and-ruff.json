@@ -27,7 +27,8 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "packages/**,tools/**"
+    "packages",
+    "tools"
   ],
   "supporting_sources": [],
   "synthesis": {

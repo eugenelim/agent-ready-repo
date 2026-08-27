@@ -27,7 +27,9 @@
   "owning_source": null,
   "schema_version": "knowledge-topic.v1",
   "scopes": [
-    "web/src/content/**, packs/*/JOURNEY.md, tools/build-site.py"
+    "web/src/content",
+    "packs",
+    "tools/build-site.py"
   ],
   "supporting_sources": [],
   "synthesis": {
