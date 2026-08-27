@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+import time
 from pathlib import Path, PureWindowsPath
 
 import pytest
@@ -200,7 +201,11 @@ def test_destination_encoding_covers_the_same_control_class_as_display() -> None
     # while the destination encoder left them raw, so one rendered line escaped the
     # separator in its link text and emitted it literally in its destination. Both
     # legs must agree, or a splitlines() reader still counts an extra entry.
-    for code_point in (*range(0x20), 0x7F, 0x85, 0x2028, 0x2029):
+    # Driving the class, not sampling it: this loop previously used `0x85` as a
+    # stand-in for C1, so narrowing the pattern to `\x7f-\x85` left 0x86-0x9E
+    # unencoded with every test still green — the same enumeration weakness this
+    # change exists to remove. Space (0x20) is in the class too.
+    for code_point in (*range(0x21), 0x7F, *range(0x80, 0xA0), 0x2028, 0x2029):
         character = chr(code_point)
         encoded = okf_compiler._index_link_destination(f"a{character}b.md")
         assert character not in encoded, (hex(code_point), encoded)
@@ -247,30 +252,85 @@ def test_colon_bearing_filename_is_refused_so_the_destination_need_not_encode_it
     )
 
 
-def test_display_escaping_neutralizes_every_gfm_autolink_trigger() -> None:
-    # AC1 — GFM linkifies three shapes with no surrounding Markdown, so a display
-    # value could render as a live link without containing a delimiter. The
-    # frontmatter leg refuses a reference outright, but path-derived text (a
-    # directory name) reaches the same sink and no refusal covers it. Escaping the
-    # one punctuation mark each trigger needs is renderer-verified to leave the
-    # rendered text byte-identical while the link goes inert.
+def test_display_escaping_neutralizes_the_escapable_autolink_triggers() -> None:
+    # AC1 — GFM linkifies a bare `www.` host and a `scheme://` URL with no
+    # surrounding Markdown, so a display value could render as a live link
+    # without containing a delimiter. Escaping is used only where it is proven to
+    # work: all four of these are defused on cmark-gfm *and* micromark.
+    #
+    # `ftp` is here because cmark-gfm — the renderer this output is read through —
+    # linkifies `ftp://` even though micromark leaves it inert. Verifying against
+    # one renderer was not enough to establish the trigger set.
     assert okf_compiler._index_display_value("www.evil.invalid") == "www\\.evil.invalid"
     assert okf_compiler._index_display_value("WWW.Evil.Invalid") == "WWW\\.Evil.Invalid"
     assert (
         okf_compiler._index_display_value("see http://evil.invalid")
         == "see http\\://evil.invalid"
     )
-    # A bare address is the trigger that matching `mailto:` alone missed entirely,
-    # and escaping the `mailto:` colon does not defuse it — GFM linkifies the
-    # address on its own.
-    assert okf_compiler._index_display_value("ops@evil.invalid") == "ops\\@evil.invalid"
     assert (
-        okf_compiler._index_display_value("mailto:ops@evil.invalid")
-        == "mailto\\:ops\\@evil.invalid"
+        okf_compiler._index_display_value("HTTPS://evil.invalid")
+        == "HTTPS\\://evil.invalid"
+    )
+    assert (
+        okf_compiler._index_display_value("ftp://evil.invalid")
+        == "ftp\\://evil.invalid"
     )
     # Ordinary metadata is untouched: no trigger, no backslash.
     for benign in ("Concept: overview", "v1.2.3-notes", "release-readiness"):
         assert okf_compiler._index_display_value(benign) == benign, benign
+
+
+def test_a_bare_address_is_refused_rather_than_escaped() -> None:
+    # AC1 — the deliberate asymmetry. cmark-gfm resolves character escapes into
+    # text before its autolink pass runs, so `ops\@evil.invalid` STILL renders a
+    # live mailto link there and `ops&#64;evil.invalid` bypasses it the same way.
+    # Escaping an address would be theatre, so the shape is refused at both entry
+    # points instead. This test pins the asymmetry so nobody "fixes" it by adding
+    # an `@` escape and believing the trigger is closed.
+    assert okf_compiler._index_display_value("ops@evil.invalid") == "ops@evil.invalid"
+    assert "@" not in "".join(
+        pattern.pattern for pattern, _ in okf_compiler._AUTOLINK_TRIGGERS
+    )
+    # Refused in frontmatter...
+    assert [
+        diagnostic.code
+        for diagnostic in okf_compiler._metadata_diagnostics(
+            "concepts/x.md", {"type": "ops@evil.invalid"}
+        )
+    ] == ["OKF009"]
+    # ...and in a path component, which is the leg a frontmatter refusal cannot
+    # reach because a directory name becomes an unbracketed heading.
+    assert okf_compiler._is_safe_relative_path("ops@evil.invalid/x.md") is False
+
+
+def test_the_address_predicate_refuses_no_more_than_the_renderer_linkifies() -> None:
+    # AC1 — precision matters as much as coverage here: a false positive is a hard
+    # compile failure for an adopter. The first version of this predicate refused
+    # `Rev@1.2` and `Deploy@v1.2`, which no renderer linkifies, because it accepted
+    # a numeric final label. Each expectation below was read off cmark-gfm.
+    for value in (
+        "a@e.invalid",
+        "ops@corp.co",
+        "first.last+t@sub.corp.invalid",
+        "x@y.z",
+        "a_b@c-d.io",
+    ):
+        assert okf_compiler._REMOTE_ADDRESS.search(value), value
+    for value in ("Rev@1.2", "Deploy@v1.2", "a@b", "tag@10.0.0.1", "v1.2.3", "plain"):
+        assert not okf_compiler._REMOTE_ADDRESS.search(value), value
+
+
+def test_the_address_predicate_scans_the_frontmatter_cap_in_linear_time() -> None:
+    # AC1 — leading with the local part (`[A-Za-z0-9._%+-]+@`) made `re.search`
+    # retry at every offset and backtrack the greedy class hunting for an `@` that
+    # is not there: 16 000 dotted characters cost 2.7s, and `frontmatter_bytes`
+    # allows 65 536, so a single value was ~44s of compiler CPU. The predicate is
+    # anchored on `@` by a one-character lookbehind instead. A generous ceiling
+    # still fails by three orders of magnitude if the anchor is ever removed.
+    payload = "a." * (okf_compiler.DEFAULT_LIMITS["frontmatter_bytes"] // 2)
+    started = time.perf_counter()
+    assert okf_compiler._REMOTE_ADDRESS.search(payload) is None
+    assert time.perf_counter() - started < 1.0
 
 
 def test_path_derived_heading_cannot_form_a_live_autolink() -> None:

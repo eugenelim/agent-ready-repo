@@ -74,17 +74,18 @@ this one is yours.
 Create each canonical concept under `concepts/`. **Name concept files with
 lowercase ASCII slugs** — letters, digits, and hyphens, as in
 `release-readiness.md`. Accented and non-ASCII names are fine too; the generated
-index cites them literally. What a slug avoids is percent-encoding: the compiler
-encodes every character outside letters, digits, `-`, `.`, `_`, `~`, `/` and
-non-ASCII, so `two words.md` is cited as `two%20words.md` and `don't-panic.md` as
-`don%27t-panic.md`. Some of those characters would break the link and some are
-encoded only for URL validity, but the effect on the cited path is the same
-either way. Compilation still succeeds, so nothing warns you; a slug keeps the
-cited path and the on-disk path identical.
+index cites them literally. What a slug avoids is percent-encoding: a space,
+`" ( ) < > \ |`, an `&`, `#`, `;` or `%`, and `'`, `^`, a backtick, `{` or `}` are
+all encoded, so `two words.md` is cited as `two%20words.md` and `don't-panic.md`
+as `don%27t-panic.md`. Compilation still succeeds, so nothing warns you; a slug
+keeps the cited path and the on-disk path identical.
 
 A few names are refused outright rather than encoded, with an `OKF004`
-diagnostic: anything carrying a C0 control or `DEL`, one of `< > : " | ? *`, or
-bytes that are not valid UTF-8.
+diagnostic: anything carrying a C0 control or `DEL`, one of `< > : " | ? *`,
+bytes that are not valid UTF-8, or an email-shaped run such as
+`ops@example.com`. That last one is refused rather than encoded because a
+directory name becomes the text of a generated `# OKF index:` heading, where an
+address renders as a live `mailto:` link that escaping cannot defuse.
 
 For example,
 `packs/engineering/okf/delivery-practices/concepts/release-readiness.md` can

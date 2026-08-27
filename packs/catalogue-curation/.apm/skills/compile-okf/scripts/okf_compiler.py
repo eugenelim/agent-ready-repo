@@ -61,11 +61,25 @@ _SAFE_DIR_FD_SUPPORTED = all(
     for function in (os.open, os.mkdir, os.rename, os.stat, os.unlink)
 )
 _WINDOWS_DEVICE = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)", re.IGNORECASE)
-# The four shapes GFM turns into a link with no delimiter around them. A bare
-# address is one of them, so matching `mailto:` alone left the common case open.
-_REMOTE_REFERENCE = re.compile(
-    r"(?:https?://|www\.|mailto:|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)",
-    re.IGNORECASE,
+# The shapes GFM turns into a link with no delimiter around them. `ftp://` is one
+# of them on cmark-gfm — the renderer this metadata is actually read through —
+# even though micromark leaves it inert, so verifying against one renderer alone
+# is not enough. A bare address is another, so matching `mailto:` alone left the
+# common case open.
+_REMOTE_SCHEME = re.compile(r"(?:(?:https?|ftp)://|www\.|mailto:)", re.IGNORECASE)
+# Anchored on `@`, deliberately. Leading with the local part
+# (`[A-Za-z0-9._%+-]+@`) made `re.search` retry at every offset and backtrack the
+# greedy class looking for an `@` that is not there: 16 000 dotted characters cost
+# 2.7s and the frontmatter cap is 65 536 bytes, so one value was ~44s of CPU. A
+# one-character lookbehind does the same job in one linear pass, and every
+# repetition is bounded.
+#
+# The final label must end in a letter, which is what cmark-gfm actually
+# linkifies: it links `x@y.z` and `a_b@c-d.io` but leaves `Rev@1.2`,
+# `Deploy@v1.2` and `tag@10.0.0.1` inert. Matching more than the renderer does
+# would refuse a legal version string such as `Rev@1.2` and fail the compile.
+_REMOTE_ADDRESS = re.compile(
+    r"(?<=[A-Za-z0-9._%+-])@(?:[A-Za-z0-9_-]{1,63}\.){1,8}[A-Za-z0-9_-]{0,62}[A-Za-z]\b"
 )
 _UNSAFE_METADATA_KEYS = {
     "attester",
@@ -88,8 +102,8 @@ _LINK_DESTINATION_UNSAFE = re.compile(
 )
 
 
-def _line_break_escapes() -> dict[str, str]:
-    """Map every code point a reader can treat as a line break to a visible escape.
+def _control_class_escapes() -> dict[str, str]:
+    """Escape every C0 control, DEL, C1 control, and U+2028/U+2029.
 
     Covering the class rather than listing its members is deliberate. An
     enumeration named seven separators and still omitted three that
@@ -114,7 +128,7 @@ _INDEX_DISPLAY_ESCAPES = str.maketrans(
         # separators. Any of these lets one entry look like several, and a few
         # act below Markdown entirely: an escape sequence repaints a terminal,
         # and a NUL truncates a null-terminating reader.
-        **_line_break_escapes(),
+        **_control_class_escapes(),
         # Link and autolink structure.
         "[": r"\[",
         "]": r"\]",
@@ -130,16 +144,24 @@ _INDEX_DISPLAY_ESCAPES = str.maketrans(
     }
 )
 
-# GFM linkifies a bare `www.` host, a `scheme://` URL, and an `a@b.tld` address
-# with no surrounding Markdown at all, so a display value can render as a live
-# link without containing a single delimiter. Escaping the one punctuation mark
-# each trigger requires leaves the rendered text byte-identical and the link
-# inert. Frontmatter carrying a reference is refused outright; this covers the
-# path-derived text a frontmatter refusal cannot reach.
+# GFM linkifies a bare `www.` host and a `scheme://` URL with no surrounding
+# Markdown at all, so a display value can render as a live link without
+# containing a single delimiter. Escaping the one punctuation mark each trigger
+# requires renders the same text and leaves the link inert.
+#
+# Escaping is only used for the triggers where it is *proven* to work. Checked
+# against cmark-gfm, the renderer this output is read through, and micromark:
+# `www\.`, `http\://`, `https\://` and `ftp\://` are all defused on both.
+#
+# A bare `a@b.tld` address is deliberately NOT here. cmark-gfm resolves character
+# escapes into text before its autolink pass scans, so `a\@b.tld` still renders a
+# live `mailto:` link — the escape is inert against the extension, and
+# `a&#64;b.tld` bypasses it the same way. Escaping it would be theatre and would
+# corrupt an ordinary `a@b` for nothing, so the address shape is refused instead:
+# in frontmatter by `OKF009`, and in a path component by the path gate.
 _AUTOLINK_TRIGGERS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"@"), r"\\@"),
     (re.compile(r"(www)(\.)", re.IGNORECASE), r"\1\\\2"),
-    (re.compile(r"(https?|mailto)(:)", re.IGNORECASE), r"\1\\\2"),
+    (re.compile(r"(https?|ftp|mailto)(:)", re.IGNORECASE), r"\1\\\2"),
 )
 
 
@@ -737,9 +759,13 @@ def _index_display_value(value: object) -> str:
     specified, and keeps both later expansions atomic — normalizing before the
     slice would let it cut a generated `\\uXXXX` sequence in half, and escaping
     before the slice would let it cut an escape pair. A surrogate is a single code
-    point, so slicing the raw value cannot split one. Neutralizing last is
-    required: the escape table doubles a literal backslash, so a backslash added
-    before it would be escaped into an inert one and the trigger would survive.
+    point, so slicing the raw value cannot split one.
+
+    Neutralizing last is a **fidelity** choice, not a safety one. Neutralizing
+    first would still be safe — the table would double the added backslash to
+    `\\\\`, which renders as a literal backslash between `www` and `.`, and both
+    renderers require adjacency, so the trigger is dead either way. What
+    neutralizing first costs is a visible backslash in the rendered text.
     """
     bounded = _utf8_safe(str(value)[:INDEX_DISPLAY_INPUT_MAX_CHARS])
     escaped = bounded.translate(_INDEX_DISPLAY_ESCAPES)
@@ -769,15 +795,16 @@ def _index_link_destination(path: str) -> str:
       ``don%27t-panic.md``.
 
     Letters, digits, ``- . _ ~``, ``/`` as the separator, ``! $ + , = @ [ ]``,
-    ``:`` and all non-ASCII are left literal. Encoding the whole path instead was
-    tried and rejected: it turned a legitimately named ``café.md`` into
-    ``caf%C3%A9.md``, a path no reader can open, for no security gain.
+    and ``: * ?`` are left literal, as is all non-ASCII. Encoding the whole path
+    instead was tried and rejected: it turned a legitimately named ``café.md``
+    into ``caf%C3%A9.md``, a path no reader can open, for no security gain.
 
-    ``:`` staying literal is safe only because `_is_safe_relative_path` rejects
-    it in a path component. Without that gate a concept named
-    ``javascript:alert(1).md`` would yield a live scheme URL for any renderer
-    that does not sanitize schemes. Relaxing the gate therefore requires
-    encoding ``:`` here; a test asserts the refusal so the two cannot drift.
+    ``:``, ``*`` and ``?`` staying literal is safe only because
+    `_is_safe_relative_path` rejects all three in a path component. Without that
+    gate a concept named ``javascript:alert(1).md`` would yield a live scheme URL
+    for any renderer that does not sanitize schemes. Relaxing the gate therefore
+    requires encoding them here; a test asserts the refusal so the two cannot
+    drift.
     """
     return _LINK_DESTINATION_UNSAFE.sub(
         lambda match: "".join(f"%{byte:02X}" for byte in match.group().encode("utf-8")),
@@ -2629,6 +2656,12 @@ def _is_safe_relative_path(path: str) -> bool:
             or any(char in '<>:"|?*' for char in part)
             or part.endswith((".", " "))
             or _WINDOWS_DEVICE.match(part)
+            # A path component becomes display text in a generated heading, where
+            # an address shape renders a live `mailto:` link. Unlike `www.` and
+            # `scheme://`, escaping cannot defuse it — cmark-gfm resolves the
+            # escape before its autolink pass — so this is the only place the
+            # trigger can be stopped.
+            or _REMOTE_ADDRESS.search(part)
         ):
             return False
     return True
@@ -2726,7 +2759,7 @@ def _contains_remote_reference(value: Any) -> bool:
     on descent, is never fetched, and renders as authored.
     """
     if isinstance(value, str):
-        return bool(_REMOTE_REFERENCE.search(value))
+        return bool(_REMOTE_SCHEME.search(value) or _REMOTE_ADDRESS.search(value))
     if isinstance(value, Mapping):
         return any(_contains_remote_reference(item) for item in value.values())
     if isinstance(value, list):

@@ -104,19 +104,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contains any of: ``\``, ``[``, ``]``, ``(``, ``)``, ``<``, ``>``, a backtick,
   ``*``, ``_``, any control character (including a carriage return, a newline, or
   any other code point `splitlines()` breaks on), U+2028/U+2029, or a GFM
-  autolink trigger — a ``www.`` host, a ``scheme://`` URL, or a bare
-  ``user@host.tld`` address, whose punctuation is escaped so the text renders
-  identically but the link is no longer live. **A backtick, ``*`` and ``_`` are
-  the ones ordinary metadata hits**: a title such as ``cost_model`` or
-  ``Use `make ci` in CI`` will change. Path-derived index display text is escaped
-  the same way, so a directory named ``patterns(v2)`` changes both its root-index
-  link text and its own ``# OKF index:`` heading. Index link destinations
-  percent-encode every character outside letters, digits, ``- . _ ~``, ``/``,
-  ``! $ + , = @ [ ]``, ``:`` and non-ASCII, so a concept filename holding a
-  space, ``" ( ) < > \ | ' ^ ` { }``, ``& # ; %``, a control character or
-  U+2028/U+2029 changes. And root-index entries are ordered by normalized source
-  path rather than by rendered line bytes, so a root index holding a directory
-  that is a byte prefix of another reorders.
+  autolink scheme trigger — a ``www.`` host or an ``http``/``https``/``ftp``
+  ``://`` URL, whose punctuation is escaped so the text renders identically but
+  the link is no longer live. **A backtick, ``*`` and ``_`` are the ones ordinary
+  metadata hits**: a title such as ``cost_model`` or ``Use `make ci` in CI`` will
+  change. Path-derived index display text is escaped the same way, so a directory
+  named ``patterns(v2)`` changes both its root-index link text and its own
+  ``# OKF index:`` heading. Index link destinations percent-encode every character
+  outside letters, digits, ``- . _ ~``, ``/``, ``! $ + , = @ [ ]``, ``: * ?`` and
+  non-ASCII, so a concept filename holding a space, ``" ( ) < > \ | ' ^ ` { }``,
+  ``& # ; %``, a control character or U+2028/U+2029 changes. And root-index
+  entries are ordered by normalized source path rather than by rendered line
+  bytes, so a root index holding a directory that is a byte prefix of another
+  reorders.
+- **Breaking: a bundle carrying a remote reference in frontmatter no longer
+  compiles.** `OKF009` previously matched only a value *beginning* with
+  ``http://`` or ``https://``. It now refuses any frontmatter value containing
+  ``http://``, ``https://``, ``ftp://``, ``www.``, ``mailto:``, or an email-shaped
+  run such as ``ops@example.com`` — anywhere in the value, for every key, at any
+  nesting depth. A bundle that compiled before can now exit 1. This is deliberate:
+  RFC-0087 rejected runtime external fetch, so a reference in metadata is never
+  dereferenced, and what it *can* do is become a live link in a compiler-owned
+  index an agent treats as authoritative. Concept **bodies** are not scanned — a
+  link there is for a human to follow manually and remains supported. The
+  email-shaped rule is bounded to what a renderer actually linkifies, so a version
+  string such as ``Rev@1.2`` is unaffected.
+- **Breaking: a concept path containing an email-shaped run is refused** with
+  ``OKF004``. A directory name becomes the text of a generated ``# OKF index:``
+  heading, where an address renders as a live ``mailto:`` link that escaping
+  cannot defuse, so it is rejected at the path gate instead.
 - Destination encoding keeps a cited path openable wherever it safely can: a
   non-ASCII filename such as ``café.md`` is cited literally. Two of the three
   encoded classes are security-relevant — characters that break a CommonMark
