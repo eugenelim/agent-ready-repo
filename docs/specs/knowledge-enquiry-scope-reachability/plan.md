@@ -2,6 +2,9 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Withdrawn:** 2026-08-27 — see the spec header; the reachability problem was
+  repaired in the data, so this plan's T1-T3 and T5 are moot. T4 (the scope
+  repair) shipped, executed through `write_topic` rather than a new script.
 - **Repository anchors:** `packs/AGENTS.md` (runtime export boundary is
   `.apm/`; version bump rule; no tests under `.apm/`), `packs/core/AGENTS.md`,
   `packs/AGENTS.local.md:28-31` (pack release pipeline),

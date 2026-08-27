@@ -1,6 +1,6 @@
 # Spec: Knowledge enquiry scope reachability
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0077](../../rfc/0077-distill-knowledge.md), [ADR-0081](../../adr/0081-canonical-project-knowledge-uses-per-topic-json.md), [ADR-0082](../../adr/0082-project-knowledge-modes-separate-authority.md)
@@ -11,6 +11,25 @@
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
+
+> **Withdrawn 2026-08-27 — the problem was data, not code.** This spec proposed
+> a matcher change to fix enquiry reachability. Repairing the malformed scopes
+> instead — splitting 30 comma-joined strings and reducing glob segments to
+> repository-relative paths, none of which RFC-0077's grammar admits — took
+> reachability from 21 of 76 to **76 of 76 with the production matcher
+> unmodified**. No code change was needed. The body below is retained unedited
+> as the record of what was proposed and why it was wrong.
+>
+> One genuine defect the spec identified survives and is **not** fixed by the
+> data repair: with scopes now matching, a query returns 18-35 matches against a
+> 12-body envelope, and selection truncates by `topic_key` alphabetically
+> because there is no relevance ranking (`knowledge_store.py:2156-2162`). That
+> is a separate, smaller change and needs its own spec.
+>
+> The review record in [`notes/`](notes/) is kept deliberately: two adversarial
+> rounds, an adjudication that refuted 4 of 22 findings, and a round-2
+> origin-tagging pass that found 8 of 15 findings were defects introduced by the
+> round-1 repairs. That evidence is useful independently of this spec.
 
 ## Objective
 
