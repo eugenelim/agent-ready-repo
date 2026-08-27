@@ -876,7 +876,6 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
     return dict(sorted(indexes.items(), key=lambda item: _sort_path(item[0])))
 
 
-
 def _skill_projection(metadata: Mapping[str, Any]) -> Mapping[str, Any] | None:
     extension = metadata.get("x-agentbundle")
     if not isinstance(extension, Mapping):
@@ -2429,7 +2428,6 @@ def _metadata_diagnostics(path: str, metadata: Mapping[str, Any]) -> list[Diagno
                 _diagnostic("OKF009", path, "remote retrieval metadata is not allowed")
             )
     return diagnostics
-
 
 
 def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
