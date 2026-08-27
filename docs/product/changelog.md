@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
-## [core][2.13.0] — 2026-08-26
+## [core][2.13.0] — 2026-08-27
 
 ### Highlights
 
