@@ -4,18 +4,24 @@
 Builds fixture spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-spec-status.py
 --root <dir>` invocation — the same shape the CI gate uses.
-Exercises each of the four invariants red-and-green, including the
+Exercises the hard and warn-only invariants red-and-green, including the
 lenient leading-token parse, the diff-triggered ship transition (with
 real git base fixtures), the grandfather and no-base branches, and the
-warn-only doc-reference invariant.
+Acceptance-Criteria section opt-out.
 """
 
 from __future__ import annotations
 
+import importlib.util
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
+import types
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -57,6 +63,37 @@ def run_lint(root: Path, base_ref: str | None = None) -> tuple[int, str, str]:
         argv += ["--base-ref", base_ref]
     proc = subprocess.run(argv, capture_output=True, text=True)
     return proc.returncode, proc.stdout, proc.stderr
+
+
+@contextmanager
+def best_effort_tempdir() -> Iterator[str]:
+    """Yield a new-test tempdir despite this sandbox's rmdir restriction."""
+    tmp = tempfile.mkdtemp()
+    try:
+        yield tmp
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def load_linter_module() -> types.ModuleType:
+    """Load the core work-loop linter under a collision-proof module name."""
+    spec = importlib.util.spec_from_file_location(
+        "core_work_loop_lint_spec_status", LINTER
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    stdout = sys.stdout
+    stderr = sys.stderr
+    stdout_config = (stdout.encoding, stdout.errors)
+    stderr_config = (stderr.encoding, stderr.errors)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.stdout = stdout
+        sys.stderr = stderr
+        stdout.reconfigure(encoding=stdout_config[0], errors=stdout_config[1])
+        stderr.reconfigure(encoding=stderr_config[0], errors=stderr_config[1])
+    return module
 
 
 def git_init_commit(root: Path) -> None:
@@ -593,3 +630,348 @@ def test_fully_checked_spec_passes_under_either_casing(header: str) -> None:
         _write_spec_with_header(root, "newborn", "Shipped", "- [x] AC1 done\n", header)
         rc, out, err = run_lint(root, base_ref="HEAD")
         assert rc == 0, f"clean spec under {header!r} should exit 0, got {rc}\n{out}\n{err}"
+
+
+# ---------------------------------------------------------------------------
+# Invariant (vi): an absent Acceptance-Criteria section requires an explicit,
+# reasoned metadata opt-out. The section detector and criterion collector share
+# one heading matcher so this invariant cannot pass a spelling that (ii) misses.
+# ---------------------------------------------------------------------------
+
+
+def write_spec_without_ac_section(
+    root: Path,
+    name: str,
+    marker_value: str | None = None,
+) -> Path:
+    """Write a Draft spec with no Acceptance-Criteria section."""
+    spec = root / "docs" / "specs" / name / "spec.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    marker = (
+        f"- **Acceptance Criteria:** {marker_value}\n"
+        if marker_value is not None
+        else ""
+    )
+    spec.write_text(
+        f"# Spec: {name}\n\n- **Status:** Draft\n{marker}\n## Objective\n\nFixture.\n",
+        encoding="utf-8",
+    )
+    return spec
+
+
+def test_vi_heading_present_without_marker_is_clean() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "has-criteria", "Draft", "- [ ] AC1 open\n")
+
+        rc, _, err = run_lint(root)
+
+        assert rc == 0, f"real AC section without opt-out should be clean: {err}"
+
+
+def test_vi_missing_heading_with_reasoned_marker_is_clean() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        reason = "this investigation prescribes no work"
+        spec = write_spec_without_ac_section(root, "opted-out", f"none — {reason}")
+
+        rc, _, err = run_lint(root)
+        parsed = load_linter_module().acceptance_criteria_opt_out(
+            spec.read_text(encoding="utf-8")
+        )
+
+        assert rc == 0, f"reasoned opt-out should be clean: {err}"
+        assert parsed is not None and parsed[1] == reason
+
+
+def test_vi_missing_heading_at_base_and_now_is_grandfathered() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        spec = write_spec_without_ac_section(root, "grandfathered")
+        git_init_commit(root)
+        spec.write_text(
+            spec.read_text(encoding="utf-8").replace("Fixture.", "Fixture updated."),
+            encoding="utf-8",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 0, f"base-sectionless spec should be grandfathered: {err}"
+        assert "hard violation" not in err
+
+
+def test_vi_losing_heading_without_marker_is_hard() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "loses-section", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        write_spec_without_ac_section(root, "loses-section")
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"removed AC section without marker should be hard: {err}"
+        assert "invariant (vi)" in err
+
+
+def test_vi_new_spec_without_heading_or_marker_is_hard() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        write_spec_without_ac_section(root, "new-sectionless")
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"new sectionless spec without marker should be hard: {err}"
+        assert "invariant (vi)" in err
+
+
+def test_vi_marker_in_body_does_not_satisfy() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "body-marker", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        spec = write_spec_without_ac_section(root, "body-marker")
+        spec.write_text(
+            spec.read_text(encoding="utf-8").replace(
+                "Fixture.",
+                "- **Acceptance Criteria:** none — marker is in the body.",
+            ),
+            encoding="utf-8",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"body marker must not satisfy the preamble contract: {err}"
+        assert "no `- **Acceptance Criteria:**" in err
+
+
+def test_vi_ascii_hyphen_marker_has_precise_near_miss_error() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        write_spec_without_ac_section(
+            root,
+            "ascii-hyphen",
+            "none - this separator is ASCII",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"ASCII-hyphen near miss should be hard: {err}"
+        assert "em dash (U+2014), not an ASCII hyphen" in err
+        assert "no `- **Acceptance Criteria:**" not in err
+
+
+def test_vi_lowercase_marker_has_precise_near_miss_error() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        spec = write_spec_without_ac_section(root, "lowercase-marker")
+        spec.write_text(
+            spec.read_text(encoding="utf-8").replace(
+                "- **Status:** Draft\n",
+                "- **Status:** Draft\n"
+                "- **Acceptance criteria:** none — lowercase field name\n",
+            ),
+            encoding="utf-8",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"lowercase near miss should be hard: {err}"
+        assert "must use exact casing `Acceptance Criteria`" in err
+        assert "no `- **Acceptance Criteria:**" not in err
+
+
+@pytest.mark.parametrize(
+    "marker_value",
+    ["none", "none —"],
+    ids=["missing-reason", "empty-reason"],
+)
+def test_vi_reasonless_marker_is_hard(marker_value: str) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        spec = write_spec_without_ac_section(root, "reasonless", marker_value)
+
+        rc, _, err = run_lint(root)
+        parsed = load_linter_module().acceptance_criteria_opt_out(
+            spec.read_text(encoding="utf-8")
+        )
+
+        assert rc == 1, f"reasonless opt-out should be hard: {err}"
+        assert "invariant (vi)" in err
+        assert parsed is not None and parsed[1] == ""
+
+
+def test_vi_heading_and_marker_are_a_hard_contradiction() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        spec = root / "docs" / "specs" / "contradiction" / "spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(
+            "# Spec: contradiction\n\n"
+            "- **Status:** Draft\n"
+            "- **Acceptance Criteria:** none — this spec prescribes no work\n\n"
+            "## Acceptance Criteria\n\n"
+            "- [ ] AC1 open\n",
+            encoding="utf-8",
+        )
+
+        rc, _, err = run_lint(root)
+
+        assert rc == 1, f"section plus opt-out should be contradictory: {err}"
+        assert "invariant (vi)" in err
+
+
+def test_vi_lowercase_heading_counts_as_present() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_spec_with_header(
+            root,
+            "lowercase-heading",
+            "Draft",
+            "- [ ] AC1 open\n",
+            _LOWER_AC_HEADER,
+        )
+
+        rc, _, err = run_lint(root)
+
+        assert rc == 0, f"sentence-case AC heading should count as present: {err}"
+
+
+def test_vi_fenced_heading_and_checkboxes_do_not_count() -> None:
+    lint = load_linter_module()
+    fenced_example = (
+        "# Spec: fenced-heading\n\n"
+        "```markdown\n"
+        "```toml\n"
+        "## Acceptance Criteria\n\n"
+        "- [ ] example checkbox\n"
+        "```\n"
+    )
+
+    assert not lint.acceptance_criteria_section_present(fenced_example)
+    assert lint.acceptance_criteria_lines(fenced_example) == []
+
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        spec = root / "docs" / "specs" / "fenced-heading" / "spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(
+            fenced_example.replace(
+                "# Spec: fenced-heading\n\n",
+                "# Spec: fenced-heading\n\n- **Status:** Draft\n\n",
+            ),
+            encoding="utf-8",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"fenced example must not satisfy invariant (vi): {err}"
+        assert "invariant (vi)" in err
+
+
+def test_vi_fenced_opt_out_marker_does_not_satisfy() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        spec = root / "docs" / "specs" / "fenced-marker" / "spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(
+            "# Spec: fenced-marker\n\n"
+            "```markdown\n"
+            "- **Acceptance Criteria:** none — example only\n"
+            "```\n"
+            "- **Status:** Draft\n\n"
+            "## Objective\n\nFixture.\n",
+            encoding="utf-8",
+        )
+
+        lint = load_linter_module()
+        assert lint.acceptance_criteria_opt_out(
+            spec.read_text(encoding="utf-8")
+        ) is None
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"fenced marker must not satisfy invariant (vi): {err}"
+        assert "no `- **Acceptance Criteria:**" in err
+
+
+@pytest.mark.parametrize(
+    "header",
+    ["### Acceptance Criteria\n\n", "  ## Acceptance Criteria\n\n"],
+    ids=["h3", "indented-h2"],
+)
+def test_vi_commonmark_heading_shapes_are_present(header: str) -> None:
+    lint = load_linter_module()
+    text = f"{header}- [ ] AC1 open\n"
+
+    assert lint.acceptance_criteria_section_present(text)
+    assert lint.acceptance_criteria_lines(text) == [(3, "- [ ] AC1 open")]
+
+
+def test_vi_placeholder_reason_is_rejected() -> None:
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "base", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        write_spec_without_ac_section(
+            root,
+            "placeholder-reason",
+            "none — <one-line reason>",
+        )
+
+        rc, _, err = run_lint(root, base_ref="HEAD")
+
+        assert rc == 1, f"placeholder reason must be rejected: {err}"
+        assert "non-placeholder one-line reason" in err
+
+
+def test_ac_section_detector_and_collector_share_one_pattern() -> None:
+    lint = load_linter_module()
+    lint._AC_SECTION_HEADING_RE = re.compile(
+        r"^##\s+Verification Criteria\b", re.IGNORECASE
+    )
+    shared_match = "## Verification Criteria\n\n- [ ] AC1 open\n"
+    old_match = "## Acceptance Criteria\n\n- [ ] AC1 open\n"
+
+    assert lint.acceptance_criteria_section_present(shared_match)
+    assert lint.acceptance_criteria_lines(shared_match) == [(3, "- [ ] AC1 open")]
+    assert not lint.acceptance_criteria_section_present(old_match)
+    assert lint.acceptance_criteria_lines(old_match) == []
+
+
+def test_vi_mutation_missing_section_fires_until_only_marker_is_added() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "mutation", "Draft", "- [ ] AC1 open\n")
+        git_init_commit(root)
+        spec = write_spec_without_ac_section(root, "mutation")
+        without_marker = spec.read_text(encoding="utf-8")
+        marker = (
+            "- **Acceptance Criteria:** none — mutation fixture prescribes no work\n"
+        )
+        with_marker = without_marker.replace(
+            "- **Status:** Draft\n",
+            f"- **Status:** Draft\n{marker}",
+            1,
+        )
+        assert with_marker.replace(marker, "", 1) == without_marker
+
+        lint = load_linter_module()
+        hard_before, _ = lint.check(root.resolve(), base_ref="HEAD")
+        assert hard_before, "missing-section fixture must produce a hard violation"
+        assert any("invariant (vi)" in violation for violation in hard_before)
+
+        spec.write_text(with_marker, encoding="utf-8")
+        hard_after, _ = lint.check(root.resolve(), base_ref="HEAD")
+
+        assert hard_before != hard_after, "marker mutation must change the result"
+        assert hard_after == []

@@ -50,6 +50,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [Unreleased]
+
+
+## [core][2.12.5] — 2026-08-27
+
+### Highlights
+
+- **Newly sectionless specs say why without retroactively gating adopters.**
+  The work-loop linter requires an explicit reason when a new spec omits its
+  Acceptance-Criteria section or an existing spec removes that section, while
+  grandfathering sectionless specs already present in an adopter's base ref.
+
+### Fixed
+
+- Diff-trigger invariant (vi) for new specs and specs that remove their
+  Acceptance-Criteria section. Authors opt out with the exact metadata line
+  `- **Acceptance Criteria:** none — <one-line reason>`. Existing sectionless
+  specs, including frozen adopter history, do not acquire a retroactive hard
+  gate; malformed markers and a real section plus a marker remain hard errors.
 ## [core][2.12.4] — 2026-08-27
 
 ### Highlights

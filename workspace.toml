@@ -1038,26 +1038,13 @@ open = [
   #   same commit. `pre-RFC-0012` needs a naming decision for the legacy on-disk
   #   layout first; the RFC-0008 refusal needs its `or` branch dropped so the
   #   assertion stops silently passing on the second clause.
-  # Unblocks when: picked up — no dependency.
-    # Split out of spec-ac-heading-casing-silent-gate 2026-08-16 when its casing
-  # half shipped (spec/spec-ac-gate-and-fixture-domains). The matcher is now
-  # case-insensitive and all 323 spec headings are canonical, so the casing hole
-  # is closed. THIS half is not: three specs carry no Acceptance-Criteria heading
-  # at all, and invariant (ii) has nothing to read for them — the same vacuous
-  # pass, reached by a different route. Deliberately not folded into the casing
-  # fix: "should a spec with no criteria fail loudly?" is a policy call about
-  # what a spec must contain, not a bug in a regex. Some specs may legitimately
-  # have none (a pure-decision or errata spec).
-  # Fix: decide whether a missing Acceptance-Criteria section is an error, a
-  #   warning, or legal-with-an-explicit-marker; then implement.
-  {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains"},
-
   # Current: retained runtime messages and their assertions still embed governance
   # markers, including the legacy dist-tree name and config errors.
   # Fix: decide the legacy-layout rename and update each pinned message with its assertion
   # in one reviewed change.
   # Blocker: the fix touches protected packages/agentbundle/**; its landing commit needs
   # an Engine-Change-RFC trailer naming a real RFC.
+  # Unblocks when: picked up — no dependency.
 {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
 
   # Current: the workspace-mcp spec has shipped, but Claude permissions.allow projection
@@ -1819,6 +1806,8 @@ closed = [
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
 
   {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
+
+  {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains", summary = "Closed by enforcement rather than parsing: invariant (vi) requires `- **Acceptance Criteria:** none — <reason>` when a spec has no AC section, diff-triggered and grandfathered so no frozen body or adopter corpus is retroactively gated. The scan found four such specs, not three -- two were not opt-out candidates at all but had spelled their criteria as a bold label the collector could not read. Also lands one supported heading (exact, near-miss warned), a hard error for a commented-out section, specific diagnostics for every attempted opt-out shape, base-ref verification, and a warning for an unreadable spec"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

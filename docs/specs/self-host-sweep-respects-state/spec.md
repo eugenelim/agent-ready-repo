@@ -11,7 +11,7 @@ Mode: light (no risk trigger fired)
 
 **Objective:** When `agentbundle catalogue self-host --write --force` runs on a repo that also has externally-installed skills (via `agentbundle install`), the orphan sweep in each build adapter must not delete skill directories that are recorded in `.agentbundle-state.toml`. Currently, `_sweep_skill_orphans` (claude_code, kiro) and the inline sweep (codex) build `expected_names` from only the self-host packs; any skill installed from an external catalogue is treated as an orphan and deleted.
 
-**Acceptance criteria:**
+## Acceptance criteria
 
 - [x] After `project_packs` runs for any adapter, skill directories whose names are recorded as file paths in `.agentbundle-state.toml` under the skill target directory are not deleted.
 - [x] Graceful degradation: if the state file is absent, has an unrecognised schema version, or is malformed TOML, the sweep proceeds as it did before this fix (no error; empty protection set).

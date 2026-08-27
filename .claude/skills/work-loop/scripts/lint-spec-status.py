@@ -15,7 +15,7 @@ gate are the two invocation surfaces. (An earlier design shipped this as a
 standalone linter; it now ships as a skill script so it projects to adopters
 too.)
 
-It checks five invariants over `docs/specs/*/spec.md`, measured against the
+It checks six invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in `CONVENTIONS.md` § 4 (Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
 
@@ -48,6 +48,13 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         mirrors invariant (iii)). No-ops where the spec names no contract
         (non-API features: empty / "none" / the template placeholder) or no
         `contracts/` tree exists — the common case in repos with no API surface.
+  (vi)  Acceptance-Criteria section presence (diff-triggered) — a new spec, or
+        a spec whose Acceptance-Criteria section was present at the base ref
+        and is missing now, must carry the
+        `- **Acceptance Criteria:** none — <reason>` opt-out header. Specs whose
+        section was already absent at the base ref are grandfathered. If no
+        base ref resolves, the invariant is skipped with a warning. HARD when
+        it runs; malformed or contradictory markers are always HARD.
 
 Exit codes: 0 = clean (warnings allowed), 1 = one or more HARD violations.
 Usage: lint-spec-status.py [--root DIR] [--base-ref REF]
@@ -59,6 +66,7 @@ import argparse
 import re
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -112,6 +120,46 @@ _XSPEC_FORMATS = (".yaml", ".yml", ".json")
 # AC checklist items.
 _AC_OPEN_RE = re.compile(r"^\s*-\s*\[ \]\s")
 _AC_DONE_RE = re.compile(r"^\s*-\s*\[[xX]\]\s")
+# The section-presence invariant and the criterion collector must share this
+# matcher: accepting a spelling that the collector cannot read recreates the
+# vacuous pass invariant (vi) exists to close.
+_AC_SECTION_HEADING_RE = re.compile(
+    r"^ {0,3}#{2,3}[ \t]+Acceptance Criteria\b", re.IGNORECASE
+)
+# Explicit opt-out for a spec that intentionally has no AC section. The reason
+# group is optional so the parser can distinguish a missing marker (None) from
+# a present but reasonless marker (an empty string).
+_AC_OPT_OUT_HEADER_RE = re.compile(
+    r"^- \*\*Acceptance Criteria:\*\*\s*none(?:[ \t]+—[ \t]*(.*?))?[ \t]*$"
+)
+# Case-insensitive candidate used only to produce a precise diagnostic when an
+# author intended the opt-out but missed its exact casing or separator syntax.
+_AC_OPT_OUT_NEAR_MISS_RE = re.compile(
+    r"^- \*\*Acceptance Criteria:\*\*(.*)$", re.IGNORECASE
+)
+_PLACEHOLDER_REASON_RE = re.compile(r"^<[^<>]*>$")
+
+
+def _unfenced_lines(text: str) -> Iterator[tuple[int, str]]:
+    """Yield source lines outside CommonMark fenced code regions."""
+    fence_char: str | None = None
+    fence_len = 0
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        if marker in ("`", "~"):
+            run = len(stripped) - len(stripped.lstrip(marker))
+            info = stripped[run:].strip()
+            if fence_char is None:
+                if run >= 3:
+                    fence_char, fence_len = marker, run
+                    continue
+            elif marker == fence_char and run >= fence_len and not info:
+                fence_char = None
+                fence_len = 0
+                continue
+        if fence_char is None:
+            yield lineno, line
 
 
 def extract_status_token(raw: str) -> str:
@@ -337,6 +385,63 @@ def contract_header_refs(spec_text: str) -> list[tuple[int, str]]:
     return []
 
 
+def acceptance_criteria_opt_out(spec_text: str) -> tuple[int, str] | None:
+    """Return ``(lineno, reason)`` for the Acceptance-Criteria opt-out.
+
+    ``None`` means the marker is absent; an empty reason means the marker is
+    present but reasonless. Only metadata-preamble fields count, and HTML
+    comments are removed while preserving line numbers.
+    """
+    cleaned = _HTML_COMMENT_RE.sub(
+        lambda match: "\n" * match.group(0).count("\n"), spec_text
+    )
+    for lineno, line in _unfenced_lines(cleaned):
+        if _SECTION_HEADING_RE.match(line):
+            break
+        match = _AC_OPT_OUT_HEADER_RE.match(line)
+        if match:
+            return lineno, (match.group(1) or "").strip()
+    return None
+
+
+def acceptance_criteria_opt_out_near_miss(
+    spec_text: str,
+) -> tuple[int, str] | None:
+    """Return a precise error for an unparsable opt-out-shaped preamble line."""
+    cleaned = _HTML_COMMENT_RE.sub(
+        lambda match: "\n" * match.group(0).count("\n"), spec_text
+    )
+    for lineno, line in _unfenced_lines(cleaned):
+        if _SECTION_HEADING_RE.match(line):
+            break
+        if _AC_OPT_OUT_HEADER_RE.match(line):
+            continue
+        match = _AC_OPT_OUT_NEAR_MISS_RE.match(line)
+        if match is None:
+            continue
+        if not line.startswith("- **Acceptance Criteria:**"):
+            return lineno, "field name must use exact casing `Acceptance Criteria`"
+        value = match.group(1).strip()
+        if value.lower().startswith("none") and not value.startswith("none"):
+            return lineno, "marker value must use exact lowercase casing `none`"
+        if re.match(r"^none[ \t]+-[ \t]*", value):
+            return lineno, (
+                "separator must be an em dash (U+2014), not an ASCII hyphen"
+            )
+        return lineno, (
+            "marker must exactly match "
+            "`- **Acceptance Criteria:** none — <one-line reason>`"
+        )
+    return None
+
+
+def acceptance_criteria_section_present(spec_text: str) -> bool:
+    """Return whether the criterion collector's section heading is present."""
+    return any(
+        _AC_SECTION_HEADING_RE.match(line) for _, line in _unfenced_lines(spec_text)
+    )
+
+
 def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     """Return (lineno, line) for every checklist item inside the
     `## Acceptance Criteria` section.
@@ -351,15 +456,20 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     A vacuous pass is the worst failure mode a gate has: it is indistinguishable
     from a real one at the call site.
     """
-    lines = spec_text.splitlines()
     out: list[tuple[int, str]] = []
     in_ac = False
-    for lineno, line in enumerate(lines, start=1):
-        if re.match(r"^##\s+Acceptance Criteria\b", line, re.IGNORECASE):
+    opened_level = 0
+    for lineno, line in _unfenced_lines(spec_text):
+        if _AC_SECTION_HEADING_RE.match(line):
             in_ac = True
+            stripped = line.lstrip()
+            opened_level = len(stripped) - len(stripped.lstrip("#"))
             continue
-        if in_ac and re.match(r"^##\s+", line):
-            break
+        if in_ac and _SECTION_HEADING_RE.match(line):
+            stripped = line.lstrip()
+            heading_level = len(stripped) - len(stripped.lstrip("#"))
+            if heading_level <= opened_level:
+                break
         if in_ac and (_AC_OPEN_RE.match(line) or _AC_DONE_RE.match(line)):
             out.append((lineno, line))
     return out
@@ -515,6 +625,10 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             "invariant (ii): no base ref resolvable — ship-transition AC check "
             "skipped (shallow clone / detached HEAD)"
         )
+        warn.append(
+            "invariant (vi): no base ref resolvable — Acceptance-Criteria "
+            "section-presence check skipped (shallow clone / detached HEAD)"
+        )
 
     specs_dir = root / "docs" / "specs"
     for spec_path in sorted(_confined(specs_dir.glob("*/spec.md"), root)):
@@ -522,6 +636,11 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         text = _read(spec_path)
         if text is None:
             continue
+        base_text = (
+            base_spec_text(root, rel, base_ref)  # type: ignore[arg-type]
+            if base_resolvable
+            else None
+        )
 
         # (i) status vocabulary
         token = parse_status(text)
@@ -544,6 +663,47 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                 f"(warn-only)"
             )
 
+        # (vi) diff-triggered Acceptance-Criteria section presence. Existing
+        # sectionless specs are grandfathered, but any marker an author writes
+        # remains subject to the marker-shape invariants.
+        has_ac_section = acceptance_criteria_section_present(text)
+        ac_opt_out = acceptance_criteria_opt_out(text)
+        ac_opt_out_near_miss = acceptance_criteria_opt_out_near_miss(text)
+        if ac_opt_out_near_miss is not None:
+            lineno, problem = ac_opt_out_near_miss
+            hard.append(
+                f"{rel}:{lineno}: invariant (vi) — malformed Acceptance "
+                f"Criteria opt-out: {problem}"
+            )
+        if ac_opt_out is not None:
+            lineno, reason = ac_opt_out
+            if not reason or _PLACEHOLDER_REASON_RE.fullmatch(reason):
+                hard.append(
+                    f"{rel}:{lineno}: invariant (vi) — Acceptance Criteria "
+                    "opt-out requires a non-placeholder one-line reason "
+                    "after `none —`"
+                )
+            if has_ac_section:
+                hard.append(
+                    f"{rel}:{lineno}: invariant (vi) — spec has both an "
+                    "Acceptance-Criteria section and an opt-out header"
+                )
+        if (
+            not has_ac_section
+            and ac_opt_out is None
+            and ac_opt_out_near_miss is None
+            and base_resolvable
+            and (
+                base_text is None
+                or acceptance_criteria_section_present(base_text)
+            )
+        ):
+            hard.append(
+                f"{rel}: invariant (vi) — spec has no `## Acceptance Criteria` "
+                "section and no `- **Acceptance Criteria:** none — <reason>` "
+                "opt-out header"
+            )
+
         # (iv) deferral anchors resolve
         for lineno, anchor in deferred_anchors(text):
             if anchor not in anchors:
@@ -554,7 +714,6 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
 
         # (ii) ACs at the ship transition (diff-triggered)
         if base_resolvable and token == "Shipped":
-            base_text = base_spec_text(root, rel, base_ref)  # type: ignore[arg-type]
             base_token = parse_status(base_text) if base_text is not None else None
             transitioned = base_token != "Shipped"  # incl. new spec (None)
             if transitioned:

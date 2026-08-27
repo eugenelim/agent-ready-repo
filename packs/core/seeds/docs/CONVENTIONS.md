@@ -440,6 +440,14 @@ mechanical rule.
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
+- **Acceptance Criteria opt-out.** A spec that intentionally has no
+  Acceptance-Criteria section carries
+  `- **Acceptance Criteria:** none — <one-line reason>` in its metadata header;
+  the field name `Acceptance Criteria` and value `none` use that exact casing,
+  the separator is an em dash (U+2014), and the reason is required. The linter
+  applies this gate to new specs and to specs whose section is removed in the
+  current diff; existing sectionless specs are grandfathered. A reasonless or
+  malformed marker, or a marker alongside a real section, is a hard violation.
 - **Deferral token.** A criterion that ships *unmet on purpose* because
   genuinely deferred in-scope work remains is not left unchecked and silent —
   it carries an inline `(deferred: <slug>)` marker whose `<slug>` resolves to a

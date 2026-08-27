@@ -41,8 +41,8 @@ SHARED_TESTS = (
 
 CORE_COLLECTIONS = {
     SHARED_TESTS[0]: (
-        31,
-        "947559cfdf79297e4de28fa2aaf7a013bc0947d29a8b05f22b3c4ffb66162a75",
+        50,
+        "dce60873baeaaf069dad6acd1012699127de88ae3d5ebe3337c0900049f3c23d",
     ),
     SHARED_TESTS[1]: (
         15,

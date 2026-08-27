@@ -8,65 +8,20 @@
           "version": "2.12.4"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[core][2.12.4] — 2026-08-27",
-      "changelogAnchor": "core2124--2026-08-27",
+      "date": "2026-08-26",
+      "heading": "[core][2.12.4] — 2026-08-26",
+      "changelogAnchor": "core2124--2026-08-26",
       "highlights": [
         {
-          "source": "**Maintainers can identify every unsupported legacy workspace record from a cold status read.** Findings now retain a safe object slug instead of collapsing unrelated records under `workspace.toml`.",
+          "source": "**Newly sectionless specs say why without retroactively gating adopters.** The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref.",
           "segments": [
             {
               "type": "strong",
-              "value": "Maintainers can identify every unsupported legacy workspace record from a cold status read."
+              "value": "Newly sectionless specs say why without retroactively gating adopters."
             },
             {
               "type": "text",
-              "value": " Findings now retain a safe object slug instead of collapsing unrelated records under "
-            },
-            {
-              "type": "code",
-              "value": "workspace.toml"
-            },
-            {
-              "type": "text",
-              "value": "."
-            }
-          ]
-        },
-        {
-          "source": "**Deferring an acceptance criterion no longer forces a legacy workspace record.** A `(deferred: …)` anchor now resolves from a canonical `{path, kind}` entry as well as a legacy `{slug}` one, so a new deferral can be recorded in the canonical shape.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Deferring an acceptance criterion no longer forces a legacy workspace record."
-            },
-            {
-              "type": "text",
-              "value": " A "
-            },
-            {
-              "type": "code",
-              "value": "(deferred: …)"
-            },
-            {
-              "type": "text",
-              "value": " anchor now resolves from a canonical "
-            },
-            {
-              "type": "code",
-              "value": "{path, kind}"
-            },
-            {
-              "type": "text",
-              "value": " entry as well as a legacy "
-            },
-            {
-              "type": "code",
-              "value": "{slug}"
-            },
-            {
-              "type": "text",
-              "value": " one, so a new deferral can be recorded in the canonical shape."
+              "value": " The work-loop linter requires an explicit reason when a new spec omits its Acceptance-Criteria section or an existing spec removes that section, while grandfathering sectionless specs already present in an adopter's base ref."
             }
           ]
         }
