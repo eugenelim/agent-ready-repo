@@ -120,10 +120,13 @@ def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
     lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
     how_to = _read("guides/core/how-to/close-and-disposition-work.md")
-    combined = "\n".join((architecture, lifecycle, how_to))
+    # Whitespace-normalized for the same reason as the AC11/AC14 pin above: these
+    # statements are long enough to wrap, and a reflow must not redden a doctrine
+    # test whose meaning is unchanged.
+    combined = " ".join("\n".join((architecture, lifecycle, how_to)).split())
     for statement in (
         "Wave 5 owns dates, clocks, due state, and retirement",
-        "no clock, date,\ndue-state, retirement, ordinary-context exclusion",
+        "no clock, date, due-state, retirement, ordinary-context exclusion",
         "It does not calculate dates, start a timer, or retire anything",
     ):
-        assert statement in combined
+        assert statement in combined, statement

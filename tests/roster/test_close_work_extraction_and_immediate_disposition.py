@@ -598,31 +598,47 @@ def test_every_result_code_has_an_asserted_trace() -> None:
         ROOT / "tests/roster",
         ROOT / "packs/core/.apm/skills/close-work/evals",
     ]
-    corpus: list[str] = []
+    # Two weaknesses this loop must not have. (1) This module is inside the
+    # searched tree and names live codes in its own constants and comments, so
+    # including its text would let the guard satisfy itself. It is excluded
+    # entirely rather than by stripping one declaration. (2) A whole-file
+    # substring test is satisfied by a bare comment, so membership is decided by
+    # string *constants* recovered from the parsed source, never by prose.
+    asserted: set[str] = set()
+    scanned = 0
     for base in searched:
         for path in sorted(base.rglob("*")):
-            if path.suffix not in {".py", ".json"} or not path.is_file():
+            if not path.is_file() or path.suffix not in {".py", ".json"}:
                 continue
-            text = path.read_text(encoding="utf-8", errors="replace")
             if path.resolve() == pathlib.Path(__file__).resolve():
-                # This module declares the allowlist literals, so leaving them in
-                # the corpus would let the guard satisfy itself: every exempt code
-                # would read as "asserted" because its own exemption names it.
-                text = re.sub(
-                    r"_UNREACHABLE_BY_SUBSUMPTION = frozenset\(\{.*?\}\)",
-                    "",
-                    text,
-                    flags=re.DOTALL,
-                )
-            corpus.append(text)
-    blob = "".join(corpus)
+                continue
+            scanned += 1
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if path.suffix == ".json":
+                asserted |= set(re.findall(r'"([a-z][a-z0-9-]{3,})"', text))
+                continue
+            try:
+                parsed = ast.parse(text)
+            except SyntaxError:  # pragma: no cover - corpus is syntactically valid
+                continue
+            for node in ast.walk(parsed):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    asserted.add(node.value)
+    assert scanned > 40, f"corpus looks broken: scanned {scanned} files"
 
-    # Positive control: the de-seeding above must actually remove them, or the
-    # comparison below passes for the wrong reason.
-    for exempt in _UNREACHABLE_BY_SUBSUMPTION:
-        assert exempt not in blob, f"corpus still seeds {exempt}"
+    # Positive control: prove the two failure modes above are actually closed.
+    # Both of these appear in THIS module (a constant and a comment) and must not
+    # be counted from it.
+    for seeded in _UNREACHABLE_BY_SUBSUMPTION | _TERMINAL_MUTATED_CODES:
+        assert seeded in _result_codes(
+            CLOSE_WORK_PATH.read_text(encoding="utf-8")
+        ), f"{seeded} is not emitted by the module at all"
+    assert _UNREACHABLE_BY_SUBSUMPTION.isdisjoint(asserted), (
+        "corpus still seeds an exempt code: "
+        f"{sorted(_UNREACHABLE_BY_SUBSUMPTION & asserted)}"
+    )
 
-    unasserted = sorted(c for c in codes if c not in blob)
+    unasserted = sorted(c for c in codes if c not in asserted)
     assert unasserted == sorted(_UNREACHABLE_BY_SUBSUMPTION), unasserted
 
     # The allowlist must stay honest: each entry must still be emitted by the
@@ -630,39 +646,68 @@ def test_every_result_code_has_an_asserted_trace() -> None:
     assert codes >= _UNREACHABLE_BY_SUBSUMPTION
 
 
-def test_every_terminal_mutated_result_names_its_residue_identity() -> None:
-    """AC11: a mutated failure must say whether its residue is the confirmed inode.
+def _declared_residue_vocabulary(source: str) -> set[str]:
+    """Read the closed vocabulary from the module's own declaration.
 
-    Asserted over the parsed source rather than per call site, so a tenth
-    terminal construction added later cannot default `residue_state` to None.
+    Coupled to the source rather than restated here, so renaming a token in
+    `close_work.py` cannot leave this guard checking a stale set.
+    """
+    block = re.search(
+        r"residual_evidence: ResidualHardlinkEvidence \| None = None\n(.*?)"
+        r"    residue_state: str \| None = None",
+        source,
+        re.DOTALL,
+    )
+    assert block is not None, "residue_state declaration not found"
+    tokens = set(re.findall(r'#\s+"([a-z-]+)"', block.group(1)))
+    assert len(tokens) == 3, f"expected 3 declared tokens, found {sorted(tokens)}"
+    return tokens
+
+
+def test_every_result_reporting_residue_names_its_identity() -> None:
+    """AC11: if a result reports recovery residue, it must say whose inode it is.
+
+    Keyed on *reporting residue*, not on a list of code names. A terminal
+    mutated failure added later under a new name is therefore still caught,
+    which a name-filtered guard would skip. `recovery_residue` presence is
+    statically decidable from the call site; the emptiness of a conditional
+    tuple like `(target,) if original_removed else ()` is not, so this
+    deliberately does not test that.
     """
     source = CLOSE_WORK_PATH.read_text(encoding="utf-8")
+    vocabulary = _declared_residue_vocabulary(source)
     seen = 0
     for node in ast.walk(ast.parse(source)):
         if not (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
             and node.func.id == "DeletionResult"
-            and node.args
-            and isinstance(node.args[0], ast.Constant)
-            and node.args[0].value in _TERMINAL_MUTATED_CODES
         ):
             continue
-        seen += 1
         keywords = {kw.arg: kw.value for kw in node.keywords}
+        # A call reports residue when it passes recovery_residue (4th
+        # positional or keyword) or residual_evidence (5th or keyword).
+        reports_residue = (
+            len(node.args) >= 4
+            or "recovery_residue" in keywords
+            or len(node.args) >= 5
+            or "residual_evidence" in keywords
+        )
+        if not reports_residue:
+            continue
+        seen += 1
         state = keywords.get("residue_state")
-        assert state is not None, f"line {node.lineno}: no residue_state"
+        assert state is not None, (
+            f"line {node.lineno}: reports residue but names no residue_state"
+        )
         assert isinstance(state, ast.Constant), f"line {node.lineno}: not a literal"
-        assert state.value in {
-            "identity-confirmed",
-            "identity-mismatch",
-            "unverified",
-        }, f"line {node.lineno}: {state.value!r} outside the closed vocabulary"
-    # Floor guards against the AST matcher silently matching nothing; the
-    # per-site assertions above are the real contract. 8 sites today, down
-    # from 9 since the successful-rollback path now reports
-    # `confirmation-expired` instead of a false `rollback-failed`.
-    assert seen >= 8, f"expected at least 8 terminal mutated sites, found {seen}"
+        assert state.value in vocabulary, (
+            f"line {node.lineno}: {state.value!r} outside the declared vocabulary "
+            f"{sorted(vocabulary)}"
+        )
+    # Floor guards against the matcher silently matching nothing; the per-site
+    # assertions above are the contract.
+    assert seen >= 8, f"expected at least 8 residue-reporting sites, found {seen}"
 
 
 def test_close_work_declares_only_filesystem_boundaries() -> None:

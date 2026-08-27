@@ -1513,7 +1513,7 @@ _WORK_LOOP_CONTRACT_HASH = (
 # Reconciled 2026-08-24: checklist distinguishes mandatory from non-mandatory
 # reviewers and requires a `review-verdict.v1` record; both are reviewer-readiness
 # concerns, engine needs no edit (no spec.md write or workspace.toml mutation).
-# Reconciled 2026-08-26: three changes inside the anchored window, all
+# Reconciled 2026-08-26: four changes inside the anchored window, all
 # work-loop-side completion concerns. (1) A completion-evidence handoff item,
 # which explicitly leaves closeout to close-work. (2) The doc-drift bullet now
 # requires every final accepted AC to be `[x]` with separable follow-ons owned

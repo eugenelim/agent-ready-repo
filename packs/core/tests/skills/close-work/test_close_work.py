@@ -635,6 +635,152 @@ def test_forged_multi_file_preview_cannot_receive_confirmation(
     assert second.read_text(encoding="utf-8") == "second\n"
 
 
+def test_enumeration_entry_bound_refuses_an_oversized_tree(tmp_path: Path) -> None:
+    """`MAX_ENUMERATION_ENTRIES` had no fixture that breached it.
+
+    Directories are entries and are not files, so a wide directory-only tree
+    breaches the entry bound without breaching the file bound. Deleting the
+    `entry_count > MAX_ENUMERATION_ENTRIES` check fails this case.
+
+    Scope, recorded deliberately: the three file-count layers
+    (`file_count > MAX_TARGETS` in the preflight, `max_files=MAX_TARGETS` on the
+    materialising walk, and `len(enumerated) > MAX_TARGETS`) are NOT
+    independently observable through this public seam. Declaring one target
+    against a 33-file tree refuses on the enumeration mismatch first; declaring
+    all 33 refuses on `one-file-confirmation-required` first, because Wave 4
+    deletes exactly one file. They cover each other, so no single deletion among
+    them changes an observable result. That residual is named in the review
+    verdict rather than papered over with a case that would pass for the wrong
+    reason.
+    """
+    close_work = _load_close_work()
+    root = tmp_path / "surface"
+    root.mkdir()
+    for index in range(300):
+        (root / f"dir-{index:03d}").mkdir()
+    only = root / "residue-000.md"
+    only.write_text("x\n", encoding="utf-8")
+    before = sorted(path.name for path in root.rglob("*"))
+
+    result = _preview(close_work, tmp_path, only, enumeration_root=root)
+
+    assert result.code == "unsafe-target"
+    assert result.mutated == ()
+    assert sorted(path.name for path in root.rglob("*")) == before
+
+
+def test_unverifiable_residue_is_reported_as_unverified(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The `unverified` arm of the discriminator, observed rather than assumed.
+
+    `identity-confirmed` and `identity-mismatch` are each asserted elsewhere;
+    without this the third vocabulary member appeared only in prose pins, so any
+    site could be relabelled to it with every gate green — and `unverified` is
+    precisely the value that tells a maintainer NOT to restore.
+
+    Built on the same seam as the rollback-failure case below: the final unlink
+    refuses, so rollback runs; inspection then refuses too, so identity cannot be
+    established.
+    """
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    preview = _preview(close_work, tmp_path, target)
+    confirmation = _confirmation(
+        close_work, preview, "confirmation:unverifiable-residue"
+    )
+    real_unlink = close_work.os.unlink
+
+    def fail_unlink(path, *args, **kwargs):
+        if str(path).endswith(".pending"):
+            raise PermissionError("simulated unlink refusal")
+        return real_unlink(path, *args, **kwargs)
+
+    # `_inspect_fingerprint_at` has two call sites: a pre-effect check at
+    # close_work.py:1458 and the rollback inspection at :2140. Refusing the
+    # first would abort before any effect, so only the rollback call is failed.
+    real_inspect = close_work._inspect_fingerprint_at
+    inspections = 0
+
+    def refuse_rollback_inspection(*args, **kwargs):
+        nonlocal inspections
+        inspections += 1
+        if inspections >= 2:
+            raise OSError("simulated inspection failure")
+        return real_inspect(*args, **kwargs)
+
+    monkeypatch.setattr(close_work.os, "unlink", fail_unlink)
+    monkeypatch.setattr(
+        close_work, "_inspect_fingerprint_at", refuse_rollback_inspection
+    )
+
+    result = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview,
+        confirmation=confirmation,
+        **_effect_kwargs(close_work, preview),
+    )
+
+    # Identity could not be established, so the report must say so rather than
+    # claim the residue is the confirmed inode.
+    assert result.residue_state == "unverified"
+    assert result.residual_evidence is None
+
+
+def test_post_unlink_parent_substitution_reports_no_effect(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The post-unlink parent-path refusal must report no effect, not a failure.
+
+    This is the one behaviour change of the round-57 repair and it had no driving
+    case. `_directory_path_matches_fd` is faked to fail only on its post-unlink
+    call, so `rollback_staged_link` relinks the original and unlinks staging —
+    restoration genuinely succeeds. Reporting `rollback-failed` here would name a
+    residue path that was just unlinked, and under a substituted parent that path
+    could resolve to foreign content.
+    """
+    close_work = _load_close_work()
+    target = tmp_path / "delivery.md"
+    target.write_text("temporary\n", encoding="utf-8")
+    before = target.read_bytes()
+    preview = _preview(close_work, tmp_path, target)
+    confirmation = _confirmation(
+        close_work, preview, "confirmation:post-unlink-parent-swap"
+    )
+    real_matches = close_work._directory_path_matches_fd
+    calls = 0
+
+    def fail_on_the_post_unlink_check(directory: Path, descriptor: int) -> bool:
+        nonlocal calls
+        calls += 1
+        # The pre-unlink checks must pass so the effect proceeds to the staged
+        # verification; only the post-unlink call refuses.
+        if calls >= 3:
+            return False
+        return real_matches(directory, descriptor)
+
+    monkeypatch.setattr(
+        close_work, "_directory_path_matches_fd", fail_on_the_post_unlink_check
+    )
+
+    result = close_work.apply_confirmed_deletion(
+        repository_root=tmp_path,
+        preview=preview,
+        confirmation=confirmation,
+        **_effect_kwargs(close_work, preview),
+    )
+
+    assert result.code == "confirmation-expired"
+    assert result.mutated == ()
+    assert result.recovery_residue == ()
+    assert result.residue_state is None
+    # Restoration actually happened: the original is back, byte-for-byte, and no
+    # staging residue survives.
+    assert target.read_bytes() == before
+    assert not tuple(tmp_path.glob(".close-work-*.pending"))
+
+
 def test_post_stage_identity_mismatch_rolls_back_before_unlink(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1008,6 +1154,9 @@ def test_final_unlink_verifies_no_surviving_hard_link(
     )
 
     assert result.code == "residual-hardlink"
+    # AC11: the discriminator is what authorises human recovery, so observe
+    # the value, not merely that some evidence object exists.
+    assert result.residue_state == "identity-confirmed"
     assert result.mutated == (target,)
     assert result.permission_granted is True
     assert result.residual_evidence is not None
@@ -1060,6 +1209,9 @@ def test_locator_unlink_window_reports_surviving_hard_link(
     )
 
     assert result.code == "residual-hardlink"
+    # AC11: the discriminator is what authorises human recovery, so observe
+    # the value, not merely that some evidence object exists.
+    assert result.residue_state == "identity-confirmed"
     assert result.mutated == (target,)
     assert result.permission_granted is True
     assert result.residual_evidence is not None
@@ -1114,6 +1266,9 @@ def test_failed_final_unlink_with_surviving_link_stays_residual_hardlink(
     )
 
     assert result.code == "residual-hardlink"
+    # AC11: the discriminator is what authorises human recovery, so observe
+    # the value, not merely that some evidence object exists.
+    assert result.residue_state == "identity-confirmed"
     assert result.mutated == (target,)
     assert result.permission_granted is True
     assert result.residual_evidence is not None

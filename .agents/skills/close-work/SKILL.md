@@ -121,9 +121,10 @@ fails, rollback reopens the staging path without following links and verifies it
 fingerprint, device, inode, size, and link count immediately before any rollback
 effect. A surviving added link on the confirmed inode produces
 `residual-hardlink`; any other rollback identity/content corruption or operation
-failure produces `rollback-failed`. Both are terminal mutated outcomes: report the
-affected original path, bounded inode evidence, and any `.pending` recovery residue
-for deliberate maintainer recovery. Every such outcome also names the residue's
+failure produces `rollback-failed`. Both are terminal mutated outcomes: report
+bounded inode evidence, any `.pending` recovery residue, and — when the original was
+already unlinked — the affected original path. A rollback that refuses before that
+unlink has no original path to report, and must not invent one. Every such outcome also names the residue's
 identity, because recovery is only safe when the residue is known to be the
 confirmed inode: `identity-confirmed` when a descriptor proved it is,
 `identity-mismatch` when a descriptor proved it is not, and `unverified` when no

@@ -150,9 +150,10 @@ without following links and verifies its fingerprint, device, inode, size, and
 link count immediately before any rollback effect. A surviving added link on the
 confirmed inode produces `residual-hardlink`. Any other rollback identity/content
 corruption or operation failure produces `rollback-failed`. Both are terminal
-mutated outcomes: the report identifies the affected original path, bounded inode
-evidence, and any `.pending` recovery residue for deliberate maintainer recovery;
-do not claim success, restoration, or an unchanged refusal. Each such report also
+mutated outcomes: the report identifies bounded inode evidence, any `.pending`
+recovery residue, and — when the original was already unlinked — the affected
+original path. A rollback that refuses before that unlink reports no original path,
+because there is none; do not claim success, restoration, or an unchanged refusal. Each such report also
 names the residue's identity, and you must read it before recovering anything:
 `identity-confirmed` means a descriptor proved the residue is the confirmed
 inode, `identity-mismatch` means a descriptor proved it is not, and `unverified`
