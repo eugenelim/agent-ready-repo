@@ -460,10 +460,19 @@ def _enumerate_walk_bases(context: BoundaryContext,
     bases: list[Path] = []
     for pack in packs:
         bases.append(pack / ".apm")
-        bases.append(pack / "tests")
-        skills = pack / "tests" / "skills"
-        if skills.is_dir():
-            bases.extend(d for d in sorted(skills.iterdir()) if d.is_dir())
+        tests = pack / "tests"
+        bases.append(tests)
+        # `destinations()` walks every suite-holding directory under tests/,
+        # not just the `skills/` layer, so every one of them must be pre-batched
+        # here or `walk()` takes a lazy miss and the structural self-check that
+        # asserts one check-ignore process fails.
+        if tests.is_dir():
+            bases.extend(
+                d for d in sorted(tests.rglob("*"))
+                if d.is_dir()
+                and d.name not in _TRANSIENT
+                and not any(part in _TRANSIENT for part in d.relative_to(tests).parts)
+            )
     for name in include:
         skills_dir = context.packs_root / name / ".apm" / "skills"
         if not skills_dir.is_dir():
