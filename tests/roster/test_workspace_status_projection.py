@@ -9,6 +9,7 @@ Coverage:
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import importlib.util
 import json
@@ -912,3 +913,128 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
+
+
+class RepositoryLifecycleRatchetTests(unittest.TestCase):
+    """Ratchet the repository's own workspace.toml against lifecycle drift.
+
+    Nothing else in CI runs the reconciliation engine over the real
+    `workspace.toml`, so the fail-closed findings that core 2.12.4 drove to zero
+    could silently return. This asserts the repaired state directly.
+
+    The excluded codes are the known, deliberately non-empty compatibility
+    backlog -- `unsupported_legacy` and `legacy_entry` are retained legacy
+    records scheduled as later cleanup groups, and `missing_plan` /
+    `unsatisfied_dependency` track real queued work. They are ratcheted by
+    count below rather than required to be zero.
+    """
+
+    #: Legacy-shaped entries per collection, measured at core 2.12.4. Lower is
+    #: always allowed; higher fails. `[backlog].closed` is deliberately absent:
+    #: it is append-only history, every closure record there is legacy-shaped by
+    #: established practice, and ratcheting it would nag on every future
+    #: closure without preventing any drift.
+    _LEGACY_SHAPE_CEILINGS = {
+        "backlog.open": 160,
+        "ini-002.shaping_queue.backlog": 1,
+        "ini-002.work.shipped": 1,
+    }
+
+    @staticmethod
+    def _is_legacy_shaped(entry: object) -> bool:
+        """A bare string, or an inline table with no `path` key."""
+        if isinstance(entry, str):
+            return True
+        return isinstance(entry, dict) and "path" not in entry
+
+    def _legacy_counts(self) -> dict[str, int]:
+        with (REPO_ROOT / "workspace.toml").open("rb") as handle:
+            data = tomllib.load(handle)
+        counts: dict[str, int] = {}
+        for key, section in data.items():
+            if not (isinstance(section, dict) and key.startswith("ini-")):
+                continue
+            for name in ("work", "shaping_queue", "brief_queue"):
+                sub = section.get(name)
+                if not isinstance(sub, dict):
+                    continue
+                for list_name, entries in sub.items():
+                    if isinstance(entries, str):
+                        entries = [entries] if entries else []
+                    if not isinstance(entries, list):
+                        continue
+                    total = sum(1 for e in entries if self._is_legacy_shaped(e))
+                    if total:
+                        counts[f"{key}.{name}.{list_name}"] = total
+        open_entries = data.get("backlog", {}).get("open", [])
+        total = sum(1 for e in open_entries if self._is_legacy_shaped(e))
+        if total:
+            counts["backlog.open"] = total
+        return counts
+
+    def _canonical(self):
+        engine = _load_workspace_status_engine()
+        workspace = engine.parse_workspace(REPO_ROOT / "workspace.toml")
+        return engine.run_canonical_reconciliation(workspace, REPO_ROOT)
+
+    def test_no_fail_closed_lifecycle_findings(self) -> None:
+        canonical = self._canonical()
+        for code in (
+            "missing_artifact",
+            "inactive_initiative",
+            "duplicate_membership",
+            "invalid_artifact_path",
+            "missing_dependency",
+            "invalid_entry",
+            "invalid_workspace",
+            "dependency_cycle",
+        ):
+            offenders = sorted(f.path for f in canonical.findings if f.code == code)
+            self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
+
+    def test_legacy_shaped_entries_do_not_grow(self) -> None:
+        """New work must be registered canonically, not by copying a neighbour.
+
+        This is the write-side ratchet: legacy records are retained
+        deliberately as later cleanup groups, but no collection may gain one.
+        """
+        counts = self._legacy_counts()
+        for collection, total in sorted(counts.items()):
+            ceiling = self._LEGACY_SHAPE_CEILINGS.get(collection, 0)
+            self.assertLessEqual(
+                total,
+                ceiling,
+                f"{collection} now holds {total} legacy-shaped entries "
+                f"(ceiling {ceiling}). Register the new entry canonically as "
+                f"{{path, kind, source, summary, needs}} -- see the shape "
+                f"guidance at the top of workspace.toml. Do not raise this "
+                f"ceiling to make the check pass.",
+            )
+
+    def test_tolerated_finding_counts_do_not_regress(self) -> None:
+        """Fail-open finding classes stay bounded, so drift cannot hide in them."""
+        canonical = self._canonical()
+        counts = collections.Counter(f.code for f in canonical.findings)
+        for code, ceiling in (
+            ("legacy_entry", 2),
+            ("unsatisfied_dependency", 8),
+            ("missing_plan", 5),
+            ("impossible_transition", 1),
+        ):
+            self.assertLessEqual(
+                counts.get(code, 0),
+                ceiling,
+                f"{code} rose above its 2.12.4 ceiling: {counts.get(code, 0)}",
+            )
+
+    def test_every_legacy_finding_is_individually_attributable(self) -> None:
+        """The 2.12.4 diagnostic property, asserted against the real file."""
+        canonical = self._canonical()
+        legacy = [f for f in canonical.findings if f.code == "unsupported_legacy"]
+        identifiers = [f.path for f in legacy]
+        self.assertNotIn("workspace.toml", identifiers,
+                         "findings collapsed back onto the containing file")
+        self.assertEqual(
+            len(set(identifiers)), len(identifiers),
+            "two legacy records share one identifier",
+        )

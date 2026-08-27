@@ -1,7 +1,7 @@
 ---
-**Feature:** product-documentation-pack
-**Status:** Shipped
-**Mode:** full (structural public-interface change, multi-feature, multi-dependent-task)
+- **Feature:** product-documentation-pack
+- **Status:** Shipped
+- **Mode:** full (structural public-interface change, multi-feature, multi-dependent-task)
 ---
 
 # Spec: product-documentation pack (Phase 1)

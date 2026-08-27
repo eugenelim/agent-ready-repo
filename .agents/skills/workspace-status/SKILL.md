@@ -134,8 +134,10 @@ receipts, approver identity, or raw source values into its output.
 
 ### 1a. Canonical findings
 
-Every canonical refusal carries a stable code, repository-relative path,
-`dispatchable:false`, and one safe next action:
+Every canonical refusal carries a stable code, `dispatchable:false`, one safe
+next action, and an identifier: a repository-relative path, or — for
+`unsupported_legacy` only — a safe single-segment slug. Never join a finding
+identifier to the repository root without checking it is a path first.
 
 | Code | Why blocked | Safe action |
 | --- | --- | --- |
@@ -161,6 +163,11 @@ Every canonical refusal carries a stable code, repository-relative path,
 | `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
 | `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
 | `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
+
+For an unsupported object that carries a safe single-segment `slug`, the
+`unsupported_legacy` finding preserves that slug as its identifier. This makes
+manual-routing inventories attributable without treating the object as
+supported or dispatchable.
 
 ### 1b. Coordination receipts
 

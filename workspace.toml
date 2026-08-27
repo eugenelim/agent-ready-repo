@@ -1,6 +1,35 @@
 # Current declared intent. Structured fields are authoritative; durable rationale
 # belongs in the cited artifact or Git history. Comments state only current facts
 # that the schema cannot express.
+#
+# HOW TO WRITE AN ENTRY -- read this before adding one.
+#
+# Target entries are inline tables with exactly:
+#   path, kind, source, summary, needs
+#
+# Example:
+#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
+#
+# DO NOT INFER THE SHAPE FROM NEIGHBOURING ENTRIES. Most records in this file
+# are legacy compatibility forms -- bare "spec/<slug>" strings and {slug = ...}
+# tables. They are retained deliberately, they reconcile as `unsupported_legacy`
+# or `legacy_entry`, and they are never dispatchable. Copying one writes a
+# non-dispatchable record. `workspace-status` reports every such record; run it
+# after editing this file.
+#
+# The one current exception is `[backlog].open`, where a `{slug = ...}` entry is
+# still required: `lint-spec-status.py` invariant (iv) resolves each spec's
+# `(deferred: <slug>)` anchor from the `slug` key only, and that is a hard CI
+# gate. Reconciling that contradiction needs a governance decision, not a
+# reshape of individual entries.
+#
+# Comments, summaries, list order, tracker labels, and profile hints are
+# non-semantic. They must not determine routing, dependency satisfaction,
+# processor selection, or dispatch.
+#
+# Paths are repository-relative POSIX paths. Consumers must reject absolute
+# paths, backslashes, ".." segments, and any symlink-resolved target outside the
+# repository root.
 
 ["ini-002"]
 name      = "Platform Core"
@@ -11,101 +40,34 @@ parent    = "INI-001"
 ["ini-002".shaping_queue]
 active  = []
 backlog = [
-  # RFC-0088 · consumer-shaped design questions raised by reading round 11's
-  # amended requirements against a real adopter pack in a separate catalogue
-  # (read-only context; this repo writes nothing to it).
-  # Shape: how should a broker accommodate a consumer that must replay a scoped API
-  # token? The RFC's credential posture assumes the session stays in the browser;
-  # a realistic consumer intercepts a scoped token and replays it. RFC open
-  # question 5 carried the recommended candidate (keep the token page-resident). ANSWERED:
-  # round 12 showed it holds only when the issuing response is `no-store`, and round 14
-  # measured a real destination that sends no cache directive AND persists the token to
-  # page-readable storage, so the token reaches disk regardless. Question 5 was RULED on
-  # 2026-08-22 -- the pattern is supported and the exposure is DECLARED per destination.
-  # What remains for this shaping item is narrower than when it was written: not whether to
-  # accommodate replay, but what the declaration looks like in the broker contract. The
-  # obligation is already carried into Spec 1's contract list, so this item shapes the
-  # wording, not the decision.
-  {slug = "rfc0088-token-replay-consumer-contract", type = "shape"},
-  # Shape: destination-scoped constraint as a single axis. Decision C constrains egress by
-  # destination; worker policy needed the same scoping because real surfaces have opposite
-  # needs. PARTLY ANSWERED: question 4 was ruled on 2026-08-21 -- worker policy is decided by
-  # destination GROUP, realised as a separate browser context, and the session-wide reading is
-  # withdrawn. So the axis exists, but its unit is the group, not the destination, because
-  # contexts isolate sessions and destinations sharing a sign-in must share a context.
-  # What this item still shapes: whether egress and worker policy should collapse onto that one
-  # group axis together, and what else belongs on it. Note the two constraints do not obviously
-  # share a unit -- egress can scope per destination, worker policy cannot.
-  {slug = "rfc0088-destination-scoped-policy-axis", type = "shape"},
   # Signal items — hand-authored by strategist; ongoing, non-graduating
   {slug = "ai-native-regulatory-watch", type = "signal"},
-  # Research items — any user with the desk-research pack can pick these up
-  # Research (RFC-0064 M3 AC): should rfc-candidates.md graduate into the
-  # shaping_queue (as research/strategy entries) rather than remain a separate
-  # findings register? Assess the whole intake taxonomy — findings registers
-  # (rfc-candidates, roadmap-intents) vs the new repo-level [backlog] vs the
-  # shaping_queue. Owner intuition: rfc-candidates are "things we should work
-  # through" and belong in shaping. Deliverable: a recommendation (keep separate
-  # / fold / hybrid) feeding a possible RFC-0064 follow-on. Requires desk-research.
-  {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research"},
-  # Shaping items — PE picks up when upstream research is done
-  "ini-002-initiative-brief",
-  {slug = "opp-assessment-pe-pack",  needs = "work:spec/m2-frame-situation"},
-  {slug = "capability-map-ini-002",  needs = "work:spec/m2-map-capabilities"},
-  # Post-pilot rollout shaping — RFC-0064 Amendment #4 cross-pack overlay.
-  # Deliverable after shaping: one appetite-bounded formal brief whose independently
-  # shippable slices cover the remaining ratified Level B packs (beyond the three
-  # pilots). Each pack slice includes its guide, surface evidence, safety boundary,
-  # recovery, eval, and only necessary skill change. Must audit P2/P3/P4 guides and
-  # existing tutorials before proposing work. Blocked until all three pilot work
-  # items complete (evidence base for shaping).
-  {slug = "nontechnical-pack-first-value-rollout", type = "shape", needs = ["work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
-  # Portfolio outcome entry-surfaces — design (RFC-0064 Amendment #4). Deliverable
-  # after shaping: a surface/flow brief for homepage, catalogue, pack pages, READMEs,
-  # journeys, and docs routing that consumes the contract and routes by plain-language
-  # outcome. Explicitly excludes site-social-proof-band, site-mobile-responsiveness,
-  # site-design-system-spec, and P5's Astro project index; reference those owners.
-  # Blocked until the contract is ratified and all three pilots complete.
-  {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
-
-  # Project knowledge measured-scale follow-on. Slice 1 deliberately retains closed
-  # classification/month journals unchanged; deleting individual observations would
-  # break the append-only evidence model and Git would retain the history anyway.
-  # Shape a whole-partition retention/compaction policy only after the adoption
-  # closeout measures repository growth and confirms that every capture in an eligible
-  # partition has one terminal disposition. Affected surface: docs/knowledge/
-  # observation journals, project-knowledge --distill, and its lifecycle contracts.
-  {slug = "project-knowledge-observation-retention-policy", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
-  # Project knowledge measured-scale follow-on. The committed body-free topic map and
-  # bounded lexical routing are the portable baseline; richer indexes add invalidation,
-  # privacy, and platform costs without current evidence. Shape derived local indexing
-  # only if adoption-closeout measurements show corpus size or enquiry latency exceeds
-  # published budgets. Any index must be rebuildable, disposable, gitignored, and never
-  # authoritative or committed. Affected surface: project-knowledge --enquire and local
-  # cache/index tooling; no database or embedding dependency is presumed.
-  {slug = "project-knowledge-derived-index-scaling", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
-  # Optional durability follow-on, not part of the portable core. Repo journals cannot
-  # save pre-gate scratch or an uncommitted capture when a worktree is discarded, but
-  # core cannot assume a writable user directory or service. After adoption-closeout
-  # measures material loss and identifies a supported storage capability, shape a
-  # separate RFC governing project identity, privacy, deletion, availability, and
-  # reconciliation with the repository journal. No implicit probing or fallback store.
-  {slug = "project-knowledge-external-capture-backend", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
-  # Eventual cross-project capability requiring its own RFC and governance. Only
-  # reviewed, sanitized topics may be explicitly exported; observations and scratch
-  # never cross the boundary. The receiving project must treat imported material as
-  # untrusted evidence and adopt it through its own distillation boundary. Shape only
-  # after the portable lifecycle's adoption closeout supplies real tenancy, audience,
-  # privacy, ownership, and deletion requirements; do not assume an external backend.
-  {slug = "multi-project-knowledge-bank", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
+  {path = "docs/product/intents/ini-002-initiative-brief.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reconcile Platform Core's accepted proposal, shipped milestones, and remaining adoption work into one living initiative brief", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-place-bet/spec.md"}]},
+  {path = "docs/product/intents/opp-assessment-pe-pack.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Reassess the current product-engineering opportunity against shipped Platform Core evidence", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-frame-situation/spec.md"}]},
+  {path = "docs/product/intents/capability-map-ini-002.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Map shipped and remaining Platform Core capabilities against current initiative ownership", needs = [{type = "local", kind = "spec", path = "docs/specs/m2-map-capabilities/spec.md"}]},
+  {path = "docs/product/intents/nontechnical-pack-first-value-rollout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Shape independently shippable first-value adoption slices for the remaining Level B packs", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-architect/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-figma/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-governance-extras/spec.md"}]},
+  {path = "docs/product/design/portfolio-outcome-entry-surfaces.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Design outcome-led portfolio entry surfaces without duplicating renderer or site-system ownership", needs = [{type = "local", kind = "spec", path = "docs/specs/portfolio-pack-first-value-contract/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-architect/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-figma/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/portfolio-first-run-pilot-governance-extras/spec.md"}]},
+  {path = "docs/product/intents/project-knowledge-engineering-operational-integrations.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Shape project-knowledge handoffs for engineering and operational workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-research-integrations/spec.md"}]},
+  {path = "docs/product/intents/project-knowledge-adoption-closeout.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Shape the evidence and decision contract for portable project-knowledge adoption closeout", needs = [{type = "local", kind = "intent", path = "docs/product/intents/project-knowledge-engineering-operational-integrations.md"}]},
+  {path = "docs/product/intents/project-knowledge-measured-follow-ons.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/rfc/0077-distill-knowledge.md", revision = "sha256-bytes-v1:94de8754c752838d99562a6b5bbcfbaf64ed688072d0e26149063f5fbac81016"}, summary = "Use adoption-closeout evidence to decide whether any of four conditional project-knowledge extensions should activate", needs = [{type = "local", kind = "intent", path = "docs/product/intents/project-knowledge-adoption-closeout.md"}]},
 ]
 
 ["ini-002".brief_queue]
-executing = {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []}
-ready     = [
+# `executing` is a lifecycle LIST, like every other collection. A bare inline
+# table here is not coerced: the engine accepts only a str or a list, so a table
+# raises invalid_workspace, which then stamps every canonical entry in the file.
+executing = [
+  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
+]
+ready     = []
+draft     = []
+# tech-site-completion is Status: Shipped, so `ready` was an impossible
+# transition. It moves to the engine's terminal brief collection rather than
+# leaving the lifecycle: nine shipped specs below still name this brief as both
+# `ref` and `parent`, and dropping it would orphan those references.
+shipped   = [
   {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
 ]
-draft     = []
 
 ["ini-002".work]
 active  = []
@@ -138,7 +100,6 @@ shipped = [
   {path = "docs/specs/agentbundle-first-value-handoff/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "agentbundle-first-value-handoff", needs = []},
   {path = "docs/specs/catalogue-curation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-curation pack", needs = []},
   {path = "docs/specs/m2-frame-situation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-situation", needs = []},
-  "spec/m1-workspace-core",
   {path = "docs/specs/m1-work-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-work-queue", needs = []},
   {path = "docs/specs/m1-brief-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-brief-queue", needs = []},
   {path = "docs/specs/m1-governance-integration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-governance-integration", needs = []},
@@ -203,9 +164,6 @@ shipped = [
   {path = "docs/specs/shaping-intake-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "f7660b00820dc06cf7f4618e0b6479d135e5c726"}, summary = "Reuse optional shaping and external work through portable core intake routing", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with engineering and operational workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-research-integrations/spec.md"}]},
-
-  {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1623,7 +1581,7 @@ open = [
   # requires a new trusted input rather than inferring authority from tracker
   # data.
   {slug = "tracker-refresh-projection-repair-confirmation", type = "spec", source = "spec/tracker-refresh-writeback AC3", summary = "Define explicit confirmation for repo-origin projection repair"},
-  {slug = "workspace-anchor-staleness-invariant", type = "design", source = "rfc/0083 Errata 2026-08-13", summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions"},
+  {path = "docs/product/design/workspace-anchor-staleness-invariant.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0083-work-intake-and-artifact-routing.md", revision = "sha256-bytes-v1:8176272b14747e07e70beb752d6b709ccac502c284a9c114ae03c0cb48312a9d"}, summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions", needs = []},
 
   # Surfaced 2026-08-15 while auditing every [backlog].open entry against the
   # engine's own classifier. The five reanchor entries above carry `type = "spec"`,
@@ -1770,19 +1728,7 @@ open = [
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
   # Closed 2026-08-17 to docs/design/principles/tech-site.md.
-  # The live remnant of `selftest-mutates-tracked-makefile` (now in `closed`). That
-  # item's tracked-`Makefile` mutation is gone; its MECHANISM is not. Layer 3 of
-  # `tools/test-lint-pack-test-boundary.py` plants two UNTRACKED files in the real
-  # worktree for one lint launch each — `packs/figma/.apm/skills/figma/scripts/
-  # test_planted_boundary_violation.py` and a symlinked `packs/figma/tests/
-  # test_planted_link.py` — so a concurrent `git add -A` can still stage an
-  # injected violation, and the local re-run then passes because cleanup restored
-  # the tree. Bounded today by refuse-before-plant, a `finally` scoped to the
-  # planting branch, and direct absence assertions (porcelain cannot see an
-  # untracked leftover). Closing it fully means giving up the end-to-end proof that
-  # the production CLI is wired to the real catalogue, or copying the worktree per
-  # run — so it needs a design decision, not a patch.
-  { slug = "selftest-untracked-plant-window", type = "shape" },
+  {path = "docs/product/intents/selftest-untracked-plant-window.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/lint-performance-p0/spec.md", revision = "sha256-bytes-v1:9bf95e7308260b96ba5456eb61aab8d5ab45b9fe32091c3092571ef02c724a0e"}, summary = "Remove the live-worktree plant window without losing end-to-end catalogue boundary proof", needs = []},
   # Unblocks when: ready now.
   { slug = "pages-deploy-ordering-not-guaranteed", source = "spec/pages-concurrency-isolation (peer coordination)", summary = "Pages deploy lane serializes but does not order deployments, so an older commit can publish last after two close merges to main" },
   # Unblocks when: ready now -- the skill it documents already ships.
@@ -1833,7 +1779,7 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
-  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor workspace-anchor-staleness-invariant owns dependency and membership staleness detection"},
+  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
   {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Closed after repairing living MkDocs-to-Starlight residue; frozen historical bodies remain unchanged"},
 
@@ -1847,57 +1793,33 @@ closed = [
 
   {slug = "npm-allowscripts-enforcement", source = "spec/npm-sca-gate", summary = "Closed by repinning web's fsevents to 2.3.3 through a package.json overrides entry -- playwright pins 2.3.2 exactly, so npm install alone could never dedupe it -- and adding tools/lint-npm-allow-scripts.py, which compares each project's lockfile install-script set against its allowScripts map in both directions"},
 
+  # Retired from ["ini-002".shaping_queue].backlog during the 2026-08-27 lifecycle
+  # cleanup. The research question -- should rfc-candidates.md graduate into the
+  # shaping_queue, and what is the whole intake taxonomy -- was answered in two
+  # places, neither of which is RFC-0064 itself. RFC-0064 Amendment #3 ruled the
+  # register-vs-backlog-vs-shaping split (the findings registers remain the home
+  # for genuinely un-shaped items; a [backlog] shaping entry is for work shaped
+  # enough to route to a skill) and deferred the type-vocabulary tail to the
+  # implementing spec. spec/queue-add (Shipped) then carried that tail: its
+  # escalation rubric routes every item shape to a home, keeps rfc-candidates.md
+  # as its own destination rather than graduating it, and adds no `rfc` type
+  # because RFC-0064 D2-D4 seals the entry schema. RFC-0064's M3 research AC is
+  # left unchecked deliberately: checking it is a body edit on an accepted RFC
+  # and belongs to whoever closes that milestone, not to this cleanup.
+  {slug = "intake-taxonomy-rfc-candidates-to-shaping", type = "research", source = "rfc/0064 M3 research AC", summary = "Closed by RFC-0064 Amendment #3 (register/backlog/shaping split) plus spec/queue-add's shipped escalation rubric, which keeps rfc-candidates.md a separate destination and adds no new entry type"},
+
+  # Both retired from ["ini-002".shaping_queue].backlog in the same 2026-08-27
+  # cleanup. RFC-0088 was accepted 2026-08-24 and ruled both open questions, so
+  # neither item still shapes a decision -- but each left a delivery obligation,
+  # and that obligation is carried by a live [backlog].open entry rather than by
+  # these shaping slugs. Recorded here so the rulings stay findable from the
+  # workspace rather than only from the RFC body.
+  {slug = "rfc0088-token-replay-consumer-contract", type = "shape", source = "rfc/0088 open question 5", summary = "Closed by the Q5 ruling of 2026-08-22 -- scoped-token replay is supported and the residual exposure is declared per destination. The declaration carrier is owned by open entry rfc0088-spec-2-result-policy-contracts; note RFC-0088 assigns that carrier to Spec 1 while the open entry places it on Spec 2, which the Spec 1/2 authors must reconcile"},
+
+  {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
+
   {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 ]
-
-# ─────────────────────────────────────────────────────────────────────────────
-
-["ini-005"]
-name      = "AgentBundle Portable Catalogue Tooling"
-status    = "complete"
-milestone = "M1 · Portable Engine + Public CLI (complete)"
-# Closed. Successor: ini-007 owns all remaining catalogue engine and discovery work.
-
-["ini-005".shaping_queue]
-active  = []
-backlog = []
-
-["ini-005".work]
-active  = []
-shipped = [
-  "spec/catalogue-tooling-foundation",
-  "spec/catalogue-tooling-lint",
-  "spec/catalogue-tooling-sync-defaults",
-  "spec/catalogue-tooling-build-self",
-  "spec/catalogue-tooling-verify",
-  "spec/catalogue-tooling-package-enhanced",
-]
-queue   = []
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ini-006 · Catalogue CI Contract — complete.
-# Delivered guides/_shared/catalogue-ci-contract.md: the portable,
-# provider-neutral commands, outputs, exit behavior, publication ordering,
-# evidence, and responsibility boundaries. That guide is the contract; read it
-# rather than this banner.
-# ─────────────────────────────────────────────────────────────────────────────
-["ini-006"]
-name      = "Catalogue CI Contract"
-status    = "complete"
-milestone = "M1 · Provider-Neutral CI Contract"
-
-["ini-006".shaping_queue]
-active  = []
-backlog = []
-
-["ini-006".work]
-active  = []
-shipped = [
-  {path = "docs/specs/catalogue-ci-contract-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-ci-contract-guide", needs = []},
-  {path = "docs/specs/catalogue-ci-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-ci-export-boundary", needs = []},
-  {path = "docs/specs/catalogue-ci-documentation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue CI — Documentation Integration", needs = []},
-]
-queue   = []
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery
@@ -1954,33 +1876,6 @@ queue   = [
   {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
   {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/documentation-entry-navigation"]},
 ]
-["ini-008"]
-name      = "Work Intake and Artifact Routing"
-status    = "complete"
-milestone = "Wave 7 · Migration and documentation (complete)"
-
-["ini-008".work]
-# Entries are canonical target records (RFC-0083 delivery groups). Each carries its
-# own path, kind, source, summary and typed `needs`, so it is dispatchable without
-# reading a neighbouring comment. Legacy `spec/<slug>` strings are NOT valid here:
-# `workspace-routing-invariants` (Group 3, shipped) made canonical routing the
-# enforced contract, and a legacy path yields `invalid_artifact_path` and refuses
-# dispatch. Needs are typed objects — the canonical parser rejects bare strings.
-shipped = [
-  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
-  {path = "docs/specs/normalized-intake-workspace-contracts/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize intake and workspace contracts", needs = []},
-  {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
-  {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
-  {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
-  {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
-  {path = "docs/specs/semantic-surface-resolver/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Resolve semantic roles to repository-owned or external destinations without lifecycle changes", needs = []},
-]
-active = []
-queue = [
-  # Group 6 — origin-aware refresh, conflict resolution, execution locks and
-  # limited post-execution write-back across supported trackers.
-]
-
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-009 · Agent Skill Engineering
 # Authority: RFC-0097 (Accepted; implementation waits for approved specs).

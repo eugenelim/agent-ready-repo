@@ -1,6 +1,6 @@
 # Plan: catalogue-wave1-contract-convergence
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Governed by:** RFC-0076 D1–D4
 

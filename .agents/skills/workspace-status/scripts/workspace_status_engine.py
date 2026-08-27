@@ -585,6 +585,9 @@ def _is_repository_relative_path(value: object) -> bool:
 
 _SINGLE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$")
 
+# Upper bound on any untrusted workspace value emitted as a finding identifier.
+_MAX_FINDING_IDENTIFIER = 200
+
 
 def _is_canonical_spec_artifact_path(path: object) -> bool:
     if not isinstance(path, str) or not _is_repository_relative_path(path):
@@ -1085,10 +1088,34 @@ def _is_legacy_spec_path(value: object) -> bool:
     return len(parts) == 2 and parts[0] == "spec" and _is_legacy_slug(parts[1])
 
 
+def _bounded_finding_identifier(value: str) -> str:
+    """Bound an untrusted workspace value before it becomes a finding identifier.
+
+    Findings are rendered back into an agent's context, so an unbounded or
+    control-character-bearing value read from `workspace.toml` is an
+    output-injection surface. Unsafe but *path-shaped* values survive this
+    bound on purpose, so `invalid_artifact_path` can still name them; only
+    unrenderable ones degrade to the unattributed fallback.
+    """
+    if len(value) > _MAX_FINDING_IDENTIFIER:
+        return ""
+    if any(char < " " or char == "\x7f" for char in value):
+        return ""
+    return value
+
+
 def _legacy_path_finding(collection: str, raw: object) -> LegacyWorkspaceEntry:
     path = raw if isinstance(raw, str) else ""
-    if isinstance(raw, dict) and isinstance(raw.get("path"), str):
-        path = raw["path"]
+    if isinstance(raw, dict):
+        if isinstance(raw.get("path"), str):
+            path = raw["path"]
+        elif _is_legacy_slug(raw.get("slug")):
+            # Single-segment by construction, so a promoted slug can never
+            # satisfy the `path_like` test below. That is what keeps the record
+            # `unsupported_legacy` instead of reclassifying it as
+            # `invalid_artifact_path`; do not loosen this predicate.
+            path = raw["slug"]
+    path = _bounded_finding_identifier(path)
     code = "unsupported_legacy"
     if path:
         path_like = (

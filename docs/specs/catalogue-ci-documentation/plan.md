@@ -1,6 +1,6 @@
 # Plan: Catalogue CI — Documentation Integration
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [spec.md](spec.md)
 
 ## Tasks

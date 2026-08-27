@@ -291,7 +291,11 @@ target entry in `work.queue`.
 
 ## Canonical Findings
 
-Every refusal is visible as a stable code with a safe next action.
+Every refusal is visible as a stable code with a safe next action, plus an
+identifier. The identifier is a repository-relative path, except for
+`unsupported_legacy`, which carries a safe single-segment slug when the
+offending object has one so that each record stays attributable. Treat a
+finding identifier as a path only after confirming it is one.
 
 | Code | Why blocked | Safe action |
 | --- | --- | --- |

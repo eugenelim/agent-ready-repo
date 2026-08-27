@@ -1,6 +1,6 @@
 # Plan: catalogue-wave2-pack-integrations
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 Mode: full (structural schema change — new `[[pack.integrations]]` field in

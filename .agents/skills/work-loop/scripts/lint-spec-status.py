@@ -37,8 +37,9 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves against `workspace.toml [backlog].open` slug fields.
-        HARD (exit non-zero).
+        resolves against `workspace.toml [backlog].open`, in either entry
+        shape: a legacy record's `slug`, or a canonical record's `path`
+        reduced by `canonical_entry_anchor`. HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -150,11 +151,55 @@ def parse_status(spec_text: str) -> str | None:
     return None
 
 
-def _regex_backlog_slugs(workspace_text: str) -> set[str]:
-    """Extract [backlog].open slugs from workspace.toml text via regex fallback.
+def status_uses_list_item_form(spec_text: str) -> bool:
+    """Report whether the live status field uses the `- **Status:**` form.
 
-    Used when tomllib/tomli is unavailable or the TOML is malformed.
-    Scans for slug = "..." lines within the [backlog] section only.
+    The workspace-status engine anchors on that list-item form and treats a
+    bare `**Status:**` as no status at all, so the two surfaces disagree about
+    the same file. Scans the same preamble window as `parse_status`.
+    """
+    cleaned = _HTML_COMMENT_RE.sub("", spec_text)
+    for line in cleaned.splitlines():
+        if _SECTION_HEADING_RE.match(line):
+            break
+        if line.lstrip().startswith("#"):
+            continue
+        if _STATUS_RE.search(line):
+            return line.lstrip().startswith("- **Status:**")
+    return False
+
+
+def canonical_entry_anchor(path: str) -> str | None:
+    """Derive a deferral anchor from a canonical entry's `path`.
+
+    A canonical `[backlog].open` entry carries `path`/`kind` and no `slug`, so
+    resolving invariant (iv) from the `slug` key alone would oblige every
+    deferring spec to write a legacy-shaped record. A spec or plan path
+    (`docs/specs/<slug>/spec.md`) anchors on its owning directory; any other
+    artifact anchors on its file stem, which is how the shaping slugs these
+    entries replaced were already named.
+    """
+    if not path:
+        return None
+    parts = [part for part in path.split("/") if part]
+    if not parts:
+        return None
+    name = parts[-1]
+    stem = name.rsplit(".", 1)[0] if "." in name else name
+    if stem in {"spec", "plan"} and len(parts) >= 2:
+        return parts[-2] or None
+    return stem or None
+
+
+def _regex_backlog_slugs(workspace_text: str) -> set[str]:
+    """Extract [backlog].open anchors from workspace.toml text via regex fallback.
+
+    Used when tomllib/tomli is unavailable or the TOML is malformed. Scans the
+    [backlog] section for both `slug = "..."` (legacy shape) and `path = "..."`
+    (canonical shape). Without a parser this cannot separate an entry's own
+    `path` from a `needs` target, so it may over-collect; a fallback that is
+    too permissive only fails to report an unresolved anchor, whereas one that
+    is too strict would fail a correct spec.
     """
     slugs: set[str] = set()
     in_backlog = False
@@ -167,11 +212,21 @@ def _regex_backlog_slugs(workspace_text: str) -> set[str]:
             m = re.search(r'\bslug\s*=\s*"([^"]+)"', line)
             if m:
                 slugs.add(m.group(1))
+            for raw_path in re.findall(r'\bpath\s*=\s*"([^"]+)"', line):
+                anchor = canonical_entry_anchor(raw_path)
+                if anchor:
+                    slugs.add(anchor)
     return slugs
 
 
 def backlog_open_slugs(workspace_path: Path) -> set[str]:
-    """Return the set of slugs from workspace.toml [backlog].open.
+    """Return the set of resolvable deferral anchors from [backlog].open.
+
+    Accepts both entry shapes: a legacy `{slug = ...}` record anchors on its
+    `slug`, and a canonical `{path = ..., kind = ...}` record anchors on the
+    identifier derived by `canonical_entry_anchor`. Supporting both is what
+    stops invariant (iv) from obliging a deferring spec to write a legacy
+    record in order to be resolvable.
 
     Uses tomllib (Python 3.11+ stdlib) or tomli (backport) when available;
     falls back to regex for all other cases including malformed TOML.
@@ -189,11 +244,20 @@ def backlog_open_slugs(workspace_path: Path) -> set[str]:
             except ImportError:
                 return _regex_backlog_slugs(text)
         data = tomllib.loads(text)
-        return {
-            e["slug"]
-            for e in data.get("backlog", {}).get("open", [])
-            if isinstance(e, dict) and "slug" in e
-        }
+        anchors: set[str] = set()
+        for entry in data.get("backlog", {}).get("open", []):
+            if not isinstance(entry, dict):
+                continue
+            slug = entry.get("slug")
+            if isinstance(slug, str) and slug:
+                anchors.add(slug)
+                continue
+            entry_path = entry.get("path")
+            if isinstance(entry_path, str):
+                derived = canonical_entry_anchor(entry_path)
+                if derived:
+                    anchors.add(derived)
+        return anchors
     except ValueError:
         return _regex_backlog_slugs(text)
 
@@ -467,6 +531,17 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             hard.append(
                 f"{rel}: invariant (i) — status '{token}' not in "
                 f"{{{', '.join(sorted(CANONICAL_STATUSES))}}}"
+            )
+        elif not status_uses_list_item_form(text):
+            # This lint accepts a bare `**Status:**`, but the workspace-status
+            # engine anchors on the `- **Status:**` list-item form and reads a
+            # bare field as absent -- which surfaces later as an
+            # `impossible_transition` against the entry's collection instead of
+            # a lint error here. Warn-only: 18 specs predate the divergence.
+            warn.append(
+                f"{rel}: invariant (i) — `**Status:**` is not in the "
+                f"`- **Status:**` list-item form the workspace engine reads "
+                f"(warn-only)"
             )
 
         # (iv) deferral anchors resolve
