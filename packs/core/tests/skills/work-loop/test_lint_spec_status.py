@@ -1062,16 +1062,21 @@ def test_a_commented_out_ac_section_is_a_hard_error() -> None:
     assert found is not None and found[0] == 6, found
 
 
-def test_a_commented_draft_beside_a_live_section_is_allowed() -> None:
-    """Only when EVERY heading is commented out. A retained draft beside a live
-    section is the author's business, and flagging it would push authors to
-    delete history to satisfy a linter."""
+def test_a_commented_draft_beside_a_live_section_is_rejected() -> None:
+    """A commented-out Acceptance-Criteria section is not a supported shape in
+    ANY position, including beside a live one.
+
+    Allowing it as "the author's business" let a commented, superseded `- [ ]`
+    be collected as a real criterion, so invariant (ii) blocked a ship on work
+    nobody intended to do. Criteria that no longer apply are deleted; git
+    history is where superseded ones live.
+    """
     lint = load_linter_module()
     spec = (
         "# Spec: s\n\n## Acceptance Criteria\n\n- [x] real\n\n"
-        "<!--\n## Acceptance Criteria\n- [ ] superseded\n-->\n"
+        "<!--\n## Acceptance Criteria\n\n- [ ] superseded\n-->\n"
     )
-    assert lint.commented_out_ac_heading(spec) is None
+    assert lint.commented_out_ac_heading(spec) is not None
 
 
 def test_backticked_comment_syntax_does_not_trigger_the_rule() -> None:
@@ -1235,3 +1240,58 @@ def test_a_resolvable_base_ref_still_drives_the_diff_triggers() -> None:
         _write_spec_with_header(root, "newborn", "Shipped", "", "")
         hard, _warn = lint.check(root, "HEAD")
     assert any("invariant (vi)" in v for v in hard), hard
+
+
+def test_opting_out_while_keeping_a_commented_draft_is_rejected() -> None:
+    """Also rejected beside an opt-out marker -- but for the right reason.
+
+    This shape originally drew TWO contradictory hard errors: one telling the
+    author to add a marker they already had, and one reporting both a section
+    and a marker, because presence counted the commented heading as live. The
+    message bug and the presence bug are fixed; the rejection itself is
+    correct, because the commented section should be deleted.
+    """
+    lint = load_linter_module()
+    spec = (
+        "# Spec: decided\n\n- **Status:** Draft\n"
+        "- **Acceptance Criteria:** none — a decision record\n\n"
+        "<!--\n## Acceptance Criteria\n\n- [ ] abandoned draft\n-->\n"
+    )
+    assert lint.commented_out_ac_heading(spec) is not None
+    # ...and NOT via the section/marker contradiction: a commented heading is
+    # not a live section, so that check must stay quiet.
+    assert lint.acceptance_criteria_section_present(spec) is False
+
+
+def test_a_commented_heading_is_not_a_near_miss() -> None:
+    """The rejection must cite the commented section, not a heading-spelling
+    problem. Before presence became comment-aware the near-miss scan read raw
+    text and reported `should be exactly '## Acceptance Criteria' (found
+    '## Acceptance Criteria')` -- warning about the form it had just found."""
+    lint = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        (root / "docs" / "specs" / "decided").mkdir(parents=True)
+        (root / "docs" / "specs" / "decided" / "spec.md").write_text(
+            "# Spec: decided\n\n- **Status:** Draft\n"
+            "- **Acceptance Criteria:** none — decisions only\n\n"
+            "<!--\n## Acceptance Criteria\n\n- [ ] draft\n-->\n",
+            encoding="utf-8",
+        )
+        (root / "workspace.toml").write_text(
+            "[backlog]\nopen = []\nclosed = []\n", encoding="utf-8"
+        )
+        git_init_commit(root)
+        hard, warn = lint.check(root, "HEAD")
+    assert any("is commented out" in v for v in hard), hard
+    assert not any("should be exactly" in w for w in warn), warn
+
+
+def test_a_commented_only_section_without_a_marker_is_still_a_hard_error() -> None:
+    """The control: the exclusion must not disable the guard itself."""
+    lint = load_linter_module()
+    spec = (
+        "# Spec: s\n\n- **Status:** Shipped\n\n"
+        "<!--\n## Acceptance Criteria\n\n- [ ] disabled\n-->\n"
+    )
+    assert lint.commented_out_ac_heading(spec) is not None
