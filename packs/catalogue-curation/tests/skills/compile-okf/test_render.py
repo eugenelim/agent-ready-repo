@@ -84,8 +84,10 @@ def test_index_metadata_fields_are_bounded_and_context_escaped() -> None:
     assert encode("Active\r\n[status](bad)") == (
         "Active\\r\\n\\[status\\]\\(bad\\)"
     )
+    # The scheme colon is escaped too: escaping `<`/`>` stops an inline autolink,
+    # but GFM linkifies a bare `https://` run with no delimiter around it at all.
     assert encode("Reference<https://example.invalid/>\\tail") == (
-        "Reference\\<https://example.invalid/\\>\\\\tail"
+        "Reference\\<https\\://example.invalid/\\>\\\\tail"
     )
 
 
@@ -172,14 +174,126 @@ def test_generated_index_encodes_path_derived_link_text_and_destinations() -> No
     ).encode()
 
 
-def test_display_escaping_neutralizes_every_line_separator() -> None:
-    # AC1 — `\r` and `\n` were escaped from the start; these five are the other
-    # code points a splitlines() reader treats as breaks, so an unescaped one made
-    # a single entry look like several to the router's plaintext view.
-    for probe in ("a\x0bb", "a\x0cb", "a\x85b", "a\u2028b", "a\u2029b"):
-        rendered = okf_compiler._index_display_value(probe)
-        assert len(rendered.splitlines()) == 1, (probe, rendered)
-        assert "\\" in rendered, (probe, rendered)
+def test_display_escaping_covers_the_whole_control_class() -> None:
+    # AC1 — this test used to iterate the five separators the escape table listed,
+    # which made it a positive control that could not detect an omission. It
+    # omitted three: `\x1c`, `\x1d` and `\x1e`, which `str.splitlines()` breaks on
+    # and which reach a title through a YAML `"\x1c"` escape. Driving the class
+    # instead of a list is what makes the next omission fail here.
+    separators = {*range(0x20), 0x7F, *range(0x80, 0xA0), 0x2028, 0x2029}
+    friendly = {0x09: r"\t", 0x0A: r"\n", 0x0D: r"\r"}
+    for code_point in sorted(separators):
+        character = chr(code_point)
+        expected = friendly.get(
+            code_point,
+            rf"\u{code_point:04x}" if code_point > 0xFF else rf"\x{code_point:02x}",
+        )
+        rendered = okf_compiler._index_display_value(f"a{character}b")
+        assert rendered == f"a{expected}b", (hex(code_point), rendered)
+        # The point of escaping: one entry can never read as two.
+        assert len(rendered.splitlines()) == 1, (hex(code_point), rendered)
+        assert character not in rendered, (hex(code_point), rendered)
+
+
+def test_destination_encoding_covers_the_same_control_class_as_display() -> None:
+    # AC1 — the display table escaped the Unicode line and paragraph separators
+    # while the destination encoder left them raw, so one rendered line escaped the
+    # separator in its link text and emitted it literally in its destination. Both
+    # legs must agree, or a splitlines() reader still counts an extra entry.
+    for code_point in (*range(0x20), 0x7F, 0x85, 0x2028, 0x2029):
+        character = chr(code_point)
+        encoded = okf_compiler._index_link_destination(f"a{character}b.md")
+        assert character not in encoded, (hex(code_point), encoded)
+        assert len(encoded.splitlines()) == 1, (hex(code_point), encoded)
+
+
+def test_destination_encoding_permits_every_legitimate_filename_shape() -> None:
+    # AC1 — the permitting direction. Two earlier versions of this encoder ran the
+    # whole path through `quote()`, which turned a legitimately named `café.md`
+    # into an unopenable `caf%C3%A9.md`. A suite that only proves the blocking
+    # direction passed for both of them.
+    for filename in ("café.md", "a-b._~c.md", "notes/日本語.md", "UPPER-lower.md"):
+        assert okf_compiler._index_link_destination(filename) == filename, filename
+
+
+def test_destination_encoding_covers_every_member_of_its_character_class() -> None:
+    # AC1 — six reachable members had no test input, including `%`, the one the
+    # spec gives an explicit security rationale for: without it an emitted `%20`
+    # is indistinguishable from a literal one, so `two%20words.md` and
+    # `two words.md` would collide on a single destination.
+    assert okf_compiler._index_link_destination("two%20words.md") == "two%2520words.md"
+    assert okf_compiler._index_link_destination("two words.md") == "two%20words.md"
+    for filename, expected in (
+        ("don't.md", "don%27t.md"),
+        ("a`b.md", "a%60b.md"),
+        ("a^b.md", "a%5Eb.md"),
+        ("a{b}.md", "a%7Bb%7D.md"),
+        ("a|b.md", "a%7Cb.md"),
+        ("a\x9fb.md", "a%C2%9Fb.md"),
+    ):
+        assert okf_compiler._index_link_destination(filename) == expected, filename
+
+
+def test_colon_bearing_filename_is_refused_so_the_destination_need_not_encode_it() -> None:
+    # AC1 — `:` is left literal in a destination, which is safe only because the
+    # path gate rejects it: `javascript:alert(1).md` would otherwise yield a live
+    # scheme URL for any renderer that does not sanitize schemes. This test couples
+    # the two, so relaxing the gate reddens a test that names the reason.
+    assert okf_compiler._is_safe_relative_path("concepts/javascript:alert(1).md") is False
+    assert ":" not in okf_compiler._LINK_DESTINATION_UNSAFE.pattern
+    assert (
+        okf_compiler._index_link_destination("javascript:alert(1).md")
+        == "javascript:alert%281%29.md"
+    )
+
+
+def test_display_escaping_neutralizes_every_gfm_autolink_trigger() -> None:
+    # AC1 — GFM linkifies three shapes with no surrounding Markdown, so a display
+    # value could render as a live link without containing a delimiter. The
+    # frontmatter leg refuses a reference outright, but path-derived text (a
+    # directory name) reaches the same sink and no refusal covers it. Escaping the
+    # one punctuation mark each trigger needs is renderer-verified to leave the
+    # rendered text byte-identical while the link goes inert.
+    assert okf_compiler._index_display_value("www.evil.invalid") == "www\\.evil.invalid"
+    assert okf_compiler._index_display_value("WWW.Evil.Invalid") == "WWW\\.Evil.Invalid"
+    assert (
+        okf_compiler._index_display_value("see http://evil.invalid")
+        == "see http\\://evil.invalid"
+    )
+    # A bare address is the trigger that matching `mailto:` alone missed entirely,
+    # and escaping the `mailto:` colon does not defuse it — GFM linkifies the
+    # address on its own.
+    assert okf_compiler._index_display_value("ops@evil.invalid") == "ops\\@evil.invalid"
+    assert (
+        okf_compiler._index_display_value("mailto:ops@evil.invalid")
+        == "mailto\\:ops\\@evil.invalid"
+    )
+    # Ordinary metadata is untouched: no trigger, no backslash.
+    for benign in ("Concept: overview", "v1.2.3-notes", "release-readiness"):
+        assert okf_compiler._index_display_value(benign) == benign, benign
+
+
+def test_path_derived_heading_cannot_form_a_live_autolink() -> None:
+    # AC1 — the directory name reaches `# OKF index: <name>` space-preceded, which
+    # is a valid GFM www-autolink start. The frontmatter refusal cannot reach it.
+    directory = "www.internal.invalid"
+    concepts = {
+        f"{directory}/x.md": okf_compiler.Concept(
+            path=f"{directory}/x.md",
+            metadata={"title": "Safe", "status": "Active", "type": "Reference"},
+            body="",
+        )
+    }
+
+    indexes = okf_compiler._render_indexes("rich", concepts)
+
+    assert indexes[f"{directory}/index.md"] == (
+        f"{okf_compiler.MANAGED_INDEX_MARKER}\n"
+        "# OKF index: www\\.internal.invalid\n\n"
+        "- [Safe](x.md) - Active Reference\n"
+    ).encode()
+    # The destination keeps the directory literal so the path stays openable.
+    assert b"(www.internal.invalid/index.md)" in indexes["index.md"]
 
 
 def test_display_escaping_neutralizes_code_span_and_emphasis_delimiters() -> None:
@@ -200,6 +314,11 @@ def test_frontmatter_remote_reference_is_refused_anywhere_in_the_value() -> None
         "see http://evil.invalid",
         "go to www.evil.invalid",
         "mail mailto:ops@evil.invalid",
+        # A bare address is the fourth shape GFM linkifies. Matching `mailto:`
+        # alone left it open, and it is the form a real corpus is most likely to
+        # carry, so it is the one that mattered most.
+        "escalate to ops@evil.invalid",
+        "first.last+tag@sub.evil.invalid",
     ):
         codes = [
             diagnostic.code
@@ -254,6 +373,25 @@ def test_non_encodable_path_is_refused_at_the_gate_not_at_the_encode() -> None:
     # Legitimate names, including non-ASCII, must still pass.
     assert okf_compiler._is_safe_relative_path("concepts/ok.md") is True
     assert okf_compiler._is_safe_relative_path("concepts/café.md") is True
+
+
+def test_refusing_a_non_encodable_path_survives_the_diagnostic_sort() -> None:
+    # The gate above is not the whole exit path. `_sort_diagnostics` keys on a
+    # strict `encode("utf-8")` of the diagnostic's own path, so refusing the file
+    # still ended in an uncaught UnicodeEncodeError one layer later — a refusal
+    # that produced no OKF0xx line. Asserting the predicate alone could not see
+    # that, so this drives the sink the refusal actually flows through.
+    diagnostic = okf_compiler._diagnostic(
+        "OKF004", "concepts/bad\udcffname.md", "unsafe path"
+    )
+    assert "\udcff" not in diagnostic.path
+    sorted_diagnostics = okf_compiler._sort_diagnostics([diagnostic])
+    assert [item.code for item in sorted_diagnostics] == ["OKF004"]
+    # An ASCII path is untouched, so no existing diagnostic's path changes.
+    assert (
+        okf_compiler._diagnostic("OKF004", "concepts/ok.md", "m").path
+        == "concepts/ok.md"
+    )
 
 
 def test_non_encodable_frontmatter_value_is_diagnosed_not_crashed() -> None:

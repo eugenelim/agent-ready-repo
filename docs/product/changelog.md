@@ -100,21 +100,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   change in four independent ways, so `compile-okf --check` reports `OKF011`
   output drift against output built by an earlier version until you recompile:
   concept `title`, `status`, and `type` are now escaped and capped at 200 input
-  characters, so any of those values containing `\`, `[`, `]`, `(`, `)`, `<`,
-  `>`, a carriage return, or a newline — or exceeding the cap — renders
-  differently; path-derived index display text is escaped the same way, so a
-  directory named `patterns(v2)` changes both its root-index link text and its
-  own `# OKF index:` heading; index link destinations percent-encode the
-  characters a Markdown destination cannot carry, so a concept filename holding a
-  space, `( ) < > " ' \ ^ ` { | }`, or `& # ; %` changes while letters, digits,
-  `- . _ ~` and non-ASCII stay literal; and root-index entries
-  are ordered by normalized source path rather than by rendered line bytes, so a
-  root index holding a directory that is a byte prefix of another reorders.
-- Destination encoding is deliberately narrow so a cited path stays openable: a
-  non-ASCII filename such as `café.md` is cited literally, and only characters a
-  Markdown destination cannot carry are encoded (`two words.md` becomes
-  `two%20words.md`). A filename that does get encoded was already unusable as a
-  literal destination before this release.
+  characters, so any of those values renders differently if it exceeds the cap or
+  contains any of: ``\``, ``[``, ``]``, ``(``, ``)``, ``<``, ``>``, a backtick,
+  ``*``, ``_``, any control character (including a carriage return, a newline, or
+  any other code point `splitlines()` breaks on), U+2028/U+2029, or a GFM
+  autolink trigger — a ``www.`` host, a ``scheme://`` URL, or a bare
+  ``user@host.tld`` address, whose punctuation is escaped so the text renders
+  identically but the link is no longer live. **A backtick, ``*`` and ``_`` are
+  the ones ordinary metadata hits**: a title such as ``cost_model`` or
+  ``Use `make ci` in CI`` will change. Path-derived index display text is escaped
+  the same way, so a directory named ``patterns(v2)`` changes both its root-index
+  link text and its own ``# OKF index:`` heading. Index link destinations
+  percent-encode every character outside letters, digits, ``- . _ ~``, ``/``,
+  ``! $ + , = @ [ ]``, ``:`` and non-ASCII, so a concept filename holding a
+  space, ``" ( ) < > \ | ' ^ ` { }``, ``& # ; %``, a control character or
+  U+2028/U+2029 changes. And root-index entries are ordered by normalized source
+  path rather than by rendered line bytes, so a root index holding a directory
+  that is a byte prefix of another reorders.
+- Destination encoding keeps a cited path openable wherever it safely can: a
+  non-ASCII filename such as ``café.md`` is cited literally. Two of the three
+  encoded classes are security-relevant — characters that break a CommonMark
+  destination, and characters a renderer resolves as a character reference. The
+  third, ``' ^ ` { }``, is encoded for URL validity rather than safety, and that
+  trades literal fidelity for it: a legitimately named ``don't-panic.md`` is
+  cited as ``don%27t-panic.md`` even though it was usable as a literal
+  destination before this release.
 
 ### Fixed
 
@@ -139,6 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Recompiled the architect OKF projection from the corrected authored bundle
   root and added pack/plugin/changelog release invariants.
+
 ## [core][2.12.5] — 2026-08-27
 
 ### Highlights

@@ -73,7 +73,11 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
 
 
 def test_okf_pack_releases_name_themselves_in_the_topmost_changelog_heading() -> None:
-    """A pack's topmost changelog heading must name its current pack version.
+    """Each OKF-releasing pack's topmost changelog heading names its version.
+
+    Scoped to the packs this change releases, not to every pack: `packs/core` and
+    the cost-engineering pilot also ship OKF surfaces and are deliberately not
+    covered here, so do not read a pass as repository-wide coverage.
 
     This is the third surface of the pack/plugin/changelog release invariant.
     It lives here rather than in each pack's own suite because

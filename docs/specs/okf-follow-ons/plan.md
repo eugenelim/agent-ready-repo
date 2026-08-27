@@ -105,13 +105,19 @@ review, finding adjudication, and quality review over the integrated intent.
 
 ### Quality attributes (NFRs)
 
-- Security: after display-field normalization no concept metadata value can
-  choose a link target, add an index entry, or add a heading in compiler-owned
-  output, and neither `\r` nor `\n` survives. This is link-and-entry-forgery
-  scope, not display fidelity: the confirmed escape set covers link and newline
-  delimiters only, so the three display-integrity residuals recorded in the
-  spec's Assumptions — GFM autolinks, exotic line separators, and code-span
-  swallow — remain open under *Ask first*. Traces to AC1–AC3.
+- Security: after display-field normalization no concept metadata value and no
+  path-derived display value can choose a link target, add an index entry, add a
+  heading, or render a live link in compiler-owned output. The owner widened the
+  confirmed escape set twice during execution, so the three display-integrity
+  residuals this NFR previously recorded as open — GFM autolinks, exotic line
+  separators, and code-span swallow — are **closed**, together with the three
+  follow-on defects the first widening left behind (an enumerated separator list
+  missing `\x1c`–`\x1e`, U+2028/U+2029 covered in the display leg but not the
+  destination leg, and a bare `user@host.tld` address the frontmatter refusal did
+  not match). Every rule is now expressed as a character class rather than a
+  member list, and both legs of a rendered line cover the same class. See the
+  spec's Assumptions for the measured blast radius and the owner decisions.
+  Traces to AC1–AC3.
 - Determinism: normalization is pure and the repeated-render mismatch retains a
   mutation-sensitive test. Traces to AC4–AC5.
 - Maintainability: release tests assert cross-file invariants rather than
@@ -146,6 +152,20 @@ review, finding adjudication, and quality review over the integrated intent.
   deterministic post-condition because `output_contains` is matched against
   captured run output, so requiring it would fail an agent that summarises the
   index rather than quoting it.
+- Added in-phase after the owner widened the escape set (rounds 17 and 21), each
+  driving a **class** rather than a member list so the next omission fails here:
+  assert every code point in the C0/DEL/C1 range plus U+2028/U+2029 is escaped in
+  display text and encoded in destinations, with both legs asserted separately
+  (AC1); assert every GFM extended-autolink trigger — `www.`, `scheme://`, and a
+  bare address — is neutralized in display text while benign values are returned
+  unchanged (AC1); assert a directory named `www.internal.invalid` cannot render a
+  live link in its own generated heading (AC1); assert the permitting direction,
+  that `café.md` and other legitimate shapes are cited literally (AC1); assert
+  every member of the destination character class has a vector, including `%`
+  (AC1); assert a `:`-bearing filename is refused so the destination encoder may
+  safely leave `:` literal, coupling the two (AC1); assert `OKF009` refuses a bare
+  address in frontmatter (AC1); and assert a refused non-UTF-8 path survives
+  `_sort_diagnostics` rather than aborting one layer past its gate (AC1).
 
 **Approach:**
 

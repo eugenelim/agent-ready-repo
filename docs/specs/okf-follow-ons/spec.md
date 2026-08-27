@@ -102,33 +102,62 @@ affected packs ship internally consistent release metadata.
 
 - [ ] **AC1:** `title`, `status`, and `type` are each converted to a string,
   capped at 200 input characters, and escaped before compiler-owned index
-  interpolation. The escape set covers three classes: every line separator
-  (`\r`, `\n`, `\x0b`, `\x0c`, `\x85`, U+2028, U+2029) rendered as a visible
-  escape, so no value can look like more than one entry to either a CommonMark
-  renderer or a `splitlines()` reader; link and autolink structure (`\`, `[`,
-  `]`, `(`, `)`, `<`, `>`); and code-span and emphasis delimiters
-  (`` ` ``, `*`, `_`). No display field can therefore emit an inline link,
-  image, autolink, code span, or emphasis run, so the canonical filename
-  remains the only `](…)` link target and every entry renders as exactly one
-  entry. A bare URL cannot reach a display field at all, because `OKF009`
-  refuses any frontmatter value containing `http://`, `https://`, `www.`, or
-  `mailto:` anywhere within it — RFC-0087 rejected runtime external fetch, so a
-  URL in metadata is never dereferenced and has no supported function.
+  interpolation. Each escape rule is stated as a **class**, not as a list of
+  members; an enumeration is what let three members slip through review.
+  Four classes are covered:
+  - Every code point a reader can treat as a line break — the C0 controls, DEL,
+    the C1 controls, and U+2028/U+2029 — rendered as a visible escape, so no
+    value can look like more than one entry to either a CommonMark renderer or a
+    `splitlines()` reader. The class matters rather than the separators alone:
+    `\x1b` repaints a terminal below Markdown and `\x00` truncates a
+    null-terminating reader.
+  - Link and autolink structure (`\`, `[`, `]`, `(`, `)`, `<`, `>`).
+  - Code-span and emphasis delimiters (`` ` ``, `*`, `_`).
+  - Every GFM extended-autolink trigger, because GFM linkifies a bare `www.`
+    host, a `scheme://` URL, and a bare `user@host.tld` address with no
+    surrounding Markdown at all. Escaping the single punctuation mark each
+    trigger requires leaves the rendered text byte-identical and the link inert.
+
+  No display field can therefore emit an inline link, image, autolink, code
+  span, or emphasis run, so the canonical filename remains the only `](…)` link
+  target and every entry renders as exactly one entry. Frontmatter additionally
+  refuses a reference outright: `OKF009` rejects any value containing
+  `http://`, `https://`, `www.`, `mailto:`, or a bare address anywhere within it
+  — RFC-0087 rejected runtime external fetch, so a URL in metadata is never
+  dereferenced and has no supported function. Escaping covers the leg a refusal
+  cannot reach: a **directory name** becomes display text in a
+  `# OKF index: <name>` heading, where a refusal would instead deny an author a
+  legal directory name.
   Concept **bodies** are deliberately not scanned: an organization-specific
   corpus may legitimately point a reader at an internal app or runbook for
   manual follow-up, and the body is where such a pointer belongs, since it
   reaches the agent on descent and is never fetched.
-  Index link destinations are the concept's canonical filename with exactly two
-  classes of character percent-encoded and nothing else: structural ones that
-  break or escape a CommonMark destination (C0/C1 controls, space, and
-  `" ' ( ) < > \ ^ ` { | }`), and reference-forming ones (`&`, `#`, `;`, and
-  `%`) because a renderer resolves character references *inside* a destination —
-  leaving those literal is what lets a concept named `..&#x2F;..&#x2F;SKILL.md`
-  render an attacker-chosen `href`. Letters, digits, `- . _ ~`, `/`, and all
-  non-ASCII stay literal, so the destination remains a path the router's reader
-  can open; a filename that does need encoding was already unusable as a literal
-  destination before this change. Encoding the whole path was tried and rejected:
-  it turned a legitimate `café.md` into `caf%C3%A9.md` for no security gain.
+
+  Index link destinations are the concept's canonical filename with three
+  classes percent-encoded. The encoded set in `_LINK_DESTINATION_UNSAFE` is the
+  authority; this is a description of it, not a substitute:
+  - *Structural* — C0/C1 controls, space, U+2028/U+2029, and `" ( ) < > \ |`.
+    These break or escape a CommonMark destination. The separators are encoded
+    here as well as in the display table so both legs of one rendered line agree
+    on where that line ends.
+  - *Reference-forming* — `&`, `#`, `;`, and `%`, because a renderer resolves
+    character references *inside* a destination; leaving those literal is what
+    lets a concept named `..&#x2F;..&#x2F;SKILL.md` render an attacker-chosen
+    `href`, and `%` is encoded so an emitted escape is never read as a literal.
+  - *RFC-3986-excluded* — `'`, `^`, `` ` ``, `{`, `}`. These are **not**
+    security-relevant here: `[t](don't.md)` already produced a working `href`.
+    They are encoded for URL validity, and that knowingly trades literal
+    fidelity for it — a legitimately named `don't-panic.md` is cited as
+    `don%27t-panic.md`.
+
+  Letters, digits, `- . _ ~`, `/`, `! $ + , = @ [ ]`, `:`, and all non-ASCII stay
+  literal, so an ordinary destination remains a path the router's reader can
+  open. `:` staying literal is safe only because the path gate rejects it in a
+  path component; without that gate a concept named `javascript:alert(1).md`
+  would yield a live scheme URL for any renderer that does not sanitize schemes,
+  so a test pins the refusal and names the dependency. Encoding the whole path
+  was tried and rejected twice: it turned a legitimate `café.md` into
+  `caf%C3%A9.md` for no security gain.
 - [ ] **AC2:** A title-variant hostile fixture pins the complete generated
   `references/okf/concepts/index.md` bytes and proves no attacker-selected link
   or extra index entry is emitted.
@@ -198,18 +227,66 @@ affected packs ship internally consistent release metadata.
   single-entry integrity, and the frontmatter gate keeps URLs out entirely.**
   Verified with micromark against both CommonMark and GFM: no metadata value can
   choose a link target, add an index entry, or add a heading — the shipped
-  hostile fixture yields exactly one `href`, the canonical filename. Three
-  display residuals found during review were closed rather than registered, on
-  owner decision to widen the confirmed escape set: the five extra line
-  separators are now escaped, so a `splitlines()` reader and a CommonMark
-  renderer agree on entry count; `` ` ``, `*`, and `_` are escaped, so a
-  cross-field code span can no longer swallow an entry's own destination; and
-  `OKF009` now refuses a remote reference anywhere in a frontmatter value, not
-  only as a prefix, which removes the GFM autolink path. Widening the escape set
-  changed no committed generated byte — no shipped title, status, type, or
-  path-derived display value contains any newly escaped character — so the
-  release stays scoped to `catalogue-curation` and `architect` (source: owner
-  decision 2026-08-27 after adjudicated security review round 17).
+  hostile fixture yields exactly one `href`, the canonical filename. Six display
+  residuals found during review were closed rather than registered, on owner
+  decision to widen the confirmed escape set. Three were closed by escaping the
+  members a first pass named: the extra line separators, so a `splitlines()`
+  reader and a CommonMark renderer agree on entry count; `` ` ``, `*`, and `_`,
+  so a cross-field code span can no longer swallow an entry's own destination;
+  and `OKF009` refusing a remote reference anywhere in a frontmatter value
+  rather than only as a prefix.
+
+  A later round showed why those three were not enough, and the remaining three
+  are the correction. **Each rule is now stated and implemented as a class, not
+  as a list.** (i) The member list of line separators omitted `\x1c`, `\x1d` and
+  `\x1e` — code points `str.splitlines()` breaks on, reachable through a YAML
+  `"\x1c"` escape — while the guard test iterated exactly the members the table
+  already escaped, making it a positive control that could not detect an
+  omission; the table and the test now both drive the whole C0/DEL/C1 range.
+  (ii) The display table escaped U+2028/U+2029 while the destination encoder left
+  them raw, so one rendered line escaped a separator in its link text and emitted
+  it literally in its destination; both legs now cover the same range. (iii) The
+  frontmatter refusal matched `mailto:` but not a bare `user@host.tld`, which GFM
+  linkifies on its own, and no rule at all covered path-derived display text, so
+  a directory named `www.internal.invalid` rendered a live link in its own
+  heading; the predicate now covers bare addresses and `_index_display_value`
+  neutralizes every GFM autolink trigger. Escaping rather than refusing was the
+  owner's choice for the path leg, because it is renderer-verified to leave the
+  rendered text byte-identical and so denies an author no legal directory name.
+  Widening the escape set changed no committed generated byte — measured across
+  all 67 shipped OKF files in three corpora, zero display values or paths carry
+  any control character, autolink trigger, or colon — so the release stays scoped
+  to `catalogue-curation` and `architect` (source: owner decisions 2026-08-27
+  after adjudicated security review rounds 17 and 21, the second confirmed
+  end-to-end against micromark on the real compiler's generated bytes).
+- Technical: **The confirmed escape set is knowingly wider than security
+  requires in two places, and the descriptions now say so.** `'`, `^`,
+  `` ` ``, `{`, `}` are percent-encoded in destinations for RFC-3986 validity,
+  not safety — `[t](don't.md)` already produced a working `href` — so a
+  legitimately named `don't-panic.md` is cited as `don%27t-panic.md`. Intraword
+  `_` is escaped although CommonMark never emphasises it, so `cost_model` renders
+  as `cost\_model`. Both were left as shipped on owner decision; what changed is
+  that the docstring, this AC, the adopter changelog, and the public authoring
+  guide no longer claim such a filename "was already unusable as a literal
+  destination", which was false (source: owner decision 2026-08-27 after
+  adversarial review round 21).
+- Process: **AC5's mutation result, recorded durably because the mutant is by
+  design temporary.** On 2026-08-27, with the fix committed first so a
+  `git checkout --` restore could not delete it, `okf_compiler.py`'s second
+  `render_okf_bundle` call was replaced by `second = first`;
+  `test_repeated_compile_mismatch_returns_okf012_without_mutation` then failed on
+  **both** parameters (`extra-key` and `same-keys-different-bytes`), and passed
+  again after restoration, with `git diff` clean on the compiler. The
+  `same-keys-different-bytes` parameter is the one that kills a `files.keys()`
+  comparison; the run therefore attests the parametrized test as shipped, not its
+  pre-parametrize predecessor.
+- Process: **AC9's incomplete leg, recorded rather than claimed green.** SAST did
+  not run in this environment: the local chain is invoked as `SKIP_SAST=1 make
+  ci` because the managed profile does not provide the scanner. The
+  `gate-sast` required check on the pull request is the authority for that leg,
+  and no local claim substitutes for it. Dependency and container CVE scanning is
+  likewise out of scope for this diff, which adds no dependency (source: managed
+  profile constraint, 2026-08-27).
 - Process: Editing the shipped predecessor spec is an explicit exception to
   `docs/CONVENTIONS.md`'s frozen-spec rule for the requested AC17 restoration
   (source: user confirmation 2026-08-25).

@@ -74,11 +74,17 @@ this one is yours.
 Create each canonical concept under `concepts/`. **Name concept files with
 lowercase ASCII slugs** — letters, digits, and hyphens, as in
 `release-readiness.md`. Accented and non-ASCII names are fine too; the generated
-index cites them literally. What a slug avoids is the small set of characters a
-Markdown link destination cannot carry — a space, brackets of the `(`/`)` kind, or
-an `&`/`#`/`;` — which the compiler must percent-encode, so `two words.md` is
-cited as `two%20words.md`. Compilation still succeeds either way, so nothing
-warns you; a slug keeps the cited path and the on-disk path identical.
+index cites them literally. What a slug avoids is percent-encoding: the compiler
+encodes every character outside letters, digits, `-`, `.`, `_`, `~`, `/` and
+non-ASCII, so `two words.md` is cited as `two%20words.md` and `don't-panic.md` as
+`don%27t-panic.md`. Some of those characters would break the link and some are
+encoded only for URL validity, but the effect on the cited path is the same
+either way. Compilation still succeeds, so nothing warns you; a slug keeps the
+cited path and the on-disk path identical.
+
+A few names are refused outright rather than encoded, with an `OKF004`
+diagnostic: anything carrying a C0 control or `DEL`, one of `< > : " | ? *`, or
+bytes that are not valid UTF-8.
 
 For example,
 `packs/engineering/okf/delivery-practices/concepts/release-readiness.md` can
