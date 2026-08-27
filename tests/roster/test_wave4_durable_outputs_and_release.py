@@ -109,7 +109,7 @@ def test_core_release_metadata_and_history_agree() -> None:
     assert pack["pack"]["version"] == "2.13.0"
     assert plugin["version"] == "2.13.0"
     assert "close-work" in pack["pack"]["evals"]["skills"]
-    assert "## [core][2.13.0] — 2026-08-26" in changelog
+    assert "## [core][2.13.0] — 2026-08-27" in changelog
     assert "allowed-tools: Read Write Edit Bash" in skill
     for forbidden in ("WebFetch", "WebSearch", "MCP", "Browser", "Task"):
         assert forbidden not in skill.split("---", 2)[1]
