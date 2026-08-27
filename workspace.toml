@@ -1954,6 +1954,17 @@ queue   = [
 # Authority: RFC-0097 (Accepted; implementation waits for approved specs).
 # Portable workflows + governed knowledge are the product. AgentBundle
 # packaging, projections, versions, and publication remain external mechanics.
+#
+# Staged-delivery constraint (routed from the 2026-08-27 distillation of an
+# observation captured at RFC-0097's adversarial-review-clean gate):
+# advertised workflow modes, required knowledge topics, and validation fixtures
+# must share the same milestone boundary. Two failure directions follow, and
+# they pull opposite ways, so each milestone needs both checked:
+#   - a later-stage fixture must not gate an earlier foundation release, and
+#   - a mode that is not yet available must not be advertised as complete.
+# Check per milestone that it lists its own advertised modes, required topics,
+# and fixtures, and that no fixture cites a mode belonging to a later
+# milestone. This binds M0 onward, not only the first release.
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-009"]
 name      = "Agent Skill Engineering"
