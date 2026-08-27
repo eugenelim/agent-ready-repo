@@ -486,15 +486,31 @@ open = [
   # "retryable":false}. Both fields are wrong and actively misleading: nothing about
   # the request needs fixing, it is not a capacity breach, and a deadline breach IS
   # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
-  # which reuses the journal_capacity code for an elapsed deadline. Git is not the
-  # cause — `git ls-files` and `git status` are ~0.2-0.4s here, and the process burns
-  # only ~2.4s of system time across 33s wall, so it is waiting on something.
+  # which reuses the journal_capacity code for an elapsed deadline.
+  # CAUSE FOUND 2026-08-27 — the earlier "git is not the cause" line was wrong and is
+  # retracted. It IS git. _assert_v1_writer_allowed() -> _committed_v1_map_is_coherent()
+  # -> _read_committed_topic_map() calls _committed_blob_id() once per committed topic,
+  # and each spawns `git ls-tree -z <commit> -- <path>` through _git_read(). That is
+  # 64+ SEQUENTIAL subprocess spawns; the original probe timed single `git ls-files` /
+  # `git status` calls, which never touch this loop. The "~2.4s system time across 33s
+  # wall" observation is the confirming detail, not a counter-indication: the parent
+  # blocks on children, so their cost never lands in the parent's own accounting.
+  # Measured here at 65 topics: the coherence check alone takes 22-31s (two runs) of
+  # the 30s whole-script budget, and one batched `git ls-tree -r -z` over the same
+  # tree takes 0.064s. Not capture-only: the same check runs on all four writer paths
+  # — capture_observation:2809, write_terminal_disposition:1658,
+  # _apply_guarded_mutation_body:1683, distill_observation:3254 — so every promotion
+  # through the --distill CLI also fails, there reported as `map_mismatch` because
+  # _git_read() catches TimeoutExpired alongside CalledProcessError.
   # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
   # so lessons are silently not captured by anyone who does not read the exit code.
   # To close: (1) give a deadline breach its own reason_code with retryable=true and a
-  # recovery_action that is not fix_request; (2) find what consumes the 30s (suspect a
-  # lock acquire or a filesystem walk, not git) and either speed it up or raise
-  # script_seconds for capture.
+  # recovery_action that is not fix_request, and stop _git_read() reporting a timeout
+  # as map_mismatch; (2) batch the per-topic lookup into one `git ls-tree -r -z`,
+  # following the existing precedent at _committed_topic_paths:1222 — and decide
+  # explicitly what a non-success exit means for the batch, treating a partial answer
+  # as unusable (see topic batching-n-subprocess-calls-into-one-changes-the-blast-radius).
+  # Raising script_seconds is not the fix; the loop is O(topics) and will re-breach.
   {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
 
   # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
