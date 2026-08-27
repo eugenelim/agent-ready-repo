@@ -274,17 +274,16 @@ new concurrency module must be collected by that step rather than skipped.
       model the 2 s bar was not derived from. The run is recorded in
       [`manual-qa.md`](./manual-qa.md) with the machine, the OS version, and the
       twenty timings.
-- [ ] **AC11.** (deferred: sso-ac11-windows-kill-arm) A process killed with
+- [x] **AC11.** A process killed with
       `SIGKILL` (POSIX) while holding the lock leaves the profile usable: a
       subsequent invocation acquires the lock and completes. No lockfile is
-      deleted, recreated, or aged out to achieve this. The POSIX arm is
+      deleted, recreated, or aged out to achieve this. The POSIX arm was
       implemented and passing. The Windows `TerminateProcess` equivalent —
-      eventual acquisition within the retry budget — is **not**: the kill tests
-      are `skipif`-ed on `os.name != "posix"`, which this spec records as a gap
-      rather than a justified skip, since `Popen.kill()` *is*
-      `TerminateProcess` and nothing establishes the runner cannot drive it.
-      The contention test is deliberately not skipped — it sends no signal and
-      runs everywhere, including the platform that needs it most.
+      eventual acquisition within the retry budget — was added with
+      `Popen.kill()`. The `pytest credbroker (windows)` job runs it on a
+      `windows-latest` runner. The contention test is deliberately not skipped
+      — it sends no signal and runs everywhere, including the platform that
+      needs it most.
 - [x] **AC12.** Contention is classified by **which call raised and on
       `exc.errno`** — never by exception type. A refusal from the acquire call
       itself is contention and retries toward the budget, then exits `6`:

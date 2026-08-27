@@ -800,14 +800,6 @@ open = [
   # Settle with operator consent on macOS by recording twenty projected-broker timings in
   # the existing manual-QA artifact.
   {slug = "sso-ac10-end-to-end-timing", source = "spec/sso-store-transition-serialization AC10"},
-    # AC11 promises a Windows arm for the killed-holder case — eventual reacquisition within the
-    # retry budget — and the T7 kill tests are skipif-ed on os.name != "posix" instead.
-    # Popen.kill() is TerminateProcess and nothing establishes the windows-latest runner cannot
-    # drive it, so this is a gap rather than a justified skip. Fix: add the Windows arm to
-    # test_a_killed_holder_leaves_the_profile_usable, or record the concrete runner limitation.
-    # Unblocks: now. Note the contention test is deliberately NOT skipped — it sends no signal.
-  {slug = "sso-ac11-windows-kill-arm", source = "spec/sso-store-transition-serialization AC11"},
-
   # Current: at-most-once recapture is process-local, so repeated agent invocations can
   # launch a headless refresh each time.
   # Fix: persist a per-profile last-attempt timestamp and enforce a cooldown.
@@ -1838,6 +1830,8 @@ closed = [
   {slug = "rfc0088-token-replay-consumer-contract", type = "shape", source = "rfc/0088 open question 5", summary = "Closed by the Q5 ruling of 2026-08-22 -- scoped-token replay is supported and the residual exposure is declared per destination. The declaration carrier is owned by open entry rfc0088-spec-2-result-policy-contracts; note RFC-0088 assigns that carrier to Spec 1 while the open entry places it on Spec 2, which the Spec 1/2 authors must reconcile"},
 
   {slug = "rfc0088-destination-scoped-policy-axis", type = "shape", source = "rfc/0088 open question 4", summary = "Closed by the Q4 ruling of 2026-08-21 -- egress and worker policy do collapse onto one axis whose unit is the destination group, realised as a separate browser context, and the session-wide reading is withdrawn. Residual per-group split cost stays with open entry rfc0088-destination-group-split-cost"},
+
+  {slug = "sso-ac11-windows-kill-arm", source = "spec/sso-store-transition-serialization AC11", summary = "Closed by dropping the os.name != 'posix' skipif from test_a_killed_holder_leaves_the_profile_usable and driving the kill through Popen.kill(), which is TerminateProcess on Windows -- the arm runs in build-check-windows.yml's `pytest credbroker (windows)` job, so the runner limitation the entry offered as the alternative does not exist. The two platforms now assert different things rather than the same thing twice: POSIX takes budget_s=0, measured at 1ms against 2001ms for budget_s=2, so it proves the lock is free the instant the holder is reaped; Windows keeps the bounded retry path AC11 actually promises there. AC11 was discharged in the frozen spec following the e2f6da41b precedent -- box checked, deferral marker removed, status commentary rewritten in past tense, criterion proper untouched"},
 
   {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 

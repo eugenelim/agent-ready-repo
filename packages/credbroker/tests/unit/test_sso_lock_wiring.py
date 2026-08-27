@@ -14,7 +14,6 @@ import importlib.util
 import json
 import os
 import pathlib
-import signal
 import subprocess
 import sys
 import textwrap
@@ -242,7 +241,6 @@ def test_a_second_process_contends_with_a_real_holder(broker, tmp_path):
         child.wait(10)
 
 
-@pytest.mark.skipif(os.name != "posix", reason="SIGKILL semantics")
 def test_a_killed_holder_leaves_the_profile_usable(broker, tmp_path):
     """AC11: no profile is bricked by a lock, and nothing reaps one to achieve it.
 
@@ -256,12 +254,19 @@ def test_a_killed_holder_leaves_the_profile_usable(broker, tmp_path):
         stdout=subprocess.PIPE, text=True,
     )
     assert child.stdout.readline().strip() == "held"
-    child.send_signal(signal.SIGKILL)
+    child.kill()
     child.wait(10)
 
-    # No sleep, no retry loop, no cleanup step: the lock is simply free.
-    with broker._profile_lock("jira", budget_s=2):
-        pass
+    if os.name == "posix":
+        # `budget_s=0` permits one attempt: no sleep, retry loop, or cleanup;
+        # the lock must already be free when the killed holder is reaped.
+        with broker._profile_lock("jira", budget_s=0):
+            pass
+    else:
+        # TerminateProcess may release asynchronously, so use the bounded
+        # retry path: eventual acquisition within AC11's two-second budget.
+        with broker._profile_lock("jira", budget_s=2):
+            pass
     assert broker._sso_lock_path("jira").exists(), (
         "the lockfile must survive; unlinking it would let two processes hold "
         "locks on different inodes for the same profile"
