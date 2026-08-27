@@ -1667,11 +1667,12 @@ A longer span contains a single-backtick span: ``` `<!--` ```.
 def test_a_backtick_in_one_comment_does_not_mask_the_next_comments_opener():
     """Two real comments on one line are both stripped, not just the first.
 
-    Code spans are resolved per comment-free segment for exactly this input.
-    Resolving them once over the whole line paired the lone backtick inside
-    comment one with the backtick inside comment two; the bogus span covered
-    comment two's opener, so it read as a mention and its body published. This
-    bullet shipped an internal maintainer note to the public /now/ page.
+    A skipped comment's interior is never scanned, so it contributes no pairing
+    delimiter. Pairing once over the whole line instead paired the lone backtick
+    inside comment one with the backtick inside comment two; the bogus span
+    covered comment two's opener, so it read as a mention and its body
+    published. This bullet shipped an internal maintainer note to the public
+    /now/ page.
     """
     text = """# Changelog
 
@@ -1682,6 +1683,32 @@ def test_a_backtick_in_one_comment_does_not_mask_the_next_comments_opener():
 - Ship it <!-- don`t publish --> <!-- TODO: internal `note` for us -->.
 """
     assert _bullets(_groups(text)[0]) == ["Ship it  ."]
+
+
+def test_a_backtick_in_a_comment_does_not_steal_a_later_mentions_partner():
+    """A comment interior must not supply a PAIRING delimiter either.
+
+    The near-miss this pins is subtler than masking a later opener, and it
+    survived the first repair: an unbalanced backtick inside a real comment
+    paired with the backtick that should have OPENED the mention below, leaving
+    that mention unpaired and therefore unmasked. Generation then raised
+    "unterminated HTML comment" for a line containing no such thing, failing
+    the whole site build rather than publishing wrongly.
+
+    Only interleaving comment detection with pairing fixes this; filtering a
+    whole-line span list cannot, because the partner is already consumed.
+    """
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- <!-- reviewer: drop the ` here --> Write `<!--` to mention the opener.
+"""
+    assert _bullets(_groups(text)[0]) == [
+        "Write `<!--` to mention the opener."
+    ]
 
 
 def test_every_inline_comment_pair_on_a_line_is_stripped_not_just_the_first():
@@ -1730,25 +1757,32 @@ def test_an_opener_after_a_closed_pair_on_the_same_line_still_opens_a_comment():
 
 
 def test_the_code_span_scan_stays_linear_on_a_long_backtick_run():
-    """The copied scan must not be "simplified" into the cubic regex.
+    """The copied scan must not be "simplified" into the backtracking regex.
 
-    Upstream pins this at packs/core/tests/skills/work-loop/
-    test_lint_spec_status.py; the copy needs its own guard, since no changelog
-    line would ever exercise it. The regex the docstring warns off took a
-    measured 106 s on this input; the scan takes under a millisecond, so a
-    generous ceiling still fails loudly if someone swaps it back.
+    Upstream pins its own copy at packs/core/tests/skills/work-loop/
+    test_lint_spec_status.py; this one needs its own guard, because no changelog
+    line would ever exercise it and the trap is a one-line edit away. Measured
+    here: the scan takes under 2 ms on both inputs, while substituting
+    ``(`+)(?:(?!\\1).)*?\\1`` took 74 s on the first (the source docstring cites
+    106 s from its own measurement). The ceiling is deliberately far above the
+    real cost so a loaded CI box cannot flake it, and still 4 orders of
+    magnitude below the regex.
+
+    Both shapes are covered: one long run exercises the scan, and many
+    strictly-increasing runs exercise the PAIRING, which is the axis upstream's
+    probe loop rescans on.
     """
     import time
 
-    line = "`" * 12_000
-    started = time.monotonic()
-    build_site._code_span_ranges(line)
-    build_site._strip_changelog_comments(line + "<!--")
-    elapsed = time.monotonic() - started
-    assert elapsed < 5.0, (
-        f"the code-span scan took {elapsed:.1f}s on a 12 KB backtick run; a "
-        "backtracking regex was measured at 106s here — restore the linear scan"
-    )
+    for line in ("`" * 12_000, "x".join("`" * (n + 1) for n in range(2_000))):
+        started = time.monotonic()
+        build_site._strip_changelog_comments(line + "<!--")
+        elapsed = time.monotonic() - started
+        assert elapsed < 5.0, (
+            f"the code-span scan took {elapsed:.1f}s on a {len(line)}-char "
+            "backtick input; a backtracking regex was measured at 74s here — "
+            "restore the linear scan and the precomputed pairing"
+        )
 
 
 def test_an_unterminated_html_comment_fails_instead_of_swallowing_the_file():
