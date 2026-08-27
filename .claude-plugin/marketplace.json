@@ -6,6 +6,28 @@
   },
   "plugins": [
     {
+      "category": "ai-agent",
+      "description": "Frame, create, update, review, and optimize portable agent skills with governed reference knowledge.",
+      "displayName": "Agent Skill Engineering",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "agent-skills",
+        "skill-authoring",
+        "skill-review",
+        "progressive-disclosure"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "agent-skill-engineering",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "path": "agent-skill-engineering",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
+      },
+      "version": "0.1.0"
+    },
+    {
       "author": {
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"

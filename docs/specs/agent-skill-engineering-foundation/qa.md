@@ -41,8 +41,23 @@ its construction test asserts `errored_runs == 0` and an empty
 
 The artifact previously carried a self-reported in-harness claim of a perfect
 classification that the observed gate contradicted. It now records
-`evaluation_mode: headless-observed`, and its generator refuses to write at all
-unless the run is clean, so this evidence cannot ratify its own premise.
+`evaluation_mode: headless-observed`, transcribed from the summary the eval
+runner wrote at `.eval-workspace/agent-skill-engineering/iteration-<n>/summary.json`.
+
+**How to reproduce it.** Run the command above; it writes that summary. Copy
+each skill's per-query outcome into `activation-results.json`, setting `actual`
+to the skill that fired (or `null`), and re-stamp `skill_digest` and
+`query_fixture_digest` from the files the run projected. The construction test
+in `tests/pack/test_pack_boundary.py` then fails unless every case matches its
+expectation with `errored_runs == 0` and no exclusivity violation, so a
+transcription that flatters the run does not pass.
+
+An earlier revision of this record claimed the artifact had a generator that
+"refuses to write at all unless the run is clean". No such script is committed;
+the transcription is manual and the construction test is the only check. That
+sentence asserted a control a reader could not find, which is the failure mode
+this record exists to prevent, and it is corrected here rather than quietly
+dropped.
 
 Reaching that result required two source repairs, both driven by controlled
 probes rather than by adjusting expectations. No fixture, threshold, or

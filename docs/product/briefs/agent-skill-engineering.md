@@ -3,7 +3,7 @@
 - **Slug:** `agent-skill-engineering`
 - **Received:** 2026-08-26
 - **Owner:** Repository maintainers (`ini-009`)
-- **Status:** Ready
+- **Status:** Executing
 
 ## Outcome
 
@@ -183,7 +183,7 @@ promotes and approves them.
 
 | Spec | Status |
 | --- | --- |
-| `agent-skill-engineering-foundation` | — |
+| `agent-skill-engineering-foundation` | Implementing |
 
 ## Backlog and prerequisites
 

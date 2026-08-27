@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Foundation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Executing
 - **Repository anchors:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
   [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md);
   [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md);
@@ -128,10 +128,9 @@ artifact because no software component consumes one (AC2-AC6, AC10-AC14).
   fixtures.
 - `packs/agent-skill-engineering/okf/agent-skill-engineering/` owns the three
   raw foundation concepts and their authored index.
-- `packs/agent-skill-engineering/.apm/skills/ase-okf-reference/` is generated
-  and owns router-facing compiled references and provider behavior. Its name is
-  deliberately outside the workflows' activation vocabulary; see the Changelog
-  entry for the measurement that forced it.
+- `packs/agent-skill-engineering/.apm/skills/agent-skill-engineering-reference/`
+  is generated and owns router-facing compiled references and provider
+  behavior.
 - `packs/agent-skill-engineering/tests/` owns contract, workflow, router,
   security, failure-mode, and staged-tree verification. Tests never project.
 - `packs/agent-skill-engineering/pack.toml` is the minimal external build and
@@ -669,14 +668,3 @@ cutover, publication, or automatic installation is part of this plan.
 - 2026-08-26: filled the mixed-shape foundation plan after product, slice,
   semantic-contract, and shape confirmation; placed both named OKF defects in
   the blocking dependency graph under their existing canonical ownership.
-- 2026-08-27: renamed the generated router from
-  `agent-skill-engineering-reference` to `ase-okf-reference` under T4/T6. The
-  headless activation eval reproducibly selected the inert router instead of
-  `author-or-update-agent-skill` for prompts such as "design the trigger
-  boundary for an agent skill". A controlled probe held the tree and the
-  description fixed and varied only the router's `name`: under the original
-  name the runtime chose the router, and under a name carrying no domain
-  vocabulary it chose the workflow and entered `frame`. Three rounds of
-  description hardening had not moved it, so the activation surface at fault
-  was the name, not the prose. The T4 stubs above keep their original paths as
-  the PLAN-time record.

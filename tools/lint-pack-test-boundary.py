@@ -400,16 +400,39 @@ class BoundaryInventory:
         return verdict
 
     def destinations(self) -> list[Path]:
-        """Every skill test directory that holds a suite. Built once."""
+        """Every pack test directory that holds a suite. Built once.
+
+        Scoped to `tests/skills/<dir>` until 2026-08-27, which structurally
+        exempted `tests/pack/` and `tests/integration/` from the runner check —
+        so a pack could add either and have it run by nothing, which is the
+        condition `case_every_suite_dir_has_a_runner` exists to prevent. It now
+        walks every directory under `tests/` that directly holds test files.
+        """
         if self._destinations is None:
             self.destination_builds += 1
             out: list[Path] = []
             for pack in self.packs:
-                skills = pack / "tests" / "skills"
-                if not skills.is_dir():
+                tests = pack / "tests"
+                if not tests.is_dir():
                     continue
-                for directory in sorted(skills.iterdir()):
-                    if directory.is_dir() and self.walk(directory):
+                for directory in sorted(
+                    d for d in tests.rglob("*") if d.is_dir()
+                ):
+                    if directory.name in _TRANSIENT:
+                        continue
+                    if any(part in _TRANSIENT for part in directory.relative_to(tests).parts):
+                        continue
+                    # Only a directory that itself holds test files is a
+                    # suite; a parent that merely contains suites is not.
+                    # Language-agnostic on purpose: converters ships JavaScript
+                    # suites (`*.test.js`), and a Python-only filter would drop
+                    # them from the guard and strand their `_NO_RUNNER` entry.
+                    if not any(
+                        child.is_file() and _is_test_file(child)
+                        for child in directory.iterdir()
+                    ):
+                        continue
+                    if self.walk(directory):
                         out.append(directory)
             self._destinations = tuple(out)
         return list(self._destinations)
@@ -1187,6 +1210,15 @@ _NO_RUNNER = {
     "packs/governance-extras/tests/skills/new-adr": "never gated",
     "packs/governance-extras/tests/skills/new-rfc": "never gated",
 }
+
+
+def _is_test_file(path: Path) -> bool:
+    """Whether a file is a test module in any language the catalogue ships."""
+
+    name = path.name
+    if path.suffix == ".py":
+        return name.startswith("test") or name.endswith("_test.py")
+    return ".test." in name or ".spec." in name
 
 
 def _test_basenames(d: Path) -> set[str]:

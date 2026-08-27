@@ -27,8 +27,15 @@ Apply each relevant identifier and report non-applicable checks explicitly.
   interruption, verification failure, and cleanup denial are visible and do
   not retain unsafe partial effects.
 
-Inspect behavior and meaningful contracts, not headings alone. For a script,
-prefer executing bounded success and failure fixtures over assertions about
-internal call shape. For an unavailable runtime, report the coverage gap
-rather than inferring success.
+Inspect behavior and meaningful contracts, not headings alone.
+
+Review never executes the candidate. A candidate script is read, and its
+declared inputs, outputs, exit classes, side effects, and cleanup path are
+judged from its contract. Executing one is a separate user-approved
+transition: state the purpose, the authority required, the bounded target, and
+the safe reversal or cleanup path, and obtain explicit approval first. Without
+that approval, report the unexecuted script as a coverage gap and complete the
+review — an unrun script never blocks the review and never licenses running it.
+For an unavailable runtime, report the coverage gap rather than inferring
+success.
 

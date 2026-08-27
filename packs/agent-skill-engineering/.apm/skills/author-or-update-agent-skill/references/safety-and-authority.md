@@ -7,8 +7,10 @@ Use one resolve-before-read and resolve-before-write discipline.
    any `..` component, and any unresolved or multiply resolved destination.
 3. Canonicalize and symlink-resolve the root and candidate without reading the
    candidate's contents.
-4. Require the resolved candidate to remain within the resolved root. Reject
-   symlinks, junctions, reparse points, and containment uncertainty.
+4. Require the resolved candidate to remain within the resolved root, and to be
+   a regular file before any content access. Reject symlinks, junctions,
+   reparse points, directories, FIFOs, sockets, device nodes, and containment
+   uncertainty.
 5. For a write, repeat the confinement check immediately before mutation and
    limit the operation to the surfaced file set.
 

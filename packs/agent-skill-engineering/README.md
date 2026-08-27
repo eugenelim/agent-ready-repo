@@ -7,32 +7,51 @@ authority over your tools.
 
 Start with an ordinary request:
 
+| Say this | What you get |
+| --- | --- |
+| “Frame a skill for reviewing database migrations. Don't write files yet.” | A read-only frame — activation boundary, outcome, authority, file surface, evaluations, non-goals — through `author-or-update-agent-skill` |
+| “Create that skill.” / “Update this SKILL.md.” | The smallest portable change to a confined target, after you authorize the write |
+| “Review this skill for trigger precision and portability.” | A findings report by stable check id, read-only, through `review-or-optimize-agent-skill` |
+| “Optimize it against the false-positive rate I measured.” | A measured before/after change — only with an observed failure or baseline, and a separate authorization |
+
+Anything whose result is a **changed file** is the authoring workflow. Anything
+whose result is a **report** is the review workflow.
+
+The generated `ase-okf-reference` skill is an internal knowledge router. You do
+not invoke it directly; the two workflows load only the concepts their current
+question needs.
+
+Framing returns a plan, not files:
+
 ```text
-Help me frame a new skill for reviewing database migrations. Do not write files yet.
+Mode: frame
+Write status: not authorized
+Activation: "review the migrations on this branch" / not "write me a migration"
+Outcome: a ranked findings report with severity and remediation
+Non-goals: authoring migrations, running them
 ```
 
-The authoring workflow starts in read-only `frame` mode. It names activation
-prompts and near misses, the portable file surface, authority, resources,
-evaluations, and non-goals. Ask it to enter `create` or `update` only when you
-want the confirmed target changed.
-
-For an existing skill, start with:
+Review returns findings against stable check ids:
 
 ```text
-Review this agent skill for trigger precision, progressive disclosure, script
-failure behavior, portability, and authority. Keep the review read-only.
+Mode: review (read-only)
+ASE-ACT-01  Trigger precision   FINDING   description fires on any "review" request
+ASE-DET-01  Determinism         FINDING   helper embeds datetime.now(); no exit contract
+ASE-PORT-01 Portability floor   PASS
+Unexecuted: nondeterministic-helper.py — reported as a coverage gap, not run
 ```
 
-Review reports applicable checks and evidence. Optimization is available only
-after an observed failure or measured baseline and a separate, explicit write
-transition. The result includes before-and-after verification.
+Optimization is available only after an observed failure or measured baseline
+and a separate, explicit write transition. The result includes before-and-after
+verification.
 
 ## What the pack reads and changes
 
 Both user-facing workflows can read untrusted candidate files after resolving
 and confining each path. Both declare a write boundary because their explicit
 mutation modes may change the confirmed skill root; activation alone never
-authorizes a write. The generated reference router is read-only.
+authorizes a write. The generated reference router is read-only and is never
+selected for your request.
 
 The workflows never inspect credentials. Authentication stays outside model
 context and any later authenticated operation must use an external

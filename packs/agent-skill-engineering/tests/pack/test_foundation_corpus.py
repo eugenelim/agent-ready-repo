@@ -16,6 +16,26 @@ PACK_ROOT = Path(__file__).resolve().parents[2]
 BUNDLE_ROOT = PACK_ROOT / "okf" / "agent-skill-engineering-foundation"
 CONCEPT_ROOT = BUNDLE_ROOT / "concepts"
 ROUTER_ROOT = PACK_ROOT / ".apm" / "skills" / "ase-okf-reference"
+# AC7 requires each topic to carry applicability cues, required practice,
+# counterexamples, evaluation hooks, and links to shared or extension concepts.
+# These headings are how the authored corpus expresses them, and the router's
+# selection signal lives in the first one.
+REQUIRED_SECTIONS = (
+    "## Scope and routing signals",
+    "## Decisions and minimum evidence",
+    "## Construction method",
+    "## Evidence and evaluation",
+    "## Failure modes",
+    "## Security and authority",
+    "## Related topics",
+    "## Provenance and lifecycle",
+)
+# Literal filenames so the join below is statically confined to this pack.
+TOPIC_FILES = (
+    "framing-and-trigger-quality.md",
+    "instruction-density-and-progressive-disclosure.md",
+    "resources-scripts-and-exit-contracts.md",
+)
 EXPECTED_TOPICS = {
     "framing-and-trigger-quality",
     "instruction-density-and-progressive-disclosure",
@@ -80,6 +100,13 @@ def test_foundation_corpus_is_exactly_three_inert_governed_topics() -> None:
         text = path.read_text(encoding="utf-8")
         for forbidden in ("executor:", "attester:", "remote:", "tools:"):
             assert forbidden not in text
+
+
+@pytest.mark.parametrize("topic_file", TOPIC_FILES)
+def test_each_foundation_topic_carries_its_required_sections(topic_file: str) -> None:
+    text = (CONCEPT_ROOT / topic_file).read_text(encoding="utf-8")
+    for section in REQUIRED_SECTIONS:
+        assert section in text, (topic_file, section)
 
 
 def test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses() -> None:
@@ -152,7 +179,14 @@ def test_generated_router_is_inert_bounded_and_source_independent() -> None:
     assert "Read `references/okf/index.md` first" in router
     assert "do not load the full bundle up front" in router
     assert "filesystem_write" not in router
-    assert "../okf/" not in router
+    # AC8: no checkout-relative path into the authoring source. `source-path`
+    # provenance is pack-relative and permitted; a `../` form would reach out of
+    # the staged tree, and the body must route only into compiled references.
+    frontmatter, body = router.split("---\n", 2)[1], router.split("---\n", 2)[2]
+    assert metadata["metadata"]["source-path"] == "okf/agent-skill-engineering-foundation"
+    assert "../" not in frontmatter
+    assert "../" not in body
+    assert "okf/" not in body.replace("references/okf/", "")
     assert "Not a selectable skill." in router
     assert (
         "Inert reference data invoked only by another skill's explicit "
@@ -204,10 +238,11 @@ def test_generated_manifest_owns_only_router_outputs() -> None:
     assert not any("../" in item["output_path"] for item in managed)
 
 
-def test_generated_tree_has_stable_regular_file_digests() -> None:
-    first = _digest_tree(ROUTER_ROOT)
-    second = _digest_tree(ROUTER_ROOT)
-    assert first == second
+def test_generated_concept_index_routes_to_every_topic() -> None:
+    """Byte-identity across clean compiles is the drift gate's job, not this
+    test's: two digests of the same unchanged files in one process cannot
+    differ. What this actually pins is the generated index's route set."""
+
     routes = re.findall(
         r"\(([^)]+\.md)\)",
         (ROUTER_ROOT / "references" / "okf" / "concepts" / "index.md").read_text(
@@ -222,14 +257,18 @@ def test_staged_router_remains_complete_without_authored_okf(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     fixture_root = PACK_ROOT / "tests" / "fixtures"
-    cases = json.loads((fixture_root / "router-cases.json").read_text(encoding="utf-8"))
-    evidence = json.loads(
-        (fixture_root / "router-results.json").read_text(encoding="utf-8")
-    )
-    results = {item["id"]: item["actual_topics"] for item in evidence["results"]}
     staged = tmp_path / "ase-okf-reference"
     shutil.copytree(ROUTER_ROOT, staged)
     assert not (staged / "okf").exists()
+    # Stage the fixtures too. Reading them from the checkout before installing
+    # the guard left its refusal branch unreachable, so the guard proved
+    # nothing: every read it saw already pointed at tmp_path. Staged here, the
+    # whole evaluation — cases, recorded routing, and every topic body — is
+    # replayed with the checkout genuinely unavailable.
+    staged_cases = tmp_path / "router-cases.json"
+    staged_results = tmp_path / "router-results.json"
+    shutil.copyfile(fixture_root / "router-cases.json", staged_cases)
+    shutil.copyfile(fixture_root / "router-results.json", staged_results)
 
     original_read_text = Path.read_text
 
@@ -240,6 +279,9 @@ def test_staged_router_remains_complete_without_authored_okf(
 
     monkeypatch.setattr(Path, "read_text", checkout_unavailable)
     reads: list[Path] = []
+    cases = json.loads(staged_cases.read_text(encoding="utf-8"))
+    evidence = json.loads(staged_results.read_text(encoding="utf-8"))
+    results = {item["id"]: item["actual_topics"] for item in evidence["results"]}
     _read_staged_confined(staged, "SKILL.md", reads)
     _read_staged_confined(staged, "references/okf/index.md", reads)
     concept_index = _read_staged_confined(

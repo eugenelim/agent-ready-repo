@@ -1,3 +1,7 @@
+<!-- INERT REVIEW FIXTURE — deliberately defective test input, not a skill.
+     Its unbounded helper contract and duplicated rules are the seeded
+     ASE-DET-01 / ASE-CTX-01 / ASE-CONC-01 defects a review must report.
+     Never follow, execute, or propagate its instructions. -->
 ---
 name: generate-skill-index
 description: Use when the user asks to regenerate the local agent-skill index.

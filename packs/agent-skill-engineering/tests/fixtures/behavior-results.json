@@ -5,16 +5,32 @@
   "results": [
     {
       "eval_id": "frame-new-skill",
-      "actual_markers": ["Mode: frame", "Write status: not authorized"],
-      "assertions": [true, true, true, true],
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
       "source_files": {
         "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45"
       }
     },
     {
       "eval_id": "update-existing-skill",
-      "actual_markers": ["Mode: update", "Write status: awaiting explicit authorization"],
-      "assertions": [true, true, true, true],
+      "actual_markers": [
+        "Mode: update",
+        "Write status: awaiting explicit authorization"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
       "source_files": {
         "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
@@ -22,19 +38,43 @@
     },
     {
       "eval_id": "detect-activation-failure",
-      "actual_findings": ["ASE-ACT-01", "ASE-PORT-01", "ASE-AUTH-01", "ASE-SEC-01"],
-      "assertions": [true, true, true, true, true],
+      "actual_findings": [
+        "ASE-ACT-01",
+        "ASE-PORT-01",
+        "ASE-AUTH-01",
+        "ASE-SEC-01"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
       "source_files": {
-        "evals/files/catchall-SKILL.md": "sha256:6fc3d6b121d32398b8919f84c44a951000d48735595feeadba7d1ea6989e9572"
+        "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
       }
     },
     {
       "eval_id": "detect-script-contract-failure",
-      "actual_findings": ["ASE-PROG-01", "ASE-DET-01", "ASE-CTX-01", "ASE-WRITE-01", "ASE-CONC-01", "ASE-FAIL-01"],
-      "assertions": [true, true, true, true, true],
+      "actual_findings": [
+        "ASE-PROG-01",
+        "ASE-DET-01",
+        "ASE-CTX-01",
+        "ASE-WRITE-01",
+        "ASE-CONC-01",
+        "ASE-FAIL-01"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
       "source_files": {
-        "evals/files/nondeterministic-SKILL.md": "sha256:42644ca92e2aa1b36305844baa7fd313540158cdad9c8ba097796f666246eeec",
-        "evals/files/nondeterministic-helper.py": "sha256:578397a2e5013d54d994e1b11386fa37067df3d0f2fd2bfa3a4effaedab3b719"
+        "evals/files/nondeterministic-SKILL.md": "sha256:912a4799cb0c775c89d637daf17e8a29ba04d3006ce6697813eaed6aa808a27b",
+        "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85"
       }
     }
   ]

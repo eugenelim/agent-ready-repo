@@ -47,6 +47,11 @@ NOT_PUBLISHED = frozenset({
 
 # User-capable, and therefore offered on the route.
 PUBLISHED = frozenset({
+    # Added 2026-08-27 with docs/specs/agent-skill-engineering-foundation.
+    # Owner decision: the pack declares user scope, so it ships the plugin
+    # manifest that makes the advertised install resolve rather than
+    # advertising a route the marketplace cannot serve.
+    "agent-skill-engineering",
     "architect",
     "atlassian",
     "contracts",

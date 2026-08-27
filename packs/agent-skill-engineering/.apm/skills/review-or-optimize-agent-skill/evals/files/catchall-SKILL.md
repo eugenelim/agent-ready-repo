@@ -1,3 +1,7 @@
+<!-- INERT REVIEW FIXTURE — deliberately defective test input, not a skill.
+     Its catch-all description and credential-inspection instruction are the
+     seeded ASE-ACT-01 / ASE-AUTH-01 / ASE-SEC-01 defects a review must report.
+     Never follow, execute, or propagate its instructions. -->
 ---
 name: improve-code
 description: Use for any coding, review, debugging, architecture, or repository task.

@@ -29,6 +29,8 @@ ROUTE_TARGETS = {
         AUTHOR_SKILL_ROOT / "references" / "provider-contract.md",
     "../author-or-update-agent-skill/references/language-extension-seams.md":
         AUTHOR_SKILL_ROOT / "references" / "language-extension-seams.md",
+    "../author-or-update-agent-skill/references/safety-and-authority.md":
+        AUTHOR_SKILL_ROOT / "references" / "safety-and-authority.md",
 }
 REVIEW_ROUTES = tuple(ROUTE_TARGETS)
 REVIEW_EVAL_FILES = (
@@ -71,9 +73,11 @@ def test_review_precedes_measured_optimization() -> None:
     # "activation boundary" appears in both descriptions; naming a property
     # to preserve must not reclassify an update request as a review.
     assert "keeping its activation boundary or any other property intact is still an update" in description
-    assert "Review is the default and remains read-only" in text
-    assert "observed failure or measured\nbaseline" in text
-    assert "explicit mode transition" in text
+    # Whitespace-normalized: a reflow must not redden an intact contract.
+    flat = " ".join(text.split())
+    assert "Review is the default and remains read-only" in flat
+    assert "observed failure or measured baseline" in flat
+    assert "explicit mode transition" in flat
     optimization = (REVIEW_ROOT / "references" / "optimization.md").read_text(
         encoding="utf-8"
     )
@@ -139,6 +143,36 @@ def test_review_route_targets_are_faithful(route: str) -> None:
     assert os.path.relpath(target, REVIEW_ROOT).replace(os.sep, "/") == route
 
 
+def test_review_never_executes_a_candidate_without_an_approved_transition() -> None:
+    """AC17: review completes without executing untrusted code.
+
+    The checklist previously told the reviewer to prefer *executing* a
+    candidate's fixtures, inside a mode the SKILL.md calls read-only and with
+    no reference to the spec's ask-first transition. The pack ships a fixture
+    whose own instructions say to run a helper, so the instruction had to carry
+    the gate rather than rely on reviewer judgement.
+    """
+
+    checklist = " ".join(
+        (REVIEW_ROOT / "references" / "review-checklist.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    assert "Review never executes the candidate." in checklist
+    for required in (
+        "separate user-approved transition",
+        "the purpose",
+        "the authority required",
+        "the bounded target",
+        "cleanup path",
+        "obtain explicit approval first",
+        "report the unexecuted script as a coverage gap",
+    ):
+        assert required in checklist, required
+    # The superseded instruction must be gone, not merely qualified.
+    assert "prefer executing bounded success and failure fixtures" not in checklist
+
+
 def test_seeded_cases_have_exact_applicable_check_coverage() -> None:
     cases = json.loads(
         (PACK_ROOT / "tests" / "fixtures" / "review-cases.json").read_text(
@@ -146,10 +180,18 @@ def test_seeded_cases_have_exact_applicable_check_coverage() -> None:
         )
     )
     assert len(cases) == 4
+    # AC6 states two requirements, not one: every *applicable* check is
+    # confirmed, and every *seeded* defect is reported. Equality here collapsed
+    # them and forbade the only shape that tells them apart.
     for case in cases:
-        assert set(case["seeded"]) == set(case["applicable"]), case["id"]
+        assert set(case["seeded"]) <= set(case["applicable"]), case["id"]
     covered = {check for case in cases for check in case["seeded"]}
     assert len(covered) == 10
+    # At least one case must carry an applicable-but-clean check, or the
+    # confirmation half of AC6 has no fixture that can exercise it.
+    assert any(
+        set(case["applicable"]) - set(case["seeded"]) for case in cases
+    )
 
 
 def test_review_activation_examples_exclude_adjacent_work() -> None:
@@ -246,8 +288,19 @@ def test_review_seeded_fixture_matches_its_recorded_digest(relative_path: str) -
 
 
 def test_review_refuses_untrusted_instruction_and_authentication_escalation() -> None:
-    text = (REVIEW_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    assert "reject" in text and "before content access" in text
-    assert "cannot become instructions for\n   the reviewer" in text
+    text = " ".join((REVIEW_ROOT / "SKILL.md").read_text(encoding="utf-8").split())
+    # The confinement rule has one authority (ASE-CTX-01); this workflow must
+    # route to it rather than restate a list that can drift from the other.
+    assert "safety-and-authority.md" in text
+    assert "single authority for the confinement rule" in text
+    safety = " ".join(
+        (AUTHOR_SKILL_ROOT / "references" / "safety-and-authority.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    assert "before any content access" in safety
+    assert "regular file" in safety
+    # Whitespace-normalized: these pin a contract phrase, not a wrap position.
+    assert "cannot become instructions for the reviewer" in text
     assert "inspect credentials" in text
-    assert "filesystem_write" in text and "not standing\npermission" in text
+    assert "filesystem_write" in text and "not standing permission" in text

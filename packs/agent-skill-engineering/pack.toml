@@ -8,6 +8,15 @@ license = "Apache-2.0 OR MIT"
 categories = ["ai-agent", "documentation", "testing"]
 keywords = ["agent-skills", "skill-authoring", "skill-review", "progressive-disclosure"]
 
+# Catalogue-facing links. `repository` is what derives the marketplace entry's
+# `source`, so a user-capable pack without it publishes an entry a client
+# cannot fetch. `documentation` points at the pack README until the planned
+# documentation slice adds `guides/agent-skill-engineering/`.
+[pack.links]
+homepage = "https://github.com/eugenelim/agent-ready-repo"
+repository = "https://github.com/eugenelim/agent-ready-repo"
+documentation = "https://github.com/eugenelim/agent-ready-repo/tree/main/packs/agent-skill-engineering/"
+
 [pack.adapter-contract]
 version = "0.10"
 

@@ -10,6 +10,15 @@ from pathlib import Path
 from typing import Any
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+# Anchored literally so every path this suite opens is statically confined.
+PROVIDER_CONTRACT_MD = (
+    Path(__file__).resolve().parents[2]
+    / ".apm"
+    / "skills"
+    / "author-or-update-agent-skill"
+    / "references"
+    / "provider-contract.md"
+)
 CONTRACT_VERSION = "agent-skill-engineering-reference/v1"
 TOPICS = {
     "framing-and-trigger-quality",
@@ -69,10 +78,22 @@ class ProviderResult:
     diagnostic: str | None
 
 
-def _refuse(diagnostic: str, *, status: str = "unavailable") -> ProviderResult:
-    """Return a fail-closed provider result with no content reads."""
+def _refuse(
+    diagnostic: str,
+    *,
+    status: str = "unavailable",
+    reads: tuple[str, ...] = (),
+    baseline_continues: bool = True,
+) -> ProviderResult:
+    """Return a fail-closed provider result.
 
-    return ProviderResult(status, (), (), True, diagnostic)
+    `reads` carries whatever the evaluation had already read when it refused,
+    rather than a hard-coded empty tuple — otherwise a read-before-refusal is
+    indistinguishable from a refusal that read nothing, and AC18's
+    no-read-before-refusal property has no falsifiable artifact.
+    """
+
+    return ProviderResult(status, (), reads, baseline_continues, diagnostic)
 
 
 def _request_is_valid(request: Any) -> bool:
@@ -195,15 +216,23 @@ def _response_is_valid(
 def evaluate_provider_case(case: dict[str, Any]) -> ProviderResult:
     """Evaluate the transport-independent selection and response contract."""
 
+    # AC13 separates two things a refusal must not conflate: an optional
+    # provider being unusable (baseline continues) and the consumer's own
+    # baseline safety check failing (baseline stops).
+    baseline_continues = not bool(case.get("baseline_safety_failure", False))
     request = case.get("request")
     if not _request_is_valid(request):
         return _refuse(
             "knowledge provider request out of scope",
             status="out-of-scope",
+            baseline_continues=baseline_continues,
         )
     candidates = case.get("candidates")
     if not isinstance(candidates, list) or not candidates:
-        return _refuse("knowledge provider unavailable")
+        return _refuse(
+            "knowledge provider unavailable",
+            baseline_continues=baseline_continues,
+        )
     eligible: list[dict[str, Any]] = []
     stale = False
     integrity_failure = False
@@ -224,42 +253,80 @@ def evaluate_provider_case(case: dict[str, Any]) -> ProviderResult:
             continue
         eligible.append(candidate)
     if len(eligible) > 1:
-        return _refuse("knowledge provider ambiguous")
+        return _refuse(
+            "knowledge provider ambiguous",
+            baseline_continues=baseline_continues,
+        )
     if not eligible:
         if integrity_failure:
-            return _refuse("provider integrity unavailable")
+            return _refuse(
+                "provider integrity unavailable",
+                baseline_continues=baseline_continues,
+            )
         if stale:
-            return _refuse("knowledge provider stale", status="stale-profile")
-        return _refuse("knowledge provider ineligible")
+            return _refuse(
+                "knowledge provider stale",
+                status="stale-profile",
+                baseline_continues=baseline_continues,
+            )
+        return _refuse(
+            "knowledge provider ineligible",
+            baseline_continues=baseline_continues,
+        )
 
     response = case.get("response")
     if not isinstance(response, dict):
-        return _refuse("knowledge provider unavailable")
+        return _refuse(
+            "knowledge provider unavailable",
+            baseline_continues=baseline_continues,
+        )
     if not _response_is_valid(
         response,
         selected=eligible[0],
         maximum=request.get("max_topics", 3),
     ):
-        return _refuse("knowledge provider response refused")
+        return _refuse(
+            "knowledge provider response refused",
+            baseline_continues=baseline_continues,
+        )
     status = response.get("status")
     if status != "ok":
-        return ProviderResult(str(status), (), (), True, response.get("diagnostic"))
+        return ProviderResult(
+            str(status), (), (), baseline_continues, response.get("diagnostic")
+        )
     provider_reads = case.get("provider_reads")
     if not isinstance(provider_reads, list):
-        return _refuse("knowledge provider response refused")
+        return _refuse(
+            "knowledge provider response refused",
+            baseline_continues=baseline_continues,
+        )
+    reads: list[str] = []
     for reference in provider_reads:
         if not isinstance(reference, dict) or set(reference) != {
             "path",
             "digest_matches",
             "manifest_member",
         }:
-            return _refuse("knowledge provider response refused")
+            return _refuse(
+                "knowledge provider response refused",
+                reads=tuple(reads),
+                baseline_continues=baseline_continues,
+            )
+        # Membership and digest are verified *before* the body is read, so a
+        # failure here refuses with nothing recorded in `reads`.
         if not reference.get("manifest_member") or not reference.get("digest_matches"):
-            return _refuse("provider integrity unavailable")
-    paths = tuple(reference["path"] for reference in provider_reads)
+            return _refuse(
+                "provider integrity unavailable",
+                reads=tuple(reads),
+                baseline_continues=baseline_continues,
+            )
+        reads.append(reference["path"])
     topics = response["topic_ids"]
     bodies = tuple(response["guidance"][topic] for topic in topics)
-    return ProviderResult(str(status), bodies, paths, True, response.get("diagnostic"))
+    return ProviderResult(
+        str(status), bodies, tuple(reads), baseline_continues,
+        response.get("diagnostic"),
+    )
 
 
 def test_provider_contract_is_versioned_bounded_and_transport_independent() -> None:
@@ -316,9 +383,43 @@ def test_every_provider_case_matches_the_shared_consumer_oracle() -> None:
         result = evaluate_provider_case(case)
         assert result.status == case["expected"]["status"], case["id"]
         assert result.diagnostic == case["expected"]["diagnostic"], case["id"]
-        assert result.baseline_continues is True
+        # Case-driven, not a constant: AC13 lets an independently applicable
+        # baseline safety failure stop the task even though provider failure
+        # never does, and `baseline-safety-failure` exercises that branch.
+        expected_baseline = case["expected"].get("baseline_continues", True)
+        assert result.baseline_continues is expected_baseline, case["id"]
         if result.status != "ok":
-            assert result.content_reads == ()
+            assert result.content_reads == (), case["id"]
+
+
+def test_a_read_before_the_integrity_check_is_detectable() -> None:
+    """The no-read-before-refusal assertion must be able to fail.
+
+    `content_reads` is accumulated as each reference passes its manifest and
+    digest check, so a case whose reference fails integrity refuses with an
+    empty tuple, while one that passes records the path. If the oracle ever
+    read a body before checking, the refusing case would carry that path and
+    the suite would redden — which is what makes the assertion evidence.
+    """
+
+    refused = json.loads(
+        (FIXTURES / "providers" / "eligible-unmanifested-reference.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert evaluate_provider_case(refused).content_reads == ()
+
+    # Same case with integrity satisfied: the very same path is now recorded,
+    # proving the empty tuple above is a measured outcome and not a constant.
+    admitted = json.loads(json.dumps(refused))
+    for reference in admitted["provider_reads"]:
+        reference["manifest_member"] = True
+        reference["digest_matches"] = True
+    result = evaluate_provider_case(admitted)
+    assert result.content_reads == tuple(
+        reference["path"] for reference in admitted["provider_reads"]
+    )
+    assert result.content_reads != ()
 
 
 def test_unmanifested_independent_provider_reference_refuses_before_read() -> None:
@@ -333,6 +434,42 @@ def test_unmanifested_independent_provider_reference_refuses_before_read() -> No
     assert result.content_reads == ()
     assert result.baseline_continues is True
     assert result.diagnostic == "provider integrity unavailable"
+
+
+def test_shipped_contract_prose_states_the_same_bounds_as_the_fixture() -> None:
+    """The agent reads the prose; the suite checks the fixture. Bind them.
+
+    `provider-contract.md` is the artifact an agent actually follows, and until
+    now no test read its content — only asserted the route existed. The plan
+    designates the fixture table as "the conformance source", so the two must
+    not be able to drift apart silently.
+    """
+
+    contract = json.loads(
+        (FIXTURES / "provider-contract.json").read_text(encoding="utf-8")
+    )
+    prose = " ".join(PROVIDER_CONTRACT_MD.read_text(encoding="utf-8").split())
+
+    assert contract["contract_version"] in prose
+    for task_kind in contract["task_kinds"]:
+        assert f"`{task_kind}`" in prose, task_kind
+    for status in contract["response_statuses"]:
+        assert f"`{status}`" in prose, status
+
+    question = contract["request_constraints"]["question"]
+    assert (
+        f"{question['minimum_length']} through {question['maximum_length']}" in prose
+    )
+    capabilities = contract["request_constraints"]["capabilities"]
+    assert f"{capabilities['maximum_items']} unique" in prose
+    # The prose spells small numbers; the fixture stores them. Bind the two so
+    # a change to either has to be made in both.
+    words = {1: "one", 2: "two", 3: "three"}
+    cap = contract["max_topics"]
+    assert (
+        f"{words[cap['minimum']]} through {words[cap['maximum']]}, "
+        f"default {words[cap['default']]}" in prose
+    )
 
 
 def test_language_extension_families_are_distinct_and_unpopulated() -> None:
