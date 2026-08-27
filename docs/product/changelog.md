@@ -50,6 +50,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [core][2.12.3] — 2026-08-26
+
+### Highlights
+
+- **Adjudicators can settle a cited repository-file claim without an avoidable stop.**
+  A finding may now point to the current, confined file needed to test its own
+  predicate, while review artifacts and all other scope boundaries remain excluded.
+
+### Changed
+
+- Admit current, repository-confined files cited by a source finding solely for
+  testing that finding's predicate; preserve indeterminate outcomes when the
+  fact cannot be established within that bounded read envelope. Admission
+  resolves the cited path to its canonical real path first, accepts only paths
+  the finding itself names, and excludes any path whose resolved location is a
+  review, adjudication, or evidence artifact.
+- Describe the finding adjudicator's capabilities instead of naming specific
+  tools, so its shipped instructions read correctly wherever it is installed
+  rather than only where tools called `Read` and `Grep` exist.
+
+### Fixed
+
+- State that persisting the paired review artifact is the orchestrator's step
+  and is not optional. The adjudicator is read-only, so a verdict it returned
+  but nobody wrote was an incomplete review unit that the validator rejected
+  with no indication of which side owed the write.
+
 ## [agentbundle][0.40.0] — 2026-08-25
 
 ### Highlights

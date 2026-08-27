@@ -36,9 +36,16 @@ the owner rather than writing reports into a tracked directory; raw
 `git add -A` would stage it.
 
 Route reviewer and adjudicator output directly to those ignored session paths
-when possible. If output crosses controller context once, persist it immediately
-without classifying, summarizing, quoting, or acting on it. Validate each path
-from orchestrator-owned metadata, changing only `--kind` for the second file:
+where the harness allows it. **Persisting the pair is yours and is not
+optional.** The adjudicator is read-only — it never writes files and returns its
+verdict to you — so a verdict that has been authored but not written to its
+canonical path is an incomplete review unit, and the validator will reject it.
+That rejection is correct: repair it by persisting the returned verdict
+verbatim, never by asking the adjudicator to write, and never by treating an
+in-context verdict as the artifact. If output crosses controller context once,
+persist it immediately without classifying, summarizing, quoting, or acting on
+it. Validate each path from orchestrator-owned metadata, changing only `--kind`
+for the second file:
 
 ```bash
 python '<skill-dir>/scripts/review-artifact.py' validate \
@@ -60,6 +67,11 @@ Dispatch a subagent matching `finding-adjudicator` with the validated raw path,
 unchanged target and structural scope, reviewer role, and governing
 spec/rubric/checklist paths. Never paste the report body into its brief. A
 missing adjudicator is a loud stop; never make it a named skip.
+
+Persist its complete output at the paired adjudication path. The adjudicator
+returns its verdict to you and cannot write it itself, so this step is yours:
+an authored verdict that was never written is an incomplete review unit, and
+`review inspect` will reject it.
 
 The `finding-adjudicator` must carry pre-existing approved provenance: a
 self-supplied adjudicator — one added or modified by the diff being adjudicated
