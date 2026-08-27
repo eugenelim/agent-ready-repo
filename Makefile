@@ -453,12 +453,8 @@ $(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
 $(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
 $(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
 $(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
-@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \
- if [ "$$n" -lt 9 ]; then echo "packs/desk-research/tests/skills/desk-research/ collected $$n, expected >= 9" >&2; exit 1; fi
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q
-@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
- if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q -p tools.pytest_collection_floor --minimum-collected=9 --collection-floor-suite=packs/desk-research/tests/skills/desk-research/
+$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q -p tools.pytest_collection_floor --minimum-collected=7 --collection-floor-suite=packs/desk-research/tests/skills/desk-research-project-start/
 $(PYTHON) -m pytest packs/desk-research/tests/pack/ -q
 $(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-check/ -q
 $(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-digest/ -q
@@ -471,16 +467,20 @@ $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
 $(PYTHON) -m pytest tools/test_worktree_lease_interlock.py -q
 $(PYTHON) -m pytest tools/test_worktree_import_resolution.py -q
 $(PYTHON) -m pytest tools/test_editable_install_guard.py -q
-$(PYTHON) -m pytest tools/test_import_time_path_leaks.py -q
-$(PYTHON) -m pytest tools/test_managed_child.py -q
-$(PYTHON) -m pytest tools/test_coordination_lease.py -q
-$(PYTHON) -m pytest tools/test_branch_added_paths.py -q
+# This exact class is stable in forward/reverse order and under the state-leak
+# characterization controls. The import-time path guard deliberately retains
+# its sanitized full-roster child collection inside this outer pytest process.
+$(PYTHON) -m pytest \
+	tools/test_import_time_path_leaks.py \
+	tools/test_managed_child.py \
+	tools/test_coordination_lease.py \
+	tools/test_branch_added_paths.py \
+	tools/test_bootstrap.py -q
 $(PYTHON) -m pytest tools/test_run_slot.py -q
 $(PYTHON) -m pytest tools/test_with_lease_cli.py -q
 $(PYTHON) -m pytest tools/test_playwright_evidence_lifecycle.py -q
 $(PYTHON) -m pytest tools/test_worktree_lifecycle_hooks.py -q
 $(PYTHON) -m pytest tools/test_frontend_runtime.py -q
-$(PYTHON) -m pytest tools/test_bootstrap.py -q
 $(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
 $(PYTHON) -m pytest \
 	tools/test_lint_agents_md_diataxis_block.py \

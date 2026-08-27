@@ -110,6 +110,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
   # its completion makes the canonical MCP parity intent the programme's next slice.
   {path = "docs/specs/portable-agent-plugin-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Project portable-eligible canonical skills into deterministic Agent Plugins 1.0.0 packages", needs = [{type = "local", kind = "spec", path = "docs/specs/distribution-route-contract/spec.md"}]},

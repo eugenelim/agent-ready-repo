@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
@@ -75,16 +76,272 @@ EXPECTED_COMPOSED_IGNORES = {
     "packs/core/tests/skills/receive-brief/": {SHARED_TESTS[1]},
 }
 
+COLLECTION_FLOORS = {
+    "packs/desk-research/tests/skills/desk-research/": 9,
+    "packs/desk-research/tests/skills/desk-research-project-start/": 7,
+}
+
+PROVEN_COMPATIBLE_FILES = (
+    "tools/test_import_time_path_leaks.py",
+    "tools/test_managed_child.py",
+    "tools/test_coordination_lease.py",
+    "tools/test_branch_added_paths.py",
+    "tools/test_bootstrap.py",
+)
+PROVEN_COMPATIBLE_NODE_HASH = (
+    "efa4ae209fbba434d71b9c090415ed0c77d6f14674094f410a992def9082bdc3"
+)
+
+FIRST_TOOL_BATCH = (
+    "tools/test_build_gate_chain.py",
+    "tools/test_journey_editorial_decisions.py",
+    "tools/test_catalogue_tooling_rewire.py",
+    "tools/test_catalogue_tooling_docs.py",
+    "tools/test_validate_guides.py",
+    "tools/test_check_guide_index.py",
+    "tools/test_catalogue_navigation.py",
+    "tools/test_documentation_entry_links.py",
+    "tools/test_build_site_link_rewrites.py",
+    "tools/test_check_rendered_site_links.py",
+    "tools/test_build_site_routing.py",
+    "tools/test_check_docs_contrast.py",
+    "tools/test_build_site_inventory.py",
+    "tools/test_build_site_projection.py",
+    "tools/test_build_site_sidebar.py",
+    "tools/test_browser_gate_subset.py",
+    "tools/test_local_ci_shared_test_deduplication.py",
+)
+
+RETAINED_TOOL_SINGLETONS = (
+    "tools/test_worktree_hygiene.py",
+    "tools/test_worktree_lease_interlock.py",
+    "tools/test_worktree_import_resolution.py",
+    "tools/test_editable_install_guard.py",
+    "tools/test_run_slot.py",
+    "tools/test_with_lease_cli.py",
+    "tools/test_playwright_evidence_lifecycle.py",
+    "tools/test_worktree_lifecycle_hooks.py",
+    "tools/test_frontend_runtime.py",
+    "tools/test_check_artifact_contents.py",
+)
+
+FINAL_TOOL_BATCH = (
+    "tools/test_lint_agents_md_diataxis_block.py",
+    "tools/test_lint_agents_md_legacy_block.py",
+    "tools/test_lint_agents_md_risk_block.py",
+    "tools/test_lint_agents_md_frontmatter_scope.py",
+    "tools/test_catalogue_curation_guard.py",
+    "tools/test_contract_parity.py",
+    "tools/test_marketplace_envelope_parity.py",
+    "tools/test_guide_authoring_standard.py",
+    "tools/test_release_check.py",
+    "tools/test_check_release_impact.py",
+    "tools/test_scaffold_projection.py",
+    "tools/test_conformance_portability.py",
+    "tools/test_lint_guides_no_repo_only_refs.py",
+    "tools/test_okf_pre_pr.py",
+)
+
+WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
+EXPECTED_ROOT_TOOL_PATHS = frozenset(
+    ("tests/",)
+    + FIRST_TOOL_BATCH
+    + WORKSPACE_STATUS_PAIR
+    + RETAINED_TOOL_SINGLETONS
+    + PROVEN_COMPATIBLE_FILES
+    + FINAL_TOOL_BATCH
+)
+
+_STATE_GUARD_RUNNER = r"""
+import asyncio
+import importlib.util
+import json
+import locale
+import logging
+import multiprocessing
+import os
+import pathlib
+import signal
+import sys
+import threading
+import time
+import warnings
+from collections import Counter
+
+import pytest
+
+ROOT = pathlib.Path(os.environ["STATE_GUARD_REPO_ROOT"]).resolve()
+DESIGNATED = pathlib.Path(os.environ["STATE_GUARD_FS_PREFIX"])
+ALLOW_PATH = Counter(json.loads(os.environ.get("STATE_GUARD_ALLOW_PATH", "{}")))
+WATCHED = ("agentbundle", "credbroker", "tools.repo.build_gate_chain")
+
+
+def _resolution(name):
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError):
+        return "<unresolvable>"
+    return str(getattr(spec, "origin", None)) if spec else "<missing>"
+
+
+def _path_counts():
+    counts = Counter()
+    for entry in sys.path:
+        if not entry:
+            continue
+        try:
+            entry = str(pathlib.Path(entry).resolve())
+        except OSError:
+            pass
+        counts[entry] += 1
+    return counts
+
+
+def _signals():
+    found = {}
+    for member in signal.Signals:
+        if member.name in {"SIGKILL", "SIGSTOP"}:
+            continue
+        try:
+            handler = signal.getsignal(member)
+        except (OSError, ValueError):
+            continue
+        found[member.name] = handler if isinstance(handler, int) else id(handler)
+    return found
+
+
+def _logging_handlers():
+    def participant_handlers(logger):
+        # Pytest adds its two capture handlers before each test setup and
+        # removes them after the final teardown.  Those runner-owned handlers
+        # make the first-setup and post-final-teardown snapshots intentionally
+        # asymmetric; participant handlers must still compare exactly.
+        return tuple(
+            (type(handler).__name__, handler.level, id(handler))
+            for handler in logger.handlers
+            if not (
+                type(handler).__module__ == "_pytest.logging"
+                and type(handler).__qualname__ == "LogCaptureHandler"
+            )
+        )
+
+    loggers = [("root", logging.getLogger())]
+    loggers.extend(
+        (name, logger)
+        for name, logger in logging.Logger.manager.loggerDict.items()
+        if isinstance(logger, logging.Logger)
+    )
+    return sorted(
+        (name, participant_handlers(logger))
+        for name, logger in loggers
+    )
+
+
+def _snapshot():
+    env = {k: v for k, v in os.environ.items() if k != "PYTEST_CURRENT_TEST"}
+    policy = asyncio.get_event_loop_policy()
+    return {
+        "cwd": os.getcwd(),
+        "env": env,
+        "path": _path_counts(),
+        "meta_path": tuple((type(f).__module__, type(f).__qualname__, id(f)) for f in sys.meta_path),
+        "resolution": {name: _resolution(name) for name in WATCHED},
+        "logging": _logging_handlers(),
+        "warnings": tuple(map(repr, warnings.filters)),
+        "signals": _signals(),
+        "locale": locale.setlocale(locale.LC_ALL, None),
+        "timezone": (os.environ.get("TZ"), time.tzname, time.timezone),
+        "asyncio": (type(policy).__module__, type(policy).__qualname__, id(policy)),
+        "threads": sorted(
+            (thread.name, thread.ident, thread.daemon)
+            for thread in threading.enumerate()
+            if thread is not threading.current_thread() and thread.is_alive()
+        ),
+        "children": sorted(child.pid for child in multiprocessing.active_children()),
+        "filesystem": sorted(str(path) for path in DESIGNATED.parent.glob(DESIGNATED.name + "*")),
+    }
+
+
+def _changed(before, after, *, allow_path=False):
+    changed = []
+    for name in before:
+        if name == "path" and allow_path:
+            delta = Counter(after[name])
+            delta.subtract(before[name])
+            delta = Counter({key: value for key, value in delta.items() if value})
+            if delta != ALLOW_PATH:
+                changed.append("path=" + repr(dict(delta)))
+        elif name == "logging" and before[name] != after[name]:
+            changed.append(
+                "logging=" + repr({"before": before[name], "after": after[name]})
+            )
+        elif before[name] != after[name]:
+            changed.append(name)
+    return changed
+
+
+class StateGuard:
+    def __init__(self):
+        self.at_start = None
+        self.execution = None
+        self.current_file = None
+
+    def pytest_sessionstart(self, session):
+        self.at_start = _snapshot()
+
+    def pytest_collection_finish(self, session):
+        after = _snapshot()
+        changed = _changed(self.at_start, after, allow_path=True)
+        if changed:
+            pytest.fail("state guard collection delta: " + ", ".join(changed))
+
+    def pytest_runtest_setup(self, item):
+        current_file = str(item.path)
+        snapshot = _snapshot()
+        if self.execution is None:
+            self.execution = snapshot
+        elif current_file != self.current_file:
+            changed = _changed(self.execution, snapshot)
+            if changed:
+                pytest.fail("state guard file-boundary delta: " + ", ".join(changed))
+        self.current_file = current_file
+
+    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+    def pytest_runtest_protocol(self, item, nextitem):
+        yield
+        # Pytest restores warnings.filters around the whole runtest protocol,
+        # outside pytest_runtest_teardown.  Mutate after that restoration so
+        # the synthetic control proves a surviving warning-filter leak is
+        # visible at the following file boundary.
+        if os.environ.pop("STATE_GUARD_LATE_WARNING", None):
+            warnings.simplefilter("always", RuntimeWarning)
+
+    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+    def pytest_runtest_teardown(self, item, nextitem):
+        yield
+        if nextitem is None and self.execution is not None:
+            changed = _changed(self.execution, _snapshot())
+            if changed:
+                pytest.fail("state guard final delta: " + ", ".join(changed))
+
+
+code = pytest.main(
+    ["-q", "-p", "no:cacheprovider", *json.loads(os.environ["STATE_GUARD_ARGS"])],
+    plugins=[StateGuard()],
+)
+raise SystemExit(int(code))
+"""
+
 CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # Approved pre-change ``test-unleased`` dry-run plan after Python-path and
 # line-continuation normalization.  The composed digest removes only the exact
 # workspace-status pair command from that same baseline; the construction test
 # path is the sole intentional addition and is checked separately below.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "1ad1e8d58e64f844cd59a7f37454e890c7cd88f11839abfa12220a0648becae8"
+    "36efb486ae79ddbcc1748ab86c022dfcc6177f1e178a9882ffa70f241625df2f"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "aeef78a25cc941dfb80f8b3fadf108f89f4bc00f3d87faceee6dc7da43530936"
+    "22407146b88fbf5be5f7e9d1b4b39eb050a7441f50e7edc4a8a1a64b8e76be9b"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -292,6 +549,47 @@ def _make_macro(makefile: str, name: str) -> str:
         makefile,
     )
     return match.group(0) if match else ""
+
+
+def _floor_make_errors(makefile: str) -> list[str]:
+    """Return one-pass floor or inherited-stream drift in the real Make macro."""
+    macro = _make_macro(makefile, "run-test-suite")
+    errors: list[str] = []
+    for suite, floor in COLLECTION_FLOORS.items():
+        lines = [line.strip() for line in macro.splitlines() if suite in line]
+        if len(lines) != 1:
+            errors.append(f"{suite}: expected one real floor command")
+            continue
+        line = lines[0]
+        required = {
+            "$(PYTHON) -m pytest",
+            suite,
+            "-q",
+            "-p tools.pytest_collection_floor",
+            f"--minimum-collected={floor}",
+            f"--collection-floor-suite={suite}",
+        }
+        if not all(token in line for token in required):
+            errors.append(f"{suite}: one-pass floor argv drift")
+        if "--collect-only" in line:
+            errors.append(f"{suite}: collect-only probe remains")
+        if any(token in line for token in ("|", ">", "<")):
+            errors.append(f"{suite}: stdout/stderr no longer inherited")
+    return errors
+
+
+def _mutate_floor_make_command(makefile: str, suite: str, suffix: str) -> str:
+    """Append one shell stream mutation to a real floor command."""
+    lines = makefile.splitlines()
+    matches = [
+        index
+        for index, line in enumerate(lines)
+        if suite in line and "$(PYTHON) -m pytest" in line
+    ]
+    if len(matches) != 1:
+        raise AssertionError(f"{suite}: expected one mutable pytest command")
+    lines[matches[0]] = f"{lines[matches[0]]} {suffix}"
+    return "\n".join(lines) + ("\n" if makefile.endswith("\n") else "")
 
 
 def _skip_xfail_calls(relative_path: str) -> dict[str, int]:
@@ -857,6 +1155,328 @@ def test_real_ci_graph_owns_each_shared_test_exactly_once() -> None:
     assert _composition_errors(makefile, chain) == []
 
 
+def test_real_make_floors_are_one_pass_and_keep_inherited_streams() -> None:
+    """Both desk floors live on their one real pytest command without a pipe."""
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert _floor_make_errors(makefile) == []
+
+
+def test_real_make_root_tool_groups_match_the_approved_profiles() -> None:
+    """The approved root/tool roster is explicit once in each applicable route."""
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert _root_tool_topology_errors(makefile) == []
+
+
+def test_root_tool_topology_mutations_fail_closed() -> None:
+    """Removal, duplication, broad discovery, and stale ownership all redden."""
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    grouped_member = f"\t{PROVEN_COMPATIBLE_FILES[1]} \\\n"
+    assert grouped_member in makefile
+
+    removed = makefile.replace(grouped_member, "", 1)
+    assert "standalone root/tool membership drift" in _root_tool_topology_errors(
+        removed
+    )
+
+    duplicated = makefile.replace(grouped_member, grouped_member * 2, 1)
+    assert "standalone root/tool membership drift" in _root_tool_topology_errors(
+        duplicated
+    )
+
+    broad = makefile.replace(
+        "$(PYTHON) -m pytest \\\n\ttools/test_import_time_path_leaks.py \\\n",
+        "$(PYTHON) -m pytest tools/ \\\n\ttools/test_import_time_path_leaks.py \\\n",
+        1,
+    )
+    assert "broad tools discovery is forbidden" in _root_tool_topology_errors(broad)
+
+    stale_workspace = makefile.replace(
+        "$(PYTHON) -m pytest tools/test_workspace_status.py "
+        "tools/test_workspace_status_cli.py -q)",
+        "$(PYTHON) -m pytest tools/test_workspace_status.py -q)",
+        1,
+    )
+    assert "standalone root/tool membership drift" in _root_tool_topology_errors(
+        stale_workspace
+    )
+
+
+def test_approved_group_collection_is_the_exact_isolated_union_in_both_orders() -> None:
+    """Grouping changes neither node identity nor skip/xfail disposition."""
+    for marker in (None, "skip", "xfail"):
+        isolated: list[str] = []
+        for path in PROVEN_COMPATIBLE_FILES:
+            isolated.extend(_collect_candidate_nodes((path,), marker=marker))
+        assert len(isolated) == len(set(isolated))
+
+        forward = _collect_candidate_nodes(PROVEN_COMPATIBLE_FILES, marker=marker)
+        reverse = _collect_candidate_nodes(
+            tuple(reversed(PROVEN_COMPATIBLE_FILES)), marker=marker
+        )
+        assert Counter(forward) == Counter(isolated)
+        assert Counter(reverse) == Counter(isolated)
+        if marker is None:
+            assert len(isolated) == 58
+            assert (
+                hashlib.sha256("\n".join(sorted(isolated)).encode()).hexdigest()
+                == PROVEN_COMPATIBLE_NODE_HASH
+            )
+
+
+def test_approved_group_collection_has_only_the_characterized_path_delta() -> None:
+    """Importing the five files moves only the reviewed root/tools path pair."""
+    prefix = REPO_ROOT / "state_guard_unused"
+    result = _run_state_guard(
+        PROVEN_COMPATIBLE_FILES,
+        collect_only=True,
+        designated_prefix=prefix,
+        allow_path={
+            str(REPO_ROOT): 1,
+            # One ordinary pytest prepend plus the characterized consequent
+            # prepend after test_branch_added_paths inserts the repo root.
+            str(REPO_ROOT / "tools"): 2,
+        },
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_full_body_verifier_pins_real_isolated_and_reordered_sessions() -> None:
+    """The explicit verifier owns eight real, fail-fast state-guard sessions."""
+    repo = str(REPO_ROOT)
+    tools = str(REPO_ROOT / "tools")
+    expected = tuple(
+        (
+            f"isolated:{path}",
+            (path,),
+            {tools: 1, **({repo: 1} if path == PROVEN_COMPATIBLE_FILES[3] else {})},
+        )
+        for path in PROVEN_COMPATIBLE_FILES
+    ) + (
+        (
+            "group:forward:1",
+            PROVEN_COMPATIBLE_FILES,
+            {repo: 1, tools: 2},
+        ),
+        (
+            "group:reverse",
+            tuple(reversed(PROVEN_COMPATIBLE_FILES)),
+            {repo: 1, tools: 2},
+        ),
+        (
+            "group:forward:2",
+            PROVEN_COMPATIBLE_FILES,
+            {repo: 1, tools: 2},
+        ),
+    )
+    assert _approved_compatibility_verification_runs() == expected
+
+    green = subprocess.CompletedProcess([], 0, "58 passed\n", "")
+    with mock.patch.object(
+        sys.modules[__name__], "_run_state_guard", return_value=green
+    ) as run:
+        assert _verify_approved_compatibility_class(REPO_ROOT) == 0
+    assert run.call_count == 8
+    for index, ((_, paths, allow_path), call) in enumerate(
+        zip(expected, run.call_args_list, strict=True), 1
+    ):
+        assert call.args == (paths,)
+        assert call.kwargs == {
+            "designated_prefix": REPO_ROOT
+            / f"pytest-session-state-{os.getpid()}-{index}",
+            "allow_path": allow_path,
+        }
+
+    red = subprocess.CompletedProcess([], 1, "failed\n", "diagnostic\n")
+    with mock.patch.object(
+        sys.modules[__name__], "_run_state_guard", side_effect=(green, red)
+    ) as run:
+        assert _verify_approved_compatibility_class(REPO_ROOT) == 1
+    assert run.call_count == 2
+
+
+def test_compatibility_class_has_no_atexit_registration() -> None:
+    """The actual class is clean and the source check rejects a registration."""
+    for path in PROVEN_COMPATIBLE_FILES:
+        source = (REPO_ROOT / path).read_text(encoding="utf-8")
+        assert _forbidden_atexit_registration_errors(source) == []
+    assert _forbidden_atexit_registration_errors(
+        "import atexit\natexit.register(lambda: None)\n"
+    ) == ["atexit registration"]
+
+
+def test_state_guard_controls_detect_each_persistent_channel() -> None:
+    """Synthetic file-boundary leaks prove every runtime channel is observed."""
+    mutations = {
+        "env": "import os\nos.environ['STATE_GUARD_LEAK'] = '1'",
+        "cwd": (
+            "import os, pathlib\n"
+            "os.chdir(pathlib.Path(os.environ['STATE_GUARD_REPO_ROOT']).parent)"
+        ),
+        "logging": "import logging\nlogging.getLogger().addHandler(logging.NullHandler())",
+        "warnings": "import os\nos.environ['STATE_GUARD_LATE_WARNING'] = '1'",
+        "signals": (
+            "import signal\n"
+            "signal.signal(signal.SIGTERM, lambda signum, frame: None)"
+        ),
+        "locale": (
+            "import locale\n"
+            "before = locale.setlocale(locale.LC_ALL, None)\n"
+            "for candidate in ('C', 'C.UTF-8', 'en_US.UTF-8'):\n"
+            "    try:\n"
+            "        locale.setlocale(locale.LC_ALL, candidate)\n"
+            "    except locale.Error:\n"
+            "        continue\n"
+            "    if locale.setlocale(locale.LC_ALL, None) != before:\n"
+            "        break"
+        ),
+        "timezone": (
+            "import os, time\n"
+            "os.environ['TZ'] = 'GMT+5' if os.environ.get('TZ') != 'GMT+5' else 'UTC0'\n"
+            "getattr(time, 'tzset', lambda: None)()"
+        ),
+        "asyncio": (
+            "import asyncio\n"
+            "asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())"
+        ),
+        "threads": (
+            "import threading, time\n"
+            "threading.Thread(target=time.sleep, args=(1.5,), daemon=False).start()"
+        ),
+        "children": (
+            "import multiprocessing, time\n"
+            "multiprocessing.Process(target=time.sleep, args=(1.5,)).start()"
+        ),
+        "filesystem": (
+            "import os, pathlib\n"
+            "pathlib.Path(os.environ['STATE_GUARD_FS_PREFIX']).write_text('leak')"
+        ),
+    }
+    for channel, mutation in mutations.items():
+        with unittest.TestCase().subTest(channel=channel):
+            paths: list[Path] = []
+            with tempfile.NamedTemporaryFile(
+                prefix="state_guard_fs_", dir=REPO_ROOT
+            ) as prefix_handle:
+                designated = Path(prefix_handle.name)
+            try:
+                mutator_body = "def test_mutator():\n" + "".join(
+                    f"    {line}\n" for line in mutation.splitlines()
+                )
+                for label, body in (
+                    ("mutator", mutator_body),
+                    ("following", "def test_following():\n    pass\n"),
+                ):
+                    with tempfile.NamedTemporaryFile(
+                        mode="w",
+                        encoding="utf-8",
+                        prefix=f"test_state_guard_{label}_",
+                        suffix=".py",
+                        dir=REPO_ROOT,
+                        delete=False,
+                    ) as handle:
+                        handle.write(body)
+                        paths.append(Path(handle.name))
+                result = _run_state_guard(
+                    tuple(path.name for path in paths),
+                    designated_prefix=designated,
+                )
+                output = result.stdout + result.stderr
+                assert result.returncode != 0, f"undetected {channel} mutation:\n{output}"
+                assert channel in output, output
+            finally:
+                for path in paths:
+                    path.unlink(missing_ok=True)
+                designated.unlink(missing_ok=True)
+
+
+def test_grouped_failure_retains_normal_pytest_attribution() -> None:
+    """A failing member cannot be hidden by the surrounding compatibility class."""
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="test_group_failure_",
+        suffix=".py",
+        dir=REPO_ROOT,
+        delete=False,
+    ) as handle:
+        failure = Path(handle.name)
+        handle.write("def test_group_synthetic_failure():\n    assert False\n")
+    try:
+        env = os.environ.copy()
+        env.pop("PYTEST_ADDOPTS", None)
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                *PROVEN_COMPATIBLE_FILES,
+                failure.name,
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                "-k",
+                "group_synthetic_failure",
+            ],
+            cwd=REPO_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert f"{failure.name}::test_group_synthetic_failure" in result.stdout
+        assert "1 failed, 58 deselected" in result.stdout
+    finally:
+        failure.unlink(missing_ok=True)
+
+
+def test_import_path_guard_attributes_a_temporary_package_path_mutator() -> None:
+    """The retained broad child catches the dangerous fails-alone/pass-grouped shape."""
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="test_path_leak_mutator_",
+        suffix=".py",
+        dir=REPO_ROOT / "tools",
+        delete=False,
+    ) as handle:
+        mutator = Path(handle.name)
+        handle.write(
+            "import sys\nfrom pathlib import Path\n"
+            "sys.path.insert(0, str(Path(__file__).parents[1] / 'packages' / "
+            "'agentbundle'))\n"
+            "def test_control():\n    pass\n"
+        )
+    try:
+        guard = _load_module(
+            "tools/test_import_time_path_leaks.py", "path_guard_mutation_control"
+        )
+        report = guard._collect_in_child()
+        mutator_node = f"tools/{mutator.name}"
+        assert any(
+            leak["nodeid"] == mutator_node for leak in report["leaks"]
+        ), report
+        assert report["final"] != report["baseline"]
+    finally:
+        mutator.unlink(missing_ok=True)
+
+
+def test_make_floor_stream_mutations_fail_closed() -> None:
+    """Redirection and pipes on either desk stream are independently detected."""
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    suite = next(iter(COLLECTION_FLOORS))
+    for suffix in (
+        "> floor.stdout",
+        "2> floor.stderr",
+        "| tee floor.stdout",
+        "2>&1 | tee floor.stderr",
+    ):
+        mutated = _mutate_floor_make_command(makefile, suite, suffix)
+        assert _floor_make_errors(mutated), suffix
+
+
 def test_shared_test_contract_mutations_fail_closed() -> None:
     """Missing owners and stale, absent, or double exclusions cannot go green."""
     makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
@@ -969,6 +1589,197 @@ def _normalized_command_plan(stdout: str) -> list[str]:
     if pending:
         plan.append(" ".join(pending.split()).replace(sys.executable, "<PYTHON>"))
     return plan
+
+
+def _root_tool_pytest_groups(stdout: str) -> tuple[tuple[str, ...], ...]:
+    """Return explicit root/tool pytest targets from one expanded Make plan."""
+    groups: list[tuple[str, ...]] = []
+    for line in _normalized_command_plan(stdout):
+        tokens = line.split()
+        try:
+            pytest_index = next(
+                index
+                for index in range(len(tokens) - 1)
+                if tokens[index : index + 2] == ["-m", "pytest"]
+            )
+        except StopIteration:
+            continue
+        targets = tuple(
+            token
+            for token in tokens[pytest_index + 2 :]
+            if token in {"tests/", "tools/"} or token.startswith("tools/test_")
+        )
+        if targets:
+            groups.append(targets)
+    return tuple(groups)
+
+
+def _root_tool_topology_errors(makefile_text: str | None = None) -> list[str]:
+    """Return membership or process-boundary drift in the two real profiles."""
+    errors: list[str] = []
+    standalone = _make_dry_run("test-unleased", makefile_text=makefile_text)
+    composed = _make_dry_run(
+        "test-after-build-check-unleased", makefile_text=makefile_text
+    )
+    if standalone.returncode != 0 or composed.returncode != 0:
+        return ["Make expansion failed"]
+
+    standalone_groups = _root_tool_pytest_groups(standalone.stdout)
+    composed_groups = _root_tool_pytest_groups(composed.stdout)
+    if len(standalone_groups) != 15:
+        errors.append("standalone root/tool process count drift")
+    if len(composed_groups) != 14:
+        errors.append("composed root/tool process count drift")
+
+    standalone_paths = [path for group in standalone_groups for path in group]
+    composed_paths = [path for group in composed_groups for path in group]
+    if Counter(standalone_paths) != Counter(EXPECTED_ROOT_TOOL_PATHS):
+        errors.append("standalone root/tool membership drift")
+    expected_composed = EXPECTED_ROOT_TOOL_PATHS - set(WORKSPACE_STATUS_PAIR)
+    if Counter(composed_paths) != Counter(expected_composed):
+        errors.append("composed root/tool membership drift")
+    if PROVEN_COMPATIBLE_FILES not in standalone_groups:
+        errors.append("approved compatibility class drift")
+    if PROVEN_COMPATIBLE_FILES not in composed_groups:
+        errors.append("composed compatibility class drift")
+    if WORKSPACE_STATUS_PAIR not in standalone_groups:
+        errors.append("standalone workspace-status ownership drift")
+    if any(set(group) & set(WORKSPACE_STATUS_PAIR) for group in composed_groups):
+        errors.append("composed workspace-status ownership drift")
+    if any("tools/" in group for group in standalone_groups + composed_groups):
+        errors.append("broad tools discovery is forbidden")
+    return errors
+
+
+def _collect_candidate_nodes(
+    paths: tuple[str, ...], *, marker: str | None = None
+) -> tuple[str, ...]:
+    """Collect candidate node IDs in one fresh, ambient-option-free process."""
+    argv = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--collect-only",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+    ]
+    if marker is not None:
+        argv.extend(["-m", marker])
+    argv.extend(paths)
+    env = os.environ.copy()
+    env.pop("PYTEST_ADDOPTS", None)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    result = subprocess.run(
+        argv,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    if result.returncode not in {0, 5}:
+        raise AssertionError(
+            f"candidate collection failed ({result.returncode}):\n{result.stdout}\n"
+            f"{result.stderr}"
+        )
+    return tuple(
+        line.strip()
+        for line in result.stdout.splitlines()
+        if line.strip().startswith("tools/") and "::" in line
+    )
+
+
+def _run_state_guard(
+    paths: tuple[str, ...],
+    *,
+    collect_only: bool = False,
+    designated_prefix: Path,
+    allow_path: dict[str, int] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run the test-only process-state plugin in a fresh interpreter."""
+    args = (["--collect-only"] if collect_only else []) + list(paths)
+    env = os.environ.copy()
+    env.pop("PYTEST_ADDOPTS", None)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["STATE_GUARD_REPO_ROOT"] = str(REPO_ROOT)
+    env["STATE_GUARD_FS_PREFIX"] = str(designated_prefix)
+    env["STATE_GUARD_ARGS"] = json.dumps(args)
+    env["STATE_GUARD_ALLOW_PATH"] = json.dumps(allow_path or {})
+    return subprocess.run(
+        [sys.executable, "-B", "-c", _STATE_GUARD_RUNNER],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120,
+        check=False,
+    )
+
+
+def _approved_compatibility_verification_runs(
+) -> tuple[tuple[str, tuple[str, ...], dict[str, int]], ...]:
+    """Return the exact isolated and grouped full-body evidence sequence."""
+    repo = str(REPO_ROOT)
+    tools = str(REPO_ROOT / "tools")
+    isolated = tuple(
+        (
+            f"isolated:{path}",
+            (path,),
+            {tools: 1, **({repo: 1} if path == PROVEN_COMPATIBLE_FILES[3] else {})},
+        )
+        for path in PROVEN_COMPATIBLE_FILES
+    )
+    grouped = (
+        ("group:forward:1", PROVEN_COMPATIBLE_FILES, {repo: 1, tools: 2}),
+        (
+            "group:reverse",
+            tuple(reversed(PROVEN_COMPATIBLE_FILES)),
+            {repo: 1, tools: 2},
+        ),
+        ("group:forward:2", PROVEN_COMPATIBLE_FILES, {repo: 1, tools: 2}),
+    )
+    return isolated + grouped
+
+
+def _verify_approved_compatibility_class(designated_root: Path) -> int:
+    """Execute every approved full-body state-guard session, failing fast."""
+    for index, (label, paths, allow_path) in enumerate(
+        _approved_compatibility_verification_runs(), 1
+    ):
+        result = _run_state_guard(
+            paths,
+            designated_prefix=designated_root
+            / f"pytest-session-state-{os.getpid()}-{index}",
+            allow_path=allow_path,
+        )
+        if result.returncode != 0:
+            print(f"{label}: exit {result.returncode}", file=sys.stderr)
+            print(result.stdout, end="", file=sys.stderr)
+            print(result.stderr, end="", file=sys.stderr)
+            return result.returncode
+        summary = next(
+            (line for line in reversed(result.stdout.splitlines()) if "passed" in line),
+            "completed without a pytest pass summary",
+        )
+        print(f"{label}: {summary}")
+    return 0
+
+
+def _forbidden_atexit_registration_errors(source: str) -> list[str]:
+    """Reject atexit registration in compatibility-class test source."""
+    tree = ast.parse(source)
+    return [
+        "atexit registration"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "atexit"
+        and node.func.attr == "register"
+    ]
 
 
 def _without_construction_addition(plan: list[str]) -> list[str]:
@@ -1274,3 +2085,14 @@ def test_real_recursive_make_propagates_shared_and_unrelated_failures() -> None:
     assert "EVENT build-check" in nonshared.stdout
     assert "EVENT nonshared-failure" in nonshared.stdout
     assert "EVENT reduced" not in nonshared.stdout
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] != ["--verify-approved-compatibility-class"]:
+        raise SystemExit(
+            "usage: python tools/test_local_ci_shared_test_deduplication.py "
+            "--verify-approved-compatibility-class"
+        )
+    raise SystemExit(
+        _verify_approved_compatibility_class(Path(tempfile.gettempdir()))
+    )
