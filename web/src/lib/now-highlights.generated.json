@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.12.3"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[core][2.12.3] — 2026-08-26",
+      "changelogAnchor": "core2123--2026-08-26",
+      "highlights": [
+        {
+          "source": "**Adjudicators can settle a cited repository-file claim without an avoidable stop.** A finding may now point to the current, confined file needed to test its own predicate, while review artifacts and all other scope boundaries remain excluded.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Adjudicators can settle a cited repository-file claim without an avoidable stop."
+            },
+            {
+              "type": "text",
+              "value": " A finding may now point to the current, confined file needed to test its own predicate, while review artifacts and all other scope boundaries remain excluded."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agentbundle",
           "version": "0.40.0"
         }

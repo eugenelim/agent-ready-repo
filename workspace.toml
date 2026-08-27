@@ -1786,6 +1786,29 @@ open = [
   { slug = "rfc0088-spec-1-foundation-provider-vertical", source = "rfc/0088 follow-on list", summary = "Spec 1: synthetic foundation/provider vertical — pinned-container fixture, current-rail runtime delivery, browser lifecycle, authorization-order fixtures, install/admit/activate/upgrade/rollback/repair gate, user guide for login handoff and recovery" },
   { slug = "rfc0088-spec-2-result-policy-contracts", source = "rfc/0088 follow-on list", summary = "Spec 2: generic result/artifact, download, retention/quota, diagnostics, redaction, authorization, and network/filesystem policy contracts; carries Q5's destination-credential-exposure declaration requirement" },
   { slug = "rfc0088-spec-3-developer-workbench", source = "rfc/0088 follow-on list", summary = "Spec 3: developer workbench, supervised probes, packaging and provenance review, and repair workflow" },
+
+  # The finding-adjudicator canonicalizes a cited path and checks confinement
+  # before reading it, but nothing binds the subsequent read to the object that
+  # was checked: a regular file that passes admission can be replaced with a
+  # symlink to an external path before the read happens, and the agent follows
+  # the new link. Surfaced by adversarial review of the cited-file read envelope.
+  # NOT introduced by that change and NOT a reason it was held: the identical
+  # race already applies to all five orchestrator-supplied paths, because the
+  # agent is instructed in terms of PATHS and has always been. The envelope
+  # change added another path source, not a new class of exposure. Exploiting it
+  # needs an attacker with concurrent write access to the working tree during
+  # adjudication — who has strictly more direct options, such as editing the
+  # source under review.
+  # Deliberately not fixed in prose: the remedy is a stabilized file handle or
+  # snapshot with no path re-resolution, which is a runtime/tool-layer
+  # guarantee. An agent whose only capability is "read the file at path P"
+  # cannot honor an instruction to hold a checked file object, and writing one
+  # anyway would produce either a no-op or a permanent indeterminate.
+  # Fix: give the read capability a stabilizing contract, or have the
+  # orchestrator snapshot admitted files into the read allowlist and supply
+  # those instead of paths.
+  # Unblocks when: the tool layer can express a checked-then-bound read.
+  { slug = "adjudicator-cited-read-toctou", source = "spec-less adjudicator read-envelope change (adversarial review round 2)", summary = "The finding-adjudicator checks a cited path's confinement before reading but nothing binds the read to the checked object, so a concurrent swap to an external symlink is followed; identical pre-existing race applies to the orchestrator-supplied paths" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
