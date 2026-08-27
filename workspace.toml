@@ -1104,20 +1104,6 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # tools/build-site.py strips HTML comments with a bare `<!--.*?-->` and, per
-  # its own comment at :1609, resolves fenced code first -- but has no notion of
-  # INLINE code spans. Not latent: it fired on PR #1139. Changelog prose that
-  # mentioned comment syntax inside backticks opened a span that paired with a
-  # closer 5,083 lines later, leaving parse_changelog_releases with 1 release
-  # instead of ~100 and reddening the launch-window test. Split out of the spec
-  # intent deliberately -- it is a different module reading a different file, and
-  # nobody picking up "enforce the spec format" would think to fix a changelog
-  # parser.
-  # Fix: give build-site's comment stripper inline-code-span precedence --
-  #   lint-spec-status.py's `_code_span_ranges` is a linear, working reference.
-  # Unblocks when: picked up -- no dependency.
-  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "build-site.py's HTML-comment stripper has no notion of inline code spans, so backticked comment syntax in changelog prose can open a real comment span and swallow thousands of lines"},
-
 
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
@@ -1830,6 +1816,19 @@ closed = [
   {slug = "okf012-nondeterminism-guard-untested", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; a mutation-proven compile_pack test asserts exit 2, diagnostics exactly OKF012, and no pack mutation when the two renders differ"},
 
   {slug = "architect-okf-bundle-root-missing-license", source = "spec/okf-authoring-projection (adversarial review, reproduced)", summary = "Closed by spec/okf-follow-ons; architect's authored OKF root declares the shared content licence, distinguishes source from projection, and passes discovery and show with a regression test. Owner review by architect's maintainer is still outstanding and is required before architect becomes the INI-009 M3 integration pilot; see the variance record in docs/product/initiatives/ini-009-agent-skill-engineering.md"},
+
+  # Two of the three sites that read comment syntax in parse_changelog_releases
+  # are now code-span aware, via a linear-scan `_code_span_ranges` COPIED from
+  # lint-spec-status.py rather than imported -- tools/ must not couple to a
+  # content-pinned pack tree. The third, the `-->` search inside an open
+  # comment, deliberately stays blind and now carries a comment saying so:
+  # Markdown is not parsed inside an HTML comment, so masking there would be a
+  # NEW bug. build-site keeps its raise where lint-spec-status returns what it
+  # has; that divergence is intentional and commented at both ends.
+  # Also closed the measurement gap that let this reach production: nothing
+  # asserted a release-count FLOOR, and _MAROONED_RELEASE_BASELINE is an upper
+  # bound on a different population that passes when releases collapse to zero.
+  {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a >=130-release floor on the real changelog (measured 171); the backticked-opener case went 0 -> 171 releases while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
