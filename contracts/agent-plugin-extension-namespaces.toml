@@ -1,0 +1,12 @@
+# Agent Plugins extension namespace allocation contract.
+
+[contract]
+version = "1.0"
+
+[namespace."com.github.copilot"]
+owner = "copilot-profile"
+state = "reserved"
+
+[namespace."dev.kiro"]
+owner = "kiro-profile"
+state = "reserved"

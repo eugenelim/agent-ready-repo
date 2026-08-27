@@ -40,6 +40,28 @@ which files and follow-up state land. Local scope deliberately omits seeds,
 adaptation markers, layout sections, and chained CLI adaptation. This page
 explains why there are four routes and how to pick.
 
+## Portable Agent Plugins catalogue output
+
+Catalogue maintainers can also produce Agent Plugins 1.0.0 packages with the
+normal build:
+
+```bash
+make build
+```
+
+Eligible skills-only packs land at `dist/agent-plugins/<pack>/`, with a root
+`plugin.json` and canonical content under `skills/`. A pack carrying any other
+canonical primitive is excluded, and the build diagnostic names the pack and
+the complete sorted primitive set. The manifest validates offline against the
+immutable schema bundled at
+`agentbundle/_data/vendor/agent-plugins/1.0.0/plugin.schema.json`; the paired MCP
+schema is bundled for the next phase.
+
+This release provides package projection whose support posture is verified by
+the repository documentation and build gates. It does not provide MCP behavior,
+seed or adaptation projection, publication automation, client installation, or
+runtime verification. Those remain separate routes or follow-on work.
+
 :::caution
 **Caveat — route 3 still requires route 4's pip install today.** The release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
 :::

@@ -3,7 +3,7 @@
 # ./distribution-routes.schema.json.
 
 [contract]
-version = "0.1"
+version = "0.2"
 
 [route.apm]
 identity = "apm"
@@ -22,6 +22,25 @@ kiro-ide-hook = { status = "native", mode = "direct-file", target-path = ".apm/k
 shared-libs = { status = "native", mode = "direct-directory", target-path = ".apm/shared-libs/" }
 adapter-root-bins = { status = "native", mode = "direct-directory", target-path = ".apm/adapter-root-bins/" }
 user-libs = { status = "native", mode = "direct-directory", target-path = ".apm/user-libs/" }
+
+[route."agent-plugin"]
+identity = "agent-plugin"
+package-layout = { name = "agent-plugin-tree", output-subdir = "agent-plugins" }
+manifest-projector = { name = "agent-plugin-root-manifest", adapter-projector = "none", admission-policy = "skills-only" }
+marketplace-projector = "none"
+lifecycle-trigger = "none"
+
+[route."agent-plugin".component-capabilities]
+skill = { status = "native", mode = "direct-directory", target-path = "skills/" }
+agent = { status = "dropped", mode = "dropped", target-path = "none" }
+command = { status = "dropped", mode = "dropped", target-path = "none" }
+hook-body = { status = "dropped", mode = "dropped", target-path = "none" }
+hook-wiring = { status = "dropped", mode = "dropped", target-path = "none" }
+kiro-ide-hook = { status = "dropped", mode = "dropped", target-path = "none" }
+shared-libs = { status = "dropped", mode = "dropped", target-path = "none" }
+adapter-root-bins = { status = "dropped", mode = "dropped", target-path = "none" }
+user-libs = { status = "dropped", mode = "dropped", target-path = "none" }
+
 
 [route."claude-plugins"]
 identity = "claude-plugins"

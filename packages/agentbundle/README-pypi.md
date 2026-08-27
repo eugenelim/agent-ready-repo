@@ -14,6 +14,19 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.40.0
+
+Catalogue builds now produce offline-validatable Agent Plugins 1.0.0 packages
+under `dist/agent-plugins/<pack>/` for every skills-only pack. The new route
+preserves canonical skill bytes and executable bits, emits a privacy-minimal
+root `plugin.json`, and reports every pack excluded by non-portable primitives.
+The paired plugin and MCP schemas are bundled from an immutable upstream commit;
+MCP behavior remains a separate follow-on.
+
+Extension namespaces are closed and allocation-gated. Kiro and Copilot are
+reserved, while active namespaces must name a versioned schema before their
+manifest data or files can enter a portable artifact.
+
 ## What's new in 0.39.4
 
 Codex-projected agents that declare `Read`, `Grep`, or `Glob` without `Bash`

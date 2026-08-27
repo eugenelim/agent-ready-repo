@@ -352,10 +352,17 @@ def test_path_jail_probe_refused(tmp_path):
     malicious_relpath = "../../malicious_file.txt"
     fake_projection = {malicious_relpath: malicious_content}
 
-    with mock.patch("agentbundle.render.render_pack", return_value=fake_projection):
+    with mock.patch(
+        "agentbundle.render.render_pack", return_value=fake_projection
+    ) as render_pack:
         rc = run(_args("alpha", str(FIXTURE_CATALOGUE), str(tmp_path)))
 
     assert rc != 0, "Install must refuse when a projection escapes the output root"
+    assert render_pack.call_args.kwargs["recipes"] == (
+        "per-pack-claude-plugin",
+        "per-pack-apm-package",
+        "marketplace",
+    )
 
     # The malicious file must not exist outside the tmp_path.
     malicious_target = (tmp_path / malicious_relpath).resolve()

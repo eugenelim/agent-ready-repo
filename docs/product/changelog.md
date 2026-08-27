@@ -50,6 +50,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > A released entry with no `Highlights` stays in this changelog and is simply
 > absent from `/now/`.
 
+## [agentbundle][0.40.0] — 2026-08-25
+
+### Highlights
+
+- **Catalogue maintainers can now build portable Agent Plugins 1.0.0 packages
+  offline.** The normal build emits deterministic, schema-valid root manifests
+  and canonical skill trees for every skills-only pack, with complete reasons
+  for packs the route excludes.
+
+### Added
+
+- Added the explicit `agent-plugin` distribution route, immutable version-paired
+  plugin and MCP schemas, privacy-minimal manifest projection, confined skill
+  copying, and an allocation-gated reverse-domain extension surface.
+
+### Changed
+
+- Distribution-route contract version 0.2 now carries three concrete routes;
+  the APM and Claude package outputs and direct-install behavior remain
+  unchanged.
+
 ## [catalogue-curation][0.4.2] — 2026-08-25
 
 ### Highlights

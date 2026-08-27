@@ -8,9 +8,9 @@ codebase.
 Two surfaces:
 
   - `render_pack_to_dir(pack_path, output_dir, contract=None)` — runs the
-    same three default recipes that `make build` runs (per-pack
-    claude-plugin, per-pack apm-package, marketplace) and writes them
-    into `output_dir`. Byte-identical to `make build`.
+    same four default recipes that `make build` runs (per-pack Claude plugin,
+    APM package, Agent Plugin, and marketplace) and writes them into
+    `output_dir`. Byte-identical to `make build`.
 
   - `render_pack(pack_path, contract=None)` — same projection, but
     materialised in a tempdir and returned as a `dict[str, bytes]`
@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import tempfile
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
@@ -40,6 +41,14 @@ from agentbundle.build.main import (
     run_recipe,
     validate_pack_metadata,
 )
+
+
+@dataclass(frozen=True)
+class RenderedFile:
+    """One rendered regular file with the mode needed by a disk writer."""
+
+    content: bytes
+    mode: int
 
 
 def list_adapters() -> Sequence[str]:
@@ -68,7 +77,7 @@ def render_pack_to_dir(
 ) -> None:
     """Render a single pack to `output_dir` using the named recipes.
 
-    `output_dir` is created if absent. The three default recipes match
+    `output_dir` is created if absent. The four default recipes match
     what `make build` runs; the F-build parity test pins this.
     """
     pack = _pack_from_path(pack_path)
@@ -99,6 +108,24 @@ def render_pack(
         out = Path(raw)
         render_pack_to_dir(pack_path, out, contract=contract, recipes=recipes)
         return _collect_tree(out)
+
+
+def render_pack_files(
+    pack_path: Path,
+    *,
+    contract: dict | None = None,
+    recipes: Sequence[str] = DEFAULT_RECIPES,
+) -> dict[str, RenderedFile]:
+    """Render a pack and return bytes plus portable permission modes.
+
+    The byte-only :func:`render_pack` API remains stable for hash/diff callers;
+    commands that materialise the tree use this richer surface so executable
+    source files do not silently become ``0644``.
+    """
+    with tempfile.TemporaryDirectory() as raw:
+        out = Path(raw)
+        render_pack_to_dir(pack_path, out, contract=contract, recipes=recipes)
+        return _collect_tree_files(out)
 
 
 def render_packs_to_dir(
@@ -157,4 +184,19 @@ def _collect_tree(root: Path) -> dict[str, bytes]:
         if path.is_file():
             relpath = path.relative_to(root).as_posix()
             out[relpath] = path.read_bytes()
+    return out
+
+
+def _collect_tree_files(root: Path) -> dict[str, RenderedFile]:
+    """Collect regular rendered files with content and executable mode."""
+    out: dict[str, RenderedFile] = {}
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            continue
+        if path.is_file():
+            relpath = path.relative_to(root).as_posix()
+            out[relpath] = RenderedFile(
+                content=path.read_bytes(),
+                mode=0o755 if path.stat().st_mode & 0o111 else 0o644,
+            )
     return out

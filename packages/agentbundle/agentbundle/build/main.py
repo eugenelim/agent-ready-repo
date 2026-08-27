@@ -3,9 +3,10 @@ marketplace aggregation.
 
 Recipes live next to this module under `recipes/`. Each recipe carries
 a `type` (`per-pack` | `aggregate` | `overlay` | `composite`) that
-determines how the pipeline interprets it. The first
-three (per-pack-claude-plugin, per-pack-apm-package, marketplace); the
-other three (per-pack-overlay, composite-agents-md, composite-marketplace)
+determines how the pipeline interprets it. The four default recipes are
+per-pack-claude-plugin, per-pack-apm-package, per-pack-agent-plugin, and
+marketplace; the other three (per-pack-overlay, composite-agents-md,
+composite-marketplace)
 are consumed by T7's self-host writer.
 
 Pack discovery globs the configured `--packs-dir` for subdirectories
@@ -21,11 +22,13 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import BinaryIO, Iterable
 
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.hook_wiring_rules import (
@@ -34,6 +37,13 @@ from agentbundle.build.hook_wiring_rules import (
 from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
 from agentbundle.build.scope_rails import check_hooks
 from agentbundle.build.validate import validate as validate_instance
+from agentbundle.catalogue_tooling.file_safety import (
+    UnsafeContentError,
+    list_confined_directories,
+    list_confined_regular_files,
+    read_confined_regular_file,
+    validate_confined_directory,
+)
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 RECIPES_DIR = PACKAGE_ROOT / "recipes"
@@ -64,6 +74,64 @@ _INSECURE_GITHUB_URL_RE = re.compile(
 _COMPILED_PLUGIN_HOOK_COMMAND_RE = re.compile(
     r'^(python|python3|sh|bash) "\$\{CLAUDE_PLUGIN_ROOT\}/([^"]+)"$'
 )
+_AGENT_PLUGIN_SCHEMA_ID = (
+    "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+)
+_AGENT_PLUGIN_NAME_RE = re.compile(
+    r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$"
+)
+_AGENT_PLUGIN_PACK_TOML_MAX_BYTES = 1024 * 1024
+_AGENT_PLUGIN_FILE_MAX_BYTES = 2 * 1024 * 1024
+_AGENT_PLUGIN_FILE_COUNT_MAX = 4096
+_AGENT_PLUGIN_TOTAL_BYTES_MAX = 32 * 1024 * 1024
+_AGENT_PLUGIN_PATH_DEPTH_MAX = 20
+_AGENT_PLUGIN_EXTENSION_JSON_MAX_BYTES = 8 * 1024 * 1024
+_AGENT_PLUGIN_EXTENSION_DEPTH_MAX = 20
+_AGENT_PLUGIN_EXTENSION_MEMBER_MAX = 4096
+_AGENT_PLUGIN_EXTENSION_STRING_MAX_BYTES = 64 * 1024
+_AGENT_PLUGIN_EXTENSION_ARRAY_MAX = 256
+_AGENT_PLUGIN_NAMESPACE_RE = re.compile(
+    r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+    r"(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+)
+_AGENT_PLUGIN_SCHEMA_PATH_RE = re.compile(
+    r"^(?!/)(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+/"
+    r"v?[0-9]+(?:\.[0-9]+)*/[A-Za-z0-9._-]+\.schema\.json$"
+)
+_AGENT_PLUGIN_PRIMITIVE_PATHS = {
+    "skill": ".apm/skills",
+    "agent": ".apm/agents",
+    "command": ".apm/commands",
+    "hook-body": ".apm/hooks",
+    "hook-wiring": ".apm/hook-wiring",
+    "kiro-ide-hook": ".apm/kiro-ide-hooks",
+    "shared-libs": ".apm/shared-libs",
+    "adapter-root-bins": ".apm/adapter-root-bins",
+    "user-libs": ".apm/user-libs",
+}
+_AGENT_PLUGIN_SUPPORTED_SCHEMA_KEYWORDS = {
+    "type",
+    "properties",
+    "required",
+    "enum",
+    "pattern",
+    "items",
+    "additionalProperties",
+    "minItems",
+    "maxItems",
+    "contains",
+    "if",
+    "then",
+    "else",
+}
+_AGENT_PLUGIN_SCHEMA_ANNOTATION_KEYWORDS = {
+    "$id",
+    "$schema",
+    "title",
+    "description",
+    "default",
+    "examples",
+}
 
 
 def _bundled_or_repo(name: str) -> Path:
@@ -328,12 +396,13 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
     return out
 
 
-# The three default recipes that plain `make build` invokes.
+# The four default recipes that plain `make build` invokes.
 # The self-host recipes (per-pack-overlay, composite-agents-md,
 # composite-marketplace) fire only under --self.
 DEFAULT_RECIPES = (
     "per-pack-claude-plugin",
     "per-pack-apm-package",
+    "per-pack-agent-plugin",
     "marketplace",
 )
 
@@ -354,7 +423,7 @@ class Recipe:
 
 @dataclass(frozen=True)
 class ResolvedDistributionRoute:
-    """Validated route semantics consumed by the two Phase 0 projectors."""
+    """Validated semantics consumed by the explicit package projectors."""
 
     identity: str
     package_projector: str
@@ -370,6 +439,738 @@ class ResolvedDistributionRoute:
 class Pack:
     name: str
     path: Path
+
+
+@dataclass(frozen=True)
+class _AgentPluginSourceFile:
+    """One preflighted source file ready for a fresh route write."""
+
+    relative_path: Path
+    spool_offset: int
+    byte_count: int
+    executable: bool
+
+
+@dataclass(frozen=True)
+class _PreparedAgentPlugin:
+    """Complete preflight result for one admitted pack."""
+
+    pack_name: str
+    manifest: dict
+    files: tuple[_AgentPluginSourceFile, ...]
+
+
+def _agent_plugin_display(value: str) -> str:
+    """Render untrusted route context as one deterministic ASCII JSON string."""
+    return json.dumps(value, ensure_ascii=True)
+
+
+def _agent_plugin_error(pack_name: str, component: str, error_class: str) -> ValueError:
+    """Build a sanitized portable-route refusal without source values or paths."""
+    return ValueError(
+        "agent-plugin: pack "
+        f"{_agent_plugin_display(pack_name)} component {component} "
+        f"error {error_class}"
+    )
+
+
+def _is_reparse_point(inspected: os.stat_result) -> bool:
+    """Return whether a no-follow stat identifies a Windows reparse point."""
+    attribute = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return bool(getattr(inspected, "st_file_attributes", 0) & attribute)
+
+
+def _validate_agent_plugin_pack_root(pack: Pack) -> None:
+    """Reject a link-like pack root before inspecting any route input."""
+    try:
+        validate_confined_directory(pack.path.parent, pack.path)
+    except UnsafeContentError as exc:
+        raise _agent_plugin_error(pack.name, "pack-root", "unsafe-source") from exc
+
+
+def _agent_plugin_excluding_primitives(pack: Pack) -> list[str]:
+    """Return sorted dropped primitives whose canonical source is non-empty."""
+    excluded: list[str] = []
+    for primitive, relative in _AGENT_PLUGIN_PRIMITIVE_PATHS.items():
+        if primitive == "skill":
+            continue
+        source = pack.path / relative
+        try:
+            before = source.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise _agent_plugin_error(
+                pack.name, primitive, "source-inspection-failed"
+            ) from exc
+        if (
+            not stat.S_ISDIR(before.st_mode)
+            or stat.S_ISLNK(before.st_mode)
+            or _is_reparse_point(before)
+        ):
+            raise _agent_plugin_error(pack.name, primitive, "unsafe-source")
+        try:
+            validate_confined_directory(pack.path, source)
+            with os.scandir(source) as iterator:
+                present = next(iterator, None) is not None
+            after = source.lstat()
+        except (UnsafeContentError, OSError, RuntimeError) as exc:
+            raise _agent_plugin_error(pack.name, primitive, "unsafe-source") from exc
+        if (
+            (before.st_dev, before.st_ino, before.st_mode)
+            != (after.st_dev, after.st_ino, after.st_mode)
+            or not stat.S_ISDIR(after.st_mode)
+            or stat.S_ISLNK(after.st_mode)
+            or _is_reparse_point(after)
+        ):
+            raise _agent_plugin_error(pack.name, primitive, "unsafe-source")
+        if present:
+            excluded.append(primitive)
+    return sorted(excluded)
+
+
+def _read_agent_plugin_pack_metadata(pack: Pack) -> dict:
+    """Read canonical pack metadata through the confined single-link seam."""
+    try:
+        contents = read_confined_regular_file(
+            pack.path,
+            pack.path / "pack.toml",
+            max_bytes=_AGENT_PLUGIN_PACK_TOML_MAX_BYTES,
+        )
+        return tomllib.loads(contents.decode("utf-8"))
+    except (UnsafeContentError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise _agent_plugin_error(pack.name, "pack.toml", "unsafe-metadata") from exc
+
+
+def _validate_agent_plugin_extension_registry(registry: dict) -> None:
+    """Validate allocation identity, ownership, lifecycle, and schema paths."""
+    if registry.get("contract") != {"version": "1.0"}:
+        raise ValueError("agent-plugin: extension-registry error invalid-contract")
+    namespaces = registry.get("namespace")
+    if not isinstance(namespaces, dict):
+        raise ValueError("agent-plugin: extension-registry error invalid-contract")
+    seen_names: set[str] = set()
+    seen_owners: set[str] = set()
+    for namespace, allocation in namespaces.items():
+        if (
+            not isinstance(namespace, str)
+            or not _AGENT_PLUGIN_NAMESPACE_RE.fullmatch(namespace)
+            or namespace.casefold() in seen_names
+        ):
+            raise ValueError("agent-plugin: extension-registry error invalid-namespace")
+        seen_names.add(namespace.casefold())
+        if not isinstance(allocation, dict):
+            raise ValueError("agent-plugin: extension-registry error invalid-allocation")
+        owner = allocation.get("owner")
+        state = allocation.get("state")
+        schema_path = allocation.get("schema")
+        if not isinstance(owner, str) or not owner or owner in seen_owners:
+            raise ValueError("agent-plugin: extension-registry error invalid-owner")
+        seen_owners.add(owner)
+        if state not in {"reserved", "active"}:
+            raise ValueError("agent-plugin: extension-registry error invalid-state")
+        if state == "active":
+            if not isinstance(schema_path, str) or not _AGENT_PLUGIN_SCHEMA_PATH_RE.fullmatch(
+                schema_path
+            ):
+                raise ValueError("agent-plugin: extension-registry error invalid-schema")
+        elif schema_path is not None:
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+
+def _validate_agent_plugin_extension_schema(schema: object) -> None:
+    """Reject extension schemas whose constraints this runtime would ignore."""
+
+    def walk(candidate: object) -> None:
+        if not isinstance(candidate, dict):
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+        unsupported = set(candidate) - (
+            _AGENT_PLUGIN_SUPPORTED_SCHEMA_KEYWORDS
+            | _AGENT_PLUGIN_SCHEMA_ANNOTATION_KEYWORDS
+        )
+        if unsupported:
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+        expected_type = candidate.get("type")
+        if expected_type is not None and expected_type not in {
+            "object",
+            "array",
+            "string",
+            "integer",
+            "boolean",
+        }:
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+        required = candidate.get("required")
+        if required is not None and (
+            not isinstance(required, list)
+            or not all(isinstance(name, str) for name in required)
+            or len(required) != len(set(required))
+        ):
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+        enum = candidate.get("enum")
+        if enum is not None and not isinstance(enum, list):
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+        pattern = candidate.get("pattern")
+        if pattern is not None:
+            if not isinstance(pattern, str):
+                raise ValueError(
+                    "agent-plugin: extension-registry error invalid-schema"
+                )
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(
+                    "agent-plugin: extension-registry error invalid-schema"
+                ) from exc
+
+        for keyword in ("minItems", "maxItems"):
+            bound = candidate.get(keyword)
+            if bound is not None and (
+                isinstance(bound, bool)
+                or not isinstance(bound, int)
+                or bound < 0
+            ):
+                raise ValueError(
+                    "agent-plugin: extension-registry error invalid-schema"
+                )
+        minimum_items = candidate.get("minItems")
+        maximum_items = candidate.get("maxItems")
+        if (
+            isinstance(minimum_items, int)
+            and isinstance(maximum_items, int)
+            and minimum_items > maximum_items
+        ):
+            raise ValueError("agent-plugin: extension-registry error invalid-schema")
+
+        properties = candidate.get("properties")
+        if properties is not None:
+            if not isinstance(properties, dict):
+                raise ValueError(
+                    "agent-plugin: extension-registry error invalid-schema"
+                )
+            for child in properties.values():
+                walk(child)
+
+        if "additionalProperties" in candidate:
+            additional = candidate["additionalProperties"]
+            if not isinstance(additional, bool):
+                walk(additional)
+
+        for keyword in ("items", "contains", "if", "then", "else"):
+            if keyword in candidate:
+                walk(candidate[keyword])
+
+    walk(schema)
+
+
+def _load_agent_plugin_extension_registry() -> dict:
+    """Load the bundled, closed extension allocation contract."""
+    registry = tomllib.loads(_read_bundled("agent-plugin-extension-namespaces.toml"))
+    schema = json.loads(
+        _read_bundled("agent-plugin-extension-namespaces.schema.json")
+    )
+    if validate_instance(registry, schema):
+        raise ValueError("agent-plugin: extension-registry error invalid-contract")
+    _validate_agent_plugin_extension_registry(registry)
+    for allocation in registry["namespace"].values():
+        if allocation["state"] != "active":
+            continue
+        _load_agent_plugin_extension_schema(allocation["schema"])
+    return registry
+
+
+def _load_agent_plugin_extension_schema(schema_path: str) -> dict:
+    """Load one active schema with stable, path-free refusal diagnostics."""
+    try:
+        schema = json.loads(_read_bundled(schema_path))
+    except (OSError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            "agent-plugin: extension-registry error invalid-schema"
+        ) from exc
+    _validate_agent_plugin_extension_schema(schema)
+    return schema
+
+
+def _agent_plugin_extension_values(pack_toml: dict, *, pack_name: str) -> dict:
+    """Return validated manifest extension values from the sole metadata path."""
+    pack = pack_toml.get("pack", {})
+    metadata = pack.get("metadata", {}) if isinstance(pack, dict) else {}
+    route_metadata = (
+        metadata.get("agent-plugin", {}) if isinstance(metadata, dict) else {}
+    )
+    extensions = (
+        route_metadata.get("extensions", {})
+        if isinstance(route_metadata, dict)
+        else {}
+    )
+    if extensions is None:
+        return {}
+    if not isinstance(extensions, dict):
+        raise _agent_plugin_error(pack_name, "extension", "invalid-metadata")
+    casefolded = [str(name).casefold() for name in extensions]
+    if len(casefolded) != len(set(casefolded)):
+        raise _agent_plugin_error(pack_name, "extension", "case-collision")
+    return extensions
+
+
+def _check_agent_plugin_extension_limits(value: object, *, pack_name: str) -> None:
+    """Bound strict JSON extension data before namespace-schema validation."""
+    members = 0
+
+    def walk(item: object, depth: int) -> None:
+        nonlocal members
+        if depth > _AGENT_PLUGIN_EXTENSION_DEPTH_MAX:
+            raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+        if isinstance(item, dict):
+            members += len(item)
+            if members > _AGENT_PLUGIN_EXTENSION_MEMBER_MAX:
+                raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+            for key, child in item.items():
+                if (
+                    not isinstance(key, str)
+                    or len(key.encode("utf-8"))
+                    > _AGENT_PLUGIN_EXTENSION_STRING_MAX_BYTES
+                ):
+                    raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+                walk(child, depth + 1)
+        elif isinstance(item, list):
+            if len(item) > _AGENT_PLUGIN_EXTENSION_ARRAY_MAX:
+                raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+            for child in item:
+                walk(child, depth + 1)
+        elif isinstance(item, str):
+            if len(item.encode("utf-8")) > _AGENT_PLUGIN_EXTENSION_STRING_MAX_BYTES:
+                raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+        elif item is not None and not isinstance(item, (bool, int, float)):
+            raise _agent_plugin_error(pack_name, "extension", "strict-json")
+
+    walk(value, 1)
+    try:
+        serialized = json.dumps(
+            value,
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except RecursionError as exc:
+        raise _agent_plugin_error(pack_name, "extension", "manifest-limit") from exc
+    except (TypeError, ValueError) as exc:
+        raise _agent_plugin_error(pack_name, "extension", "strict-json") from exc
+    if len(serialized) > _AGENT_PLUGIN_EXTENSION_JSON_MAX_BYTES:
+        raise _agent_plugin_error(pack_name, "extension", "manifest-limit")
+
+
+def _validated_agent_plugin_extensions(pack_toml: dict, *, pack_name: str) -> dict:
+    """Validate declared extension objects against active allocations."""
+    registry = _load_agent_plugin_extension_registry()
+    values = _agent_plugin_extension_values(pack_toml, pack_name=pack_name)
+    _check_agent_plugin_extension_limits(values, pack_name=pack_name)
+    allocations = registry["namespace"]
+    for namespace, value in values.items():
+        if not isinstance(namespace, str) or not _AGENT_PLUGIN_NAMESPACE_RE.fullmatch(
+            namespace
+        ):
+            raise _agent_plugin_error(pack_name, "extension", "invalid-namespace")
+        allocation = allocations.get(namespace)
+        if allocation is None:
+            raise _agent_plugin_error(pack_name, "extension", "unallocated")
+        if allocation["state"] != "active":
+            raise _agent_plugin_error(pack_name, "extension", "inactive")
+        if not isinstance(value, dict):
+            raise _agent_plugin_error(pack_name, "extension", "invalid-metadata")
+        schema = _load_agent_plugin_extension_schema(allocation["schema"])
+        if validate_instance(value, schema):
+            raise _agent_plugin_error(pack_name, "extension", "schema-invalid")
+    return values
+
+
+def derive_agent_plugin_manifest(pack_toml: dict, *, pack_name: str) -> dict:
+    """Derive the privacy-minimal Agent Plugins 1.0.0 root manifest."""
+    if not _AGENT_PLUGIN_NAME_RE.fullmatch(pack_name):
+        raise _agent_plugin_error(pack_name, "pack-name", "invalid-identity")
+    pack = pack_toml.get("pack")
+    if not isinstance(pack, dict):
+        raise _agent_plugin_error(pack_name, "pack.toml", "invalid-metadata")
+    declared_name = pack.get("name")
+    if declared_name != pack_name:
+        raise _agent_plugin_error(pack_name, "pack-name", "identity-mismatch")
+
+    extensions = _validated_agent_plugin_extensions(pack_toml, pack_name=pack_name)
+    try:
+        json.dumps(pack_toml, allow_nan=False)
+    except (RecursionError, TypeError, ValueError) as exc:
+        raise _agent_plugin_error(pack_name, "manifest", "strict-json") from exc
+
+    manifest: dict = {"$schema": _AGENT_PLUGIN_SCHEMA_ID, "name": pack_name}
+    for field in ("version", "description", "license"):
+        value = pack.get(field)
+        if value is not None:
+            if not isinstance(value, str):
+                raise _agent_plugin_error(pack_name, field, "invalid-metadata")
+            if value:
+                manifest[field] = value
+
+    maintainers = pack.get("maintainers")
+    if isinstance(maintainers, list) and maintainers:
+        first = maintainers[0]
+        if isinstance(first, dict):
+            name = first.get("name")
+            if isinstance(name, str) and name:
+                manifest["author"] = {"name": name}
+
+    links = pack.get("links")
+    if isinstance(links, dict):
+        for field in ("homepage", "repository"):
+            value = links.get(field)
+            if isinstance(value, str) and value:
+                manifest[field] = value
+
+    keywords = pack.get("keywords")
+    if isinstance(keywords, list) and keywords:
+        if not all(isinstance(item, str) for item in keywords):
+            raise _agent_plugin_error(pack_name, "keywords", "invalid-metadata")
+        manifest["keywords"] = keywords
+
+    if extensions:
+        manifest["extensions"] = extensions
+
+    schema = json.loads(
+        _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
+    )
+    errors = validate_instance(manifest, schema)
+    if errors:
+        raise _agent_plugin_error(pack_name, "manifest", "schema-invalid")
+    try:
+        json.dumps(manifest, allow_nan=False, ensure_ascii=False)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - defence in depth
+        raise _agent_plugin_error(pack_name, "manifest", "strict-json") from exc
+    return manifest
+
+
+def _collect_agent_plugin_source_files(
+    pack: Pack,
+    source_root: Path,
+    destination_prefix: Path,
+    component: str,
+    prepared: list[_AgentPluginSourceFile],
+    total_bytes: int,
+    spool: BinaryIO,
+) -> int:
+    """Collect one confined input tree into a combined preflight inventory."""
+    try:
+        source_root.lstat()
+        sources = list_confined_regular_files(
+            pack.path,
+            source_root,
+            max_files=_AGENT_PLUGIN_FILE_COUNT_MAX - len(prepared),
+            max_depth=_AGENT_PLUGIN_PATH_DEPTH_MAX,
+        )
+        for source in sorted(
+            sources,
+            key=lambda path: path.relative_to(source_root).as_posix(),
+        ):
+            relative = source.relative_to(source_root)
+            destination = destination_prefix / relative
+            if len(relative.parts) > _AGENT_PLUGIN_PATH_DEPTH_MAX:
+                raise _agent_plugin_error(pack.name, component, "source-limit")
+            contents, source_mode = read_confined_regular_file(
+                pack.path,
+                source,
+                max_bytes=_AGENT_PLUGIN_FILE_MAX_BYTES,
+                include_mode=True,
+            )
+            total_bytes += len(contents)
+            if (
+                len(prepared) + 1 > _AGENT_PLUGIN_FILE_COUNT_MAX
+                or total_bytes > _AGENT_PLUGIN_TOTAL_BYTES_MAX
+            ):
+                raise _agent_plugin_error(pack.name, component, "source-limit")
+            spool_offset = spool.tell()
+            spool.write(contents)
+            prepared.append(
+                _AgentPluginSourceFile(
+                    relative_path=destination,
+                    spool_offset=spool_offset,
+                    byte_count=len(contents),
+                    executable=bool(source_mode & 0o111),
+                )
+            )
+    except FileNotFoundError:
+        return total_bytes
+    except ValueError as exc:
+        if str(exc).startswith("agent-plugin:"):
+            raise
+        error_class = "source-limit" if "limit" in str(exc) else "unsafe-source"
+        raise _agent_plugin_error(pack.name, component, error_class) from exc
+    except (OSError, RuntimeError) as exc:
+        raise _agent_plugin_error(pack.name, component, "unsafe-source") from exc
+    return total_bytes
+
+
+def _validate_agent_plugin_skill_root(pack: Pack) -> bool:
+    """Validate the canonical skill ancestors without enumerating content."""
+    apm_root = pack.path / ".apm"
+    skills_root = pack.path / _AGENT_PLUGIN_PRIMITIVE_PATHS["skill"]
+    try:
+        apm_root.lstat()
+        validate_confined_directory(pack.path, apm_root)
+        skills_root.lstat()
+        validate_confined_directory(pack.path, skills_root)
+        return True
+    except FileNotFoundError:
+        return False
+    except (UnsafeContentError, OSError, RuntimeError) as exc:
+        raise _agent_plugin_error(pack.name, "skill", "unsafe-source") from exc
+
+
+def _agent_plugin_skill_directories(pack: Pack) -> list[Path]:
+    """Return the immediate, real canonical skill directories for one pack."""
+    skills_root = pack.path / _AGENT_PLUGIN_PRIMITIVE_PATHS["skill"]
+    if not _validate_agent_plugin_skill_root(pack):
+        return []
+    try:
+        directories = list_confined_directories(pack.path, skills_root)
+        with os.scandir(skills_root) as iterator:
+            entry_names = {entry.name for entry in iterator}
+        if entry_names != {directory.name for directory in directories}:
+            raise _agent_plugin_error(pack.name, "skill", "unsafe-source")
+        return sorted(directories, key=lambda directory: directory.name)
+    except ValueError as exc:
+        if str(exc).startswith("agent-plugin:"):
+            raise
+        raise _agent_plugin_error(pack.name, "skill", "unsafe-source") from exc
+    except (OSError, RuntimeError) as exc:
+        raise _agent_plugin_error(pack.name, "skill", "unsafe-source") from exc
+
+
+def _agent_plugin_extension_directories(
+    pack: Pack, manifest: dict
+) -> dict[str, Path]:
+    """Admit only declared active reverse-domain pack-root directories."""
+    declared = manifest.get("extensions", {})
+    declared_by_case = {namespace.casefold(): namespace for namespace in declared}
+    allocations = _load_agent_plugin_extension_registry()["namespace"]
+    candidates: dict[str, tuple[str, Path]] = {}
+    try:
+        with os.scandir(pack.path) as iterator:
+            entries = sorted(iterator, key=lambda entry: entry.name)
+        for entry in entries:
+            folded = entry.name.casefold()
+            if not _AGENT_PLUGIN_NAMESPACE_RE.fullmatch(folded):
+                continue
+            inspected = entry.stat(follow_symlinks=False)
+            if stat.S_ISLNK(inspected.st_mode) or _is_reparse_point(inspected):
+                raise _agent_plugin_error(pack.name, "extension", "unsafe-source")
+            if not stat.S_ISDIR(inspected.st_mode):
+                declared_name = declared_by_case.get(folded)
+                allocation = allocations.get(entry.name)
+                if declared_name is not None and entry.name != declared_name:
+                    raise _agent_plugin_error(
+                        pack.name, "extension", "case-collision"
+                    )
+                if declared_name is not None:
+                    raise _agent_plugin_error(
+                        pack.name, "extension", "unsafe-source"
+                    )
+                if allocation is not None:
+                    error_class = (
+                        "inactive"
+                        if allocation["state"] != "active"
+                        else "undeclared"
+                    )
+                    raise _agent_plugin_error(pack.name, "extension", error_class)
+                continue
+            if folded in candidates:
+                raise _agent_plugin_error(pack.name, "extension", "case-collision")
+            candidates[folded] = (entry.name, Path(entry.path))
+    except ValueError as exc:
+        if str(exc).startswith("agent-plugin:"):
+            raise
+        raise _agent_plugin_error(pack.name, "extension", "unsafe-source") from exc
+    except (OSError, RuntimeError) as exc:
+        raise _agent_plugin_error(pack.name, "extension", "unsafe-source") from exc
+
+    admitted: dict[str, Path] = {}
+    for folded, (name, path) in sorted(candidates.items()):
+        declared_name = declared_by_case.get(folded)
+        if declared_name is not None and name != declared_name:
+            raise _agent_plugin_error(pack.name, "extension", "case-collision")
+        if name not in declared:
+            allocation = allocations.get(name)
+            error_class = (
+                "inactive"
+                if allocation is not None and allocation["state"] != "active"
+                else "undeclared"
+            )
+            raise _agent_plugin_error(pack.name, "extension", error_class)
+        if name in {"mcp.json", "plugin.json"}:
+            raise _agent_plugin_error(pack.name, "extension", "destination-collision")
+        try:
+            validate_confined_directory(pack.path, path)
+        except UnsafeContentError as exc:
+            raise _agent_plugin_error(pack.name, "extension", "unsafe-source") from exc
+        admitted[name] = path
+    return admitted
+
+
+def _prepare_agent_plugin(pack: Pack, spool: BinaryIO) -> _PreparedAgentPlugin:
+    """Preflight skill and declared extension inputs before output mutation."""
+    _validate_agent_plugin_pack_root(pack)
+    metadata = _read_agent_plugin_pack_metadata(pack)
+    manifest = derive_agent_plugin_manifest(metadata, pack_name=pack.name)
+    prepared: list[_AgentPluginSourceFile] = []
+    total_bytes = 0
+    for skill_directory in _agent_plugin_skill_directories(pack):
+        total_bytes = _collect_agent_plugin_source_files(
+            pack,
+            skill_directory,
+            Path("skills") / skill_directory.name,
+            "skill",
+            prepared,
+            total_bytes,
+            spool,
+        )
+    extension_directories = _agent_plugin_extension_directories(pack, manifest)
+    for namespace, extension_directory in sorted(extension_directories.items()):
+        total_bytes = _collect_agent_plugin_source_files(
+            pack,
+            extension_directory,
+            Path(namespace),
+            "extension",
+            prepared,
+            total_bytes,
+            spool,
+        )
+    return _PreparedAgentPlugin(pack.name, manifest, tuple(prepared))
+
+
+def _audit_agent_plugin_output(route_root: Path) -> None:
+    """Reject link-like, hard-linked, or non-regular completed output."""
+    try:
+        _validate_agent_plugin_output_root(route_root)
+        for path in list_confined_regular_files(route_root, route_root):
+            read_confined_regular_file(route_root, path)
+    except (UnsafeContentError, OSError, RuntimeError) as exc:
+        raise ValueError("agent-plugin: output error unsafe-output") from exc
+
+
+def _validate_agent_plugin_output_root(route_root: Path) -> None:
+    """Refuse a link-like or non-directory portable route root."""
+    try:
+        inspected = route_root.lstat()
+    except OSError as exc:
+        raise ValueError("agent-plugin: output error unsafe-output") from exc
+    if (
+        not stat.S_ISDIR(inspected.st_mode)
+        or stat.S_ISLNK(inspected.st_mode)
+        or _is_reparse_point(inspected)
+    ):
+        raise ValueError("agent-plugin: output error unsafe-output")
+
+
+def _run_per_pack_agent_plugin(
+    recipe: Recipe,
+    packs: list[Pack],
+    output_dir: Path,
+    resolved_route: ResolvedDistributionRoute,
+) -> dict:
+    """Build the portable route from a bounded, disk-backed source snapshot."""
+    prepared: list[_PreparedAgentPlugin] = []
+    excluded: dict[str, list[str]] = {}
+    route_root = output_dir / resolved_route.output_subdir
+    try:
+        route_root.lstat()
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        raise ValueError("agent-plugin: output error unsafe-output") from exc
+    else:
+        _validate_agent_plugin_output_root(route_root)
+    _assert_under(route_root, output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    # TemporaryFile is unlinked immediately on POSIX and requires no directory
+    # cleanup.  The route retains a validated byte snapshot without retaining
+    # every eligible pack's source bytes in memory.
+    with tempfile.TemporaryFile(mode="w+b", dir=output_dir) as spool:
+        for pack in packs:
+            _validate_agent_plugin_pack_root(pack)
+            primitives = _agent_plugin_excluding_primitives(pack)
+            if primitives:
+                excluded[pack.name] = primitives
+                continue
+            prepared.append(_prepare_agent_plugin(pack, spool))
+
+        for pack_name, primitives in sorted(excluded.items()):
+            print(
+                "agent-plugin: pack "
+                f"{_agent_plugin_display(pack_name)} excluded by dropped primitives "
+                + json.dumps(primitives, ensure_ascii=True, separators=(",", ":")),
+                file=sys.stderr,
+            )
+
+        try:
+            route_root.lstat()
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            raise ValueError("agent-plugin: output error unsafe-output") from exc
+        else:
+            _validate_agent_plugin_output_root(route_root)
+            shutil.rmtree(route_root)
+        try:
+            route_root.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise ValueError("agent-plugin: output error unsafe-output") from exc
+
+        produced: dict[str, str] = {}
+        schema = json.loads(
+            _read_bundled("vendor/agent-plugins/1.0.0/plugin.schema.json")
+        )
+        for item in prepared:
+            pack_root = route_root / item.pack_name
+            _assert_under(pack_root, route_root)
+            pack_root.mkdir()
+            manifest_path = pack_root / "plugin.json"
+            manifest_path.write_text(
+                json.dumps(
+                    item.manifest,
+                    indent=2,
+                    ensure_ascii=False,
+                    allow_nan=False,
+                )
+                + "\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            manifest_path.chmod(0o644)
+            written_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if validate_instance(written_manifest, schema):
+                raise _agent_plugin_error(
+                    item.pack_name, "manifest", "schema-invalid"
+                )
+            for source in item.files:
+                target = pack_root / source.relative_path
+                _assert_under(target, pack_root)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                spool.seek(source.spool_offset)
+                contents = spool.read(source.byte_count)
+                if len(contents) != source.byte_count:
+                    raise ValueError("agent-plugin: output error unsafe-output")
+                target.write_bytes(contents)
+                target.chmod(0o755 if source.executable else 0o644)
+            produced[item.pack_name] = str(pack_root)
+
+        _audit_agent_plugin_output(route_root)
+    return {
+        "recipe": recipe.name,
+        "type": recipe.type,
+        "produced": produced,
+        "excluded": excluded,
+    }
 
 
 def load_recipe(name: str, recipes_dir: Path = RECIPES_DIR) -> Recipe:
@@ -435,9 +1236,9 @@ def _parse_recipe_text(toml_text: str) -> Recipe:
 def _resolve_distribution_route(
     recipe: Recipe, route_contract: dict
 ) -> ResolvedDistributionRoute:
-    """Resolve one explicit Phase 0 route, rejecting inconsistent declarations."""
+    """Resolve one explicit route, rejecting inconsistent declarations."""
     route_name = recipe.route
-    if route_name not in {"apm", "claude-plugins"}:
+    if route_name not in {"apm", "claude-plugins", "agent-plugin"}:
         raise ValueError(
             f"recipe {recipe.name!r}: field 'route' names unknown "
             f"distribution route {route_name!r}"
@@ -455,6 +1256,7 @@ def _resolve_distribution_route(
     expected_admission = {
         "apm": "all-packs",
         "claude-plugins": "user-publishable-with-consent",
+        "agent-plugin": "skills-only",
     }[route_name]
     manifest = raw_route.get("manifest-projector")
     if not isinstance(manifest, dict):
@@ -467,7 +1269,11 @@ def _resolve_distribution_route(
             f"recipe {recipe.name!r}: route {route_name!r} field "
             f"'manifest-projector.admission-policy' must be {expected_admission!r}"
         )
-    expected_adapter = None if route_name == "apm" else "claude-code"
+    expected_adapter = {
+        "apm": None,
+        "claude-plugins": "claude-code",
+        "agent-plugin": None,
+    }[route_name]
     if recipe.type == "per-pack" and recipe.adapter != expected_adapter:
         raise ValueError(
             f"recipe {recipe.name!r}: field 'adapter' value {recipe.adapter!r} "
@@ -552,16 +1358,84 @@ def _load_distribution_route_contract() -> dict:
     return route_contract
 
 
-def discover_packs(packs_dir: Path) -> list[Pack]:
+def discover_packs(
+    packs_dir: Path, *, diagnostic_route: str | None = None
+) -> list[Pack]:
+    """Discover validated packs with optional route-sanitized refusals."""
     if not packs_dir.exists():
         return []
+    if diagnostic_route != "agent-plugin":
+        # Preserve the established APM/Claude/render/install discovery
+        # behavior.  The stricter no-follow metadata boundary belongs only to
+        # the new agent-plugin route and its default-build admission pass.
+        generic_packs: list[Pack] = []
+        for entry in sorted(packs_dir.iterdir()):
+            if entry.name.startswith("_"):
+                continue
+            if entry.is_dir() and (entry / "pack.toml").exists():
+                validate_pack_metadata(entry / "pack.toml")
+                generic_packs.append(Pack(name=entry.name, path=entry))
+        return generic_packs
+
     packs: list[Pack] = []
-    for entry in sorted(packs_dir.iterdir()):
-        if entry.name.startswith("_"):
+    try:
+        with os.scandir(packs_dir) as iterator:
+            entries = sorted(iterator, key=lambda entry: entry.name)
+    except OSError as exc:
+        raise ValueError("pack discovery: unsafe-packs-root") from exc
+    for candidate in entries:
+        if candidate.name.startswith("_"):
             continue  # reserved authoring asset — not catalogue payload
-        if entry.is_dir() and (entry / "pack.toml").exists():
-            validate_pack_metadata(entry / "pack.toml")
-            packs.append(Pack(name=entry.name, path=entry))
+        try:
+            inspected = candidate.stat(follow_symlinks=False)
+        except OSError as exc:
+            if diagnostic_route == "agent-plugin":
+                raise _agent_plugin_error(
+                    candidate.name, "pack-root", "unsafe-source"
+                ) from exc
+            raise ValueError("pack discovery: unsafe-pack-root") from exc
+        if stat.S_ISLNK(inspected.st_mode) or _is_reparse_point(inspected):
+            if diagnostic_route == "agent-plugin":
+                raise _agent_plugin_error(
+                    candidate.name, "pack-root", "unsafe-source"
+                )
+            raise ValueError("pack discovery: unsafe-pack-root")
+        if not stat.S_ISDIR(inspected.st_mode):
+            continue
+        entry = Path(candidate.path)
+        try:
+            validate_confined_directory(packs_dir, entry)
+        except UnsafeContentError as exc:
+            if diagnostic_route == "agent-plugin":
+                raise _agent_plugin_error(
+                    candidate.name, "pack-root", "unsafe-source"
+                ) from exc
+            raise ValueError("pack discovery: unsafe-pack-root") from exc
+        pack_toml = entry / "pack.toml"
+        try:
+            pack_toml.lstat()
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            if diagnostic_route == "agent-plugin":
+                raise _agent_plugin_error(
+                    candidate.name, "pack.toml", "unsafe-metadata"
+                ) from exc
+            raise ValueError("pack metadata is unsafe") from exc
+        try:
+            validate_pack_metadata(pack_toml, confined=True)
+        except (ValueError, tomllib.TOMLDecodeError) as exc:
+            if diagnostic_route == "agent-plugin":
+                error_class = (
+                    "unsafe-metadata"
+                    if str(exc) == "pack metadata is unsafe"
+                    else "invalid-metadata"
+                )
+                raise _agent_plugin_error(
+                    candidate.name, "pack.toml", error_class
+                ) from exc
+            raise
+        packs.append(Pack(name=entry.name, path=entry))
     return packs
 
 
@@ -688,9 +1562,22 @@ def _empty_marketplace_warning(excluded: list[str]) -> str:
     )
 
 
-def validate_pack_metadata(pack_toml_path: Path) -> None:
-    """Validate a pack.toml against pack.schema.json. Raise on errors."""
-    metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
+def validate_pack_metadata(
+    pack_toml_path: Path, *, confined: bool = False
+) -> None:
+    """Validate pack metadata, opting into route-local confined reads."""
+    if confined:
+        try:
+            contents = read_confined_regular_file(
+                pack_toml_path.parent,
+                pack_toml_path,
+                max_bytes=_AGENT_PLUGIN_PACK_TOML_MAX_BYTES,
+            )
+            metadata = tomllib.loads(contents.decode("utf-8"))
+        except (UnsafeContentError, UnicodeDecodeError) as exc:
+            raise ValueError("pack metadata is unsafe") from exc
+    else:
+        metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
     schema = json.loads(_read_bundled("pack.schema.json"))
     errors = validate_instance(metadata, schema)
     if errors:
@@ -780,7 +1667,25 @@ def run_recipe(
 
     packs_list = list(packs)
     for pack in packs_list:
-        validate_pack_uniqueness(pack)
+        if resolved_route is not None and resolved_route.identity == "agent-plugin":
+            # Route admission owns the pack-authored filesystem boundary.  Run
+            # its no-follow root checks before generic uniqueness inspection,
+            # which is intentionally route-agnostic and may enumerate a
+            # primitive directory after following its path.
+            _validate_agent_plugin_pack_root(pack)
+            _agent_plugin_excluding_primitives(pack)
+            _validate_agent_plugin_skill_root(pack)
+        try:
+            validate_pack_uniqueness(pack)
+        except (OSError, ValueError) as exc:
+            if resolved_route is not None and resolved_route.identity == "agent-plugin":
+                error_class = (
+                    "duplicate" if isinstance(exc, ValueError) else "unsafe-source"
+                )
+                raise _agent_plugin_error(
+                    pack.name, "primitive", error_class
+                ) from exc
+            raise
 
     if recipe.type == "per-pack":
         return _run_per_pack(
@@ -833,6 +1738,13 @@ def _run_per_pack(
     if resolved_route is not None and resolved_route.package_projector == "apm-package":
         _preflight_route_source_trees(packs, resolved_route)
         return _run_per_pack_apm(recipe, packs, output_dir, resolved_route)
+    if (
+        resolved_route is not None
+        and resolved_route.package_projector == "agent-plugin-root-manifest"
+    ):
+        return _run_per_pack_agent_plugin(
+            recipe, packs, output_dir, resolved_route
+        )
     adapter_projector = (
         resolved_route.adapter_projector
         if resolved_route is not None
@@ -1467,11 +2379,11 @@ def _run_composite(recipe: Recipe, packs: list[Pack]) -> dict:
 def run_default_build(
     packs_dir: Path, output_dir: Path, contract: dict | None = None
 ) -> list[dict]:
-    """Run the three default recipes — what plain `make build` invokes."""
+    """Run the four default recipes — what plain `make build` invokes."""
     if contract is None:
         contract = tomllib.loads(_read_bundled("adapter.toml"))
     route_contract = _load_distribution_route_contract()
-    packs = discover_packs(packs_dir)
+    packs = discover_packs(packs_dir, diagnostic_route="agent-plugin")
     results: list[dict] = []
     for recipe_name in DEFAULT_RECIPES:
         recipe = load_recipe(recipe_name)
@@ -1509,7 +2421,12 @@ def cmd_build(args) -> int:
             print(f"build: recipe {args.recipe!r}: {exc}", file=sys.stderr)
             return 1
         try:
-            packs = discover_packs(packs_dir)
+            packs = discover_packs(
+                packs_dir,
+                diagnostic_route=(
+                    "agent-plugin" if recipe.route == "agent-plugin" else None
+                ),
+            )
             # `--pack` narrows an explicit `--recipe` run to one pack (the
             # `make build RECIPE=... PACK=...` form). That is a
             # single-pack aggregate, not a catalogue: an emptied marketplace is
@@ -1544,7 +2461,7 @@ def cmd_build(args) -> int:
             return 1
         return 0
 
-    # Default `build` (no --recipe): run the three default recipes.
+    # Default `build` (no --recipe): run the four default recipes.
     try:
         run_default_build(packs_dir, output_dir, contract)
     except ValueError as exc:

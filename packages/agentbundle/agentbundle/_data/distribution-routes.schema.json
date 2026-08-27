@@ -1,6 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "x-spec": "docs/specs/distribution-route-contract",
+  "x-spec": [
+    "docs/specs/distribution-route-contract/",
+    "docs/specs/portable-agent-plugin-projection/"
+  ],
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +21,7 @@
         "version": {
           "type": "string",
           "enum": [
-            "0.1"
+            "0.2"
           ]
         }
       }
@@ -28,9 +31,153 @@
       "additionalProperties": false,
       "required": [
         "apm",
-        "claude-plugins"
+        "claude-plugins",
+        "agent-plugin"
       ],
       "properties": {
+        "agent-plugin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity",
+            "package-layout",
+            "manifest-projector",
+            "component-capabilities",
+            "marketplace-projector",
+            "lifecycle-trigger"
+          ],
+          "properties": {
+            "identity": {"type": "string", "enum": ["agent-plugin"]},
+            "package-layout": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "output-subdir"],
+              "properties": {
+                "name": {"type": "string", "enum": ["agent-plugin-tree"]},
+                "output-subdir": {"type": "string", "enum": ["agent-plugins"]}
+              }
+            },
+            "manifest-projector": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "adapter-projector", "admission-policy"],
+              "properties": {
+                "name": {"type": "string", "enum": ["agent-plugin-root-manifest"]},
+                "adapter-projector": {"type": "string", "enum": ["none"]},
+                "admission-policy": {"type": "string", "enum": ["skills-only"]}
+              }
+            },
+            "component-capabilities": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "skill",
+                "agent",
+                "command",
+                "hook-body",
+                "hook-wiring",
+                "kiro-ide-hook",
+                "shared-libs",
+                "adapter-root-bins",
+                "user-libs"
+              ],
+              "properties": {
+                "skill": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["native"]},
+                    "mode": {"type": "string", "enum": ["direct-directory"]},
+                    "target-path": {"type": "string", "enum": ["skills/"]}
+                  }
+                },
+                "agent": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "command": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "hook-body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "hook-wiring": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "kiro-ide-hook": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "shared-libs": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "adapter-root-bins": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                },
+                "user-libs": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["status", "mode", "target-path"],
+                  "properties": {
+                    "status": {"type": "string", "enum": ["dropped"]},
+                    "mode": {"type": "string", "enum": ["dropped"]},
+                    "target-path": {"type": "string", "enum": ["none"]}
+                  }
+                }
+              }
+            },
+            "marketplace-projector": {"type": "string", "enum": ["none"]},
+            "lifecycle-trigger": {"type": "string", "enum": ["none"]}
+          }
+        },
         "apm": {
           "type": "object",
           "additionalProperties": false,
