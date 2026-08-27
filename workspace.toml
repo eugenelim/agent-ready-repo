@@ -1132,21 +1132,6 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # Both npm gates decide "the walk could not complete" and neither has a
-  # regression test for it. lint-npm-allow-scripts.py now raises CheckError and
-  # exits 2 on an iterdir failure AND on a per-child stat failure (a dir at mode
-  # 0o400 lists but does not traverse) — the second path shipped broken and was
-  # caught by review, not by a test, because no fixture plants an unreadable
-  # directory. Its sibling tools/audit-npm.py still warns-and-continues on the
-  # same error, which is the "never actually ran, reported as clean" outcome its
-  # own three-outcome exit contract exists to prevent.
-  # Fix: plant chmod 0o000 and chmod 0o400 fixtures in
-  #   tools/test-lint-npm-allow-scripts.py asserting exit 2 with no traceback
-  #   (skip under root and on Windows), and give audit-npm.py the same
-  #   could-not-run treatment.
-  # Unblocks when: picked up — no dependency.
-  {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Neither npm gate has a regression test for a partial directory walk, and audit-npm.py still treats one as a clean result"},
-
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
@@ -1845,6 +1830,8 @@ closed = [
   {slug = "selftest-mutates-tracked-makefile", summary = "Closed for tracked-file mutation; lint-performance-p0 moved plants to fixtures, while selftest-untracked-plant-window owns the residual untracked-file risk", source = "spec/npm-sca-gate (unrelated find)"},
 
   {slug = "npm-allowscripts-enforcement", source = "spec/npm-sca-gate", summary = "Closed by repinning web's fsevents to 2.3.3 through a package.json overrides entry -- playwright pins 2.3.2 exactly, so npm install alone could never dedupe it -- and adding tools/lint-npm-allow-scripts.py, which compares each project's lockfile install-script set against its allowScripts map in both directions"},
+
+  {slug = "npm-gate-walk-failure-untested", source = "spec-less allowScripts gate (adversarial review round 2)", summary = "Closed by making audit-npm.py's discover_lockfiles raise AuditError -- exit 2, its own could-not-run outcome -- on both an iterdir failure and a per-child classification failure, matching lint-npm-allow-scripts.py, and by covering all four guards with chmod 0o000 and 0o400 fixtures asserting exit 2 with no traceback; each guard was mutation-proven, and the cases are named case_* rather than test_* because check() accumulates instead of raising, so a pytest-collected function here would pass unconditionally"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

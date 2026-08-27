@@ -22,8 +22,12 @@ Exit 0 = every case passed; 1 = at least one failed.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
+import os
 import pathlib
+import shutil
 import sys
 import tempfile
 
@@ -153,6 +157,82 @@ def expect_error(name: str, fn) -> None:
     else:
         FAILURES.append(name)
         print(f"  ✖ {name}: returned normally, expected AuditError", file=sys.stderr)
+
+
+def _permission_fixtures_supported() -> bool:
+    """Whether POSIX mode bits can make the synthetic walk paths inaccessible."""
+    return os.name == "posix" and os.geteuid() != 0
+
+
+def _write_allowlist(root: pathlib.Path) -> None:
+    """Give audit-npm's CLI the empty allowlist it requires before discovery."""
+    allowlist = root / "tools" / "npm-audit-allowlist.toml"
+    allowlist.parent.mkdir()
+    allowlist.write_text("", encoding="utf-8")
+
+
+def _assert_walk_failure(name: str, root: pathlib.Path, diagnostic: str) -> None:
+    """Assert the CLI reports a bounded discovery error instead of a traceback."""
+    m = _load_subject()
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        exit_code = m.main(["--root", str(root)])
+    output = stderr.getvalue()
+    check(name, exit_code == 2, f"exit_code={exit_code}; stderr={output}")
+    check(f"{name}_names_failure", diagnostic in output, output)
+    check(f"{name}_has_no_traceback", "Traceback" not in output, output)
+
+
+# Avoid a test_ prefix: these stdlib self-tests run through main(), while pytest would pass this because check() accumulates failures.
+def case_discovery_iterdir_permission_failure() -> None:
+    """An unreadable directory makes the audit CLI exit 2 without a traceback."""
+    if not _permission_fixtures_supported():
+        print(
+            "  - discovery_iterdir_permission_failure skipped (root or non-POSIX)"
+        )
+        return
+    root = pathlib.Path(tempfile.mkdtemp(prefix="audit-npm-unreadable-"))
+    unreadable = root / "unreadable"
+    try:
+        _write_allowlist(root)
+        unreadable.mkdir()
+        unreadable.chmod(0o000)
+        try:
+            _assert_walk_failure(
+                "discovery_iterdir_permission_failure_exits_2",
+                root,
+                "cannot read",
+            )
+        finally:
+            unreadable.chmod(0o700)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_discovery_child_classification_permission_failure() -> None:
+    """A listable but untraversable directory fails per-child classification."""
+    if not _permission_fixtures_supported():
+        print(
+            "  - discovery_child_classification_permission_failure skipped "
+            "(root or non-POSIX)"
+        )
+        return
+    root = pathlib.Path(tempfile.mkdtemp(prefix="audit-npm-listable-"))
+    listable = root / "listable"
+    try:
+        _write_allowlist(root)
+        (listable / "child").mkdir(parents=True)
+        listable.chmod(0o400)
+        try:
+            _assert_walk_failure(
+                "discovery_child_classification_permission_failure_exits_2",
+                root,
+                "cannot classify",
+            )
+        finally:
+            listable.chmod(0o700)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def main() -> int:
@@ -287,6 +367,10 @@ def main() -> int:
               f"found={found}")
         check("still_finds_symlinked_lockfile", "third/package-lock.json" in found,
               f"found={found}")
+
+    print("discover_lockfiles() — permission failures")
+    case_discovery_iterdir_permission_failure()
+    case_discovery_child_classification_permission_failure()
 
     print("advisory_id() — GHSA/CVE from url, else npm source id")
     check("id_from_ghsa_url",
