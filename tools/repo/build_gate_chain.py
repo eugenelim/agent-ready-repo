@@ -455,6 +455,12 @@ def build_check(args: argparse.Namespace) -> int:
             "test-build-check-workflow",
             "tools", "test-build-check-workflow.py",
         ),
+        # ci-security.yml's security-posture assertion lives in the unfiltered
+        # chain because no other local gate reads that workflow.
+        _script_step(
+            "test-ci-security-workflow",
+            "tools", "test-ci-security-workflow.py",
+        ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
         # ADR-0086, so nothing else would notice it being deleted or made
         # unreachable. Skips cleanly where `make` is absent.
