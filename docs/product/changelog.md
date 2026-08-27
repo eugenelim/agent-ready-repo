@@ -57,11 +57,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maintainers can identify every unsupported legacy workspace record from a
   cold status read.** Findings now retain a safe object slug instead of
   collapsing unrelated records under `workspace.toml`.
+- **Deferring an acceptance criterion no longer forces a legacy workspace
+  record.** `lint-spec-status` invariant (iv) now resolves a `(deferred: …)`
+  anchor from a canonical `{path, kind}` entry as well as a legacy `{slug}`
+  one, so the canonical shape is finally writable in `[backlog].open`.
 
 ### Fixed
 
 - Preserve safe single-segment slugs in `unsupported_legacy` findings without
   admitting those object shapes as supported or dispatchable entries.
+- Bound every untrusted `workspace.toml` value before it is emitted as a
+  finding identifier. An over-long or control-character-bearing value degrades
+  to the unattributed fallback instead of being rendered verbatim into an
+  agent's context; path-shaped values are still named so `invalid_artifact_path`
+  keeps reporting them.
+- Warn when a spec's `**Status:**` field is not in the `- **Status:**`
+  list-item form. The workspace engine reads only that form and treated a bare
+  field as no status at all, so the divergence surfaced as an
+  `impossible_transition` against the entry's collection rather than as a lint
+  error on the file that caused it.
 
 ## [core][2.12.3] — 2026-08-26
 

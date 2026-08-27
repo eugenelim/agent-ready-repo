@@ -9,6 +9,7 @@ Coverage:
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import importlib.util
 import json
@@ -912,3 +913,71 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
+
+
+class RepositoryLifecycleRatchetTests(unittest.TestCase):
+    """Ratchet the repository's own workspace.toml against lifecycle drift.
+
+    Nothing else in CI runs the reconciliation engine over the real
+    `workspace.toml`, so the fail-closed findings that core 2.12.4 drove to zero
+    could silently return. This asserts the repaired state directly.
+
+    The excluded codes are the known, deliberately non-empty compatibility
+    backlog -- `unsupported_legacy` and `legacy_entry` are retained legacy
+    records scheduled as later cleanup groups, and `missing_plan` /
+    `unsatisfied_dependency` track real queued work. They are ratcheted by
+    count below rather than required to be zero.
+    """
+
+    #: Counts measured at core 2.12.4. Lower is always allowed; higher fails.
+    _TOLERATED_CEILINGS = {
+        "unsupported_legacy": 183,
+        "legacy_entry": 2,
+        "unsatisfied_dependency": 8,
+        "missing_plan": 5,
+        "impossible_transition": 1,
+    }
+
+    def _canonical(self):
+        engine = _load_workspace_status_engine()
+        workspace = engine.parse_workspace(REPO_ROOT / "workspace.toml")
+        return engine.run_canonical_reconciliation(workspace, REPO_ROOT)
+
+    def test_no_fail_closed_lifecycle_findings(self) -> None:
+        canonical = self._canonical()
+        for code in (
+            "missing_artifact",
+            "inactive_initiative",
+            "duplicate_membership",
+            "invalid_artifact_path",
+            "missing_dependency",
+            "invalid_entry",
+            "invalid_workspace",
+            "dependency_cycle",
+        ):
+            offenders = sorted(f.path for f in canonical.findings if f.code == code)
+            self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
+
+    def test_tolerated_finding_counts_do_not_regress(self) -> None:
+        canonical = self._canonical()
+        counts = collections.Counter(f.code for f in canonical.findings)
+        for code, ceiling in self._TOLERATED_CEILINGS.items():
+            self.assertLessEqual(
+                counts.get(code, 0),
+                ceiling,
+                f"{code} rose above its 2.12.4 ceiling; new legacy-shaped "
+                f"entries must not be added -- see the shape guidance at the "
+                f"top of workspace.toml",
+            )
+
+    def test_every_legacy_finding_is_individually_attributable(self) -> None:
+        """The 2.12.4 diagnostic property, asserted against the real file."""
+        canonical = self._canonical()
+        legacy = [f for f in canonical.findings if f.code == "unsupported_legacy"]
+        identifiers = [f.path for f in legacy]
+        self.assertNotIn("workspace.toml", identifiers,
+                         "findings collapsed back onto the containing file")
+        self.assertEqual(
+            len(set(identifiers)), len(identifiers),
+            "two legacy records share one identifier",
+        )

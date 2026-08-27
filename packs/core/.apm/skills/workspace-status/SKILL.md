@@ -134,8 +134,10 @@ receipts, approver identity, or raw source values into its output.
 
 ### 1a. Canonical findings
 
-Every canonical refusal carries a stable code, repository-relative path,
-`dispatchable:false`, and one safe next action:
+Every canonical refusal carries a stable code, `dispatchable:false`, one safe
+next action, and an identifier: a repository-relative path, or — for
+`unsupported_legacy` only — a safe single-segment slug. Never join a finding
+identifier to the repository root without checking it is a path first.
 
 | Code | Why blocked | Safe action |
 | --- | --- | --- |

@@ -1,6 +1,35 @@
 # Current declared intent. Structured fields are authoritative; durable rationale
 # belongs in the cited artifact or Git history. Comments state only current facts
 # that the schema cannot express.
+#
+# HOW TO WRITE AN ENTRY -- read this before adding one.
+#
+# Target entries are inline tables with exactly:
+#   path, kind, source, summary, needs
+#
+# Example:
+#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
+#
+# DO NOT INFER THE SHAPE FROM NEIGHBOURING ENTRIES. Most records in this file
+# are legacy compatibility forms -- bare "spec/<slug>" strings and {slug = ...}
+# tables. They are retained deliberately, they reconcile as `unsupported_legacy`
+# or `legacy_entry`, and they are never dispatchable. Copying one writes a
+# non-dispatchable record. `workspace-status` reports every such record; run it
+# after editing this file.
+#
+# The one current exception is `[backlog].open`, where a `{slug = ...}` entry is
+# still required: `lint-spec-status.py` invariant (iv) resolves each spec's
+# `(deferred: <slug>)` anchor from the `slug` key only, and that is a hard CI
+# gate. Reconciling that contradiction needs a governance decision, not a
+# reshape of individual entries.
+#
+# Comments, summaries, list order, tracker labels, and profile hints are
+# non-semantic. They must not determine routing, dependency satisfaction,
+# processor selection, or dispatch.
+#
+# Paths are repository-relative POSIX paths. Consumers must reject absolute
+# paths, backslashes, ".." segments, and any symlink-resolved target outside the
+# repository root.
 
 ["ini-002"]
 name      = "Platform Core"
@@ -24,7 +53,12 @@ backlog = [
 ]
 
 ["ini-002".brief_queue]
-executing = {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []}
+# `executing` is a lifecycle LIST, like every other collection. A bare inline
+# table here is not coerced: the engine accepts only a str or a list, so a table
+# raises invalid_workspace, which then stamps every canonical entry in the file.
+executing = [
+  {path = "docs/product/briefs/distribution-routes-programme.md", kind = "brief", source = {mode = "repo-origin", ref = "docs/rfc/0092-first-class-distribution-routes.md", revision = "b9f8523016bd800001347c6a8bfaeae88c006a70"}, summary = "Land the distribution-route layer accepted by RFC-0092", needs = []},
+]
 ready     = []
 draft     = []
 # tech-site-completion is Status: Shipped, so `ready` was an impossible
@@ -1744,7 +1778,7 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
-  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor workspace-anchor-staleness-invariant owns dependency and membership staleness detection"},
+  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
   {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Closed after repairing living MkDocs-to-Starlight residue; frozen historical bodies remain unchanged"},
 
