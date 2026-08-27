@@ -1803,17 +1803,6 @@ open = [
   # Unblocks: now.
   {slug = "reviewer-agents-miss-four-vacuous-assertion-shapes", source = "maintainer distill run 2026-08-27 (impact assessment item A)", summary = "quality-engineer.md and security-reviewer.md do not cover the four vacuous-assertion shapes distilled on 2026-08-27; security-reviewer has no control-pin-by-mutation obligation at all"},
 
-  # Two routed observations from the same run have canonical homes and no owner.
-  # (1) docs/architecture/knowledge-capture.md does not state the multi-artifact
-  # terminal-gate provenance rule: a named primary owning artifact, an explicit
-  # companion-artifact provenance set, and a freshness anchor on the artifact that
-  # closes the gate, with construction tests referencing one canonical gate mapping.
-  # (2) INI-009 does not record RFC-0097's staged-delivery constraint: advertised
-  # workflow modes, required knowledge topics, and validation fixtures must share one
-  # milestone boundary; later-stage fixtures must not block an earlier foundation
-  # release and unavailable modes must not be advertised as complete.
-  # Unblocks: now. Both are small doc edits; neither is a code change.
-  {slug = "route-two-distilled-observations-to-canonical-homes", source = "maintainer distill run 2026-08-27 (impact assessment item C)", summary = "Multi-artifact gate provenance belongs in docs/architecture/knowledge-capture.md and RFC-0097's milestone-boundary constraint belongs on INI-009; both were routed at distillation and neither has landed"},
 
   # Surfaced while specing knowledge-enquiry-scope-reachability, and required by
   # that spec's round-2 review (Concern 12) before it can pin selection-level
