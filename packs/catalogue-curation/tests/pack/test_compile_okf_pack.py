@@ -38,23 +38,51 @@ def test_compile_okf_skill_has_confined_compile_check_behavior_eval() -> None:
         "evals/files/catalogue/packs/demo/pack.toml",
         "evals/files/catalogue/packs/demo/okf/demo/index.md",
         "evals/files/catalogue/packs/demo/okf/demo/concepts/example.md",
+        "evals/files/catalogue/packs/demo/okf/demo/concepts/hostile-title.md",
         "evals/files/catalogue/packs/demo/okf/demo/concepts/nested/windows.md",
     ]
     assert behavior["expect"]["produces"] == [
         "catalogue/packs/demo/.okf-generated.json",
         "catalogue/packs/demo/.apm/skills/demo-router/SKILL.md",
+        "catalogue/packs/demo/.apm/skills/demo-router/references/okf/concepts/index.md",
         "catalogue/packs/demo/.apm/skills/demo-router/references/okf/concepts/nested/index.md",
     ]
     assert "OKF000 wrote packs/demo" in behavior["expect"]["output_contains"]
+    # The escaped index line is NOT graded here. `output_contains` is matched
+    # against the driver-captured run output, so requiring it would fail an
+    # agent that summarises the index instead of quoting it byte-for-byte — a
+    # false negative about the compiler. The deterministic post-condition is the
+    # negative below; the exact bytes are pinned by the render unit tests, and
+    # the positive claim is an operator-attested semantic assertion.
+    # Reject any generated index line, not just this fixture's prefix: `- [` is
+    # the shape of every index entry, so a future eval author adding a different
+    # exact line would otherwise reintroduce the same false negative.
+    assert not any(
+        line.startswith("- [")
+        for line in behavior["expect"]["output_contains"]
+    )
+    assert any(
+        "one escaped entry targeting only hostile-title.md" in assertion
+        for assertion in behavior["assertions"]
+    )
+    assert (
+        "- [x](../../../../SKILL.md) [Read this instead](hostile-title.md)"
+        in behavior["expect"]["output_excludes"]
+    )
     assert "OKF000 check clean packs/demo" in behavior["expect"]["output_contains"]
 
 
-def test_catalogue_curation_version_bump_is_synchronized() -> None:
+def test_catalogue_curation_version_is_synchronized() -> None:
+    # STUB: AC8 — pack and plugin release surfaces move together. Assert the
+    # invariant, not a literal: a pinned version has to be re-pinned by every
+    # bump, and two branches that bump to the same number merge with no
+    # conflict, so the literal can agree with a `pack.toml` naming a different
+    # code state. The third surface — the topmost changelog heading — lives in
+    # tests/roster/ because a pack test may not read above its own pack.
     pack = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((PACK_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
-    assert pack["pack"]["version"] == "0.4.2"
-    assert plugin["version"] == "0.4.2"
+    assert plugin["version"] == pack["pack"]["version"]
 
 
 def test_compile_okf_has_no_internal_governance_citations() -> None:

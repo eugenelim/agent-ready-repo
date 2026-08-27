@@ -192,10 +192,14 @@ spec demonstrates that they directly support skill scripts, evaluations, pack-le
 verification, or the provider boundary. Catalogue-only and ordinary engineering work
 does not move merely because the corpus can describe it.
 
-The two foundation prerequisites are `okf-index-title-interpolation-unescaped` and
+The two foundation prerequisites were `okf-index-title-interpolation-unescaped` and
 `okf012-nondeterminism-guard-untested`. Their canonical backlog records remain the
-authority for exact ownership and closure; Slice 0 must resolve or explicitly amend
-them before the foundation ships.
+authority for exact ownership and closure, and both are now **closed** under
+`[backlog].closed` by `docs/specs/okf-follow-ons/spec.md`, which bounded and escaped
+compiler-owned OKF index metadata and added mutation-proven `OKF012` coverage. Slice 0
+therefore inherits them satisfied rather than needing to resolve or amend them. Per
+RFC-0097 D7 the canonical record wins over this planning map; the variance is recorded
+in [INI-009](../initiatives/ini-009-agent-skill-engineering.md).
 
 ## Derived work
 

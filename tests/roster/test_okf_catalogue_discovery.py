@@ -17,6 +17,7 @@ PACKAGE_ROOT = REPO_ROOT / "packages" / "agentbundle"
 SHOW_SCHEMA = REPO_ROOT / "contracts" / "jsonschema" / "agentbundle-show.schema.json"
 CORE_PACK = REPO_ROOT / "packs" / "core"
 COST_PILOT_PACK = REPO_ROOT / "packs" / "_okf-pilot-cost-engineering"
+PRODUCT_CHANGELOG = REPO_ROOT / "docs" / "product" / "changelog.md"
 
 
 def _args(pack: str, catalogue: Path) -> SimpleNamespace:
@@ -69,6 +70,37 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     assert "catalogue-index.json" in agentbundle_doc
     assert "excluded" in pack_layout_doc
     assert "catalogue-index.json" in pack_layout_doc
+
+
+def test_okf_pack_releases_name_themselves_in_the_topmost_changelog_heading() -> None:
+    """Each OKF-releasing pack's topmost changelog heading names its version.
+
+    Scoped to the packs this change releases, not to every pack: `packs/core` and
+    the cost-engineering pilot also ship OKF surfaces and are deliberately not
+    covered here, so do not read a pass as repository-wide coverage.
+
+    This is the third surface of the pack/plugin/changelog release invariant.
+    It lives here rather than in each pack's own suite because
+    `tools/lint-pack-test-boundary.py` forbids a pack test from reading above
+    its own pack, and `docs/product/changelog.md` is repository-level. The two
+    in-pack surfaces are asserted by each pack's release test.
+    """
+    lines = PRODUCT_CHANGELOG.read_text(encoding="utf-8").splitlines()
+
+    for pack_name in ("catalogue-curation", "architect"):
+        pack_dir = REPO_ROOT / "packs" / pack_name
+        pack = tomllib.loads((pack_dir / "pack.toml").read_text(encoding="utf-8"))
+        version = pack["pack"]["version"]
+        heading = f"## [{pack_name}]["
+        topmost = next((line for line in lines if line.startswith(heading)), None)
+        assert topmost is not None, (
+            f"docs/product/changelog.md has no {heading}…] heading at all, so "
+            f"packs/{pack_name} {version!r} has no release entry"
+        )
+        assert topmost.startswith(f"{heading}{version}]"), (
+            f"packs/{pack_name}/pack.toml is {version!r} but the topmost "
+            f"{pack_name} changelog heading is {topmost!r}"
+        )
 
 
 def test_real_generated_core_pilot_cli_response_validates_schema(
@@ -130,6 +162,38 @@ def test_real_generated_core_pilot_cli_response_validates_schema(
     assert hand_authored_router["generated_from"] is None
     assert hand_authored_router["profile"] is None
     assert hand_authored_router["digest"] is None
+
+
+def test_real_architect_cli_response_includes_licensed_okf_bundle(capsys) -> None:
+    """The shipped architect pack remains discoverable through public show JSON."""
+    rc = show.run(_args("architect", REPO_ROOT))
+    captured = capsys.readouterr()
+    response = json.loads(captured.out)
+
+    assert rc == 0
+    assert captured.err == ""
+    _assert_show_schema(response)
+    assert response["name"] == "architect"
+    assert response["source"] == "catalogue"
+    assert response["knowledge"] == [
+        {
+            "id": "architecture-lenses",
+            "format": "okf",
+            "okf_version": "0.2",
+            "router_skill": "architecture-lenses-reference",
+            "content_license": "Apache-2.0 OR MIT",
+            "concept_count": 47,
+            "digest": response["knowledge"][0]["digest"],
+        }
+    ]
+    assert response["knowledge"][0]["digest"].startswith("sha256:")
+    router = next(
+        item
+        for item in response["skill_metadata"]
+        if item["name"] == "architecture-lenses-reference"
+    )
+    assert router["generated_from"] == "okf/architecture-lenses"
+    assert router["profile"] == "agentbundle-okf/v1"
 
 
 def test_exact_cost_pilot_bytes_validate_cli_response(

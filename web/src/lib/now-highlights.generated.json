@@ -101,6 +101,66 @@
     {
       "packages": [
         {
+          "name": "catalogue-curation",
+          "version": "0.4.3"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[catalogue-curation][0.4.3] — 2026-08-26",
+      "changelogAnchor": "catalogue-curation043--2026-08-26",
+      "highlights": [
+        {
+          "source": "**Generated OKF routers now keep hostile concept metadata inside its intended index entry.** Titles, statuses, and concept types are bounded and escaped before they reach compiler-owned Markdown indexes, preventing metadata from fabricating links or additional entries.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Generated OKF routers now keep hostile concept metadata inside its intended index entry."
+            },
+            {
+              "type": "text",
+              "value": " Titles, statuses, and concept types are bounded and escaped before they reach compiler-owned Markdown indexes, preventing metadata from fabricating links or additional entries."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.3"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[architect][0.15.3] — 2026-08-26",
+      "changelogAnchor": "architect0153--2026-08-26",
+      "highlights": [
+        {
+          "source": "**The shipped architect pack is discoverable again.** Its architecture-lenses source now declares the required content licence, so `agentbundle show architect` resolves it, and it accurately describes authored source versus generated router projections.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The shipped architect pack is discoverable again."
+            },
+            {
+              "type": "text",
+              "value": " Its architecture-lenses source now declares the required content licence, so "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle show architect"
+            },
+            {
+              "type": "text",
+              "value": " resolves it, and it accurately describes authored source versus generated router projections."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.12.3"
         }

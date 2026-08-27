@@ -249,9 +249,10 @@ open = [
   # Unblocks when: someone owns the regenerator.
   {slug = "guide-sidebar-label-order-coupling", source = "spec/guide-metadata-completion AC (sidebar)", summary = "project_guide_sidebar orders kind buckets by resolved label, so adopting a curated title necessarily reorders its bucket"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
-  {slug = "okf-index-title-interpolation-unescaped", summary = "Concept title/status/type reach generated OKF index link text unescaped, so a hostile title chooses a link target in a compiler-owned index", source = "spec/okf-authoring-projection (whole-spec quality review)"},
-  {slug = "okf012-nondeterminism-guard-untested", summary = "The OKF012 repeated-compile guard has zero test coverage, so removing it fails no test", source = "spec/okf-authoring-projection (whole-spec quality review)"},
-  {slug = "architect-okf-bundle-root-missing-license", summary = "packs/architect fails OKF discovery with 'missing content license', so agentbundle show architect --format json exits 1", source = "spec/okf-authoring-projection (adversarial review, reproduced)"},
+  # Unblocks when: someone decides whether the seal should admit a prose-only
+  # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
+  # blocked mid-run and landed only after an owner-authorized cohort re-seal.
+  {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
   # Deferred rather than bundled: packages/agentbundle/ is a protected tree
@@ -1822,6 +1823,12 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  {slug = "okf-index-title-interpolation-unescaped", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; compiler-owned OKF indexes bound and context-escape title, status, and type, and exact hostile fixtures prove a fabricated link or entry stays data"},
+
+  {slug = "okf012-nondeterminism-guard-untested", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; a mutation-proven compile_pack test asserts exit 2, diagnostics exactly OKF012, and no pack mutation when the two renders differ"},
+
+  {slug = "architect-okf-bundle-root-missing-license", source = "spec/okf-authoring-projection (adversarial review, reproduced)", summary = "Closed by spec/okf-follow-ons; architect's authored OKF root declares the shared content licence, distinguishes source from projection, and passes discovery and show with a regression test. Owner review by architect's maintainer is still outstanding and is required before architect becomes the INI-009 M3 integration pilot; see the variance record in docs/product/initiatives/ini-009-agent-skill-engineering.md"},
+
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
   {slug = "adr-0050-supersession-body-survey", source = "spec/frozen-doc-supersession-annotations review", summary = "Closed after repairing living MkDocs-to-Starlight residue; frozen historical bodies remain unchanged"},

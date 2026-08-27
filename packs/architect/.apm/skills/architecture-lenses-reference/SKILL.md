@@ -5,7 +5,7 @@ metadata:
   boundaries: [filesystem_read_untrusted]
   generated-by: compile-okf agentbundle-okf/v1
   source-path: okf/architecture-lenses
-  source-digest: sha256:785743d90e86b720fb3f4f7067fde53e750d596df9b3552384f3c8b6405713a4
+  source-digest: sha256:003d70b7ea9bcabf3bb7eee3ab637c6c10c24b694e5e7fa3be1f83600f851586
 ---
 
 # Skill: architecture-lenses-reference
