@@ -1828,6 +1828,8 @@ closed = [
   {slug = "security-checklists-okf-router-regression", summary = "Closed by restoring the hand-authored router and moving OKF projection to a sibling skill", source = "RFC-0087 OKF pilot regression"},
 
   {slug = "selftest-mutates-tracked-makefile", summary = "Closed for tracked-file mutation; lint-performance-p0 moved plants to fixtures, while selftest-untracked-plant-window owns the residual untracked-file risk", source = "spec/npm-sca-gate (unrelated find)"},
+
+  {slug = "npm-allowscripts-enforcement", source = "spec/npm-sca-gate", summary = "Closed by repinning web's fsevents to 2.3.3 through a package.json overrides entry -- playwright pins 2.3.2 exactly, so npm install alone could never dedupe it -- and adding tools/lint-npm-allow-scripts.py, which compares each project's lockfile install-script set against its allowScripts map in both directions"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

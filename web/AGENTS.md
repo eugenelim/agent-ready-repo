@@ -21,7 +21,7 @@ used by this site. Do not edit generated inputs by hand.
   reports the resolved cache, `install-browsers` provisions it. Never record install
   state here: it is machine-local and inverts without warning.
 - Full Playwright runs rewrite tracked snapshots; stage files explicitly, never `git add -A`.
-- Run `tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
+- Run `python3 tools/lint-npm-allow-scripts.py`; when it fires, add a reviewed
   `allowScripts` entry or repin the dependency so it dedupes to a reviewed version.
 - Keep `web/package.json`'s `fsevents@2.3.3` override: Playwright pins 2.3.2 exactly;
   the override collapses its nested copy so the `allowScripts` gate can be enforced.

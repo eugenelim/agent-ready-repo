@@ -50,7 +50,7 @@ def write_project(
     *,
     project: str = "site",
     packages: dict[str, object] | None = None,
-    allow_scripts: dict[str, bool] | None = None,
+    allow_scripts: dict[str, object] | None = None,
 ) -> Path:
     """Write one minimal npm project and return its directory."""
     project_dir = root / project
@@ -70,6 +70,7 @@ def write_project(
     }
     package = {
         "name": project,
+        "version": "1.0.0",
         "private": True,
         "allowScripts": allow_scripts
         if allow_scripts is not None
@@ -126,7 +127,11 @@ def main() -> int:
             allow_scripts={},
         )
         proc = run(root)
-        check("unallowlisted install script exits 1", proc.returncode == 1, combined(proc))
+        check(
+            "unallowlisted install script exits 1",
+            proc.returncode == 1,
+            combined(proc),
+        )
         check(
             "unallowlisted diagnostic names the offender",
             "fsevents@2.3.3" in combined(proc),
@@ -166,9 +171,16 @@ def main() -> int:
             allow_scripts={"b@4.5.6": True},
         )
         proc = run(root)
-        check("nested dependency uses the last node_modules segment", proc.returncode == 0,
-              combined(proc))
-        check("nested verdict names b@4.5.6", "b@4.5.6" in combined(proc), combined(proc))
+        check(
+            "nested dependency uses the last node_modules segment",
+            proc.returncode == 0,
+            combined(proc),
+        )
+        check(
+            "nested verdict names b@4.5.6",
+            "b@4.5.6" in combined(proc),
+            combined(proc),
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -195,6 +207,57 @@ def main() -> int:
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+    root = fixture_root("npm-allow-alias-")
+    try:
+        write_project(
+            root,
+            packages={
+                "": {"name": "site", "version": "1.0.0"},
+                "node_modules/myfse": {
+                    "name": "fsevents",
+                    "version": "2.3.3",
+                    "hasInstallScript": True,
+                },
+            },
+            allow_scripts={"fsevents@2.3.3": True},
+        )
+        proc = run(root)
+        check("npm alias uses the entry name", proc.returncode == 0, combined(proc))
+        check(
+            "npm alias verdict names fsevents@2.3.3",
+            "fsevents@2.3.3" in proc.stdout and "myfse@2.3.3" not in combined(proc),
+            combined(proc),
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    root = fixture_root("npm-allow-root-script-")
+    try:
+        write_project(
+            root,
+            packages={
+                "": {
+                    "name": "lockfile-name-is-not-authoritative",
+                    "version": "9.9.9",
+                    "hasInstallScript": True,
+                }
+            },
+            allow_scripts={"site@1.0.0": True},
+        )
+        proc = run(root)
+        check(
+            "project install script exits 0 when allowed",
+            proc.returncode == 0,
+            combined(proc),
+        )
+        check(
+            "project install script uses manifest identity",
+            "site@1.0.0" in proc.stdout,
+            combined(proc),
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
     root = fixture_root("npm-allow-no-lock-")
     try:
         proc = run(root)
@@ -202,20 +265,76 @@ def main() -> int:
 
         missing = root / "no-such-root"
         proc = run(missing)
-        check("nonexistent --root exits nonzero", proc.returncode != 0, combined(proc))
-        check("nonexistent --root names the path", missing.name in combined(proc),
-              combined(proc))
-        check("nonexistent --root has no traceback", "Traceback" not in combined(proc),
-              combined(proc))
+        check("nonexistent --root exits 2", proc.returncode == 2, combined(proc))
+        check(
+            "nonexistent --root names the path",
+            missing.name in combined(proc),
+            combined(proc),
+        )
+        check(
+            "nonexistent --root has no traceback",
+            "Traceback" not in combined(proc),
+            combined(proc),
+        )
 
         not_a_directory = root / "not-a-directory"
         not_a_directory.write_text("fixture", encoding="utf-8")
         proc = run(not_a_directory)
-        check("file-valued --root exits nonzero", proc.returncode != 0, combined(proc))
-        check("file-valued --root names the path", not_a_directory.name in combined(proc),
-              combined(proc))
-        check("file-valued --root has no traceback", "Traceback" not in combined(proc),
-              combined(proc))
+        check("file-valued --root exits 2", proc.returncode == 2, combined(proc))
+        check(
+            "file-valued --root names the path",
+            not_a_directory.name in combined(proc),
+            combined(proc),
+        )
+        check(
+            "file-valued --root has no traceback",
+            "Traceback" not in combined(proc),
+            combined(proc),
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    root = fixture_root("npm-allow-false-")
+    try:
+        write_project(
+            root,
+            packages={
+                "": {"name": "site", "version": "1.0.0"},
+                "node_modules/evil": {
+                    "version": "1.0.0",
+                    "hasInstallScript": True,
+                },
+            },
+            allow_scripts={"evil@1.0.0": False},
+        )
+        proc = run(root)
+        check(
+            "false allowScripts value exits 1",
+            proc.returncode == 1,
+            combined(proc),
+        )
+        check(
+            "false allowScripts value does not permit the package",
+            "unallowlisted install-script entry evil@1.0.0" in combined(proc),
+            combined(proc),
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    root = fixture_root("npm-allow-non-boolean-")
+    try:
+        write_project(root, allow_scripts={"esbuild@0.28.1": "yes"})
+        proc = run(root)
+        check(
+            "non-boolean allowScripts value exits 2",
+            proc.returncode == 2,
+            combined(proc),
+        )
+        check(
+            "non-boolean allowScripts diagnostic names the key",
+            "esbuild@0.28.1" in combined(proc),
+            combined(proc),
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -242,8 +361,11 @@ def main() -> int:
         project = write_project(root)
         (project / "package.json").unlink()
         proc = run(root)
-        check("missing sibling package.json exits 2", proc.returncode == 2,
-              combined(proc))
+        check(
+            "missing sibling package.json exits 2",
+            proc.returncode == 2,
+            combined(proc),
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -267,8 +389,11 @@ def main() -> int:
             newline="\n",
         )
         proc = run(root)
-        check("package.json without allowScripts exits 2", proc.returncode == 2,
-              combined(proc))
+        check(
+            "package.json without allowScripts exits 2",
+            proc.returncode == 2,
+            combined(proc),
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -277,11 +402,33 @@ def main() -> int:
         write_project(root)
         ignored = root / "node_modules" / "dependency"
         hidden = root / ".cache" / "fixture"
-        write_project(ignored, packages={}, allow_scripts={})
-        write_project(hidden, packages={}, allow_scripts={})
+        violating_packages = {
+            "": {"name": "pruned", "version": "1.0.0"},
+            "node_modules/evil": {
+                "version": "1.0.0",
+                "hasInstallScript": True,
+            },
+        }
+        ignored_project = write_project(
+            ignored, packages=violating_packages, allow_scripts={}
+        )
+        hidden_project = write_project(
+            hidden, packages=violating_packages, allow_scripts={}
+        )
         proc = run(root)
-        check("node_modules and dot-directories are pruned", proc.returncode == 0,
-              combined(proc))
+        check(
+            "node_modules and dot-directories are pruned",
+            proc.returncode == 0,
+            combined(proc),
+        )
+        check(
+            "pruned project paths are absent from stdout",
+            all(
+                project.relative_to(root).as_posix() not in proc.stdout
+                for project in (ignored_project, hidden_project)
+            ),
+            combined(proc),
+        )
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

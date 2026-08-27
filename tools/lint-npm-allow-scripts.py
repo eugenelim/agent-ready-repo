@@ -9,13 +9,15 @@ is also enforced: a stale allowlist key is a standing permission for a package
 that is not present, so its later return at another version could escape fresh
 review.
 
-Lockfiles are discovered rather than hardcoded, so a third npm project cannot
-appear without this gate noticing. Discovery mirrors ``tools/audit-npm.py``:
-walk from the repository root, prune ``node_modules`` and dot-directories, skip
-symlinked directories for loop safety, and sort the result for stable output.
-That script exposes the discovery function from a hyphenated executable rather
-than an importable helper module; mirroring the small walk keeps both standalone
-tools conventional and avoids dynamic execution of one gate from another.
+Lockfiles are discovered rather than hardcoded across ordinary, non-hidden
+repository directories. Discovery mirrors ``tools/audit-npm.py``: walk from the
+repository root, prune ``node_modules`` and dot-directories, skip symlinked
+directories for loop safety, and sort the result for stable output. Lockfiles
+below dot paths are therefore outside this gate's discovery scope, including
+projects below ``packs/converters/.apm/``. That script exposes the discovery
+function from a hyphenated executable rather than an importable helper module;
+mirroring the small walk keeps both standalone tools conventional and avoids
+dynamic execution of one gate from another.
 
 Usage:
     lint-npm-allow-scripts.py [--root DIR]
@@ -28,9 +30,9 @@ like an ordinary finding and obscures that the repository was never checked.
   0  every discovered project's install-script set exactly matches allowScripts.
   1  at least one install-script entry is unallowlisted, or an allowScripts key
      is stale.
-  2  the checker could not run: no lockfile was discovered; required JSON was
-     unreadable or unparseable; a lockfile had no usable ``packages`` map; or a
-     sibling package.json had no usable ``allowScripts`` map.
+  2  the checker could not run: the root or discovery walk was unusable; no
+     lockfile was discovered; required JSON was unreadable or unparseable; or a
+     required ``packages`` or ``allowScripts`` map was unusable.
 """
 
 from __future__ import annotations
@@ -81,14 +83,9 @@ def discover_lockfiles(root: Path) -> list[Path]:
         try:
             entries = list(current.iterdir())
         except OSError as exc:
-            # Match audit-npm's fail-visible discovery idiom: partial walk
-            # failures are never silent, while the total-empty guard below
-            # still refuses a vacuous green result.
-            print(
-                f"lint-npm-allow-scripts: warning: cannot read {current}: {exc}",
-                file=sys.stderr,
-            )
-            continue
+            # A partial walk cannot establish that every in-scope lockfile was
+            # checked, so it is a could-not-run result rather than a warning.
+            raise CheckError(f"cannot read directory {current}: {exc}") from exc
         for entry in entries:
             if entry.is_dir():
                 if (
@@ -111,7 +108,12 @@ def _load_json(path: Path) -> object:
         raise CheckError(f"cannot read valid JSON from {path}: {exc}") from exc
 
 
-def _install_script_key(lockfile: Path, package_path: str, entry: object) -> str | None:
+def _install_script_key(
+    lockfile: Path,
+    package_path: str,
+    entry: object,
+    manifest: dict[str, object],
+) -> str | None:
     """Return ``name@version`` for one install-script package, else ``None``."""
     if not isinstance(entry, dict):
         raise CheckError(
@@ -120,17 +122,34 @@ def _install_script_key(lockfile: Path, package_path: str, entry: object) -> str
     if entry.get("hasInstallScript") is not True:
         return None
 
-    marker = "node_modules/"
-    if marker not in package_path:
-        raise CheckError(
-            f"{lockfile}: install-script entry {package_path!r} has no "
-            f"{marker!r} segment from which to derive its package name"
+    if package_path == "":
+        name = manifest.get("name")
+        version = manifest.get("version")
+    else:
+        marker = "node_modules/"
+        if marker not in package_path:
+            raise CheckError(
+                f"{lockfile}: install-script entry {package_path!r} has no "
+                f"{marker!r} segment from which to derive its package name"
+            )
+        entry_name = entry.get("name")
+        # npm aliases land in a differently named directory. The allowlist key
+        # must name the package whose code executes, not where npm placed it.
+        name = (
+            entry_name
+            if isinstance(entry_name, str) and entry_name
+            else package_path.rsplit(marker, 1)[1]
         )
-    name = package_path.rsplit(marker, 1)[1]
-    version = entry.get("version")
-    if not name or not isinstance(version, str) or not version:
+        version = entry.get("version")
+    if (
+        not isinstance(name, str)
+        or not name
+        or not isinstance(version, str)
+        or not version
+    ):
         raise CheckError(
-            f"{lockfile}: install-script entry {package_path!r} has no usable version"
+            f"{lockfile}: install-script entry {package_path!r} has no usable "
+            "name and version"
         )
     return f"{name}@{version}"
 
@@ -144,12 +163,6 @@ def check_project(lockfile: Path) -> ProjectVerdict:
     if not isinstance(packages, dict):
         raise CheckError(f"{lockfile}: `packages` must be a JSON object")
 
-    install_scripts: set[str] = set()
-    for package_path, entry in packages.items():
-        key = _install_script_key(lockfile, package_path, entry)
-        if key is not None:
-            install_scripts.add(key)
-
     package_json = lockfile.with_name("package.json")
     package_data = _load_json(package_json)
     if not isinstance(package_data, dict) or "allowScripts" not in package_data:
@@ -157,11 +170,24 @@ def check_project(lockfile: Path) -> ProjectVerdict:
     allow_scripts = package_data["allowScripts"]
     if not isinstance(allow_scripts, dict):
         raise CheckError(f"{package_json}: `allowScripts` must be a JSON object")
+    for key, permitted in allow_scripts.items():
+        if not isinstance(permitted, bool):
+            raise CheckError(
+                f"{package_json}: allowScripts entry {key!r} must be boolean"
+            )
+
+    install_scripts: set[str] = set()
+    for package_path, entry in packages.items():
+        key = _install_script_key(lockfile, package_path, entry, package_data)
+        if key is not None:
+            install_scripts.add(key)
 
     return ProjectVerdict(
         lockfile=lockfile,
         install_scripts=install_scripts,
-        allow_scripts=set(allow_scripts),
+        allow_scripts={
+            key for key, permitted in allow_scripts.items() if permitted is True
+        },
     )
 
 
@@ -173,19 +199,29 @@ def _relative(path: Path, root: Path) -> str:
         return path.as_posix()
 
 
-def _validated_root(candidate: Path | None) -> Path:
+def _validated_root(candidate: Path | None) -> Path | None:
     """Resolve ``--root`` and reject unusable values without a traceback."""
     raw = candidate if candidate is not None else _REPO_ROOT
     try:
         root = raw.resolve()
     except (OSError, ValueError, RuntimeError) as exc:
-        raise SystemExit(
-            f"lint-npm-allow-scripts: --root is not a usable path: {raw!r} ({exc})"
-        ) from exc
+        print(
+            f"lint-npm-allow-scripts: --root is not a usable path: {raw!r} ({exc})",
+            file=sys.stderr,
+        )
+        return None
     if not root.exists():
-        raise SystemExit(f"lint-npm-allow-scripts: --root does not exist: {root}")
+        print(
+            f"lint-npm-allow-scripts: --root does not exist: {root}",
+            file=sys.stderr,
+        )
+        return None
     if not root.is_dir():
-        raise SystemExit(f"lint-npm-allow-scripts: --root is not a directory: {root}")
+        print(
+            f"lint-npm-allow-scripts: --root is not a directory: {root}",
+            file=sys.stderr,
+        )
+        return None
     return root
 
 
@@ -194,8 +230,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=None)
     args = parser.parse_args(argv)
     root = _validated_root(args.root)
+    if root is None:
+        return 2
 
-    lockfiles = discover_lockfiles(root)
+    try:
+        lockfiles = discover_lockfiles(root)
+    except CheckError as exc:
+        print(f"lint-npm-allow-scripts: could not run: {exc}", file=sys.stderr)
+        return 2
     if not lockfiles:
         print(
             f"lint-npm-allow-scripts: no {_LOCKFILE_NAME} discovered under {root}",
