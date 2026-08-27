@@ -1,0 +1,18 @@
+{
+  "profile": "agentbundle-okf/v1",
+  "bundles": [
+    {
+      "id": "skill-foundation",
+      "path": "okf/skill-foundation",
+      "router-skill": "skill-foundation-reference",
+      "provider": {
+        "contract-version": "skill-foundation-reference/v1",
+        "domain": "agent skill engineering",
+        "purpose": "Provide bounded compiled guidance for skill questions.",
+        "task-kinds": ["skill-authoring", "skill-review"],
+        "invocation": "explicit-workflow-only",
+        "ownership-manifest": ".okf-generated.json"
+      }
+    }
+  ]
+}

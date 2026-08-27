@@ -255,6 +255,7 @@ open = [
   # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
   # blocked mid-run and landed only after an owner-authorized cohort re-seal.
   {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
+  {slug = "architect-okf-bundle-root-missing-license", summary = "packs/architect fails OKF discovery with 'missing content license', so agentbundle show architect --format json exits 1", source = "spec/okf-authoring-projection (adversarial review, reproduced)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
   # Deferred rather than bundled: packages/agentbundle/ is a protected tree
@@ -2052,7 +2053,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M0 · provider ADR and foundation-spec decomposition"
+milestone = "M1 · foundation implementation queued"
 
 ["ini-009".brief_queue]
 executing = ""
@@ -2067,5 +2068,7 @@ backlog = []
 
 ["ini-009".work]
 active  = []
-queue   = []
+queue   = [
+  { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
+]
 shipped = []
