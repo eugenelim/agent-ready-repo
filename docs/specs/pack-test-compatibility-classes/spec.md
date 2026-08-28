@@ -234,6 +234,24 @@ No behavior in this spec needs visual or manual QA.
 - [ ] **AC32** Both new test modules are executed by a repository gate, and the
       declaration module's path triggers the workflow that runs the boundary
       lint; a change to `CLASSES` alone re-runs the gate that gives it meaning.
+- [ ] **AC33** The golden baseline amendment is recorded, not silent. Replacing
+      `runners-keep-suites-isolated` changes the boundary lint's observable
+      output in **all 22** captured cases, which
+      `docs/specs/lint-performance-p0/spec.md` routes to *Ask first*
+      ("A required difference is a spec amendment, recorded with the reason and
+      the new expected bytes — never a silently rebaselined golden file").
+      Owner approval was given at the plan checkpoint. Therefore:
+      `PINNED_COMMIT` and `PINNED_BLOB_SHA256` in
+      `tools/test-lint-boundary-golden.py` are repointed to the commit carrying
+      the new lint; `tools/lint-boundary-golden.json` is regenerated from that
+      pinned subject, never hand-edited to make a comparison pass; the reason is
+      recorded here and in the new ADR; and
+      `docs/specs/lint-performance-p0/spec.md` receives an append-only
+      Status-line annotation naming the ADR that supersedes this part. The
+      amendment is unavoidable for any honest implementation: the string
+      `ok   [runners-keep-suites-isolated]` appears in every passing case, so
+      renaming or replacing that check changes all 22 regardless of how many
+      checks the lint ends up with.
 
 ## Assumptions
 
