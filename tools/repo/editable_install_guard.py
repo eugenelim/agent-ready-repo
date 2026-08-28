@@ -4,10 +4,14 @@
 An editable install is global to the interpreter. Nine worktrees share one here,
 so `pip install -e packages/agentbundle` from worktree A rewrites what every
 other worktree's *subprocesses* import — and rewriting it while a peer's gates
-are running is what kills them mid-flight. Nothing in this repository needs that
+are running is what kills them mid-flight. Almost nothing here needs that
 install: `Makefile`'s PYTHONPATH and `pyproject.toml`'s pytest `pythonpath`
 supply both packages from source, and `python3 -m agentbundle` runs the CLI with
-no install at all.
+no install at all. The exception is a gate whose child runs under `-I`, which
+ignores PYTHONPATH and resolves only site-packages —
+`tools/test_marketplace_envelope_parity.py` is one. That wants a *plain*
+install, never an editable: a snapshot in site-packages tracks no worktree, so
+it cannot move this failure onto a peer.
 
 What this refuses is narrow and unambiguous:
 
@@ -201,13 +205,15 @@ def _second_repair(name: str, root: Path) -> list[str]:
             "       nothing here, so the uninstall above is the only repair.)",
         ]
     return [
-        f"      python3 -m pip install -e {root}/packages/{name}",
-        "        Only if you want the `agentbundle` console script on PATH. Note",
-        "        `python3 -m agentbundle ...` already runs it from source without",
-        "        any install. This option is zero-sum: it re-points the global",
-        "        install here and so moves this same failure onto whichever",
-        "        worktree owned it before, and it rewrites global state, so do it",
-        "        when no peer gate is running.",
+        f"      python3 -m pip install {root}/packages/{name}",
+        "        Note the missing `-e`. A plain install copies a snapshot into",
+        "        site-packages, so it tracks no worktree and cannot move this",
+        "        failure onto a peer — which an editable pointing here would do.",
+        "        `python3 -m agentbundle ...` already runs from source without any",
+        "        install; take this one for the console script on PATH, or when a",
+        "        gate needs the package *installed* rather than importable: the",
+        "        child in `tools/test_marketplace_envelope_parity.py` runs under",
+        "        `-I`, so it ignores PYTHONPATH and sees only site-packages.",
     ]
 
 
@@ -228,9 +234,12 @@ def _render(verdict: Verdict, root: Path) -> list[str]:
         "",
         "    To repair, preferring the first:",
         f"      python3 -m pip uninstall -y {verdict.name}",
-        "        Fixes this for EVERY worktree at once, permanently. Nothing in",
-        "        this repository needs the install — the gates and test suites",
-        "        resolve both packages from source.",
+        "        Fixes this for EVERY worktree at once, permanently. Almost",
+        "        nothing here needs an install: the gates and suites resolve both",
+        "        packages from source. The exception is a gate whose child runs",
+        "        under `-I` and therefore cannot see PYTHONPATH; if uninstalling",
+        "        reddens one, take the plain install below rather than an",
+        "        editable.",
         *_second_repair(verdict.name, root),
     ]
 

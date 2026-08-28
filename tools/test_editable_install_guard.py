@@ -268,6 +268,41 @@ class GuardTest(unittest.TestCase):
                 list(adr_dir.glob(f"{ordinal}-*.md")), f"ADR-{ordinal} resolves to no file"
             )
 
+    def test_the_guard_never_recommends_the_shape_it_exists_to_prevent(self) -> None:
+        """No repair may be an editable install — for any package.
+
+        The agentbundle branch used to offer `pip install -e <this worktree>`,
+        described in its own text as zero-sum: it satisfies the guard here by
+        moving the identical failure onto whichever worktree owned the pointer
+        before. A maintainer following that advice re-arms the guard for a peer,
+        which is how the same failure kept circulating between worktrees. A
+        plain install is a snapshot and tracks no worktree, so it ends the loop.
+        """
+        for name in ("agentbundle", "credbroker"):
+            _, text = self.run_with({name: editable_record(self.peer)})
+            # Scope to the repair block: the diagnostic above it legitimately
+            # explains that `pip install -e` is global, and a whole-text match
+            # would fire on that explanation rather than on a recommendation.
+            repairs = text.split("To repair, preferring the first:", 1)[1]
+            offered = [line.strip() for line in repairs.splitlines()
+                       if line.strip().startswith("python3 -m pip")]
+            assert offered, f"{name} names no repair command"
+            for command in offered:
+                self.assertNotIn(" install -e ", f"{command} ", f"{name}: {command}")
+                self.assertNotIn(" install --editable ", f"{command} ")
+
+    def test_the_uninstall_repair_does_not_overclaim(self) -> None:
+        """`-I` children cannot see PYTHONPATH, so 'nothing needs it' is false.
+
+        `tools/test_marketplace_envelope_parity.py` spawns its child with `-I`,
+        which ignores PYTHONPATH and resolves only site-packages. An unqualified
+        "nothing in this repository needs the install" sends a maintainer who
+        uninstalls into a second, unrelated red gate.
+        """
+        _, text = self.run_with({"agentbundle": editable_record(self.peer)})
+        self.assertNotIn("Nothing in", text)
+        self.assertIn("-I", text)
+
     def test_credbroker_is_not_offered_a_console_script_it_lacks(self) -> None:
         """`credbroker` declares no [project.scripts] and has no __main__."""
         _, text = self.run_with({"credbroker": editable_record(self.peer)})
