@@ -498,6 +498,24 @@ def test_cognitive_load_release_inventory_is_complete() -> None:
             assert f"[{name}][{version}]" in changelog, pack.name
 
 
+def _projected_files(root: Path) -> set[Path]:
+    """Files the projection carries, ignoring interpreter bytecode.
+
+    A canonical skill's `scripts/` are imported by the pack suites, which
+    leaves `__pycache__` beside the source but never in the projection. Raw
+    `rglob` therefore makes this contract fail in CI, where bytecode writing
+    is on, while passing locally under `PYTHONDONTWRITEBYTECODE`. Bytecode is
+    not projected content, so it is not part of the comparison.
+    """
+    return {
+        path.relative_to(root)
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.suffix != ".pyc"
+        and "__pycache__" not in path.parts
+    }
+
+
 def test_self_host_skill_projections_match_their_canonical_sources() -> None:
     self_host_packs = (
         "core",
@@ -511,19 +529,20 @@ def test_self_host_skill_projections_match_their_canonical_sources() -> None:
         for skill in (ROOT / "packs" / pack / ".apm/skills").iterdir()
         if skill.is_dir()
     }
-    assert len(sources) == 23
+    # A floor, not an exact count: self-hosted packs gain skills upstream
+    # regularly, and an exact number turns every such addition into a failure
+    # here that says nothing about projection drift. The real contract is the
+    # set equality and per-file comparison below; this only catches the source
+    # set collapsing, which would otherwise make those comparisons vacuous.
+    assert len(sources) >= 23
     for target_root in (ROOT / ".claude/skills", ROOT / ".agents/skills"):
         assert {path.name for path in target_root.iterdir() if path.is_dir()} == set(
             sources
         )
         for name, source in sources.items():
             target = target_root / name
-            source_files = {
-                path.relative_to(source) for path in source.rglob("*") if path.is_file()
-            }
-            target_files = {
-                path.relative_to(target) for path in target.rglob("*") if path.is_file()
-            }
+            source_files = _projected_files(source)
+            target_files = _projected_files(target)
             assert target_files == source_files, target
             for relative in source_files:
                 assert (target / relative).read_bytes() == (source / relative).read_bytes()

@@ -1,5 +1,5 @@
 {
   "name": "atlassian",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back."
 }

@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [agentbundle][0.40.1] — 2026-08-27
+## [agentbundle][0.40.2] — 2026-08-28
 
 ### Highlights
 
@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Declared the three cognitive-load lookup paths in the fail-closed seed
   linter.
 
-## [core][2.13.0] / [catalogue-curation][0.4.3] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] — 2026-08-27
+## [core][2.15.2] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] / [agent-skill-engineering][0.1.1] — 2026-08-28
 
 ### Highlights
 
@@ -79,7 +79,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added portable cognitive-load rules, focused output evals, and core seed
   lookups for Claude, Codex, and Gemini adopters.
 
-## [architect][0.15.3] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.6] / [product-strategy][0.2.4] — 2026-08-27
+## [catalogue-curation][0.4.5] — 2026-08-28
+
+### Highlights
+
+- **Compiled OKF skills now carry the same outcome-first output contract as
+  hand-authored ones.** A generated router or procedure skill reads the same
+  way as the rest of the catalogue without a separate rule file.
+
+### Changed
+
+- Injected the managed output-rendering block into the OKF router and
+  procedure wrappers.
+
+## [architect][0.15.4] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.7] / [product-strategy][0.2.4] — 2026-08-28
 
 ### Highlights
 
@@ -92,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an independent cognitive-load contract and a scored representative
   output scenario to each pack.
 
-## [contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-27
+## [contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-28
 
 ### Highlights
 
@@ -105,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an independent cognitive-load contract and a scored representative
   output scenario to each pack.
 
-## [atlassian][0.9.2] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.2] / [linear][0.3.2] — 2026-08-27
+## [atlassian][0.9.3] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.3] / [linear][0.3.3] — 2026-08-28
 
 ### Highlights
 

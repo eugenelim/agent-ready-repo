@@ -5,12 +5,12 @@
       "packages": [
         {
           "name": "agentbundle",
-          "version": "0.40.1"
+          "version": "0.40.2"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[agentbundle][0.40.1] — 2026-08-27",
-      "changelogAnchor": "agentbundle0401--2026-08-27",
+      "date": "2026-08-28",
+      "heading": "[agentbundle][0.40.2] — 2026-08-28",
+      "changelogAnchor": "agentbundle0402--2026-08-28",
       "highlights": [
         {
           "source": "**Catalogue checks now admit the portable rule lookups shipped by the core pack while rejecting undeclared seed paths.** Adopters can receive the new bounded rule router and scoped docs guidance through the normal seed flow.",
@@ -31,11 +31,7 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.13.0"
-        },
-        {
-          "name": "catalogue-curation",
-          "version": "0.4.3"
+          "version": "2.15.2"
         },
         {
           "name": "governance-extras",
@@ -48,11 +44,15 @@
         {
           "name": "user-guide-diataxis",
           "version": "0.3.1"
+        },
+        {
+          "name": "agent-skill-engineering",
+          "version": "0.1.1"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[core][2.13.0] / [catalogue-curation][0.4.3] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] — 2026-08-27",
-      "changelogAnchor": "core2130--catalogue-curation043--governance-extras0102--product-documentation011--user-guide-diataxis031--2026-08-27",
+      "date": "2026-08-28",
+      "heading": "[core][2.15.2] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] / [agent-skill-engineering][0.1.1] — 2026-08-28",
+      "changelogAnchor": "core2152--governance-extras0102--product-documentation011--user-guide-diataxis031--agent-skill-engineering011--2026-08-28",
       "highlights": [
         {
           "source": "**Agents now make chat, documentation, and skill-led work easier to scan without dropping checks, warnings, evidence, or depth.** Repository rules, generated artifacts, and independent skills share the same outcome-first behavior without requiring a new host primitive.",
@@ -72,8 +72,34 @@
     {
       "packages": [
         {
+          "name": "catalogue-curation",
+          "version": "0.4.5"
+        }
+      ],
+      "date": "2026-08-28",
+      "heading": "[catalogue-curation][0.4.5] — 2026-08-28",
+      "changelogAnchor": "catalogue-curation045--2026-08-28",
+      "highlights": [
+        {
+          "source": "**Compiled OKF skills now carry the same outcome-first output contract as hand-authored ones.** A generated router or procedure skill reads the same way as the rest of the catalogue without a separate rule file.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Compiled OKF skills now carry the same outcome-first output contract as hand-authored ones."
+            },
+            {
+              "type": "text",
+              "value": " A generated router or procedure skill reads the same way as the rest of the catalogue without a separate rule file."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "architect",
-          "version": "0.15.3"
+          "version": "0.15.4"
         },
         {
           "name": "experience-design",
@@ -85,16 +111,16 @@
         },
         {
           "name": "product-engineering",
-          "version": "0.13.6"
+          "version": "0.13.7"
         },
         {
           "name": "product-strategy",
           "version": "0.2.4"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[architect][0.15.3] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.6] / [product-strategy][0.2.4] — 2026-08-27",
-      "changelogAnchor": "architect0153--experience-design202--figma033--product-engineering0136--product-strategy024--2026-08-27",
+      "date": "2026-08-28",
+      "heading": "[architect][0.15.4] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.7] / [product-strategy][0.2.4] — 2026-08-28",
+      "changelogAnchor": "architect0154--experience-design202--figma033--product-engineering0137--product-strategy024--2026-08-28",
       "highlights": [
         {
           "source": "**Architecture, design, and product artifacts now lead with the decision and keep long work easy to resume.** The output stays plain and scan-friendly while preserving requested depth, evidence, constraints, and exact terms.",
@@ -138,9 +164,9 @@
           "version": "0.1.10"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-27",
-      "changelogAnchor": "contracts036--converters096--frontend-engineering021--iac-terraform019--monorepo-extras019--release-engineering0110--2026-08-27",
+      "date": "2026-08-28",
+      "heading": "[contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-28",
+      "changelogAnchor": "contracts036--converters096--frontend-engineering021--iac-terraform019--monorepo-extras019--release-engineering0110--2026-08-28",
       "highlights": [
         {
           "source": "**Engineering artifacts and handoffs now stay quiet during routine tool work while keeping exact code, errors, and verification.** Results lead with the current outcome and name a next action only when one remains.",
@@ -161,7 +187,7 @@
       "packages": [
         {
           "name": "atlassian",
-          "version": "0.9.2"
+          "version": "0.9.3"
         },
         {
           "name": "credential-brokers",
@@ -173,16 +199,16 @@
         },
         {
           "name": "github",
-          "version": "0.2.2"
+          "version": "0.2.3"
         },
         {
           "name": "linear",
-          "version": "0.3.2"
+          "version": "0.3.3"
         }
       ],
-      "date": "2026-08-27",
-      "heading": "[atlassian][0.9.2] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.2] / [linear][0.3.2] — 2026-08-27",
-      "changelogAnchor": "atlassian092--credential-brokers033--desk-research116--github022--linear032--2026-08-27",
+      "date": "2026-08-28",
+      "heading": "[atlassian][0.9.3] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.3] / [linear][0.3.3] — 2026-08-28",
+      "changelogAnchor": "atlassian093--credential-brokers033--desk-research116--github023--linear033--2026-08-28",
       "highlights": [
         {
           "source": "**Connected-service and research workflows now ask for less at once and return the current result without routine tool narration.** Safety issues, blockers, needed choices, and host requirements still interrupt silence.",

@@ -642,6 +642,24 @@
         "Schedules only unfinished tasks",
         "Rejects automatic amendment from time, retry, stasis, or model judgment"
       ]
+    },
+    {
+      "id": "cognitive-load-quiet-work-and-readable-receipt",
+      "prompt": "Run a routine two-tool task, then report the result for a tired reader. Keep all named checks and preserve any exact failure.",
+      "expected_output": "The two routine tool calls have no optional assistant message between them. The final receipt leads with the outcome, uses plain and non-blaming language, gives pass or fail with count and runtime, and states the next action only when one remains. A safety, blocker, user-decision, material-scope-change, long-wait, or host-required interruption is still surfaced. Brevity does not remove a named check, warning, exact error, or requested explanation.",
+      "assertions": [
+        "Emits no optional assistant narration between routine tool calls",
+        "Leads the final receipt with the useful outcome",
+        "Reports verification as pass or fail with count and runtime",
+        "Preserves every named check plus exact failures and warnings",
+        "Surfaces each required interruption instead of hiding it for brevity",
+        "Uses plain non-blaming prose without a repeated summary"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md",
+        "evals/files/cognitive-load/quiet-routine.json",
+        "evals/files/cognitive-load/quiet-exceptions.json"
+      ]
     }
   ]
 }

@@ -289,6 +289,19 @@ def _file_safety() -> ModuleType:
     return module
 
 
+_GENERATED_MARKER = "generated-by: compile-okf"
+
+
+def _is_compiler_generated(root: Path, source: Path, safety) -> bool:
+    """Whether the OKF compiler, not this tool, owns this skill's bytes."""
+    try:
+        body = safety.read_confined_regular_file(root, source, max_bytes=MAX_SKILL_BYTES)
+    except safety.UnsafeContentError:
+        return False
+    frontmatter, _ = _split_frontmatter(body.decode("utf-8", errors="replace"))
+    return _GENERATED_MARKER in frontmatter
+
+
 def discover_skill_files(root: Path) -> list[Path]:
     """Return canonical ``packs/*/.apm/skills/*/SKILL.md`` files only."""
     safety = _file_safety()
@@ -308,8 +321,14 @@ def discover_skill_files(root: Path) -> list[Path]:
                     os.lstat(source)
                 except FileNotFoundError:
                     continue
-                else:
-                    found.append(source)
+                if _is_compiler_generated(root, source, safety):
+                    # The OKF compiler owns these bytes and injects the same
+                    # managed block through its own wrapper template. Writing
+                    # the block here instead makes the compiler report OKF010
+                    # ownership conflict and OKF011 output drift, which is how
+                    # this exclusion was found.
+                    continue
+                found.append(source)
         return sorted(found, key=lambda path: path.relative_to(root).as_posix())
     except (OSError, safety.UnsafeContentError) as exc:
         raise RenderError("unsafe-source") from exc

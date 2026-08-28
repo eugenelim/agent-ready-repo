@@ -158,6 +158,33 @@ def test_discovers_only_canonical_pack_sources(tmp_path: Path) -> None:
     assert rendering.discover_skill_files(tmp_path) == [canonical]
 
 
+def test_skips_skills_the_okf_compiler_owns(tmp_path: Path) -> None:
+    """Compiler-generated skills are excluded, so no write can conflict with it.
+
+    The compiler injects the same managed block through its own wrapper. When
+    this tool wrote the block directly instead, the compiler reported OKF010
+    ownership conflict and OKF011 output drift on the affected pack.
+    """
+    hand_authored = make_skill(tmp_path, "alpha", "sample", skill("## Procedure\n"))
+    generated_body = (
+        b"---\n"
+        b"name: generated\n"
+        b"description: Route into the compiled bundle.\n"
+        b"metadata:\n"
+        b"  generated-by: compile-okf agentbundle-okf/v1\n"
+        b"  source-path: okf/demo\n"
+        b"---\n\n# Generated\n\n## Procedure\n"
+    )
+    generated = tmp_path / "packs" / "alpha" / ".apm" / "skills" / "generated" / "SKILL.md"
+    generated.parent.mkdir(parents=True)
+    generated.write_bytes(generated_body)
+
+    assert rendering.discover_skill_files(tmp_path) == [hand_authored]
+    assert rendering.run(tmp_path, write=True).changed == 1
+    # The compiler-owned bytes are untouched, block and all.
+    assert generated.read_bytes() == generated_body
+
+
 def test_check_then_write_is_idempotent(tmp_path: Path) -> None:
     source = make_skill(tmp_path, "alpha", "sample", skill("## Procedure\n"))
 
