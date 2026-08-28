@@ -307,10 +307,10 @@ def _replace_once(text: str, old: str, new: str) -> str:
     mutation reports caught while the property it names is proven by nothing.
     Raising converts that silent hole into a harness failure.
     """
-    if text.count(old) < 1:
+    if text.count(old) != 1:
         raise AssertionError(
-            f"mutation literal no longer present in the workflow: {old!r} — "
-            "re-pin it against .github/workflows/ci-security.yml"
+            f"mutation literal is not present exactly once ({text.count(old)}x): "
+            f"{old!r} — re-pin it against {WORKFLOW.name}"
         )
     return text.replace(old, new, 1)
 
@@ -578,7 +578,14 @@ def self_test() -> int:
         return 1
 
     for mutation_id, expected, transform in _MUTATIONS:
-        mutated = transform(good)
+        try:
+            mutated = transform(good)
+        except AssertionError as exc:
+            # A pinned literal drifted. Report it in this harness's own verdict
+            # format rather than letting the exception escape as a traceback,
+            # and keep going so every drifted literal is listed at once.
+            failures.append(f"{mutation_id}: {exc}")
+            continue
         if mutated == good:
             failures.append(
                 f"{mutation_id}: transform was a no-op against {WORKFLOW.name} — "

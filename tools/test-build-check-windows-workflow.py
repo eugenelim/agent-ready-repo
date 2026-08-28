@@ -47,6 +47,24 @@ RESULT_VARIABLES = (
     "CREDBROKER_RESULT",
     "LOCK_SEMANTICS_RESULT",
 )
+# The guard body this harness owns. It is built here, pinned against the
+# workflow by equality, and it — never workflow text — is what reaches `bash`.
+# Handing file text to a shell would let a one-file PR run arbitrary commands on
+# any machine executing `make build-check`; the sibling avoids that by
+# construction and so does this.
+GUARD_CONDITION = (
+    "if "
+    + " || ".join(f'[ "${variable}" != "success" ]' for variable in RESULT_VARIABLES)
+    + "; then"
+)
+GUARD_FAIL_ECHO = (
+    '  echo "Windows suites failed: agentbundle=$AGENTBUNDLE_RESULT '
+    'credbroker=$CREDBROKER_RESULT lock-semantics=$LOCK_SEMANTICS_RESULT" >&2'
+)
+GUARD_FINAL_ECHO = 'echo "Windows suites passed"'
+_GUARD_BASE = "\n".join(
+    [GUARD_CONDITION, GUARD_FAIL_ECHO, "  exit 1", "fi", GUARD_FINAL_ECHO]
+)
 
 
 GUARD_RUN_MARKER = "        run: |\n"
@@ -80,21 +98,24 @@ def _guard_blocks_on_failure(aggregate: str) -> bool:
     Three structural requirements, each fail-closed, and each answering a body
     bash takes green that a looser reading accepted: the guard is the run body's
     first statement (anything before it can `exit 0`, reassign a result, or open
-    a wrapper); its condition carries all three comparisons itself; and the
-    `exit 1` is reached without crossing a nested block opener or a subshell.
+    a wrapper); its condition equals `GUARD_CONDITION` exactly; and the `exit 1`
+    is reached without crossing a nested opener, an `else`/`elif` branch, or a
+    subshell.
+
+    The condition is compared by equality, not by containment of the three
+    comparisons: substring containment accepted `] && [` in place of `] || [`, a
+    two-character edit that leaves the required Windows check green over any one
+    failed suite. Same treatment the concurrency literals get in the siblings.
+
+    A leading `set -euo pipefail`, comment, or line continuation therefore fails
+    this check. That is the documented rule, not an oversight — the guard is
+    then not the first statement — and it errs toward reporting a blocking guard
+    as unproven rather than the reverse.
     """
     body = [line for line in _guard_body(aggregate).splitlines() if line.strip()]
     if not body:
         return False
-    first = body[0].strip()
-    if first.startswith(("(", "{")):
-        return False
-    if not first.endswith("; then"):
-        return False
-    if any(
-        f'[ "${variable}" != "success" ]' not in first
-        for variable in RESULT_VARIABLES
-    ):
+    if body[0].strip() != GUARD_CONDITION:
         return False
     for line in body[1:]:
         stripped = line.strip()
@@ -102,6 +123,10 @@ def _guard_blocks_on_failure(aggregate: str) -> bool:
             return False
         if stripped == "exit 1":
             return True
+        # `else`/`elif` put the exit on a branch bash need not take: the advisory
+        # echo goes in the `then` arm and every suite stops blocking.
+        if stripped == "else" or stripped.startswith("elif "):
+            return False
         if stripped.startswith(_BLOCK_OPENERS) or stripped.startswith(("(", "{")):
             return False
     return False
@@ -363,6 +388,16 @@ _DIFFERENTIAL_VARIANTS: list[tuple[str, Callable[[str], str]]] = [
         ),
     ),
     (
+        # The advisory echo takes the `then` arm and the exit moves to `else`, so
+        # bash never reaches it with a suite failed.
+        "else-branch-exit",
+        lambda body: body.replace(
+            f"{GUARD_FAIL_ECHO}\n{_EXIT_LINE}",
+            f"{GUARD_FAIL_ECHO}\nelse\n  exit 1",
+            1,
+        ),
+    ),
+    (
         "subshell-or-true",
         lambda body: body.replace("if [", "( if [", 1).replace(
             "\nfi", "\nfi ) || true", 1
@@ -372,7 +407,19 @@ _DIFFERENTIAL_VARIANTS: list[tuple[str, Callable[[str], str]]] = [
 
 
 def _differential_failures() -> list[str]:
-    """Guard bodies bash takes green with a suite failed, that `audit` accepts."""
+    """Guard bodies bash takes green with a suite failed, that `audit` accepts.
+
+    `audit` encodes a BELIEF about what a shell does with the guard. The mutation
+    matrix proves the assertion fires; it cannot prove the belief. So ask bash —
+    but ask it only about `_GUARD_BASE`, which this module builds from its own
+    constants. Workflow text is never executed; it is tied to `_GUARD_BASE` by
+    the round-trip assertion below, so drift shows up as a blind harness rather
+    than as a shell running whatever a PR put in the file.
+
+    The property is an implication, not an equality: if bash exits 0 with a suite
+    reported `failure`, `audit` MUST reject. The converse is not required —
+    rejecting a body bash would also fail is merely conservative.
+    """
     import os
     import shutil
     import subprocess
@@ -380,28 +427,30 @@ def _differential_failures() -> list[str]:
     if not shutil.which("bash"):
         # The make-free Windows contributor path is a shipped acceptance
         # criterion, so a hard shell dependency would fail a gate it has no
-        # business failing. Same reasoning as the build-check sibling.
-        return []
+        # business failing. Announced, not silent: an unrun differential must
+        # not read as a passing one.
+        return ["differential: SKIPPED — bash unavailable, shell model unproven"]
     good = _baseline()
-    body = _guard_body(_job_block(good, "build-check-windows"))
-    if not body:
-        return ["differential: guard body not found — the harness is blind"]
-    indented = "\n".join(f"          {line}".rstrip() for line in body.splitlines())
+    indented = "\n".join(
+        f"          {line}".rstrip() for line in _GUARD_BASE.splitlines()
+    )
     if indented not in good:
-        return ["differential: guard body did not round-trip — the harness is blind"]
+        return [
+            "differential: the constructed guard body is not in "
+            f"{WORKFLOW.name} — re-pin GUARD_CONDITION/GUARD_FAIL_ECHO against it"
+        ]
 
-    # EVERY result variable must be bound: an unset one is not a failure signal,
-    # it just changes which comparison short-circuits, and a variant that is
-    # never green is never reported green-and-accepted — it silently stops
-    # proving anything.
-    env = dict(os.environ)
-    env.update(dict.fromkeys(RESULT_VARIABLES, "success"))
+    # Every result variable is bound: an unset one changes which comparison
+    # short-circuits rather than signalling failure. The environment is minimal
+    # rather than inherited, so nothing the parent holds reaches the child.
+    env = dict.fromkeys(RESULT_VARIABLES, "success")
     env["LOCK_SEMANTICS_RESULT"] = "failure"
+    env["PATH"] = os.environ.get("PATH", "")
 
     out: list[str] = []
     for name, transform in _DIFFERENTIAL_VARIANTS:
-        variant = transform(body)
-        if name != "baseline" and variant == body:
+        variant = transform(_GUARD_BASE)
+        if name != "baseline" and variant == _GUARD_BASE:
             out.append(f"differential[{name}]: transform was a no-op — proves nothing")
             continue
         spliced = good.replace(
@@ -414,7 +463,6 @@ def _differential_failures() -> list[str]:
             subprocess.run(
                 ["bash", "-c", variant],
                 env=env,
-                cwd=REPO_ROOT,
                 capture_output=True,
                 text=True,
                 check=False,
@@ -423,7 +471,7 @@ def _differential_failures() -> list[str]:
         )
         if name == "baseline":
             # The harness's own premise. If an unmodified guard is green with a
-            # suite failed, every "blocked" verdict below is vacuous.
+            # suite failed, every verdict below is vacuous.
             if green:
                 out.append(
                     "differential[baseline]: the clean guard exits 0 with "
@@ -432,7 +480,16 @@ def _differential_failures() -> list[str]:
             if not accepted:
                 out.append("differential[baseline]: the clean guard is rejected by audit")
             continue
-        if green and accepted:
+        if not green:
+            # A variant that is never green is never reported green-and-accepted,
+            # so it silently stops proving anything — the class the no-op rule
+            # catches only for an identical transform.
+            out.append(
+                f"differential[{name}]: variant is not green under bash "
+                "— proves nothing"
+            )
+            continue
+        if accepted:
             out.append(
                 f"differential[{name}]: bash exits 0 with lock-semantics failed, "
                 "and audit accepts it"
@@ -483,7 +540,8 @@ def self_test() -> int:
     if uncovered:
         failures.append(f"assertion families evaluated but unmutated: {uncovered}")
 
-    failures.extend(_differential_failures())
+    differential = _differential_failures()
+    failures.extend(differential)
 
     if failures:
         print(f"✖ self-test: {len(failures)} problem(s):", file=sys.stderr)
@@ -492,7 +550,8 @@ def self_test() -> int:
         return 1
     print(
         f"✓ self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
-        f"every one of {len(covered)} assertion families has ≥1 mutation"
+        f"every one of {len(covered)} assertion families has ≥1 mutation; "
+        f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash"
     )
     return 0
 

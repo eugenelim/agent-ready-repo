@@ -489,6 +489,12 @@ open = [
   #    because both routes cost more than they look: duplicating _strip_comments
   #    into a fifth file cuts against the extraction entry above, and retargeting
   #    the assertion to the parsed env widens what the check claims.
+  #  - test-ci-security-workflow.py still tests `cancel-in-progress` by substring
+  #    (`"pull_request" in cancel`), so the inverted `!=` form passes while the
+  #    docstring claims "pull-request-only concurrency cancellation". The CodeQL
+  #    twin was pinned to equality with EXPECTED_CANCEL; porting that across is
+  #    coverage widening on a pre-existing gap, so it waits here rather than
+  #    riding along. Exposure is unchanged from 38e01732.
   #  - `pull_request_target` is not forbidden on codeql.yml by any checker. It is
   #    disclosed rather than asserted, in tools/repo/build_gate_chain.py's step
   #    comment; low impact today because the analyze job runs no repo-controlled
