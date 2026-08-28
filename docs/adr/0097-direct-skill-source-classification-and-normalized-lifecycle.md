@@ -26,7 +26,7 @@ The durable limit is **admissible, not safe**: deterministic checks establish a 
 
 ### 1. Classify after resolution
 
-After the resolver returns a confined directory, classify an existing canonical `pack.toml + .apm/` pack through its existing path; a catalogue only when both `catalogue.toml` and `packs/` exist; otherwise a direct pack, manifestless collection, or manifestless single. A `catalogue.toml` without `packs/` is a partial catalogue marker and refuses. Root `SKILL.md + skills/`, root `pack.toml + SKILL.md`, unsupported nested roots, and other overlaps refuse. Direct enumeration is rooted only at the shape’s candidate paths—`skills/` for a collection or direct pack, or root `SKILL.md` plus its four payload directories for a root single/local skill—never the repository root; root repository context, including hidden entries, is not traversed or counted, while a link-like or special entry encountered in a candidate path refuses.
+After the resolver returns a confined directory, classify an existing canonical `pack.toml + .apm/` pack through its existing path; a catalogue only when both `catalogue.toml` and `packs/` exist; otherwise a direct pack, manifestless collection, or manifestless single. A `catalogue.toml` without `packs/` is a partial catalogue marker and refuses. Root `SKILL.md + skills/`, root `pack.toml + SKILL.md`, unsupported nested roots, and other overlaps refuse. RFC-0098 E13 and the implementation AC23 own direct candidate enumeration and root-context disposition.
 
 **Consequence:** Catalogue precedence is preserved while no transport gains an implicit root-shape rule. A local path already at a skill is allowed; collection/direct-pack child names must equal frontmatter names, while root-single frontmatter is authoritative.
 
@@ -36,7 +36,7 @@ After the resolver returns a confined directory, classify an existing canonical 
 
 `direct_source.admit_and_normalize` (or its final explicitly named equivalent) owns classification, confined inventory, normalization, and baseline direct admission. Both `validate` and install preflight reach direct classification only through that entry point; an import-boundary construction test enforces this. Canonical `pack.toml + .apm/` paths retain their existing route.
 
-Normalization copies confined regular files into a temporary canonical pack, never symlinks source content. It reuses canonical validation → rendering → planning → installation → state, and the temporary path is never provenance or receipt content.
+Normalization copies into a temporary canonical pack only the byte string returned by the single confined read of each admitted regular file, never symlinks or reopens source content. It reuses canonical validation → rendering → planning → installation → state, and the temporary path is never provenance or receipt content.
 
 **Consequence:** Byte-identical projection and plan parity against hand-authored canonical fixtures is release-critical.
 

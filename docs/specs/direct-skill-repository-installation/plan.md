@@ -15,7 +15,7 @@ Run T0a–T0c before their dependent layers. Then harden acquisition, establish 
 - `direct_source.py`: direct classification, Family-2 inventory, admission, diagnostics, and normalization entry point.
 - `direct_source_state.py`: direct provenance and digest inputs for the existing pack/adapter state writer.
 - `commands/upgrade.py`: direct-upgrade re-consent.
-- `tools/lint-direct-code-table.py` and `tools/test-lint-direct-code-table.py`: published direct-code-table equality lint and its mutation control.
+- `tools/lint-direct-code-table.py` and `tools/test_lint_direct_code_table.py`: published direct-code-table equality lint and its mutation control.
 
 ## Constraints
 
@@ -59,7 +59,7 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 **Depends on:** none  
 **Verification:** TDD.
 
-**Tests:** add opt-in direct-source socket-refusal fixtures beside direct-source test modules, refusing non-loopback sockets while permitting loopback TLS-server controls; never add an autouse root-conftest fixture. Add boundary/refusal fixtures for both archive routes: limits, requested-GitHub/codeload redirect equivalence including the percent-encoded requested ref, hop/user-info/HTTPS refusal, URL/ref/SHA binding, named hex-shaped-tag diagnostic, `CatalogueError(message, code, remediation)` diagnostic/recovery for catalogue Family-1 refusal, spool/deadlines spanning acquisition/extraction, library-resolved member checks, cleanup, extraction, and descriptor authorization. Include a gzip stream whose declared member sizes total under 1 MiB but whose decompressed stream crosses 1 GiB; assert its runtime budget in the test, lower constructor/parameter deadline and decompressed-counter defaults through the injectable clock/progress seam, and assert the call-time per-minor runtime guard (below the lowest listed minor refuses, listed floors apply, higher minors pass; including synthetic 3.12.10 and zipapp-route refusal), both-route FIFO/case-fold refusal, and direct-only absolute/escaping-symlink refusal while catalogue retains and installs symlinks. Windows FIFO/symlink fixtures assert documented `unknown`/no-write outcomes rather than skipping; add the Windows catalogue-symlink regression arm. Add a value check that parses E11 bounds and compares them with the module constants. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_acquisition.py::test_git_https_acquisition_contract`.
+**Tests:** add opt-in direct-source socket-refusal fixtures beside direct-source test modules, refusing non-loopback sockets while permitting loopback TLS-server controls; never add an autouse root-conftest fixture. Add boundary/refusal fixtures for both archive routes: limits, requested-GitHub/codeload redirect equivalence including the percent-encoded requested ref, hop/user-info/HTTPS refusal, URL/ref/SHA binding, named hex-shaped-tag diagnostic, `CatalogueError(message, code, remediation)` diagnostic/recovery for catalogue Family-1 refusal, spool/deadlines with acquisition socket-timeout and extraction-only inactivity-timeout fixtures, library-resolved member checks, cleanup, extraction, and descriptor authorization. Include a gzip stream whose declared member sizes total under 1 MiB but whose decompressed stream crosses 1 GiB; assert its runtime budget in the test, lower constructor/parameter deadline and decompressed-counter defaults through the injectable clock/progress seam, and assert the call-time per-minor runtime guard (below the lowest listed minor refuses, listed floors apply, higher minors pass; including synthetic 3.12.10 and zipapp-route refusal), both-route FIFO/case-fold refusal, and direct-only absolute/escaping-symlink refusal while catalogue retains and installs symlinks. Windows FIFO/symlink fixtures assert documented `unknown`/no-write outcomes rather than skipping; add the Windows catalogue-symlink regression arm. Add a value check that parses E11 bounds and compares them with the module constants. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_acquisition.py::test_git_https_acquisition_contract`.
 
 **Done when:** acquisition binds bytes to the requested source, applies Family 1, preserves permitted catalogue symlinks, and leaves no temporary tree on refusal.
 
@@ -79,7 +79,7 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 **Depends on:** none  
 **Verification:** TDD.
 
-**Tests:** shape matrix, candidate order derived from max-entries-bounded traversal rooted only at `skills/` or root `SKILL.md` plus payload directories (never repository context), and Family-2 enumeration (entry-count → depth → file-count → candidate-count) then read (per-file → total) order with limit+1 specific-code overlaps only within a phase (including a directory-only tree). Set entry limit to 5,000, file limit to 1,000, and candidate limit to 500: a 5,001-entry root fixture reaches the entry code; a 501-candidate fixture (501 child directories plus 501 `SKILL.md` files) reaches the candidate code before the file code; a wide directory below a depth chain isolates the depth path. Cover special entries with Windows `unknown`/no-write arms, and no-write snapshots that detect creation, content/mode change, deletion, and empty directories. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_classification_contract`.
+**Tests:** shape matrix, candidate order rooted only at `skills/` plus direct-pack root `pack.toml`, or root `SKILL.md` plus payload directories (never repository context), and the three-call Family-2 construction (entry-count → depth → file-count → candidate-count) then read (per-file → total) order. Set entry limit to 5,000, depth limit to 10, file limit to 1,000, and candidate limit to 500: a 5,001-entry candidate reaches the entry code; an 11-level candidate reaches the depth code; a 1,001-file candidate reaches the file code; and a 501-candidate fixture reaches only the candidate code. Add one link-like-candidate fixture for every candidate path; add E13 fixtures for a link-like/special root sibling beside valid `skills/` and for a root sibling tree exceeding 5,000 entries, each proving ignored content is absent from counts, normalized tree, digest preimage, AC11 summary, file plan, and projection. Cover special entries with Windows `unknown`/no-write arms, and no-write snapshots that detect creation, content/mode change, deletion, and empty directories. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_classification_contract`.
 
 **Done when:** classification is deterministic and every mandatory refusal leaves the snapshot equal.
 
@@ -89,7 +89,7 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 **Depends on:** T0a, T3  
 **Verification:** TDD.
 
-**Tests:** expected normalized tree and projection parity, cleanup on refusal/exception, source-copy API prohibition, and replacement-race control. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_normalization_projection_parity`.
+**Tests:** expected normalized tree and projection parity, cleanup on refusal/exception, source-copy API prohibition, and a replacement-race control that mutates the source between admission and copy and proves installed bytes equal digested bytes. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_normalization_projection_parity`.
 
 **Done when:** one bounded temporary canonical representation has demonstrated parity.
 
@@ -105,11 +105,11 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 
 ### T5: Compose admission and diagnostics
 
-**AC:** AC5, AC7, AC10–AC12, AC16, AC18, AC25  
+**AC:** AC5, AC7, AC10–AC12, AC16, AC18, AC24  
 **Depends on:** T1, T2, T4, T4a  
 **Verification:** TDD.
 
-**Tests:** failure registry, validate/preflight parity, character/parser/PyYAML controls, one-observation `read_confined_regular_file(..., max_bytes=1 MiB, include_mode=True)` control and `UnsafeContentError`/tar-error translation, a 1 MiB+1 file refusal with a static AST assertion that direct modules make no intervening `stat`/`lstat`/`fstat`/`resolve` call, no-bypass/NFC-case-fold collision cases, direct entry-point boundary, and registry typing. Statically assert direct modules have no `Import`/`ImportFrom` of `subprocess` or `runpy`; prohibit the explicit `os` execution-name frozenset plus the `spawn` prefix; and prohibit `ast.Name` uses of `exec`, `eval`, `compile`, and `__import__`. Add one mutation fixture for each family (explicit `os` member, `spawn` prefix, and builtin name) that fails if its control is removed. Include one fixture per U+115F/U+1160/U+2065/U+3164/U+FFA0/U+FFF0–U+FFF8, pin the generated Unicode-data version, and assert an invisible-letter name refuses at identity rather than display stripping. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_direct_admission_diagnostic_registry`.
+**Tests:** failure registry, validate/preflight parity, character/parser/PyYAML controls, one-observation `read_confined_regular_file(..., max_bytes=1 MiB, include_mode=True)` control and `UnsafeContentError`/tar-error translation, a 1 MiB+1 file refusal, candidate-path-integrity diagnostic, no-bypass/NFC-case-fold collision cases, direct entry-point boundary, and registry typing. Statically assert direct modules have no `Import`/`ImportFrom` of `subprocess` or `runpy`, no `ImportFrom os` execution member, and no `lstat`/`stat`/`fstat`/`resolve` except the named candidate-probe carve-out; prohibit the explicit `os` execution-name frozenset plus the `os.spawnv` prefix fixture; and prohibit `ast.Name` uses of `exec`, `eval`, `compile`, `__import__`, and imported `os` execution names. Add one mutation fixture for each family (explicit `os` member, `subprocess` import, `os.spawnv` prefix, and builtin name) that fails if its control is removed. Include one fixture per U+115F/U+1160/U+2065/U+3164/U+FFA0/U+FFF0–U+FFF8, pin the generated Unicode-data version, and assert an invisible-letter name refuses at identity rather than display stripping. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_direct_admission_diagnostic_registry`.
 
 **Discovery predicate:** derive the diagnostic-code set here; once published it must satisfy AC18/AC22.  
 **Done when:** mandatory failure is fail-closed and both routes use shared admission.
@@ -145,11 +145,11 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 
 ### T9: Complete lifecycle behavior
 
-**AC:** AC3, AC5, AC8, AC12, AC13, AC17, AC19, AC21, AC24, AC25  
+**AC:** AC3, AC5, AC8, AC12, AC13, AC17, AC19, AC21  
 **Depends on:** T8  
 **Verification:** TDD plus T11 manual QA.
 
-**Tests:** cover grammar refusals, list/show fields, stored-source revalidation before outbound status resolution, invalid-source `unknown`, default repo-scope `--no-check`, canonical-source-deduplicated AC13-owned aggregate bounds asserted through their own codes (Family 1’s two per-fetch numbers are dominated on this route and are asserted in T1, which owns AC2), and a fixture that drips steadily across rows with no inactivity gap above 90 seconds yet reaches the 60-second wall-clock or 64-MiB aggregate code; cover digest/footprint-DRIFT, conflicts, interruption, all scopes, and SHA-pinned remote plus recomputed-digest local re-consent including capability drift. AC21 has a parameterized stub for manifestless and direct-pack route-valid acceptance, allowed-tools set inequality including declared → `undeclared (unrestricted)`; payload digest/set under each of `scripts/`, `references/`, `assets/`, and `evals/`; boundary-set inequality in either direction; and credentialed normalized-value inequality. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`; **Stub:** `packages/agentbundle/tests/unit/test_direct_upgrade.py::test_capability_reconsent_directions`.
+**Tests:** cover grammar refusals, `--check` default-off direct status with no outbound request, stored-source grammar failure rendering `unknown` without a request, list/show fields, digest/footprint-DRIFT, conflicts, interruption, all scopes, `upgrade --all` refusing capability acceptance, and SHA-pinned remote plus required refusal-printed local digest-pin re-consent including capability drift. AC21 has a parameterized stub for manifestless and direct-pack route-valid acceptance, allowed-tools set inequality including declared → `undeclared (unrestricted)`, `SKILL.md` digest inequality, added/removed skill identities, payload digest/set under each of `scripts/`, `references/`, `assets/`, and `evals/`, boundary-set inequality in either direction, credentialed normalized-value inequality, and each adapter’s lossless round-trip of compared fields. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`; **Stub:** `packages/agentbundle/tests/unit/test_direct_upgrade.py::test_capability_reconsent_directions`.
 
 **Done when:** direct skills are listable, showable, upgradable, removable, and recoverable without sentinel leakage.
 
@@ -159,7 +159,7 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 **Depends on:** T7, T8, T9  
 **Verification:** Goal-based; no stub.
 
-**Tests:** fixture exercise per published command, help, guide/link build, local-only prompt, direct-code-table equality, and a mutation sibling `tools/test-lint-direct-code-table.py`. **Done when:** the new stdlib-only `tools/lint-direct-code-table.py` imports `DIRECT_CODES`, parses the published direct diagnostic-code table, and verifies set equality; `run-test-suite` invokes it beside `tools/lint-conformance-portability.py`, while its pytest companion is added to `FINAL_TOOL_BATCH` and the matching Makefile final-batch line in lockstep. Published guidance contains no internal-governance identifiers.
+**Tests:** fixture exercise per published command, help, guide/link build, local-only prompt, direct-code-table equality, and a mutation sibling `tools/test_lint_direct_code_table.py`. **Done when:** the new stdlib-only `tools/lint-direct-code-table.py` imports `DIRECT_CODES`, parses the published direct diagnostic-code table, and verifies set equality; `run-test-suite` invokes it beside `tools/lint-conformance-portability.py`, while its pytest companion is added to `FINAL_TOOL_BATCH` and the matching Makefile final-batch line in lockstep. Published guidance contains no internal-governance identifiers.
 
 ### T10a: Register inherited collection floor
 
@@ -171,11 +171,11 @@ Append `"packages/agentbundle/tests/": 3200` after the two desk-research entries
 
 ### T11: Run the joined steel thread
 
-**AC:** AC1–AC25  
+**AC:** AC1–AC24  
 **Depends on:** T1, T9, T10, T10a  
 **Verification:** Manual QA; no stub.
 
-**Tests:** fixed local/direct-pack/collection/pinned-remote command list; output sweep for sentinel absence; join all construction evidence and the T8 built-CLI Manual-QA record at `docs/specs/direct-skill-repository-installation/manual-qa.md`. Add `packages/agentbundle/tests/unit/test_direct_source_acquisition.py`, `packages/agentbundle/tests/unit/test_direct_admission.py`, and `packages/agentbundle/tests/integration/test_direct_install.py` to the curated Windows agentbundle test list owned by `packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py` so their Windows arms execute. Each direct test suite is collected once through its inherited `run-test-suite` invocation and the matching `COLLECTION_FLOORS` registry entry. **Done when:** recorded evidence maps every AC to an artifact; defects return to their owning task.
+**Tests:** fixed local/direct-pack/collection/pinned-remote command list; output sweep for sentinel absence; join all construction evidence and the T8 built-CLI Manual-QA record at `docs/specs/direct-skill-repository-installation/manual-qa.md`. Add `packages/agentbundle/tests/unit/test_direct_source_acquisition.py`, `packages/agentbundle/tests/unit/test_direct_admission.py`, and `packages/agentbundle/tests/integration/test_direct_install.py` to the curated Windows agentbundle test list as `tests/unit/...` and `tests/integration/...`, matching its package `cwd`, so their Windows arms execute. Assert those three module paths are in the collected node set; the collection floor remains build hygiene only. Each direct test suite is collected once through its inherited `run-test-suite` invocation and the matching `COLLECTION_FLOORS` registry entry. **Done when:** recorded evidence maps every AC to an artifact; defects return to their owning task.
 
 ### T12: Record boundary security evidence
 
