@@ -1,0 +1,1028 @@
+# Plan: Agent Skill Engineering Corpus
+
+- **Spec:** [`spec.md`](spec.md)
+- **Status:** Approved
+- **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` (D3 topology
+  at 207-254, D8 promotion classes at 496-506 and security rules at 507-519,
+  Gate 1/2 measures at 577-591, the encyclopedia falsifier at 536) and
+  `packs/AGENTS.md` (export boundary, version-bump rule, no repository-only
+  citations in shipped pack content). Analogous implementations:
+  `packs/agent-skill-engineering/` as shipped by
+  `docs/specs/agent-skill-engineering-foundation/` — the same OKF bundle,
+  router, and fixture topology this slice extends — and
+  `packs/catalogue-curation/.apm/skills/compile-okf/` as the governed compiler
+  that owns generation. Corresponding tests:
+  `packs/agent-skill-engineering/tests/` and `tests/roster/` for anything that
+  walks outside one pack. Named uncertainty: how many of the 17 candidate
+  leaves can evidence either basis is not knowable before T5-T7 run, so
+  the plan gates on the rule rather than on a topic count.
+
+> **Plan contract:** this is the implementation strategy. Unlike the spec, this
+> document is allowed to change as you learn — while its Status is `Drafting`
+> or `Executing`. When it changes substantially, note why in the changelog at
+> the bottom. Once it is `Done` and the spec is `Shipped`, the directory freezes
+> as a unit.
+
+## Approach
+
+The corpus is built evidence-first and in that order: the census, the taxonomy
+transcription, and the admission harness all land before any new topic body
+exists, and the harness is green against the three already-shipped topics
+first. That inverts the tempting order — write the topics the taxonomy names,
+then justify them — and it is what makes the rule mechanical rather than
+aspirational.
+
+What the harness can and cannot prove is now settled rather than assumed.
+RFC-0097's 2026-08-28 erratum rules that D8's promotion classes gate a topic's
+*doctrine claims*, not the topic's existence, and that observed practice is
+admissible under an explicit applicability limit. So the harness asserts that a
+claim group declares a basis and carries that basis's fields, and a named
+reviewer judges whether the evidence supports the claim. Three review rounds
+established that the second half is not mechanizable: a gate over declared
+expectations, then over a class label, then over a contract citation, was each
+satisfiable without the substance. Stopping at form-plus-named-reviewer is the
+honest boundary, and the erratum is what makes it legitimate rather than a
+concession.
+
+The harness still reads *measured* retrieval rather than declared
+expectations, because an author writes `expected_topics` and only a recorded
+run writes `actual_topics`. Applying the rule retroactively to the three
+shipped topics is deliberate: it proves the rule on content that already exists
+before any new content depends on it. Those three carry no external source of
+any kind, so under the erratum they are `observed-practice` and T5 gives them
+the applicability limits they are missing — the erratum's retroactive clause,
+owned here.
+
+The riskiest part is retrieval regression. Adding topics to a router that
+scored 24 of 24 can only move that number one way, and a rate over a larger
+suite hides it, so the foundation cases are pinned as `(id, measured_topics)`
+pairs in a fixture no re-recording step writes.
+
+## Constraints
+
+- A pack test may not resolve a path outside its owning pack
+  (`tools/lint-pack-test-boundary.py` check 6). Anything walking every pack
+  lives in `tests/roster/`.
+- Nothing the pack ships — hand-authored `.apm/**` or compiled output — carries
+  a repository-only path, an acceptance criterion, or an internal governance
+  citation. Repository-specific evidence lives in
+  `packs/agent-skill-engineering/tests/fixtures/`, outside the export boundary.
+- The OKF compiler's only input is the bundle root and every managed output is
+  under `.apm/skills/ase-okf-reference/`, so any record that must both feed the
+  harness and ship to users originates in the bundle root.
+- `agent-skill-engineering` is not in the self-host include list, so its
+  `.apm/` edits produce no `.claude/` or `.agents/` drift.
+- This slice touches no `packs/core` surface, no workspace-status engine code,
+  and no ratchet. The executing-clause deletion is a separate change.
+- `[backlog].open`'s legacy-shape ceiling is at its maximum and forbids being
+  raised; only `path`-bearing canonical entries are exempt.
+- The router skill's name and activation description are pinned by a recorded
+  measurement. Neither changes.
+- A `tests/roster/` module needs no wiring: the suite target and the
+  build-check workflow both run pytest over `tests/`, which collects that tree.
+- The recorded retrieval fixture is bound to one
+  source/router/generated-tree digest triple recomputed from the current tree
+  and asserts that its result set equals its case set, so every corpus change
+  invalidates every prior result. Measurement is therefore a whole-suite
+  re-record, never an incremental append.
+- No new dependency, module boundary, artifact-kind home, or top-level directory.
+
+## What `Touches` means here
+
+A task's `Touches` line is its intended surface, not a proven-exhaustive file
+manifest. Four review rounds each found one more file a task would move — a
+recorded fixture invalidated by a recompile, a digest pin, a generated
+projection — and enumerating harder does not close that class, because the
+authoritative answer is what the gates say after the edit.
+
+Two standing obligations close it instead, and they bind every task:
+
+1. **Regenerate every projection through its owning command.** If an edit moves
+   a generated or aggregated artifact, that artifact is regenerated in the same
+   task by the command that owns it, whether or not the task's `Touches` line
+   named it.
+2. **Run each owning gate directly.** A gate is satisfied by invoking it, never
+   by inferring from a chained target that it must have run.
+
+A file discovered missing from a `Touches` line during EXECUTE is added to that
+line in the same commit that touches it, so the plan converges on reality
+rather than the reverse.
+
+## Construction tests
+
+Written before the implementation they verify. The load-bearing one is the
+admission harness in T6, mutation-proven on each conjunct independently: a
+claim group with no declared basis; a `doctrine` group missing `retrieved_at`
+on one source; a `repeated-observed-failures` group whose failures name
+different mechanisms; an `observed-practice` group whose observations share a
+pack; a topic with a declared but unmeasured exclusive case; and a topic body
+authored to reproduce the compiled unpopulated record's marker and section
+shape, which must still be iterated and must still redden, because the harness
+excludes that record by its exact identity and never by a property a topic body
+could copy. A conjunction that only fails when every half is missing is a
+fraction of a check.
+
+What no construction test attempts is whether the evidence supports the claim.
+The erratum assigns that to a named reviewer recorded per topic, because three
+review rounds showed each mechanical proxy for it was satisfiable without the
+substance.
+
+## Layer map
+
+| Layer | Tasks | State at layer close | Reviewed as |
+| --- | --- | --- | --- |
+| L1 records | T1, T2 | Successor authored and registered; records current | One unit |
+| L2 harness | T3, T4, T5, T6 | Baseline pinned; harness green against the three shipped topics | One unit |
+| L3 corpus | T7, T8, T9 | Topics admitted and measured; taxonomy accounted for | One unit |
+| L4 mode | T10, T11 | Fixtures pass, then the mode is advertised | One unit |
+| L5 evidence | T12, T13 | Behavior record observed and bound | One unit |
+| L6 publication | T14 | Manifests, changelog, README, architecture current | One unit |
+
+Each layer leaves the repository with the gates green for the surfaces it
+touched. The pack's publication obligations — manifest bump, eval harness,
+changelog entry — close once at L6 before the change is proposed for merge,
+which is the granularity the spec's Always-do states.
+
+## Durable-output map
+
+| Durable output | Tasks | Implementation evidence | Closeout evidence |
+| --- | --- | --- | --- |
+| `packs/agent-skill-engineering/README.md` | T14 | Mode list equals advertised modes; `catalogue lint --deep` exit 0 | README names four modes and the admitted groups |
+| `docs/architecture/agent-skill-engineering.md` §3, §9, §11 | T14 | Topology lists admitted and unpopulated leaves; §11 dated | Still `PLANNED`; claims no later-slice surface |
+| `docs/product/changelog.md` | T14 | `## [agent-skill-engineering][<version>] — <date>` entry | Entry names the mode change and admitted groups |
+| Pack manifest pair | T14 | Matching bump; roster and publication gates green | Both manifests same version |
+| Delivery-cut variance | T2 | Distinct INI-009 section; brief slice-table rows | Brief's slice 2 reader reaches the split and the deferral |
+| Guide deferral held open | T14 | `agent-skill-engineering-guide-and-docsurl` still in `[backlog].open`; `GUIDE_OPTIONAL_PACKS` unchanged | One command confirms both |
+| `project-knowledge` receipts | work-loop gates | Capture receipts or named skip | Distilled at `plan-locked`, or skip recorded |
+
+## Design (LLD)
+
+### Design decisions
+
+**The census proves coverage; the admission fixture admits.** They are separate
+files because they answer separate questions and the governing RFC positions
+them differently — the census is Gate 2's coverage instrument, while admission
+rests on D8's promotion classes. Conflating them was the round-2 defect.
+
+**Independence is defined mechanically and scoped**: two observations are
+independent when they name skills at distinct paths in distinct packs. It is
+required of an `observed-practice` group, which rests on observations, and is
+not required of a `doctrine` group, which rests on a contract, failures, a
+safety failure, or a measurement. The earlier draft demanded it universally,
+which the three shipped class-free topics could not have satisfied.
+
+**The unpopulated record originates in the bundle root**, not in a test
+fixture, because the compiler reads only the bundle root and writes only under
+`ase-okf-reference/`. The harness reads the compiled output. That gives the
+fact one home and needs no parity test — the mirror-plus-parity shape was
+rejected for the same reason a second admitted-topics list was.
+
+**The foundation three are reclassified, not back-filled into doctrine.**
+RFC-0097:555 sources the Agent Skills specification for a portable `SKILL.md`
+substrate and for scripts as deterministic helpers — not for trigger-quality or
+instruction-density heuristics. Claiming class 1 for all three would have cited
+a contract that does not govern their claims, which is the vacuity the third
+review round identified. Under the erratum they are `observed-practice` and
+gain the applicability limits they lack. A `doctrine` group inside any of them
+must name the contract clause that governs it.
+
+**The parity check is deliberate, and differs from the mirror this plan
+rejected.** The unpopulated record has one home because the compiler can
+project it. Provenance cannot work that way: the harness needs structured data
+a test can read, and a consuming agent only ever reads the shipped body. Both
+must exist, so a field-for-field parity assertion is what keeps them one fact.
+
+### Data & schema
+
+`skill-census.json`: `{schema_version, taken_at, population_size, entries: [
+{skill, pack, families: [...], exception: {owner, rationale} | null} ]}`.
+Exactly one of non-empty `families` or `exception` per entry. `owner` is a role
+or generic placeholder, never a person.
+
+`topic-admission.json`: per topic — `{topic, claim_groups: [...],
+last_verified, reviewer}`. Each claim group carries `basis` of `doctrine` or
+`observed-practice`.
+A `doctrine` group carries `promotion_class` (one of D8's four) and `evidence`
+shaped by it: `public-contract` → `{contract, clause, runtimes: [>=2 each
+documenting that clause], sources}`; `repeated-observed-failures` →
+`{mechanism, failures: [>=2]}` with one shared mechanism, since D8:499 requires
+repeated failures *with the same mechanism* and per-failure mechanisms would be
+singletons; `severe-safety-failure` → `{failure, boundary, reproduction}`;
+`controlled-measurement` → `{setup, preserved_semantics, before, after,
+repetitions}`, carrying the two conjuncts D8:501 names beside the measurement.
+Every cited source is `{name, url, retrieved_at, source_version_or_last_updated
+| "none exposed"}`. A `doctrine` group also carries `revalidation_trigger`:
+RFC-0097:493 binds it to every admitted concept, and the erratum narrowed only
+the promotion basis.
+An `observed-practice` group carries `{observations: [>=2 at distinct skill
+paths in distinct packs], applicability_limit, revalidation_trigger}` and no
+promotion class.
+
+`topology-leaves.json`: names, `source_ref`, `expected_count: 36`. Nothing
+else — a leaf's admitted-or-unpopulated state is read from the compiled tree
+and the compiled unpopulated record, so it has one home.
+
+`foundation-retrieval-pins.json`: 24 `(id, measured_topics)` pairs, read from
+`router-results.json`'s `actual_topics` **before** any corpus change and never
+rewritten. The field is deliberately not called `expected_topics`: that name
+belongs to author declarations in `router-cases.json`, and this fixture holds
+measurements — the distinction AC4 and AC8 exist to keep.
+
+### Interfaces & contracts
+
+Unchanged. The semantic provider request/response, its `contract_version`, and
+the `task_kind` vocabulary are exactly as the foundation shipped them.
+`knowledge-provider` is an authoring-workflow mode, not a provider task kind.
+
+### Component / module decomposition
+
+No new modules. Topic bodies and the unpopulated record are added under the
+bundle root and compiled by the existing governed compiler. Mode modules are
+added under `.apm/skills/author-or-update-agent-skill/references/`.
+
+### State & control flow
+
+`frame` remains the default and only entry point. `knowledge-provider` is
+reachable only by explicit user transition from `frame`, begins read-only, and
+requires a second transition before any write — the two-gate shape `create` and
+`update` already use. The common contract's safety-and-authority module governs
+every read and write in every mode.
+
+### Behavior & rules
+
+A request routed to an unpopulated leaf reports the gap by name, applies
+admitted guidance that does apply, and returns no body for that leaf — the
+behavior the foundation shipped for the language seams, generalized.
+
+### Failure, edge cases & resilience
+
+T10's four provider-pattern fixtures are this slice's added failure surface,
+and they pass before T11 advertises the mode.
+
+### Quality attributes (NFRs)
+
+Retrieval: >=90% exact-set, >=90% at most three topics, 24 of 24 foundation
+cases exact per case against pinned pairs, <=5% of a fixed 40-prompt
+generic-engineering negative set returning any body. Two clean compiles
+byte-identical. Staged-tree runs read nothing outside the staged tree.
+
+**Joint closure of the M2 retrieval measure.** RFC-0097:582 sets at least 40
+prompts and defines their topical coverage across pytest, Node, execution
+economics, subagents, hooks, plugins, and runtime profiles. This slice
+contributes the 24 foundation cases plus at least two exact-set cases per
+admitted topic plus near misses; slice 2b adds the pytest, Node, and
+execution-economics prompts for its 5 leaves; slice 3 adds the subagent, hook,
+plugin, and runtime-profile prompts for its 11. The 40-prompt count is reached
+within this slice; the topical coverage the RFC describes closes only when all
+three have landed, and no single slice claims the whole gate.
+
+### Dependencies & integration
+
+None added.
+
+## Tasks
+
+### T1: The successor slice has a real spec and plan
+
+**Depends on:** none
+
+**Touches:** docs/specs/agent-skill-engineering-languages-and-execution/spec.md, docs/specs/agent-skill-engineering-languages-and-execution/plan.md
+
+**Tests:**
+- `lint-spec-status.py --root .` exits 0 with the new pair present. (AC15)
+- The pair's `Status` values are `Draft` and `Drafting`, which `work.queue`
+  admits.
+
+- `no stub (goal-based)` — the artifacts are two authored documents; the check
+  is that `lint-spec-status.py` accepts them.
+
+**Approach:**
+- Author the 2b spec and plan covering its 5 topology leaves, the pytest-suite
+  and Node/browser behavior fixtures, and its retrieval prompts. Scope only.
+- Back-link the brief and state the hard dependency on this spec.
+
+**Done when:** the pair exists, lints clean, and is registrable canonically.
+
+### T2: The workspace, brief, initiative, and index name the slices actually in flight
+
+**Depends on:** T1
+
+**Touches:** workspace.toml, docs/product/briefs/agent-skill-engineering.md, docs/product/initiatives/ini-009-agent-skill-engineering.md, docs/specs/README.md
+
+**Tests:**
+- Reconciliation resolves this spec as active and 2b as queued, both
+  canonically shaped; no collection gains a legacy-shaped entry. (AC15)
+- The brief's Spec map and slice table, and every `docs/specs/README.md` row
+  this change touches, mirror their spec's `Status` — including the foundation
+  row currently reading `Implementing` against a `Shipped` spec. (AC15)
+- INI-009 carries a distinct `Delivery-cut variances` section naming both
+  departures; a grep for that heading and the brief's slice-table rows
+  succeeds. (AC16)
+- `lint-spec-status.py` and `lint-brief-coverage.py` exit 0.
+
+- `no stub (goal-based)` — the check is reconciliation output plus two linters,
+  not a compressible predicate.
+
+**Approach:**
+- Correct `["ini-009"].milestone`, which still names foundation implementation
+  as queued.
+- Register both specs canonically as `{path, kind, source, summary, needs}`,
+  with 2b declaring its dependency on this spec.
+- Add a `Delivery-cut variances` section to INI-009 rather than appending to
+  `Backlog disposition variances`, whose scope is RFC-0097 D7.
+- Measure `unsatisfied_dependency` after registration. If 2b's true edge would
+  exceed the ceiling, **surface to the owner under *Ask first* before raising
+  it**; do not raise it unilaterally and do not drop the edge.
+
+**Done when:** reconciliation shows the intended memberships with no new legacy
+entry, both linters exit 0, and the ratchet suite is green.
+
+### T3: The census resolves every authored skill, and its test actually runs
+
+**Depends on:** none
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/skill-census.json, tests/roster/test_skill_census.py
+
+**Tests:**
+- Every skill under `packs/*/.apm/skills/` resolves to a family or an exception
+  with a role-or-placeholder owner and a rationale. (AC1)
+- The recorded population size equals live discovery. (AC1)
+- The failure message names the owning surface and the re-census command. (AC1)
+- No `exception.owner` value is a person.
+- The new roster module is reachable by a gate CI runs — observed under
+  `pytest tests/ --collect-only`, not assumed. (AC18)
+
+- PLAN-time red stub (`tests/roster/test_skill_census.py`):
+
+  ```python
+  # STUB: AC1 — every authored skill resolves in the census, and the recorded
+  # population equals live discovery.
+  import json, pathlib
+
+  REPO = pathlib.Path(__file__).resolve().parents[2]
+  CENSUS = REPO / "packs/agent-skill-engineering/tests/fixtures/skill-census.json"
+
+  def test_census_resolves_every_authored_skill() -> None:
+      census = json.loads(CENSUS.read_text(encoding="utf-8"))
+      discovered = {
+          f"{p.parts[1]}/{p.parent.name}"
+          for p in REPO.glob("packs/*/.apm/skills/*/SKILL.md")
+      }
+      recorded = {f"{e['pack']}/{e['skill']}" for e in census["entries"]}
+      assert recorded == discovered, (
+          "census out of date; re-take it and update population_size"
+      )
+      assert census["population_size"] == len(discovered)
+      for entry in census["entries"]:
+          assert bool(entry.get("families")) ^ bool(entry.get("exception"))
+  ```
+
+  `stub: true` — EXECUTE adds the owner-is-not-a-person assertion and the
+  routing failure message; the resolution and population predicates are final.
+
+**Approach:**
+- Take the census by reading each skill and classifying it under review — not
+  by pattern-matching. A regex census counts inherited boilerplate as designed
+  structure: an "Output rendering" section appears in most skills without any
+  of them having chosen a presentation pattern.
+- Fixture in the pack tree, live-discovery assertion in `tests/roster/`.
+- **Add no Makefile wiring.** The suite target and the build-check workflow
+  both run pytest over `tests/`, which collects `tests/roster/` — 716 nodes
+  today — so the module runs without being named. Naming it would double-run it
+  and force a re-pin of two hard-pinned digests for no coverage. An earlier
+  draft did exactly that, on a `grep` for `tests/roster` in the Makefile that
+  returned nothing because collection is by directory.
+
+**Done when:** the roster test is green, every entry resolves, and it is
+observed running under `pytest tests/` rather than assumed to.
+
+### T4: The pre-change retrieval baseline and the taxonomy are pinned
+
+**Depends on:** none
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json
+
+**Tests:**
+- The transcription holds exactly 36 leaves and its `expected_count` matches;
+  each name is unique; it carries no per-leaf state. (AC5)
+- The pins hold 24 `(id, measured_topics)` pairs equal to the recorded run as
+  it stands before any corpus change. (AC8)
+
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`):
+
+  ```python
+  # STUB: AC5, AC8 — the taxonomy transcription is complete at 36 leaves and the
+  # foundation pins hold 24 measured pairs.
+  import json, pathlib
+
+  FIX = pathlib.Path(__file__).resolve().parents[1] / "fixtures"
+
+  def test_topology_transcription_is_complete() -> None:
+      leaves = json.loads((FIX / "topology-leaves.json").read_text(encoding="utf-8"))
+      assert leaves["expected_count"] == 36
+      assert len(leaves["leaves"]) == 36
+      assert len(set(leaves["leaves"])) == 36
+
+  def test_foundation_pins_hold_the_shipped_cases() -> None:
+      pins = json.loads((FIX / "foundation-retrieval-pins.json").read_text(encoding="utf-8"))
+      assert len(pins["pins"]) == 24
+      assert all("measured_topics" in pin for pin in pins["pins"])
+  ```
+
+  `stub: true` — EXECUTE adds the source-reference assertion; the counts are
+  final and are what fail if the transcription is partial.
+
+**Approach:**
+- Transcribe RFC-0097 D3's 36 leaves with a `source_ref`.
+- Derive the pins now, from the current `router-results.json`, **before T7
+  touches the corpus**. Deriving them afterwards would capture a moved value
+  and make the per-case gate pass trivially.
+
+**Done when:** both fixtures exist and their count assertions are green.
+
+### T5: The three shipped topics declare their basis and state their limits
+
+**Depends on:** T3, T4
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
+
+**Tests:**
+- Each of the three records at least one claim group with a declared basis, its
+  required fields, a last-verification date, and a named reviewer. (AC2)
+- Each shipped provenance-and-lifecycle section carries the applicability limit
+  the fixture records, field-for-field. (AC3)
+- Where a group declares `doctrine`, its record carries a `clause` and at least
+  two runtimes — presence and well-formedness only. (AC2)
+- Each of the 24 pinned pairs still holds after this task's re-record. (AC8)
+  T5 edits the three shipped bodies, so it is the first task that can move a
+  foundation case; waiting until T7 to notice would lose the attribution.
+- Whether that clause actually governs the group's claims is the named
+  reviewer's judgment, recorded with the topic; no test asserts it, because the
+  erratum places it outside what a gate can prove.
+
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`):
+
+  ```python
+  # STUB: AC2, AC3 — each shipped topic declares a basis and its body agrees
+  # with the admission record, per claim group.
+  import json, pathlib
+
+  PACK = pathlib.Path(__file__).resolve().parents[2]
+  ADMISSION = PACK / "tests/fixtures/topic-admission.json"
+  CONCEPTS = PACK / "okf/agent-skill-engineering-foundation/concepts"
+
+  def test_every_claim_group_declares_a_basis_and_its_fields() -> None:
+      record = json.loads(ADMISSION.read_text(encoding="utf-8"))
+      for topic in record["topics"]:
+          assert topic["reviewer"] and topic["last_verified"]
+          for group in topic["claim_groups"]:
+              assert group["basis"] in {"doctrine", "observed-practice"}
+              assert group["revalidation_trigger"]
+              if group["basis"] == "observed-practice":
+                  assert len(group["observations"]) >= 2
+                  assert group["applicability_limit"]
+
+  def test_shipped_body_matches_the_admission_record() -> None:
+      record = json.loads(ADMISSION.read_text(encoding="utf-8"))
+      for topic in record["topics"]:
+          body = (CONCEPTS / f"{topic['topic']}.md").read_text(encoding="utf-8")
+          for group in topic["claim_groups"]:
+              if group["basis"] == "observed-practice":
+                  assert group["applicability_limit"] in body
+  ```
+
+  `stub: true` — EXECUTE adds the doctrine-side source parity and the
+  distinct-pack independence check.
+
+**Approach:**
+- Classify the three under the erratum. They cite no external source today, so
+  the default is `observed-practice`; give each the applicability limit it
+  lacks, naming the population it was drawn from.
+- Do not claim `public-contract` for trigger-quality or instruction-density:
+  RFC-0097:555 sources the Agent Skills specification for the `SKILL.md`
+  substrate and for scripts as deterministic helpers, not for those heuristics.
+  A scripts-related group may cite it where the clause governs the claim.
+- Recompile after editing the bundle-root bodies; the compiled tree and the
+  ownership manifest are tracked and digest-asserted.
+- Record the classification outcome in this plan's changelog rather than the
+  spec, so the task writes only files it lists.
+
+**Done when:** all three declare a basis with complete fields, the parity check
+is green, the compiled tree is regenerated, and the retrieval record is
+re-recorded under the new digest triple by an independent read-only sub-context, the evaluation mode the shipped fixture pins — editing the bundle moves all three
+digests, so leaving the prior record in place would redden the suite this layer
+must close green.
+
+### T6: A topic cannot enter the corpus without a declared basis, its fields, and measured distinguishability
+
+**Depends on:** T5
+
+**Touches:** packs/agent-skill-engineering/tests/pack/test_corpus_admission.py
+
+**Tests:**
+- Every compiled topic declares a basis per claim group and carries that
+  basis's required fields, well-formed. (AC2)
+- A `doctrine` group's sources each carry identity, `retrieved_at`, and an
+  exposed version or an explicit `none exposed`. (AC2)
+- A `repeated-observed-failures` group names one shared mechanism, not one per
+  failure. (AC2)
+- Every claim group carries a revalidation trigger, whichever basis it
+  declares. (AC2)
+- An `observed-practice` group additionally carries >=2 observations at distinct
+  skill paths in distinct packs and an applicability limit; those two are
+  basis-specific, the trigger is not. (AC2)
+- Every compiled topic has >=2 retrieval cases whose **measured** result is that
+  topic alone, read from the recorded run. (AC4)
+- Each of the 36 leaves is in exactly one of the compiled set or the compiled
+  unpopulated record. (AC5)
+
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`):
+
+  ```python
+  # STUB: AC2, AC4, AC5 — admitted implies declared basis with its fields, and
+  # measured exclusive retrieval; every leaf sits in exactly one set.
+  import json, pathlib
+
+  PACK = pathlib.Path(__file__).resolve().parents[2]
+  FIX = PACK / "tests/fixtures"
+
+  def test_admitted_topics_are_measurably_distinguishable() -> None:
+      results = json.loads((FIX / "router-results.json").read_text(encoding="utf-8"))
+      admitted = _admitted_topics_from_compiled_tree()
+      for topic in admitted:
+          exclusive = [r for r in results["results"] if r["actual_topics"] == [topic]]
+          assert len(exclusive) >= 2, topic
+
+  def test_every_leaf_is_in_exactly_one_set() -> None:
+      leaves = json.loads((FIX / "topology-leaves.json").read_text(encoding="utf-8"))
+      admitted = _admitted_topics_from_compiled_tree()
+      unpopulated = _unpopulated_leaves_from_compiled_record()
+      for leaf in leaves["leaves"]:
+          assert (leaf in admitted) ^ (leaf in unpopulated), leaf
+  ```
+
+  `stub: true` — `_admitted_topics_from_compiled_tree` excludes the unpopulated
+  record by its exact compiled path, never by a shape a topic body could copy;
+  EXECUTE writes both helpers and the six mutations.
+
+**Approach:**
+- Derive the admitted set from the compiled tree, never a hand-maintained list.
+- Read measured results from `router-results.json`, not `router-cases.json`.
+- Land green at the three shipped topics, which T5 made satisfiable.
+- Assert form only. Whether the evidence supports the claim is the named
+  reviewer's judgment under the erratum, and no assertion pretends otherwise.
+
+**Mutation proofs, each alone:** a claim group with no declared basis; a
+`doctrine` group missing `retrieved_at` on one source; a
+`repeated-observed-failures` group whose two failures name different
+mechanisms; an `observed-practice` group whose two observations share a pack; a
+topic with a declared but unmeasured exclusive case; and a topic body
+reproducing the compiled unpopulated record's marker and section shape at a
+non-root path, which must still be iterated. Each must redden. Restore by
+editing bytes and verifying a hash.
+
+**Done when:** the pack suite is green at the three shipped topics and all six
+mutations redden it.
+
+### T7: The corpus carries the topics whose basis can be evidenced
+
+**Depends on:** T6
+
+**Touches:** packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py, packs/agent-skill-engineering/tests/integration/test_provider_contract.py
+
+**Tests:**
+- The admission harness is green after the re-measurement that closes this
+  task. (AC2, AC4)
+- Each body carries the sections the foundation contract already requires, and
+  each shipped provenance section matches its admission record. (AC3)
+- Nothing under `.apm/**` or the compiled tree contains a repository-only path,
+  an acceptance-criterion citation, or an internal governance record. (AC9)
+- The pinned foundation pairs still hold at this task's close. (AC8)
+
+- `no stub (goal-based)` for the admission re-run and the measurement — both are
+  commands over an assembled tree.
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
+
+  ```python
+  # STUB: AC9 — nothing the pack ships names a repository-only path, an
+  # acceptance criterion, or an internal governance record.
+  import pathlib, re
+
+  PACK = pathlib.Path(__file__).resolve().parents[2]
+  FORBIDDEN = (
+      re.compile(r"\bdocs/(specs|rfc|adr)/"),
+      re.compile(r"\bAC\d+\b"),
+      re.compile(r"\bworkspace\.toml\b"),
+  )
+
+  def test_shipped_content_names_no_repository_only_reference() -> None:
+      for path in (PACK / ".apm").rglob("*.md"):
+          text = path.read_text(encoding="utf-8")
+          for pattern in FORBIDDEN:
+              assert not pattern.search(text), f"{path}: {pattern.pattern}"
+  ```
+
+  `stub: true` — EXECUTE reconciles this with the existing forbidden-string
+  table in the same module rather than adding a second walk.
+
+**Approach:**
+- Author a body only for a candidate whose basis can be evidenced; record the
+  evidence first, then the body. A candidate that cannot is routed to T8.
+- **Measure once, at the task's close, as a whole-suite re-record**,
+  transcribed from an observed run by an independent read-only sub-context with
+  the run named in the record — the evaluation mode the shipped fixture pins,
+  and the same provenance T5 and T9 state. The
+  recorded fixture binds to a single digest triple and asserts its result set
+  equals its case set, so every corpus change invalidates every prior result;
+  a per-topic re-measurement would produce superseded intermediates. T9 then
+  performs the third and final whole-suite re-record. There are three in this
+  slice, not two: T5's recompile moves the digest triple as surely as T7's.
+- Update the exact-set pins in `test_foundation_corpus.py`, the `okf-reference`
+  count assertion, and the response vocabulary in `test_provider_contract.py`
+  as the admitted set grows, and regenerate the compiled tree and manifest.
+
+**Done when:** every authored topic passes the harness against the closing
+measurement, the portability assertion holds, and the foundation pins still
+match.
+
+### T8: Leaves the evidence cannot support are declared absent
+
+**Depends on:** T7
+
+**Touches:** packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/, packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
+
+**Tests:**
+- Every unadmitted leaf records a reason — including, where it applies, that
+  neither basis could be evidenced — and what would admit it. (AC5)
+- A request naming an unpopulated leaf returns the gap statement and applicable
+  admitted topics, and no body for that leaf. (AC5)
+
+- `no stub (goal-based)` — the fallback is exercised by a declared retrieval
+  case measured at T9, not by a unit predicate.
+
+**Approach:**
+- Author the unpopulated record under the bundle root as the single source and
+  let the compiler project it; the harness reads the compiled output.
+- The record lives at `concepts/<subdir>/` under the bundle root, which the
+  compiler projects and the generated per-directory index routes to, and which
+  the shipped topic-set assertion does not reach because it globs the concept
+  root non-recursively. Name the subdirectory and the record's compiled `kind`.
+- The admission harness excludes that record **by its exact identity** — one
+  record, at that known compiled path — and never by a marker field, section
+  shape, or name pattern a topic body could reproduce. State the exclusion
+  that way where the harness derives the admitted set, and give the
+  `okf-reference` count assertion its determinate new value.
+- Add the fallback case to `router-cases.json` before T9's re-record, so its
+  measured outcome lands in the one recorded fixture under the same digest
+  binding as every other case.
+- Keep the language and execution leaves unpopulated; they belong to 2b.
+
+**Done when:** every leaf is accounted for, and the fallback case is authored
+and committed.
+
+**Recorded-fixture state at this task's close.** T8 edits the bundle root and
+the compiled tree and adds a retrieval case, so it moves the digest triple and
+breaks result-set-equals-case-set. That is knowingly accepted: no T8
+done-condition reads the recorded fixture, and the fallback's measured outcome
+lands at T9's re-record. This is why the bound is three re-records, not four —
+T8 defers to T9 rather than re-measuring.
+
+### T9: Retrieval improves for the new topics without regressing the old ones
+
+**Depends on:** T7, T8
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/fixtures/generic-negatives.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
+
+**Tests:**
+- The retrieval case list holds >=40 cases of which >=20 are topic-bearing,
+  counted over that list alone and excluding the generic-negative population.
+  (AC6)
+- >=90% exact-or-approved; precision and recall each >=90%; and **no** case
+  returns more than three topics — the absolute bound the shipped suite already
+  asserts. (AC6)
+- A fixed 40-prompt generic-engineering negative set returns a body for <=5% of
+  prompts, measured into its own results fixture under the same digest triple
+  and evaluation mode as the retrieval record. The set is authored rather than
+  transcribed, and its prompts do not join `router-cases.json`: the shipped
+  suite asserts zero-tolerance on every zero-expectation case there, which is
+  stricter than 5% and is not weakened. (AC7)
+- Each of the 24 pinned `(id, measured_topics)` pairs has a measured result
+  equal to its pinned pair — per case, read from the T4 fixture this task does
+  not write. (AC8)
+- Two clean compiles byte-identical; staged-tree run reads nothing outside it;
+  hostile metadata still refuses; provider-side fixtures still pass. (AC9)
+
+- `no stub (goal-based)` — every bar is a measured rate over an assembled tree;
+  the assertions extend the shipped suite's existing rate checks.
+
+**Approach:**
+- Author and commit every new case's `expected_topics` **before** the run that
+  measures it, so an expectation cannot be tuned to the observation.
+- Add near misses for the new vocabulary and the fixed negative set.
+- Raise the shipped `len(cases) >= 20` floor to the 40 AC6 now states.
+- Perform one whole-suite re-record under a single digest triple, transcribed
+  from an observed run by an independent read-only sub-context, with the run
+  named in the record.
+
+**Done when:** every bar is met per case against the pinned pairs.
+
+### T10: The knowledge-provider pattern's failure surface is covered
+
+**Depends on:** T7
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/provider-pattern-cases.json, packs/agent-skill-engineering/tests/integration/
+
+**Tests:**
+- A corpus with no governed source, an ambiguous router selection, a retrieval
+  evaluation declaring no negatives, and a handoff granting the generated half
+  mutation authority each declare their refusal class and bounded diagnostic,
+  and each declared response conforms to the contract's rules. (AC12)
+
+- `no stub (goal-based)` — fixture conformance over declared responses, in the
+  shape the pack's provider-contract suite already uses.
+
+**Approach:**
+- Declare each expected outcome before the conformance predicate exists.
+- This is fixture conformance in the shape `test_provider_contract.py` already
+  uses, not the execution of a runtime guard: the mode is instructions, not
+  code, so there is no guard to make fail. The plan says so plainly rather than
+  claiming a proof it cannot perform.
+
+**Done when:** all four conform as declared — which is what licenses T11.
+
+### T11: The authoring workflow offers `knowledge-provider` and nothing more
+
+**Depends on:** T10
+
+**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md, .../references/, packs/agent-skill-engineering/tests/fixtures/unsupported-mode-cases.json, packs/agent-skill-engineering/tests/pack/test_pack_boundary.py, packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py
+
+**Tests:**
+- The workflow advertises exactly the four modes. (AC10)
+- The mode loads its four mode-specific modules and no other mode-specific
+  module, while the common contract's safety module still governs reads and
+  writes. (AC10)
+- The five remaining modes return the versioned unavailable response and are
+  absent from both descriptions; the count floor equals the reduced
+  enumeration. (AC11)
+- Nothing under `.apm/**` contains a repository-only path, an
+  acceptance-criterion citation, or an internal governance record — re-asserted
+  here because this task authors the four mode modules, the highest-risk
+  hand-authored surface, after T7's check ran. (AC9)
+- A durable table-driven positive control: each forbidden surface form —
+  including plural, space-separated, and hyphen-split spellings — is detected,
+  and a reworded opening naming no mode is not. (AC11)
+
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
+
+  ```python
+  # STUB: AC11 — the mode matcher still detects every forbidden surface form.
+  import pytest
+
+  DETECTED = [
+      ("runtime-package", "use for runtime-package work"),
+      ("runtime-package", "use for knowledge providers and runtime packages"),
+      ("subagent", "handles sub-agents too"),
+      ("plugin", "use for plugins, hooks, and subagents"),
+      ("hook", "use for plugins, hooks, and subagents"),
+  ]
+
+  @pytest.mark.parametrize("mode,description", DETECTED)
+  def test_matcher_detects_forbidden_forms(mode: str, description: str) -> None:
+      assert _names_mode(description, mode)
+
+  def test_matcher_does_not_fire_on_neutral_prose() -> None:
+      assert not _names_mode("Use when a user asks", "plugin")
+  ```
+
+  `stub: true` — this is the positive control the guard has never had; EXECUTE
+  adds the reduced five-mode enumeration and the count floor beside it.
+
+**Approach:**
+- Add the mode and its four modules; reuse the existing two-gate transition.
+- Remove `knowledge-provider` from `unsupported-mode-cases.json` and move the
+  count floor from six to five in the same commit.
+- Update `test_contract.py` in the same commit: it asserts the exact six-mode
+  set, the mode's absence from the activation description, and the fixture's
+  `reason` and `baseline` strings verbatim in `SKILL.md`, so the fixture
+  strings and their `SKILL.md` counterparts move together.
+- Keep the token-run matcher unchanged and add the positive control beside it.
+
+**Mutation proof:** weaken `_names_mode` to return `False` unconditionally; the
+positive control must fail. Restore by editing.
+
+**Done when:** the mode is advertised, the five remaining modes are proven
+absent, and the matcher's detection half is asserted durably.
+
+### T12: Behavior evidence covers this slice's cases
+
+**Depends on:** T7, T11
+
+**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, packs/agent-skill-engineering/tests/fixtures/behavior-results.json
+
+**Tests:**
+- Fixtures cover the four foundation cases plus cold-start orientation,
+  cross-session resumption, and progressive result presentation. (AC13)
+- A `knowledge-provider` case asserts the mode marker and the not-authorized
+  write marker, matching how the shipped evals already verify `frame` and
+  `update`. This is deliberately **not** tagged to an acceptance criterion: the
+  governing gate's eleven M2 fixtures contain no knowledge-provider case, AC13
+  enumerates seven of those eleven faithfully, and AC10 already binds the
+  mode's read-only entry and write transition. The case is added because a
+  writable mode should not rest on prose assertions alone, and it is recorded
+  here as work this slice chooses rather than work the contract compels.
+- Recorded assertion counts equal declared counts; each result's `source_files`
+  is an exact set. (AC13)
+
+- `no stub (manual QA)` — behaviour fixtures are declared before a run and
+  graded by an operator-attested runner.
+
+**Approach:**
+- Declare markers, checklist items, and seeded defects before running anything.
+- Extend the existing digest bindings; do not weaken the equality checks the
+  foundation arrived at.
+
+**Done when:** the expanded record passes every binding the foundation enforces.
+
+### T13: Review-case grading is observed, and the routed failures are recorded
+
+**Depends on:** T12
+
+**Touches:** packs/agent-skill-engineering/tests/fixtures/behavior-results.json, packs/agent-skill-engineering/tests/skills/review_or_optimize/test_contract.py, docs/specs/agent-skill-engineering-corpus/qa.md
+
+**Tests:**
+- The review results carry all five emitted values — `produces_ok`,
+  `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
+  run, so a failure can be attributed. (AC14)
+- No per-marker value is recorded. (AC14)
+- The QA record names the four routed `tools/` failures, their owning surface,
+  the fact that no gate in this change's chain invokes them, and the re-check
+  obligation. (AC17)
+
+- `no stub (manual QA)` — the values are transcribed from an observed graded
+  run; there is no predicate to write first.
+
+**Approach:**
+- Seed with `python3 -m agentbundle pack evals run --pack
+  agent-skill-engineering --check behavior --prepare-workspace
+  <SKILL>/<EVAL_ID>`, then grade with `--mode in-harness --reports <driver
+  payload>`, both from the repository root with the checkout on `PYTHONPATH`.
+  A bare `agentbundle` resolves through whatever install is on PATH and would
+  grade code outside this worktree. The default `--mode headless` ignores
+  `--reports` and grades nothing.
+- Transcribe the observed values and name the run.
+- Record that the `Mode: review` declaration is enforced at run time and is not
+  re-checkable from the committed artifact — the predecessor's disclosure
+  carried forward, not closed with an unmeasured value.
+
+**Done when:** the record carries measured values, the run is named, no derived
+value appears, and the known-skip block is present.
+
+### T14: The pack's surfaces are current everywhere CI looks
+
+**Depends on:** T9, T11, T13
+
+**Touches:** packs/agent-skill-engineering/pack.toml, packs/agent-skill-engineering/.claude-plugin/plugin.json, packs/agent-skill-engineering/README.md, packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, docs/product/changelog.md, docs/architecture/agent-skill-engineering.md, .claude-plugin/marketplace.json, web/src/lib/now-highlights.generated.json
+
+**Tests:**
+- Conformance metadata contract passes; both agent-plugin roster enumerations,
+  the catalogue navigation map, and the publication roster accept the pack,
+  each verified by running its owning gate. (AC18)
+- `docs/product/changelog.md` carries a
+  `## [agent-skill-engineering][<version>] — <date>` entry matching both
+  manifests. (AC18)
+- Every test this change added is reachable by a gate CI runs, observed rather
+  than assumed. (AC18)
+- `agent-skill-engineering-guide-and-docsurl` is still in `[backlog].open` and
+  `GUIDE_OPTIONAL_PACKS` is unchanged.
+- Both regenerated projections are byte-identical to what their owning
+  commands produce, and the site's staleness gate passes. (AC18)
+- `catalogue verify` and `catalogue lint --deep` exit 0.
+
+- `no stub (goal-based)` — every check is a gate invocation or a membership
+  fact one command answers.
+
+**Approach:**
+- Bump `pack.toml` and `.claude-plugin/plugin.json` together, update both eval
+  harnesses, and add the changelog entry in the same change.
+- **Regenerate both committed projections the bump restales.** The aggregated
+  marketplace pins this pack's version, and the `/now/` highlights file is
+  projected from every released changelog entry declaring `Highlights` and is
+  staleness-gated. Run the repository's release-pipeline regeneration for the
+  aggregate and the site projection rather than hand-editing either.
+- **Record the `Highlights` disposition** for this release — bullets, or an
+  explicit "none, because …" — which the maintainer guidance requires as a
+  decision rather than an omission.
+- No task in this change alters a command line in either normalized dry-run
+  plan, so the shared-test command-plan digests are untouched.
+- Update the README's mode and topic-group statements and the architecture
+  document's topology, verification, and last-verified sections.
+- The self-host recipe does two things: it overlays the include-list packs, and
+  it aggregates `.claude-plugin/marketplace.json` across user-capable packs.
+  This pack is outside the include list, so no `.claude/` or `.agents/`
+  projection results from it — but the aggregate carries this pack's version
+  and its parity gate reddens on the bump, so the release-pipeline regeneration
+  runs here, alongside the site build that regenerates the `/now/` highlights
+  projection. Run both by their owning commands rather than editing either file.
+
+**Done when:** every named gate passes when run directly, not by inference from
+a chained target.
+
+## Rollout
+
+Single branch, one PR stack ordered by the layer map. Reversal is per layer:
+the corpus layers revert by removing the added bodies and recompiling, since
+the compiler is deterministic; the mode layer reverts by restoring
+`knowledge-provider` to the unavailable fixture and the count floor to six;
+the record layers revert by restoring the prior `workspace.toml` entries. No
+layer writes durable state outside the repository, and no migration runs.
+
+## Risks
+
+| Risk | Signal | Mitigation |
+| --- | --- | --- |
+| Too few leaves can evidence a basis | The admitted set is very small | Accepted: the spec gates on the rule, not a topic count, and T8 records the remainder honestly rather than lowering the bar |
+| A shipped topic fits neither basis | T5 cannot state an applicability limit or a governing clause for one of the three | Stop and surface under *Ask first*; do not admit it anyway or weaken the rule |
+| The named reviewer becomes a rubber stamp | Every topic records the same reviewer with no recorded reasoning | Accepted and disclosed: the erratum makes soundness a judgment, and the QA record names who made it per topic rather than implying a test proved it |
+| Retrieval regresses as the corpus grows | A pinned foundation pair's measured set moves | Per-case gate against a fixture no re-record writes |
+| The admission harness is satisfied by construction | It stays green under a topic added without evidence | Six independent mutation proofs, one per conjunct, including a `doctrine` group missing `retrieved_at` and a body copying the unpopulated record's shape |
+| The corpus becomes an encyclopedia | The generic-engineering negative set returns bodies | The RFC's own 5%-of-40 falsifier is a gate |
+| The census records boilerplate as evidence | A family's count is dominated by inherited sections | The census is taken under review, not by pattern match |
+| Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly; the three long suites are run explicitly |
+| 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
+| A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
+
+## Changelog
+
+- 2026-08-28: initial plan. Six dependency-ordered layers; review shape DEEP.
+- 2026-08-28: revised against 30 adjudicated round-1 findings.
+- 2026-08-28: revised against 25 adjudicated round-2 findings and two owner
+  decisions. The workspace-status engine change left this slice entirely —
+  measured at 0 true positives and 2 false positives, it dragged core's
+  manifest pair, eval harness, packaged `_data` copy, marketplace aggregate,
+  self-host projection, changelog, `/now/` projection, and two hard-pinned
+  roster tests into a corpus spec, and registering this spec as active clears
+  the finding under the existing predicate anyway. Admission was rebuilt on
+  RFC-0097 D8's promotion classes with per-class evidence shapes, because the
+  census is Gate 2's coverage instrument and cannot admit anything on its own;
+  the three shipped topics are back-filled rather than grandfathered.
+  Measurement moved into T7 so the admission gate has measured results to read;
+  the foundation pins became `(id, measured_topics)` pairs in a fixture no
+  re-record writes; the unpopulated record moved to the bundle root, the only
+  input the compiler reads; the provider-pattern fixtures now precede the
+  mode's advertisement; and the portability assertion covers hand-authored
+  `.apm/**` as well as compiled output. (Superseded on the roster point: see the
+  round-5 entry — nothing needed wiring, because pytest collects `tests/` by
+  directory.)
+- 2026-08-28: revised against round 3 and the RFC-0097 erratum of the same
+  date. Three rounds of review established that admission's soundness half is
+  not mechanizable — a gate over declared expectations, then a class label,
+  then a contract citation, was each satisfiable without the substance — so the
+  erratum rules that D8's classes gate doctrine claims rather than a topic's
+  existence, observed practice is admissible under an explicit applicability
+  limit, and a named reviewer owns soundness. AC2 was rebuilt on that rule and
+  the three shipped topics are reclassified as `observed-practice` rather than
+  claiming a contract that does not govern their heuristics. Also: the
+  foundation retrieval pins are now derived in T4 before any corpus change,
+  since deriving them after T7 would have captured a moved value; measurement
+  is stated as a bounded whole-suite re-record, because the recorded fixture
+  binds one digest triple and asserts result-set equals case-set; the census
+  roster module is explicitly wired into a gate, because nothing globs
+  `tests/roster/` and an unwired module never runs; `topology-leaves.json` lost
+  its per-leaf state so the fact has one home; and the body-to-record parity
+  check is kept with its rationale stated rather than left as an unexplained
+  contradiction of the plan's own mirror rejection.
+- 2026-08-28: revision 4, against 21 adjudicated round-4 findings and two owner
+  decisions. The workspace-status engine change left this slice entirely and
+  became a separate Follow-on; admission was rebuilt on RFC-0097 D8's promotion
+  classes; the three shipped topics were back-filled rather than grandfathered.
+- 2026-08-28: revision 5, against the RFC-0097 erratum committed the same day.
+  Three review rounds established that admission's soundness half is not
+  mechanizable — a gate over declared expectations, then a class label, then a
+  contract citation, was each satisfiable without the substance — so the
+  erratum rules that D8's classes gate doctrine claims rather than a topic's
+  existence, observed practice is admissible under an explicit applicability
+  limit, and a named reviewer owns soundness. The three shipped topics became
+  `observed-practice` rather than claiming a contract that does not govern
+  their heuristics.
+- 2026-08-28: revision 6, against 17 adjudicated findings, including two
+  reversions of this plan's own earlier fixes. The census roster module needed
+  no Makefile wiring after all: `pytest tests/` collects that tree by
+  directory, and the earlier claim rested on a `grep` that could not see
+  directory-level collection — so the wiring, its digest re-pin, and the
+  digest-pin file left T3. The 40 generic-engineering negatives were pulled
+  back out of `router-cases.json`, because the shipped suite asserts zero
+  tolerance for any zero-expectation case returning a topic, which is stricter
+  than the 5% falsifier and must not be weakened; they now carry their own
+  prompt and results fixtures under the same digest triple, and AC6's bars are
+  scoped to the retrieval list alone.
+- 2026-08-28: revision 7, against 12 adjudicated round-6 findings. Three were
+  residue from the two reversions above — a task still asserting the reverted
+  work as fact, two test bullets still demanding the reverted vocabulary, and a
+  spec-side fix that never reached the plan. The remaining substantive gaps:
+  every task now carries a PLAN-time red stub or a `no stub (mode)` record, six
+  of which are compilable and validated; the admission harness's newest
+  conjunct gained the sixth mutation it was missing; the unpopulated record
+  gained a stated home at `concepts/<subdir>/`, which the compiler projects and
+  routes to and which the shipped topic-set assertion does not reach; and the
+  negatives results fixture gained the completeness assertion its digest
+  binding alone did not supply.
