@@ -17,8 +17,8 @@ This catalogue makes all three loops concrete.
 product-engineering              core                    release-engineering
 ───────────────────              ────                    ───────────────────
 discovery-lead                   work-loop supervisor    release-lead
-Raw idea → Decision brief  ─G3─▶ Spec → Shipped code ─G4─▶ Built → Production
-   (user scope)                  (repo scope)              (repo scope)
+Raw signal → Intent  ─G3─▶ Intent/brief → Spec → Code ─G4─▶ Built → Production
+   (user scope)                  (repo scope)               (repo scope)
 ```
 
 Each loop is a **peer supervisor** — not a mode of another, not a sub-phase. Each has its own agent, its own skill doctrine, and its own consent gates. The handoffs between them (G3: discovery → build; G4: build → release; G5: release → prod) are explicit gates where a human ratifies the decision before the next loop begins.
@@ -35,7 +35,11 @@ Each loop is a **peer supervisor** — not a mode of another, not a sub-phase. E
 
 **Pack:** `product-engineering` | **Agent:** `discovery-lead` | **Scope:** user
 
-The upstream loop. Takes a raw product idea and walks it through a structured diverge/converge cycle before any code is written. The output is a **decision brief** — a ratified statement of what to build, what not to build, what the riskiest assumptions are, and how to validate them.
+The upstream loop takes a raw product signal through structured shaping before
+code is written. Its durable output is a ratified intent at the appropriate
+altitude: initiative, capability, or feature. Product Engineering may de-risk
+and decompose that intent, but it does not require Core and does not own the
+repository delivery contract.
 
 **Key mechanics:**
 
@@ -47,8 +51,8 @@ The upstream loop. Takes a raw product idea and walks it through a structured di
 **Human gates:**
 - **G0** — Ratify the value seed: the problem statement, the customer segment, and the existence bet.
 - **G1.5** — Ratify the MVP boundary: which features are in scope for the initial bet.
-- **G2** — Ratify the decision brief: the full convergence output including riskiest assumptions and validation hooks.
-- **G3** — Ratify the handoff to `work-loop`: feature-level breakdown ready to spec.
+- **G2** — Ratify the converged intent, including riskiest assumptions and validation hooks.
+- **G3** — Ratify a feature-level handoff ready for repository admission or spec authoring.
 
 → [Discovery loop guide](../../product-engineering/) · [Walk a discovery end-to-end](../../product-engineering/tutorials/walk-a-discovery-end-to-end.md)
 
@@ -56,7 +60,12 @@ The upstream loop. Takes a raw product idea and walks it through a structured di
 
 **Pack:** `core` | **Agent:** `work-loop` supervisor | **Scope:** repo
 
-The inner loop. Every change — feature, bug fix, refactor, migration, dependency upgrade — goes through: plan, execute, gate, review, decide. The loop replaces "feel done" with objective criteria: gates the agent can't bypass and reviewers that read every diff cold.
+The inner loop. Core can operate alone: `intake-intent` admits a minimum
+repository intent, `author-delivery-brief create|continue` coordinates work that
+needs multiple specs or repositories, and `new-spec` owns one independently
+shippable engineering contract. An upstream Product Engineering intent can use
+the same routes without making that pack a repo-level dependency. Every build
+then goes through plan, execute, gate, review, and decide.
 
 **Key mechanics:**
 
@@ -97,7 +106,11 @@ The scope model follows where the work happens:
 - **Build runs at repo scope.** Code lives in repos. `core` installs into the repo where the code is, and its reviewer agents are available to anything installed at repo scope in the same repo.
 - **Release runs at repo scope.** The release loop runs in the same repo as the build loop, downstream of it. It hard-depends on `core` and reuses its reviewers — this is architecturally sound only because both are at repo scope in the same repo.
 
-This means the G3 handoff — where a decision brief from discovery becomes a feature spec in a repo — is also a scope boundary: from user scope (documents, ideas) to repo scope (code, gates).
+This makes G3 a scope boundary, not a fixed artifact conversion. A
+feature-level intent may become one spec directly; an initiative or capability
+may become an RFC, several child intents, or a delivery brief coordinating one
+or more RFCs and specs. Repositories without Product Engineering can begin at
+the same Core intent, delivery-brief, or spec owners.
 
 ## The autonomy model
 

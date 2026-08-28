@@ -24,7 +24,7 @@ shaping  = "docs/product/shaping"    # vision docs, opportunity assessments, cap
   vision docs, opportunity assessments, capability maps, initiative briefs. Produced
   by the PE six-step shaping sequence and the product-strategy pack.
 - **`briefs`** stays pinned at `docs/product/briefs/`. It is the hand-off point
-  to core's `receive-brief` skill and must not be redirected — moving briefs breaks
+  to Core's `author-delivery-brief continue` mode and must not be redirected — moving briefs breaks
   the `Brief:` back-link chain and coverage rollup.
 
 ## Two locations, repo overrides user

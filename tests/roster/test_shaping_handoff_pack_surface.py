@@ -83,8 +83,8 @@ def test_producers_and_consumers_declare_untrusted_read_boundary() -> None:
         (PRODUCT, "decompose-intent"),
         (CORE, "work-intake"),
         (CORE, "new-spec"),
-        (CORE, "author-brief"),
-        (CORE, "receive-brief"),
+        (CORE, "intake-intent"),
+        (CORE, "author-delivery-brief"),
     ):
         assert "filesystem_read_untrusted" in _boundaries(_skill(pack, name))
 
@@ -131,19 +131,27 @@ def test_evals_cover_negotiation_routes_and_no_external_dereference() -> None:
     )
     assert "Keeps the external locator opaque" in acquired_external["assertions"]
 
-    for name in ("new-spec", "author-brief", "receive-brief"):
-        external = next(
+    external_cases = {
+        "new-spec": next(
             case
-            for case in _evals(CORE, name)["evals"]
+            for case in _evals(CORE, "new-spec")["evals"]
             if "external locator" in case["prompt"]
-        )
-        assert "performs no fetch, search, probe, network, tracker, shell" in external[
-            "expected_output"
-        ]
-        assert (
-            "Performs no external-locator dereference or locator-derived operation"
-            in external["assertions"]
-        )
+        ),
+        "intake-intent": next(
+            case
+            for case in _evals(CORE, "intake-intent")["evals"]
+            if case["id"] == "passive-external-source"
+        ),
+        "author-delivery-brief": next(
+            case
+            for case in _evals(CORE, "author-delivery-brief")["evals"]
+            if case["id"] == "create-hostile-external-source"
+        ),
+    }
+    for name, external in external_cases.items():
+        rendered = json.dumps(external, sort_keys=True)
+        assert "external-locator" in rendered or "external locator" in rendered, name
+        assert "no external-locator access" in rendered or "performs no fetch" in rendered
 
 
 def test_pack_and_plugin_versions_match_once() -> None:

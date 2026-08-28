@@ -383,7 +383,7 @@ Format output in four sections (omit sections with no entries):
 - `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
 - `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
 - `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
-- `[brief]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
+- `[brief]` `<path>` (Ready) — run `author-delivery-brief continue` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
 

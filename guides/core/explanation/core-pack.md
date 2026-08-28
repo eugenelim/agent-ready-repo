@@ -36,6 +36,26 @@ A loop running on its own is also a loop making mistakes on its own, at machine 
 
 A loop will happily make you faster on work you understand — or let you skip understanding it at all. The loop can't tell those apart. You can. `core` is built for the first kind of engineer: the one who designs the loop and stays the engineer, not just the person who presses go.
 
+### Razor: cut before adding
+
+Core's Razor product principle keeps the loop from turning every request into
+more machinery. Once the touched code is understood, the agent stops at the
+first sufficient solution: omit work that is not needed, reuse what the
+repository already owns, prefer built-in capabilities, and write new code only
+when those choices do not satisfy the outcome. “Minimum” means the smallest
+obvious, maintainable change in the right owner—not code golf.
+
+The discovery check is intentionally bounded, but verification is not. Razor
+never removes trust-boundary validation, data-loss protection, security or
+privacy controls, accessibility, accepted requirements, required delivery
+work, human approval, or non-waivable policy. It also trims communication:
+state the outcome, omit routine tool narration, ground necessary repository
+claims, and close with what changed, how it was verified, and what remains.
+
+Razor is an engineering-economy principle inside Core. It is not a fifth
+admission principle for catalogue packs under the Charter, and it is unrelated
+to the visual and interaction design principles used by the tech-site pack.
+
 ## The parts
 
 The core pack ships six tightly-coupled artifacts plus the documents they all read:

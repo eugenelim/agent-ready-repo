@@ -148,7 +148,7 @@
         "artifact": "docs/product/briefs/account-recovery.md",
         "artifact_kind": "brief",
         "lifecycle_membership": "brief_queue.draft",
-        "processor": "author-brief",
+        "processor": "author-delivery-brief create",
         "authority_mode": "tracker-origin",
         "mutation": "materialize-and-register"
       }
@@ -205,7 +205,7 @@
         "artifact": "docs/product/briefs/coordinated-outcome.md",
         "artifact_kind": "brief",
         "lifecycle_membership": "brief_queue.draft",
-        "processor": "author-brief",
+        "processor": "author-delivery-brief create",
         "authority_mode": "tracker-origin",
         "mutation": "materialize-and-register"
       }

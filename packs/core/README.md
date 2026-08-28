@@ -63,6 +63,8 @@ confirmation and pending receipt.
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `close-work` | Verify lasting context, pause or close delivery work, and preview a safe disposition |
 | `bug-fix` | Diagnose and fix a specific bug |
+| `intake-intent` | Create or admit a repository intent |
+| `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
 | `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
@@ -76,11 +78,11 @@ work-intake [describe the outcome or change]
 
   artifact    docs/product/briefs/data-export.md
   membership  draft · non-dispatchable
-  processor   author-brief
+  processor   author-delivery-brief create
 ```
 
 ```text
-receive-brief docs/product/briefs/data-export.md
+author-delivery-brief continue docs/product/briefs/data-export.md
 
   brief  Ready
   slice  streaming-csv-export
@@ -161,9 +163,10 @@ or override user/runtime instructions. Retention and compaction are deferred to
 a future reviewed whole-partition policy; Slice 1 has no per-event deletion
 path.
 
-Authoring gates are producer-owned. `author-brief` and `new-spec` stop at Draft
-without a knowledge call. `receive-brief` may capture reusable supporting
-practice only after `brief-ready`; `work-loop` does the same after
+Authoring gates are producer-owned. `author-delivery-brief create` and
+`new-spec` stop at Draft without a knowledge call. `author-delivery-brief
+continue` may capture reusable supporting practice only after `brief-ready`;
+`work-loop` does the same after
 `spec-approved` and `plan-locked`. Normative brief/spec/plan content stays in
 those artifacts. Missing project knowledge emits a named skip and never creates
 fallback storage; any terminal distillation uses only receipts returned by that

@@ -43,7 +43,7 @@ The same five fixture shapes produce the same route across all four profiles:
 | Content found | Route |
 | --- | --- |
 | One independently shippable, verifiable behavior | spec → `new-spec` |
-| One coherent outcome that needs several specs | Draft brief → `author-brief` |
+| One coherent outcome that needs several specs | Draft brief → `author-delivery-brief create` |
 | One outcome spanning repositories | linked local briefs with parent and coordination provenance |
 | Unrelated collection or view | separate units, a view-only result, or one clarifying question |
 | Regression with durable expected-behavior evidence | defect context → `bug-fix` |
@@ -82,7 +82,7 @@ tools, routing, or authority.
 ## Next request
 
 After reviewing the route, answer any named gap or confidentiality question.
-Then continue with the selected processor, such as `new-spec`, `author-brief`,
+Then continue with the selected processor, such as `new-spec`, `author-delivery-brief create`,
 or `bug-fix`. For an existing artifact whose tracker source changed, follow
 [Use work intake](use-work-intake.md).
 

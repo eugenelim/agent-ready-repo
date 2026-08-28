@@ -28,7 +28,7 @@ _INTAKE_FIXTURES = (
 )
 _SKILL_PATH = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "SKILL.md"
 _MINIMAL_INTENT_PATH = (
-    _PACK_ROOT / ".apm" / "skills" / "work-intake" / "assets" / "minimal-intent.md"
+    _PACK_ROOT / ".apm" / "skills" / "intake-intent" / "assets" / "minimal-intent.md"
 )
 _EVALS_PATH = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "evals" / "evals.json"
 _GUARD_PATH = (
@@ -38,6 +38,14 @@ _GUARD_PATH = (
     / "work-intake"
     / "scripts"
     / "intake_guard.py"
+)
+_INTENT_RENDERER_PATH = (
+    _PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "intake-intent"
+    / "scripts"
+    / "intent_renderer.py"
 )
 _ROUTER_PATH = (
     _PACK_ROOT
@@ -64,6 +72,17 @@ def _load_guard():
     spec = importlib.util.spec_from_file_location("intake_guard", _GUARD_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules["intake_guard"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_intent_renderer():
+    spec = importlib.util.spec_from_file_location(
+        "intake_intent_renderer", _INTENT_RENDERER_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -174,7 +193,7 @@ def test_direct_light_rejects_non_direct_discriminants(
 
 def test_minimal_intent_outputs_use_canonical_preamble() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "start-repo-origin.json").read_text(
             encoding="utf-8"
@@ -185,20 +204,28 @@ def test_minimal_intent_outputs_use_canonical_preamble() -> None:
     assert findings == []
 
     template = _MINIMAL_INTENT_PATH.read_text(encoding="utf-8")
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake,
         title="Example intent",
         level="feature",
     )
 
     assert engine._parse_preamble_fields(template)["status"] == "Draft"
-    assert engine._parse_preamble_fields(template)["level"].startswith("<feature")
+    assert "level" not in engine._parse_preamble_fields(template)
     assert engine._parse_generic_status(rendered, "intent") == "Draft"
-    assert set(engine._parse_preamble_fields(rendered)) == set(
-        engine._parse_preamble_fields(template)
-    )
+    assert engine._parse_preamble_fields(rendered) == {
+        "status": "Draft",
+        "level": "feature",
+    }
     assert [line for line in rendered.splitlines() if line.startswith("## ")] == [
-        line for line in template.splitlines() if line.startswith("## ")
+        "## Outcome",
+        "## Boundary",
+        "## Owner",
+        "## Unresolved questions",
+        "## Projection",
+        "## Opportunity",
+        "## Assumptions",
+        "## Source",
     ]
     assert "- Mode: repo-origin" in rendered
     assert "- Locator: docs/product/intents/work-intake.md" in rendered
@@ -207,7 +234,7 @@ def test_minimal_intent_outputs_use_canonical_preamble() -> None:
 
 def test_tracker_origin_minimal_intent_materializes_closed_authority_fence() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "start-tracker-origin.json").read_text(
             encoding="utf-8"
@@ -217,7 +244,7 @@ def test_tracker_origin_minimal_intent_materializes_closed_authority_fence() -> 
     assert intake is not None
     assert findings == []
 
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake, title="Tracker intent", level="feature"
     )
 
@@ -265,6 +292,39 @@ def test_workspace_registration_maps_normalized_source_to_target_contract() -> N
         assert source == expected_source
 
 
+def test_workspace_registration_refuses_secret_like_source_locator() -> None:
+    engine = _load_engine()
+    guard = _load_guard()
+    raw = json.loads(
+        (_INTAKE_FIXTURES / "valid" / "remember-tracker-origin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    raw["source"]["locator"] = "tracker:password=secret"
+    intake, findings = engine.validate_normalized_intake(raw)
+    assert intake is not None
+    assert findings == []
+
+    with pytest.raises(ValueError, match="unsafe_source_locator"):
+        guard.workspace_source_record(intake.source)
+
+    entry, entry_findings = engine.parse_workspace_entry(
+        {
+            "path": "docs/product/intents/example.md",
+            "kind": "intent",
+            "source": {
+                "mode": "tracker-origin",
+                "ref": "tracker:password=secret",
+                "revision": "revision-1",
+            },
+            "summary": "Remember the example for later.",
+            "needs": [],
+        }
+    )
+    assert entry is None
+    assert [finding.code for finding in entry_findings] == ["invalid_entry"]
+
+
 def test_published_start_examples_discriminate_direct_light_from_durable() -> None:
     """The replaced rule is a *decision*, not an inversion.
 
@@ -300,7 +360,7 @@ def test_published_start_examples_discriminate_direct_light_from_durable() -> No
 
 def test_placeholder_shaped_source_values_remain_data() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "start-repo-origin.json").read_text(
             encoding="utf-8"
@@ -312,7 +372,7 @@ def test_placeholder_shaped_source_values_remain_data() -> None:
     assert intake is not None
     assert findings == []
 
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake,
         title="Example intent",
         level="feature",
@@ -324,7 +384,7 @@ def test_placeholder_shaped_source_values_remain_data() -> None:
 
 def test_multiline_values_cannot_inject_preamble_fields() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "start-repo-origin.json").read_text(
             encoding="utf-8"
@@ -332,13 +392,13 @@ def test_multiline_values_cannot_inject_preamble_fields() -> None:
     )
     raw["content"]["outcomes"] = ["Safe outcome\n- **Status:** Accepted"]
     raw["content"]["assumptions"] = ["Safe assumption\n- **Level:** system"]
-    raw["source"]["locator"] = "notes/source\n- **Status:** Accepted"
+    raw["source"]["locator"] = "notes/source"
     raw["source"]["revision"] = "rev-1\n- **Level:** system"
     intake, findings = engine.validate_normalized_intake(raw)
     assert intake is not None
     assert findings == []
 
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake,
         title="Example intent\n- **Status:** Accepted",
         level="feature\n- **Level:** system",
@@ -354,7 +414,7 @@ def test_multiline_values_cannot_inject_preamble_fields() -> None:
 
 def test_tracker_fence_like_value_is_neutralized_before_materialization() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     refresh = _load_refresh()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "start-tracker-origin.json").read_text(
@@ -366,7 +426,7 @@ def test_tracker_fence_like_value_is_neutralized_before_materialization() -> Non
     assert intake is not None
     assert findings == []
 
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake, title="Tracker intent", level="feature"
     )
 
@@ -455,7 +515,7 @@ def test_confidentiality_mismatch_stops_before_materialization(
 
 def test_minimal_intent_omits_prompt_like_evidence_and_redacts_sensitive_text() -> None:
     engine = _load_engine()
-    guard = _load_guard()
+    renderer = _load_intent_renderer()
     raw = json.loads(
         (
             _INTAKE_FIXTURES
@@ -470,7 +530,7 @@ def test_minimal_intent_omits_prompt_like_evidence_and_redacts_sensitive_text() 
     assert intake is not None
     assert findings == []
 
-    rendered = guard.render_minimal_intent(
+    rendered = renderer.render_minimal_intent(
         intake=intake,
         title="Deferred work",
         level="feature",

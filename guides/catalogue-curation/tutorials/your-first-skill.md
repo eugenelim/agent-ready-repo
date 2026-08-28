@@ -74,7 +74,7 @@ packs/<pack>/
 |---|---|
 | `work-intake` | Materializes a canonical work artifact, then registers lifecycle state |
 | `workspace-status` | Surfaces the current queue state without modifying it |
-| `receive-brief` | Pulls a shaped brief from `[brief_queue]` into `[work].queue` |
+| `author-delivery-brief continue` | Pulls confirmed slices from `[brief_queue]` into `[work].queue` |
 
 Name your skill for what it does, not for internal mechanism.
 If a skill in the codebase already uses a similar verb, align with it.

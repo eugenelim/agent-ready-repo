@@ -1,6 +1,6 @@
 # ADR-0076: Briefs persist; dispatch starts from specs
 
-- **Status:** Accepted
+- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — public readiness and selected-slice handling move to `author-delivery-brief continue`; brief persistence and spec/plan-only dispatch stand)
 - **Date:** 2026-08-08
 - **Decision-makers:** eugenelim
 - **Supersedes:** none

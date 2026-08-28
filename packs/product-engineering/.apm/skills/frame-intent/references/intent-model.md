@@ -86,7 +86,7 @@ real bet, not ceremony bolted onto a known feature.
 
 The tree bottoms out at a shippable spec/slice — the unit your delivery loop
 builds. At `app` Scale a leaf feature intent *is* an ordinary `core` brief;
-`receive-brief` → `new-spec` → `work-loop` take it from there. The tree is
+`author-delivery-brief continue` → `new-spec` → `work-loop` take it from there. The tree is
 deeper than any tracker, and projects **one-way** onto trackers (see
 `decompose-intent`'s `references/tracker-projection.md`).
 

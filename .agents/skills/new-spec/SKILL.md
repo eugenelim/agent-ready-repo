@@ -163,7 +163,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      Unverified loop but they do gate `Constrained by:`.
    - Stamp the optional `Brief:` header **only** when this spec is
      derived from a product brief — i.e. you arrived here from
-     `receive-brief`, which passes a confirmed slice into this skill. Set
+     `author-delivery-brief continue`, which passes a confirmed slice into this skill. Set
      it to the brief's repository-relative path
      (`docs/product/briefs/<slug>.md`). Leave it blank or `none` for a
      spec authored directly. The workspace entry for a brief-derived spec
@@ -307,7 +307,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      mixed` — from the feature itself: a screen or flow is `ui`, a backend
      endpoint or worker is `service`, a schema/model change is `data`, a wiring
      of external systems is `integration`, anything spanning several is `mixed`.
-     If you arrived here from `receive-brief`, the brief's framing usually
+     If you arrived here from `author-delivery-brief continue`, the brief's framing usually
      decides it; otherwise **ask the user**. The shape selects which
      `## Design (LLD)` sub-sections the plan scaffolds — a narrower shape keeps
      the plan thin. Stamp the resolved value on the spec's `Shape:` header.

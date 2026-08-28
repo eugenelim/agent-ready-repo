@@ -27,7 +27,7 @@ The workspace coordination system treats strategic direction as a committed arti
 
 ### Altitude 1: Shaping
 
-A product engineer (PE) works in the shaping room, moving a signal through the shaping sequence: `frame-situation` classifies the signal and produces a typed situation finding; `identify-opportunities` surfaces the JTBD structure (functional, emotional, and social jobs); `diverge-solutions` generates at least three structured comparable options; `de-risk-intent` identifies the riskiest assumption and suggests a prototype approach; the PE validates through research, user contact, or internal review; `place-bet` commits a betting table with rationale and accepted risks; `map-capabilities` maps all capability areas the initiative touches. Each step produces a committed artifact in `docs/product/shaping/` that survives the session — when the shaping chain is complete, `author-brief` synthesises it into a brief that enters `[brief_queue].draft`.
+A product engineer (PE) works in the shaping room, moving a signal through the shaping sequence: `frame-situation` classifies the signal and produces a typed situation finding; `identify-opportunities` surfaces the JTBD structure (functional, emotional, and social jobs); `diverge-solutions` generates at least three structured comparable options; `de-risk-intent` identifies the riskiest assumption and suggests a prototype approach; the PE validates through research, user contact, or internal review; `place-bet` commits a betting table with rationale and accepted risks; `map-capabilities` maps all capability areas the initiative touches. Each step produces a committed artifact in `docs/product/shaping/` that survives the session — when the shaping chain is complete, `author-delivery-brief create` synthesises it into a brief that enters `[brief_queue].draft`.
 
 The reason the chain of committed artifacts matters: when an engineer or agent picks up the spec six weeks later, they can trace the bet back to the original signal without asking anyone. The shaping chain is the provenance of the brief.
 
@@ -37,7 +37,7 @@ Before a signal enters this sequence, it is made durable. The [work intake](../h
 
 A PM who lives in a tracker (Linear, Jira, GitHub Issues) takes a shorter path into the brief queue. The tracker-brief-intake skill fetches the issue, maps its metadata to DoR fields, and prompts interactively for anything the tracker issue does not capture (Appetite, Rabbit holes, Instrumentation). The brief enters `[brief_queue].draft` with an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
 
-All three paths converge here: a DoR-ready brief in the queue. From there, `receive-brief` decomposes it into specs and routes them to `[work].queue` for an engineer or agent to execute.
+All three paths converge here: a DoR-ready brief in the queue. From there, `author-delivery-brief continue` decomposes confirmed slices into specs and routes them to `[work].queue` for an engineer or agent to execute.
 
 **Source journey maps:**
 [product-strategist-sets-direction](../../../product/journeys/product-strategist-sets-direction.md) ·

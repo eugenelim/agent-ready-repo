@@ -11,7 +11,7 @@ kind: how-to
 **Prerequisites:** `product-engineering` pack installed; an app-scale repo with app code; a feature idea, request, or brownfield context to shape.
 **Result:** A de-risked feature intent routed directly to one `core` spec when
 it is independently shippable, or to a coordinating brief when several specs
-or repositories need a shared envelope, ready for `new-spec`, `receive-brief`,
+or repositories need a shared envelope, ready for `new-spec`, `author-delivery-brief continue`,
 and `work-loop`.
 
 :::note
@@ -77,7 +77,7 @@ contracts.
 ## 4. Hand off to delivery
 
 From here it's the loop you already have: **`new-spec`** authors a direct
-single-feature contract, while **`receive-brief`** decomposes a coordinating
+single-feature contract, while **`author-delivery-brief continue`** decomposes a coordinating
 brief into specs. In both routes, **`work-loop`** builds the approved spec and
 the `Contract:` seam pins the detailed contract at spec authoring time.
 

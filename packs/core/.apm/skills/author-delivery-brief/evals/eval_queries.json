@@ -1,0 +1,28 @@
+[
+  {"query": "author-delivery-brief create from this stakeholder note.", "should_trigger": true},
+  {"query": "Create a Draft delivery brief from this multi-slice outcome.", "should_trigger": true},
+  {"query": "Turn this requirements packet into a delivery brief, but do not select specs.", "should_trigger": true},
+  {"query": "Author a delivery brief from this cross-repository handoff.", "should_trigger": true},
+  {"query": "Create a Draft delivery brief from this trusted repository intent.", "should_trigger": true},
+  {"query": "Capture these several shippable outcomes in one Draft delivery brief.", "should_trigger": true},
+  {"query": "Write a delivery brief from this email and name its Ready gaps.", "should_trigger": true},
+  {"query": "Start author-delivery-brief create with this admitted brief context.", "should_trigger": true},
+  {"query": "author-delivery-brief continue on docs/product/briefs/export-controls.md.", "should_trigger": true},
+  {"query": "Review this existing delivery brief for Ready.", "should_trigger": true},
+  {"query": "Continue this Draft brief and show me the missing Ready fields.", "should_trigger": true},
+  {"query": "Mark this delivery brief Ready after I confirm the gate.", "should_trigger": true},
+  {"query": "Propose delivery slices from this existing Ready brief.", "should_trigger": true},
+  {"query": "Continue the brief, but leave its zero-spec map empty.", "should_trigger": true},
+  {"query": "Review the existing brief and ask separately before creating specs.", "should_trigger": true},
+  {"query": "Resume delivery-brief readiness and coverage review.", "should_trigger": true},
+
+  {"query": "Write a spec for one export setting.", "should_trigger": false},
+  {"query": "Capture this single outcome as a repository intent.", "should_trigger": false},
+  {"query": "Draft an RFC for a charter change.", "should_trigger": false},
+  {"query": "Review this architecture design.", "should_trigger": false},
+  {"query": "Fix the regression in this failing test.", "should_trigger": false},
+  {"query": "Show workspace status.", "should_trigger": false},
+  {"query": "Implement this approved spec with work-loop.", "should_trigger": false},
+  {"query": "Create an ADR for this decision.", "should_trigger": false},
+  {"query": "Remember this neighbouring-module gap for later.", "should_trigger": false}
+]

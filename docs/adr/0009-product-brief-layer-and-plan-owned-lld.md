@@ -1,6 +1,6 @@
 # ADR-0009: A product-brief layer sits between roadmap and spec; the low-level design lives in the plan with a derived (never baked) stack
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — Decision 1's spec-only coverage map; brief altitude and plan-owned low-level design stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-01
 - **Deciders:** eugenelim
 - **Supersedes:** none

@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.40.1] — 2026-08-28
+
+### Changed
+
+- Workspace MCP brief lifecycle metadata now invokes the canonical
+  `author-delivery-brief` owner. Existing workspace kinds, queues, and artifact
+  paths are unchanged.
+
+### Security
+
+- The packaged `workspace-status` runtime now rejects a queue locator that
+  carries an embedded credential, token, or absolute local path, matching the
+  minimization contract the Core pack applies at intake.
+
 ## [0.40.0] — 2026-08-25
 
 ### Added

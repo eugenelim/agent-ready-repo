@@ -23,13 +23,13 @@ and can **emit** in their format for sign-off.
 ## Three integration directions (reuse-first)
 
 - **Requirements as input (ingest).** An existing BRD/PRD/SRS *seeds* the loop
-  instead of being authored from scratch: **`receive-brief`** (core) +
+  instead of being authored from scratch: **`author-delivery-brief continue`** (core) +
   **`frame-intent`** brownfield current-state inputs ingest it at G0/G1.5; the loop
   then **validates and enriches** it — `frame-domain` grounds it, the lenses add
   the journey/architecture a requirements doc usually lacks, `de-risk-intent`
   surfaces the assumptions it states as fact, and the self-coverage gate covers
   completeness / ambiguity / scenario-variation. *Net-new: at most a thin
-  `receive-brief` extension* that recognizes the requirements-doc shapes — **not** a
+  `author-delivery-brief continue` extension* that recognizes the requirements-doc shapes — **not** a
   new skill.
 - **Refinement at various levels / different times.** Enterprises that refine
   business → system → functional over time map directly onto the **recursive
@@ -49,7 +49,7 @@ Do **not** add a requirements writing / validation / enrichment pillar — the l
 already authors the equivalents, and the self-coverage gate + traceability lint
 already validate them against the IEEE-29148-style quality attributes. Fold
 traditional requirements in via this **crosswalk** (guidance here),
-**`receive-brief` / `frame-intent` ingest** (a thin extension at most), the
+**`author-delivery-brief continue` / `frame-intent` ingest** (a thin extension at most), the
 **traceability slot as the RTM**, and a **projection adapter** to emit the
 enterprise format. This is a reuse-first *integration* recommendation — **not** a
 new decision.

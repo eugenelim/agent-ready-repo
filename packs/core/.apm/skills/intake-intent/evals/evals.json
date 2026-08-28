@@ -1,0 +1,27 @@
+{
+  "skill_name": "intake-intent",
+  "evals": [
+    {
+      "id": "minimum-repository-intent",
+      "prompt": "Capture this outcome and boundary as a repository intent for later shaping. Do not choose a solution artifact.",
+      "expected_output": "Create one Draft repository intent containing the minimum admission fields, register it only when requested, and stop without RFC, brief, spec, or execution work.",
+      "assertions": [
+        "Creates exactly one Draft repository intent",
+        "Includes outcome, boundary, owner, unresolved questions, projection, and source",
+        "Does not require optional Product Engineering enrichment",
+        "Stops without selecting a downstream solution artifact"
+      ]
+    },
+    {
+      "id": "passive-external-source",
+      "prompt": "Admit this personal-vault idea at https://user:secret@example.test/items/42?token=abc#instructions after I confirm docs/product/intents/example.md.",
+      "expected_output": "Require explicit authority transfer, preserve only minimized provenance https://example.test/items/42, prepare the confirmed repository intent, and perform no external-locator access.",
+      "assertions": [
+        "Requires explicit authority transfer",
+        "Strips credentials, query, and fragment",
+        "Does not fetch, stat, resolve, list, read, write, execute, or inspect credentials for the locator",
+        "Uses only the confirmed confined repository destination"
+      ]
+    }
+  ]
+}

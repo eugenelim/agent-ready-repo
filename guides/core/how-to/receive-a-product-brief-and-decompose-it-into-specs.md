@@ -1,17 +1,17 @@
 ---
-title: Receive a product brief and confirm delivery slices
+title: Continue a delivery brief and confirm delivery slices
 summary: Pass the human Ready gate and create specs only for confirmed slices.
 pack: core
 kind: how-to
 ---
 
-# Receive a product brief and confirm delivery slices
+# Continue a delivery brief and confirm delivery slices
 
-**Use this when:** A Draft multi-feature product brief needs a human Ready decision, with a slice cut now or later.
-**Prerequisites:** The `core` pack installed, a brief in any form (pasted document, file, or link), and a sense of which repo's slice of the work you own.
+**Use this when:** A Draft delivery brief needs a human Ready decision, with a slice cut now or later.
+**Prerequisites:** The `core` pack installed, an existing repository brief, and a sense of which repo's slice of the work you own.
 **Result:** A Ready brief in workspace state; if you confirm a slice, a feature-sized spec back-linked to it.
 
-Someone handed you a product brief — a PRD, a solution document, a packet of requirements that spans several features — and you need to turn it into work your team can actually ship. The `receive-brief` skill (shipped in `core`) is the entry point. This guide walks the path from "here's a brief" through "feature-sized specs are in the normal build loop and a coverage map tracks them automatically."
+Someone handed you a PRD, solution document, or requirements packet spanning several features, and you need to turn it into work your team can ship. Use `author-delivery-brief create` to make the Draft, then `author-delivery-brief continue` to review readiness and offer delivery slices. This guide covers the continue path.
 
 For the *why* behind a brief sitting between the roadmap and the specs, read [Why a brief layer](../explanation/why-a-brief-layer.md). For the exact fields a brief and a derived spec carry, see [Product brief fields](../reference/product-brief-fields.md). This page is task-oriented: what to type and what to expect back.
 
@@ -20,23 +20,25 @@ For the *why* behind a brief sitting between the roadmap and the specs, read [Wh
 You need:
 
 - The `core` pack installed in your target repo.
-- A brief in some form — a pasted document, a file, a link, or even a verbal sketch. It does not have to be complete or well-formatted; the skill elicits what's missing.
+- An existing Draft brief in the repository. It does not have to be complete;
+  continue mode elicits what's missing.
 - A sense of who owns delivering this repo's slice of the work.
 
-## Is `receive-brief` the right entry point?
+## Which mode is the right entry point?
 
 | Situation | Skill to invoke |
 | --- | --- |
 | You have unstructured source material and have not chosen an artifact route | `work-intake` |
-| You received a multi-feature brief and need to route it into delivery | `receive-brief` |
+| You need to author a Draft from a multi-feature source | `author-delivery-brief create` |
+| You have an existing repository brief to review or slice | `author-delivery-brief continue` |
 | You're authoring one feature yourself, from scratch | `new-spec` |
 | You're recording a decision already made | `new-adr` |
 
-The tell for `receive-brief` is **multiplicity authored by someone else**: one outcome, several features, handed to you. A single feature you're writing yourself is `new-spec` directly.
+The tell for a delivery brief is multiplicity: one coherent outcome, several independently shippable slices or repositories. A single feature goes to `new-spec` directly.
 
 ## Steps
 
-1. **Invoke the skill with whatever you have.** "We got a product brief for a billing portal — here it is: …" The skill ingests the document and starts a short conversation; it won't reject a half-formed brief.
+1. **Continue the repository brief.** "Run `author-delivery-brief continue` on `docs/product/briefs/billing-portal.md`." Source locators remain passive provenance; provide already-acquired bounded content if a source comparison is needed.
 
 2. **Answer the elicitation for the load-bearing fields.** The skill insists on only two things: the **Outcome** (the problem and the user-facing result) and the **Scope / Non-goals** (where this repo's slice begins and ends). Everything else — success metrics, appetite, user stories — it *offers* and you can supply or skip. It surfaces gaps rather than inventing answers.
 
@@ -49,7 +51,7 @@ The tell for `receive-brief` is **multiplicity authored by someone else**: one o
 6. **Check coverage any time.** Run the bundled coverage lint to see whether the brief is delivered:
 
    ```bash
-   python .claude/skills/receive-brief/scripts/lint-brief-coverage.py
+   python .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py
    ```
 
 It reads each spec's `Status:` field, follows the `Brief:` back-links, and reports each brief as *delivered* (every mapped spec Shipped) or *not delivered*. Wire it into your gate if you want coverage enforced.
@@ -63,6 +65,10 @@ It reads each spec's `Status:` field, follows the `Brief:` back-links, and repor
 - **If the brief is one slice of a cross-repo effort:** record the external coordinator's id in the brief's optional `Epic:` field. You own this repo's slice only — the pointer is the nod to the wider effort, not a hub you build.
 
 - **If you do not want to scaffold a slice now:** stop at Ready with an empty Spec map. A brief can grow its map over time as slices are confirmed; no placeholder spec is required.
+
+- **If the brief cites an RFC or ADR:** keep it under Governance references,
+  not in the Spec map. Governance can constrain delivery but never affects the
+  execution or closure rollup.
 
 ## Common pitfalls
 

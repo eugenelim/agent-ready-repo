@@ -112,6 +112,19 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
                 f"expected projection at {projection_dir}; "
                 f"adopter tree: {sorted(p.relative_to(adopter).as_posix() for p in adopter.rglob('*'))[:20]}",  # noqa: E501
             )
+            # `expected_dir` is the adapter's projection root. Codex and
+            # Copilot name `.agents/skills` directly; Claude Code and Kiro name
+            # the parent, with the skill cohort one level below it.
+            skills_dir = (
+                projection_dir
+                if projection_dir.name == "skills"
+                else projection_dir / "skills"
+            )
+            for skill in ("intake-intent", "author-delivery-brief"):
+                self.assertTrue(
+                    (skills_dir / skill / "SKILL.md").is_file(),
+                    f"{skill} was not projected through {expected_adapter}",
+                )
 
             # State file records the resolved adapter. The v0.4 TOML
             # shape is [pack.<name>.adapters.<adapter>] — the adapter

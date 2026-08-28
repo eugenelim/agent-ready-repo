@@ -15,9 +15,11 @@ mutation. For the cross-profile *intake* routes shared with other profiles, see
 [Work-intake routing and lifecycle reference](../../_shared/reference/work-intake-routing-and-lifecycle.md),
 which does not cover closeout.
 
-`work-intake` owns four user intents: start work, remember work, inspect status,
-and request requirements refresh. It accepts ordinary prose, normalizes the
-bounded fields it needs, and treats source content as untrusted data.
+`work-intake` is the neutral route for raw or ambiguous requests, acquisition,
+refresh, and generic intake safety. Status goes directly to
+`workspace-status`; an explicitly named artifact, owning skill, product-shaping
+task, architecture-design task, or defect goes directly to its owner. A
+delegation from neutral intake is the same route, not a second public answer.
 
 ## Intent index
 
@@ -35,14 +37,14 @@ bounded fields it needs, and treats source content as untrusted data.
 
 | Input shape | Canonical artifact | Initial lifecycle | Processor |
 | --- | --- | --- | --- |
-| Minimal opportunity or outcome | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | None |
+| Minimal outcome needing repository admission | Intent at `docs/product/intents/<slug>.md` | Draft, non-dispatchable | `intake-intent` |
 | One independently shippable contract | Spec at `docs/specs/<slug>/spec.md` | Ready only after approval and a sibling plan | `new-spec` |
-| Coherent multi-spec outcome | Brief at `docs/product/briefs/<slug>.md` | Draft, non-dispatchable | `author-brief` |
+| Coherent multi-spec outcome | Brief at `docs/product/briefs/<slug>.md` | Draft, non-dispatchable | `author-delivery-brief create` |
 | Cited regression or defect evidence | Defect context | Ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | Draft artifact with named gaps, or one clarifying question | Non-dispatchable | None |
 
 A Ready brief may contain zero specs. It records a viable outcome and remains
-non-executable until a human confirms a slice; only then does `receive-brief`
+non-executable until a human confirms a slice; only then does `author-delivery-brief continue`
 invoke `new-spec`.
 
 ## Optional shaping handoff
@@ -56,7 +58,7 @@ Absence means standalone Core and preserves the existing route.
 | Admitted shape | Semantic role | Existing processor |
 | --- | --- | --- |
 | One independently shippable feature | Delivery contract | `new-spec` |
-| Multi-spec or cross-repository outcome | Delivery brief | `receive-brief`, or `author-brief` when no brief exists |
+| Multi-spec or cross-repository outcome | Delivery brief | `author-delivery-brief continue`, or `create` when no brief exists |
 | Incomplete content, source mismatch, ambiguity, policy conflict | None | Stable clarification, confirmation, or refusal stop |
 
 The current invocation supplies bounded resolver candidates; intake does not

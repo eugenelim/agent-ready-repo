@@ -3,7 +3,7 @@
 > **This is a template, not a schema.** It shows the *shape* of a received
 > product brief — a PRD, a solution handoff, an externally-authored packet of
 > work. Copy it to `docs/product/briefs/<slug>.md` and fill in what you have.
-> The `receive-brief` skill elicits the load-bearing fields conversationally
+> `author-delivery-brief continue` elicits the load-bearing fields conversationally
 > and never rejects a half-formed brief for non-conformance, so an empty
 > heading is a prompt, not an error. Keep only the sections that earn their
 > place.
@@ -100,11 +100,21 @@ Outcome + Scope and coverage is spec-granular. -->
 
 <!-- Mechanically present and empty-capable. Add a row only for a confirmed
 delivery slice; leave the table with its header only when there are zero such
-slices. `receive-brief` owns the coverage and Status-column mechanics. -->
+slices. Only specs belong here; RFCs and ADRs never affect execution or
+closure rollups. `author-delivery-brief` owns the coverage and Status-column
+mechanics. -->
 
 | Spec | Status |
 | --- | --- |
 |  |  |
+
+## Governance references (optional)
+
+<!-- RFCs and ADRs that constrain, unlock, or explain delivery. Keep them
+separate from the Spec map because governance references do not become
+executable slices and do not affect delivery rollups. -->
+
+-
 
 ## Design artifacts (optional)
 

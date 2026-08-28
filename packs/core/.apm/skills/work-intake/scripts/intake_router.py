@@ -118,9 +118,9 @@ class HandoffRoute:
 
 
 _START_ROUTES = {
-    "intent": ("shaping_queue.backlog", "none"),
+    "intent": ("shaping_queue.backlog", "intake-intent"),
     "spec": ("work.queue", "new-spec"),
-    "brief": ("brief_queue.draft", "author-brief"),
+    "brief": ("brief_queue.draft", "author-delivery-brief create"),
     "defect": ("backlog.open", "bug-fix"),
 }
 
@@ -166,7 +166,9 @@ def route_intake(
     if signals.ready_brief:
         if signals.artifact_kind != "brief":
             raise ValueError("only a brief can use the ready-brief route")
-        return _route(signals, "brief_queue.ready", "receive-brief", "none")
+        return _route(
+            signals, "brief_queue.ready", "author-delivery-brief continue", "none"
+        )
 
     if signals.named_gaps:
         return _route(signals, "draft-with-gaps", "none", "ask-or-draft-only")
@@ -177,7 +179,8 @@ def route_intake(
             if signals.alias == "capture-work"
             else "materialize-draft-and-register-non-dispatchable"
         )
-        return _route(signals, "backlog.open", "none", mutation)
+        processor = "intake-intent" if signals.artifact_kind == "intent" else "none"
+        return _route(signals, "backlog.open", processor, mutation)
 
     if signals.action != "start" or signals.artifact_kind not in _START_ROUTES:
         raise ValueError("unsupported intake routing signals")
@@ -283,11 +286,11 @@ def route_handoff(
             surface_resolution=surface_resolution,
         )
 
-    processor = (
-        "receive-brief"
-        if surface_resolution.role == "delivery-brief"
-        else "new-spec"
-    )
+    if surface_resolution.role == "delivery-brief":
+        mode = "continue" if locator.kind == "repository-path" else "create"
+        processor = f"author-delivery-brief {mode}"
+    else:
+        processor = "new-spec"
     return _handoff_route(
         signals,
         "reuse",

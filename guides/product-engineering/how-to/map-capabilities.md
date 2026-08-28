@@ -21,7 +21,7 @@ to build — before any spec or brief is written.
 
 ## When to run `map-capabilities`
 
-Run `map-capabilities` after `place-bet` and before `lean-canvas` / `author-brief`.
+Run `map-capabilities` after `place-bet` and before `lean-canvas` / `author-delivery-brief create`.
 It is step 6 — the terminal step — of the PE six-step shaping sequence:
 
 ```
@@ -36,7 +36,7 @@ If you do not yet have a bet, run `place-bet` first.
 **Not the right skill if:**
 
 - You are working on a single feature or screen → use `frame-intent`.
-- You want to author the initiative brief → use `lean-canvas` or `author-brief`
+- You want to author the initiative brief → use `lean-canvas` or `author-delivery-brief create`
   (run those after this skill, not instead of it).
 
 ---
@@ -111,7 +111,7 @@ After the capability map is committed:
 
 1. Run `lean-canvas` to author the initiative brief (maps the bet and capability
    map to a structured business brief).
-2. Or run `author-brief` directly if you are working from an externally sourced brief.
+2. Or run `author-delivery-brief create` directly if you are working from an externally sourced brief.
 3. Use the build sequence to seed `workspace.toml [work].queue` for M3–M6 spec-writing.
 
 ---

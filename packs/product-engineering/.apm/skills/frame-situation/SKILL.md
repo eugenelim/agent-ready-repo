@@ -70,7 +70,7 @@ Do **not** write to `workspace.toml`.
 ## Anti-patterns to refuse
 
 - Writing to `workspace.toml` or a literal hardcoded path.
-- Producing a brief (that is `place-bet` + `author-brief`'s job).
+- Producing a brief (that is `place-bet` + `author-delivery-brief create`'s job).
 - Forcing a Wardley stage when evidence is insufficient — name it as a residual
   assumption instead.
 - Forcing an altitude when it is **genuinely ambiguous** — ask instead.

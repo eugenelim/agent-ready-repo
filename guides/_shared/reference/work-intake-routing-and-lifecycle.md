@@ -49,8 +49,8 @@ owned.
 | --- | --- | --- | --- | --- |
 | Minimal opportunity | intent | shaping backlog or repository backlog | `none` | No |
 | One independently shippable behavior | spec | `work.queue` only after approval and sibling plan | `new-spec` | Yes after gates |
-| One coherent outcome needing several specs | brief | `brief_queue.draft` | `author-brief` | Yes for drafting; not for implementation |
-| Cross-repository outcome | one linked local brief per repository | `brief_queue.draft` | `author-brief` | Yes for each local slice |
+| One coherent outcome needing several specs | brief | `brief_queue.draft` | `author-delivery-brief create` | Yes for drafting; not for implementation |
+| Cross-repository outcome | one linked local brief per repository | `brief_queue.draft` | `author-delivery-brief create` | Yes for each local slice |
 | Unrelated collection or incoherent view | separate units, view-only result, or Draft with named gaps | none or non-dispatchable Draft | `none` | No |
 | Regression with durable expected-behavior evidence | defect context | `backlog.open` | `bug-fix` | Yes after context exists |
 | Claimed defect without that evidence | Draft with a named evidence gap | non-dispatchable | `none` | No |

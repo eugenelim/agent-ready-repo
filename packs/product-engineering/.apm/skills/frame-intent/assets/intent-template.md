@@ -90,7 +90,7 @@ it under the chosen prototype-approach. -->
 
 <!-- The next level down: child intents (a lower `Level:`) or, at the leaf, the
 spec/slice this becomes. At app scale the leaf feature intent *is* a `core`
-brief — `receive-brief` takes it from there. Leave empty until decompose-intent
+brief — `author-delivery-brief continue` takes it from there. Leave empty until decompose-intent
 runs. -->
 
 -

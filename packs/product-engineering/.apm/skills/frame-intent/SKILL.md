@@ -175,7 +175,7 @@ writing.
 directly under `<output_dir>/intents/<slug>.md`. A per-topic folder is deliberately
 **not** used: each intent is a single file handed downstream to `de-risk-intent`
 and `decompose-intent`. `decompose-intent`'s `docs/product/briefs/<slug>.md`
-output stays **pinned** — that path is the hand-off to core's `receive-brief`
+output stays **pinned** — that path is the hand-off to core's `author-delivery-brief continue`
 and is not governed by this config (a deliberate non-goal of this layout config).
 
 ## Spotting a missing parent — offer, never block

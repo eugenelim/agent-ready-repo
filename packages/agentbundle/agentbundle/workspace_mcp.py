@@ -118,7 +118,7 @@ _LIFECYCLE_MANIFEST: dict[str, dict] = {
         "required_pack": None,
     },
     "brief": {
-        "dispatch_skill": "receive-brief",
+        "dispatch_skill": "author-delivery-brief continue",
         "output_pattern": None,
         "has_gates": False,
         "required_pack": None,

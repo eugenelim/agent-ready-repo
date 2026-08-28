@@ -67,14 +67,14 @@ Before decomposing, confirm:
      and safe source provenance as attributed context; do not write or approve
      the spec here.
    - **A multi-spec or cross-repository outcome** — emit a coordinating
-     `delivery brief` for the existing `receive-brief` gate. At
+     `delivery brief` for the existing `author-delivery-brief continue` gate. At
      `business-unit` Scale, slice it per component. Read the affected components and their
      `providesApi`/`consumesApi` edges + the contract references from the
      meta-repo's catalog (`align-value-stream`), and stamp each brief with
      `parent-intent:` (the intent it was projected from), a `contract@version`
      reference + read-only courier snapshot, and a provider/consumer role. Seed
      one rollup row per slice in the meta-repo. Each brief then crosses into its
-     component repo, where `receive-brief` → `new-spec` → `work-loop` take over.
+     component repo, where `author-delivery-brief continue` → `new-spec` → `work-loop` take over.
      Coordinating across repos this way has hard limits (no atomic cross-repo
      commit, no shared release train) — `align-value-stream` states them honestly.
 

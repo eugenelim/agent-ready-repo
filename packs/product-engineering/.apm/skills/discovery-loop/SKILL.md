@@ -289,7 +289,7 @@ with the round/cost counters reset.
   independently shippable feature is a `delivery contract`; a multi-spec or
   cross-repository outcome is a `delivery brief`. The bounded handoff goes
   through `work-intake`, which preserves the existing `new-spec` or
-  `receive-brief` gate rather than skipping into implementation.
+  `author-delivery-brief continue` gate rather than skipping into implementation.
 - **The self-coverage gate runs as the pre-G2 phase**, and
   `discovery-loop` is the **primary home of the full seven-module
   design-convergence instantiation** — it carries its **own co-scoped copy of all
@@ -353,8 +353,8 @@ in their format for sign-off. The full crosswalk is
 [`references/requirements-crosswalk.md`](references/requirements-crosswalk.md). In
 brief:
 
-- **Requirements as input** — `receive-brief` + `frame-intent` brownfield ingest
-  seeds the loop (a thin `receive-brief` extension at most — **not** a new skill).
+- **Requirements as input** — `author-delivery-brief continue` + `frame-intent` brownfield ingest
+  seeds the loop (a thin `author-delivery-brief continue` extension at most — **not** a new skill).
 - **The traceability slot serves as the RTM.**
 - **Requirements as output** — a formal BRD/SRS/RTM with sign-off rides the
   **converters / md-to-office projection adapter**, not a discovery

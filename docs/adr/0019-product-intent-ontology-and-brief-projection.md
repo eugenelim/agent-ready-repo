@@ -1,6 +1,6 @@
 # ADR-0019: Product shaping is a recursive level-tagged `intent` tree; a brief is a feature-intent projected onto one repo; contracts mature by stage
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — Decision 2's feature-intent-only brief projection and universal `receive-brief` receiver; the recursive ontology and staged contract maturity stand) <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-13
 - **Deciders:** eugenelim
 - **Supersedes:** none
