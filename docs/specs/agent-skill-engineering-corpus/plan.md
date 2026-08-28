@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Corpus
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` (D3 topology
   at 207-254, D8 promotion classes at 496-506 and security rules at 507-519,
   Gate 1/2 measures at 577-591, the encyclopedia falsifier at 536) and
@@ -107,6 +107,31 @@ Two standing obligations close it instead, and they bind every task:
 A file discovered missing from a `Touches` line during EXECUTE is added to that
 line in the same commit that touches it, so the plan converges on reality
 rather than the reverse.
+
+## What this plan does not contain
+
+The acceptance criteria are the checklist. This plan does not restate them.
+
+An earlier revision tried to: it carried a prose bullet for each conjunct of
+each criterion, so the plan alone stated every property that would be checked.
+That is a second home for 122 facts with nothing keeping the two in sync, and
+four consecutive repair passes each left a different conjunct behind — the
+defect was the mirror, not the passes. A 122-conjunct audit taken at that point
+read 104 covered, 7 uncovered, 11 uncertain.
+
+What lives here instead:
+
+- **Strategy** — approach, layer map, dependency order, design decisions that
+  are not derivable from the spec.
+- **Mechanism an implementer cannot infer** — which suite proves a property and
+  where it lives, which fixture carries which join key, which shipped assertion
+  a change will move. That is the only thing a `Tests:` bullet is for here.
+- **Red stubs** for the six criteria the spec's Testing Strategy declares TDD,
+  and a `no stub (mode)` record for the rest.
+
+Verification happens at GATES, by running things. The QA record captures what
+was observed, after the fact. Where a criterion's conjunct needs no mechanism
+beyond reading the criterion, this plan is silent about it on purpose.
 
 ## Construction tests
 
@@ -216,11 +241,24 @@ RFC-0097:493 binds it to every admitted concept, and the erratum narrowed only
 the promotion basis.
 An `observed-practice` group carries `{observations: [>=2 at distinct skill
 paths in distinct packs], applicability_limit, revalidation_trigger}` and no
-promotion class.
+promotion class. The limit carries both conjuncts the criterion states — the
+population it names and the statement that the claim is not established beyond
+it — asserted at T5's seam rather than by decomposing the field.
 
 `topology-leaves.json`: names, `source_ref`, `expected_count: 36`. Nothing
 else — a leaf's admitted-or-unpopulated state is read from the compiled tree
 and the compiled unpopulated record, so it has one home.
+
+`generic-negatives.json`: `{schema_version, expected_count: 40,
+prompts: [{prompt_id, prompt}]}` — identified per prompt, mirroring
+`router-cases.json`, because the equality below needs a join key and bare
+strings do not supply one. `generic-negatives-results.json`:
+`{schema_version, evaluation_mode, source_digest, router_digest,
+generated_tree_digest, run, results: [{prompt_id, returned_body: bool}]}`. The
+two `prompt_id` sets are asserted equal, and the prompt count is asserted
+against `expected_count`, so the falsifier's denominator is pinned on both
+sides. Two files, because an equality inside one file compares a list with
+itself.
 
 `foundation-retrieval-pins.json`: 24 `(id, measured_topics)` pairs, read from
 `router-results.json`'s `actual_topics` **before** any corpus change and never
@@ -316,8 +354,9 @@ None added.
   this change touches, mirror their spec's `Status` — including the foundation
   row currently reading `Implementing` against a `Shipped` spec. (AC15)
 - INI-009 carries a distinct `Delivery-cut variances` section naming both
-  departures; a grep for that heading and the brief's slice-table rows
-  succeeds. (AC16)
+  departures **and the authority for each** — the criterion requires the
+  authority, not only the departure; a grep for that heading and the brief's
+  slice-table rows succeeds. (AC16)
 - `lint-spec-status.py` and `lint-brief-coverage.py` exit 0.
 
 - `no stub (goal-based)` — the check is reconciliation output plus two linters,
@@ -344,10 +383,6 @@ entry, both linters exit 0, and the ratchet suite is green.
 **Touches:** packs/agent-skill-engineering/tests/fixtures/skill-census.json, tests/roster/test_skill_census.py
 
 **Tests:**
-- Every skill under `packs/*/.apm/skills/` resolves to a family or an exception
-  with a role-or-placeholder owner and a rationale. (AC1)
-- The recorded population size equals live discovery. (AC1)
-- The failure message names the owning surface and the re-census command. (AC1)
 - No `exception.owner` value is a person.
 - The new roster module is reachable by a gate CI runs — observed under
   `pytest tests/ --collect-only`, not assumed. (AC18)
@@ -403,10 +438,6 @@ observed running under `pytest tests/` rather than assumed to.
 **Touches:** packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json
 
 **Tests:**
-- The transcription holds exactly 36 leaves and its `expected_count` matches;
-  each name is unique; it carries no per-leaf state. (AC5)
-- The pins hold 24 `(id, measured_topics)` pairs equal to the recorded run as
-  it stands before any corpus change. (AC8)
 
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`):
 
@@ -447,18 +478,15 @@ observed running under `pytest tests/` rather than assumed to.
 **Touches:** packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
 
 **Tests:**
-- Each of the three records at least one claim group with a declared basis, its
-  required fields, a last-verification date, and a named reviewer. (AC2)
-- Each shipped provenance-and-lifecycle section carries, per claim group, the
-  fields that group's basis requires, field-for-field against the admission
-  record — the applicability limit for `observed-practice`, source identities
-  and dates for `doctrine`. A topic declaring both carries both. (AC3)
+- No shipped provenance-and-lifecycle section contains any `reviewer` value from
+  `topic-admission.json` — an absence assertion over the bundle-root bodies and
+  the compiled tree. Nothing else catches it: AC9's forbidden set is paths, AC
+  citations, and governance records, and a person or handle is none of
+  those. (AC3)
 - No shipped applicability limit contains a pack path, a skill path, or a pack
   name: it names its population in portable terms. This is the clause that
   keeps parity from pushing repository structure across the export
   boundary. (AC3, AC9)
-- Where a group declares `doctrine`, its record carries a `clause` and at least
-  two runtimes — presence and well-formedness only. (AC2)
 - Each of the 24 pinned pairs still holds after this task's re-record. (AC8)
   T5 edits the three shipped bodies, so it is the first task that can move a
   foundation case; waiting until T7 to notice would lose the attribution.
@@ -505,7 +533,9 @@ observed running under `pytest tests/` rather than assumed to.
   the default is `observed-practice`; give each the applicability limit it
   lacks, naming the population it was drawn from **in portable terms** — the
   authored agent skills of the catalogue this pack is developed in, their
-  count, and the census date, with no pack or skill path. The concrete
+  count, the census date, **and that the claim is not established beyond that
+  population** — the second conjunct the criterion requires and the round-4
+  refutation's own example carried — with no pack or skill path. The concrete
   observation paths stay in the non-projected fixture, which is what lets the
   parity check hold without exporting repository structure.
 - Do not claim `public-contract` for trigger-quality or instruction-density:
@@ -530,21 +560,6 @@ must close green.
 **Touches:** packs/agent-skill-engineering/tests/pack/test_corpus_admission.py
 
 **Tests:**
-- Every compiled topic declares a basis per claim group and carries that
-  basis's required fields, well-formed. (AC2)
-- A `doctrine` group's sources each carry identity, `retrieved_at`, and an
-  exposed version or an explicit `none exposed`. (AC2)
-- A `repeated-observed-failures` group names one shared mechanism, not one per
-  failure. (AC2)
-- Every claim group carries a revalidation trigger, whichever basis it
-  declares. (AC2)
-- An `observed-practice` group additionally carries >=2 observations at distinct
-  skill paths in distinct packs and an applicability limit; those two are
-  basis-specific, the trigger is not. (AC2)
-- Every compiled topic has >=2 retrieval cases whose **measured** result is that
-  topic alone, read from the recorded run. (AC4)
-- Each of the 36 leaves is in exactly one of the compiled set or the compiled
-  unpopulated record. (AC5)
 
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_corpus_admission.py`):
 
@@ -662,12 +677,10 @@ match.
 **Touches:** packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/, packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
 
 **Tests:**
-- Every unadmitted leaf records a reason — including, where it applies, that
-  neither basis could be evidenced — and what would admit it. (AC5)
-- A request naming an unpopulated leaf returns the gap statement and applicable
-  admitted topics, and no body for that leaf. (AC5)
-- That case's declared `expected_topics` is the applicable admitted topics, so
-  it is **not** a zero-expectation case. Declaring it `[]` would fail the
+- That case's declared `expected_topics` is the applicable admitted topics, up
+  to the shipped three-topic cap the suite asserts over every case, so it is
+  **not** a zero-expectation case and cannot exceed the bound the measurement is
+  held to. Declaring it `[]` would fail the
   shipped assertion that every zero-expectation case returns nothing, and every
   relief route is closed: AC7 pins that assertion as must-not-weaken, AC6
   forbids re-authoring an expectation after the measuring run, and the Never-do
@@ -710,30 +723,35 @@ T8 defers to T9 rather than re-measuring.
 
 **Depends on:** T7, T8
 
-**Touches:** packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/fixtures/generic-negatives.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
+**Touches:** packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/fixtures/generic-negatives.json, packs/agent-skill-engineering/tests/fixtures/generic-negatives-results.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
 
 **Tests:**
-- The retrieval case list holds >=40 cases of which >=20 are topic-bearing,
-  counted over that list alone and excluding the generic-negative population.
-  (AC6)
-- >=90% exact-or-approved; precision and recall each >=90%; and **no** case
-  returns more than three topics — the absolute bound the shipped suite already
-  asserts. (AC6)
-- A fixed 40-prompt generic-engineering negative set returns a body for <=5% of
-  prompts, measured into its own results fixture under the same digest triple
-  and evaluation mode as the retrieval record. The set is authored rather than
-  transcribed, and its prompts do not join `router-cases.json`: the shipped
-  suite asserts zero-tolerance on every zero-expectation case there, which is
-  stricter than 5% and is not weakened. (AC7)
-- The negatives results fixture asserts that its result set equals the fixed
-  40-prompt set, so the 5% bar is computed over a record proven complete rather
-  than over whatever was transcribed. The retrieval pair's
+- AC6's rates are computed by the shipped suite
+  (`packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py`), which
+  already asserts exact-set, bounded-selection, precision and recall and caps
+  every case at three topics. This task extends that suite rather than adding a
+  second one, and raises its `len(cases) >= 20` floor. (AC6)
+- The negatives prompt fixture asserts a count of exactly 40, and the negatives
+  results fixture asserts that its result set equals that prompt set — pinned on
+  both sides, as the taxonomy transcription already is. Equality alone proves
+  the results complete against whatever was authored, leaving the falsifier's
+  denominator free to shrink. The retrieval pair's
   result-set-equals-case-set guard does not reach this fixture. (AC7)
 - Each of the 24 pinned `(id, measured_topics)` pairs has a measured result
   equal to its pinned pair — per case, read from the T4 fixture this task does
   not write. (AC8)
-- Two clean compiles byte-identical; staged-tree run reads nothing outside it;
-  hostile metadata still refuses; provider-side fixtures still pass. (AC9)
+- Two clean compiles byte-identical; the staged tree carries no authoring-source
+  bytes and no checkout-relative path into that source; the staged run reads
+  nothing outside it. (AC9)
+- The hostile-metadata properties are proven by the compiler's own suite, not
+  this pack's: run `pytest packs/catalogue-curation/tests/skills/compile-okf/`
+  as a command — `test_apply.py` carries the refusal-before-mutation, the
+  rejection of writes resolving outside the output root, and the read-only
+  drift check, and `test_parser.py` carries stable diagnostic identity. This
+  pack's own `hostile-title` fixtures cover index-entry escaping, which is a
+  different property. Run it; do not import it, and do not assume it. (AC9)
+- The provider-side security fixtures inherited from the foundation still pass
+  and are unmodified by this change. (AC9)
 
 - `no stub (goal-based)` — every bar is a measured rate over an assembled tree;
   the assertions extend the shipped suite's existing rate checks.
@@ -759,7 +777,9 @@ T8 defers to T9 rather than re-measuring.
 - A corpus with no governed source, an ambiguous router selection, a retrieval
   evaluation declaring no negatives, and a handoff granting the generated half
   mutation authority each declare their refusal class and bounded diagnostic,
-  and each declared response conforms to the contract's rules. (AC12)
+  and each declared response conforms to the contract's rules. The fixture
+  carries a schema version, as the criterion's "versioned" requires and the
+  pack's other fixtures do. (AC12)
 
 - `no stub (goal-based)` — fixture conformance over declared responses, in the
   shape the pack's provider-contract suite already uses.
@@ -780,13 +800,15 @@ T8 defers to T9 rather than re-measuring.
 **Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md, .../references/, packs/agent-skill-engineering/tests/fixtures/unsupported-mode-cases.json, packs/agent-skill-engineering/tests/pack/test_pack_boundary.py, packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py
 
 **Tests:**
-- The workflow advertises exactly the four modes. (AC10)
-- The mode loads its four mode-specific modules and no other mode-specific
-  module, while the common contract's safety module still governs reads and
-  writes. (AC10)
-- The five remaining modes return the versioned unavailable response and are
-  absent from both descriptions; the count floor equals the reduced
-  enumeration. (AC11)
+- The mode loads exactly its four mode-specific modules — the knowledge-provider
+  pattern, provenance, retrieval-evaluation, and security-boundary modules,
+  named rather than counted — and no other mode-specific module, while the
+  common contract's safety-and-authority module still governs every read and
+  write. (AC10)
+- Entering the mode begins read-only, and a write requires an explicit user
+  transition. These are the write-gate properties of the one writable mode this
+  slice adds, and they were carried as design prose with nothing verifying
+  them. (AC10)
 - Nothing under `.apm/**` contains a repository-only path, an
   acceptance-criterion citation, or an internal governance record — re-asserted
   here because this task authors the four mode modules, the highest-risk
@@ -795,6 +817,38 @@ T8 defers to T9 rather than re-measuring.
   including plural, space-separated, and hyphen-split spellings — is detected,
   and a reworded opening naming no mode is not. (AC11)
 
+- PLAN-time red stub (`packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`):
+
+  ```python
+  # STUB: AC10 — the mode contract. The shipped pins are satisfied by a sentence
+  # naming only create and update, so they stay green whether or not the new
+  # writable mode is inside the transition gate; these name it.
+  import pathlib
+
+  SKILL = (
+      pathlib.Path(__file__).resolve().parents[3]
+      / ".apm/skills/author-or-update-agent-skill/SKILL.md"
+  )
+
+  def test_advertised_modes_and_write_gate() -> None:
+      text = SKILL.read_text(encoding="utf-8")
+      for mode in ("frame", "create", "update", "knowledge-provider"):
+          assert f"`{mode}`" in text
+      assert "knowledge-provider" in _transition_sentence(text)
+      assert "read-only" in _mode_entry_sentence(text, "knowledge-provider")
+
+  def test_mode_specific_modules_are_exactly_four() -> None:
+      assert _modules_for("knowledge-provider") == {
+          "knowledge-provider-pattern.md",
+          "provenance.md",
+          "retrieval-evaluation.md",
+          "security-boundaries.md",
+      }
+  ```
+
+  `stub: true` — EXECUTE writes the three helpers against the shipped SKILL.md
+  structure. The mode contract is one of the six criteria the spec declares TDD,
+  and it was the only one without a stub.
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
 
   ```python
@@ -1047,5 +1101,55 @@ layer writes durable state outside the repository, and no migration runs.
   conjunct gained the sixth mutation it was missing; the unpopulated record
   gained a stated home at `concepts/<subdir>/`, which the compiler projects and
   routes to and which the shipped topic-set assertion does not reach; and the
-  negatives results fixture gained the completeness assertion its digest
-  binding alone did not supply.
+  negatives results fixture gained, **in the spec**, the completeness assertion
+  its digest binding alone did not supply. The plan-side bullet for it landed in
+  revision 8, not here.
+- 2026-08-28: revision 8. Contract amendment, run through the full cycle after
+  an earlier attempt edited the approved plan out of band: `approve-plan`
+  refused, its message offered two readings, and the recovery steps scoped to
+  the second were applied to the first — preserving the hashes but not the
+  gates. `contract-amendment` turned out to be unavailable here, since it
+  requires a completed-task evidence binding and no task has run, so both state
+  machines were reset and the planning gates re-walked under a new run id.
+  Three acceptance-criterion clauses gained plan-side implementation (T5, T8,
+  T9), and a scoped re-review then found the amendment had itself implemented
+  two of three AC3 obligations and one of two AC2 conjuncts.
+  A 122-conjunct coverage audit across all 18 criteria — 104 covered, 7
+  uncovered, 11 uncertain — established that the defect was structural rather
+  than incidental: the plan had been maintaining a hand-built mirror of every
+  conjunct, which four passes each left one short. This revision therefore
+  stops mirroring. A task's `Tests:` now name the mechanism and cite the
+  criterion as the checklist, and a task closes only when every conjunct of each
+  criterion it cites has been walked and evidenced in the QA record. The
+  mechanisms the audit found genuinely absent are named in the tasks: the
+  reviewer identity's absence from shipped bodies, AC2's scope-bound conjunct,
+  the fallback case's three-topic bound, the negatives results fixture and its
+  40-prompt count pinned on both sides, AC9's three unimplemented
+  hostile-metadata properties, AC10's two write-gate properties for the one
+  writable mode this slice adds, AC16's authority requirement, and AC12's
+  fixture versioning.
+- 2026-08-28: revision 9. Reduction. Revision 8's standing rule was itself
+  defective — it bound whole-criterion closure to the first task citing a
+  criterion, which the layer split makes unsatisfiable for T1, T4 and T7, and
+  its evidence ledger lived in a file only T13 touches. Rather than repair the
+  rule governing the mirror, the mirror is gone: `## What this plan does not
+  contain` states that the acceptance criteria are the checklist and that a
+  `Tests:` bullet exists only to name a mechanism an implementer cannot infer.
+  Twenty-two restatement bullets were removed from T3-T6, T8, T9 and T11; the
+  mechanism they surrounded stayed, mostly in the Approach sections where it
+  already lived. Added: the AC10 red stub, which the spec's own Testing Strategy
+  required and which was the one missing of six; the negatives fixtures' join
+  key and count, because an equality between a bare-string list and an
+  identified list has no defined key; the module path and command that actually
+  prove AC9's hostile-metadata properties, which live in the compiler's pack and
+  which this pack's `hostile-title` fixtures do not cover; and the shipped suite
+  that already computes AC6's rates, so it is extended rather than duplicated.
+  Two changes from revision 8 were reverted as over-reach after adjudication:
+  decomposing `applicability_limit` into subfields, where an assertion at T5's
+  existing seam suffices, and restating the repository-wide privacy rule locally
+  under a carve-out that does not reach a pack fixture.
+  The file did not get shorter: 22 restatement bullets left (-47 lines) while a
+  red stub, four mechanism notes and this entry landed (+61). That is the
+  intended direction even so — prose asserting obligations went down, executable
+  claims went up, and the seventh stub is code that compiles and fails rather
+  than a sentence that cannot. The spec has not changed since approval.
