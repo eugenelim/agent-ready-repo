@@ -31,7 +31,7 @@ TDD covers parity, bounds, admission, state/digest, diagnostics, selection, re-c
 
 ### T0a: Spike — normalization parity
 
-**AC:** AC15  
+**AC:** AC22  
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
@@ -39,7 +39,7 @@ Hand-author canonical, direct, and expected-normalized fixtures; compare repo/us
 
 ### T0b: Spike — manifest schema expressiveness
 
-**AC:** AC6  
+**AC:** AC8  
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
@@ -47,7 +47,7 @@ Test a throwaway schema against catalogue and direct fixtures. **Done when:** bo
 
 ### T0c: Spike — installed-file map versus digest
 
-**AC:** AC9, AC13, AC17  
+**AC:** AC11, AC20, AC24  
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
@@ -55,15 +55,15 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 
 ### T0d: Spike — corpus admission
 
-**AC:** AC25  
+**AC:** AC32  
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
-Clone at least fifteen real public skill repositories, classify each, and measure both bound families against the shape's own content. **Done when:** the verdict table is committed and every refusal is attributable to a named shape exclusion or budget. A first run over eighteen repositories (2026-08-28) admitted seven and recorded: the widest real layouts are root-level skill directories (`<name>/SKILL.md`, e.g. 864 and 846 skills in the two most-starred repositories) and category nesting (`skills/<category>/<name>/SKILL.md`), both outside the two accepted shapes; the tightest budget headroom is depth, at a measured 7 against a limit of 10 for `anthropics/skills` (`skills/xlsx/scripts/office/schemas/ecma/fouth-edition/`), which trips AC25's 50% rule; every other budget cleared with 56% or more headroom (worst: 572/5,000 entries, 438/1,000 files, 275 KiB/1 MiB largest file, 10.2/25 MiB total).
+Clone at least fifteen real public skill repositories, classify each, and measure both bound families against the shape's own content. **Done when:** the verdict table is committed and every refusal is attributable to a named shape exclusion or budget. A first run over eighteen repositories (2026-08-28) admitted seven and recorded: the widest real layouts are root-level skill directories (`<name>/SKILL.md`, e.g. 864 and 846 skills in the two most-starred repositories) and category nesting (`skills/<category>/<name>/SKILL.md`), both outside the two accepted shapes; the tightest budget headroom is depth, at a measured 7 against a limit of 10 for `anthropics/skills` (`skills/xlsx/scripts/office/schemas/ecma/fouth-edition/`), which trips AC32's 50% rule; every other budget cleared with 56% or more headroom (worst: 572/5,000 entries, 438/1,000 files, 275 KiB/1 MiB largest file, 10.2/25 MiB total).
 
 ### T1: Harden GitHub acquisition
 
-**AC:** AC2, AC16, AC18  
+**AC:** AC2–AC4, AC23, AC25  
 **Depends on:** none  
 **Verification:** TDD.
 
@@ -73,7 +73,7 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T2: Establish direct-manifest behavior
 
-**AC:** AC6  
+**AC:** AC8  
 **Depends on:** T0b  
 **Verification:** TDD.
 
@@ -83,17 +83,17 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T3: Classify roots and inventory
 
-**AC:** AC1, AC10, AC16, AC23, AC24  
+**AC:** AC1, AC12–AC15, AC23, AC30, AC31  
 **Depends on:** none  
 **Verification:** TDD.
 
-**Tests:** shape matrix, measured paths rooted only at `skills/` plus direct-pack root `pack.toml`, or root `SKILL.md` plus payload directories (never repository context), and the Family-2 measure order (enumeration budgets, then read per-file → total). **T3 owns the diagnostic-attribution mechanism.** A spike against the real helper established: `list_confined_regular_files` refuses a file-typed `directory` argument (`directory boundary is unsafe: SKILL.md`), so named files must be read, never enumerated; `root=<source>, directory=<payload dir>` works, so AC24's binding is achievable; and a budget breach and an entry-integrity refusal are both bare `UnsafeContentError`, distinguished in the message alone (`source tree exceeds entry-count limit` versus `source entry is not a regular file: <path>`), which AC10 forbids parsing. Only `max_entries` must therefore be a helper parameter — file count, selected-skill count, and depth are derivable from the returned paths, so each carries its own diagnostic without a second traversal. Settle bound-versus-integrity attribution without message parsing and record the chosen mechanism here; note that a depth-only chain of empty directories is bounded by the entry budget rather than the depth budget. Set entry limit to 5,000, depth limit to 10, file limit to 1,000, and selected-skill limit to 500: a 5,001-entry directory reaches the entry code; an 11-level directory reaches the depth code; a 1,001-file directory reaches the file code; and a 501-skill fixture (1,002 entries, 501 files, depth 2) reaches only the selected-skill code. Add a multi-directory accumulation fixture that no per-directory implementation can pass: a root single with 600 files under `scripts/` and 401 under `references/`, each individually under 1,000, which must reach the file code. Add an entry-integrity fixture — a symlink inside `skills/<one>/scripts/` — asserting the integrity code and its offending path, never a budget code. Add one link-like fixture for every measured path (each enumerated directory and each named file), plus a link-like non-measured marker fixture (a symlinked root `pack.toml` beside a valid `skills/`) and a wrong-type fixture per marker kind, each asserting the measured-path-integrity code; add E13 fixtures for a link-like/special root sibling beside valid `skills/` and for a root sibling tree exceeding 5,000 entries, each proving ignored content is absent from counts, normalized tree, digest preimage, AC11 summary, file plan, and projection. Cover special entries with Windows `unknown`/no-write arms, and no-write snapshots that detect creation, content/mode change, deletion, and empty directories. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_classification_contract`.
+**Tests:** shape matrix, measured paths rooted only at `skills/` plus direct-pack root `pack.toml`, or root `SKILL.md` plus payload directories (never repository context), and the Family-2 measure order (enumeration budgets, then read per-file → total). **T3 owns the diagnostic-attribution mechanism.** A spike against the real helper established: `list_confined_regular_files` refuses a file-typed `directory` argument (`directory boundary is unsafe: SKILL.md`), so named files must be read, never enumerated; `root=<source>, directory=<payload dir>` works, so AC31's binding is achievable; and a budget breach and an entry-integrity refusal are both bare `UnsafeContentError`, distinguished in the message alone (`source tree exceeds entry-count limit` versus `source entry is not a regular file: <path>`), which AC12–AC15 forbids parsing. Only `max_entries` must therefore be a helper parameter — file count, selected-skill count, and depth are derivable from the returned paths, so each carries its own diagnostic without a second traversal. Settle bound-versus-integrity attribution without message parsing and record the chosen mechanism here; note that a depth-only chain of empty directories is bounded by the entry budget rather than the depth budget. Set entry limit to 5,000, depth limit to 10, file limit to 1,000, and selected-skill limit to 500: a 5,001-entry directory reaches the entry code; an 11-level directory reaches the depth code; a 1,001-file directory reaches the file code; and a 501-skill fixture (1,002 entries, 501 files, depth 2) reaches only the selected-skill code. Add a multi-directory accumulation fixture that no per-directory implementation can pass: a root single with 600 files under `scripts/` and 401 under `references/`, each individually under 1,000, which must reach the file code. Add an entry-integrity fixture — a symlink inside `skills/<one>/scripts/` — asserting the integrity code and its offending path, never a budget code. Add one link-like fixture for every measured path (each enumerated directory and each named file), plus a link-like non-measured marker fixture (a symlinked root `pack.toml` beside a valid `skills/`) and a wrong-type fixture per marker kind, each asserting the measured-path-integrity code; add E13 fixtures for a link-like/special root sibling beside valid `skills/` and for a root sibling tree exceeding 5,000 entries, each proving ignored content is absent from counts, normalized tree, digest preimage, AC16–AC18 summary, file plan, and projection. Cover special entries with Windows `unknown`/no-write arms, and no-write snapshots that detect creation, content/mode change, deletion, and empty directories. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_classification_contract`.
 
 **Done when:** classification is deterministic and every mandatory refusal leaves the snapshot equal.
 
 ### T4: Normalize direct sources
 
-**AC:** AC15, AC16  
+**AC:** AC22, AC23  
 **Depends on:** T0a, T3  
 **Verification:** TDD.
 
@@ -103,7 +103,7 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T4a: Lift bounded metadata primitives
 
-**AC:** AC10, AC11  
+**AC:** AC12–AC15, AC16–AC18  
 **Depends on:** none  
 **Verification:** TDD.
 
@@ -113,18 +113,18 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T5: Compose admission and diagnostics
 
-**AC:** AC5, AC7, AC10–AC12, AC16, AC18, AC24  
+**AC:** AC7, AC9, AC12–AC15–AC19, AC23, AC25, AC31  
 **Depends on:** T1, T2, T4, T4a  
 **Verification:** TDD.
 
 **Tests:** failure registry, validate/preflight parity, character/parser/PyYAML controls, one-observation `read_confined_regular_file(..., max_bytes=1 MiB, include_mode=True)` control and `UnsafeContentError`/tar-error translation, a 1 MiB+1 file refusal, candidate-path-integrity diagnostic, no-bypass/NFC-case-fold collision cases, direct entry-point boundary, and registry typing. Statically assert direct modules have no `Import`/`ImportFrom` of `subprocess` or `runpy`, no `ImportFrom os` execution member, and no `lstat`/`stat`/`fstat`/`resolve` except the named candidate-probe carve-out; prohibit the explicit `os` execution-name frozenset plus the `os.spawnv` prefix fixture; and prohibit `ast.Name` uses of `exec`, `eval`, `compile`, `__import__`, and imported `os` execution names. Add one mutation fixture for each family (explicit `os` member, `subprocess` import, `os.spawnv` prefix, and builtin name) that fails if its control is removed. Include one fixture per U+115F/U+1160/U+2065/U+3164/U+FFA0/U+FFF0–U+FFF8, pin the generated Unicode-data version, and assert an invisible-letter name refuses at identity rather than display stripping. **Stub:** `packages/agentbundle/tests/unit/test_direct_admission.py::test_direct_admission_diagnostic_registry`.
 
-**Discovery predicate:** derive the diagnostic-code set here; once published it must satisfy AC18/AC22.  
+**Discovery predicate:** derive the diagnostic-code set here; once published it must satisfy AC25/AC29.  
 **Done when:** mandatory failure is fail-closed and both routes use shared admission.
 
 ### T6: Add direct state and digest
 
-**AC:** AC8, AC9, AC13, AC17, AC19  
+**AC:** AC10, AC11, AC20, AC24, AC26  
 **Depends on:** T0c, T4  
 **Verification:** TDD.
 
@@ -134,7 +134,7 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T7: Extend validate and grammar
 
-**AC:** AC3, AC12  
+**AC:** AC5, AC19  
 **Depends on:** T5  
 **Verification:** TDD plus T11 manual QA.
 
@@ -144,26 +144,26 @@ Clone at least fifteen real public skill repositories, classify each, and measur
 
 ### T8: Implement install selection, summary, and receipt
 
-**AC:** AC3, AC4, AC11, AC16–AC18  
+**AC:** AC5, AC6, AC16–AC18, AC23–AC25  
 **Depends on:** T1, T5, T6  
 **Verification:** TDD plus Manual QA.
 
-**Tests:** TDD stub covers AC4 exit-1 selection arms and source-preserving recovery-command text; fixtures cover selection, dry run, line-anchored delimited untrusted publisher data (including instruction-shaped one-line values, delimiter-line equality refusal, and a normalized 4,097-UTF-8-byte value refusal), summary, unknown executable mode on Windows, confirmation, receipt, sentinel control, non-executable projection, and no-write snapshots. Record the built CLI Manual-QA evidence in T11. **Stub:** `packages/agentbundle/tests/integration/test_direct_install.py::test_collection_selection_refusals`.  
+**Tests:** TDD stub covers AC6 exit-1 selection arms and source-preserving recovery-command text; fixtures cover selection, dry run, line-anchored delimited untrusted publisher data (including instruction-shaped one-line values, delimiter-line equality refusal, and a normalized 4,097-UTF-8-byte value refusal), summary, unknown executable mode on Windows, confirmation, receipt, sentinel control, non-executable projection, and no-write snapshots. Record the built CLI Manual-QA evidence in T11. **Stub:** `packages/agentbundle/tests/integration/test_direct_install.py::test_collection_selection_refusals`.  
 **Done when:** local/remote runs record deterministic selection, admissibility summary, SHA receipt, and refusal integrity.
 
 ### T9: Complete lifecycle behavior
 
-**AC:** AC3, AC5, AC8, AC12, AC13, AC17, AC19, AC21  
+**AC:** AC5, AC7, AC10, AC19, AC20, AC24, AC26, AC28  
 **Depends on:** T8  
 **Verification:** TDD plus T11 manual QA.
 
-**Tests:** cover grammar refusals, `--check` default-off direct status with no outbound request, stored-source grammar failure rendering `unknown` without a request, list/show fields, digest/footprint-DRIFT, conflicts, interruption, all scopes, `upgrade --all` refusing capability acceptance, and SHA-pinned remote plus required refusal-printed local digest-pin re-consent including capability drift. AC21 has a parameterized stub for manifestless and direct-pack route-valid acceptance, allowed-tools set inequality including declared → `undeclared (unrestricted)`, `SKILL.md` digest inequality, added/removed skill identities, payload digest/set under each of `scripts/`, `references/`, `assets/`, and `evals/`, boundary-set inequality in either direction, credentialed normalized-value inequality, and each adapter’s lossless round-trip of compared fields. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`; **Stub:** `packages/agentbundle/tests/unit/test_direct_upgrade.py::test_capability_reconsent_directions`.
+**Tests:** cover grammar refusals, `--check` default-off direct status with no outbound request, stored-source grammar failure rendering `unknown` without a request, list/show fields, digest/footprint-DRIFT, conflicts, interruption, all scopes, `upgrade --all` refusing capability acceptance, and SHA-pinned remote plus required refusal-printed local digest-pin re-consent including capability drift. AC28 has a parameterized stub for manifestless and direct-pack route-valid acceptance, allowed-tools set inequality including declared → `undeclared (unrestricted)`, `SKILL.md` digest inequality, added/removed skill identities, payload digest/set under each of `scripts/`, `references/`, `assets/`, and `evals/`, boundary-set inequality in either direction, credentialed normalized-value inequality, and each adapter’s lossless round-trip of compared fields. **Stub:** `packages/agentbundle/tests/unit/test_direct_source_state.py::test_interrupted_install_leaves_unowned_projection`; **Stub:** `packages/agentbundle/tests/unit/test_direct_upgrade.py::test_capability_reconsent_directions`.
 
 **Done when:** direct skills are listable, showable, upgradable, removable, and recoverable without sentinel leakage.
 
 ### T10: Publish documentation and help
 
-**AC:** AC3, AC14, AC22  
+**AC:** AC5, AC21, AC29  
 **Depends on:** T7, T8, T9  
 **Verification:** Goal-based; no stub.
 
@@ -179,7 +179,7 @@ Append `"packages/agentbundle/tests/": 3200` after the two desk-research entries
 
 ### T11: Run the joined steel thread
 
-**AC:** AC1–AC25  
+**AC:** AC1–AC32  
 **Depends on:** T1, T9, T10, T10a  
 **Verification:** Manual QA; no stub.
 
@@ -187,7 +187,7 @@ Append `"packages/agentbundle/tests/": 3200` after the two desk-research entries
 
 ### T12: Record boundary security evidence
 
-**AC:** AC20  
+**AC:** AC27  
 **Depends on:** T1, T5, T8, T11  
 **Verification:** Goal-based; no stub.
 
@@ -195,7 +195,7 @@ Apply the five required checklist modules and record dispositions at `docs/specs
 
 ### T13: Prepare release artifacts
 
-**AC:** AC2, AC6  
+**AC:** AC2–AC4, AC8  
 **Depends on:** T11, T12  
 **Verification:** Goal-based; no stub.
 
