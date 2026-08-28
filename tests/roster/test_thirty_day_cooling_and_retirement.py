@@ -148,6 +148,11 @@ def test_cooling_module_calls_no_clock() -> None:
     ):
         assert (receiver, attribute) not in called
         assert ("<bare>", attribute) not in called
+        # The receiver-typed form is the one a real implementation reaches for:
+        # `dt = datetime; dt.now()` binds a local name the two checks above
+        # never see. Asserting the attribute under any receiver is what makes
+        # this guard able to fail; without it a mutant passes.
+        assert ("<any>", attribute) not in called
 
 
 # STUB: AC7
