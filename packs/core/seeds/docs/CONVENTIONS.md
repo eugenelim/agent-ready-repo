@@ -83,18 +83,20 @@ appears once there are real architecture decisions to hold work to.
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
 
-**The brief altitude.** A *brief* (`docs/product/briefs/<slug>.md`) sits between
-the roadmap and the specs — it is where an externally-authored, multi-feature
-product handoff (a PRD, a solution packet) lands when it's too big to be one
-spec. The altitude reads `roadmap → brief → spec → AC`: the roadmap names
-themes, a brief records one received outcome and the specs that deliver it, a
+**The delivery-brief altitude.** A *delivery brief*
+(`docs/product/briefs/<slug>.md`) sits between the roadmap and the specs — it
+is where a multi-feature delivery handoff (a PRD, a solution packet, or
+repo-authored coordination brief) lands when it is too big to be one spec. The
+altitude reads `roadmap → delivery brief → spec → AC`: the roadmap names
+themes, a delivery brief records one outcome and the specs that deliver it, a
 spec is the engineering contract for one feature, and an acceptance criterion
-is the testable unit. A brief owns only **this repo's slice**; an optional
+is the testable unit. A delivery brief owns only **this repo's slice**; an optional
 `Epic:` field points up to an external coordinator when the work spans repos.
 A derived spec links back to its brief with a `Brief:` field (see § 4), and
 the brief's coverage map rolls up automatically from those specs' `Status:`
-fields. Use the `receive-brief` skill to receive, decompose, and execute a
-brief; it never mandates a schema.
+fields. Use `author-delivery-brief create` for raw input or
+`author-delivery-brief continue` for an existing brief; it never mandates a
+schema beyond the load-bearing delivery contract.
 
 ---
 
@@ -394,6 +396,15 @@ change as you learn things — **while the plan is `Drafting` or `Executing`**.
 Once it is `Done` and the spec `Shipped`, the directory freezes as a unit; see
 § *A spec directory freezes as a unit, when the spec ships*.
 
+**Durable outputs own lasting truth.** A durable spec identifies the semantic
+owners it expects to create or update before implementation starts: user
+documentation, current product truth, current architecture, decision rationale,
+interface or operations contracts, maintainer procedure, release history, and
+reusable learning when applicable. The spec/plan pair may be retained as frozen
+delivery history, but it is not a substitute for those living owners. Tests and
+source remain executable capability proof; they do not preserve product intent,
+rationale, authority, ownership, or non-executable operational promises.
+
 **Lifecycle:** specs are **living documents** for the duration of a feature's
 implementation. If implementation diverges from the spec, the spec is wrong;
 update it in the same PR. After the feature ships the spec **freezes**: at that
@@ -402,6 +413,16 @@ agreed, not a description of current behaviour. A later behaviour change is
 recorded where it belongs — in the code, and in an ADR if it reverses a
 decision — never by rewriting the shipped spec. When a later decision reverses
 part of one, annotate its Status field; see § *Superseding a frozen document*.
+
+**Rigor and retention are separate.** Full-mode work may still use a
+local-only or PR-only spec/plan when the approved record is confined,
+fingerprinted, available to every required participant, and has an independent
+post-closeout evidence owner. That choice affects where the live delivery
+container may reside, not the approval, gate, or review standard. If another
+person, worktree, CI job, or external control plane must read the contract,
+session-local memory is not enough; use an established shareable surface or
+retain the record. After implementation, `close-work` settles durable outputs
+and workspace coordination before any delivery container can be removed.
 
 Guards, pre-checks, and invariant-enforcement added during implementation are
 ACs, not implementation details — if they affect observable behavior (exit
@@ -448,17 +469,20 @@ mechanical rule.
   applies this gate to new specs and to specs whose section is removed in the
   current diff; existing sectionless specs are grandfathered. A reasonless or
   malformed marker, or a marker alongside a real section, is a hard violation.
-- **Deferral token.** A criterion that ships *unmet on purpose* because
-  genuinely deferred in-scope work remains is not left unchecked and silent —
-  it carries an inline `(deferred: <slug>)` marker whose `<slug>` resolves to a
-  `slug` field in `workspace.toml [backlog].open`, the durable register of open
-  work. Form: `- [ ] <outcome> (deferred: <slug>)`. This is not the default
-  disposition for an excluded out-of-scope discovery: acknowledge that work in
-  the PR's *What did you not change that you considered?* answer instead. If
-  its owner explicitly asks to remember it, route that capture through
-  `work-intake`. A deferral recorded only in a PR comment rots; the register is
-  version-controlled and greppable. Run `workspace-status` to see all open
-  backlog items.
+- **No new shipped acceptance debt.** A spec newly transitioning to `Shipped`
+  has every final accepted criterion checked. If required accepted work remains,
+  the spec stays `Implementing` across sessions. If the owner agrees that work
+  is separable, amend the spec/plan, remove it from the final AC set, and
+  record it under `## Follow-ons` with an owner and stable work-intake artifact
+  or external evidence reference. The amended fingerprint receives the normal
+  review and human approval before implementation resumes.
+- **Historical deferral token.** Frozen specs may still contain older inline
+  `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
+  resolve to a `slug` field in `workspace.toml [backlog].open`; Wave 7 owns any
+  historical migration. Do not use this marker as a new shipping exception. A
+  follow-on recorded only in a PR comment rots; the register or external
+  artifact is the stable pointer. Run `workspace-status` to see open backlog
+  items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
   (`docs/product/briefs/<slug>.md` — the brief file's real path, which
@@ -674,9 +698,9 @@ right now?"
   nested inside it. A published package also keeps its own `CHANGELOG.md`
   beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
   readers who get the package and not the repository.
-- `briefs/<slug>.md` (optional) — a received, externally-authored
-  multi-feature product brief and its auto-rolled-up coverage map. Created by
-  the `receive-brief` skill; one file per brief. See the brief altitude under
+- `briefs/<slug>.md` (optional) — a multi-feature delivery brief and its
+  auto-rolled-up coverage map. Created or continued by the
+  `author-delivery-brief` skill; one file per brief. See the delivery-brief altitude under
   *Document hierarchy*.
 - `personas.md` (optional) — who we're building for. Add only if it's
   actively used to make decisions; speculative personas rot.
@@ -754,6 +778,15 @@ list order, tracker labels, and profile hints are non-semantic: they cannot
 select a route, satisfy a dependency, choose a processor, or authorize
 dispatch. Only an existing Approved `spec.md` with an existing sibling
 `plan.md` and valid unique workspace membership may start from the queue.
+
+Workspace prose stays terse and present-tense. A generated or materially
+updated entry carries minimal provenance, one short summary of the current
+outcome or next-needed condition, and hard dependencies only. It must not carry
+history, rationale, procedure, review transcript, raw finding, copied source
+text, soft priority, or suggested order in comments or adjacent fields. When
+that context matters, write it to the resolved canonical artifact first and
+index only the pointer. Settled live coordination is removed or compacted; it
+is not replaced with a workspace history.
 
 Repository-origin artifacts are locally authoritative. Tracker-origin
 artifacts record source reference/revision and exactly one closed authority
@@ -1045,7 +1078,7 @@ Each journey phase ships its capability and its guide together. A phase whose to
 
 **What counts as a guide for a phase:** a Diátaxis artifact in `guides/` (see *§ 5c. guides/*) that covers the capability the phase introduces. The guide need not be comprehensive — it should orient the user to the capability and link to the reference for the rest.
 
-**Enforcement:** the `receive-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
+**Enforcement:** the `author-delivery-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
 
 ### Work-loop state
 

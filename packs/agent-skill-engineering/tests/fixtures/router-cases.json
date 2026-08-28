@@ -1,0 +1,27 @@
+[
+  {"id":"new-skill-purpose","prompt":"Frame the purpose and non-goals for a new migration-review skill","expected_topics":["framing-and-trigger-quality"]},
+  {"id":"activation-positive-negative","prompt":"Write positive and negative trigger examples for this agent skill","expected_topics":["framing-and-trigger-quality"]},
+  {"id":"description-catchall","prompt":"Why does this skill description activate for every coding task?","expected_topics":["framing-and-trigger-quality"]},
+  {"id":"skill-or-normal-capability","prompt":"Decide whether this workflow needs a skill at all","expected_topics":["framing-and-trigger-quality"]},
+  {"id":"authorization-at-trigger","prompt":"Does activating a skill authorize its write operation?","expected_topics":["framing-and-trigger-quality","resources-scripts-and-exit-contracts"]},
+  {"id":"split-large-skill","prompt":"Split this long SKILL.md into conditional references","expected_topics":["instruction-density-and-progressive-disclosure"]},
+  {"id":"orphan-reference","prompt":"Find references that no instruction ever routes to","expected_topics":["instruction-density-and-progressive-disclosure"]},
+  {"id":"duplicate-rule","prompt":"Remove duplicated guidance without losing its retrieval cue","expected_topics":["instruction-density-and-progressive-disclosure"]},
+  {"id":"mode-loading","prompt":"Make frame, create, and update load only their own procedures","expected_topics":["instruction-density-and-progressive-disclosure"]},
+  {"id":"asset-or-reference","prompt":"Should this template be an asset or an instruction reference?","expected_topics":["instruction-density-and-progressive-disclosure","resources-scripts-and-exit-contracts"]},
+  {"id":"script-exit","prompt":"Define stable exit codes and diagnostics for this skill helper","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"script-determinism","prompt":"Prove the generated helper output is byte-identical twice","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"interrupted-write","prompt":"Specify recovery when a skill script is interrupted during write","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"cleanup-denied","prompt":"Handle cleanup denial without erasing unrelated files","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"python-extension","prompt":"Add an optional Python extension without changing the portable floor","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"node-extension","prompt":"Add an optional TypeScript Node extension point","expected_topics":["resources-scripts-and-exit-contracts"]},
+  {"id":"full-new-skill","prompt":"Create a well-triggered skill with concise progressive references and a deterministic helper","expected_topics":["framing-and-trigger-quality","instruction-density-and-progressive-disclosure","resources-scripts-and-exit-contracts"]},
+  {"id":"review-existing-skill","prompt":"Review activation, context loading, and script failure behavior in this skill","expected_topics":["framing-and-trigger-quality","instruction-density-and-progressive-disclosure","resources-scripts-and-exit-contracts"]},
+  {"id":"near-miss-generic-code","prompt":"Refactor this Python service for readability","expected_topics":[]},
+  {"id":"near-miss-architecture","prompt":"Design a multi-region event platform","expected_topics":[]},
+  {"id":"near-miss-prose","prompt":"Edit this handbook paragraph for tone","expected_topics":[]},
+  {"id":"integration-org-standards","prompt":"Use the organization agent standards available through an eligible knowledge provider","expected_topics":[]},
+  {"id":"integration-framework-library","prompt":"Query the installed framework skills library provider","expected_topics":[]},
+  {"id":"integration-agent-reference","prompt":"Invoke the agent-skills reference knowledge provider","expected_topics":[]}
+]
+

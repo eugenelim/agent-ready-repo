@@ -1326,3 +1326,13 @@ record. Corrections are appended here, Approver-signed.
 
   Recorded in `workspace.toml` (`["ini-008"]` milestone and `["ini-008".work]`
   entries) and in the four `*-reanchor` backlog items.
+
+- **2026-08-27 (Approver: eugenelim) — Artifact admission and delivery-brief
+  identities are refined by RFC-0099.**
+
+  RFC-0099 sections 2 and 10 replace only this RFC's holdings that
+  `work-intake` authors the minimum repository intent and that `author-brief`
+  and `receive-brief` are the public brief owners. `intake-intent` now owns
+  repository-intent admission, and `author-delivery-brief` owns create and
+  continue behind bounded aliases. This RFC's neutral routing, acquisition,
+  refresh, authority, and compatibility-migration holdings remain unchanged.

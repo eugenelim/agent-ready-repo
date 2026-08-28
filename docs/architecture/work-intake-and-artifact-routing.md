@@ -2,17 +2,26 @@
 
 ## 1. Purpose and boundary
 
-`work-intake` is the shared local front door for starting, remembering,
-inspecting, and refreshing repository work. It classifies content by delivery
-role, writes a canonical artifact before its lifecycle entry when a durable
-route is selected, and dispatches only after both are valid. An eligible
-explicit direct-light request remains session-local.
+`work-intake` is the neutral local front door for raw, ambiguous, acquisition,
+refresh, and intake-safety requests. Status and explicitly named artifact or
+work-type requests route directly to their owner. For durable classified input,
+it writes the canonical artifact before its lifecycle entry and dispatches only
+after both are valid. An eligible explicit direct-light request remains
+session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
 repository state. `workspace-status` reads and reconciles repository state and
 owns the temporary reviewed migration transaction for accepted legacy entries.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
+
+`work-loop` owns implementation and returns bounded completion evidence.
+`close-work` owns the later inventory, whole-surface freshness audit, lifecycle
+projection, disposition intent, initiative settlement, lifecycle records in
+`docs/lifecycle/`, and any separately confirmed immediate effect. It is the only
+writer of cooling state. `workspace-status` may project closeout blockers and
+next actions, but it never distils context, selects policy, or mutates closeout
+state.
 
 The same boundary owns a shared read-only semantic-surface resolver. Callers
 supply bounded candidates; the resolver applies repository policy and
@@ -38,8 +47,16 @@ Absence of the object is standalone Core and follows the existing routes.
 
 - `work-intake` selects direct-light, intent, brief, spec, defect,
   Draft-with-gaps, remember, status, or refresh behavior.
+- `intake-intent` creates or admits the minimum repository intent.
+- `author-delivery-brief create` turns raw multi-spec or cross-repository input
+  into a Draft coordination brief; `continue` makes an existing brief Ready and
+  confirms spec slices.
 - `workspace-status` reports canonical ready, active, blocked, shipped,
-  authority, refresh, reconciliation, and retained legacy state.
+  authority, refresh, reconciliation, retained legacy state, and read-only
+  closeout orientation.
+- `close-work` pauses resumable work, verifies delivery evidence and durable
+  semantic owners, recommends one of RFC-0096's six dispositions, and owns
+  separately authorized coordination or immediate-disposal effects.
 - Jira, Jira Align, GitHub, and Linear intake adapters emit the same strict
   normalized contract and delegate the route.
 - Profile refresh processors resolve by exact profile ID/version and return a
@@ -68,6 +85,10 @@ Absence of the object is standalone Core and follows the existing routes.
 | Migration ledger | `.workspace-migrations.json` | Authorized `workspace-status` migration transaction | Recovery, rollback, audit |
 | Selection and confirmation | Human-authored repository-relative JSON supplied out of band | Human reviewer/approver | Migration planner/effect only |
 | Direct-light decision record | Active session only | `work-loop` | Requester and current session |
+| Completion evidence handoff | Active closeout invocation or stable evidence owner named by the delivery run | `work-loop` produces bounded references; no closeout authority | `close-work` and reviewers |
+| Pause overlay | Existing resolved writable shaping or build coordination surface | `close-work`, after exact write authority | Resume path and status projection |
+| Dependency-scoped completion receipt | Existing compatible coordination surface while a live dependency cites it | `close-work`, after exact write authority | Dependent work and closeout |
+| Cooling lifecycle record | `docs/lifecycle/<delivery_id>.json` | `close-work` | Day-30 review and status projection |
 | Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
 | Optional shaping handoff | Validated `normalized-intake.v1` envelope in the active invocation | Upstream producer owns offered content; Core owns validation and admission | `work-intake`, then the selected existing processor |
 
@@ -75,6 +96,14 @@ Absence of the object is standalone Core and follows the existing routes.
 requirements store. Target entries contain exactly `path`, `kind`, `source`,
 `summary`, and `needs`; comments, summaries, order, labels, and hints cannot
 select a route, satisfy a dependency, or authorize dispatch.
+
+Durable product intent, rationale, user promises, current architecture,
+interfaces, operations, maintainer procedure, release history, and reusable
+learning remain in their established semantic owners. Specs and plans coordinate
+delivery; code and tests prove executable capability. Neither is a universal
+substitute for the other. A delivery record may leave only after `close-work`
+verifies that every lasting fact has reached its owner and the affected human
+surfaces remain coherent as wholes.
 
 ## 4. Dependencies and allowed edges
 
@@ -155,8 +184,31 @@ invocation already supplies bounded content at the matching pinned revision.
    of these outcomes changes lifecycle state.
 8. An optional shaping handoff validates before content reads or effects. A
    resolved delivery contract continues through `new-spec`; a resolved delivery
-   brief continues through `receive-brief`. Those processors retain their
+   brief continues through `author-delivery-brief continue`. Those processors retain their
    assumption, Ready, slice-confirmation, spec, plan, and human approval gates.
+9. Before implementation, a durable spec maps applicable lasting facts to
+   resolver-selected owners and names stale current surfaces as plan work. A
+   user-facing change drafts its established user documentation first when that
+   surface exists.
+10. `work-loop` implements the accepted contract and returns bounded evidence:
+    accepted outcome, implemented scope, gates, durable-output status, stable
+    references, obligations, dependencies, completion event, and independent
+    authority facts. It does not close or disposition the work.
+11. `close-work` reacquires evidence, inventories the plan's Design/LLD and
+    implementation findings, and requires human whole-surface freshness review.
+    Unowned non-inferable truth, a stale surface, or a live obligation blocks.
+12. A pause preserves Ready or Implementing state through a reference-only
+    restorable overlay in an existing writable surface. Closeout does not start.
+13. A completed, abandoned, or superseded item moves through Closeout-pending
+    only under `close-work`. For `cool-30-days`, it enrols cooling state in `docs/lifecycle/`, computes
+    the review date, and answers dueness from an injected instant. Disposition is intent,
+    never deletion permission; every persisted effect needs a separately resolved authority
+    fact and fresh human confirmation bound to the exact current
+    resource and evidence.
+14. Initiative coordination can settle independently from artifact retention.
+    An RFC or decision family may remain anchored after its terse workspace entry
+    leaves. A completion receipt keeps only delivery ID, outcome, completion
+    event, and evidence reference while a live dependency needs it.
 
 Classification routes an explicit start to exactly one durability class:
 
@@ -197,7 +249,7 @@ confirmed shaping gate
 work-intake admission
         |
         +-- delivery contract --> new-spec
-        +-- delivery brief ----> receive-brief
+        +-- delivery brief ----> author-delivery-brief continue
         +-- ambiguity/refusal --> stable zero-effect stop
 ```
 
@@ -226,11 +278,30 @@ resolver data, and unacquired external content. No handoff result changes
 lifecycle state. Dependencies carried in the handoff remain context until the
 existing workspace contract separately admits and satisfies them.
 
+Closeout fails closed when a durable destination is ambiguous or stale, a lasting
+fact exists only in the delivery container, a compatible pause/receipt surface is
+absent, or source, write, and deletion authority do not independently support the
+requested action. Disposition never supplies authority. Every immediate deletion
+re-resolves, confines, enumerates, fingerprints, and checks source-state evidence
+before effect; drift expires confirmation. Committed removal is an ordinary
+reviewed change and never a history rewrite.
+
+Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine.
+It requires the platform time-zone database for `zoneinfo`; if a named zone is
+unavailable, it returns `unknown-timezone` with no UTC fallback.
+Wave 6 and 7 own ordinary-context exclusion and historical migration and pruning behavior.
+
 ## 7. Observability, evidence, and the compatibility window
 
 `workspace.toml`, canonical artifacts, and `workspace-status` provide the
 observable routing and lifecycle record. Provenance records the source locator
 and revision without copying credentials or a tracker payload.
+
+Closeout evidence is layered. Stable source, test/eval, gate, review, and release
+references prove capability and chronology; current semantic owners preserve the
+human meaning that those references cannot reconstruct. Pause overlays and
+completion receipts contain references only, never copied contracts, transcripts,
+credentials, personal identity, or embedded instructions.
 
 Each resolved semantic-surface result reports its role, logical and physical
 locator, bounded evidence, availability, writability, confinement, revision or
@@ -272,6 +343,13 @@ artifacts and migration evidence.
   custom repository and external destinations, mandatory-policy rejection,
   ambiguity, absence, and the boundary-change dual output. It pins the resolver
   and published schema bytes so consumers cannot widen Wave 1 by accident.
+- The close-work matrix pins the same resolver and canonical file-safety helper,
+  crosses all lifecycle/disposition/refusal paths, proves exact single-use
+  authority and drift behavior, and checks pause, receipt, initiative, and
+  read-only status projection without adding a Wave 5–7 schema. Current detail
+  lives in [`close_work.py`](../../packs/core/.apm/skills/close-work/scripts/close_work.py),
+  its [behavior tests](../../packs/core/tests/skills/close-work/), and the
+  [maintainer how-to](../../guides/core/how-to/close-and-disposition-work.md).
 
 These skill scripts run in the finish-time checklist and can run as fail-closed
 CI gates where a PR event and Python exist. They do not fail closed inside an
@@ -289,6 +367,7 @@ Maintainer procedures live in
 ## 9. Relevant decisions
 
 - [RFC-0083 — Work intake and artifact routing](../rfc/0083-work-intake-and-artifact-routing.md)
+- [RFC-0096 — Portable delivery-artifact lifecycle](../rfc/0096-portable-delivery-artifact-lifecycle.md)
 - [ADR-0009 — Product brief layer and plan-owned LLD](../adr/0009-product-brief-layer-and-plan-owned-lld.md)
 - [ADR-0019 — Product intent ontology and brief projection](../adr/0019-product-intent-ontology-and-brief-projection.md)
 - [ADR-0033 — Intent-level open recognized set decoupled from scale](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
@@ -299,9 +378,10 @@ Maintainer procedures live in
   start-route materialization rule for captured and indexed items while leaving
   its workspace-entry dispatchability rule unchanged.
 
-## 10. Last verified against commit
+## 10. Last verified surface
 
-`f7660b008`
-
-Verified against the normalized-intake handoff, semantic resolver, routing,
-pack integration, projection, evaluation, and documentation surfaces.
+Core `2.15.0`, against neutral intake precedence, repository-intent admission,
+delivery-brief create/continue, the normalized-intake handoff, semantic
+resolver, `work-loop` evidence handoff, `close-work` source, cooling source and
+tests, lifecycle record documentation, workspace projection, pack metadata,
+evaluation, and documentation surfaces.

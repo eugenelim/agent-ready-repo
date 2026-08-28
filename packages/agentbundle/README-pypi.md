@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.40.1
+
+Workspace MCP lifecycle metadata now dispatches briefs to the canonical
+`author-delivery-brief` owner. Existing workspace kinds, queues, paths, and
+lifecycle semantics are unchanged.
+
 ## What's new in 0.40.0
 
 Catalogue builds now produce offline-validatable Agent Plugins 1.0.0 packages

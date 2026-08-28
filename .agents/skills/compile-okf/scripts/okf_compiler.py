@@ -55,11 +55,32 @@ PACK_TOML_MAX_BYTES = 64 * 1024
 PRIOR_MANIFEST_MAX_BYTES = 4 * 1024 * 1024
 MANAGED_OUTPUT_MAX_BYTES = 32 * 1024 * 1024
 PRIOR_MANIFEST_INTEGER_MAX_DIGITS = 128
+INDEX_DISPLAY_INPUT_MAX_CHARS = 200
 _SAFE_DIR_FD_SUPPORTED = all(
     function in os.supports_dir_fd
     for function in (os.open, os.mkdir, os.rename, os.stat, os.unlink)
 )
 _WINDOWS_DEVICE = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)", re.IGNORECASE)
+# The shapes GFM turns into a link with no delimiter around them. `ftp://` is one
+# of them on cmark-gfm — the renderer this metadata is actually read through —
+# even though micromark leaves it inert, so verifying against one renderer alone
+# is not enough. A bare address is another, so matching `mailto:` alone left the
+# common case open.
+_REMOTE_SCHEME = re.compile(r"(?:(?:https?|ftp)://|www\.|mailto:)", re.IGNORECASE)
+# Anchored on `@`, deliberately. Leading with the local part
+# (`[A-Za-z0-9._%+-]+@`) made `re.search` retry at every offset and backtrack the
+# greedy class looking for an `@` that is not there: 16 000 dotted characters cost
+# 2.7s and the frontmatter cap is 65 536 bytes, so one value was ~44s of CPU. A
+# one-character lookbehind does the same job in one linear pass, and every
+# repetition is bounded.
+#
+# The final label must end in a letter, which is what cmark-gfm actually
+# linkifies: it links `x@y.z` and `a_b@c-d.io` but leaves `Rev@1.2`,
+# `Deploy@v1.2` and `tag@10.0.0.1` inert. Matching more than the renderer does
+# would refuse a legal version string such as `Rev@1.2` and fail the compile.
+_REMOTE_ADDRESS = re.compile(
+    r"(?<=[A-Za-z0-9._%+-])@(?:[A-Za-z0-9_-]{1,63}\.){1,8}[A-Za-z0-9_-]{0,62}[A-Za-z]\b"
+)
 _UNSAFE_METADATA_KEYS = {
     "attester",
     "executor",
@@ -72,6 +93,76 @@ _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 MANAGED_INDEX_MARKER = "<!-- agentbundle-managed: profile=agentbundle-okf/v1 kind=okf-index -->"
 ROUTER_HANDOFF_MARKER = "<!-- agentbundle-okf: router-handoff=author-owned -->"
 ASSET_ROOT = Path(__file__).resolve().parent.parent / "assets"
+# A path acts as syntax two ways inside a CommonMark link destination: it can
+# break out structurally, or it can form a character reference the renderer
+# resolves. Both classes are encoded; everything else, including non-ASCII, is
+# left literal so the destination stays the path a reader can open.
+_LINK_DESTINATION_UNSAFE = re.compile(
+    r"""[\x00-\x20\x7f-\x9f\u2028\u2029"#%&'();<>\\^`{|}]"""
+)
+
+
+def _control_class_escapes() -> dict[str, str]:
+    """Escape every C0 control, DEL, C1 control, and U+2028/U+2029.
+
+    Covering the class rather than listing its members is deliberate. An
+    enumeration named seven separators and still omitted three that
+    ``str.splitlines()`` breaks on, so one entry could read as two to a
+    plain-text reader while the list looked complete. The destination encoder
+    covers the same range, so both legs of a rendered line agree.
+    """
+    friendly = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
+    table = {
+        chr(code_point): friendly.get(chr(code_point), f"\\x{code_point:02x}")
+        for code_point in (*range(0x20), 0x7F, *range(0x80, 0xA0))
+    }
+    table["\u2028"] = r"\u2028"
+    table["\u2029"] = r"\u2029"
+    return table
+
+
+_INDEX_DISPLAY_ESCAPES = str.maketrans(
+    {
+        "\\": r"\\",
+        # C0 controls, DEL, C1 controls, and the Unicode line and paragraph
+        # separators. Any of these lets one entry look like several, and a few
+        # act below Markdown entirely: an escape sequence repaints a terminal,
+        # and a NUL truncates a null-terminating reader.
+        **_control_class_escapes(),
+        # Link and autolink structure.
+        "[": r"\[",
+        "]": r"\]",
+        "(": r"\(",
+        ")": r"\)",
+        "<": r"\<",
+        ">": r"\>",
+        # Code-span and emphasis delimiters. A backtick pair spanning two fields
+        # swallows the entry's own destination; `*` and `_` distort the entry.
+        "`": r"\`",
+        "*": r"\*",
+        "_": r"\_",
+    }
+)
+
+# GFM linkifies a bare `www.` host and a `scheme://` URL with no surrounding
+# Markdown at all, so a display value can render as a live link without
+# containing a single delimiter. Escaping the one punctuation mark each trigger
+# requires renders the same text and leaves the link inert.
+#
+# Escaping is only used for the triggers where it is *proven* to work. Checked
+# against cmark-gfm, the renderer this output is read through, and micromark:
+# `www\.`, `http\://`, `https\://` and `ftp\://` are all defused on both.
+#
+# A bare `a@b.tld` address is deliberately NOT here. cmark-gfm resolves character
+# escapes into text before its autolink pass scans, so `a\@b.tld` still renders a
+# live `mailto:` link — the escape is inert against the extension, and
+# `a&#64;b.tld` bypasses it the same way. Escaping it would be theatre and would
+# corrupt an ordinary `a@b` for nothing, so the address shape is refused instead:
+# in frontmatter by `OKF009`, and in a path component by the path gate.
+_AUTOLINK_TRIGGERS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(www)(\.)", re.IGNORECASE), r"\1\\\2"),
+    (re.compile(r"(https?|ftp|mailto)(:)", re.IGNORECASE), r"\1\\\2"),
+)
 
 
 @dataclass(frozen=True)
@@ -239,6 +330,7 @@ def render_okf_bundle(
     bundle_id: str,
     router_skill: str,
     projected_concepts: Mapping[str, str],
+    provider_capability: Mapping[str, Any] | None = None,
 ) -> RenderResult:
     """Render deterministic router, procedure Skills, references, and manifest bytes."""
 
@@ -282,10 +374,16 @@ def render_okf_bundle(
         files[f"references/okf/{record.relative_path}"] = record.data
 
     router_template = (ASSET_ROOT / "router-wrapper.md").read_text(encoding="utf-8")
+    router_description, provider_metadata = _provider_router_metadata(
+        bundle_id,
+        provider_capability,
+    )
     files["SKILL.md"] = router_template.format(
         router_skill=router_skill,
         bundle_id=bundle_id,
         source_digest=source_digest,
+        router_description=router_description,
+        provider_metadata=provider_metadata,
     ).encode("utf-8")
 
     for concept_path, reviewed_digest in sorted(projected_concepts.items()):
@@ -430,6 +528,7 @@ def compile_pack(
             "bundle_id": bundle["id"],
             "router_skill": bundle["router-skill"],
             "projected_concepts": projected,
+            "provider_capability": bundle.get("provider"),
         }
         bundle_root = pack_dir / bundle["path"]
         bundle_boundary = _bundle_root_boundary_diagnostic(
@@ -634,6 +733,93 @@ def _parsed_records(records: Iterable[_FileRecord]) -> dict[str, Concept]:
     return parsed
 
 
+def _utf8_safe(text: str) -> str:
+    r"""Return `text` with any unpaired surrogate rendered as visible `\uXXXX`.
+
+    Scope is the **index display** leg only. `yaml.safe_load` accepts a `\uD800`
+    escape and hands back a lone surrogate, which would otherwise raise
+    `UnicodeEncodeError` when the rendered index is encoded — a traceback
+    carrying no `OKF0xx` line, breaking the diagnostic contract this compiler
+    promises. Applying this to `title`/`status`/`type` closes that leg.
+
+    The other two non-encodable legs are closed at their own gates rather than
+    here: `_is_safe_relative_path` refuses a path that cannot be encoded, so it
+    never reaches the directory scan or `_sort_path`, and `_metadata_diagnostics`
+    refuses a non-encodable frontmatter value before it reaches the manifest and
+    digest path. Both reuse existing diagnostic codes. The call in
+    `_index_link_destination` remains defence in depth for a value arriving from
+    elsewhere.
+
+    `backslashreplace` rather than `replace`: it keeps the value legible and
+    matches this compiler's existing convention of rendering `\r` and `\n`
+    visibly instead of dropping them. The emitted backslash is then escaped by
+    the display table, so the result stays inert. Substitution is deterministic,
+    so a repeated compile still matches and `OKF012` cannot fire on it.
+    """
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
+
+
+def _index_display_value(value: object) -> str:
+    """Return bounded text escaped for a Markdown index display field.
+
+    Order is load-bearing: cap the raw value, then normalize, then escape, then
+    neutralize autolinks. Capping first keeps the bound on *input* characters as
+    specified, and keeps both later expansions atomic — normalizing before the
+    slice would let it cut a generated `\\uXXXX` sequence in half, and escaping
+    before the slice would let it cut an escape pair. A surrogate is a single code
+    point, so slicing the raw value cannot split one.
+
+    Neutralizing last is a **fidelity** choice, not a safety one. Neutralizing
+    first would still be safe — the table would double the added backslash to
+    `\\\\`, which renders as a literal backslash between `www` and `.`, and both
+    renderers require adjacency, so the trigger is dead either way. What
+    neutralizing first costs is a visible backslash in the rendered text.
+    """
+    bounded = _utf8_safe(str(value)[:INDEX_DISPLAY_INPUT_MAX_CHARS])
+    escaped = bounded.translate(_INDEX_DISPLAY_ESCAPES)
+    for trigger, replacement in _AUTOLINK_TRIGGERS:
+        escaped = trigger.sub(replacement, escaped)
+    return escaped
+
+
+def _index_link_destination(path: str) -> str:
+    """Return a deterministic Markdown-safe destination for a source-relative path.
+
+    The encoded set is the authority; this list is not a summary of it. Three
+    classes are encoded:
+
+    - *Structural* — C0/C1 controls, space, the Unicode line and paragraph
+      separators, and ``" ( ) < > \\ | ``. These break or escape a CommonMark
+      destination. The separators are covered here as well as in the display
+      table so both legs of one rendered line agree on where it ends.
+    - *Reference-forming* — ``&``, ``#``, ``;`` and ``%``. A renderer resolves
+      character references *inside* a destination, which is what let a concept
+      named ``..&#x2F;..&#x2F;SKILL.md`` render an attacker-chosen ``href``;
+      ``%`` is encoded so an emitted escape can never be read as a literal one.
+    - *RFC-3986-excluded* — ``'``, ``^``, ``` ` ```, ``{`` and ``}``. These are
+      not security-relevant here: ``[t](don't.md)`` already produced a working
+      ``href``. They are encoded for URL validity, and that trades literal
+      fidelity for it — a legitimately named ``don't-panic.md`` is cited as
+      ``don%27t-panic.md``.
+
+    Letters, digits, ``- . _ ~``, ``/`` as the separator, ``! $ + , = @ [ ]``,
+    and ``: * ?`` are left literal, as is all non-ASCII. Encoding the whole path
+    instead was tried and rejected: it turned a legitimately named ``café.md``
+    into ``caf%C3%A9.md``, a path no reader can open, for no security gain.
+
+    ``:``, ``*`` and ``?`` staying literal is safe only because
+    `_is_safe_relative_path` rejects all three in a path component. Without that
+    gate a concept named ``javascript:alert(1).md`` would yield a live scheme URL
+    for any renderer that does not sanitize schemes. Relaxing the gate therefore
+    requires encoding them here; a test asserts the refusal so the two cannot
+    drift.
+    """
+    return _LINK_DESTINATION_UNSAFE.sub(
+        lambda match: "".join(f"%{byte:02X}" for byte in match.group().encode("utf-8")),
+        _utf8_safe(path),
+    )
+
+
 def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str, bytes]:
     active_concepts = {
         path: concept
@@ -647,26 +833,33 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
         by_directory.setdefault("" if directory == "." else directory, []).append(concept)
 
     indexes: dict[str, bytes] = {}
-    root_entries: list[str] = []
+    root_entries: list[tuple[str, str]] = []
     for directory, directory_concepts in sorted(by_directory.items()):
         if not directory:
             continue
         entries = []
         for concept in sorted(directory_concepts, key=lambda item: _sort_path(item.path)):
-            title = str(concept.metadata.get("title") or concept.path)
-            status = str(concept.metadata.get("status") or "Active")
-            concept_type = str(concept.metadata.get("type") or "Concept")
+            title = _index_display_value(concept.metadata.get("title") or concept.path)
+            status = _index_display_value(concept.metadata.get("status") or "Active")
+            concept_type = _index_display_value(concept.metadata.get("type") or "Concept")
             filename = PurePosixPath(concept.path).name
-            entries.append(f"- [{title}]({filename}) - {status} {concept_type}\n")
+            destination = _index_link_destination(filename)
+            entries.append(f"- [{title}]({destination}) - {status} {concept_type}\n")
         if entries:
             name = PurePosixPath(directory).name
+            heading = _index_display_value(name)
             indexes[f"{directory}/index.md"] = (
                 f"{MANAGED_INDEX_MARKER}\n"
-                f"# OKF index: {name}\n\n"
+                f"# OKF index: {heading}\n\n"
                 + "".join(entries)
             ).encode("utf-8")
+            directory_text = _index_display_value(directory)
+            directory_target = _index_link_destination(f"{directory}/index.md")
             root_entries.append(
-                f"- [{directory}]({directory}/index.md) - {len(entries)} concepts\n"
+                (
+                    directory,
+                    f"- [{directory_text}]({directory_target}) - {len(entries)} concepts\n",
+                )
             )
 
     indexes["index.md"] = (
@@ -675,7 +868,10 @@ def _render_indexes(bundle_id: str, concepts: Mapping[str, Concept]) -> dict[str
         "---\n"
         f"{MANAGED_INDEX_MARKER}\n"
         f"# OKF index: {bundle_id}\n\n"
-        + "".join(sorted(root_entries, key=lambda item: item.encode("utf-8")))
+        + "".join(
+            entry
+            for _, entry in sorted(root_entries, key=lambda item: _sort_path(item[0]))
+        )
     ).encode("utf-8")
     return dict(sorted(indexes.items(), key=lambda item: _sort_path(item[0])))
 
@@ -2216,6 +2412,17 @@ def _metadata_diagnostics(path: str, metadata: Mapping[str, Any]) -> list[Diagno
                 _diagnostic("OKF009", path, "execution metadata is inert and not accepted here")
             )
             continue
+        if not _is_utf8_encodable(value):
+            # `yaml.safe_load` accepts a `\uD800` escape, and values such as
+            # `license`, `boundaries` and an `x-agentbundle` skill `description`
+            # reach strict encodes on the manifest and digest path. Without this
+            # the process aborts on an uncaught UnicodeEncodeError with no
+            # diagnostic; a value that cannot be encoded is malformed, which is
+            # what `OKF003` already covers.
+            diagnostics.append(
+                _diagnostic("OKF003", path, "frontmatter value is not encodable as UTF-8")
+            )
+            continue
         if _contains_remote_reference(value):
             diagnostics.append(
                 _diagnostic("OKF009", path, "remote retrieval metadata is not allowed")
@@ -2243,7 +2450,7 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
         if not isinstance(bundle, Mapping):
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle"))
             continue
-        allowed = {"id", "path", "router-skill", "projected-concepts"}
+        allowed = {"id", "path", "router-skill", "projected-concepts", "provider"}
         if not {"id", "path", "router-skill"}.issubset(bundle) or not set(bundle) <= allowed:
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle properties"))
         bundle_id = bundle.get("id")
@@ -2259,6 +2466,9 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle path"))
         if not _is_slug(router_skill):
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF router skill"))
+        diagnostics.extend(
+            _provider_capability_diagnostics(bundle.get("provider"), bundle_path)
+        )
         if (
             isinstance(bundle_id, str)
             and isinstance(source_path, str)
@@ -2304,6 +2514,112 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
                     )
                 seen_projected.add(projection_identity)
     return diagnostics
+
+
+def _provider_capability_diagnostics(provider: Any, bundle_path: str) -> list[Diagnostic]:
+    """Validate optional independent-provider discovery metadata."""
+
+    if provider is None:
+        return []
+    provider_path = f"{bundle_path}:provider"
+    if not isinstance(provider, Mapping):
+        return [_diagnostic("OKF001", provider_path, "invalid provider capability")]
+    required = {
+        "contract-version",
+        "domain",
+        "purpose",
+        "task-kinds",
+        "invocation",
+        "ownership-manifest",
+    }
+    diagnostics: list[Diagnostic] = []
+    if set(provider) != required:
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider capability properties")
+        )
+    contract_version = provider.get("contract-version")
+    if (
+        not isinstance(contract_version, str)
+        or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}/v[1-9][0-9]*", contract_version)
+    ):
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider contract version")
+        )
+    for key in ("domain", "purpose"):
+        value = provider.get(key)
+        if (
+            not isinstance(value, str)
+            or not 1 <= len(value) <= 512
+            or not all(" " <= character <= "~" for character in value)
+        ):
+            diagnostics.append(
+                _diagnostic("OKF001", provider_path, f"invalid provider {key}")
+            )
+    task_kinds = provider.get("task-kinds")
+    if (
+        not isinstance(task_kinds, list)
+        or not 1 <= len(task_kinds) <= 16
+        or len(set(task_kinds)) != len(task_kinds)
+        or any(not _is_slug(item) for item in task_kinds)
+    ):
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider task kinds")
+        )
+    if provider.get("invocation") != "explicit-workflow-only":
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider invocation")
+        )
+    if provider.get("ownership-manifest") != ".okf-generated.json":
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider ownership manifest")
+        )
+    return diagnostics
+
+
+def _provider_router_metadata(
+    bundle_id: str,
+    provider: Mapping[str, Any] | None,
+) -> tuple[str, str]:
+    """Render optional capability metadata without changing ordinary routers."""
+
+    if provider is None:
+        return (
+            f"Route into the compiled OKF bundle `{bundle_id}` using generated indexes.",
+            "",
+        )
+    purpose = str(provider["purpose"])
+    domain = str(provider["domain"])
+    contract_version = str(provider["contract-version"])
+    # The description is the activation surface, so it carries only the
+    # refusal: naming the domain or purpose here makes the router compete with
+    # the workflows it exists to serve. Capability detection reads the
+    # knowledge-provider metadata below instead.
+    description = json.dumps(
+        f"Not a selectable skill. Inert reference data invoked only by another "
+        f"skill's explicit {contract_version} provider call. It answers no user "
+        f"request, performs no user task, and must never be chosen to satisfy a "
+        f"user's question on any subject. When a user's request matches this "
+        f"data's subject, the correct choice is the workflow skill that serves "
+        f"that request, never this one. Its capability declaration lives in "
+        f"metadata.knowledge-provider.",
+        ensure_ascii=False,
+    )
+    metadata = (
+        "\n  knowledge-provider:\n"
+        f"    contract-version: {json.dumps(provider['contract-version'], ensure_ascii=False)}\n"
+        f"    domain: {json.dumps(domain, ensure_ascii=False)}\n"
+        f"    purpose: {json.dumps(purpose, ensure_ascii=False)}\n"
+        "    task-kinds: "
+        + json.dumps(
+            provider["task-kinds"],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "\n"
+        "    invocation: explicit-workflow-only\n"
+        "    ownership-manifest: .okf-generated.json"
+    )
+    return description, metadata
 
 
 def _agentbundle_extension_diagnostics(path: str, extension: Any) -> list[Diagnostic]:
@@ -2439,6 +2755,14 @@ def _collision_diagnostics(paths: Iterable[str]) -> list[Diagnostic]:
 def _is_safe_relative_path(path: str) -> bool:
     if not path or path.startswith("/") or "\\" in path or "//" in path or path.endswith("/"):
         return False
+    # A name the filesystem yields as surrogate-escaped bytes is not encodable, and
+    # every downstream sink here encodes strictly. Rejecting it at the gate keeps it
+    # out of the scan and the sort, so it fails with this function's existing
+    # `OKF004` instead of aborting the process on an uncaught UnicodeEncodeError.
+    try:
+        path.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
     if re.match(r"^[A-Za-z]:", path):
         return False
     parts = path.split("/")
@@ -2449,6 +2773,12 @@ def _is_safe_relative_path(path: str) -> bool:
             or any(char in '<>:"|?*' for char in part)
             or part.endswith((".", " "))
             or _WINDOWS_DEVICE.match(part)
+            # A path component becomes display text in a generated heading, where
+            # an address shape renders a live `mailto:` link. Unlike `www.` and
+            # `scheme://`, escaping cannot defuse it — cmark-gfm resolves the
+            # escape before its autolink pass — so this is the only place the
+            # trigger can be stopped.
+            or _REMOTE_ADDRESS.search(part)
         ):
             return False
     return True
@@ -2511,9 +2841,42 @@ def _contains_non_finite_number(value: Any) -> bool:
     return False
 
 
-def _contains_remote_reference(value: Any) -> bool:
+def _is_utf8_encodable(value: Any) -> bool:
+    """Return whether every string inside `value` survives a strict UTF-8 encode."""
     if isinstance(value, str):
-        return value.startswith(("http://", "https://"))
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError:
+            return False
+        return True
+    if isinstance(value, Mapping):
+        return all(
+            _is_utf8_encodable(key) and _is_utf8_encodable(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return all(_is_utf8_encodable(item) for item in value)
+    return True
+
+
+def _contains_remote_reference(value: Any) -> bool:
+    """Return whether `value` carries a remote reference anywhere inside it.
+
+    Frontmatter is display and governance metadata. This compiler never fetches a
+    URL or dereferences a remote resource, so a URL here is never dereferenced and
+    has no function the format supports. What it can do is survive display escaping into
+    a compiler-owned index that an agent treats as authoritative, where a GFM
+    extended autolink turns it into a live link. Matching anywhere rather than at
+    the start closes that, and covers `www.` and `mailto:` because GFM linkifies
+    those too.
+
+    Concept **bodies** are deliberately not scanned. An organization-specific
+    corpus legitimately points a reader at an internal app or runbook for manual
+    follow-up, and the body is where such a pointer belongs: it reaches the agent
+    on descent, is never fetched, and renders as authored.
+    """
+    if isinstance(value, str):
+        return bool(_REMOTE_SCHEME.search(value) or _REMOTE_ADDRESS.search(value))
     if isinstance(value, Mapping):
         return any(_contains_remote_reference(item) for item in value.values())
     if isinstance(value, list):
@@ -2533,7 +2896,16 @@ def _normalize_host_path(path: Path) -> str:
 
 
 def _diagnostic(code: str, path: str, message: str) -> Diagnostic:
-    normalized_path = path.replace("\\", "/")
+    """Build a diagnostic whose path is safe for every downstream sink.
+
+    Normalizing here rather than at each gate is what makes the refusal total. A
+    path that is not valid UTF-8 reaches this constructor carrying surrogates,
+    and `_sort_diagnostics` then does a strict `encode("utf-8")` on it — so
+    refusing such a path at its own gate still ended in a `UnicodeEncodeError`
+    with no `OKF0xx` line, one layer past the gate. Every diagnostic is built
+    here, so one call closes every sink. It is a no-op for an ASCII path.
+    """
+    normalized_path = _utf8_safe(path.replace("\\", "/"))
     return Diagnostic(code=code, path=normalized_path, message=message)
 
 

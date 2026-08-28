@@ -325,6 +325,31 @@ def main() -> int:  # noqa: C901 — independent structural assertions
               any("ghost" in f.message and "holds no suite" in f.message
                   for f in planted), repr(planted))
 
+    # ---- the widened destination scope: assert it directly -------------------
+    # `destinations()` covered only `tests/skills/<dir>` until 2026-08-27, so a
+    # pack's `tests/pack/` or `tests/integration/` was unrun by default and the
+    # runner check could not see it. Every fixture above plants under
+    # `tests/skills/`, which the narrow scoping already reached — so narrowing
+    # it back would change no captured output. This case fails if it is.
+    with tempfile.TemporaryDirectory(prefix="boundary-widescope-") as td:
+        fixture = Path(td) / "fx"
+        _build_min_fixture(fixture)
+        orphan = fixture / "packs/demo/tests/pack/test_orphan.py"
+        orphan.parent.mkdir(parents=True, exist_ok=True)
+        orphan.write_text("def test_ok():\n    pass\n", encoding="utf-8")
+        ctx = M.default_context(fixture)
+
+        inv = M.build_inventory(ctx)
+        destinations = {d.relative_to(fixture).as_posix() for d in inv.destinations()}
+        check("a non-skills suite directory is enumerated as a destination",
+              "packs/demo/tests/pack" in destinations, repr(sorted(destinations)))
+
+        found, _, _ = _silent(M.inspect_boundary, ctx,
+                              ["every-suite-dir-has-a-runner"])
+        check("a runner-less suite outside tests/skills is reported",
+              any("tests/pack" in f.message and "no runner names" in f.message
+                  for f in found), repr(found))
+
     # ---- the two refusals whose bytes cannot be captured ----------------
     with tempfile.TemporaryDirectory(prefix="boundary-refuse-") as td:
         bare = Path(td) / "bare"

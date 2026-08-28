@@ -23,8 +23,15 @@ EXCLUDED_PACKS = {
 }
 
 # Additional packs that are correctly omitted because they have no public guide
-# (atomic 1-skill packs whose README is their only guide surface) — add here if needed
-GUIDE_OPTIONAL_PACKS: set[str] = set()
+# yet — the pack README and its site page are the whole guide surface for now.
+# Add here only when that is deliberate and recorded, not to silence the gate.
+GUIDE_OPTIONAL_PACKS: set[str] = {
+    # docs/specs/agent-skill-engineering-foundation AC21: the M1 slice ships the
+    # portable pack and its mandatory catalogue-parity record, and leaves the
+    # guide to a later planned documentation slice. Backlog:
+    # agent-skill-engineering-guide-and-docsurl.
+    "agent-skill-engineering",
+}
 
 
 def discover_active_packs() -> list[str]:

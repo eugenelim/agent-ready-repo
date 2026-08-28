@@ -2,21 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
-
-
-class NormalizedIntakeLike(Protocol):
-    """Validated intake fields used by the materialization guard."""
-
-    content: dict[str, list[str]]
-    constraints: dict[str, object]
-    source: object
+from urllib.parse import urlsplit, urlunsplit
 
 
 class NormalizedSourceLike(Protocol):
@@ -55,10 +47,7 @@ _INSTRUCTION_RE = re.compile(
     r"(?i)\b(ignore (?:all |any )?(?:previous|prior) instructions|"
     r"mark this ready|dispatch this|change the rules|write the raw payload)\b"
 )
-_MINIMAL_INTENT_TEMPLATE = (
-    Path(__file__).resolve().parent.parent / "assets" / "minimal-intent.md"
-)
-_TEMPLATE_TOKEN_RE = re.compile(r"<[^>\r\n]+>")
+_ABSOLUTE_LOCAL_RE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def check_destination_confidentiality(
@@ -85,12 +74,50 @@ def workspace_source_record(source: NormalizedSourceLike) -> dict[str, object]:
 
     record: dict[str, object] = {
         "mode": source.mode,
-        "ref": source.locator,
+        "ref": _minimize_workspace_source_locator(source.locator),
         "revision": source.revision,
     }
     if source.tracker_profile is not None:
         record["tracker_profile"] = dict(source.tracker_profile)
     return record
+
+
+def _minimize_workspace_source_locator(locator: str) -> str:
+    """Return one non-secret source identity without dereferencing it."""
+
+    if (
+        not isinstance(locator, str)
+        or not locator
+        or any(character in locator for character in ("\x00", "\r", "\n"))
+        or _ABSOLUTE_LOCAL_RE.match(locator)
+        or "\\" in locator
+        or any(part in {".", ".."} for part in locator.split("/"))
+        or _EMAIL_RE.search(locator)
+        or _SECRET_RE.search(locator)
+    ):
+        raise ValueError("unsafe_source_locator")
+    if "://" not in locator:
+        minimized = locator.split("?", 1)[0].split("#", 1)[0].strip()
+    else:
+        try:
+            parsed = urlsplit(locator)
+            if parsed.scheme.lower() == "file" or not parsed.hostname:
+                raise ValueError
+            if parsed.path in {"", "/"} and (parsed.query or parsed.fragment):
+                raise ValueError
+            host = parsed.hostname
+            port = parsed.port
+        except (TypeError, ValueError) as error:
+            raise ValueError("unsafe_source_locator") from error
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        netloc = f"{host}:{port}" if port is not None else host
+        minimized = urlunsplit(
+            (parsed.scheme.lower(), netloc, parsed.path or "/", "", "")
+        )
+    if not minimized or minimized in {"/", "."}:
+        raise ValueError("source_identity_lost")
+    return minimized
 
 
 def read_handoff_repository_content(
@@ -147,82 +174,6 @@ def read_handoff_repository_content(
         except (UnsafeContentError, OSError, RuntimeError, ValueError):
             return HandoffReadResult(False, "unsafe_repository_content")
     return HandoffReadResult(True, "allowed", content)
-
-
-def render_minimal_intent(
-    *,
-    intake: NormalizedIntakeLike,
-    title: str,
-    level: str,
-) -> str:
-    """Render only bounded, redacted fields from a validated intake envelope."""
-
-    outcomes = intake.content["outcomes"]
-    assumptions = intake.content["assumptions"]
-    named_gaps = intake.content["named_gaps"]
-    outcome = _inline(outcomes[0]) if outcomes else "Not yet stated"
-    opportunity = _inline(named_gaps[0]) if named_gaps else outcome
-    rendered_assumptions = [_inline(value) for value in assumptions]
-    if not rendered_assumptions:
-        rendered_assumptions = ["None recorded"]
-
-    source = intake.source
-    assumption_lines = "\n".join(f"- {value}" for value in rendered_assumptions)
-    template = _MINIMAL_INTENT_TEMPLATE.read_text(encoding="utf-8")
-    replacements = {
-        "<intent title>": _inline(title),
-        "<feature or another recognized product altitude>": _inline(level),
-        "<bounded outcome>": outcome,
-        "<bounded opportunity>": opportunity,
-        "<bounded assumption or none recorded>": assumption_lines.removeprefix("- "),
-        "<repo-origin or tracker-origin>": _inline(
-            str(getattr(source, "mode", "unknown"))
-        ),
-        "<safe source locator>": _inline(
-            str(getattr(source, "locator", "unknown"))
-        ),
-        "<source revision>": _inline(
-            str(getattr(source, "revision", "unknown"))
-        ),
-    }
-    if set(_TEMPLATE_TOKEN_RE.findall(template)) != set(replacements):
-        raise ValueError("minimal-intent template tokens do not match the renderer")
-    rendered = _TEMPLATE_TOKEN_RE.sub(
-        lambda match: replacements[match.group(0)],
-        template,
-    )
-    if getattr(source, "mode", None) == "tracker-origin":
-        rendered += "\n\n" + _render_tracker_source_authority(source)
-    return rendered
-
-
-def _render_tracker_source_authority(source: NormalizedSourceLike) -> str:
-    """Render the closed authority fence only for tracker-origin artifacts."""
-
-    return "\n".join(
-        (
-            "```toml source-authority",
-            'contract_version = "source-authority.v1"',
-            'mode = "tracker-origin"',
-            f"source_ref = {json.dumps(_inline(source.locator), ensure_ascii=False)}",
-            f"source_revision = {json.dumps(_inline(source.revision), ensure_ascii=False)}",
-            "",
-            "[owned_fields]",
-            "```",
-        )
-    )
-
-
-def _inline(value: str) -> str:
-    """Make one untrusted value structurally inert inside Markdown."""
-
-    rendered = _redact(re.sub(r"\s+", " ", value).strip())
-    # A tracker value occupies a whole Markdown line in the template. Escape
-    # a leading fence run so it cannot open a block before the trusted
-    # authority fence. A later run is prose, not a line-start Markdown fence.
-    if re.match(r"(?:`|~){3,}", rendered):
-        return "\\" + rendered
-    return rendered
 
 
 def _redact(value: str) -> str:

@@ -32,6 +32,12 @@ Writes: Writers update lifecycle membership only after they have created or
 updated the canonical artifact. Requirements and acceptance decisions stay in
 that artifact, never in the workspace index.
 
+Workspace entries stay terse: minimal source provenance, one short current or
+next-needed summary, and hard dependencies. They do not carry chronology,
+rationale, procedures, review transcripts, raw findings, copied source text,
+soft priority, or suggested order. If that context matters, write it to the
+canonical artifact first and index the pointer here.
+
 Human decision: A person chooses the canonical artifact route, approves
 requirement-bearing artifacts, and decides how to migrate a legacy entry.
 
@@ -77,7 +83,9 @@ fields plus a repository-relative `path`, a closed external `locator`, or both:
 
 Unknown fields fail the target contract. Requirements, acceptance criteria,
 field ownership maps, source-decision history, credentials, and raw source
-payloads do not belong in `workspace.toml`.
+payloads do not belong in `workspace.toml`. Comments are not overflow storage;
+an entry that is materially updated now adopts the terse live-index form even
+when untouched legacy prose remains elsewhere.
 
 ### Limits
 
@@ -249,6 +257,20 @@ collection.
 
 An initiative table is active only when `status = "active"`. Paused and closed
 initiatives are visible but non-dispatchable.
+
+`workspace.toml` is live coordination, not the artifact-retention unit. A pause
+may reference an overlay in an established compatible coordination surface, but
+does not change the spec's Ready or Implementing status. `workspace-status` may
+project pause and closeout blockers from current state; it does not store a
+disposition, start a cooling clock, or remove context.
+
+When `close-work` settles an initiative, it reconciles both shaping and build
+rooms, every child, obligation, dependency, and residual before proposing
+compaction. Settled membership may leave even when an RFC, release, or decision
+family remains retained as a semantic anchor. Do not replace removed membership
+with a narrative history. A dependency receipt belongs only in an already
+compatible coordination surface and contains exactly delivery ID, outcome,
+completion event, and evidence reference; workspace.toml may point at cooling state and never owns it.
 
 ```toml
 [backlog]

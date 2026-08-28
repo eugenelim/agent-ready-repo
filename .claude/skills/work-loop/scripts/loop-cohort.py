@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import fnmatch
 import functools
 import glob as _glob
@@ -464,6 +465,11 @@ _RANGE_RE = re.compile(r"(T\d+)\s*-\s*(T\d+)")
 _TASK_ID_RE = re.compile(r"T\d+[a-z]?")
 _CROSS_MARKER_RE = re.compile(r"spec:([A-Za-z0-9._-]+)/(T\d+[a-z]?)")
 _CROSS_LEGACY_RE = re.compile(r"`(?!T\d+[a-z]?`)([A-Za-z0-9._-]+)`\s*(T\d+[a-z]?)")
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+MAX_AMENDMENT_HISTORY = 20
+MAX_AMENDMENT_REF_LENGTH = 1000
+MAX_AMENDMENT_EVIDENCE_REFS = 64
+MAX_AMENDMENT_STATE_BYTES = 1024 * 1024
 
 
 def parse_depends_on(field: str, local_task_ids):
@@ -493,6 +499,407 @@ def parse_plan(text: str):
         local, _ = parse_depends_on(dm.group(1), taskset) if dm else (set(), [])
         deps[m.group(1)] = local
     return ordered, deps
+
+
+def _task_sections(text: str) -> dict[str, str]:
+    """Return exact authored task sections keyed by unique task ID."""
+    matches = list(TASK_HEADING_RE.finditer(text))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        task_id = match.group(1)
+        if task_id in sections:
+            raise ValueError(f"duplicate task section {task_id}")
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        raw = text[match.start():end].replace("\r\n", "\n").replace("\r", "\n")
+        canonical = "\n".join(line.rstrip() for line in raw.split("\n")).rstrip() + "\n"
+        sections[task_id] = canonical
+    return sections
+
+
+def task_section_hashes(text: str, task_ids: set[str]) -> dict[str, str]:
+    """Fingerprint completed task sections without normalising authored content."""
+    sections = _task_sections(text)
+    missing = sorted(task_ids - sections.keys())
+    if missing:
+        raise ValueError(f"completed task section missing: {', '.join(missing)}")
+    return {
+        task_id: hashlib.sha256(sections[task_id].encode("utf-8")).hexdigest()
+        for task_id in sorted(task_ids)
+    }
+
+
+def validate_completed_task_sections(plan_text: str, state: dict) -> str | None:
+    """Return a stable refusal when an amended plan rewrites completed work."""
+    completed = state.get("completed_task_ids", [])
+    pins = state.get("completed_task_section_hashes", {})
+    if not completed and not pins:
+        return None
+    if not isinstance(completed, list) or any(not isinstance(item, str) for item in completed):
+        return "completed_task_ids must be a list of task IDs"
+    if not isinstance(pins, dict) or set(pins) != set(completed):
+        return "completed task section pins do not match completed_task_ids"
+    try:
+        current = task_section_hashes(plan_text, set(completed))
+    except ValueError as exc:
+        return str(exc)
+    changed = [task_id for task_id in completed if current.get(task_id) != pins.get(task_id)]
+    if changed:
+        return f"completed task section changed: {', '.join(changed)}"
+    return None
+
+
+def schedule_unfinished_plan(plan_text: str, state: dict) -> list[list[str]]:
+    """Schedule only unfinished tasks while treating completed dependencies as met."""
+    pin_error = validate_completed_task_sections(plan_text, state)
+    if pin_error is not None:
+        raise ValueError(pin_error)
+    ordered, dependencies = parse_plan(plan_text)
+    completed = set(state.get("completed_task_ids", []))
+    remaining = [task_id for task_id in ordered if task_id not in completed]
+    if not remaining:
+        raise ValueError("amended plan has no unfinished task sections")
+    remaining_set = set(remaining)
+    remaining_dependencies = {
+        task_id: dependencies.get(task_id, set()) & remaining_set
+        for task_id in remaining
+    }
+    cycles = detect_cycles(remaining, remaining_dependencies)
+    if cycles:
+        raise ValueError(
+            "dependency cycle among unfinished tasks: " + ", ".join(cycles)
+        )
+    waves, _ = topological_waves(remaining, remaining_dependencies)
+    return waves
+
+
+def _bounded_amendment_ref(name: str, value: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} is required")
+    if len(value) > MAX_AMENDMENT_REF_LENGTH:
+        raise ValueError(f"{name} exceeds {MAX_AMENDMENT_REF_LENGTH} characters")
+    if any(ord(char) < 32 or ord(char) == 127 for char in value):
+        raise ValueError(f"{name} contains a control character")
+    return value
+
+
+def parse_completed_task_evidence_entries(
+    entries: tuple[str, ...], allowed_task_ids: set[str] | None = None
+) -> dict[str, list[str]]:
+    """Parse repeated `Tn=<stable-ref>` arguments into an auditable task map."""
+    if not entries:
+        raise ValueError("completed_evidence_ref is required")
+    if len(entries) > MAX_AMENDMENT_EVIDENCE_REFS:
+        raise ValueError(
+            f"completed_evidence_ref count exceeds {MAX_AMENDMENT_EVIDENCE_REFS}"
+        )
+    result: dict[str, list[str]] = {}
+    for entry in entries:
+        if not isinstance(entry, str) or "=" not in entry:
+            raise ValueError("completed_evidence_ref must use Tn=<stable-ref>")
+        task_id, raw_ref = entry.split("=", 1)
+        if not _TASK_ID_RE.fullmatch(task_id):
+            raise ValueError(
+                f"completed_evidence_ref has invalid task ID {task_id!r}"
+            )
+        if allowed_task_ids is not None and task_id not in allowed_task_ids:
+            raise ValueError(
+                f"completed_evidence_ref names non-completed task {task_id}"
+            )
+        reference = _bounded_amendment_ref("completed_evidence_ref", raw_ref)
+        bucket = result.setdefault(task_id, [])
+        if reference not in bucket:
+            bucket.append(reference)
+    return result
+
+
+def _normalize_completed_task_evidence_map(
+    mapping: dict[str, list[str]], allowed_task_ids: set[str]
+) -> dict[str, list[str]]:
+    if not isinstance(mapping, dict) or not mapping:
+        raise ValueError("completed_task_evidence is required")
+    entries: list[str] = []
+    for task_id, references in mapping.items():
+        if not isinstance(task_id, str):
+            raise ValueError("completed_task_evidence task ID must be a string")
+        if not isinstance(references, list) or not references:
+            raise ValueError(
+                f"completed_task_evidence[{task_id!r}] must be a non-empty list"
+            )
+        for reference in references:
+            if not isinstance(reference, str):
+                raise ValueError(
+                    f"completed_task_evidence[{task_id!r}] reference must be a string"
+                )
+            entries.append(f"{task_id}={reference}")
+    return parse_completed_task_evidence_entries(tuple(entries), allowed_task_ids)
+
+
+def begin_contract_amendment(
+    state: dict,
+    *,
+    expected_run_id: str,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_section_hashes: dict[str, str],
+    completed_task_evidence: dict[str, list[str]],
+    amendment_id: str,
+) -> dict:
+    """Return the cohort snapshot for one authorized, replay-safe amendment."""
+    if state.get("schema_version") != 1:
+        raise ValueError("contract-amendment requires schema_version=1")
+    if state.get("run_id") != expected_run_id:
+        raise ValueError("contract-amendment run_id mismatch")
+    owner_authority_ref = _bounded_amendment_ref(
+        "owner_authority_ref", owner_authority_ref
+    )
+    reason_ref = _bounded_amendment_ref("reason_ref", reason_ref)
+    amendment_id = _bounded_amendment_ref("amendment_id", amendment_id)
+    history = state.get("amendment_history", [])
+    if not isinstance(history, list):
+        raise ValueError("amendment_history must be a list")
+    if history and history[-1].get("amendment_id") == amendment_id:
+        snapshot = history[-1]
+        stored_completed = state.get("completed_task_ids", [])
+        if not isinstance(stored_completed, list):
+            raise ValueError("completed_task_ids must be a list")
+        incoming_evidence = _normalize_completed_task_evidence_map(
+            completed_task_evidence, set(stored_completed)
+        )
+        snapshot_matches = (
+            snapshot.get("amendment_id") == amendment_id
+            and snapshot.get("owner_authority_ref") == owner_authority_ref
+            and snapshot.get("reason_ref") == reason_ref
+            and stored_completed == snapshot.get("completed_task_ids")
+            and state.get("completed_task_section_hashes")
+            == snapshot.get("completed_task_section_hashes")
+            and state.get("completed_task_evidence")
+            == snapshot.get("completed_task_evidence")
+        )
+        expected_pending = {
+            "amendment_id": amendment_id,
+            "owner_authority_ref": owner_authority_ref,
+            "reason_ref": reason_ref,
+            "completed_task_evidence": incoming_evidence,
+        }
+        if (
+            snapshot_matches
+            and state.get("plan_review_status") == "pending"
+            and state.get("schedule_waves") == []
+            and state.get("amendment_pending") == expected_pending
+        ):
+            return copy.deepcopy(state)
+        raise ValueError("contract-amendment replay facts do not match stored state")
+    if len(history) >= MAX_AMENDMENT_HISTORY:
+        raise ValueError("contract-amendment history limit reached; retain and restart")
+    if state.get("plan_review_status") != "approved":
+        raise ValueError("contract-amendment requires an approved plan baseline")
+    for field in ("approved_spec_hash", "approved_plan_hash", "plan_hash"):
+        if not _SHA256_RE.fullmatch(str(state.get(field, ""))):
+            raise ValueError(f"contract-amendment requires a pinned {field}")
+
+    waves = state.get("schedule_waves", [])
+    current_index = state.get("current_wave_index", 0)
+    if (
+        not isinstance(waves, list)
+        or isinstance(current_index, bool)
+        or not isinstance(current_index, int)
+        or not 0 <= current_index < len(waves)
+    ):
+        raise ValueError("contract-amendment requires a current scheduled wave")
+    prior_completed = state.get("completed_task_ids", [])
+    if not isinstance(prior_completed, list):
+        raise ValueError("completed_task_ids must be a list")
+    newly_completed = [task for wave in waves[:current_index] for task in wave]
+    completed = list(dict.fromkeys([*prior_completed, *newly_completed]))
+    if not completed:
+        raise ValueError("contract-amendment requires completed task evidence")
+    if set(completed_task_section_hashes) != set(completed):
+        raise ValueError("completed task section hashes do not match completed task IDs")
+    if any(
+        not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest)
+        for digest in completed_task_section_hashes.values()
+    ):
+        raise ValueError("completed task section hash must be SHA-256")
+
+    incoming_evidence = _normalize_completed_task_evidence_map(
+        completed_task_evidence, set(completed)
+    )
+    previous_evidence_raw = state.get("completed_task_evidence", {})
+    if previous_evidence_raw:
+        previous_evidence = _normalize_completed_task_evidence_map(
+            previous_evidence_raw, set(prior_completed)
+        )
+    else:
+        previous_evidence = {}
+    all_evidence = copy.deepcopy(previous_evidence)
+    for task_id, references in incoming_evidence.items():
+        bucket = all_evidence.setdefault(task_id, [])
+        for reference in references:
+            if reference not in bucket:
+                bucket.append(reference)
+    missing_evidence = sorted(set(completed) - set(all_evidence))
+    if missing_evidence:
+        raise ValueError(
+            "completed task has no evidence binding: " + ", ".join(missing_evidence)
+        )
+    evidence_count = sum(len(references) for references in all_evidence.values())
+    if evidence_count > MAX_AMENDMENT_EVIDENCE_REFS:
+        raise ValueError(
+            f"aggregate completed evidence exceeds {MAX_AMENDMENT_EVIDENCE_REFS} refs"
+        )
+    snapshot = {
+        "amendment_id": amendment_id,
+        "owner_authority_ref": owner_authority_ref,
+        "reason_ref": reason_ref,
+        "approved_spec_hash": state["approved_spec_hash"],
+        "approved_plan_hash": state["approved_plan_hash"],
+        "plan_hash": state["plan_hash"],
+        "schedule_waves": copy.deepcopy(waves),
+        "current_wave_index": current_index,
+        "completed_task_ids": completed,
+        "completed_task_section_hashes": dict(completed_task_section_hashes),
+        "completed_task_evidence": all_evidence,
+    }
+    amended = copy.deepcopy(state)
+    amended.update(
+        {
+            "plan_review_status": "pending",
+            "approved_spec_hash": None,
+            "approved_plan_hash": None,
+            "plan_hash": None,
+            "schedule_waves": [],
+            "current_wave_index": 0,
+            "completed_task_ids": completed,
+            "completed_task_section_hashes": dict(completed_task_section_hashes),
+            "completed_task_evidence": all_evidence,
+            "amendment_history": [*history, snapshot],
+            "amendment_pending": {
+                "amendment_id": amendment_id,
+                "owner_authority_ref": owner_authority_ref,
+                "reason_ref": reason_ref,
+                "completed_task_evidence": incoming_evidence,
+            },
+        }
+    )
+    serialized_size = len(
+        json.dumps(amended, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    )
+    if serialized_size > MAX_AMENDMENT_STATE_BYTES:
+        raise ValueError(
+            "contract-amendment state exceeds "
+            f"{MAX_AMENDMENT_STATE_BYTES}-byte aggregate limit"
+        )
+    return amended
+
+
+def complete_contract_amendment_reapproval(state: dict) -> dict:
+    """Clear only the replay marker after fresh plan approval is atomically pinned."""
+    if state.get("plan_review_status") != "approved":
+        raise ValueError("amendment replay marker clears only after plan approval")
+    for field in ("approved_spec_hash", "approved_plan_hash"):
+        if not _SHA256_RE.fullmatch(str(state.get(field, ""))):
+            raise ValueError(f"amendment replay marker requires pinned {field}")
+    approved = copy.deepcopy(state)
+    approved["amendment_pending"] = None
+    return approved
+
+
+def apply_contract_amendment(
+    spec_dir: Path,
+    *,
+    expected_run_id: str,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+    amendment_id: str,
+) -> dict:
+    """Lock, derive completed-section pins, and persist one amendment snapshot."""
+    sl = _statelock()
+    with sl.exclusive(state_path_for(spec_dir)):
+        state = read_state(spec_dir)
+        waves = state.get("schedule_waves", [])
+        current_index = state.get("current_wave_index", 0)
+        prior = state.get("completed_task_ids", [])
+        if not isinstance(waves, list) or not isinstance(current_index, int):
+            raise ValueError("contract-amendment requires a current scheduled wave")
+        newly_completed = [task for wave in waves[:current_index] for task in wave]
+        completed = list(dict.fromkeys([*prior, *newly_completed]))
+        history = state.get("amendment_history", [])
+        if history and history[-1].get("amendment_id") == amendment_id:
+            try:
+                plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
+            except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
+                raise ValueError(
+                    f"contract-amendment cannot read plan.md: {exc}"
+                ) from exc
+            pin_error = validate_completed_task_sections(plan_text, state)
+            if pin_error is not None:
+                raise ValueError(f"contract-amendment replay refused: {pin_error}")
+            hashes = dict(state.get("completed_task_section_hashes", {}))
+        else:
+            try:
+                plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
+            except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
+                raise ValueError(
+                    f"contract-amendment cannot read plan.md: {exc}"
+                ) from exc
+            hashes = task_section_hashes(plan_text, set(completed))
+        amended = begin_contract_amendment(
+            state,
+            expected_run_id=expected_run_id,
+            owner_authority_ref=owner_authority_ref,
+            reason_ref=reason_ref,
+            completed_task_section_hashes=hashes,
+            completed_task_evidence=completed_task_evidence,
+            amendment_id=amendment_id,
+        )
+        if amended != state:
+            write_state_atomic(spec_dir, amended)
+        return amended
+
+
+def contract_amendment_replay_status(
+    spec_dir: Path,
+    *,
+    amendment_id: str,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+) -> str:
+    """Classify the cohort-first crash window without mutating state."""
+    state = read_state(spec_dir)
+    pending = state.get("amendment_pending")
+    if pending is None:
+        return "absent"
+    expected = {
+        "amendment_id": amendment_id,
+        "owner_authority_ref": owner_authority_ref,
+        "reason_ref": reason_ref,
+        "completed_task_evidence": completed_task_evidence,
+    }
+    history = state.get("amendment_history", [])
+    if not history or history[-1].get("amendment_id") != amendment_id:
+        return "conflict"
+    snapshot = history[-1]
+    snapshot_matches = (
+        snapshot.get("amendment_id") == amendment_id
+        and snapshot.get("owner_authority_ref") == owner_authority_ref
+        and snapshot.get("reason_ref") == reason_ref
+        and state.get("completed_task_ids") == snapshot.get("completed_task_ids")
+        and state.get("completed_task_section_hashes")
+        == snapshot.get("completed_task_section_hashes")
+        and state.get("completed_task_evidence")
+        == snapshot.get("completed_task_evidence")
+    )
+    if not snapshot_matches or pending != expected:
+        return "conflict"
+    try:
+        plan_text = read_managed_text(spec_dir / "plan.md", "plan.md")
+    except (OSError, UnicodeDecodeError, ValueError, ImportError):
+        return "conflict"
+    if validate_completed_task_sections(plan_text, state) is not None:
+        return "conflict"
+    return "applied"
 
 
 def parse_touches(field: str):
@@ -705,6 +1112,13 @@ def cmd_status(args: argparse.Namespace) -> int:
         "plan_hash": state.get("plan_hash"),
         "schedule_waves": state.get("schedule_waves", []),
         "current_wave_index": state.get("current_wave_index", 0),
+        "completed_task_ids": state.get("completed_task_ids", []),
+        "completed_task_section_hashes": state.get(
+            "completed_task_section_hashes", {}
+        ),
+        "completed_task_evidence": state.get("completed_task_evidence", {}),
+        "amendment_history": state.get("amendment_history", []),
+        "amendment_pending": state.get("amendment_pending"),
         "implementation_retry_count": state.get("implementation_retry_count", 0),
         "review_round_count": state.get("review_round_count", 0),
         "review_retry_count": state.get("review_retry_count", 0),
@@ -761,6 +1175,15 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     if not plan_path.exists():
         return stop(f"approve-plan: plan.md not found at {plan_path}")
 
+    if state.get("completed_task_ids") or state.get("completed_task_section_hashes"):
+        try:
+            plan_text_for_pins = read_managed_text(plan_path, "plan.md")
+        except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
+            return stop(f"approve-plan: cannot verify completed task sections: {exc}")
+        pin_error = validate_completed_task_sections(plan_text_for_pins, state)
+        if pin_error is not None:
+            return stop(f"approve-plan: {pin_error}")
+
     # Idempotency: if already approved, verify hashes before writing.
     current_status = state.get("plan_review_status", "pending")
     if current_status == "approved":
@@ -783,6 +1206,17 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
             err = _assert_status_legal("approve-plan", spec_path, plan_path)
             if err is not None:
                 return err
+            if state.get("amendment_pending") is not None:
+                try:
+                    state = complete_contract_amendment_reapproval(state)
+                except ValueError as exc:
+                    return stop(f"approve-plan: {exc}")
+                write_state_atomic(spec_dir, state)
+                print(
+                    "loop-cohort: approve-plan completed pending amendment "
+                    f"reapproval for {spec_dir.name}"
+                )
+                return 0
             print(
                 f"loop-cohort: approve-plan already recorded for {spec_dir.name} (no-op)"
             )
@@ -825,6 +1259,11 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         # artifact would either traceback out of the lock or, with a returning
         # fallback stub, store a non-digest as the approved baseline.
         return stop(f"approve-plan: cannot pin the approved artifacts: {exc}")
+    if state.get("amendment_pending") is not None:
+        try:
+            state = complete_contract_amendment_reapproval(state)
+        except ValueError as exc:
+            return stop(f"approve-plan: {exc}")
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: approve-plan for {spec_dir.name} "
@@ -890,12 +1329,24 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     if not ordered:
         return stop(f"no '## T<n>' or '### T<n>' tasks found in {plan_path}")
 
-    cyc = detect_cycles(ordered, deps)
-    if cyc:
-        return stop(
-            f"dependency cycle among tasks: {', '.join(cyc)} — unschedulable; "
-            "the plan is wrong, fix Depends on:"
-        )
+    pin_error = validate_completed_task_sections(plan_text, state)
+    if pin_error is not None:
+        return stop(f"schedule: {pin_error}")
+    completed = set(state.get("completed_task_ids", []))
+    if completed:
+        ordered = [task_id for task_id in ordered if task_id not in completed]
+        if not ordered:
+            return stop("schedule: amended plan has no unfinished task sections")
+        remaining = set(ordered)
+        deps = {
+            task_id: deps.get(task_id, set()) & remaining
+            for task_id in ordered
+        }
+
+    try:
+        waves = schedule_unfinished_plan(plan_text, state)
+    except ValueError as exc:
+        return stop(f"schedule: {exc}")
     fwd = detect_forward_refs(ordered, deps)
     if fwd:
         pairs = ", ".join(f"{a}->{b}" for a, b in fwd)
@@ -905,7 +1356,6 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
             file=sys.stderr,
         )
 
-    waves, _ = topological_waves(ordered, deps)
     touches = parse_touches_by_task(plan_text)
     print(
         f"loop-cohort: topological order for {spec_dir.name} "
@@ -1778,6 +2228,9 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except KeyboardInterrupt:
         return stop("interrupted")
+
+
+_MODULE_COMPLETE = True
 
 
 if __name__ == "__main__":

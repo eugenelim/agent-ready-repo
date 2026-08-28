@@ -52,6 +52,141 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.15.0] — 2026-08-28
+
+- **Delivered work can now cool on a recorded 30-day schedule.** `close-work`
+  writes a Git-tracked lifecycle record, computes its review date in the recorded
+  time zone, and reports when it is due for human review.
+
+### Added
+
+- A cooling engine for `close-work` that enrols delivered records, checks due
+  state from an injected instant, and records the outcome of a day-30 review.
+
+## [core][2.14.0] — 2026-08-28
+
+### Highlights
+
+- **Agents now cut unnecessary work before adding code or process.** Core's
+  portable Razor ladder stops at the first sufficient option—skip, reuse,
+  standard library, platform, installed dependency, one line, or the minimum
+  working code—while preserving security, validation, accessibility, and
+  explicit requirements.
+- **Repository work now enters through one clear intent and delivery path.**
+  Neutral intake routes to `intake-intent` for a minimum repo-owned intent,
+  `author-delivery-brief create|continue` for multi-spec coordination, or
+  `new-spec` for one independently shippable feature.
+
+### Added
+
+- `intake-intent`, with a minimum repository-intent contract that remains
+  usable without Product Engineering.
+- `author-delivery-brief` create and continue modes, including explicit
+  governance-reference and executable-spec-map separation.
+
+### Changed
+
+- `work-intake` now owns neutral precedence and safe classification rather than
+  intent or brief authoring.
+- New guidance, receipts, tracker handoffs, and internal dispatch use canonical
+  intent and delivery-brief names. `author-brief` and `receive-brief` remain
+  bounded deprecation aliases for the accepted compatibility window.
+- Specs, RFCs, architecture work, and implementation review now apply the
+  cut-before-adding principle at the artifact level that owns the decision.
+
+### Security
+
+- New skills declare least-privilege tools and trust boundaries; external
+  payloads remain passive, minimized data, repository paths remain confined,
+  and aliases cannot widen their canonical target's authority.
+
+## [atlassian][0.9.2] — 2026-08-28
+
+### Changed
+
+- Jira and Jira Align brief-intake matrices now hand multi-spec or
+  cross-repository work to `author-delivery-brief create` while preserving the
+  existing normalized-intake, authority, and refresh contracts.
+
+## [github][0.2.2] — 2026-08-28
+
+### Changed
+
+- GitHub brief intake now writes the canonical `author-delivery-brief create`
+  handoff instead of the deprecated brief identity.
+
+## [linear][0.3.2] — 2026-08-28
+
+### Changed
+
+- Linear brief intake now writes the canonical `author-delivery-brief create`
+  handoff instead of the deprecated brief identity.
+
+## [product-engineering][0.13.6] — 2026-08-28
+
+### Changed
+
+- Product Engineering guidance now makes intent altitude and the Core handoff
+  explicit: a feature intent can become one spec directly, while multi-spec or
+  cross-repository work can use a delivery brief without making Core a
+  user-scope dependency.
+
+## [agentbundle][0.40.1] — 2026-08-28
+
+### Changed
+
+- Workspace MCP lifecycle metadata now dispatches briefs to the canonical
+  `author-delivery-brief` owner.
+
+## [core][2.13.0] — 2026-08-27
+
+### Highlights
+
+- **Delivery work can now close without losing the reasons and promises that
+  code and tests cannot explain.** `close-work` verifies repository-specific
+  durable outputs, whole-document semantic freshness, obligations, dependencies,
+  and authority before recommending a disposition.
+- **Immediate disposal is safe by construction and never automatic.** Every
+  file removal needs a fresh human confirmation bound to the exact current
+  target, fingerprint, disposition, evidence, authority, and session; any drift
+  expires it.
+
+### Added
+
+- Core's `close-work` workflow for completed, abandoned, superseded, paused, and
+  initiative-level delivery work, with six RFC-0096 dispositions and stable
+  refusal evidence.
+- Durable-output planning and Design/LLD extraction guidance for `new-spec`, plus
+  bounded completion-evidence handoff from `work-loop`.
+- Restorable reference-only pause overlays, dependency-scoped four-field
+  completion receipts, and read-only closeout projection in `workspace-status`.
+
+### Changed
+
+- Newly shipped specs require every final acceptance criterion to be checked.
+  Genuinely separable work moves through a reviewed, reapproved contract
+  amendment to an independently owned follow-on.
+- New and materially updated `workspace.toml` entries contain terse live state
+  and pointers rather than working history, rationale, or review narrative.
+- Full-mode rigor no longer implies permanent spec/plan retention: approved
+  local-only and PR-only records are supported when every required reader and
+  stable evidence owner is explicit.
+
+### Security
+
+- Source, write, and deletion authority remain independent. Local deletion
+  reuses the shipped semantic resolver and canonical confinement/file-safety
+  helpers, revalidates immediately before effect, and reports terminal residual
+  hard-link or rollback failure rather than claiming successful disposal.
+- Disposition intent grants no authority. Prompt-facing evidence is untrusted
+  data, and external targets remain advisory without a separately authorized
+  adapter.
+
+### Scope
+
+- Wave 4 classifies `cool-30-days` but adds no clock, dates, due state,
+  retirement, ordinary-context exclusion, historical migration, or pruning.
+  Those remain RFC-0096 Waves 5–7.
 
 ## [core][2.12.7] — 2026-08-27
 
@@ -84,6 +219,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text as a live section. Presence, the commented-section check, and the
   heading near-miss check now share one notion of what is commented; HTML
   comments elsewhere in a spec remain welcome and untouched.
+
+## [agent-skill-engineering][0.1.0] — 2026-08-27
+
+### Highlights
+
+- **Agents can now frame, create, update, review, and optimize portable agent
+  skills through progressive, least-authority workflows.** The foundation
+  includes activation and behavior evaluations, deterministic compiled
+  reference knowledge, and bounded failure contracts.
+- **Compatible organization or framework knowledge can inform skill work
+  without coupling packs to another corpus.** Workflows detect declared
+  provider capabilities, invoke an eligible provider explicitly, and retain
+  their complete baseline when no provider is available.
+
+### Added
+
+- Added the `author-or-update-agent-skill` and
+  `review-or-optimize-agent-skill` workflows with `frame`, `create`, `update`,
+  review, and measured-optimize modes.
+- Added a governed three-topic OKF foundation corpus, its generated inert
+  router, provider-contract fixtures, language-extension seams, and durable
+  activation, behavior, precision, determinism, security, and failure-mode
+  evidence.
+
+### Security
+
+- Candidate content and provider guidance remain untrusted data; reads and
+  writes are confined before content access, authentication stays external,
+  and provider responses cannot widen authority or authorize execution.
+
+## [catalogue-curation][0.4.4] — 2026-08-27
+
+### Highlights
+
+- **Pack-owned OKF routers can now expose a bounded, explicit-only knowledge
+  provider capability for compatible workflows.** Raw OKF remains governed
+  build-time input, while generated provider metadata supports deterministic
+  discovery without implicit corpus traversal.
+
+### Changed
+
+- Extended the existing OKF build profile and compiler with optional provider
+  capability metadata whose generated description refuses direct user
+  selection and requires an explicit compatible workflow call.
+
+## [catalogue-curation][0.4.3] — 2026-08-26
+
+### Highlights
+
+- **Generated OKF routers now keep hostile concept metadata inside its intended
+  index entry.** Titles, statuses, and concept types are bounded and escaped
+  before they reach compiler-owned Markdown indexes, preventing metadata from
+  fabricating links or additional entries.
+
+### Changed
+
+- **Recompile committed OKF output after upgrading.** Generated index bytes
+  change in four independent ways, so `compile-okf --check` reports `OKF011`
+  output drift against output built by an earlier version until you recompile:
+  concept `title`, `status`, and `type` are now escaped and capped at 200 input
+  characters, so any of those values renders differently if it exceeds the cap or
+  contains any of: ``\``, ``[``, ``]``, ``(``, ``)``, ``<``, ``>``, a backtick,
+  ``*``, ``_``, any control character (including a carriage return, a newline, or
+  any other code point `splitlines()` breaks on), U+2028/U+2029, or a GFM
+  autolink scheme trigger — a ``www.`` host or an ``http``/``https``/``ftp``
+  ``://`` URL, whose punctuation is escaped so the text renders identically but
+  the link is no longer live. **A backtick, ``*`` and ``_`` are the ones ordinary
+  metadata hits**: a title such as ``cost_model`` or ``Use `make ci` in CI`` will
+  change. Path-derived index display text is escaped the same way, so a directory
+  named ``patterns(v2)`` changes both its root-index link text and its own
+  ``# OKF index:`` heading. Index link destinations percent-encode every character
+  outside letters, digits, ``- . _ ~``, ``/``, ``! $ + , = @ [ ]``, ``: * ?`` and
+  non-ASCII, so a concept filename holding a space, ``" ( ) < > \ | ' ^ ` { }``,
+  ``& # ; %``, a control character or U+2028/U+2029 changes. And root-index
+  entries are ordered by normalized source path rather than by rendered line
+  bytes, so a root index holding a directory that is a byte prefix of another
+  reorders.
+- **Breaking: a bundle carrying a remote reference in frontmatter no longer
+  compiles.** `OKF009` previously matched only a value *beginning* with
+  ``http://`` or ``https://``. It now refuses any frontmatter value containing
+  ``http://``, ``https://``, ``ftp://``, ``www.``, ``mailto:``, or an email-shaped
+  run such as ``ops@example.com`` — anywhere in the value, for every key, at any
+  nesting depth. A bundle that compiled before can now exit 1. This is deliberate:
+  RFC-0087 rejected runtime external fetch, so a reference in metadata is never
+  dereferenced, and what it *can* do is become a live link in a compiler-owned
+  index an agent treats as authoritative. Concept **bodies** are not scanned — a
+  link there is for a human to follow manually and remains supported. The
+  email-shaped rule is bounded to what a renderer actually linkifies, so a version
+  string such as ``Rev@1.2`` is unaffected.
+- **Breaking: a concept path containing an email-shaped run is refused** with
+  ``OKF004``. A directory name becomes the text of a generated ``# OKF index:``
+  heading, where an address renders as a live ``mailto:`` link that escaping
+  cannot defuse, so it is rejected at the path gate instead.
+- Destination encoding keeps a cited path openable wherever it safely can: a
+  non-ASCII filename such as ``café.md`` is cited literally. Two of the three
+  encoded classes are security-relevant — characters that break a CommonMark
+  destination, and characters a renderer resolves as a character reference. The
+  third, ``' ^ ` { }``, is encoded for URL validity rather than safety, and that
+  trades literal fidelity for it: a legitimately named ``don't-panic.md`` is
+  cited as ``don%27t-panic.md`` even though it was usable as a literal
+  destination before this release.
+
+### Fixed
+
+- Added exact hostile-title and all-field boundary coverage for generated index
+  bytes, including visible newline encoding and Markdown delimiter escaping.
+- Added exact-byte coverage proving a concept filename carrying an HTML
+  character reference cannot render an attacker-chosen link destination.
+- Added mutation-sensitive coverage for the `OKF012` repeated-render
+  determinism guard.
+- Replaced release-version literals with pack/plugin/changelog invariants.
+
+## [architect][0.15.3] — 2026-08-26
+
+### Highlights
+
+- **The shipped architect pack is discoverable again.** Its architecture-lenses
+  source now declares the required content licence, so `agentbundle show
+  architect` resolves it, and it accurately describes authored source versus
+  generated router projections.
+
+### Fixed
+
+- Recompiled the architect OKF projection from the corrected authored bundle
+  root and added pack/plugin/changelog release invariants.
 
 ## [core][2.12.5] — 2026-08-27
 

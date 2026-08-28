@@ -1,0 +1,21 @@
+[
+  {"query": "Capture this request as a repository intent for later shaping.", "should_trigger": true},
+  {"query": "Admit this external idea as an intent, but do not choose a solution yet.", "should_trigger": true},
+  {"query": "Record the outcome and boundary in docs/product/intents for later.", "should_trigger": true},
+  {"query": "Create a minimum intent from these notes without making a spec.", "should_trigger": true},
+  {"query": "Remember this product outcome as a non-dispatchable intent.", "should_trigger": true},
+  {"query": "Update the existing repository intent in place from this source.", "should_trigger": true},
+  {"query": "Turn this chat-only idea into a repository intent after I confirm its destination.", "should_trigger": true},
+  {"query": "Capture this unresolved opportunity as intent-only work.", "should_trigger": true},
+  {"query": "Preserve this outcome for shaping without opening an RFC or brief.", "should_trigger": true},
+
+  {"query": "Draft an RFC to change the repository charter.", "should_trigger": false},
+  {"query": "Write a spec for the export setting.", "should_trigger": false},
+  {"query": "Create a delivery brief for this multi-slice outcome.", "should_trigger": false},
+  {"query": "Review this existing brief for readiness.", "should_trigger": false},
+  {"query": "Design the architecture for the ingestion service.", "should_trigger": false},
+  {"query": "Fix the regression shown by this failing test.", "should_trigger": false},
+  {"query": "Show the current workspace status.", "should_trigger": false},
+  {"query": "Implement the approved spec with the work loop.", "should_trigger": false},
+  {"query": "Create an ADR for the database choice.", "should_trigger": false}
+]

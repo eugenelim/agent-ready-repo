@@ -226,6 +226,13 @@ pinned dependency.
 
 **`explain`** — pass a slug or `spec/` path to get the item's current classification, dependencies, blocking needs, and which downstream items would become unblocked if this item shipped. Lookup is restricted to **active initiatives' work queues** (queue/active/shipped); shaping items and items in paused or closed initiatives return `selector_status: "not_found"`.
 
+For closeout orientation, project only current pause, closeout blockers,
+all-specs-shipped initiative eligibility, cooling-context visibility, and the next
+action to invoke `close-work`. Never infer semantic freshness, choose a disposition,
+confirm authority, distil content, record a closeout result, compact coordination,
+remove an entry, or delete. A paused item remains visible as paused; cooling context
+remains visible because ordinary-context exclusion is not part of this wave.
+
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 
 **`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Immediately before replacing `workspace.toml`, it revalidates every spec whose operation would be applied and aborts the whole write if any status or status-line fingerprint changed. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
@@ -376,7 +383,7 @@ Format output in four sections (omit sections with no entries):
 - `[shape]` `<slug>` (`research`) — run `desk-research-project-start`
 - `[shape]` `<slug>` (`strategy`) — route through `frame-situation` (PE pack — M2); if not yet available, run `frame-intent` as interim
 - `[shape]` `<slug>` (`design`) — run `experience-status` (requires experience-design pack); fallback: `journey-mapping`
-- `[brief]` `<path>` (Ready) — run `receive-brief` on `docs/product/briefs/<path>.md`
+- `[brief]` `<path>` (Ready) — run `author-delivery-brief continue` on `docs/product/briefs/<path>.md`
 
 **Parallel candidates:** _(all of the above with no inter-dependencies can start concurrently)_
 

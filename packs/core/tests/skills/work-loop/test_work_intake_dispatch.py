@@ -82,7 +82,7 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
     for required in (
         "do not run the spec-status lint.",
         "the requested outcome, implemented scope, verification evidence,"
-        " non-goals and deferrals",
+        " non-goals and independently scoped follow-ons",
     ):
         assert _normalized(required) in finish, required
 

@@ -13,7 +13,7 @@ kind: how-to
 
 Start with `work-intake` when you have an email, issue, or conversation rather
 than a confirmed artifact route. It normalizes the bounded facts and invokes
-`author-brief` only when the content forms one coherent multi-feature outcome.
+`author-delivery-brief create` only when the content forms one coherent multi-feature outcome.
 
 For a confirmed upstream delivery brief, use:
 
@@ -22,20 +22,20 @@ Intake this confirmed delivery brief and preserve its handoff provenance.
 ```
 
 Core admits the bounded fields through `work-intake`. An existing brief
-continues through `receive-brief`; otherwise `author-brief` creates the Draft.
+continues through `author-delivery-brief continue`; otherwise create mode authors the Draft.
 An external locator is recorded as opaque provenance. Core does not fetch,
 search, probe, or read it.
 
-## Is `author-brief` the right entry point?
+## Is `author-delivery-brief create` the right entry point?
 
 | Situation | Skill to invoke |
 | --- | --- |
 | You have source material but have not chosen an artifact route | `work-intake` |
-| Intake has classified a coherent multi-feature outcome | `author-brief` |
-| You already have a formed multi-feature brief and need to decompose it into specs | `receive-brief` |
+| Intake has classified a coherent multi-feature outcome | `author-delivery-brief create` |
+| You already have a repository brief and need to review or slice it | `author-delivery-brief continue` |
 | You are authoring a single feature spec directly, without a brief | `new-spec` |
 
-The tell for `author-brief` is **unstructured input that is not yet a brief** — the skill does the drafting. If the brief already exists as a well-formed file, go straight to `receive-brief`.
+The tell for create mode is **bounded input that is not yet a repository brief**. If the brief already exists in the repository, use continue mode.
 
 ## Before you start
 
@@ -47,7 +47,7 @@ You need:
 
 ## Steps
 
-1. **Invoke `work-intake` with what you have.** It treats the source as untrusted data, retains a safe locator and revision, and passes bounded normalized content to `author-brief` when a brief is the clear route.
+1. **Invoke `work-intake` with raw or ambiguous input.** It treats the source as untrusted data, retains minimized provenance, and passes bounded normalized content to `author-delivery-brief create` when a brief is the clear route. If you already know the artifact route, invoke create mode directly.
 
 2. **The skill names what it found and what is missing.** It scans the input for
    the outcome, constraints or appetite, assumptions or risks, and safe source
@@ -65,12 +65,12 @@ You need:
 
 5. **Brief file created and registered in `workspace.toml`.** The skill writes `docs/product/briefs/<slug>.md` with `Status: Draft`, then registers the structured Draft entry. If registration fails, it rolls back the file when safe or leaves an explicit non-dispatchable reconciliation finding. It never silently degrades to file-only success.
 
-6. **Brief is queued as draft.** The skill confirms the brief is at `docs/product/briefs/<slug>.md` and tells you to run `receive-brief` next to decompose it into specs.
+6. **Brief is queued as draft.** The skill confirms the brief is at `docs/product/briefs/<slug>.md` and tells you to run `author-delivery-brief continue` next for readiness and optional slice selection.
 
-## What `author-brief` does and does not do
+## What create mode does and does not do
 
-`author-brief` stops at draft — it creates the file and elicits the DoR fields but does not decompose the brief into specs. Use `receive-brief` for that.
+`author-delivery-brief create` stops at Draft — it creates the file and names Ready gaps but does not decompose the brief into specs. Use continue mode for that.
 
 ## Next step
 
-When the brief has enough outcome, scope, constraints, assumptions, risks, and provenance to pass your human Ready gate, run `receive-brief`. Ready may contain zero specs; create a spec only after you confirm a slice. See [Receive a product brief and decompose it into specs](receive-a-product-brief-and-decompose-it-into-specs.md).
+When the brief has enough outcome, scope, constraints, assumptions, risks, and provenance to pass your human Ready gate, run `author-delivery-brief continue`. Ready may contain zero specs; create a spec only after a separate slice confirmation. See [Continue a delivery brief and confirm delivery slices](receive-a-product-brief-and-decompose-it-into-specs.md).

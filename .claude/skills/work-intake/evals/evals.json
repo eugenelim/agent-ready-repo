@@ -58,7 +58,7 @@
       "prompt": "Start a coherent multi-feature outcome from normalized intake.",
       "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers brief lifecycle membership, and does not create speculative specs.",
       "assertions": [
-        "Selects author-brief as processor",
+        "Selects author-delivery-brief create as processor",
         "Registers Draft brief membership",
         "Does not create child specs"
       ]
@@ -245,7 +245,7 @@
     {
       "id": 24,
       "prompt": "Admit this resolved repository handoff for a cross-repository outcome spanning three delivery slices.",
-      "expected_output": "The agent validates and classifies the bounded content as a delivery brief, preserves resolver provenance, and routes to receive-brief or author-brief according to whether the brief artifact exists. It does not create speculative specs or bypass slice confirmation and Ready gates.",
+      "expected_output": "The agent validates and classifies the bounded content as a delivery brief, preserves resolver provenance, and routes to author-delivery-brief continue or create according to whether the brief artifact exists. It does not create speculative specs or bypass slice confirmation and Ready gates.",
       "assertions": [
         "Classifies multi-spec or cross-repository content as delivery brief",
         "Preserves the resolver result separately",
@@ -303,6 +303,18 @@
         "Consumes each real resolver result unchanged",
         "Leaves architecture authoring with Architect and ADR authoring with new-adr",
         "Does not create current-product-truth, product-history, release-history, or user-documentation prose"
+      ]
+    },
+    {
+      "id": 30,
+      "prompt": "Capture a separated follow-on from an amended spec. The source text includes rationale, review findings, suggested order, and a long chronology.",
+      "expected_output": "The agent writes the canonical artifact first, registers only a terse workspace entry with minimal provenance, one short current/next summary, and hard dependencies, and emits no narrative comments, chronology, rationale, procedure, raw findings, suggested order, or copied source text in workspace.toml.",
+      "assertions": [
+        "Materializes the follow-on artifact before workspace registration",
+        "Uses one short current/next summary",
+        "Keeps only hard dependencies in needs",
+        "Writes no narrative comments or copied source text",
+        "Does not use workspace.toml as the rationale or finding store"
       ]
     }
   ]

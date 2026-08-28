@@ -1,11 +1,11 @@
 ---
 name: {router_skill}
-description: Route into the compiled OKF bundle `{bundle_id}` using generated indexes.
+description: {router_description}
 metadata:
   boundaries: [filesystem_read_untrusted]
   generated-by: compile-okf agentbundle-okf/v1
   source-path: okf/{bundle_id}
-  source-digest: {source_digest}
+  source-digest: {source_digest}{provider_metadata}
 ---
 
 # Skill: {router_skill}

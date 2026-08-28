@@ -39,9 +39,13 @@ The roadmap names themes. A brief records *one received outcome* and the specs t
 
 ## Why these design choices
 
-- **It governs delivery without being executable.** `receive-brief` can mark a sound brief Ready with no specs. Specs appear only when a human confirms a slice, and each approved spec then enters `work-loop`. The brief stays useful as outcome and coverage context without becoming a hidden batch job.
+- **It governs delivery without being executable.** `author-delivery-brief continue` can mark a sound brief Ready with no specs. Specs appear only after a separate human slice confirmation, and each approved spec then enters `work-loop`. The brief stays useful as outcome and coverage context without becoming a hidden batch job.
 
 - **Coverage is auto-derived, never hand-maintained.** The brief's Spec map rolls up from each spec's own `Status:` field via the `Brief:` back-links. A hand-written status drifts the moment a spec ships — so the coverage lint derives the truth and fails closed on a stale cell. "Is this brief delivered?" stays answerable for free.
+
+- **Governance and delivery stay distinct.** RFCs and ADRs may constrain or
+  unlock the brief, but only specs are delivery slices. Governance references
+  never enter the execution or closure rollup.
 
 - **It elicits; it doesn't mandate a schema.** Real briefs arrive half-formed. Rejecting them for missing a section would just push the friction back onto the person handing over the work. The skill insists only on the load-bearing fields (outcome, scope), offers the rest, and surfaces gaps.
 
@@ -62,4 +66,4 @@ The roadmap names themes. A brief records *one received outcome* and the specs t
 
 - [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md)
 - [Product brief fields](../reference/product-brief-fields.md)
-- [The core pack as a system](core-pack.md) — where `receive-brief` sits among the other core skills.
+- [The core pack as a system](core-pack.md) — where `author-delivery-brief` sits among the other core skills.

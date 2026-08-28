@@ -1,0 +1,61 @@
+{
+  "contract_version": "agent-skill-engineering-foundation/v1",
+  "cases": [
+    {
+      "id": "missing-target",
+      "trigger": "The request names a skill root that does not resolve.",
+      "exit_class": "refused-target",
+      "diagnostic": "target not found",
+      "retained_state": "none",
+      "resume": "Supply an existing skill root, or stay in the read-only default mode and frame the intended skill instead."
+    },
+    {
+      "id": "ambiguous-target",
+      "trigger": "The request names no file, or several candidate roots match.",
+      "exit_class": "refused-target",
+      "diagnostic": "target ambiguous",
+      "retained_state": "none",
+      "resume": "Ask for the exact root inside the workflow; resolving the target is the workflow's first step, not a reason to decline it."
+    },
+    {
+      "id": "refused-write-authority",
+      "trigger": "A write mode is requested without explicit authorization for that exact confined root.",
+      "exit_class": "refused-authority",
+      "diagnostic": "write authority not granted",
+      "retained_state": "none",
+      "resume": "Report the proposed write set and obtain authorization for that root; authorization for one root or mode does not transfer to another."
+    },
+    {
+      "id": "unconfinable-read",
+      "trigger": "A candidate path resolves outside the designated root, is not a regular file, or its containment cannot be established.",
+      "exit_class": "refused-confinement",
+      "diagnostic": "candidate path not confined",
+      "retained_state": "none",
+      "resume": "Refuse before reading content and report the rejected candidate; no content read is attempted."
+    },
+    {
+      "id": "interrupted-write",
+      "trigger": "An authorized write stops part-way through its surfaced file set.",
+      "exit_class": "incomplete-write",
+      "diagnostic": "write interrupted",
+      "retained_state": "recoverable-partial",
+      "resume": "Report the files that may exist, retain them, and do not delete broadly or retry outside the confirmed root."
+    },
+    {
+      "id": "failed-verification",
+      "trigger": "Post-write verification of frontmatter, routes, activation, or the requested behavioral contract fails.",
+      "exit_class": "unverified",
+      "diagnostic": "verification failed",
+      "retained_state": "recoverable-authored",
+      "resume": "Preserve the recoverable authored files, report the failed contract, and do not claim completion or weaken the baseline to pass."
+    },
+    {
+      "id": "cleanup-denied",
+      "trigger": "The environment refuses deletion or atomic rename of a workflow-created path.",
+      "exit_class": "incomplete-cleanup",
+      "diagnostic": "cleanup denied by environment",
+      "retained_state": "retained-temporary",
+      "resume": "Report the exact retained path as a visible incomplete result; denial is never permission to broaden deletion, and the primary result is not erased."
+    }
+  ]
+}

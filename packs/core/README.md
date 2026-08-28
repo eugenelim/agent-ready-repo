@@ -61,7 +61,10 @@ confirmation and pending receipt.
 | `work-intake` | Start work, remember it for later, inspect status, or request a requirements refresh |
 | `workspace-status` | Orient — what's ready, blocked, and done |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
+| `close-work` | Verify lasting context, pause or close delivery work, and preview a safe disposition |
 | `bug-fix` | Diagnose and fix a specific bug |
+| `intake-intent` | Create or admit a repository intent |
+| `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
 | `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
@@ -75,11 +78,11 @@ work-intake [describe the outcome or change]
 
   artifact    docs/product/briefs/data-export.md
   membership  draft · non-dispatchable
-  processor   author-brief
+  processor   author-delivery-brief create
 ```
 
 ```text
-receive-brief docs/product/briefs/data-export.md
+author-delivery-brief continue docs/product/briefs/data-export.md
 
   brief  Ready
   slice  streaming-csv-export
@@ -126,6 +129,21 @@ defect underneath it.
 
 The agent opens the PR. Read the description, then merge.
 
+After delivery, ask `close-work` to verify that lasting product, user,
+architecture, decision, interface, operations, maintainer, release, and reusable
+learning facts reached their established owners. It reads the `work-loop`
+completion handoff, checks affected human-readable surfaces as wholes, and shows
+blockers plus one disposition recommendation before anything changes.
+
+Disposition is never permission. A local deletion or content-removing workspace
+compaction needs a separately resolved authority fact and fresh human confirmation
+bound to the exact current locator, fingerprint, evidence, action, resource, and
+session; drift expires it. The resulting cooling records live outside workspace.toml, where
+`close-work` enrols them, computes their review dates, and records day-30 review
+outcomes.
+Use [Close work without losing lasting context](../../guides/core/how-to/close-and-disposition-work.md)
+for close, pause/resume, temporary full-mode records, and initiative settlement.
+
 ---
 
 ## Project knowledge
@@ -147,9 +165,10 @@ or override user/runtime instructions. Retention and compaction are deferred to
 a future reviewed whole-partition policy; Slice 1 has no per-event deletion
 path.
 
-Authoring gates are producer-owned. `author-brief` and `new-spec` stop at Draft
-without a knowledge call. `receive-brief` may capture reusable supporting
-practice only after `brief-ready`; `work-loop` does the same after
+Authoring gates are producer-owned. `author-delivery-brief create` and
+`new-spec` stop at Draft without a knowledge call. `author-delivery-brief
+continue` may capture reusable supporting practice only after `brief-ready`;
+`work-loop` does the same after
 `spec-approved` and `plan-locked`. Normative brief/spec/plan content stays in
 those artifacts. Missing project knowledge emits a named skip and never creates
 fallback storage; any terminal distillation uses only receipts returned by that
@@ -201,5 +220,5 @@ for the route and scope differences.
 - **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
 - **Refresh tracked work:** [review local changes and confirm write-back](../../guides/_shared/how-to/use-work-intake.md).
 - **Migrate legacy workspace entries:** [plan, apply, recover, and roll back one reviewed entry](../../guides/core/how-to/migrate-capture-work.md).
-- **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
+- **Close or pause delivery work:** [verify durable context and preview a safe disposition](../../guides/core/how-to/close-and-disposition-work.md).
 - **Headless / harness dispatch:** [run a headless session with workspace-mcp](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.

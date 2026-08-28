@@ -1,6 +1,6 @@
 # ADR-0077: Feature projection is gated; tracker authority follows lifecycle
 
-- **Status:** Accepted
+- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — the feature-projection table's universal feature-intent start; the shippability gate and lifecycle authority modes stand)
 - **Date:** 2026-08-09
 - **Decision-makers:** eugenelim
 - **Supersedes:** none

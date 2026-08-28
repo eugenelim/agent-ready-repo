@@ -70,6 +70,56 @@ Authors and agent loops can use one portable, progressively disclosed engineerin
 - Runtime claims carry a first-party source, date retrieved, exposed source version/update date, and verification date. Stale capability claims roll the profile to `needs-revalidation`; operative guidance is withheld rather than guessed.
 - The planned architecture remains `PLANNED` until every described section is implemented and verified; M5 records the verifying commit when promoting it to `CURRENT`.
 
+## Backlog disposition variances
+
+RFC-0097 D7 approves a disposition *policy*, not a state change. Where canonical
+backlog evidence contradicts the planning map the canonical owner wins on state and
+this initiative records the variance; separately and unconditionally, D7 requires
+every open→closed move to record its artifact, evidence, owner review, and date,
+whoever performed the move. Both duties apply to the entries below. Recorded
+variances:
+
+- **2026-08-27 — `okf-index-title-interpolation-unescaped` and
+  `okf012-nondeterminism-guard-untested` closed ahead of Slice 0.** D7 listed both as
+  prerequisites to promote into the corpus/router foundation spec.
+  [`docs/specs/okf-follow-ons/spec.md`](../../specs/okf-follow-ons/spec.md) resolved
+  both instead — bounding and escaping compiler-owned OKF index display metadata, and
+  adding a mutation-proven `OKF012` repeated-render test — and moved both to
+  `[backlog].closed` with their original provenance preserved. Slice 0 inherits them
+  satisfied and must not re-open or re-scope them. Evidence: `_index_display_value`
+  and `_index_link_destination` in
+  `packs/catalogue-curation/.apm/skills/compile-okf/scripts/okf_compiler.py`, the
+  exact-byte hostile fixtures in
+  `packs/catalogue-curation/tests/skills/compile-okf/test_render.py`, and the
+  mutation-proven `OKF012` test in
+  `packs/catalogue-curation/tests/skills/compile-okf/test_apply.py`.
+  **Owner review: not obtained as a separate pre-move step.** This change performed
+  the close itself; mover and item owner coincide (both packs declare maintainer
+  `eugenelim`, and this initiative's owner is Repository maintainers), so no
+  independent owner signed off before the move. No D7 exemption is claimed for it —
+  the closing change's own adjudicated reviews are its verification, not an owner
+  sign-off.
+- **2026-08-27 — `architect-okf-bundle-root-missing-license` closed by the same
+  spec.** D7 keeps this item separately owned by architect, so its closure is
+  recorded here against D7's four required fields rather than claimed as a
+  canonical-owner resolution:
+  - **Artifact:** [`docs/specs/okf-follow-ons/spec.md`](../../specs/okf-follow-ons/spec.md).
+  - **Evidence:** the `license: "Apache-2.0 OR MIT"` declaration in
+    [`packs/architect/okf/architecture-lenses/index.md`](../../../packs/architect/okf/architecture-lenses/index.md)
+    and the roster discovery/`show` regression test in
+    `tests/roster/test_okf_catalogue_discovery.py` — not the `[backlog].closed`
+    record, which the closing change wrote itself.
+  - **Date:** 2026-08-27.
+  - **Owner review: not obtained from architect's owner.** The closing change's
+    own adjudicated reviews are its verification, not this item's owner sign-off.
+
+  Three facts follow, and they are distinct. The pack-content defect itself is
+  resolved on the evidence above. Architect's owner has not reviewed that
+  closure. So D7's "before architect becomes the integration pilot" precondition
+  is satisfied only on an owner-unreviewed closure — INI-009 should obtain
+  architect's review before treating architect as the integration pilot, and
+  that review is the only step still outstanding on this item.
+
 ## Links
 
 - `workspace.toml` initiative section: `["ini-009"]`

@@ -524,6 +524,60 @@ class WorkspaceStatusResult:
         return [f for f in self.reconciliation if f.finding_type == 3]
 
 
+@dataclasses.dataclass(frozen=True)
+class CloseoutStatusProjection:
+    """Read-only closeout facts; policy and effects remain with close-work."""
+
+    paused: bool
+    all_specs_shipped: bool
+    closeout_blockers: tuple[str, ...]
+    initiative_eligible: bool
+    next_action: str
+    cooling_context_visible: bool
+
+
+def project_closeout_status(
+    *,
+    paused: bool,
+    all_specs_shipped: bool,
+    closeout_blockers: list[str] | tuple[str, ...],
+    cooling_context_visible: bool,
+) -> CloseoutStatusProjection:
+    """Project pause/eligibility without distilling, deciding, or mutating."""
+    if not all(
+        isinstance(value, bool)
+        for value in (paused, all_specs_shipped, cooling_context_visible)
+    ):
+        raise ValueError("closeout projection boolean facts are required")
+    if not cooling_context_visible:
+        raise ValueError("Wave 4 cannot exclude cooling context")
+    if not isinstance(closeout_blockers, (list, tuple)) or any(
+        not isinstance(blocker, str) or not blocker.strip()
+        for blocker in closeout_blockers
+    ):
+        raise ValueError("closeout blockers must be bounded strings")
+    blockers = tuple(
+        dict.fromkeys(
+            [*closeout_blockers, *(() if all_specs_shipped else ("unshipped-specs",))]
+        )
+    )
+    eligible = all_specs_shipped and not blockers and not paused
+    if eligible:
+        next_action = "invoke-close-work"
+    elif paused:
+        next_action = "resume-or-keep-paused"
+    else:
+        next_action = "settle-closeout-blockers"
+    return CloseoutStatusProjection(
+        paused=paused,
+        all_specs_shipped=all_specs_shipped,
+        closeout_blockers=blockers,
+        initiative_eligible=eligible,
+        next_action=next_action,
+        cooling_context_visible=cooling_context_visible,
+    )
+
+
 # ── Group 2 contract parsing ──────────────────────────────────────────────────
 
 _CONSTRAINT_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
@@ -532,6 +586,11 @@ _SENSITIVE_CONSTRAINT_RE = re.compile(
     r"password|passwords|passwd|pwd|(?:api|access|private)?_?(?:token|tokens|key|keys))"
     r"(?:_|$)"
 )
+_SENSITIVE_LOCATOR_RE = re.compile(
+    r"(?i)(?:^|[/;:])(?:password|passwd|pwd|secret|api[_-]?key|"
+    r"access[_-]?token|token)\s*[:=]\s*\S+"
+)
+_ABSOLUTE_LOCAL_LOCATOR_RE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def _finding(code: str, path: str = "", detail: str = "") -> RoutingFinding:
@@ -564,9 +623,16 @@ def _is_strict_locator(value: object) -> bool:
     """
     if not _is_safe_locator(value):
         return False
-    return not any(
+    text = str(value)
+    return (
+        not _SENSITIVE_LOCATOR_RE.search(text)
+        and not _ABSOLUTE_LOCAL_LOCATOR_RE.match(text)
+        and "\\" not in text
+        and not any(part in {".", ".."} for part in text.split("/"))
+        and not any(
         character.isspace() or ord(character) <= 31 or ord(character) == 127
-        for character in str(value)
+            for character in text
+        )
     )
 
 

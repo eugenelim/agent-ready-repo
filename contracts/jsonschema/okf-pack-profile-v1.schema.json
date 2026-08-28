@@ -5,7 +5,10 @@
   "description": "Closed contract for the [pack.metadata.okf] table that declares OKF 0.2 bundles and reviewed Skill projections.",
   "type": "object",
   "contract_version": "agentbundle-okf-pack-profile.v1",
-  "x-spec": ["docs/specs/okf-authoring-projection/"],
+  "x-spec": [
+    "docs/specs/okf-authoring-projection/",
+    "docs/specs/agent-skill-engineering-foundation/"
+  ],
   "additionalProperties": false,
   "required": ["profile", "bundles"],
   "properties": {
@@ -58,6 +61,51 @@
         }
       }
     },
+    "providerCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract-version",
+        "domain",
+        "purpose",
+        "task-kinds",
+        "invocation",
+        "ownership-manifest"
+      ],
+      "properties": {
+        "contract-version": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,62}/v[1-9][0-9]*$"
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[\\u0020-\\u007E]+$"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[\\u0020-\\u007E]+$"
+        },
+        "task-kinds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/slug"
+          }
+        },
+        "invocation": {
+          "const": "explicit-workflow-only"
+        },
+        "ownership-manifest": {
+          "const": ".okf-generated.json"
+        }
+      }
+    },
     "bundle": {
       "type": "object",
       "additionalProperties": false,
@@ -79,6 +127,9 @@
           "items": {
             "$ref": "#/$defs/projectedConcept"
           }
+        },
+        "provider": {
+          "$ref": "#/$defs/providerCapability"
         }
       }
     }

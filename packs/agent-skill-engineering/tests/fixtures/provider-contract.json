@@ -1,0 +1,14 @@
+{
+  "contract_version": "agent-skill-engineering-reference/v1",
+  "task_kinds": ["skill-authoring", "skill-review", "skill-eval-ci", "agent-extension-design"],
+  "request_fields": ["contract_version", "task_kind", "question", "capabilities", "runtime", "max_topics"],
+  "request_constraints": {
+    "question": {"minimum_length": 12, "maximum_length": 512, "generic_values_refused": ["help", "everything", "all guidance"]},
+    "capabilities": {"minimum_items": 0, "maximum_items": 16, "unique": true, "identifier_pattern": "[a-z0-9][a-z0-9.-]{0,127}"},
+    "runtime": {"optional": true, "identifier_pattern": "[a-z0-9][a-z0-9.-]{0,127}"}
+  },
+  "response_fields": ["contract_version", "status", "topic_ids", "guidance", "provenance", "profile_provenance", "warnings", "diagnostic"],
+  "max_topics": {"minimum": 1, "maximum": 3, "default": 3},
+  "response_statuses": ["ok", "out-of-scope", "unavailable", "stale-profile"],
+  "language_extension_families": ["python-pytest", "typescript-node"]
+}

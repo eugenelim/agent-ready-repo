@@ -57,9 +57,13 @@ What this project does:
 
 What this project does **not** do:
 
-- **Not a marketplace of specialized agents.** Three reviewers is the
-  ceiling. New skills earn a place by clearing the four principles
-  below; most candidates fail at least one.
+- **Not a marketplace of specialized agents.** The always-on core code-review
+  gate is capped at three lenses: adversarial, security, and quality. A
+  reviewer for a different loop or work type is not a fourth code-review lens,
+  but it must clear the four principles below and ADR-0042's unique-value,
+  distinct-cadence, and collision-hardening test through an RFC. This does not
+  generally pre-authorize specialized agents. New skills earn a place by
+  clearing the four principles below; most candidates fail at least one.
 - **Not prescriptive about tech-stack choices through the default install.**
   Frontend, backend, agentic, CLI, mobile, data — the core structure works
   for any of them. Opt-in accelerator packs (above) are tech-stack-specific

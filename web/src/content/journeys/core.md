@@ -16,11 +16,12 @@ contract:
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
     - "Author the reviewed route and fresh confirmation for each legacy workspace migration effect"
+    - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
     - approve-plan
     - merge-reviewed-change
-whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
+whatChanges: "After installing core, work-intake becomes the neutral front door for raw or ambiguous start, remember, status, refresh, and intake-safety requests. Direct artifact requests go to their owner: intake-intent admits repository intents, author-delivery-brief creates or continues coordination briefs, and new-spec owns one independently shippable feature. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
 skills:
   - name: work-intake
     description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
@@ -28,6 +29,9 @@ skills:
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice, while one bounded CQ-REVIEW enquiry may inform candidate checks without changing reviewer authority."
     humanTouches: 2
+  - name: close-work
+    description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
+    humanTouches: 1
   - name: new-spec
     description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
     humanTouches: 1
@@ -37,8 +41,8 @@ skills:
   - name: contract-acquisition
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."
     humanTouches: 0
-  - name: receive-brief
-    description: "Receives and decomposes a structured brief; after the brief-ready gate it may capture reusable supporting practice through the public project-knowledge seam."
+  - name: intake-intent
+    description: "Creates or admits the minimum repository intent without requiring Product Engineering fields."
     humanTouches: 1
   - name: init-project
     description: "Initializes a new project with the full agent-ready-repo structure, conventions, and AGENTS.md."
@@ -46,9 +50,15 @@ skills:
   - name: adapt-to-project
     description: "Adapts the agent-ready-repo conventions to an existing project's idioms and structure — the on-ramp for brownfield repos."
     humanTouches: 1
-  - name: author-brief
-    description: "Materializes a coherent multi-feature outcome as a registered Draft brief. Draft completion is an explicit project-knowledge non-gate."
+  - name: author-delivery-brief
+    description: "Creates a Draft coordination brief from raw input or continues an existing brief through readiness and confirmed spec slices."
     humanTouches: 1
+  - name: author-brief
+    description: "Deprecated compatibility alias for author-delivery-brief create."
+    humanTouches: 0
+  - name: receive-brief
+    description: "Deprecated compatibility alias for author-delivery-brief continue."
+    humanTouches: 0
   - name: capture-work
     description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
     humanTouches: 0
@@ -121,7 +131,10 @@ goodOutputDescription: |-
 | `work-intake` | Route a start, remember, status, or refresh request into durable state |
 | `workspace-status` | Orient — what's ready, blocked, and done |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
+| `close-work` | Pause or close delivery work after verifying lasting context and exact authority |
 | `bug-fix` | Diagnose and fix a specific bug |
+| `intake-intent` | Create or admit a repository intent |
+| `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
 | `new-spec` | Author a spec directly, without the brief layer |
 | `project-knowledge` | Capture, distill, and explicitly enquire over committed project lessons |
 
@@ -152,13 +165,13 @@ continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 If the request includes a validated shaping handoff, `work-intake` first admits
 the bounded context and resolves its semantic destination. A delivery contract
 continues through `new-spec`; a delivery brief continues through
-`receive-brief`. External locators remain opaque, and every existing approval
+`author-delivery-brief continue`. External locators remain opaque, and every existing approval
 gate remains in place. Without the optional handoff, this stage is unchanged.
 
 ```text
   artifact    docs/product/briefs/data-export.md
   membership  draft · non-dispatchable
-  processor   author-brief
+  processor   author-delivery-brief create
 ```
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
@@ -194,7 +207,7 @@ one remote mutation separately.
 
 ### 3. Make one slice ready
 
-Run `receive-brief docs/product/briefs/data-export.md`. After the brief passes
+Run `author-delivery-brief continue docs/product/briefs/data-export.md`. After the brief passes
 its Ready gate, choose one independently shippable slice. `new-spec` writes its
 Approved spec and sibling plan; the brief itself never enters `work-loop`.
 
@@ -261,6 +274,26 @@ Scratch before capture can be lost if the workflow or worktree disappears. Reten
 
 - **Output:** committed topic evidence and receipts for explicit competency questions.
 - **State:** read-only
+
+---
+
+### 7. Close or pause delivery work
+
+Use `close-work` after delivery, abandonment, or supersession. It consumes the
+bounded `work-loop` evidence handoff, verifies that lasting facts reached their
+established owners, and asks you to confirm that affected human-readable surfaces
+remain coherent as wholes. Tests stay capability proof; they do not become the
+sole owner of intent, rationale, user promises, ownership, or operations.
+
+For resumable work, pause writes only a reference overlay to an existing writable
+coordination surface and keeps Ready or Implementing status. For closeout, the
+workflow shows blockers and one of six disposition intents. It does not delete,
+rewrite Git history, start the 30-day clock, or hide cooling records.
+
+- **You decide:** freshness, disposition intent, and each exact persisted effect.
+- **Output:** bounded closeout evidence, owned next actions, and no mutation unless
+  a fresh authority-bound confirmation is accepted.
+- **State:** confirmed-write
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: work-intake
-description: Use when the user wants to start work, do a requested change, remember work for later, inspect workspace status, or request a requirements refresh.
+description: Use for a raw or ambiguous work request, source acquisition or refresh, generic intake-safety handling, or an older compatibility alias. Explicit status, artifact, skill, product-shaping, architecture-design, and defect requests route directly to their owners.
 allowed-tools: Read Write Edit Bash
 metadata:
   type: skill
@@ -11,9 +11,9 @@ metadata:
 
 # Skill: work-intake
 
-Core entry point for routing normalized work requests into canonical artifacts
-and `workspace.toml`. Use this skill for start/do, remember, status, and refresh
-intents before considering a more specialized processor.
+Neutral entry point for routing normalized work requests into canonical
+artifacts and `workspace.toml`. It owns ambiguity, acquisition, refresh, and
+generic intake safety—not every request that happens to start work.
 
 `work-intake` works with the core pack alone. Optional shaping or tracker packs
 may enrich later processing, but start, remember, status, and refresh do not
@@ -31,6 +31,22 @@ Status passthrough - For status, return the `workspace-status` result unchanged
 apart from normal chat formatting.
 
 ## Contract
+
+### Public routing precedence
+
+Apply this order once before intake classification:
+
+1. Route status directly to `workspace-status`.
+2. Route a request that explicitly names a known artifact, its owning skill, or
+   a distinct work type directly to that owner. This includes `intake-intent`,
+   `author-delivery-brief create|continue`, `new-rfc`, `new-spec`,
+   `architect-design`, `frame-intent`, and `bug-fix` when installed.
+3. Route only a raw or ambiguous request, acquisition, refresh, generic intake
+   safety need, or compatibility-alias delegation through `work-intake`.
+
+Delegation from this skill to the classified owner is the same route, not a
+second public answer. Do not create an intent merely because work is entering
+the repository.
 
 ### Input
 
@@ -83,6 +99,25 @@ directly into `workspace.toml`.
 Comments, list order, document titles, tracker type, collection membership, and
 memory are never routing authority.
 
+### Terse workspace capture
+
+`workspace.toml` is the pointer, not the overflow store. Write or update the
+canonical artifact first, then register only one schema-shaped live index entry
+with minimal provenance, one short present-tense summary naming the current
+outcome or next-needed condition, and hard dependencies only.
+
+Do not put chronology, rationale, procedure, review transcript, raw finding,
+copied source text, suggested order, soft priority, or conversation residue in
+adjacent comments, summaries, or workspace-only fields. If the context cannot
+fit that shape, materialize the context-owning artifact first and point to it.
+Legacy prose remains visible during compatibility windows, but an entry that
+this workflow materially updates must adopt the terse form.
+
+For a separated follow-on from an amended spec, materialize the follow-on's
+owning artifact before registration. The follow-on's current state changes in
+that artifact; the workspace entry only indexes it. Do not leave an open AC
+behind as the workspace anchor.
+
 ## Procedure
 
 ### 1. Status
@@ -127,8 +162,9 @@ evidence, with no more than four evidence records per candidate. Call the Wave
 self-certify the resolution result.
 
 Reuse admitted contract context through `new-spec`; reuse admitted brief
-context through `receive-brief` (or `author-brief` only when a brief artifact
-does not yet exist). The handoff is attributed context, not approval. All
+context through `author-delivery-brief continue` when a repository brief
+exists or `author-delivery-brief create` when it does not. The handoff is
+attributed context, not approval. All
 existing assumption, slice-confirmation, Ready, spec, plan, and human approval
 gates still apply.
 
@@ -212,7 +248,7 @@ shippability, verifiability, durability needs, and cited defect evidence:
 | --- | --- | --- | --- |
 | Explicit bounded direct-light start | none | none | `work-loop` |
 | Bounded work needing durability or elevated assurance | spec | current durable path | `new-spec` |
-| Coherent multi-slice or cross-repository outcome | brief | current brief path | `author-brief` / `receive-brief` |
+| Coherent multi-slice or cross-repository outcome | brief | current brief path | `author-delivery-brief create` or `continue` |
 | Remember for later | current intent/capture path | non-dispatchable | none |
 | Cited regression or defect evidence | defect | ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | current named-gap behavior | non-dispatchable | none |
@@ -247,6 +283,11 @@ validated target is the only path the materializer may write. Use the same
 helper to sequence registration and the processor handoff. Dispatch is allowed
 only after both writes are durable.
 
+For all routes that create or remember work, apply Terse workspace capture:
+the workspace entry is the current coordination index only. The artifact owns
+requirements, rationale, findings, source excerpts, follow-on scope, and any
+other context a future reader needs.
+
 The direct route performs no transaction, registration, or rollback and leaves
 the repository unchanged until implementation begins.
 
@@ -260,24 +301,18 @@ state. If processor dispatch raises, return `dispatch_failed` without raw
 exception text; preserve the already-durable artifact and registration for a
 safe retry.
 
-### 6. Minimal intent materialization
+### 6. Delegate intent admission
 
-For a minimal intent, copy `assets/minimal-intent.md` and fill only:
+When classification selects an intent, pass the validated normalized envelope,
+confirmed repository destination, and authority mode to `intake-intent`.
+`intake-intent` alone minimizes intent provenance and renders or updates the
+artifact. Do not copy its template, reconstruct its fields, or certify the
+result in this router.
 
-- `Status`
-- `Level`
-- `Outcome`
-- `Opportunity`
-- `Assumptions`
-- `Source` (use exactly one `toml source-authority` fence for tracker-origin work)
-
-Render those fields through `scripts/intake_guard.py`. Keep its redacted source
-locator and revision. Omit raw payloads, secret-like fields, personal data, and
-embedded instructions.
-
-Register the intent as a Draft, non-dispatchable entry with repository-relative
-path, source provenance, summary, and hard dependencies. Stop after registration
-and report that there is no processor dispatch.
+After the owner returns a durable artifact, register it as a Draft,
+non-dispatchable entry with repository-relative path, source provenance,
+summary, and hard dependencies. Stop after registration and report that there
+is no delivery processor dispatch.
 
 ### 7. Refresh
 

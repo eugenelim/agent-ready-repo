@@ -348,3 +348,18 @@ not federal obligations
 
 Follow-on waves create artifacts; RFC-0096 remains
 the blueprint, not a tracker.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, Approver-signed.
+
+- **2026-08-27 (Approver: eugenelim) — Material post-seal contract amendment
+  uses guarded baseline replacement.**
+
+  RFC-0099 section 7 defines the material case: a spec or plan correction after
+  sealing parks delivery, preserves and invalidates the old baseline, returns
+  to spec-plan drafting, and requires full reapproval and resealing. This is
+  not RFC-0096's ordinary normalized `Paused` state, whose artifact statuses
+  remain unchanged. The ordinary `Paused` rule and governance-outside-rollup
+  holding remain authoritative.

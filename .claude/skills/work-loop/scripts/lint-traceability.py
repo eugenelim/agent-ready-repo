@@ -8,7 +8,8 @@ every adapter's `.../skills/work-loop/scripts/`, the same way the sibling
 can also run as a fail-closed **CI gate** where a PR event and Python both
 exist. It no-ops gracefully where Python is absent.
 
-What it does — it generalizes `receive-brief`'s `lint-brief-coverage.py` (which
+What it does — it generalizes `author-delivery-brief continue`'s
+`lint-brief-coverage.py` (which
 checks the single brief↔spec edge in one repo) to the full nine-layer product
 chain **across repositories**:
 
@@ -141,7 +142,8 @@ _DEFAULT_BASES = {
     "component":   ("packages",),
 }
 # Discovery-side anchor artifacts (not chain layers themselves): a brief stands
-# in for a spec's discovery parent (the `receive-brief` brief↔spec edge this
+# in for a spec's discovery parent (the `author-delivery-brief continue`
+# brief↔spec edge this
 # generalizes); a sidecar materializes the whole edge set; a rollup carries the
 # cross-repo component rows. Presence of ANY anchor (or a populated chain layer)
 # is what activates the chain check — absent all, the lint no-ops.
@@ -793,7 +795,8 @@ def classify_standalone(g: Graph, briefs_present: bool) -> list[tuple[str, str, 
     orphan, `component` never a forward orphan.
 
     `briefs_present` makes the brief the spec's producer layer (the
-    receive-brief brief↔spec edge): a spec with no producer is then a backward
+    author-delivery-brief continue brief↔spec edge): a spec with no producer is
+    then a backward
     orphan even when no CHAIN producer layer is populated above it. Returns
     (id, kind, reason)."""
     has_in = {to for _, to in g.edges}
@@ -1006,7 +1009,8 @@ def build_standalone(root: Path, layout: dict, g: Graph,
         spec_paths = recognize_specs(bases["spec"], root, g)
     if "component" in bases:
         recognize_components(bases["component"], root, g)
-    # Briefs are the discovery anchor a spec back-links (the receive-brief
+    # Briefs are the discovery anchor a spec back-links (the
+    # author-delivery-brief continue
     # brief↔spec edge this generalizes) — registered as producer-anchor nodes
     # (kind 'brief', outside CHAIN, so never orphan-checked themselves).
     brief_paths: dict[str, Path] = {}

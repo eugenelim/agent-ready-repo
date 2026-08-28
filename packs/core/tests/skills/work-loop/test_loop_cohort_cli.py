@@ -49,6 +49,13 @@ EXPECTED_STATE_KEYS = {
     "auto_parallel",
     "last_commit_sha",
     "worktrees",
+    # Controlled full-mode contract amendment: completed-task pins, their
+    # bounded evidence, the append-only snapshot log, and the replay marker.
+    "completed_task_ids",
+    "completed_task_section_hashes",
+    "completed_task_evidence",
+    "amendment_history",
+    "amendment_pending",
 }
 PHASE_TWO_KEYS = {
     "token_budget_used_pct",

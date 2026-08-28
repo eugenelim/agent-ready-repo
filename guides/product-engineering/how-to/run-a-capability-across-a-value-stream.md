@@ -30,7 +30,7 @@ You run a product org whose work spans many component repos (a polyrepo), and a 
           ┌───────────────────────────────┼───────────────────────────┐
           ▼                               ▼                            ▼
     brief → repo A                  brief → repo B               brief → repo C
-    receive-brief                   receive-brief                receive-brief
+    author-delivery-brief continue author-delivery-brief continue author-delivery-brief continue
       → new-spec                      → new-spec                   → new-spec
       → work-loop                     → work-loop                  → work-loop
           │                               │                            │
@@ -56,11 +56,11 @@ Frame the capability with **`frame-intent`** (Scale resolves to `business-unit` 
 - a **`contract@version`** reference + read-only courier snapshot, and
 - a **provider/consumer role** (`providesApi` / `consumesApi`) with a compatibility direction.
 
-Each brief crosses into its component repo, where the loop you already have — **`receive-brief` → `new-spec` → `work-loop`** — takes it the rest of the way, unchanged. The detailed wire contract is pinned there, at the spec stage.
+Each brief crosses into its component repo, where the loop you already have — **`author-delivery-brief continue` → `new-spec` → `work-loop`** — takes it the rest of the way, unchanged. The detailed wire contract is pinned there, at the spec stage.
 
 ## 3. Roll up "delivered across all components?"
 
-Each component repo answers "is *my* slice shipped?" via `receive-brief`'s own coverage. The meta-repo's **cross-component rollup** — a markdown table, one row per slice → its brief → a status snapshot + a pointer to that repo's coverage — answers the level above: the **AND across rows**. A row whose source isn't catalogued yet shows `unknown / not-yet-catalogued`, never silently delivered, so a half-catalogued value stream never reports a false green.
+Each component repo answers "is *my* slice shipped?" via `author-delivery-brief` coverage. The meta-repo's **cross-component rollup** — a markdown table, one row per slice → its brief → a status snapshot + a pointer to that repo's coverage — answers the level above: the **AND across rows**. A row whose source isn't catalogued yet shows `unknown / not-yet-catalogued`, never silently delivered, so a half-catalogued value stream never reports a false green.
 
 ## The hard limits — accept them honestly
 

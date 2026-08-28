@@ -5,6 +5,181 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.14.0"
+        }
+      ],
+      "date": "2026-08-28",
+      "heading": "[core][2.14.0] — 2026-08-28",
+      "changelogAnchor": "core2140--2026-08-28",
+      "highlights": [
+        {
+          "source": "**Agents now cut unnecessary work before adding code or process.** Core's portable Razor ladder stops at the first sufficient option—skip, reuse, standard library, platform, installed dependency, one line, or the minimum working code—while preserving security, validation, accessibility, and explicit requirements.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Agents now cut unnecessary work before adding code or process."
+            },
+            {
+              "type": "text",
+              "value": " Core's portable Razor ladder stops at the first sufficient option—skip, reuse, standard library, platform, installed dependency, one line, or the minimum working code—while preserving security, validation, accessibility, and explicit requirements."
+            }
+          ]
+        },
+        {
+          "source": "**Repository work now enters through one clear intent and delivery path.** Neutral intake routes to `intake-intent` for a minimum repo-owned intent, `author-delivery-brief create|continue` for multi-spec coordination, or `new-spec` for one independently shippable feature.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Repository work now enters through one clear intent and delivery path."
+            },
+            {
+              "type": "text",
+              "value": " Neutral intake routes to "
+            },
+            {
+              "type": "code",
+              "value": "intake-intent"
+            },
+            {
+              "type": "text",
+              "value": " for a minimum repo-owned intent, "
+            },
+            {
+              "type": "code",
+              "value": "author-delivery-brief create|continue"
+            },
+            {
+              "type": "text",
+              "value": " for multi-spec coordination, or "
+            },
+            {
+              "type": "code",
+              "value": "new-spec"
+            },
+            {
+              "type": "text",
+              "value": " for one independently shippable feature."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.13.0"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[core][2.13.0] — 2026-08-27",
+      "changelogAnchor": "core2130--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Delivery work can now close without losing the reasons and promises that code and tests cannot explain.** `close-work` verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Delivery work can now close without losing the reasons and promises that code and tests cannot explain."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "close-work"
+            },
+            {
+              "type": "text",
+              "value": " verifies repository-specific durable outputs, whole-document semantic freshness, obligations, dependencies, and authority before recommending a disposition."
+            }
+          ]
+        },
+        {
+          "source": "**Immediate disposal is safe by construction and never automatic.** Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Immediate disposal is safe by construction and never automatic."
+            },
+            {
+              "type": "text",
+              "value": " Every file removal needs a fresh human confirmation bound to the exact current target, fingerprint, disposition, evidence, authority, and session; any drift expires it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agent-skill-engineering",
+          "version": "0.1.0"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[agent-skill-engineering][0.1.0] — 2026-08-27",
+      "changelogAnchor": "agent-skill-engineering010--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Agents can now frame, create, update, review, and optimize portable agent skills through progressive, least-authority workflows.** The foundation includes activation and behavior evaluations, deterministic compiled reference knowledge, and bounded failure contracts.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Agents can now frame, create, update, review, and optimize portable agent skills through progressive, least-authority workflows."
+            },
+            {
+              "type": "text",
+              "value": " The foundation includes activation and behavior evaluations, deterministic compiled reference knowledge, and bounded failure contracts."
+            }
+          ]
+        },
+        {
+          "source": "**Compatible organization or framework knowledge can inform skill work without coupling packs to another corpus.** Workflows detect declared provider capabilities, invoke an eligible provider explicitly, and retain their complete baseline when no provider is available.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Compatible organization or framework knowledge can inform skill work without coupling packs to another corpus."
+            },
+            {
+              "type": "text",
+              "value": " Workflows detect declared provider capabilities, invoke an eligible provider explicitly, and retain their complete baseline when no provider is available."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "catalogue-curation",
+          "version": "0.4.4"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[catalogue-curation][0.4.4] — 2026-08-27",
+      "changelogAnchor": "catalogue-curation044--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Pack-owned OKF routers can now expose a bounded, explicit-only knowledge provider capability for compatible workflows.** Raw OKF remains governed build-time input, while generated provider metadata supports deterministic discovery without implicit corpus traversal.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Pack-owned OKF routers can now expose a bounded, explicit-only knowledge provider capability for compatible workflows."
+            },
+            {
+              "type": "text",
+              "value": " Raw OKF remains governed build-time input, while generated provider metadata supports deterministic discovery without implicit corpus traversal."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.12.5"
         }
       ],
@@ -93,6 +268,66 @@
             {
               "type": "text",
               "value": " one, so a new deferral can be recorded in the canonical shape."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "catalogue-curation",
+          "version": "0.4.3"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[catalogue-curation][0.4.3] — 2026-08-26",
+      "changelogAnchor": "catalogue-curation043--2026-08-26",
+      "highlights": [
+        {
+          "source": "**Generated OKF routers now keep hostile concept metadata inside its intended index entry.** Titles, statuses, and concept types are bounded and escaped before they reach compiler-owned Markdown indexes, preventing metadata from fabricating links or additional entries.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Generated OKF routers now keep hostile concept metadata inside its intended index entry."
+            },
+            {
+              "type": "text",
+              "value": " Titles, statuses, and concept types are bounded and escaped before they reach compiler-owned Markdown indexes, preventing metadata from fabricating links or additional entries."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "architect",
+          "version": "0.15.3"
+        }
+      ],
+      "date": "2026-08-26",
+      "heading": "[architect][0.15.3] — 2026-08-26",
+      "changelogAnchor": "architect0153--2026-08-26",
+      "highlights": [
+        {
+          "source": "**The shipped architect pack is discoverable again.** Its architecture-lenses source now declares the required content licence, so `agentbundle show architect` resolves it, and it accurately describes authored source versus generated router projections.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The shipped architect pack is discoverable again."
+            },
+            {
+              "type": "text",
+              "value": " Its architecture-lenses source now declares the required content licence, so "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle show architect"
+            },
+            {
+              "type": "text",
+              "value": " resolves it, and it accurately describes authored source versus generated router projections."
             }
           ]
         }

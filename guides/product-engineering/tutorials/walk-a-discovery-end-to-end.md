@@ -71,7 +71,7 @@ You should see a `delivery contract` with those five bounded field groups. If
 the current Core invocation advertises `normalized-intake.v1#handoff`, it
 delegates through `work-intake` and stops at the normal `new-spec` approval
 path. A multi-spec or cross-repository result appears as a `delivery brief`
-and retains the `receive-brief` Ready and slice-confirmation steps.
+and retains the `author-delivery-brief continue` Ready and slice-confirmation steps.
 
 If Core is unavailable or older, you should see the same portable rendered
 handoff with no machine object. Save or pass that output to a compatible

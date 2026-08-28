@@ -6,6 +6,8 @@ import json
 import re
 import shutil
 import sys
+from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -119,6 +121,64 @@ def test_write_mode_applies_only_selected_pack_outputs(tmp_path: Path) -> None:
     manifest = json.loads((pack / ".okf-generated.json").read_text(encoding="utf-8"))
     assert manifest["profile"] == "agentbundle-okf/v1"
     assert not (root / "packs" / "other").exists()
+
+
+@pytest.mark.parametrize("drift", ["extra-key", "same-keys-different-bytes"])
+def test_repeated_compile_mismatch_returns_okf012_without_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    drift: str,
+) -> None:
+    # STUB: AC4 — the repeated-render guard is observable before pack mutation.
+    # Both drift shapes matter. `extra-key` alone would leave the guard's value
+    # comparison unpinned: narrowing `first.files != second.files` to
+    # `set(first.files) != set(second.files)` keeps a key-only test green while
+    # deleting half the contract. `same-keys-different-bytes` is also the likelier
+    # real nondeterminism — an embedded timestamp or a digest over an unordered set.
+    root = _make_catalogue(tmp_path)
+    before = _snapshot(root)
+    real_render = okf_compiler.render_okf_bundle
+    calls = 0
+
+    def render_differently_on_second_call(
+        bundle_root: Path,
+        *,
+        bundle_id: str,
+        router_skill: str,
+        projected_concepts: Mapping[str, str],
+        # Forwarded verbatim so the stub tracks the real signature; an optional
+        # render argument added later must not turn this guard into a TypeError
+        # that looks like the guard firing.
+        **extra: object,
+    ) -> okf_compiler.RenderResult:
+        nonlocal calls
+        calls += 1
+        rendered = real_render(
+            bundle_root,
+            bundle_id=bundle_id,
+            router_skill=router_skill,
+            projected_concepts=projected_concepts,
+            **extra,
+        )
+        if calls != 2:
+            return rendered
+        if drift == "extra-key":
+            files = {**rendered.files, "nondeterministic.md": b"second render\n"}
+        else:
+            mutated = dict(rendered.files)
+            key = sorted(mutated)[0]
+            mutated[key] = mutated[key] + b"\n<!-- second render -->\n"
+            assert set(mutated) == set(rendered.files)
+            files = mutated
+        return replace(rendered, files=files)
+
+    monkeypatch.setattr(okf_compiler, "render_okf_bundle", render_differently_on_second_call)
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 2
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["OKF012"]
+    assert _snapshot(root) == before
 
 
 def test_write_mode_fails_closed_without_safe_dir_fd_and_check_remains_read_only(

@@ -26,7 +26,9 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         `Approved → Shipped (…)` pass. HARD (exit non-zero).
   (ii)  ACs at the ship transition (diff-triggered) — a spec whose header
         status *changes to* `Shipped` in the diff against the base ref must
-        have every Acceptance Criterion `[x]` or carrying `(deferred: <anchor>)`.
+        have every Acceptance Criterion `[x]`. A `(deferred: <anchor>)` marker
+        no longer makes a new ship transition valid; separable work leaves the
+        final AC list through an approved amendment and a non-AC follow-on.
         Specs already `Shipped` on the base are grandfathered. If no base ref
         resolves, the invariant is skipped with a warning. HARD when it runs.
   (iii) dangling intra-repo references — both **doc** references (markdown
@@ -1014,10 +1016,10 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             transitioned = base_token != "Shipped"  # incl. new spec (None)
             if transitioned:
                 for lineno, line in acceptance_criteria_lines(text):
-                    if _AC_OPEN_RE.match(line) and not _DEFERRED_RE.search(line):
+                    if _AC_OPEN_RE.match(line):
                         hard.append(
                             f"{rel}:{lineno}: invariant (ii) — spec moved to "
-                            f"Shipped but AC is unchecked and not deferred"
+                            f"Shipped but AC is unchecked"
                         )
 
         # (iii) dangling intra-repo references (warn-only) — doc links (.md)

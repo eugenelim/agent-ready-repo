@@ -1455,7 +1455,169 @@ _BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
 #    highlight prose. Being permissive here fails closed: more content skipped,
 #    never less.
 _FENCE_RE_CHANGELOG = re.compile(r"^([ \t]*)(`{3,}|~{3,})(.*)$")
-_COMMENT_INLINE_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+# `_backtick_runs` and the run-pairing rule below are COPIED from
+# packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py:158
+# (`_code_span_ranges`), not imported: tools/ must not couple to a
+# content-pinned, independently versioned pack tree. Copied as a run scanner
+# plus an interleaved pairing step rather than as one whole-line helper,
+# because a whole-line span list cannot express "a comment's interior
+# contributes no delimiters" -- see `_strip_changelog_comments`. The pairing
+# is also precomputed here instead of probed per run: upstream's probe loop
+# rescans on every unmatched run, which is quadratic when many distinct-length
+# runs precede a long tail of equal-length ones -- measured 2.25 s against this
+# file's 0.06 s on 300 distinct-length runs followed by 120,000 length-1 runs.
+def _backtick_runs(line: str) -> list[tuple[int, int]]:
+    """Every maximal backtick run on one line, as ``(start, length)``.
+
+    The run scan of lint-spec-status.py's `_code_span_ranges`, split from its
+    pairing half so the comment stripper can pair runs as it goes. The scan
+    itself is byte-identical to the original.
+    """
+    runs: list[tuple[int, int]] = []
+    index, length = 0, len(line)
+    while index < length:
+        if line[index] == "`":
+            end = index
+            while end < length and line[end] == "`":
+                end += 1
+            runs.append((index, end - index))
+            index = end
+        else:
+            index += 1
+    return runs
+
+
+def _span_splits_a_comment(line: str, span_start: int, span_end: int) -> bool:
+    """Does this code span hold a comment opener whose closer is outside it?
+
+    That is the authoring mistake worth reporting: the span swallows the
+    `<!--`, so the comment is never stripped and its body publishes. A `<!--`
+    fully enclosed with its `-->`, or one with no closer anywhere, is an
+    ordinary backticked mention -- the changelog carries many, and reporting
+    those would bury the real signal.
+    """
+    opener = line.find("<!--", span_start, span_end)
+    while opener >= 0:
+        closer = line.find("-->", opener + len("<!--"))
+        if closer >= 0 and closer + len("-->") > span_end:
+            return True
+        opener = line.find("<!--", opener + len("<!--"), span_end)
+    return False
+
+
+class _StrippedLine(NamedTuple):
+    """One changelog line with its real HTML comments removed.
+
+    `masks_split_comment` is the authoring diagnostic: a code span swallowed
+    the opener of a comment whose closer sits outside it, so that comment's
+    body survives into published copy.
+    """
+
+    text: str
+    opens_comment: bool
+    masks_split_comment: bool
+
+
+def _strip_changelog_comments(line: str) -> _StrippedLine:
+    r"""Strip real HTML comments and report an unclosed opener on this line.
+
+    ONE left-to-right pass in which comment detection and code-span pairing
+    interleave; whichever construct starts earlier at the cursor consumes its
+    extent. An opener inside a code span is a mention. Once a real opener is
+    found, its closer search is code-span blind -- Markdown is not parsed
+    inside an HTML comment.
+
+    The interleaving is the correctness argument, and two earlier shapes got it
+    wrong in ways worth naming, because both looked right:
+
+    1. Pair over the WHOLE line, then mask openers that fall inside a span. A
+       backtick inside one real comment paired with a backtick inside the NEXT
+       one; the bogus span covered the second comment's opener, so it read as a
+       mention and its body published. Measured leak:
+       ``- Ship it <!-- don`t publish --> <!-- TODO: internal `note` -->``.
+    2. Same, plus discarding spans that start before the current segment. That
+       stops a comment interior CREATING a bogus span, but not from STEALING
+       the partner of a later legitimate mention -- the interior still supplies
+       a delimiter, one level down. Measured hard failure:
+       ``<!-- drop the ` here --> Write `<!--` to mention it`` raised
+       "unterminated HTML comment" on a line containing no such thing, failing
+       the whole site build.
+
+    Both are the same root cause: filtering the OUTPUT of a whole-line pairing
+    cannot express "a comment's interior contributes no delimiters". Only
+    interleaving can, because a skipped comment's runs are never examined.
+
+    Linear by construction. `next_same` below is precomputed in one backward
+    pass, so pairing is O(1) per run and never rescans -- no quadratic recompute
+    (a per-segment re-pair measured 4.6 s on 3,000 inline pairs) and no
+    backtracking regex (measured 74 s on a 12 KB backtick run).
+
+    Leftmost-wins, so it is CommonMark-faithful, and that has a consequence:
+    an UNBALANCED backtick in prose pairs into a following real comment, so
+    that comment's body sits inside a code span, is literal text, and
+    publishes. The old whole-line regex stripped it. Rendering stays
+    CommonMark, but the pipeline errs toward withholding (see the module note
+    on Highlights above), so the third return value reports it rather than
+    letting it publish in silence.
+
+    Reported only when the span CUTS A COMMENT IN HALF -- its extent holds a
+    `<!--` whose matching `-->` is not also inside it. A fully enclosed
+    ``` `<!-- x -->` ``` is an ordinary mention, and so is a `<!--` with no
+    closer at all; the changelog is full of both, and flagging them would make
+    the diagnostic fire on every correct line.
+    """
+    runs = _backtick_runs(line)
+    # run index -> index of the next run of identical length, or -1.
+    next_same: list[int] = [-1] * len(runs)
+    latest: dict[int, int] = {}
+    for index in range(len(runs) - 1, -1, -1):
+        next_same[index] = latest.get(runs[index][1], -1)
+        latest[runs[index][1]] = index
+    run_at = {start: index for index, (start, _) in enumerate(runs)}
+
+    pieces: list[str] = []
+    kept_from = 0
+    position = 0
+    length = len(line)
+    masks_split_comment = False
+
+    while position < length:
+        if line.startswith("<!--", position):
+            # A real comment: emit what precedes it and skip its whole extent.
+            # Its interior is never scanned, so nothing inside it can pair.
+            pieces.append(line[kept_from:position])
+            closer = line.find("-->", position + len("<!--"))
+            if closer < 0:
+                return _StrippedLine("".join(pieces), True, masks_split_comment)
+            kept_from = closer + len("-->")
+            position = kept_from
+            continue
+        if line[position] == "`":
+            # `position` always lands on a run START, never mid-run, so this
+            # subscript cannot KeyError: an unpaired run advances to its own
+            # end, a paired one to its partner's end, the comment branch to
+            # just after `>`, and `+= 1` from a non-backtick -- and a run is
+            # maximal, so the character after one is never a backtick.
+            index = run_at[position]
+            partner = next_same[index]
+            if partner < 0:
+                # An unpaired run is literal text, not a delimiter.
+                position += runs[index][1]
+            else:
+                # A code span: skip it whole, mention and all.
+                span_end = runs[partner][0] + runs[partner][1]
+                if not masks_split_comment:
+                    masks_split_comment = _span_splits_a_comment(
+                        line, position, span_end
+                    )
+                position = span_end
+            continue
+        position += 1
+
+    pieces.append(line[kept_from:])
+    return _StrippedLine("".join(pieces), False, masks_split_comment)
 
 
 def _slug_base(text: str) -> str:
@@ -1604,6 +1766,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
     comment_opened_at: int | None = None
     ambiguous: list[tuple[int, str]] = []
     misplaced: list[tuple[int, int, str]] = []
+    split_comments: list[tuple[int, str]] = []
 
     for lineno, raw in enumerate(lines, start=1):
         # Fenced code wins over comment syntax: `<!--` inside a shell sample is
@@ -1637,19 +1800,25 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
         # slot that `github-slugger` never sees, which would shift every later
         # `-N` suffix and point source links at the wrong release.
         if in_comment:
+            # Deliberately code-span blind: Markdown is not parsed inside an
+            # HTML comment, so backticks cannot mask its real closer.
             if "-->" not in raw:
                 continue
             in_comment = False
             comment_opened_at = None
             raw = raw.split("-->", 1)[1]
-        raw = _COMMENT_INLINE_RE.sub("", raw)
-        if "<!--" in raw:
-            raw = raw.split("<!--", 1)[0]
-            in_comment = True
-            comment_opened_at = lineno
+        stripped = _strip_changelog_comments(raw)
+        raw = stripped.text
+        if stripped.masks_split_comment:
+            # An unbalanced backtick paired into a real comment, so that
+            # comment's body would publish. Rendering stays CommonMark; this
+            # reports the authoring mistake instead of shipping it in silence.
+            split_comments.append((lineno, lines[lineno - 1].strip()))
 
         opener = _FENCE_RE_CHANGELOG.match(raw)
         if opener is not None:
+            # A `<!--` that left this fence marker behind was in its info string,
+            # so it is sample text rather than cross-line comment state.
             # The opener is matched LOOSELY on indentation. A fence indented four
             # spaces is the ordinary shape inside a list item, and tightening
             # this to `^ {0,3}` while fixing the closer rule regressed those into
@@ -1661,6 +1830,13 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
             fence_opened_at = lineno
             fence_marker = opener.group(2)
             continue
+
+        if stripped.opens_comment:
+            in_comment = True
+            comment_opened_at = lineno
+            # Deliberate divergence from lint-spec-status.py: this builder does
+            # not treat an unterminated real opener as literal text. The final
+            # raise prevents one typo from silently swallowing later releases.
 
         heading = _CHANGELOG_HEADING_RE.match(raw)
         if heading is None:
@@ -1763,6 +1939,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
             ],
             "misplaced_highlights": misplaced,
             "unreleased_regions": ambiguous,
+            "code_span_split_comments": split_comments,
         },
     )
 

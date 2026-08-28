@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import functools
+import hashlib
 import importlib.util
 import json
 import os
@@ -542,6 +543,7 @@ _BOTH_TRANSITIONS = {
 _CODE_TRANSITIONS = {
     **_BOTH_TRANSITIONS,
     ("SPEC-PLAN-APPROVED", "plan-locked"): "CODE-IMPLEMENTATION",
+    ("CODE-IMPLEMENTATION", "contract-amendment"): "SPEC-PLAN-DRAFTING",
     ("CODE-IMPLEMENTATION", "wave-complete"): "CODE-VERIFICATION",
     ("CODE-VERIFICATION", "wave-passed"): "CODE-IMPLEMENTATION",
     ("CODE-VERIFICATION", "gates-clean"): "CODE-REVIEW",
@@ -590,6 +592,7 @@ class GuardsUnavailable(RuntimeError):
 
 
 _guards_module: object | None = None
+_cohort_mutator_module: object | None = None
 
 
 def _guards():
@@ -677,6 +680,54 @@ def _guards():
         )
     _guards_module = module
     return _guards_module
+
+
+def _cohort_mutator():
+    """Load the sibling cohort writer for the cross-state amendment mutation."""
+    global _cohort_mutator_module
+    if _cohort_mutator_module is not None:
+        return _cohort_mutator_module
+    path = SCRIPT_DIR / "loop-cohort.py"
+    try:
+        observed = os.lstat(path)
+    except OSError as exc:
+        raise ImportError(f"cannot load {path}: {exc}") from exc
+    if not stat.S_ISREG(observed.st_mode):
+        raise ImportError(
+            f"cannot load {path}: not a regular file (symlink or device)"
+        )
+    previous = sys.dont_write_bytecode
+    module_name = "_work_loop_cohort_mutator"
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location(module_name, str(path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
+    finally:
+        sys.dont_write_bytecode = previous
+    if not getattr(module, "_MODULE_COMPLETE", False):
+        sys.modules.pop(module_name, None)
+        raise ImportError(f"cannot load {path}: module is incomplete")
+    required = {
+        "apply_contract_amendment",
+        "contract_amendment_replay_status",
+        "parse_completed_task_evidence_entries",
+    }
+    missing = sorted(required - set(dir(module)))
+    if missing:
+        sys.modules.pop(module_name, None)
+        raise ImportError(
+            f"cannot load {path}: missing required amendment symbols "
+            + ", ".join(missing)
+        )
+    _cohort_mutator_module = module
+    return module
 
 
 # Each entry: (mode, event) → guard_fn(spec_dir, engine_state, event_args).
@@ -1149,6 +1200,25 @@ def _schedule_check_current(spec_dir: Path) -> str | None:
     )
 
 
+def _contract_amendment_id(
+    run_id: str,
+    sequence: int,
+    owner_authority_ref: str,
+    reason_ref: str,
+    completed_task_evidence: dict[str, list[str]],
+) -> str:
+    evidence = json.dumps(
+        completed_task_evidence,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    material = (
+        f"{run_id}\0{sequence}\0{owner_authority_ref}\0{reason_ref}\0{evidence}"
+    )
+    return "amendment-" + hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
 @_locked("transition")
 def cmd_transition(args: argparse.Namespace) -> int:
     try:
@@ -1159,6 +1229,10 @@ def cmd_transition(args: argparse.Namespace) -> int:
     event = args.event
     wave_index = args.wave_index
     intent_incomplete = args.intent_incomplete
+    owner_authority_ref = args.owner_authority_ref
+    reason_ref = args.reason_ref
+    completed_evidence_entries = tuple(args.completed_evidence_ref or [])
+    completed_task_evidence: dict[str, list[str]] = {}
 
     # Validate --wave-index usage
     if event == "wave-passed":
@@ -1169,6 +1243,27 @@ def cmd_transition(args: argparse.Namespace) -> int:
             return stop(f"transition {event!r} does not accept --wave-index")
     if intent_incomplete and event != "reviewers-clean":
         return stop("transition --intent-incomplete requires reviewers-clean")
+    if event == "contract-amendment":
+        if not owner_authority_ref:
+            return stop("transition contract-amendment requires --owner-authority-ref")
+        if not reason_ref:
+            return stop("transition contract-amendment requires --reason-ref")
+        if not completed_evidence_entries:
+            return stop(
+                "transition contract-amendment requires --completed-evidence-ref"
+            )
+        try:
+            completed_task_evidence = (
+                _cohort_mutator().parse_completed_task_evidence_entries(
+                    completed_evidence_entries
+                )
+            )
+        except Exception as exc:
+            return stop(f"contract-amendment evidence invalid: {_diag(exc)}")
+    elif owner_authority_ref or reason_ref or completed_evidence_entries:
+        return stop(
+            f"transition {event!r} does not accept contract-amendment evidence"
+        )
 
     # recover at command start — before any early-exit check.
     # _recover_engine_state_tmp promotes crash-left .tmp → engine-state.json.
@@ -1211,6 +1306,68 @@ def cmd_transition(args: argparse.Namespace) -> int:
     if err:
         return stop(err)
 
+    # Recovery for a divergence between the two per-spec scratch files, where
+    # engine-state records the amendment at drafting but the cohort state does
+    # not. Reissuing the exact event completes only the missing cohort write and
+    # does not increment the transition sequence.
+    #
+    # Note this is NOT the ordinary crash window. `cmd_transition` mutates the
+    # cohort first and writes engine-state last, so a crash between them always
+    # leaves the cohort ahead, never behind — that direction is handled on the
+    # normal path by `contract_amendment_replay_status`. Reaching this branch
+    # requires the two untracked files to have diverged by some other means, so
+    # the plan cannot be assumed to still match what was approved.
+    if (
+        event == "contract-amendment"
+        and mode == "code"
+        and current_state == "SPEC-PLAN-DRAFTING"
+        and state.get("last_event") == "contract-amendment"
+    ):
+        context = state.get("last_event_context") or {}
+        amendment_id = _contract_amendment_id(
+            run_id,
+            int(state.get("transition_sequence", 0)),
+            owner_authority_ref,
+            reason_ref,
+            completed_task_evidence,
+        )
+        if (
+            context.get("amendment_id") != amendment_id
+            or context.get("owner_authority_ref") != owner_authority_ref
+            or context.get("reason_ref") != reason_ref
+            or context.get("completed_task_evidence", {})
+            != completed_task_evidence
+        ):
+            return stop("contract-amendment replay facts do not match engine state")
+        # The engine-side facts above only prove the caller reissued the same
+        # event. They say nothing about `plan.md`, and this branch does not fall
+        # through to Step 1b, so without this check the cohort mutation reaches
+        # its derive path — `task_section_hashes` over whatever the plan now
+        # holds — and an edit to an already-completed task section is laundered
+        # into the baseline that `validate_completed_task_sections` later
+        # ratifies. Verify the plan still matches the scheduled baseline first;
+        # canonical form normalises the status token and checkbox brackets, so
+        # ordinary task check-offs do not trip it.
+        err = _schedule_check_current(spec_dir)
+        if err:
+            return stop(err)
+        try:
+            _cohort_mutator().apply_contract_amendment(
+                spec_dir,
+                expected_run_id=run_id,
+                owner_authority_ref=owner_authority_ref,
+                reason_ref=reason_ref,
+                completed_task_evidence=completed_task_evidence,
+                amendment_id=amendment_id,
+            )
+        except Exception as exc:
+            return stop(f"contract-amendment cohort recovery failed: {_diag(exc)}")
+        print(
+            f"loop-engine: contract-amendment replay completed cohort state "
+            f"for {spec_dir.name}"
+        )
+        return 0
+
     # Step 1: validate event against FSM for current mode × state
     table = _TRANSITIONS_BY_MODE.get(mode, {})
     key = (current_state, event)
@@ -1220,8 +1377,35 @@ def cmd_transition(args: argparse.Namespace) -> int:
         )
     next_state = table[key]
 
+    cohort_amendment_already_applied = False
+    if event == "contract-amendment":
+        expected_amendment_id = _contract_amendment_id(
+            run_id,
+            int(state.get("transition_sequence", 0)) + 1,
+            owner_authority_ref,
+            reason_ref,
+            completed_task_evidence,
+        )
+        try:
+            replay_status = _cohort_mutator().contract_amendment_replay_status(
+                spec_dir,
+                amendment_id=expected_amendment_id,
+                owner_authority_ref=owner_authority_ref,
+                reason_ref=reason_ref,
+                completed_task_evidence=completed_task_evidence,
+            )
+        except Exception as exc:
+            return stop(f"contract-amendment replay check failed: {_diag(exc)}")
+        if replay_status == "conflict":
+            return stop("contract-amendment cohort state conflicts with this event")
+        cohort_amendment_already_applied = replay_status == "applied"
+
     # Step 1b: mandatory plan-hash check for CODE-* states (except `done`)
-    if current_state in _CODE_STATES and event not in _DONE_EXEMPT_FROM_SCHEDULE_GUARD:
+    if (
+        current_state in _CODE_STATES
+        and event not in _DONE_EXEMPT_FROM_SCHEDULE_GUARD
+        and not cohort_amendment_already_applied
+    ):
         err = _schedule_check_current(spec_dir)
         if err:
             return stop(err)
@@ -1238,12 +1422,40 @@ def cmd_transition(args: argparse.Namespace) -> int:
         if err:
             return stop(err)
 
+    new_seq = int(state.get("transition_sequence", 0)) + 1
+    amendment_id = None
+    if event == "contract-amendment":
+        amendment_id = _contract_amendment_id(
+            run_id,
+            new_seq,
+            owner_authority_ref,
+            reason_ref,
+            completed_task_evidence,
+        )
+        try:
+            _cohort_mutator().apply_contract_amendment(
+                spec_dir,
+                expected_run_id=run_id,
+                owner_authority_ref=owner_authority_ref,
+                reason_ref=reason_ref,
+                completed_task_evidence=completed_task_evidence,
+                amendment_id=amendment_id,
+            )
+        except Exception as exc:
+            return stop(f"contract-amendment cohort mutation failed: {_diag(exc)}")
+
     # Build transition metadata (shared by outbox and engine-state write).
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    new_seq = int(state.get("transition_sequence", 0)) + 1
     last_event_context = None
     if event == "wave-passed" and wave_index is not None:
         last_event_context = {"completed_wave_index": wave_index}
+    elif event == "contract-amendment":
+        last_event_context = {
+            "amendment_id": amendment_id,
+            "owner_authority_ref": owner_authority_ref,
+            "reason_ref": reason_ref,
+            "completed_task_evidence": completed_task_evidence,
+        }
 
     new_state = {
         **state,
@@ -1325,6 +1537,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--intent-incomplete",
         action="store_true",
         help="declare reviewers-clean is an intermediate unit of an incomplete intent",
+    )
+    sp.add_argument("--owner-authority-ref", dest="owner_authority_ref", default=None)
+    sp.add_argument("--reason-ref", dest="reason_ref", default=None)
+    sp.add_argument(
+        "--completed-evidence-ref",
+        dest="completed_evidence_ref",
+        action="append",
+        default=[],
     )
     sp.set_defaults(func=cmd_transition)
 

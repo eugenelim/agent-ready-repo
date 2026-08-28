@@ -1019,7 +1019,17 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
             ("legacy_entry", 2),
             ("unsatisfied_dependency", 8),
             ("missing_plan", 5),
-            ("impossible_transition", 1),
+            # 2 from 2026-08-28. Both instances are the same legitimate state
+            # the engine does not model: a programme brief that is `Executing`
+            # in `brief_queue.executing` while every one of its child specs is
+            # `Shipped` and its next slice is not yet promoted to a spec, so
+            # no child is `Implementing`. `distribution-routes-programme.md`
+            # (ini-002) has held this shape; `agent-skill-engineering.md`
+            # (ini-009) enters it as M0 ships ahead of M1. Raised deliberately
+            # rather than worked around: moving either brief to
+            # `brief_queue.shipped` would require its Status to read `Shipped`
+            # and would falsely declare a live programme finished.
+            ("impossible_transition", 2),
         ):
             self.assertLessEqual(
                 counts.get(code, 0),

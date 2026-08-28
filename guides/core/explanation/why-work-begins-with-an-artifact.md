@@ -42,7 +42,7 @@ after both states are durable.
 ## Processors retain their jobs
 
 Intake decides the route, not the details of every downstream workflow.
-`author-brief` writes a Draft brief, `receive-brief` handles the human Ready gate
+`author-delivery-brief create` writes a Draft brief, `continue` handles the human Ready gate
 and confirmed slice cuts, `new-spec` owns the feature contract, and `bug-fix`
 owns regression diagnosis. `workspace-status` remains the read-side authority.
 

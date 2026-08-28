@@ -29,7 +29,7 @@ already have. Intake distinguishes these common shapes:
 | --- | --- |
 | A minimal opportunity | Draft intent; stop for shaping |
 | One independently shippable behavior | Spec route through `new-spec` |
-| One coherent outcome needing several specs | Draft brief through `author-brief` |
+| One coherent outcome needing several specs | Draft brief through `author-delivery-brief create` |
 | A cross-repository outcome | One linked local brief per repository |
 | Unrelated items or an incoherent view | Separate units, view-only, or one clarification |
 | A regression with durable expected-behavior evidence | Defect context through `bug-fix` |

@@ -163,7 +163,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      Unverified loop but they do gate `Constrained by:`.
    - Stamp the optional `Brief:` header **only** when this spec is
      derived from a product brief — i.e. you arrived here from
-     `receive-brief`, which passes a confirmed slice into this skill. Set
+     `author-delivery-brief continue`, which passes a confirmed slice into this skill. Set
      it to the brief's repository-relative path
      (`docs/product/briefs/<slug>.md`). Leave it blank or `none` for a
      spec authored directly. The workspace entry for a brief-derived spec
@@ -178,6 +178,53 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      — additive, and a spec without it stays valid. This is format-only
      metadata; follow the repository's mapped workflow guidance when it
      defines a stricter rule.
+
+3a. **Plan durable outputs before approving the contract.** A durable spec
+   carries a repository-specific Durable outputs section before Boundaries.
+   It is not a fixed file checklist. Assess these candidate roles against the
+   actual application and repository: user-facing promise, current product
+   truth, current architecture, decision rationale, interface compatibility,
+   operations, maintainer procedure, release history, and reusable learning.
+   Only applicable roles enter the plan; `none` requires an explicit rationale.
+
+   Resolve each destination through the same order used by Wave 1 semantic
+   routing: explicit destination; declared repository policy or optional
+   configuration; established in-repository convention; established external
+   destination; confirmation-required ambiguity; then destination-required with
+   an offer to select or create. Do not assume this catalogue's paths in an
+   adopter repo, create placeholder documents for inapplicable roles, or treat
+   a selected destination as write or deletion authority.
+
+   For each applicable output, name its semantic role, resolved destination or
+   still-required decision, owner, expected evidence, and closeout condition.
+   Shaping must read each applicable existing surface as a whole, not as an
+   isolated snippet. If the current human-readable story is stale,
+   contradictory, orphaned, or missing a necessary pointer, record
+   whole-surface refresh work in the spec/plan before approval. When an
+   established user-documentation surface exists and the behavior is
+   user-facing, draft or update that surface before implementation approval so
+   the user task, promise, boundaries, and observable result pressure-test the
+   spec. Architecture and maintainer outputs stay terse: state ownership,
+   boundaries, invariants, and navigation, then link to implementation,
+   contracts, tests, and verified commands for detail.
+
+   Treat the plan's `## Design (LLD)` as mixed delivery material. Every
+   non-inferable design fact should either map to a semantic owner in the
+   Durable outputs plan or carry an explicit mechanically inferable /
+   delivery-residue rationale. A design fact that cannot be reconstructed from
+   code, tests, types, or current docs and still has no owner blocks approval
+   or later closeout.
+
+   Durable approval rigor does not require permanent repository retention.
+   Before approving any full-mode record, name its intended retention class
+   (`local-only`, `PR-only`, or repository-durable), exact locator and
+   fingerprint, every required reader, the stable post-closeout evidence owner,
+   and the intended retention or immediate-disposition boundary. A local-only
+   record must remain reachable by every resuming session that needs it; a
+   PR-only record must remain reachable by every reviewer and gate that needs
+   it. If another person, worktree, CI job, or external control plane cannot
+   read the proposed surface, choose a shareable established destination or
+   retain the record. This is an approval record, not a new published schema.
 
 4. Fill in the spec — including the **Testing Strategy** section. Push
    back hard on these failure modes:
@@ -260,7 +307,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      mixed` — from the feature itself: a screen or flow is `ui`, a backend
      endpoint or worker is `service`, a schema/model change is `data`, a wiring
      of external systems is `integration`, anything spanning several is `mixed`.
-     If you arrived here from `receive-brief`, the brief's framing usually
+     If you arrived here from `author-delivery-brief continue`, the brief's framing usually
      decides it; otherwise **ask the user**. The shape selects which
      `## Design (LLD)` sub-sections the plan scaffolds — a narrower shape keeps
      the plan thin. Stamp the resolved value on the spec's `Shape:` header.
@@ -323,6 +370,9 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
 
 5. Fill in the plan second. The plan should:
    - Cite any ADRs or RFCs it follows from.
+   - Map tasks and construction tests to the spec's Durable outputs so the
+     implementation can hand `close-work` planned output evidence instead of a
+     second requirements record.
    - Break the work into plan tasks small enough for one PR. Above 2,000
      reviewable behavior and test lines, declare the task's review shape and
      act on it: mechanically uniform WIDE work is not split but carries
@@ -356,6 +406,16 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      file paths and function or symbol names where they're known.
      "Update the parser" is too coarse to verify; "add a null-check
      in `parser/lex.ts:Lexer.next`" is the right level.
+   - **Open AC as delivery debt.** A newly `Shipped` spec has every final
+     acceptance criterion checked. If required accepted work remains, the spec
+     stays `Implementing` across sessions. If the work is separable, pause,
+     amend the spec and plan, record the separated item under a non-AC
+     `Follow-ons` section with its owner and stable artifact or external
+     evidence reference, rerun the fired spec-stage reviews, and get fresh
+     human approval on the amended fingerprint before implementation resumes.
+     Do not use an unchecked `(deferred: <slug>)` AC as a new shipping
+     exception; historical frozen specs that already used that form are
+     migration work for a later governed wave.
 
 6. Spec-mode adversarial review. Before announcing the spec in the README,
    select a subagent matching `adversarial-reviewer` and ask it to review

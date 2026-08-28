@@ -52,6 +52,11 @@ write-second ordering.
 | `plan_hash` | `sha256(canonical_contract(plan.md))` at the time of `schedule`. Canonical form: see *What the pin covers* below. `schedule check-current` verifies plan.md hasn't changed since scheduling. |
 | `schedule_waves` | List of waves (each a list of task IDs), produced by `schedule`. Empty until `schedule` runs. |
 | `current_wave_index` | 0-based index into `schedule_waves`. Advanced by `wave advance`. |
+| `completed_task_ids` | Ordered task IDs completed before a controlled contract amendment. Preserved across reapproval. |
+| `completed_task_section_hashes` | Exact SHA-256 pins for completed task sections. `approve-plan` and `schedule` refuse an amended plan that edits, removes, or renames one. |
+| `completed_task_evidence` | Stable bounded gate/review evidence references keyed by completed task ID. Every completed task must retain at least one reference across amendment. |
+| `amendment_history` | Bounded append-only snapshots of prior approved hashes, schedule position, completed task pins/evidence, owner authority, and follow-on reason. |
+| `amendment_pending` | Replay marker for the current controlled amendment; enables either engine/cohort crash window to complete without double snapshots. |
 | `implementation_retry_count` | Number of distinct implementation cycles, incremented by `record-attempt`. |
 | `max_implementation_retries` | Cap; `check --phase gates-failed` exits non-zero when `implementation_retry_count >= max`. Default: `5`. |
 | `last_record_attempt_cycle_id` | `<run_id>:<seq>` of the last recorded attempt; used for idempotency — a repeated cycle-id is a no-op. |
@@ -81,8 +86,8 @@ tool. Run `loop-cohort reset` and re-init.
 | `feature` | Spec directory name. |
 | `mode` | `code` or `spec-plan`. Fixed at init; drives FSM table selection. |
 | `state` | Current FSM state. Legal values: `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`. |
-| `last_event` | Most recent FSM event. Legal values: `null` (initial state before any transition), `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
-| `last_event_context` | Event-specific payload; `{completed_wave_index: N}` for `wave-passed`. |
+| `last_event` | Most recent FSM event. Legal values: `null` (initial state before any transition), `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `contract-amendment`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
+| `last_event_context` | Event-specific payload; `{completed_wave_index: N}` for `wave-passed`, or the amendment ID plus bounded owner-authority, follow-on-reason, and task-bound completed-evidence references for `contract-amendment`. |
 | `transition_sequence` | Monotonically increasing counter, incremented on every successful transition. |
 | `last_transition_at` | ISO-8601 UTC timestamp of the last transition. |
 
@@ -98,6 +103,7 @@ to proceed to cohort operations without another human signal.
 - `plan-locked` — approved baseline sealed; fires from `SPEC-PLAN-APPROVED`; guard (code mode): `spec.md Status == Approved` + `plan check-current --require-schedule`; guard (spec-plan mode): `spec.md Status == Approved` + `plan check-current`.
 - `spec-rejected` — scope rejected; fires from `SPEC-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
 - `plan-rejected` — build strategy rejected; fires from `PLAN-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
+- `contract-amendment` — code-mode-only return from `CODE-IMPLEMENTATION` to `SPEC-PLAN-DRAFTING`; requires explicit owner-authority, stable follow-on reason, and at least one stable evidence reference for every completed task. Each repeated CLI reference uses `Tn=<stable-ref>`. It snapshots and pins completed work, clears only remaining approval/schedule state, and reuses the ordinary review, human-gate, approval, scheduling, and `plan-locked` path. Exact replay completes either cross-file crash window without a second history entry.
 
 **Exit contract — `check`.** `loop-cohort check --phase <phase>` exits 0 when
 the phase is satisfied and non-zero when it isn't, with a one-line reason on

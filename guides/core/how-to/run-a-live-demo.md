@@ -22,8 +22,8 @@ see where human judgment controlled it.
 | If the input is… | Use | Scope | Path shown | End state |
 | --- | --- | --- | --- | --- |
 | One bounded, independently testable feature | **Technical** | Core at repo scope | `new-spec` | No brief; one Draft spec/plan pair |
-| A structured multi-feature handoff | **Enterprise** | Core at repo scope | `receive-brief` → selected slice → `new-spec` | Source brief `Ready`; one Draft spec/plan pair |
-| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec` | Draft intent and one Draft spec/plan pair; add `receive-brief` only for multi-spec or cross-repository coordination |
+| A structured multi-feature handoff | **Enterprise** | Core at repo scope | `author-delivery-brief continue` → selected slice → `new-spec` | Source brief `Ready`; one Draft spec/plan pair |
+| A feature-level product problem that still needs shaping | **Non-technical** | Product Engineering at user scope, then Core at repo scope | `frame-intent` → `de-risk-intent` → `decompose-intent` → `new-spec` | Draft intent and one Draft spec/plan pair; add `author-delivery-brief` only for multi-spec or cross-repository coordination |
 
 The labels name likely audiences; the **input shape chooses the workflow**. A
 technical participant with a multi-feature handoff still uses the enterprise
@@ -213,8 +213,8 @@ the share recipient owns platform, risk, security, or engineering approval.
 
 Prepare an **unqueued Draft brief** before the demo. It must name Outcome,
 Scope, non-goals, Appetite, at least one Rabbit hole, and a Spec map placeholder.
-This path deliberately skips `author-brief`, whose normal contract includes a
-`workspace.toml` queue write.
+This path uses `author-delivery-brief continue` because the brief already
+exists, while keeping `workspace.toml` explicitly out of scope.
 
 ### Pre-flight — 4 min maximum
 
@@ -244,7 +244,7 @@ or a policy claim cannot be shown to participants.
 **Say:** Paste this request:
 
 ```text
-Use Core's receive-brief skill on [brief path]. Confirm its load-bearing
+Use Core's author-delivery-brief skill in continue mode on [brief path]. Confirm its load-bearing
 fields, propose independently shippable slices, and wait for the domain owner
 to choose the first slice. Mark the brief Ready only if its gate passes, then
 use new-spec for that slice. Do not implement, approve, register work, edit
@@ -262,7 +262,7 @@ uncovered outcome or epic-sized item called out.
 **You decide:** resolve missing load-bearing facts and confirm, redirect, or
 reject the independently shippable cut.
 
-**Narrate:** `receive-brief` receives a handoff a level above a feature; it does
+**Narrate:** `author-delivery-brief continue` receives a handoff a level above a feature; it does
 not accept a component-layer split as delivery slices.
 
 **Stop if:** Outcome or Scope remains unknown, the proposed cut drops an outcome,
@@ -394,7 +394,7 @@ Use user-scoped Product Engineering to frame [workflow problem] at feature
 level and app scale from [source paths]. Pause at G0 for my framing decision,
 test the one riskiest assumption against a predeclared kill condition, and
 project one independently shippable surviving intent directly to a Core spec
-and plan. Use a brief and `receive-brief` only if the result coordinates
+and plan. Use a brief and `author-delivery-brief create` only if the result coordinates
 multiple specs or repositories. Do not decide user meaning or craft quality for
 me; do not implement, approve, register work, or change an external system.
 ```
@@ -452,7 +452,7 @@ loses the participant's correction.
 
 **Say:** “Use Core's `new-spec` to draft one spec/plan pair from this
 independently shippable intent. If coordination required a brief, use
-`receive-brief` to confirm the one-slice cut first. Preserve provenance and show
+`author-delivery-brief continue` to confirm the one-slice cut first. Preserve provenance and show
 where my correction appears. Do not implement.”
 
 **Reads:** the source-backed intent, architecture, and conventions, plus a Ready

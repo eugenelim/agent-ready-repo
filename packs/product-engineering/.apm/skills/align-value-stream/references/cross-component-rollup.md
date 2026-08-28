@@ -1,6 +1,6 @@
 # The cross-component rollup — snapshot and pointer
 
-`receive-brief` already answers "is **this** repo's slice delivered?" — its
+`author-delivery-brief continue` already answers "is **this** repo's slice delivered?" — its
 per-repo coverage reads each spec's `Status:`, follows the `Brief:` back-links,
 and rolls a brief's Spec map up automatically. No single repo can answer the
 level above: "is the **whole feature** delivered **across all** the components it

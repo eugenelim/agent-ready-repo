@@ -73,7 +73,7 @@ discovery shape from one of four upstream sources:
   installed) — its `frame → de-risk → decompose` loop hands its leaf in here: at
   `app` scale a feature-level leaf intent *is* a `core` brief,
 - a provided PRD, or
-- a brief produced by `receive-brief`.
+- a delivery brief produced by `author-delivery-brief`.
 
 The `product-engineering` source is **optional upstream**, named the same way the
 `desk-research` source is — "when the pack is installed". A `core`-only adopter has the
@@ -87,7 +87,7 @@ upstream* rather than guessing. Don't paper over a thin idea with a plausible
 mission.
 
 The phase's output is the first **brief** (`docs/product/briefs/<slug>.md`, the
-artifact `receive-brief` owns) — the *what / why* that the rest of the flow and
+artifact `author-delivery-brief` owns) — the *what / why* that the rest of the flow and
 the downstream loop read. Hand that brief forward; nothing else.
 
 ### 3. Foundation — decide the stack, record the rationale
@@ -159,7 +159,7 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
 
 - **Performing discovery / research yourself.** Discovery is fed *in* (stage 2)
   from the `desk-research` pack, an `intent` from `frame-intent` (when
-  `product-engineering` is installed), a PRD, or a `receive-brief` brief. This
+  `product-engineering` is installed), a PRD, or an `author-delivery-brief` brief. This
   skill consumes a discovery shape; it does not own the research phase and does
   not shape product intent itself.
 - **Building an autonomous multi-agent "software company" generator.** The human
@@ -179,7 +179,7 @@ Status list — Lead each row with a status glyph — ● running, ✓ done, ○
   `work-intake`; adopter-owned destinations win when policy permits them.
 - **Adding a new top-level directory, or importing another pack's code.** This
   skill lives beside the other core skills and composes the rest **by reference,
-  not import** — it names `desk-research`, `receive-brief`, the arc42 `reference.md`
+  not import** — it names `desk-research`, `author-delivery-brief`, the arc42 `reference.md`
   template, `new-spec`, and `work-loop`, and hands off to them. The
   `product-engineering` seam is by reference too: `frame-intent` is named only as
   an *upstream discovery shape this skill receives* (when that pack is installed),
