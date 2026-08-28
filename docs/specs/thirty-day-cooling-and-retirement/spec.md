@@ -15,20 +15,14 @@
 ## Objective
 
 A maintainer enrols one delivered, closed delivery artifact into a thirty-day
-cooling period, and thirty days later a human invokes `close-work` to review it.
-Wave 5 computes `review_on` as exactly thirty calendar days after the selected
-delivery-completion event in the recorded timezone, persists a bounded lifecycle
-record in a resolved, confirmed destination, answers whether that record is due,
-and verifies the artifact's identity from its logical ID and content fingerprint
-rather than from commit topology. Day-30 review rechecks completion, outputs,
-active use, obligations, identity, and authority; approval retires the record,
-refusal or uncertainty creates a reasoned, owned, dated exception, and that
-exception is itself reviewable. Being due authorizes nothing: day 30 never
-auto-deletes, and an approved deletion runs through Wave 4's unchanged preview,
-confirmation, and effect seams. Wave 5 adds no scheduler, daemon, or background
-job; no second resolver or fingerprint helper; and no dependency.
-Workspace-status projection, ordinary-context exclusion, historical migration,
-and pruning remain absent.
+cooling period; thirty days later a human invokes `close-work` and reviews it.
+The engine is three operations — compute a date, persist a bounded record,
+answer whether a record is due — and every other path is a refusal with a named
+code. Being due authorizes nothing: day 30 never auto-deletes, and an approved
+deletion runs through Wave 4's unchanged seams.
+
+The acceptance criteria below are the contract. Each names an input and the
+exact observable it must produce.
 
 ## Durable Outputs
 
@@ -48,29 +42,17 @@ and pruning remain absent.
 
 ### Capability and delivery evidence
 
-Implementation, tests, and gate results are the capability-proof layer, not a
-semantic durable-output role. This Wave 5 delivery is a live dependency for
-RFC-0096 Wave 6 and Wave 7: its spec and plan stay available until those waves
-settle. Wave 4's spec and plan remain a live dependency of this wave and are not
-disposed of here.
+This delivery is a live dependency for RFC-0096 Waves 6 and 7, and Wave 4's
+spec and plan are a live dependency of it. None of the three is disposed of
+here.
 
 ## Boundaries
 
+These are the rails the acceptance criteria do not already pin. A rail that
+merely restates a criterion has been removed.
+
 ### Always do
 
-- Compute `review_on` from calendar dates in the recorded IANA timezone, never
-  from an elapsed-hours interval.
-- Take the current instant as an explicit timezone-aware argument at every seam
-  that needs it. No Wave 5 module reads the system clock.
-- Establish artifact identity from the logical delivery ID and the content
-  fingerprint produced by the blessed
-  `file_safety.sha256_confined_regular_file` helper.
-- Resolve the lifecycle-record destination through the shipped Wave 1 resolver
-  from a supplied, confirmed candidate, and fail closed when it is absent,
-  unconfined, or not writable.
-- Re-resolve and confine the record's path immediately before every write, and
-  establish writability from a filesystem fact rather than from a declared
-  candidate attribute.
 - Treat every persisted record, external claim, and model-proposed locator,
   date, timezone, authority fact, or confirmation as bounded untrusted data and
   revalidate it at the deterministic seam that acts on it.
@@ -78,8 +60,6 @@ disposed of here.
   unknown or contradictory.
 - Draw every persisted vocabulary token from a published set: RFC §5 disposition
   intents and `close_work.POST_CLOSEOUT_RESULTS`.
-- Route an approved deletion through Wave 4's existing `preview_deletion`,
-  `confirm_deletion`, and `apply_confirmed_deletion` seams unchanged.
 
 ### Ask first
 
@@ -94,18 +74,14 @@ disposed of here.
 
 - Never auto-delete on day 30, on elapsed time, on a status change, on session
   end, or after a passing review.
-- Never treat a due record as deletion permission, and never let a prior review
-  substitute for fresh confirmation.
+- Never let a prior review substitute for fresh confirmation.
 - Never add a scheduler, daemon, cron entry, background job, or wake-up hook.
 - Never derive identity, dueness, or eligibility from commit topology, branch
   shape, reflog, or history depth.
-- Never persist requirements, personal identity, or rationale in the lifecycle
-  record.
-- Never let `workspace.toml` own cooling state; it may hold a pointer only.
 - Never create the lifecycle destination implicitly; absence is an offer to
   select or create, which a human accepts.
-- Never add a second semantic-surface resolver, a second fingerprint helper, a
-  weaker path check, or a new runtime dependency.
+- Never add a second semantic-surface resolver, a second fingerprint helper, or
+  a weaker path check.
 - Never implement workspace-status projection, ordinary-context exclusion,
   historical migration, or pruning.
 
@@ -317,40 +293,30 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 
 ## Assumptions
 
-- Technical: the lifecycle record resolves to `docs/lifecycle/<delivery-id>.json`.
-  The first destination chosen, `docs/specs/<slug>/lifecycle.json`, was withdrawn
-  because `docs/CONVENTIONS.md` freezes a shipped spec directory as a unit and
-  only shipped work cools. (source: owner decisions 2026-08-27; `docs/CONVENTIONS.md`
-  § "A spec directory freezes as a unit"; `tests/roster/test_direct_light_documentation_boundary.py`)
-- Technical: `runtime-coordination` is the applicable existing resolver role, so
-  `surface_resolver.py` and its published contract are unchanged and their pinned
-  digests hold. (source: `packs/core/.apm/skills/work-intake/scripts/surface_resolver.py`)
-- Technical: the resolver never scans a repository, so the caller supplies the
-  candidate destination and its confirmation. (source: `surface_resolver.py`
-  module docstring)
-- Technical: `datetime`, `date`, `timedelta`, and `zoneinfo` are stdlib on the
-  `>=3.11` floor both packages declare; none of `dateutil`, `pendulum`, `arrow`,
-  or `pytz` is declared by any manifest here, and none is needed. Some are
-  present transitively in the developer interpreter, which is not a licence to
-  import them. (source: `pyproject.toml`, `packages/*/pyproject.toml`,
-  `tools/requirements.txt`, checked 2026-08-27)
-- Technical: there is no blessed confined *writer* — `file_safety.py` is
-  read-only — so the write seam reuses Wave 4's existing validated-parent walk
-  rather than adding a second confinement implementation. (source:
-  `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py`;
-  `packs/core/.apm/skills/close-work/scripts/close_work.py`)
-- Technical: Wave 4's `preview_deletion` / `confirm_deletion` /
-  `apply_confirmed_deletion` seams already implement confirmed deletion, so
-  Wave 5 adds no deletion path. (source: `packs/core/.apm/skills/close-work/scripts/close_work.py`)
-- Technical: the project-knowledge store is not extended, because it owns
-  reusable learning and its capture contract cannot carry a locator, fingerprint,
-  or authority record that excludes rationale. (source: `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py`)
-- Product: Wave 5 covers dates, identity, persistence, exceptions, and
-  retirement; workspace-status projection and context exclusion are Wave 6, and
-  migration and pruning are Wave 7. (source: RFC-0096 §9)
-- Process: Wave 5 depends on Wave 4 only and runs alone; Wave 4's spec and plan
-  are retained as a live dependency. (source: RFC-0096 §9; user instruction
-  2026-08-27)
+Each is checked, or labelled as an unchecked predicate. Rejected alternatives
+live in [`notes/resolve-vs-surface.md`](notes/resolve-vs-surface.md), not here.
+
+- The record destination is `docs/lifecycle/<delivery_id>.json`. The first
+  choice, `docs/specs/<slug>/lifecycle.json`, was withdrawn: `docs/CONVENTIONS.md`
+  § "A spec directory freezes as a unit" freezes a shipped spec directory, and
+  only shipped work cools. (checked 2026-08-27; owner decision)
+- `runtime-coordination` is an existing resolver role, so `surface_resolver.py`
+  is unchanged and its pinned digest holds. (checked: `SURFACE_ROLES`)
+- The resolver performs no discovery, so the caller supplies the candidate and
+  its confirmation. (checked: `surface_resolver.resolve_surface` takes
+  `candidates`; module docstring states it never scans)
+- `file_safety.py` exposes no writer, so the write seam reuses Wave 4's
+  validated-parent walk rather than adding a second confinement implementation.
+  (checked: the module's four public helpers are all read-side)
+- Wave 4's `preview_deletion` / `confirm_deletion` / `apply_confirmed_deletion`
+  already implement confirmed deletion, so Wave 5 adds none. (checked:
+  `close_work.py`)
+- `datetime`, `date`, `timedelta`, and `zoneinfo` are stdlib on the `>=3.11`
+  floor both packages declare, and no date library is declared by any manifest.
+  Some are importable transitively, which is not a licence to import them.
+  (checked: `pyproject.toml`, `packages/*/pyproject.toml`,
+  `tools/requirements.txt`)
+- Wave 5 depends on Wave 4 only and runs alone. (RFC-0096 §9)
 
 ## Changelog
 

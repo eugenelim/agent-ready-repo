@@ -25,39 +25,20 @@
 
 ## Approach
 
-Land Wave 5 as five dependency-ordered review units: record shape and dates,
-then the guarded write seam, then identity, then review, then surfaces.
+Five dependency-ordered units: record shape and dates, the guarded write seam,
+identity, review, surfaces.
 
-The whole engine is three operations — compute a date, persist a bounded record,
-answer whether a record is due — and everything else is a refusal with a named
-code. There is no scheduler, daemon, background job, or wake-up hook: a human
-invokes `close-work` and asks. Deletion is not implemented here; an approved
-retirement calls Wave 4's `preview_deletion`, `confirm_deletion`, and
-`apply_confirmed_deletion` unchanged.
-
-Two rules carry most of the correctness. The clock is always an argument, so DST,
-foreign readers, leap days, and day boundaries are table rows rather than
+Two decisions carry most of the correctness. The clock is always an argument, so
+DST, foreign readers, leap days, and day boundaries are table rows rather than
 timing-dependent tests. And `review_on` is date arithmetic
-(`completed_on + timedelta(days=30)`), not interval arithmetic, so a DST
-transition inside the window cannot move it.
+(`completed_on + timedelta(days=30)`), so a DST transition inside the window
+cannot move it.
 
-Identity is the logical delivery ID plus the content fingerprint from
-`file_safety.sha256_confined_regular_file`. Nothing in this wave reads Git, so
-the identity fixtures build real repositories and perform a real squash merge,
-merge commit, rebase, and shallow clone, plus a `.git` deletion. Each fixture
-writes the record *before* the topology operation and verifies *after* it, so an
-implementation that derived identity from commit topology cannot self-verify.
-
-`cooling.py` is a sibling of `close_work.py` inside the `close-work` skill, not
-an addition to that 2,400-line module, so Wave 4's clock-absence guard — which
-parses `close_work.py`'s own imports and date-shaped tokens — stays both green
-and meaningful.
-
-`surface_resolver.py` and `file_safety.py` are byte-unchanged (AC37).
-`close_work.py` gains exactly two public aliases and no other change: its private
-`_open_validated_parent` and `_load_regular_sibling`, both of which `cooling.py`
-must call to avoid a second confinement walk and a second sibling loader. Neither
-alias adds a clock or a date-shaped token, so Wave 4's guards stay green.
+`cooling.py` is a sibling of `close_work.py`, not an addition to it, because
+Wave 4's clock-absence guard parses `close_work.py`'s own imports and date-shaped
+tokens; folding the engine in would force that guard to be weakened.
+`close_work.py` gains two public aliases — `_open_validated_parent` and
+`_load_regular_sibling` — and no other change, so its guards stay green.
 
 Anchor tests, with the reason each is expected to redden:
 
@@ -116,13 +97,9 @@ sets `additionalProperties: false` and a non-empty `required`.
 | `confirmation_proof` | `^sha256:[0-9a-f]{64}$` — opaque by construction |
 | `exception` | required iff `disposition == retain-exception`: `reason` (enum of obligation kinds), `owner_role` (`^[a-z][a-z0-9-]{1,63}$`, reusing `close_work._ACTOR_ROLE_RE`), `review_on`, optional `evidence_ref` |
 
-`reason` is an enumerated obligation kind, not free text, so persisted rationale
-and personal identity are unrepresentable rather than screened for (AC10).
-
 Canonical serialization is `json.dumps(payload, sort_keys=True,
 separators=(",", ":"), ensure_ascii=True, allow_nan=False)` plus a trailing
-newline — copying `surface_resolver.py`'s existing canonical form, not
-`close_work.py`'s two inconsistent ones.
+newline.
 
 Bounds: `MAX_RECORD_BYTES = 64 * 1024`, `MAX_RECORD_DEPTH = 8`,
 `MAX_ARTIFACT_BYTES = 8 * 1024 * 1024`. The record is read through
@@ -214,10 +191,6 @@ presence of a `.git` directory, which AC25 requires to be irrelevant.
 `ZoneInfo` raises `ZoneInfoNotFoundError` from the same call as an unknown key,
 so one `unknown-timezone` code covers a malformed key and an absent platform tz
 database (slim containers, Windows without `tzdata`). There is no UTC fallback.
-
-`deletion_allowed()` is affirmative: it returns `deletion-permitted` only when
-all four proofs are present, so an unrecognized state can never read as
-permission.
 
 The AC32 attestation copies Wave 4's shipped human-confirmation shape
 (`close_work.confirm_deletion`, close_work.py:1837-1875): it restates all six
