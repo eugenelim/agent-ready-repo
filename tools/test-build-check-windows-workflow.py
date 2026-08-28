@@ -238,6 +238,22 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         )
 
     check("aggregate-blocks-on-failure", _guard_blocks_on_failure(aggregate))
+    # The guard body can be perfectly correct and still not block: a step-level
+    # `continue-on-error: true` or `if:` on the step that runs it leaves every
+    # assertion above satisfied while the required check reports success over
+    # three failed Windows suites.
+    guard_step = (
+        aggregate[: aggregate.index(GUARD_RUN_MARKER)]
+        if GUARD_RUN_MARKER in aggregate
+        else ""
+    )
+    if "      - " in guard_step:
+        guard_step = guard_step[guard_step.rindex("      - ") :]
+    check(
+        "aggregate-step-unconditional",
+        bool(guard_step)
+        and not re.search(r"^        (?:continue-on-error|if):", guard_step, re.M),
+    )
 
     return violations
 
@@ -322,6 +338,24 @@ _MUTATIONS: list[Mutation] = [
         lambda text: text.replace(
             '[ "$LOCK_SEMANTICS_RESULT" != "success" ]',
             '[ "$LOCK_SEMANTICS_RESULT" = "failure" ]',
+            1,
+        ),
+    ),
+    (
+        "make-the-guard-step-advisory",
+        "aggregate-step-unconditional",
+        lambda text: text.replace(
+            "      - name: Require all Windows suites\n",
+            "      - name: Require all Windows suites\n        continue-on-error: true\n",
+            1,
+        ),
+    ),
+    (
+        "gate-the-guard-step-off",
+        "aggregate-step-unconditional",
+        lambda text: text.replace(
+            "      - name: Require all Windows suites\n",
+            "      - name: Require all Windows suites\n        if: ${{ false }}\n",
             1,
         ),
     ),
@@ -448,6 +482,17 @@ def _differential_failures() -> list[str]:
     import os
     import subprocess
 
+    good = _baseline()
+    indented = "\n".join(
+        f"          {line}".rstrip() for line in _GUARD_BASE.splitlines()
+    )
+    # Ordered before the bash check on purpose: this is string containment and
+    # needs no shell, so a bash-less platform still gets the drift diagnostic.
+    if indented not in good:
+        return [
+            "differential: the constructed guard body is not in "
+            f"{WORKFLOW.name} — re-pin GUARD_CONDITION/GUARD_FAIL_ECHO against it"
+        ]
     if _bash_path() is None:
         # Announced, never fatal. `build_gate_chain.py build-check` is the shipped
         # make-free Windows contributor entry point, so turning an absent shell
@@ -459,16 +504,6 @@ def _differential_failures() -> list[str]:
             file=sys.stderr,
         )
         return []
-    good = _baseline()
-    indented = "\n".join(
-        f"          {line}".rstrip() for line in _GUARD_BASE.splitlines()
-    )
-    if indented not in good:
-        return [
-            "differential: the constructed guard body is not in "
-            f"{WORKFLOW.name} — re-pin GUARD_CONDITION/GUARD_FAIL_ECHO against it"
-        ]
-
     # Every result variable is bound: an unset one changes which comparison
     # short-circuits rather than signalling failure. The environment is minimal
     # rather than inherited, so nothing the parent holds reaches the child.

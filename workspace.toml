@@ -439,73 +439,30 @@ open = [
   # four-element tuple converges or stays out, and prove every caller's mutation
   # count/family coverage is unchanged by the extraction.
   {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
-  # Coverage gaps in the workflow posture guards, found by security and quality
-  # review during the assertion-proof work and deliberately NOT fixed there.
-  # Each was adjudicated as a pre-existing gap: exposure is identical before and
-  # after that change, no assertion ever covered it, and closing it widens what
-  # a posture test asserts rather than proving what it already claims. They are
-  # recorded here because a severe gap that is out of one PR's scope is still a
-  # gap, and the review that found it will not run again on its own.
-  # Highest value first:
-  #  - Nothing pins WHERE `ANTHROPIC_API_KEY` is bound. Hoisting it from the eval
-  #    step's `env:` to job- or workflow-level `env:` puts the repository's most
-  #    valuable secret in the environment of `pip install` and `npm install -g`,
-  #    both of which execute third-party install scripts. Every gate stays green
-  #    and zizmor reports nothing at any severity.
-  #  - test-pack-evals-workflow.py has no job-level `permissions` assertion, so
-  #    `permissions: write-all` on the secret-holding job passes. The sibling
-  #    ci-security guard forbids a job-level key outright; the asymmetry is on
-  #    the wrong workflow.
+  # Coverage gaps in the workflow posture guards that this change did NOT close.
+  # The ones it did close are gone from this list rather than left overstating:
+  # secret binding location, pack-evals job-level permissions, gitleaks failure
+  # propagation, the compute-and-discard checksum, the CodeQL trigger surface,
+  # the elevated-grant spelling enumeration, `pull_request_target` on codeql.yml,
+  # the Windows step-level bypass, and the bash-absent round-trip ordering are
+  # all now asserted with a mutation each. What remains needs either a different
+  # invariant or evidence this change does not have:
   #  - Nothing pins the actionlint, zizmor, or check-zizmor-excessive-permissions
   #    steps. Deleting them, appending `|| true`, dropping to `--min-severity
   #    critical`, or narrowing the scanned path removes Actions-injection and
   #    excessive-permissions coverage repo-wide with `make build-check` green.
   #    zizmor is the ONLY control covering template injection in run bodies the
-  #    hand-written gitleaks-no-expression check does not reach.
-  #  - No assertion pins gitleaks failure propagation: `continue-on-error: true`,
-  #    a trailing `|| true`, or `--exit-code 0` yields a passing secret-scan job
-  #    over a committed secret.
-  #  - The checksum invariant is keyed on extraction and on a checksum token
-  #    naming the archive, so a compute-and-discard `sha256sum` (no `-c`), a
-  #    same-origin digest file, and a non-extraction install such as
-  #    `curl -o /usr/local/bin/actionlint && chmod +x` or `curl … | sh` all pass
-  #    unaudited. `_ARCHIVE_RE` is also unanchored, so it can credit a longer
-  #    filename's prefix.
-  #  - The CodeQL trigger surface is membership-tested only: adding `- "**"` to
-  #    the trigger-level `paths-ignore`, adding a `paths:` allowlist, retargeting
-  #    `branches: [main]`, or deleting the weekly `schedule` zeroes analysis with
-  #    the gate green. A config-level `paths:` key narrows it the same way.
-  #  - test-build-check-windows-workflow.py asserts only the aggregate's run
-  #    body, so a step-level `continue-on-error: true` or `if:` defeats the
-  #    required Windows check while both asserted properties stay true.
-  #  - security-events-only-analyze enumerates block-style job headers and
-  #    permissions blocks only; a flow mapping, a `write-all` scalar, or a header
-  #    with a trailing comment is not enumerated.
+  #    hand-written gitleaks checks do not reach. Left open because pinning it
+  #    means choosing which flags are load-bearing, which is a decision about
+  #    the scanner contract rather than about this harness.
+  #  - The checksum invariant is keyed on EXTRACTION. A non-extraction install
+  #    such as `curl -o /usr/local/bin/actionlint && chmod +x` or `curl … | sh`
+  #    is never audited. Closing it means re-keying the invariant on every
+  #    download, which is a different invariant, not a tightening of this one.
   #  - No control asserts the absence of a repo-root `.gitleaks.toml` or a pinned
-  #    `--config`; confirm gitleaks' config auto-load precedence before acting.
-  #  - The pack-evals `secret-source` check is comment-satisfiable and should
-  #    assert the parsed eval-step `env` value, matching the `_strip_comments`
-  #    discipline now used in test-ci-security-workflow.py. Not done inline
-  #    because both routes cost more than they look: duplicating _strip_comments
-  #    into a fifth file cuts against the extraction entry above, and retargeting
-  #    the assertion to the parsed env widens what the check claims.
-  #  - On a platform with no bash, both this harness and its build-check sibling
-  #    return before the round-trip pin that ties the constructed guard body to
-  #    the workflow, even though that pin is pure string containment and needs no
-  #    shell. Live impact today is one informational echo, since condition drift
-  #    is caught bash-independently by `audit` and guard-block drift by the
-  #    split-guard mutation's no-op rule. Adjudicated out of this unit because the
-  #    ordering is ported byte-for-byte from the sibling and predates the change.
-  #  - test-ci-security-workflow.py still tests `cancel-in-progress` by substring
-  #    (`"pull_request" in cancel`), so the inverted `!=` form passes while the
-  #    docstring claims "pull-request-only concurrency cancellation". The CodeQL
-  #    twin was pinned to equality with EXPECTED_CANCEL; porting that across is
-  #    coverage widening on a pre-existing gap, so it waits here rather than
-  #    riding along. Exposure is unchanged from 38e01732.
-  #  - `pull_request_target` is not forbidden on codeql.yml by any checker. It is
-  #    disclosed rather than asserted, in tools/repo/build_gate_chain.py's step
-  #    comment; low impact today because the analyze job runs no repo-controlled
-  #    script, but it is the one disclosure that is not backed by a mutation.
+  #    `--config`. Left open deliberately: gitleaks' config auto-load precedence
+  #    was never confirmed, and an assertion resting on an unverified premise is
+  #    the defect this whole change set exists to remove.
   # Workflow-side, needing a repository-settings change and so not closable here:
   # `ANTHROPIC_API_KEY` is repository-scoped with no GitHub Environment gate, so
   # any write-access holder can dispatch pack-evals against an arbitrary ref with

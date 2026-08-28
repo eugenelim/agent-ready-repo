@@ -193,11 +193,28 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     on_block = _named_block(text, "on", 0)
     check("on-block-present", bool(on_block))
     trigger_blocks = _child_blocks(on_block, 2)
+    check(
+        "trigger-forbidden[pull_request_target]",
+        "pull_request_target" not in trigger_blocks,
+    )
+    check("trigger-schedule-present", "schedule" in trigger_blocks)
     for trigger_name in ("pull_request", "push"):
-        ignored = _sequence(trigger_blocks.get(trigger_name, ""), "paths-ignore", 4)
+        block = trigger_blocks.get(trigger_name, "")
+        ignored = _sequence(block, "paths-ignore", 4)
+        # Exhaustive, not membership: an added `- "**"` skips every run while a
+        # membership test still sees `docs/**` and reports the surface pinned.
         check(
             f"trigger-docs-path-ignore[{trigger_name}]",
-            "docs/**" in ignored,
+            set(ignored) == {"docs/**"},
+        )
+        # A `paths:` allowlist narrows from the other side to the same effect.
+        check(
+            f"trigger-no-paths-allowlist[{trigger_name}]",
+            not _sequence(block, "paths", 4),
+        )
+        check(
+            f"trigger-branches-main[{trigger_name}]",
+            "main" in _field_tokens(block, "branches", 4),
         )
 
     permissions_block = _named_block(text, "permissions", 0)
@@ -221,6 +238,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         == "write"
     ]
     check("security-events-only-analyze", security_writers == ["analyze"])
+    # Backstop, spelling-independent and fail-closed: the structured read above
+    # only recognises a block-style `permissions:` under a bare job header, so a
+    # flow mapping, a `write-all` scalar, or a header with a trailing comment was
+    # never enumerated. Scanning the jobs block with the analyze job removed
+    # needs no parse at all.
+    outside_analyze = jobs_block.replace(analyze, "", 1) if analyze else jobs_block
+    check(
+        "no-elevated-grant-outside-analyze",
+        not re.search(r"security-events|write-all", outside_analyze),
+    )
 
     init_steps = [
         step
@@ -297,6 +324,52 @@ _MUTATIONS: list[Mutation] = [
             '  push:\n    branches: [main]\n    paths-ignore:\n      - "docs/**"\n',
             "  push:\n    branches: [main]\n    paths-ignore:\n",
             1,
+        ),
+    ),
+    (
+        "add-pull-request-target",
+        "trigger-forbidden[pull_request_target]",
+        lambda text: text.replace(
+            "\n  push:\n", "\n  pull_request_target:\n    branches: [main]\n  push:\n", 1
+        ),
+    ),
+    (
+        "drop-the-weekly-rescan",
+        "trigger-schedule-present",
+        lambda text: text.replace("\n  schedule:\n", "\n  cadence:\n", 1),
+    ),
+    (
+        "widen-trigger-paths-ignore",
+        "trigger-docs-path-ignore[pull_request]",
+        lambda text: text.replace(
+            '    paths-ignore:\n      - "docs/**"\n',
+            '    paths-ignore:\n      - "docs/**"\n      - "**"\n',
+            1,
+        ),
+    ),
+    (
+        "narrow-with-a-paths-allowlist",
+        "trigger-no-paths-allowlist[pull_request]",
+        lambda text: text.replace(
+            '    paths-ignore:\n      - "docs/**"\n',
+            '    paths:\n      - "nonexistent/**"\n    paths-ignore:\n      - "docs/**"\n',
+            1,
+        ),
+    ),
+    (
+        "retarget-pr-branches",
+        "trigger-branches-main[pull_request]",
+        lambda text: text.replace(
+            "  pull_request:\n    branches: [main]\n",
+            "  pull_request:\n    branches: [retired]\n",
+            1,
+        ),
+    ),
+    (
+        "grant-write-all-to-another-job",
+        "no-elevated-grant-outside-analyze",
+        lambda text: text.replace(
+            "jobs:\n", "jobs:\n  advisory:  # helper\n    permissions: write-all\n", 1
         ),
     ),
     (

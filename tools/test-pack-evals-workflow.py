@@ -99,10 +99,6 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
 
     check("permissions-read", doc.get("permissions") == {"contents": "read"})
 
-    # The key must cross the Actions secrets boundary rather than coming from a
-    # variable or a hard-coded value.
-    check("secret-source", "secrets.ANTHROPIC_API_KEY" in text)
-
     jobs = doc.get("jobs")
     check(
         "jobs-mapping",
@@ -110,12 +106,33 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         and bool(jobs)
         and all(isinstance(job, dict) for job in jobs.values()),
     )
+    # The key must be bound on the step that uses it. Hoisting it to workflow- or
+    # job-level `env` puts the repository's highest-value secret in the
+    # environment of `pip install` and `npm install -g`, both of which execute
+    # third-party install scripts, while every other assertion stays satisfied.
+    top_env = doc.get("env")
+    check(
+        "secret-not-workflow-level",
+        not (isinstance(top_env, dict) and "ANTHROPIC_API_KEY" in top_env),
+    )
     if isinstance(jobs, dict):
         for job_name, job in jobs.items():
             if isinstance(job, dict):
                 check(
                     f"job-steps-list[{job_name}]",
                     isinstance(job.get("steps", []), list),
+                )
+                job_env = job.get("env")
+                check(
+                    f"secret-not-job-level[{job_name}]",
+                    not (isinstance(job_env, dict) and "ANTHROPIC_API_KEY" in job_env),
+                )
+                # Same posture the ci-security sibling enforces: a job inherits
+                # the top-level grant rather than restating it, so `write-all`
+                # on the secret-holding job cannot pass.
+                check(
+                    f"job-permissions[{job_name}]",
+                    job.get("permissions") is None,
                 )
     eval_steps = [
         step
@@ -127,6 +144,17 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check(
             f"eval-step-report-only[{index}]",
             step.get("continue-on-error") is True,
+        )
+        # Asserted on the PARSED env value, not as a whole-file substring: a
+        # substring is satisfied by a comment that merely names the secret, so
+        # swapping the real binding to `vars.` while a comment still spelled
+        # `secrets.` passed. PyYAML drops comments, so this needs no
+        # comment-stripping helper — and adds no second copy of one.
+        env = step.get("env")
+        binding = env.get("ANTHROPIC_API_KEY") if isinstance(env, dict) else None
+        check(
+            f"secret-source[{index}]",
+            binding == "${{ secrets.ANTHROPIC_API_KEY }}",
         )
 
     upload_steps = [
@@ -196,9 +224,51 @@ _MUTATIONS: list[Mutation] = [
     ),
     (
         "move-api-key-out-of-secrets",
-        "secret-source",
+        "secret-source[0]",
         lambda text: text.replace(
-            "secrets.ANTHROPIC_API_KEY", "vars.ANTHROPIC_API_KEY", 1
+            "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
+            "ANTHROPIC_API_KEY: ${{ vars.ANTHROPIC_API_KEY }}",
+            1,
+        ),
+    ),
+    (
+        # The hole the whole-file substring left: the real binding moves to
+        # `vars.`, and a comment still spelling `secrets.` kept the check green.
+        "name-the-secret-in-a-comment-only",
+        "secret-source[0]",
+        lambda text: text.replace(
+            "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
+            "ANTHROPIC_API_KEY: ${{ vars.ANTHROPIC_API_KEY }}"
+            "  # was secrets.ANTHROPIC_API_KEY",
+            1,
+        ),
+    ),
+    (
+        "hoist-secret-to-workflow-env",
+        "secret-not-workflow-level",
+        lambda text: text.replace(
+            "\njobs:\n",
+            "\nenv:\n  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n\njobs:\n",
+            1,
+        ),
+    ),
+    (
+        "hoist-secret-to-job-env",
+        "secret-not-job-level[activation-evals]",
+        lambda text: text.replace(
+            "  activation-evals:\n",
+            "  activation-evals:\n    env:\n"
+            "      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n",
+            1,
+        ),
+    ),
+    (
+        "grant-job-level-permissions",
+        "job-permissions[activation-evals]",
+        lambda text: text.replace(
+            "  activation-evals:\n",
+            "  activation-evals:\n    permissions:\n      contents: write\n",
+            1,
         ),
     ),
     (

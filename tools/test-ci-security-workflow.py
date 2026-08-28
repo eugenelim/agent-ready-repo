@@ -45,6 +45,11 @@ EXPECTED_GROUP = (
     "ci-security-${{ github.event_name == 'pull_request' && github.ref || "
     "github.run_id }}"
 )
+# Pinned by equality, not by substring: `"pull_request" in cancel` accepts the
+# inverted `!=` form, which stops PR runs superseding one another while reading
+# as though it were asserted. Same treatment as the group above and the CodeQL
+# twin.
+EXPECTED_CANCEL = "${{ github.event_name == 'pull_request' }}"
 
 Mutation = tuple[str, str, Callable[[str], str]]
 
@@ -69,9 +74,18 @@ def _steps(jobs: object) -> Iterable[tuple[str, dict[Any, Any]]]:
 # in an extract cluster.
 _TAR_SHORT_FLAGS = frozenset("xzjJfvkOCp")
 _CHECKSUM_RE = re.compile(r"\b(?:sha256sum|shasum)\b")
+_CHECK_FLAG_RE = re.compile(r"(?:\s-{1,2}c\b|\s--check\b)")
 # Bounded quantifier: the unbounded form backtracked quadratically, so one
 # very long committed line stalled this control instead of answering it.
-_ARCHIVE_RE = re.compile(r"[\w.@/-]{1,200}\.(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)\b")
+_ARCHIVE_EXT = r"(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)"
+# The trailing guard is not `\b`: `\b` matched `gl.tar.gz` inside
+# `gl.tar.gz.sha256`, so a digest file credited the archive it merely names.
+_ARCHIVE_RE = re.compile(rf"[\w.@/-]{{1,200}}\.{_ARCHIVE_EXT}(?![\w.-])")
+# ...but a digest file IS how a checksum legitimately names its archive, so that
+# form is recognised explicitly rather than by a loose boundary.
+_DIGEST_FILE_RE = re.compile(
+    rf"([\w.@/-]{{1,200}}\.{_ARCHIVE_EXT})\.(?:sha256sum|sha256|sha512|sha1|md5)(?![\w.-])"
+)
 
 
 def _strip_comments(text: str) -> str:
@@ -143,9 +157,13 @@ def _unverified_archives(run_body: str) -> list[str]:
     lines = _strip_comments(run_body).splitlines()
     checksum_at: dict[str, int] = {}
     for index, line in enumerate(lines):
-        if not _CHECKSUM_RE.search(line):
+        # `sha256sum -c` / `--check` verifies; a bare `sha256sum foo.tar.gz`
+        # computes a digest and discards it, which the token test alone accepted.
+        if not (_CHECKSUM_RE.search(line) and _CHECK_FLAG_RE.search(line)):
             continue
         for archive in _ARCHIVE_RE.findall(line):
+            checksum_at.setdefault(archive, index)
+        for archive in _DIGEST_FILE_RE.findall(line):
             checksum_at.setdefault(archive, index)
 
     unverified: list[str] = []
@@ -234,8 +252,10 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     concurrency = doc.get("concurrency")
     concurrency = concurrency if isinstance(concurrency, dict) else {}
     check("concurrency-group", concurrency.get("group") == EXPECTED_GROUP)
-    cancel = str(concurrency.get("cancel-in-progress", ""))
-    check("concurrency-cancel", "pull_request" in cancel)
+    check(
+        "concurrency-cancel",
+        concurrency.get("cancel-in-progress") == EXPECTED_CANCEL,
+    )
 
     secret_job = jobs.get("secret-scan") if isinstance(jobs, dict) else None
     check("secret-job-present", isinstance(secret_job, dict))
@@ -267,6 +287,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         run_body = str(step.get("run", ""))
         check(f"gitleaks-no-expression[{index}]", "${{" not in run_body)
         check(f"gitleaks-redact[{index}]", "--redact" in run_body)
+        # The flags above prove how the scan runs, not that a hit fails the job.
+        # `continue-on-error`, a trailing `|| true`, or `--exit-code 0` each
+        # yield a passing secret-scan job over a committed secret.
+        stripped = _strip_comments(run_body)
+        check(
+            f"gitleaks-blocks[{index}]",
+            step.get("continue-on-error") is not True
+            and "--exit-code 0" not in stripped
+            and not re.search(r"\|\|\s*(?:true|:)\b", stripped),
+        )
 
     install_steps = [
         step
@@ -475,6 +505,14 @@ _MUTATIONS: list[Mutation] = [
         ),
     ),
     (
+        # The one-character inversion the substring test walked past.
+        "invert-cancel-condition",
+        "concurrency-cancel",
+        lambda text: _replace_once(
+            text, EXPECTED_CANCEL, "${{ github.event_name != 'pull_request' }}"
+        ),
+    ),
+    (
         "rename-secret-scan-job",
         "secret-job-present",
         lambda text: text.replace("  secret-scan:\n", "  secrets-scan:\n", 1),
@@ -542,6 +580,20 @@ _MUTATIONS: list[Mutation] = [
         "replace-the-first-checksum-with-a-comment",
         "binary-checksum-before-extract[0]",
         lambda text: _comment_out_first_checksum(text),
+    ),
+    (
+        "make-the-secret-scan-advisory",
+        "gitleaks-blocks[0]",
+        lambda text: _replace_once(
+            text, "      - name: Scan for secrets", "      - name: Scan for secrets\n        continue-on-error: true"
+        ),
+    ),
+    (
+        "compute-the-checksum-without-checking-it",
+        "binary-checksum-before-extract[0]",
+        lambda text: _replace_once(
+            text, 'gl.tar.gz" | sha256sum -c', 'gl.tar.gz" >/dev/null; sha256sum gl.tar.gz'
+        ),
     ),
     (
         "remove-every-install-extraction",
