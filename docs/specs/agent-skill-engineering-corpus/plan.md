@@ -449,8 +449,14 @@ observed running under `pytest tests/` rather than assumed to.
 **Tests:**
 - Each of the three records at least one claim group with a declared basis, its
   required fields, a last-verification date, and a named reviewer. (AC2)
-- Each shipped provenance-and-lifecycle section carries the applicability limit
-  the fixture records, field-for-field. (AC3)
+- Each shipped provenance-and-lifecycle section carries, per claim group, the
+  fields that group's basis requires, field-for-field against the admission
+  record — the applicability limit for `observed-practice`, source identities
+  and dates for `doctrine`. A topic declaring both carries both. (AC3)
+- No shipped applicability limit contains a pack path, a skill path, or a pack
+  name: it names its population in portable terms. This is the clause that
+  keeps parity from pushing repository structure across the export
+  boundary. (AC3, AC9)
 - Where a group declares `doctrine`, its record carries a `clause` and at least
   two runtimes — presence and well-formedness only. (AC2)
 - Each of the 24 pinned pairs still holds after this task's re-record. (AC8)
@@ -497,7 +503,11 @@ observed running under `pytest tests/` rather than assumed to.
 **Approach:**
 - Classify the three under the erratum. They cite no external source today, so
   the default is `observed-practice`; give each the applicability limit it
-  lacks, naming the population it was drawn from.
+  lacks, naming the population it was drawn from **in portable terms** — the
+  authored agent skills of the catalogue this pack is developed in, their
+  count, and the census date, with no pack or skill path. The concrete
+  observation paths stay in the non-projected fixture, which is what lets the
+  parity check hold without exporting repository structure.
 - Do not claim `public-contract` for trigger-quality or instruction-density:
   RFC-0097:555 sources the Agent Skills specification for the `SKILL.md`
   substrate and for scripts as deterministic helpers, not for those heuristics.
@@ -656,6 +666,13 @@ match.
   neither basis could be evidenced — and what would admit it. (AC5)
 - A request naming an unpopulated leaf returns the gap statement and applicable
   admitted topics, and no body for that leaf. (AC5)
+- That case's declared `expected_topics` is the applicable admitted topics, so
+  it is **not** a zero-expectation case. Declaring it `[]` would fail the
+  shipped assertion that every zero-expectation case returns nothing, and every
+  relief route is closed: AC7 pins that assertion as must-not-weaken, AC6
+  forbids re-authoring an expectation after the measuring run, and the Never-do
+  forbids weakening a declared expectation to make a record agree with
+  itself. (AC5)
 
 - `no stub (goal-based)` — the fallback is exercised by a declared retrieval
   case measured at T9, not by a unit predicate.
@@ -674,7 +691,9 @@ match.
   `okf-reference` count assertion its determinate new value.
 - Add the fallback case to `router-cases.json` before T9's re-record, so its
   measured outcome lands in the one recorded fixture under the same digest
-  binding as every other case.
+  binding as every other case. Declare its expected set as the applicable
+  admitted topics, authored after T7's admission and before T9 measures — never
+  as `[]`.
 - Keep the language and execution leaves unpopulated; they belong to 2b.
 
 **Done when:** every leaf is accounted for, and the fallback case is authored
@@ -706,6 +725,10 @@ T8 defers to T9 rather than re-measuring.
   transcribed, and its prompts do not join `router-cases.json`: the shipped
   suite asserts zero-tolerance on every zero-expectation case there, which is
   stricter than 5% and is not weakened. (AC7)
+- The negatives results fixture asserts that its result set equals the fixed
+  40-prompt set, so the 5% bar is computed over a record proven complete rather
+  than over whatever was transcribed. The retrieval pair's
+  result-set-equals-case-set guard does not reach this fixture. (AC7)
 - Each of the 24 pinned `(id, measured_topics)` pairs has a measured result
   equal to its pinned pair — per case, read from the T4 fixture this task does
   not write. (AC8)
