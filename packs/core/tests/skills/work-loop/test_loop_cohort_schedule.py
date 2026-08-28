@@ -213,31 +213,31 @@ def _schedule(tmp_path, plan_text):
             sys.executable, str(LC_PATH), "schedule", str(tmp_path),
             "--plan", str(plan), "--expect-run-id", run_id,
         ],
-        capture_output=True, text=True,
+        capture_output=True, text=True, cwd=str(tmp_path),
     )
 
 
-def test_schedule_prints_topological_order(tmp_path):
-    r = _schedule(tmp_path, _PLAN)
+def test_schedule_prints_topological_order(git_repo):
+    r = _schedule(git_repo, _PLAN)
     assert r.returncode == 0, r.stderr
     assert "wave 1: T1" in r.stdout
     assert "wave 2: T2" in r.stdout
 
 
-def test_schedule_exits_nonzero_on_cycle(tmp_path):
+def test_schedule_exits_nonzero_on_cycle(git_repo):
     r = _schedule(
-        tmp_path,
+        git_repo,
         "### T1: a\n**Depends on:** T2\n### T2: b\n**Depends on:** T1\n",
     )
     assert r.returncode != 0
     assert "cycle" in r.stderr.lower()
 
 
-def test_schedule_warns_but_reorders_on_forward_ref(tmp_path):
+def test_schedule_warns_but_reorders_on_forward_ref(git_repo):
     # a forward-ref is a valid acyclic edge: WARN (not fail) + reorder so the
     # dependency runs first. Cycles are the hard error (test above).
     r = _schedule(
-        tmp_path,
+        git_repo,
         "### T13: build\n**Depends on:** T15\n### T15: test\n**Depends on:** none\n",
     )
     assert r.returncode == 0, r.stderr
@@ -519,9 +519,9 @@ def test_wave_touches_disjoint_missing_blocks_yes_only():
 # ── PD-T3: schedule predicted-disjoint annotation + screen-only ──────────────
 
 
-def test_schedule_predicts_no_on_overlapping_touches(tmp_path):
+def test_schedule_predicts_no_on_overlapping_touches(git_repo):
     r = _schedule(
-        tmp_path,
+        git_repo,
         "### T1: a\n**Depends on:** none\n**Touches:** src/api/*\n"
         "### T2: b\n**Depends on:** none\n**Touches:** src/api/x.py\n",
     )
@@ -529,26 +529,26 @@ def test_schedule_predicts_no_on_overlapping_touches(tmp_path):
     assert "predicted-disjoint: no" in r.stdout
 
 
-def test_schedule_predicts_yes_on_disjoint_touches(tmp_path):
+def test_schedule_predicts_yes_on_disjoint_touches(git_repo):
     r = _schedule(
-        tmp_path,
+        git_repo,
         "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
         "### T2: b\n**Depends on:** none\n**Touches:** src/b/*\n",
     )
     assert "predicted-disjoint: yes" in r.stdout
 
 
-def test_schedule_predicts_unknown_when_a_task_omits_touches(tmp_path):
+def test_schedule_predicts_unknown_when_a_task_omits_touches(git_repo):
     r = _schedule(
-        tmp_path,
+        git_repo,
         "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n"
         "### T2: b\n**Depends on:** none\n",  # no Touches:
     )
     assert "predicted-disjoint: unknown" in r.stdout
 
 
-def test_schedule_no_annotation_on_single_task_wave(tmp_path):
-    r = _schedule(tmp_path, "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n")
+def test_schedule_no_annotation_on_single_task_wave(git_repo):
+    r = _schedule(git_repo, "### T1: a\n**Depends on:** none\n**Touches:** src/a/*\n")
     assert r.returncode == 0, r.stderr
     assert "predicted-disjoint" not in r.stdout  # single-task wave → no annotation
 
@@ -573,27 +573,27 @@ def test_schedule_is_screen_only_no_gate_call(tmp_path):
 import json as _json  # noqa: E402
 
 
-def _run_lc(*args):
+def _run_lc(*args, cwd: Path):
     return subprocess.run([sys.executable, str(LC_PATH), *args],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, cwd=str(cwd))
 
 
-def test_init_state_has_auto_parallel_false(tmp_path):
-    spec = tmp_path / "spec"
+def test_init_state_has_auto_parallel_false(git_repo):
+    spec = git_repo / "spec"
     spec.mkdir()
     run_id = str(uuid.uuid4())
-    r = _run_lc("init", str(spec), "--run-id", run_id)
+    r = _run_lc("init", str(spec), "--run-id", run_id, cwd=git_repo)
     assert r.returncode == 0, r.stderr
     assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False
 
 
-def test_auto_parallel_verb_flips_both_ways(tmp_path):
+def test_auto_parallel_verb_flips_both_ways(git_repo):
     # Phase 1: auto-parallel verb is disabled — exits non-zero.
-    spec = tmp_path / "spec"
+    spec = git_repo / "spec"
     spec.mkdir()
     run_id = str(uuid.uuid4())
-    _run_lc("init", str(spec), "--run-id", run_id)
-    r = _run_lc("auto-parallel", str(spec))
+    _run_lc("init", str(spec), "--run-id", run_id, cwd=git_repo)
+    r = _run_lc("auto-parallel", str(spec), cwd=git_repo)
     assert r.returncode != 0
     assert "disabled in Phase 1" in r.stderr
 

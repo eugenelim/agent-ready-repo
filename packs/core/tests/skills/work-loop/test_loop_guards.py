@@ -1646,7 +1646,7 @@ _LOADERS = {
 )
 @pytest.mark.parametrize("loader", sorted(_LOADERS))
 def test_load_failure_is_a_one_line_refusal(
-    loader: str, mode: str, tmp_path: Path,
+    loader: str, mode: str, git_repo: Path,
 ) -> None:
     """Every way either module can fail to load produces a refusal, never a traceback.
 
@@ -1656,7 +1656,7 @@ def test_load_failure_is_a_one_line_refusal(
     """
     target_name, verb, cut_anchor, rename_symbol = _LOADERS[loader]
 
-    sandbox = tmp_path / "scripts"
+    sandbox = git_repo / "scripts"
     sandbox.mkdir()
     (sandbox.parent / "assets").mkdir()
     (sandbox.parent / "assets" / "state.json").write_bytes(
@@ -1739,7 +1739,7 @@ def test_load_failure_is_a_one_line_refusal(
             target.write_text(original.replace("_MODULE_COMPLETE = True", ""),
                               encoding="utf-8")
 
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     if loader == "parser":
         # The parser is only reached once there is a status to read, so the fixture
@@ -1756,7 +1756,7 @@ def test_load_failure_is_a_one_line_refusal(
     # module and report a missing state.json instead of the load failure under test.
     run = subprocess.run(
         [sys.executable, str(sandbox / "loop-cohort.py"), *verb, str(spec_dir)],
-        capture_output=True, text=True, check=False, cwd=str(tmp_path),
+        capture_output=True, text=True, check=False, cwd=str(git_repo),
     )
     combined = run.stdout + run.stderr
     try:

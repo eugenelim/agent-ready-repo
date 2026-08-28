@@ -380,7 +380,7 @@ def _rows():
 @pytest.mark.parametrize(
     "key,kwargs,api,tool,argv", _rows(), ids=[r[0] for r in _rows()]
 )
-def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, tmp_path) -> None:
+def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, git_repo) -> None:
     golden = goldens.get(key)
     assert golden is not None, (
         f"{key} has no golden row. Every parity row must tie to T0's pre-change "
@@ -391,7 +391,7 @@ def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, tmp_pa
     kwargs = dict(kwargs)
     plan_status = kwargs.pop("plan_status_override", "Approved")
     dir_name = kwargs.pop("_dir_name", "spec")
-    spec_dir = build(guards, tmp_path, dir_name, plan_status=plan_status, **kwargs)
+    spec_dir = build(guards, git_repo, dir_name, plan_status=plan_status, **kwargs)
 
     api_result = api(guards, spec_dir)
     script = COHORT if tool == "cohort" else CHECK_STATUS
@@ -399,7 +399,7 @@ def test_api_and_cli_agree(key, kwargs, api, tool, argv, guards, goldens, tmp_pa
     assert any(a is spec_dir for a in resolved_argv), (
         f"{key}: argv has no {SPEC} placeholder, so the CLI would never see the fixture"
     )
-    rc, out, err = run_cli(script, resolved_argv, cwd=tmp_path)
+    rc, out, err = run_cli(script, resolved_argv, cwd=git_repo)
 
     # ── 1. verdict parity ──────────────────────────────────────────────────
     assert api_result.ok == (rc == 0), (
