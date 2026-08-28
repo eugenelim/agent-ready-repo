@@ -323,6 +323,80 @@ def is_due(record: CoolingRecord, moment: datetime) -> CoolingResult:
     return CoolingResult(record=record, due=moment.astimezone(zone).date() >= record.review_on)
 
 
+def verify_identity(root: Path, record: CoolingRecord) -> CoolingResult:
+    """Reconfirm a record's content identity at its current locator or an alias."""
+    file_safety = _close_work().file_safety()
+    for locator in (record.locator, *record.aliases):
+        try:
+            path = Path(root) / locator
+            file_safety.read_confined_regular_file(
+                Path(root), path, max_bytes=MAX_ARTIFACT_BYTES
+            )
+            fingerprint = "sha256:" + file_safety.sha256_confined_regular_file(
+                Path(root), path
+            )
+        except (OSError, ValueError):
+            continue
+        if fingerprint != record.fingerprint:
+            return CoolingResult(code="fingerprint-drift", record=record)
+        return CoolingResult(code="identity-verified", record=record)
+    return CoolingResult(code="locator-unresolved", record=record)
+
+
+def record_rename(record: CoolingRecord, new_locator: str) -> CoolingRecord:
+    """Return a renamed record while retaining its immediately prior locator."""
+    payload = record.as_payload()
+    payload["locator"] = new_locator
+    payload["aliases"] = [*record.aliases, record.locator][-16:]
+    return CoolingRecord.from_payload(payload)
+
+
+def deletion_allowed(
+    *,
+    root: Path,
+    record: CoolingRecord,
+    completion_evidence_resolver: object,
+    live_grant: object,
+    authority_evidence_ref: object,
+) -> CoolingResult:
+    """Permit deletion only when each independently resolved proof is current."""
+    if not callable(completion_evidence_resolver):
+        return CoolingResult(code="missing-history", record=record)
+    try:
+        completion_resolved = completion_evidence_resolver(record.completion_evidence_ref)
+    except Exception:
+        completion_resolved = False
+    if not completion_resolved:
+        return CoolingResult(code="missing-history", record=record)
+
+    identity = verify_identity(root, record)
+    if identity.code != "identity-verified":
+        return identity
+
+    delete_authority = dict(dict(record.authority).get("delete", ()))
+    if (
+        delete_authority.get("status") != "delegated"
+        or not isinstance(delete_authority.get("evidence_ref"), str)
+    ):
+        return CoolingResult(code="authority-uncertain", record=record)
+    try:
+        authority_fact = _close_work().resolve_mutation_authority(
+            grant_record=live_grant, authority_evidence_ref=authority_evidence_ref
+        )
+    except (ImportError, ValueError):
+        authority_fact = None
+    if (
+        authority_fact is None
+        or authority_fact.action != "delete-confirmed-file-set"
+        or authority_fact.resource != record.locator
+        or authority_fact.evidence_ref != delete_authority["evidence_ref"]
+    ):
+        return CoolingResult(code="authority-uncertain", record=record)
+    return CoolingResult(
+        code="deletion-permitted", record=record, permission_granted=True
+    )
+
+
 def _close_work() -> object:
     """Load the co-located close-work authority seam without package imports."""
     global _CLOSE_WORK

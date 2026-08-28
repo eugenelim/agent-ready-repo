@@ -1,8 +1,11 @@
 """RFC-0096 Wave 5 — cooling engine construction tests."""
 
 import ast
+import hashlib
 import importlib.util
 import json
+import shutil
+import subprocess
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -649,3 +652,204 @@ def test_the_destination_comes_from_the_validated_physical_locator(tmp_path) -> 
     assert result.code == "enrolled"
     assert (destination / "spec-example.json").is_file()
     assert not (tmp_path.parent / "ESCAPED").exists()
+
+
+def _git(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    """Run Git with a generic per-invocation committing identity."""
+    return subprocess.run(
+        [
+            "git", "-c", "user.email=cooling@example.invalid",
+            "-c", "user.name=Cooling Fixture", *arguments,
+        ],
+        cwd=root,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+
+def _build_repository(tmp_path: Path, topology: str):
+    """Create an actual history rewrite only after persisting the record."""
+    if shutil.which("git") is None:
+        pytest.skip("git is unavailable; AC25 requires real Git topology fixtures")
+
+    cooling = _load()
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    _git(origin, "init")
+    base = _git(origin, "branch", "--show-current").stdout.strip()
+    artifact = origin / "docs/specs/example/spec.md"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("# Example\n", encoding="utf-8")
+    _git(origin, "add", ".")
+    _git(origin, "commit", "-m", "base artifact")
+
+    locator = "docs/specs/example/spec.md"
+    record = _record(
+        cooling,
+        locator=locator,
+        fingerprint="sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
+    )
+    lifecycle = origin / "docs/lifecycle/spec-example.json"
+    lifecycle.parent.mkdir(parents=True)
+    lifecycle.write_bytes(cooling.canonical_bytes(record))
+    _git(origin, "add", "docs/lifecycle/spec-example.json")
+    _git(origin, "commit", "-m", "persist cooling record")
+
+    if topology == "shallow":
+        clone = tmp_path / "shallow"
+        _git(tmp_path, "clone", "--depth=1", origin.as_uri(), str(clone))
+        return clone, record
+
+    _git(origin, "switch", "-c", "topology-change")
+    (origin / "topology.txt").write_text(f"{topology}\n", encoding="utf-8")
+    _git(origin, "add", "topology.txt")
+    _git(origin, "commit", "-m", "topology-side change")
+
+    if topology == "squash":
+        _git(origin, "switch", base)
+        _git(origin, "merge", "--squash", "topology-change")
+        _git(origin, "commit", "-m", "squash topology change")
+    elif topology == "merge":
+        _git(origin, "switch", base)
+        _git(origin, "merge", "--no-ff", "topology-change", "-m", "merge topology change")
+    elif topology == "rebase":
+        _git(origin, "switch", base)
+        (origin / "base.txt").write_text("moved base\n", encoding="utf-8")
+        _git(origin, "add", "base.txt")
+        _git(origin, "commit", "-m", "move base")
+        _git(origin, "switch", "topology-change")
+        _git(origin, "rebase", base)
+    elif topology == "no-git":
+        shutil.rmtree(origin / ".git")
+    else:
+        raise ValueError(f"unknown topology: {topology}")
+    return origin, record
+
+
+def _permission_inputs(
+    tmp_path: Path, scenario: str, *, live_grant: dict[str, object] | None = "default"
+) -> dict[str, object]:
+    """Return independently controllable proofs for deletion eligibility tests."""
+    cooling = _load()
+    artifact = tmp_path / "docs/specs/example/spec.md"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("# Example\n", encoding="utf-8")
+    locator = "docs/specs/example/spec.md"
+    record = _record(
+        cooling,
+        locator=locator,
+        fingerprint="sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
+        authority={
+            "source": {"status": "repository-owned"},
+            "write": {"status": "delegated"},
+            "delete": {"status": "delegated", "evidence_ref": "authority:delete"},
+        },
+    )
+    if scenario == "drift":
+        artifact.write_text("# Changed\n", encoding="utf-8")
+    elif scenario == "missing-locator":
+        artifact.unlink()
+    elif scenario == "unresolvable-evidence":
+        record = _record(
+            cooling,
+            locator=locator,
+            fingerprint="sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
+            completion_evidence_ref="commit:" + "b" * 40,
+            authority={
+                "source": {"status": "repository-owned"},
+                "write": {"status": "delegated"},
+                "delete": {"status": "delegated", "evidence_ref": "authority:delete"},
+            },
+        )
+    elif scenario == "unknown-authority-status":
+        record = _record(
+            cooling,
+            locator=locator,
+            fingerprint="sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest(),
+            authority={
+                "source": {"status": "repository-owned"},
+                "write": {"status": "delegated"},
+                "delete": {"status": "banana", "evidence_ref": "authority:delete"},
+            },
+        )
+    elif scenario != "all-proofs":
+        raise ValueError(f"unknown permission scenario: {scenario}")
+
+    if live_grant == "default":
+        live_grant = {
+            "authorized_actor_role": "release-manager",
+            "grant_source": "approval:release",
+            "action": "delete-confirmed-file-set",
+            "resource": locator,
+            "evidence_ref": "authority:delete",
+            "host_session_provenance": "host-session:pytest",
+        }
+    return {
+        "root": tmp_path,
+        "record": record,
+        "completion_evidence_resolver": lambda reference: reference == "commit:" + "a" * 40,
+        "live_grant": live_grant,
+        "authority_evidence_ref": "authority-resolution:pytest",
+    }
+
+
+# STUB: AC25
+@pytest.mark.parametrize("topology", ["squash", "merge", "rebase", "shallow", "no-git"])
+def test_identity_survives_five_history_shapes(tmp_path, topology: str) -> None:
+    cooling = _load()
+    root, record = _build_repository(tmp_path, topology)
+    assert cooling.verify_identity(root, record).code == "identity-verified"
+
+
+# STUB: AC26
+def test_a_rename_keeps_the_old_locator() -> None:
+    cooling = _load()
+    original = _record(cooling)
+    renamed = cooling.record_rename(original, "docs/specs/renamed/spec.md")
+    assert renamed.locator == "docs/specs/renamed/spec.md"
+    assert original.locator in renamed.aliases
+
+
+# STUB: AC27
+@pytest.mark.parametrize(
+    ("scenario", "code"),
+    [
+        ("all-proofs", "deletion-permitted"),
+        ("drift", "fingerprint-drift"),
+        ("missing-locator", "locator-unresolved"),
+        ("unresolvable-evidence", "missing-history"),
+        ("unknown-authority-status", "authority-uncertain"),
+    ],
+)
+def test_permission_is_granted_never_inferred(tmp_path, scenario: str, code: str) -> None:
+    cooling = _load()
+    assert cooling.deletion_allowed(**_permission_inputs(tmp_path, scenario)).code == code
+
+
+# STUB: AC28
+def test_missing_history_is_about_evidence_not_git(tmp_path) -> None:
+    cooling = _load()
+    inputs = _permission_inputs(tmp_path, "all-proofs")
+    assert cooling.deletion_allowed(**inputs).code != "missing-history"
+
+
+# STUB: AC29
+def test_persisted_authority_is_a_hint_not_a_grant(tmp_path) -> None:
+    cooling = _load()
+    inputs = _permission_inputs(tmp_path, "all-proofs", live_grant=None)
+    assert cooling.deletion_allowed(**inputs).code == "authority-uncertain"
+
+
+# STUB: AC30
+def test_source_authority_is_not_deletion_authority(tmp_path) -> None:
+    cooling = _load()
+    inputs = _permission_inputs(tmp_path, "all-proofs")
+    payload = inputs["record"].as_payload()
+    payload["authority"] = {
+        "source": {"status": "external-owned"},
+        "write": {"status": "delegated"},
+        "delete": {"status": "none"},
+    }
+    inputs["record"] = cooling.CoolingRecord.from_payload(payload)
+    assert cooling.deletion_allowed(**inputs).code == "authority-uncertain"
