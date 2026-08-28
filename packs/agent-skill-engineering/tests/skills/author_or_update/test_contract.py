@@ -159,6 +159,12 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         ).read_text(encoding="utf-8")
     )
     results = {result["eval_id"]: result for result in evidence["results"]}
+    cases = {
+        case["id"]: case
+        for case in json.loads(
+            (AUTHOR_ROOT / "evals" / "evals.json").read_text(encoding="utf-8")
+        )["evals"]
+    }
 
     assert set(results) == {
         "frame-new-skill",
@@ -168,8 +174,15 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     }
     for eval_id in ("frame-new-skill", "update-existing-skill"):
         result = results[eval_id]
+        case = cases[eval_id]
         assert all(result["assertions"])
-        assert result["actual_markers"]
+        # Bind the record to what the eval declares, not merely to truthiness.
+        # Without this a recorded run could claim any markers at all -- the
+        # negation of the frame mode's read-only contract included -- and stay
+        # green, because the digests below bind the eval *inputs* and never the
+        # recorded outcome. Mirrors the review side's `actual_findings` check.
+        assert set(result["actual_markers"]) == set(case["expect"]["output_contains"])
+        assert len(result["assertions"]) == len(case["assertions"])
         # Every source the evidence binds must be one this suite digests below,
         # so a newly named source cannot arrive unverified.
         assert set(result["source_files"]) <= set(AUTHOR_EVIDENCE_SOURCES)

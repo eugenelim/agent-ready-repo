@@ -1,17 +1,19 @@
 # Agent Skill Engineering Foundation — QA record
 
 All results below were produced on the branch after it was rebased onto
-`origin/main` at `155545c3`, in a cleanup-capable environment. Nothing here is
-pending: every gate named ran to completion and its exit code was read
+`origin/main` at `dda204fc8785d8c5cba4b0ff021da5f5e0ec7bdc`, in a
+cleanup-capable environment. The table was re-run on that base. Nothing here
+is pending: every gate named ran to completion and its exit code was read
 unfiltered.
 
 ## Repository gates
 
 | Surface | Command | Result |
 | --- | --- | --- |
-| Foundation pack + OKF roster contracts | `pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py` | 94 passed |
-| Shared OKF compiler | `pytest packs/catalogue-curation/tests/skills/compile-okf` | 135 passed |
-| OKF pack-profile contract fixtures | same suite, `-k "contract or profile or schema"` | 6 passed of 135 |
+| Foundation pack + OKF roster contracts | `pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py` | 119 passed |
+| Repository test suite | `python3 -m pytest tests/ -q` | 767 passed, 46 subtests passed, exit 0 |
+| Shared OKF compiler | `pytest packs/catalogue-curation/tests/skills/compile-okf` | 150 passed |
+| OKF pack-profile contract fixtures | same suite, `-k "contract or profile or schema"` | 6 passed of 150, 144 deselected |
 | Generated-output drift | `compile_okf.py --check` for all four OKF packs | `OKF000 check clean` ×4, exit 0 |
 | Self-host projections | `catalogue self-host --root . --check` | ok, exit 0 |
 | Pack verification | `catalogue verify --root . --pack agent-skill-engineering` | ok, exit 0 |
@@ -28,6 +30,12 @@ unfiltered.
 pass, and this diff touches `tools/`, `packs/`, and `Makefile`, all of which
 trigger the SAST leg in CI. `make sast` was therefore run separately rather
 than left for CI to discover.
+
+The local `make build-check` chain (`tools/repo/build_gate_chain.py`) does not
+chain the whole `tests/` tree; it chains individual modules. `make test`
+(`Makefile:422`) and the build-check workflow (`.github/workflows/build-check.yml:365`)
+run `python3 -m pytest tests/ -q`, covering the AC17 seven-adapter projection
+proof and the pack-metadata conformance checks.
 
 ## Activation — headless, observed
 
@@ -115,6 +123,30 @@ files, so the description repairs above did not invalidate them. The two review
 candidates report all ten seeded defect identifiers, and the hostile helper was
 inspected but never executed.
 
+The authoring half of that record is now bound to what the eval declares, not
+only to truthiness. Review round 3 demonstrated the gap by mutation: rewriting
+`frame-new-skill`'s recorded markers to `Mode: create` / `Write status:
+AUTHORIZED` — the exact negation of AC2's read-only frame — and its four
+assertions to one left all pack tests green, because the construction test
+asserted only `all(result["assertions"])` and marker truthiness while the
+digests bound the eval *inputs*. `test_independent_behavior_results_cover_both_authoring_cases`
+now compares recorded markers to the eval's declared `expect.output_contains`
+and the recorded assertion count to the declared count, mirroring the check the
+review side already performed. Re-running that same mutation against the
+repaired suite fails it. No recorded value changed: the record already agreed
+with the declaration, so the binding was addable without restating any result.
+
+AC4's absence clause was checked for three of its six modes against one of the
+two activation descriptions. It now runs pack-scoped in
+`tests/pack/test_pack_boundary.py`, deriving all six mode names from
+`tests/fixtures/unsupported-mode-cases.json` — the fixture that already defines
+the closed vocabulary, so a seventh mode is covered the day it is declared — and
+asserting each is absent from both descriptions on a word boundary. Three
+controls: injecting `subagent` into the review description fails it, injecting
+`plugin` into the authoring description fails it, and injecting `evaluation
+hooks` does not, which is what the word boundary is for. All six were already
+absent, so this closed unproven coverage rather than a live violation.
+
 ## Compiler prerequisites
 
 Both canonical entries are closed with regression evidence and removed from
@@ -127,12 +159,22 @@ class 2 and leaves the source tree unchanged.
 ## Delivery surface
 
 `agentbundle render packs/agent-skill-engineering --output <guarded tmp>` into a
-fresh `/private/tmp` root emitted the complete 30-file APM package and a
-`claude-plugins/marketplace.json` of `{"plugins": []}` — the expected empty
-projection, since the pack ships no `.claude-plugin/plugin.json`. The rendered
-tree carries the declared `metadata.boundaries` for all three skills and
-contains no authored OKF source or source path. Only that exact temporary root
-was removed afterwards.
+fresh `/private/tmp` root emitted three projected trees: `apm/` (30 files),
+`claude-plugins/` (30 files), and `agent-plugins/` (26 files), for 86 files in
+total. `claude-plugins/marketplace.json` carries one `agent-skill-engineering`
+plugin entry with `author`, `category`, `description`, `displayName`,
+`homepage`, `keywords`, `license`, `name`, `repository`, and `source`.
+At line 7, `ase-okf-reference/SKILL.md` carries
+`source-path: okf/agent-skill-engineering-foundation` in all three projected
+trees, as AC8 requires and `tests/pack/test_foundation_corpus.py` asserts. The
+rendered tree carries the declared `metadata.boundaries` for all three skills;
+`tests/roster/test_agent_skill_engineering_projection.py` proves that for every
+adapter in `install.allowed-adapters`, not only the one rendered here. AC21's
+publication evidence is the pack's `.claude-plugin/plugin.json`, that
+marketplace entry, and `tools/lint-plugin-roster` `PUBLISHED` membership;
+`lint-plugin-roster`, `check-site-plugin-offers`, and
+`lint-site-scope-parity` bind those records. Only that exact temporary root was
+removed afterwards.
 
 Both user-facing skills and the generated router pass the external
 `quick_validate.py` from the `skill-creator` plugin, with descriptions of 734,

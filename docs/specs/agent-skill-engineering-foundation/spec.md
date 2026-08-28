@@ -14,19 +14,11 @@
 
 ## Objective
 
-The agent-skill-engineering foundation is a portable pack that helps an agent
-frame, create, update, review, and optimize agent skills without assuming one
-runtime or one repository. It combines two progressive authoring workflows
-with a deterministic, generated knowledge router backed by three foundational
-OKF topics. The pack is useful without another pack; when an eligible knowledge
-surface is available, its workflows detect that capability and use an explicit
-provider invocation without discovering or reading another pack's corpus.
-
-The foundation establishes the common-floor contracts for activation,
-behavior, retrieval, extension, deterministic generation, failure handling,
-and least-authority operation. Python/pytest and TypeScript/Node appear only as
-bounded extension seams over that floor. Runtime profiles, packaging advice,
-and catalogue delivery remain outside this slice.
+The agent-skill-engineering foundation is a portable pack for framing, creating,
+updating, reviewing, and optimizing agent skills. It combines two progressive
+workflows with a deterministic generated router backed by three foundational
+OKF topics. The pack works without another pack; eligible knowledge surfaces
+are invoked explicitly without exposing another pack's corpus.
 
 ## Boundaries
 
@@ -79,37 +71,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-The foundation uses TDD for deterministic transforms, routers, provider
-envelopes, activation rules, and failure handling because each has an exact
-input/output or refusal contract. Versioned fixtures are declared with their
-expected results before the implementation under test runs; changing an
-expectation is a reviewed fixture change.
-
-Goal-based construction tests exercise the two workflows against four
-representative tasks: new skill, skill update, activation failure, and
-deterministic script failure. They verify required artifacts and checklist
-coverage without coupling tests to instruction wording. An independent
-reviewer judges task quality and confirms that all seeded portability,
-authority, and script-contract defects are reported.
-
-Security and failure-mode tests use hostile metadata, traversal and symlink
-attempts, provider prompt injection, overbroad requests, absent or malformed
-providers, unsupported modes, execution requests, and credential-shaped data.
-They assert fail-closed confinement, bounded redacted diagnostics, no authority
-gain, no source mutation, and clean baseline degradation.
-
-Router quality uses at least twenty versioned foundation prompts spanning
-framing, author/update, review, triggers, progressive references,
-deterministic scripts, security/authority, and near misses. It computes exact
-set precision and recall, enforces the three-topic ceiling, and runs every
-fixture from a staged built tree with the authoring source unavailable. Two
-clean compiles of the same input must be byte-identical.
-
-Pack and repository construction checks verify portable skill structure,
-generated-file drift, declared dependency order, links, catalogue compatibility
-of the external wrapper, and the repository's standard documentation and build
-gates. No test asserts a prompt's incidental prose when it can assert the
-behavioral or artifact contract instead.
+Use TDD for deterministic transforms, routers, provider envelopes, activation,
+and failure handling; versioned fixtures declare expected outcomes first. Use
+goal-based tests for the four workflow cases and independent review for seeded
+defects. Exercise hostile inputs, staged-tree routing, deterministic compiles,
+portable structure, generated drift, links, and the external wrapper without
+coupling tests to incidental instruction wording.
 
 ## Acceptance Criteria
 
@@ -334,3 +301,8 @@ behavioral or artifact contract instead.
   ([`workspace.toml`](../../../workspace.toml),
   [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md)).
 - Process: the implementation shape is `mixed` (user confirmation 2026-08-26).
+
+## Changelog
+
+- 2026-08-27: removed redundant non-AC narrative; acceptance criteria and
+  recorded assumptions remain unchanged.

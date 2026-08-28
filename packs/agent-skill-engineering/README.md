@@ -75,8 +75,8 @@ Adapters: `claude-code`, `codex`, `copilot`, `kiro-ide`, `kiro-cli`, `cursor`,
 Both user-facing workflows can read untrusted candidate files after resolving
 and confining each path. Both declare a write boundary because their explicit
 mutation modes may change the confirmed skill root; activation alone never
-authorizes a write. The generated reference router is read-only and is never
-selected for your request.
+authorizes a write. The generated reference router is read-only, is never
+selected on its own, and answers no request directly.
 
 The workflows never inspect credentials. Authentication stays outside model
 context and any later authenticated operation must use an external

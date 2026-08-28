@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -72,6 +73,41 @@ def test_portable_tree_contains_no_adapter_or_publication_implementation() -> No
         "catalogue admission workflow",
     ):
         assert forbidden not in portable
+
+
+def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> None:
+    """AC4's absence clause, over every mode and both workflow descriptions.
+
+    The per-workflow suites check the SKILL.md *bodies*, where these names are
+    required to appear in the unavailable-response contract. The absence
+    obligation is the opposite and belongs to the description, and it is
+    pack-scoped rather than per-workflow: naming an unsupported mode on either
+    activation surface is what would route an unavailable request into a
+    workflow. Modes come from the fixture that already defines the closed
+    vocabulary, so a seventh mode is covered the day it is declared.
+    """
+
+    modes = {
+        case["mode"]
+        for case in json.loads(
+            (
+                PACK_ROOT / "tests" / "fixtures" / "unsupported-mode-cases.json"
+            ).read_text(encoding="utf-8")
+        )["cases"]
+    }
+    assert len(modes) == 6
+
+    for name, root in WORKFLOW_ROOTS.items():
+        text = (root / "SKILL.md").read_text(encoding="utf-8")
+        _, raw, _ = text.split("---\n", 2)
+        parsed = yaml.safe_load(raw)
+        description = str(parsed["description"]).lower()
+        for mode in modes:
+            # Word-boundary, so `plugin` and `hook` cannot be satisfied by an
+            # unrelated compound such as "evaluation hooks".
+            assert not re.search(rf"\b{re.escape(mode)}\b", description), (
+                f"{name} description names unsupported mode {mode!r}"
+            )
 
 
 def test_skill_boundaries_match_the_least_authority_contract() -> None:

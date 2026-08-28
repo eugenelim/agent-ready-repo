@@ -19,71 +19,45 @@
 
 ## Approach
 
-Harden the shared OKF compiler before any foundation corpus depends on it, then
-build the portable pack in reviewable layers: authoring workflow,
-review/optimize workflow, governed corpus and generated router, provider and
-language-extension integration, and finally the cross-cutting M1 release
-evidence. Each layer leaves the repository buildable and proves behavior with
-fixtures before relying on it downstream.
-
+Build in reviewable layers: workflows, corpus/router, provider and language
+seams, then release evidence. Each layer proves its fixtures before downstream
+work relies on it. If a deterministic component needs to parse the semantic
+provider envelope, stop for a spec amendment and contract-type decision.
 The pack follows the existing `.apm/` portable-source and same-pack OKF build
-pattern. A minimal `pack.toml` is delivery metadata outside the portable
-content, not a new portable contract. The provider request/response contract is
-implemented as skill instructions plus shared behavioral fixtures because no
-deterministic component parses a serialized envelope in this slice. If
-implementation introduces such a parser, the plan stops for a spec amendment
-and contract-type decision rather than adding an incidental schema.
+pattern.
 
 ## Constraints
 
-- [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md) fixes the M1 product
-  boundary, mode availability, foundation topics, evaluation gates, and later
-  slices; implementation does not reopen them.
-- [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md)
-  keeps raw OKF a declared same-pack build-time source.
-- [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
-  requires capability detection, explicit provider mediation for independent
-  OKF knowledge, external trust eligibility, least authority, and clean
-  absence.
-- The portable content cannot cite repository-internal governance or depend on
-  AgentBundle delivery mechanisms. The external wrapper follows the existing
-  pack schema without changing it.
-- The two named compiler findings retain their canonical ownership in
-  `workspace.toml` until implementation evidence closes them. They block corpus
-  generation, not spec approval.
+- The RFC and ADRs in Repository anchors constrain this implementation.
+- Portable content cannot depend on repository-internal governance or
+  AgentBundle delivery mechanisms.
 - No new third-party dependency, top-level directory, adapter behavior,
   projection behavior, catalogue admission rule, or authentication mechanism is
-  introduced. Amended 2026-08-27: the pack does register through the existing
-  publication path — a `.claude-plugin/plugin.json`, its generated marketplace
-  entry, and published-roster membership — per the owner decision recorded in
-  AC21. The publication *mechanism* is unchanged; only this pack's records are
-  added.
+  introduced; AC21 permits this pack's publication records through the existing
+  mechanism.
 - Repository tests stay strict when cleanup is restricted; tests use confined
   task-local temporary roots and assert retained-state behavior instead of
   weakening the contract.
 
 ## Construction tests
 
-Most construction tests live under **Tasks** below. Cross-cutting evidence is:
+Most construction tests live under **Tasks**. Cross-cutting evidence is:
 
 - A staged-install test builds only the foundation pack's delivered tree,
   verifies no OKF authoring source or path is present, makes the source checkout
   unavailable, and runs every router and workflow fixture with filesystem reads
   confined to that tree and a declared temporary output root (AC1, AC6, AC8,
   AC9, AC18).
-- Two clean OKF builds from the same committed inputs produce byte-identical
-  generated routers, indexes, references, and manifests; the repository drift
-  check then confirms generated output is current (AC8, AC20).
+- Two clean OKF builds produce byte-identical generated output and pass the
+  repository drift check (AC8, AC20).
 - `tools/run-pack-evals.py` covers both user-facing workflow activation sets;
   the generated router is tested through its integration fixtures and is not
   advertised as a user-facing workflow (AC6, AC9).
-- A fixture-led independent quality review checks the four M1 workflow cases
-  against predeclared checklists and records a reviewed fixture change whenever
-  an expected result changes (AC6).
-- The standard skill lint, pack tests, catalogue deep lint/verify, documentation
-  link tests, generated-projection drift checks, and proportionate repository
-  build gate all pass without editing generated adapter projections directly
-  (AC21, AC22).
+- Independent review checks the four M1 workflow cases against predeclared
+  checklists (AC6).
+- Standard lint, pack, catalogue, documentation, drift, and build checks cover
+  the external wrapper without directly editing generated projections (AC21,
+  AC22).
 
 Manual verification is limited to inspecting the independent-review evidence
 and confirming that the external manifest contains delivery metadata only. No
@@ -93,35 +67,21 @@ candidate code execution is required for acceptance.
 
 ### Design decisions
 
-- Two user-facing skills own progressive author/update and review/optimize;
-  one generated, inert router owns bounded knowledge selection. This preserves
-  a small activation surface while keeping reference loading progressive (AC1,
-  AC2, AC5, AC9).
-- Raw authored knowledge and generated runtime knowledge remain visibly
-  different trees. The compiler is the only bridge between them (AC7, AC8).
-- The provider envelope remains semantic in `SKILL.md` and versioned fixtures.
-  A JSON Schema would be a second source of truth without a parser in this
-  slice (AC11, AC12).
+- Two user-facing skills and one generated inert router keep activation and
+  reference loading progressive (AC1, AC2, AC5, AC9).
+- The provider envelope is semantic instructions plus versioned fixtures
+  (AC11, AC12).
 
 ### Data & schema
 
-There is no runtime persistence or new repository-wide schema. Authored OKF
-uses the existing `agentbundle-okf/v1` profile; generated files and manifest
-membership use the existing compiler format. Versioned JSON evaluation
-fixtures are test data, not a public serialized API. Stable topic identifiers,
-provider fields, statuses, mode names, and the two language-extension family
-names are the semantic vocabulary owned by the spec and exercised by those
-fixtures (AC7-AC15).
+There is no runtime persistence or new repository-wide schema. Versioned JSON
+fixtures are test data, not a public serialized API (AC7-AC15).
 
 ### Interfaces & contracts
 
-The user interface is the activation and progressive-mode behavior of
-`author-or-update-agent-skill` and `review-or-optimize-agent-skill`. The
-integration interface is the `agent-skill-engineering-reference/v1` semantic
-request/response contract. Its normative fields and refusal behavior live in
-spec AC11-AC13; provider and consumer skill instructions implement it, and one
-shared fixture set proves both sides. There is no `contracts/jsonschema/`
-artifact because no software component consumes one (AC2-AC6, AC10-AC14).
+The user interface is the two workflow activations; the integration interface
+is the `agent-skill-engineering-reference/v1` semantic contract. AC11-AC13 and
+one shared fixture set define its fields and refusals (AC2-AC6, AC10-AC14).
 
 ### Component / module decomposition
 
@@ -130,9 +90,9 @@ artifact because no software component consumes one (AC2-AC6, AC10-AC14).
 - `packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/`
   owns read-only review, the explicit optimize transition, and workflow
   fixtures.
-- `packs/agent-skill-engineering/okf/agent-skill-engineering/` owns the three
-  raw foundation concepts and their authored index.
-- `packs/agent-skill-engineering/.apm/skills/agent-skill-engineering-reference/`
+- `packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/` owns
+  the three raw foundation concepts and their authored index.
+- `packs/agent-skill-engineering/.apm/skills/ase-okf-reference/`
   is generated and owns router-facing compiled references and provider
   behavior.
 - `packs/agent-skill-engineering/tests/` owns contract, workflow, router,
@@ -140,58 +100,35 @@ artifact because no software component consumes one (AC2-AC6, AC10-AC14).
 - `packs/agent-skill-engineering/pack.toml` is the minimal external build and
   catalogue wrapper; it does not own portable behavior.
 
-These paths follow the repository's pack and OKF precedents. Exact reference
-file decomposition inside a workflow remains an implementation choice as long
-as progressive loading and the portable boundary hold (AC1, AC7, AC21).
+Exact reference-file decomposition remains an implementation choice within the
+portable boundary (AC1, AC7, AC21).
 
 ### State & control flow
 
-Authoring starts in `frame`; only an explicit user transition reaches `create`
-or `update`. Review starts read-only; only an explicit user transition after
-evidence reaches `optimize`. Either workflow may query the local router and may
-then perform bounded capability detection. An eligible independent provider is
-invoked explicitly with the v1 request; its validated guidance is treated as
-untrusted input. Absence, refusal, or invalid response returns control to the
-baseline workflow. Execution remains a separate user-approved transition
+Explicit transitions separate framing, writing, review, optimization, and
+execution. Provider absence, refusal, or invalid response returns to baseline
 (AC2-AC5, AC10-AC17).
 
 ### Behavior & rules
 
-Root-first routing narrows from index to at most three concepts; topic files
-never participate in provider discovery. Language-extension requests identify
-a future family but return honest absence in this slice; no language topic body
-exists yet. `out-of-scope` returns no topic body. M2-only modes are omitted
-from activation and answer with the stable unavailable contract when directly
-requested (AC4, AC7, AC9-AC15).
+Root-first routing selects at most three concepts; unsupported and extension
+requests return their specified absence response (AC4, AC7, AC9-AC15).
 
 ### Failure, edge cases & resilience
 
-All boundaries distinguish absence from an independently applicable safety
-stop. Compiler and router errors are deterministic and confined. Provider
-errors are bounded, redacted, and non-persistent; ambiguous provider selection
-fails closed to baseline rather than guessing. Interrupted writes preserve or
-identify recoverable state, and cleanup denial does not erase the primary test
-result or lower its assertion set (AC13, AC16-AC20).
+Errors are deterministic, confined, bounded, redacted, and fail closed without
+weakening baseline safety or test assertions (AC13, AC16-AC20).
 
 ### Quality attributes (NFRs)
 
-Determinism is byte identity across clean compiles. Router quality meets the
-RFC's 90% exact-selection and three-topic thresholds over at least twenty
-predeclared fixtures. Security requires no authority gain, no secret access,
-same-root confinement, hostile-input refusal, and staged runtime independence
-from authored OKF. Portability requires all supported projections to consume
-the same `.apm/` source without adapter-specific common-floor instructions
-(AC1, AC6, AC8, AC9, AC16-AC19, AC22).
+The ACs set the determinism, router-quality, security, and portability
+requirements (AC1, AC6, AC8, AC9, AC16-AC19, AC22).
 
 ### Dependencies & integration
 
-The existing OKF compiler is the only build-time knowledge dependency. Its two
-named defects close before foundation generation. Optional runtime knowledge
-providers are capabilities, not dependencies: consumers are complete without
-them and integrations remain disabled until external eligibility and
-confinement evidence pass. AgentBundle supplies external pack delivery only;
-no adapter or catalogue code enters the portable components (AC10, AC13, AC14,
-AC20, AC21).
+The existing OKF compiler is the build-time knowledge dependency. Providers
+are optional capabilities; AgentBundle supplies external delivery only (AC10,
+AC13, AC14, AC20, AC21).
 
 ## Tasks
 
@@ -199,7 +136,7 @@ AC20, AC21).
 
 **Depends on:** none
 
-**Touches:** `packs/catalogue-curation/.apm/skills/compile-okf/scripts/okf_compiler.py`, `packs/catalogue-curation/tests/skills/compile-okf/test_render.py`, `packs/catalogue-curation/tests/skills/compile-okf/test_apply.py`, `workspace.toml`
+**Touches:** `contracts/jsonschema/okf-pack-profile-v1.schema.json`, `packs/catalogue-curation/.apm/skills/compile-okf/scripts/okf_compiler.py`, `packs/catalogue-curation/tests/skills/compile-okf/test_render.py`, `packs/catalogue-curation/tests/skills/compile-okf/test_apply.py`, `workspace.toml`
 
 **Mode:** TDD
 
@@ -438,7 +375,7 @@ activates for any negative fixture.
 
 **Depends on:** T1
 
-**Touches:** `packs/agent-skill-engineering/okf/**`, `packs/agent-skill-engineering/.apm/skills/agent-skill-engineering-reference/**`, `packs/agent-skill-engineering/tests/**`, `packs/agent-skill-engineering/pack.toml`
+**Touches:** `packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/**`, `packs/agent-skill-engineering/.apm/skills/ase-okf-reference/**`, `packs/agent-skill-engineering/tests/**`, `packs/agent-skill-engineering/pack.toml`
 
 **Mode:** TDD
 
@@ -468,7 +405,7 @@ activates for any negative fixture.
 
   def test_generated_router_is_inert_and_source_independent() -> None:
       router = (
-          PACK_ROOT / ".apm/skills/agent-skill-engineering-reference/SKILL.md"
+          PACK_ROOT / ".apm/skills/ase-okf-reference/SKILL.md"
       ).read_text(encoding="utf-8")
       assert "filesystem_read_untrusted" in router
       assert "filesystem_write" not in router
@@ -639,39 +576,22 @@ separate release decision without any later-slice implementation.
 
 ## Rollout
 
-Delivery is one dependency-ordered foundation sequence. The compiler hardening
-lands first; portable workflows and corpus layers then land behind no activation
-alias beyond their explicit descriptions; provider integration remains optional
-and fail-closed; the final task proves the built pack. Rollback removes or
-reverts the new pack as a unit and leaves the compiler hardening in place. No
-infrastructure, service account, secret, network permission, migration, or
-adapter cutover is part of this plan. Publication is limited to registering
-this pack through the existing route (AC21, owner decision 2026-08-27); no
-automatic installation occurs, and rollback removes those records with the
-pack.
+Delivery follows the task dependencies. Provider integration is optional and
+fail-closed; rollback removes the new pack and its publication records as a
+unit. No infrastructure, secrets, network permission, migration, or adapter
+cutover is in scope.
 
 ## Risks
 
-- The workflows could become generic meta-guidance. Exact activation negatives,
-  three foundation topics, and unavailable later modes bound that drift.
-- The provider seam could become de facto corpus coupling. External eligibility,
-  explicit invocation, no topic-file discovery, and provider absence fixtures
-  keep the coupling at the capability contract.
-- A semantic envelope can drift between provider and consumers. One versioned
-  shared fixture table is the conformance source; prose may evolve while those
-  observable fields and outcomes remain stable.
-- Language extensions could fork the common floor. Foundation-owned extension
-  family names and absence fixtures reserve the seam while deferring actual
-  topic content and cross-language behavior to Slice 2.
-- Generated output can hide unsafe metadata or host-dependent ordering. T1,
-  hostile fixtures, byte comparison, and staged-tree confinement block release.
-- New pack work could accidentally absorb AgentBundle delivery design. The
-  manifests are treated as external wrappers carrying registration metadata
-  only; adapter, projection, and catalogue-admission *code* changes remain
-  prohibited by both spec and plan, while this pack's publication records are
-  admitted by AC21.
+- Generic workflow drift, provider coupling, envelope drift, language-slice
+  drift, unsafe generated output, and delivery-mechanism scope creep are
+  controlled by their corresponding AC fixtures and boundaries.
 
 ## Changelog
+
+- 2026-08-27: removed redundant non-task narrative and the stale duplicate
+  compiler-prerequisite constraint; tasks and acceptance-criterion references
+  remain unchanged.
 
 - 2026-08-26: initial scaffold
 - 2026-08-26: filled the mixed-shape foundation plan after product, slice,
@@ -691,3 +611,10 @@ pack.
   guard that should have said so enumerated only `tests/skills/`, so closing the
   instance without widening the guard would have left the next pack silently
   unrun.
+- 2026-08-27: scoped the no-schema statement to the transport-independent
+  semantic request/response envelope and recorded the existing
+  `contracts/jsonschema/okf-pack-profile-v1.schema.json` provider-capability
+  contract in T1's touches.
+- 2026-08-27: corrected the corpus and router paths to their shipped names.
+  The router rename to `ase-okf-reference` follows the activation measurement:
+  its prior domain-matching name selected the inert router over the workflow.
