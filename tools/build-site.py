@@ -1814,15 +1814,11 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
             # comment's body would publish. Rendering stays CommonMark; this
             # reports the authoring mistake instead of shipping it in silence.
             split_comments.append((lineno, lines[lineno - 1].strip()))
-        if stripped.opens_comment:
-            in_comment = True
-            comment_opened_at = lineno
-            # Deliberate divergence from lint-spec-status.py: this builder does
-            # not treat an unterminated real opener as literal text. The final
-            # raise prevents one typo from silently swallowing later releases.
 
         opener = _FENCE_RE_CHANGELOG.match(raw)
         if opener is not None:
+            # A `<!--` that left this fence marker behind was in its info string,
+            # so it is sample text rather than cross-line comment state.
             # The opener is matched LOOSELY on indentation. A fence indented four
             # spaces is the ordinary shape inside a list item, and tightening
             # this to `^ {0,3}` while fixing the closer rule regressed those into
@@ -1834,6 +1830,13 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
             fence_opened_at = lineno
             fence_marker = opener.group(2)
             continue
+
+        if stripped.opens_comment:
+            in_comment = True
+            comment_opened_at = lineno
+            # Deliberate divergence from lint-spec-status.py: this builder does
+            # not treat an unterminated real opener as literal text. The final
+            # raise prevents one typo from silently swallowing later releases.
 
         heading = _CHANGELOG_HEADING_RE.match(raw)
         if heading is None:
