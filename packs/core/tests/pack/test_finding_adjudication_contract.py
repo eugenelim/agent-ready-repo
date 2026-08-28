@@ -173,9 +173,10 @@ def test_finding_adjudicator_source_contract() -> None:
 
 def test_adjudication_shape_fingerprints_only_sustained_findings(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """Drive a representative adjudication through the existing cohort parser."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -226,9 +227,10 @@ None.
 
 def test_strict_adjudication_rejects_extra_main_loop_prose(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """Accept only sustained-entry paragraphs in the actionable section."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -281,9 +283,10 @@ None.
 
 def test_strict_adjudication_accepts_adjacent_sustained_findings(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """Accept adjacent file and architecture `Where:` sustained lines."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -346,10 +349,11 @@ None.
 )
 def test_strict_adjudication_rejects_incomplete_or_hidden_findings(
     tmp_path: Path,
+    git_repo: Path,
     main_result: str,
 ) -> None:
     """Reject finding prefixes that do not form one complete sustained line."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -402,11 +406,12 @@ None.
 @pytest.mark.parametrize("audit_prefix", ["", "- "])
 def test_adjudication_audit_cannot_create_actionable_fingerprint(
     tmp_path: Path,
+    git_repo: Path,
     tainted_audit: str,
     audit_prefix: str,
 ) -> None:
     """Reject finding-shaped audit text before it reaches fingerprinting."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -464,9 +469,10 @@ Clean — ready to commit.
 
 def test_strict_adjudication_rejects_indeterminate_signal_in_refuted_audit(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """Fail closed when the stop sentinel is hidden outside the main result."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -517,9 +523,10 @@ None.
 
 def test_strict_adjudication_mode_rejects_raw_without_breaking_legacy(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """Make the work-loop path strict while preserving the flagless CLI."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -567,9 +574,12 @@ def test_strict_adjudication_mode_rejects_raw_without_breaking_legacy(
     assert json.loads(legacy.stdout)["classification"] == "findings"
 
 
-def test_indeterminate_stops_before_sustained_fingerprinting(tmp_path: Path) -> None:
+def test_indeterminate_stops_before_sustained_fingerprinting(
+    tmp_path: Path,
+    git_repo: Path,
+) -> None:
     """Fail closed when an adjudication mixes sustained and indeterminate."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -630,12 +640,13 @@ None.
 )
 def test_strict_clean_requires_consistent_exact_envelope(
     tmp_path: Path,
+    git_repo: Path,
     main_result: str,
     indeterminate_audit: str,
     expected: str,
 ) -> None:
     """Reject unresolved audits and legacy clean matching in strict mode."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -859,6 +870,7 @@ def test_invalid_adjudication_names_the_rule_that_refused_it(
 )
 def test_indeterminate_refusal_does_not_depend_on_the_adjudication_flag(
     tmp_path: Path,
+    git_repo: Path,
     main_result: str,
     indeterminate_audit: str,
 ) -> None:
@@ -870,7 +882,7 @@ def test_indeterminate_refusal_does_not_depend_on_the_adjudication_flag(
     flagless `review inspect` — or a replayed `review record` — downgrade an
     indeterminate verdict to `clean`, which AC5 forbids outright.
     """
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -936,6 +948,7 @@ None.
 )
 def test_remaining_refusal_codes_are_pinned(
     tmp_path: Path,
+    git_repo: Path,
     body: str,
     expected_reason: str,
 ) -> None:
@@ -953,7 +966,7 @@ def test_remaining_refusal_codes_are_pinned(
         # first; root bypasses the permission bit this case depends on.
         pytest.skip("needs non-root POSIX")
 
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     (spec_dir / "state.json").write_text(
         json.dumps(
@@ -1037,6 +1050,7 @@ def run_record(spec_dir: Path, report: Path) -> subprocess.CompletedProcess[str]
 
 def test_review_record_rejects_a_raw_report_under_adjudication(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """A raw reviewer report must not record a clean round.
 
@@ -1046,7 +1060,7 @@ def test_review_record_rejects_a_raw_report_under_adjudication(
     the clean sentinel — exactly the bypass the gateway exists to prevent —
     so this asserts the refusal AND that `state.json` is left untouched.
     """
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     _record_state(spec_dir)
     before = (spec_dir / "state.json").read_text(encoding="utf-8")
@@ -1063,9 +1077,12 @@ def test_review_record_rejects_a_raw_report_under_adjudication(
     assert (spec_dir / "state.json").read_text(encoding="utf-8") == before
 
 
-def test_review_record_accepts_a_clean_adjudication_once(tmp_path: Path) -> None:
+def test_review_record_accepts_a_clean_adjudication_once(
+    tmp_path: Path,
+    git_repo: Path,
+) -> None:
     """A well-formed clean adjudication advances exactly one round."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     _record_state(spec_dir)
 
@@ -1094,9 +1111,10 @@ None.
 
 def test_review_record_rejects_an_indeterminate_adjudication(
     tmp_path: Path,
+    git_repo: Path,
 ) -> None:
     """An indeterminate adjudication can never be recorded as clean."""
-    spec_dir = tmp_path / "spec"
+    spec_dir = git_repo / "spec"
     spec_dir.mkdir()
     _record_state(spec_dir)
     before = (spec_dir / "state.json").read_text(encoding="utf-8")

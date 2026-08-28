@@ -52,6 +52,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.15.1] — 2026-08-28
+
+### Highlights
+
+- **Work-loop tools now reject execution state outside the current repository and
+  finish safely when local Git stops responding.**
+
+### Fixed
+
+- Confined `loop-cohort` spec directories to the current repository, including
+  paths redirected through symlinks.
+- Bounded local Git lookups in the spec-status lint so an unavailable Git process
+  skips the affected diff check instead of hanging or crashing the lint.
+
 ## [core][2.15.0] — 2026-08-28
 
 - **Delivered work can now cool on a recorded 30-day schedule.** `close-work`

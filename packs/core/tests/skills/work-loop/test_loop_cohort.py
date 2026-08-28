@@ -72,14 +72,62 @@ def run_cohort(*args, spec_dir=None):
         # insert spec_dir after the verb where the parser expects it
         pass
     cmd.extend(str(a) for a in args)
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    spec_path = next((Path(a) for a in args if Path(a).is_dir()), None)
+    proc = subprocess.run(
+        cmd,
+        cwd=str(spec_path.parent) if spec_path is not None else None,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
     return proc.returncode, proc.stdout, proc.stderr
 
 
 def make_spec_dir(tmp: Path, feature: str = "myfeature") -> Path:
+    import subprocess
+    subprocess.run(
+        ["git", "init", "-q", str(tmp)], check=True, capture_output=True
+    )
     d = tmp / feature
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def test_resolve_spec_dir_refuses_paths_outside_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The resolver must reject absolute and symlinked paths that escape root."""
+    repo_root = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    repo_root.mkdir()
+    outside.mkdir()
+    escaped_link = repo_root / "escaped-link"
+    symlink_or_skip("spec-dir confinement", escaped_link, outside)
+    monkeypatch.setattr(_mod, "_get_repo_root", lambda: repo_root.resolve())
+
+    with pytest.raises(ValueError, match="must be inside the repository"):
+        _mod._resolve_spec_dir(str(outside))
+    with pytest.raises(ValueError, match="must be inside the repository"):
+        _mod._resolve_spec_dir(str(escaped_link))
+
+
+def test_repo_root_ignores_git_relocation_environment(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Caller-set Git relocation must not redirect the confinement root."""
+    import subprocess
+
+    make_spec_dir(tmp)
+    foreign = tmp / "foreign"
+    foreign.mkdir()
+    subprocess.run(
+        ["git", "init", "-q", str(foreign)], check=True, capture_output=True
+    )
+    monkeypatch.chdir(tmp)
+    monkeypatch.setenv("GIT_DIR", str(foreign / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(foreign))
+
+    assert _mod._get_repo_root() == tmp.resolve()
 
 
 def write_state(spec_dir: Path, state: dict) -> None:
@@ -129,7 +177,7 @@ def init_pair(tmp: Path, feature: str = "myfeature", mode: str = "code") -> tupl
     import subprocess
     proc = subprocess.run(
         [sys.executable, str(engine), "init", str(spec_dir), "--mode", mode, "--json"],
-        capture_output=True, text=True, check=False,
+        cwd=str(tmp), capture_output=True, text=True, check=False,
     )
     if proc.returncode != 0:
         raise RuntimeError(f"engine init failed: {proc.stderr.strip()}")
@@ -137,7 +185,7 @@ def init_pair(tmp: Path, feature: str = "myfeature", mode: str = "code") -> tupl
     # Cohort init
     proc2 = subprocess.run(
         [sys.executable, str(COHORT), "init", str(spec_dir), "--run-id", run_id],
-        capture_output=True, text=True, check=False,
+        cwd=str(tmp), capture_output=True, text=True, check=False,
     )
     if proc2.returncode != 0:
         raise RuntimeError(f"cohort init failed: {proc2.stderr.strip()}")
@@ -354,10 +402,13 @@ def test_status_rejects_symlinked_cohort_state(tmp: Path) -> None:
 
 
 # STUB: AC3 — a descriptor whose identity changes during the read is rejected.
-def test_cohort_state_reader_rejects_identity_change(tmp: Path) -> None:
+def test_cohort_state_reader_rejects_identity_change(
+    tmp: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     name = "cohort-state-reader-rejects-identity-change"
     sentinel = "identity-change-sentinel"
     spec_dir = make_spec_dir(tmp, name)
+    monkeypatch.chdir(tmp)
     path = spec_dir / "state.json"
     path.write_text(
         json.dumps({
