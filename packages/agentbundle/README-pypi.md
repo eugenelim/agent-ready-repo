@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.40.2
+
+Catalogue seed lint now accepts the core pack's bounded rule router,
+cognitive-load topic, and scoped docs guidance. Undeclared seed paths still
+fail closed.
+
 ## What's new in 0.40.1
 
 Workspace MCP lifecycle metadata now dispatches briefs to the canonical

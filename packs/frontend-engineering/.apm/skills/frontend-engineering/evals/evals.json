@@ -1,0 +1,20 @@
+{
+  "skill_name": "frontend-engineering",
+  "evals": [
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing frontend implementation handoff. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The frontend implementation handoff leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
+      ]
+    }
+  ]
+}

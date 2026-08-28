@@ -11,6 +11,8 @@ _WORK_LOOP = (
     / "work-loop"
     / "SKILL.md"
 )
+_RESUMPTION_REFERENCE = "references/session-resumption.md"
+_RESUMPTION = _WORK_LOOP.parent / "references" / "session-resumption.md"
 
 
 def test_missing_contract_fails_closed() -> None:
@@ -119,13 +121,22 @@ def test_persisted_light_specs_remain_spec_driven() -> None:
     raw = _WORK_LOOP.read_text(encoding="utf-8")
     body = _normalized(raw)
     assert "A supplied or workspace-resolved spec is used, never replaced or downgraded." in body
-    assert "Legacy light-mode resumption" in body
-    assert "existing specs remain readable, valid, and resumable" in body
+
+    # The legacy resumption table is disclosed progressively: SKILL.md links the
+    # reference rather than inlining it. Assert the obligation where it lives,
+    # and that SKILL.md still reaches it — an extraction that orphans the table
+    # must fail here rather than pass by absence.
+    assert _RESUMPTION.is_file(), _RESUMPTION
+    assert _RESUMPTION_REFERENCE in raw
+    resumption_raw = _RESUMPTION.read_text(encoding="utf-8")
+    resumption = _normalized(resumption_raw)
+    assert "Legacy light-mode resumption" in resumption
+    assert "existing specs remain readable, valid, and resumable" in resumption
 
     # Scope the status check to the legacy resumption table itself. Searching the
     # whole file would pass on any unrelated mention and prove nothing about
     # whether that table still routes each persisted state.
-    table = raw.split("Legacy light-mode resumption", 1)[1]
+    table = resumption_raw.split("Legacy light-mode resumption", 1)[1]
     table = table.split("\n## ", 1)[0]
     for status in ("`Draft`", "`Approved`", "`Implementing`"):
         assert status in table, status

@@ -28,7 +28,12 @@ from okf_compiler import (  # noqa: E402
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "render"
-RUNBOOK_DIGEST = "sha256:5133e0ae722bc233c04ee2f91cff6e54dd040be65487ff353a986c3aafeaf1a7"
+# Covers `procedure-wrapper.md` via `template_sha256`, so editing that template
+# invalidates the prior review and moves this vector. It last moved when the
+# managed output-rendering block was added to the wrapper; restoring the old
+# template reproduces the previous value exactly, which is how that move was
+# confirmed to be the template and nothing else.
+RUNBOOK_DIGEST = "sha256:9f8cd39283edf73b0d2018d67a5b58101e3dc35f4def82eb56567073364915cb"
 STRICT_JSON_VECTOR = b'{"a":[true,null],"b":1}\n'
 STRICT_JSON_DIGEST = "sha256:b7c64ebef4296c41c0c46ab5e7a71a88ab124b5fdb82613abc75327ce6195ec6"
 

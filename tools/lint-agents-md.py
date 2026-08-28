@@ -41,6 +41,25 @@ _SEED_VENDOR_ROOT_BACKLOG = frozenset({
     "packs/core/seeds/docs/knowledge/README.md",
     "packs/core/seeds/docs/specs/README.md",
 })
+_SEED_PATH_TOKEN_RE = re.compile(
+    r"(?<![A-Za-z0-9_.-])\.[A-Za-z0-9_-]+(?:/[^\s`'\"<>()\[\]{}]+)+"
+)
+_PORTABLE_RULE_PATH_RE = re.compile(r"\.agents/rules/[^/]+\.md")
+
+
+def _seed_names_adapter_path(text: str, adapter_roots: set[str]) -> bool:
+    """Return whether seed prose names a non-portable adapter path."""
+    for match in _SEED_PATH_TOKEN_RE.finditer(text):
+        token = match.group(0).rstrip(".,;:!?")
+        parts = token.split("/")
+        if parts[0] not in adapter_roots:
+            continue
+        if any(part in {"", ".", ".."} for part in parts):
+            return True
+        if _PORTABLE_RULE_PATH_RE.fullmatch(token):
+            continue
+        return True
+    return False
 
 
 def _body_lines(text: str) -> list[str]:
@@ -662,9 +681,6 @@ def main() -> int:
                 target_path = projection.get("target-path", "")
                 if target_path.startswith("."):
                     adapter_roots.add(target_path.split("/", 1)[0])
-    vendor_path = re.compile(
-        rf"(?:{'|'.join(re.escape(root) for root in sorted(adapter_roots))})/"
-    )
     for seed_file in Path("packs").glob("*/seeds/**/*"):
         name = seed_file.as_posix()
         if (
@@ -673,7 +689,8 @@ def main() -> int:
             or name in _SEED_VENDOR_ROOT_BACKLOG
         ):
             continue
-        if vendor_path.search(seed_file.read_text(encoding="utf-8", errors="replace")):
+        seed_text = seed_file.read_text(encoding="utf-8", errors="replace")
+        if _seed_names_adapter_path(seed_text, adapter_roots):
             note(
                 f"seed vendor path: {name}; name the skill instead of its adapter path; "
                 "contracts/adapter.toml projects this primitive into seven different roots."

@@ -378,12 +378,16 @@ def render_okf_bundle(
         bundle_id,
         provider_capability,
     )
+    output_rendering = (ASSET_ROOT / "output-rendering.md").read_text(
+        encoding="utf-8"
+    ).rstrip()
     files["SKILL.md"] = router_template.format(
         router_skill=router_skill,
         bundle_id=bundle_id,
         source_digest=source_digest,
         router_description=router_description,
         provider_metadata=provider_metadata,
+        output_rendering=output_rendering,
     ).encode("utf-8")
 
     for concept_path, reviewed_digest in sorted(projected_concepts.items()):
@@ -973,6 +977,9 @@ def _render_procedure_skill(
     if not include_list:
         include_list = "- No copied includes."
     template = (ASSET_ROOT / "procedure-wrapper.md").read_text(encoding="utf-8")
+    output_rendering = (ASSET_ROOT / "output-rendering.md").read_text(
+        encoding="utf-8"
+    ).rstrip()
     skill_name = str(skill["name"])
     files = [
         (
@@ -986,6 +993,7 @@ def _render_procedure_skill(
                 review_digest=review_digest,
                 instruction_body=instruction_body.rstrip(),
                 include_list=include_list,
+                output_rendering=output_rendering,
             ).encode("utf-8"),
         )
     ]

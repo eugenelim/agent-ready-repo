@@ -15,6 +15,14 @@ Read [the system model](ARCHITECTURE.md) and
 [the ownership map](docs/architecture/overview.md) before exploring an
 unfamiliar area.
 
+## Rule lookups
+
+Before your first user-facing response or unrelated tool call, silently read [`AGENT_RULES.md`](AGENT_RULES.md), then every `always` rule and every conditional rule there that matches the work.
+
+For work under `docs/`, also read the scoped [`docs/AGENTS.md`](docs/AGENTS.md).
+
+Read both lookup files with one bounded, repository-confined operation that rejects links, reparse points, non-regular files, multiple links, oversized files, and identity changes while opening. If the host loaded a file before agent control, do not claim this check covered the host load.
+
 ## Documentation
 
 | Need | Canonical source | Scope |

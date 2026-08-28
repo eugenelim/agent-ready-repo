@@ -1,0 +1,10 @@
+{
+  "events": [
+    {"kind": "user"},
+    {"kind": "tool_call"},
+    {"kind": "tool_result"},
+    {"kind": "tool_call"},
+    {"kind": "tool_result"},
+    {"kind": "assistant", "phase": "final"}
+  ]
+}

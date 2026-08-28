@@ -26,6 +26,13 @@ def validate_confined_directory(root: Path, path: Path) -> None:
     except ValueError as exc:
         raise UnsafeContentError("directory path is outside its declared root") from exc
     try:
+        root_inspected = root.lstat()
+        if (
+            not stat.S_ISDIR(root_inspected.st_mode)
+            or stat.S_ISLNK(root_inspected.st_mode)
+            or _is_reparse_point(root_inspected)
+        ):
+            raise UnsafeContentError("declared root is link-like or not a directory")
         resolved_root = root.resolve(strict=True)
         current = root
         for part in relative_path.parts:
@@ -168,6 +175,84 @@ def list_confined_directories(root: Path, directory: Path) -> list[Path]:
     return directories
 
 
+def _supports_descriptor_walk() -> bool:
+    """Return whether this runtime can bind each path component to a directory fd."""
+    return (
+        os.open in os.supports_dir_fd
+        and os.stat in os.supports_dir_fd
+        and os.stat in os.supports_follow_symlinks
+        and hasattr(os, "O_DIRECTORY")
+        and hasattr(os, "O_NOFOLLOW")
+    )
+
+
+@contextmanager
+def _open_confined_parent(
+    root: Path, path: Path, *, relative: str
+) -> Iterator[tuple[int | None, str]]:
+    """Hold the target's parent open without following path components."""
+    try:
+        relative_path = path.relative_to(root)
+    except ValueError as exc:
+        raise UnsafeContentError("source path is outside its declared root") from exc
+    if not relative_path.parts:
+        raise UnsafeContentError("source path does not name a file")
+    if any(part in {"", ".", ".."} for part in relative_path.parts):
+        raise UnsafeContentError("source path contains a dot segment")
+
+    if not _supports_descriptor_walk():
+        validate_confined_directory(root, path.parent)
+        yield None, path.name
+        return
+
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    if hasattr(os, "O_CLOEXEC"):
+        directory_flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NONBLOCK"):
+        directory_flags |= os.O_NONBLOCK
+
+    descriptor = -1
+    try:
+        descriptor = os.open(root, directory_flags)
+        inspected = os.fstat(descriptor)
+        if not stat.S_ISDIR(inspected.st_mode) or _is_reparse_point(inspected):
+            raise UnsafeContentError("declared root is link-like or not a directory")
+        for part in relative_path.parts[:-1]:
+            try:
+                next_descriptor = os.open(part, directory_flags, dir_fd=descriptor)
+            except OSError as exc:
+                raise UnsafeContentError(
+                    f"directory boundary cannot be opened safely: {relative}"
+                ) from exc
+            os.close(descriptor)
+            descriptor = next_descriptor
+            inspected = os.fstat(descriptor)
+            if not stat.S_ISDIR(inspected.st_mode) or _is_reparse_point(inspected):
+                raise UnsafeContentError(
+                    f"directory boundary is unsafe: {relative}"
+                )
+        yield descriptor, relative_path.parts[-1]
+    except UnsafeContentError:
+        raise
+    except OSError as exc:
+        raise UnsafeContentError(
+            f"directory boundary cannot be opened safely: {relative}"
+        ) from exc
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+def _validate_regular_file_stat(inspected: os.stat_result, relative: str) -> None:
+    """Reject unsafe file metadata before or after a descriptor is opened."""
+    if not stat.S_ISREG(inspected.st_mode):
+        raise UnsafeContentError(f"source entry is not a regular file: {relative}")
+    if _is_reparse_point(inspected):
+        raise UnsafeContentError(f"reparse point not allowed: {relative}")
+    if inspected.st_nlink > 1:
+        raise UnsafeContentError(f"hard link not allowed: {relative}")
+
+
 @contextmanager
 def _open_confined_regular_file(
     root: Path,
@@ -195,21 +280,6 @@ def _open_confined_regular_file(
     except ValueError as exc:
         raise UnsafeContentError("source path is outside its declared root") from exc
 
-    try:
-        before = path.lstat()
-    except OSError as exc:
-        raise UnsafeContentError(f"source file cannot be inspected: {relative}") from exc
-    if not stat.S_ISREG(before.st_mode):
-        raise UnsafeContentError(f"source entry is not a regular file: {relative}")
-    if _is_reparse_point(before):
-        raise UnsafeContentError(f"reparse point not allowed: {relative}")
-    if before.st_nlink > 1:
-        raise UnsafeContentError(f"hard link not allowed: {relative}")
-    try:
-        path.resolve(strict=True).relative_to(resolved_root)
-    except (OSError, RuntimeError, ValueError) as exc:
-        raise UnsafeContentError(f"source path escapes its declared root: {relative}") from exc
-
     flags = os.O_RDONLY
     if hasattr(os, "O_CLOEXEC"):
         flags |= os.O_CLOEXEC
@@ -217,28 +287,39 @@ def _open_confined_regular_file(
         flags |= os.O_NOFOLLOW
     if hasattr(os, "O_NONBLOCK"):
         flags |= os.O_NONBLOCK
-    try:
-        descriptor = os.open(path, flags)
-    except OSError as exc:
-        raise UnsafeContentError(f"source file cannot be opened safely: {relative}") from exc
-    try:
-        after = os.fstat(descriptor)
-        if not stat.S_ISREG(after.st_mode):
-            raise UnsafeContentError(f"source entry is not a regular file: {relative}")
-        if _is_reparse_point(after):
-            raise UnsafeContentError(f"reparse point not allowed: {relative}")
-        if after.st_nlink > 1:
-            raise UnsafeContentError(f"hard link not allowed: {relative}")
-        if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
-            raise UnsafeContentError(f"source file changed while opening: {relative}")
-        if max_bytes is not None and after.st_size > max_bytes:
-            raise UnsafeContentError(f"source file exceeds byte limit: {relative}")
-        with os.fdopen(descriptor, "rb") as handle:
-            descriptor = -1
-            yield handle
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
+    descriptor = -1
+    with _open_confined_parent(root, path, relative=relative) as (parent_fd, leaf):
+        try:
+            if parent_fd is None:
+                before = path.lstat()
+                _validate_regular_file_stat(before, relative)
+                path.resolve(strict=True).relative_to(resolved_root)
+                descriptor = os.open(path, flags)
+            else:
+                before = os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)
+                _validate_regular_file_stat(before, relative)
+                descriptor = os.open(leaf, flags, dir_fd=parent_fd)
+        except UnsafeContentError:
+            raise
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise UnsafeContentError(
+                f"source file cannot be opened safely: {relative}"
+            ) from exc
+        try:
+            after = os.fstat(descriptor)
+            _validate_regular_file_stat(after, relative)
+            if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+                raise UnsafeContentError(
+                    f"source file changed while opening: {relative}"
+                )
+            if max_bytes is not None and after.st_size > max_bytes:
+                raise UnsafeContentError(f"source file exceeds byte limit: {relative}")
+            with os.fdopen(descriptor, "rb") as handle:
+                descriptor = -1
+                yield handle
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
 
 
 @overload

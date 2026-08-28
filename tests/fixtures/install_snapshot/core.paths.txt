@@ -1,5 +1,8 @@
+.agents/rules/cognitive-load.md
 .gitignore
 AGENTS.md
+AGENT_RULES.md
+docs/AGENTS.md
 docs/CHARTER.md
 docs/CONVENTIONS.md
 docs/architecture/README.md

@@ -269,9 +269,21 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
     # The seed no longer links the architecture overview: that section is
     # conditional, and the seed tells adopters to delete the file when it would
     # duplicate a source they already have. Core still ships it.
-    assert relative_links == {"docs/CONVENTIONS.md"}
+    assert relative_links == {
+        "AGENT_RULES.md",
+        "docs/AGENTS.md",
+        "docs/CONVENTIONS.md",
+    }
+    # Every linked target is a seeded file, or the link dangles on install.
+    # Spelled out one literal at a time: a computed join reads to
+    # `pack-tests-stay-in-pack` as a reach above packs/core, and the set
+    # assertion above already fixes exactly which literals belong here.
+    assert (_SEEDS / "AGENT_RULES.md").is_file()
+    assert (_SEEDS / "docs" / "AGENTS.md").is_file()
     assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
-    assert (_SEEDS / "docs" / "CONVENTIONS.md").is_file()
+    # The router's own target ships too, though the root guidance reaches it
+    # only through AGENT_RULES.md.
+    assert (_SEEDS / ".agents" / "rules" / "cognitive-load.md").is_file()
 
 
 # STUB: AC19

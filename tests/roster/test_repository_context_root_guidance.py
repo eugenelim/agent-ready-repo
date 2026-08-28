@@ -30,6 +30,7 @@ def test_root_agents_uses_conventional_repository_guidance_headings() -> None:
     headings = _headings(ROOT_AGENTS)
     assert headings == [
         "Project overview",
+        "Rule lookups",
         "Documentation",
         "Development workflow",
         "Build and test commands",

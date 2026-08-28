@@ -4,14 +4,14 @@
     {
       "id": 1,
       "prompt": "Author the product documentation artifact the user requested, following the five-mode procedure.",
-      "expected_output": "A documentation artifact that: (1) correctly identifies and applies one of the five modes (create/revise/retrofit/audit/verify) based on the request; (2) reads the canonical source (pack.toml, skill files, schemas) before making any product claim; (3) routes to the correct ownership tree (guides/ for external users, docs/guides/ for maintainers) without being told; (4) selects the minimum useful artifact set — one well-executed artifact rather than four thin stubs; (5) uses task-first structure where the reader's natural goal and first request appear within the first 120 words, with no skill inventory before the first task; (6) makes read/write boundaries explicit; (7) is grounded in verified behavior and clearly marks unverified claims; (8) links only to files that actually exist.",
+      "expected_output": "A documentation artifact that: (1) correctly identifies and applies one of the five modes (create/revise/retrofit/audit/verify) based on the request; (2) reads the canonical source (pack.toml, skill files, schemas) before making any product claim; (3) routes to the correct ownership tree (guides/ for external users, docs/guides/ for maintainers) without being told; (4) selects the minimum useful artifact set \u2014 one well-executed artifact rather than four thin stubs; (5) uses task-first structure where the reader's natural goal and first request appear within the first 120 words, with no skill inventory before the first task; (6) makes read/write boundaries explicit; (7) is grounded in verified behavior and clearly marks unverified claims; (8) links only to files that actually exist.",
       "assertions": [
-        "Correctly identifies the mode from the request (create/revise/retrofit/audit/verify) — does not default to create for revision requests or add a confirmation gate when mode is clear",
+        "Correctly identifies the mode from the request (create/revise/retrofit/audit/verify) \u2014 does not default to create for revision requests or add a confirmation gate when mode is clear",
         "Reads canonical sources (pack.toml, skill SKILL.md, schemas) before writing any claim about what the pack or skill does",
-        "Routes to guides/ for external product users and docs/guides/ for maintainer content — does not mix the two",
-        "Creates one artifact, not multiple quadrant stubs — selects the minimum useful set",
+        "Routes to guides/ for external product users and docs/guides/ for maintainer content \u2014 does not mix the two",
+        "Creates one artifact, not multiple quadrant stubs \u2014 selects the minimum useful set",
         "Task-first structure: the reader's natural-language request appears within the first 120 words; no skill inventory before the first task",
-        "Read/write boundary is explicit — reader knows before acting whether something will be changed",
+        "Read/write boundary is explicit \u2014 reader knows before acting whether something will be changed",
         "Product claims are grounded in inspected behavior; unverified claims are labeled as such",
         "Links in the artifact point only to files that exist or were created in the same change"
       ]
@@ -24,7 +24,7 @@
         "Opens with user outcomes rather than a capability or skill inventory",
         "Contains at least one natural-language starter request the reader can copy",
         "Previews a concrete result the reader will receive",
-        "Does not duplicate pack.toml machine facts (version, scope, dependencies) — either omits them or defers to pack.toml",
+        "Does not duplicate pack.toml machine facts (version, scope, dependencies) \u2014 either omits them or defers to pack.toml",
         "Does not require the reader to know any skill name to begin the first task",
         "Links to guides or other documentation that actually exists"
       ]
@@ -34,7 +34,7 @@
       "prompt": "Audit documentation for quality issues following the author-product-docs audit mode.",
       "expected_output": "Evidence-based findings that: identify specific files and lines; name the quality issue (inventory-first opening, audience mismatch, unverified behavior claim, folder-first reasoning, broken links, missing read/write boundary, etc.); distinguish between confirmed issues and suspicions; do not edit the source unless implementation was explicitly requested. The report does not invent findings and does not claim to have verified behavior it did not check.",
       "assertions": [
-        "Names specific files and line ranges for each finding — no vague 'the docs have issues'",
+        "Names specific files and line ranges for each finding \u2014 no vague 'the docs have issues'",
         "Distinguishes confirmed findings from suspected issues",
         "Does not edit source files in audit mode unless the user explicitly asked for edits alongside the audit",
         "Does not invent product behavior to fill out findings",
@@ -43,11 +43,13 @@
     },
     {
       "id": 4,
-      "files": ["evals/files/fixture_strong_pack_readme.md"],
+      "files": [
+        "evals/files/fixture_strong_pack_readme.md"
+      ],
       "prompt": "Audit the file `fixture_strong_pack_readme.md` in the working directory. Identify any violations of pack README authoring conventions: inventory-first opening, audience mismatch (internal vs external), unverified product claims, missing read/write boundary, folder-first reasoning, or missing starter request.",
       "expected_output": "An audit report that finds few or no major violations: the fixture README leads with user outcomes, includes a natural-language starter request, does not open with a skill list, and correctly addresses external adopters. Minor findings (e.g. missing a specific link) are acceptable; the audit must not misidentify task-first structure as a violation or flag a correctly placed outcome-first opener as an anti-pattern.",
       "assertions": [
-        "Does not flag the outcome-first opener as a violation — task-first structure is correct behavior",
+        "Does not flag the outcome-first opener as a violation \u2014 task-first structure is correct behavior",
         "Does not invent violations that are not present in the fixture",
         "If findings exist, they name specific lines and quote the problematic text",
         "Does not claim the fixture uses folder-first structure (it does not)"
@@ -55,7 +57,9 @@
     },
     {
       "id": 5,
-      "files": ["evals/files/fixture_weak_folder_first.md"],
+      "files": [
+        "evals/files/fixture_weak_folder_first.md"
+      ],
       "prompt": "Audit the file `fixture_weak_folder_first.md` in the working directory. Identify any violations of pack README authoring conventions and documentation quality standards.",
       "expected_output": "An audit report that identifies the folder-first anti-pattern: the README leads with directory structure (tutorials/, how-to/, reference/, explanation/) instead of user outcomes. The agent must name this as a concrete violation, quote or reference the offending section, and recommend restructuring to task-first. It should not approve the structure as correct.",
       "assertions": [
@@ -63,6 +67,21 @@
         "Names the folder-first anti-pattern or equivalent (scaffold-first, structure-first) by concept",
         "Recommends restructuring to a task-first or outcome-first opener",
         "Does not approve the directory-listing opener as correct documentation practice"
+      ]
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing product document. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The product document leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
       ]
     }
   ]

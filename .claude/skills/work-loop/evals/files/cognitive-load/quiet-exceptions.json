@@ -1,0 +1,12 @@
+{
+  "events": [
+    {"kind": "tool_call"},
+    {"kind": "assistant", "phase": "commentary", "reason": "safety"},
+    {"kind": "assistant", "phase": "commentary", "reason": "blocker"},
+    {"kind": "assistant", "phase": "commentary", "reason": "user-decision"},
+    {"kind": "assistant", "phase": "commentary", "reason": "material-scope-change"},
+    {"kind": "assistant", "phase": "commentary", "reason": "long-wait"},
+    {"kind": "assistant", "phase": "commentary", "reason": "host-requirement"},
+    {"kind": "tool_call"}
+  ]
+}

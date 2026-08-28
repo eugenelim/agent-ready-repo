@@ -1,6 +1,6 @@
 [pack]
 name = "product-documentation"
-version = "0.1.0"
+version = "0.1.1"
 description = "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Diátaxis deciding what each page is allowed to do."
 readme = "README.md"
 display_name = "Product Documentation"
