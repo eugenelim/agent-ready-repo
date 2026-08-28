@@ -1545,6 +1545,92 @@ def test_a_comment_inside_a_fenced_block_is_sample_text_not_a_comment():
     assert [g["packages"][0]["name"] for g in _groups(text)] == ["later", "pkg"]
 
 
+def test_a_comment_opener_in_a_fence_info_string_does_not_swallow_later_releases():
+    """An opener's info string is sample text, not cross-line comment state."""
+    text = """# Changelog
+
+## [core][2.0.0] - 2026-01-02
+
+### Highlights
+
+- second release
+
+```bash <!-- setup
+echo hi
+```
+
+## [core][1.0.0] - 2026-01-01
+
+### Highlights
+
+- first release
+
+<!-- template -->
+"""
+    releases = build_site.parse_changelog_releases(text).releases
+    assert [(release["date"], release["highlights"]) for release in releases] == [
+        ("2026-01-02", ["second release"]),
+        ("2026-01-01", ["first release"]),
+    ]
+
+
+def test_a_comment_before_a_fence_marker_in_real_comment_state_stays_a_comment():
+    """A fence marker inside a real comment cannot suppress that comment state."""
+    text = """# Changelog
+
+## [core][2.0.0] - 2026-01-02
+
+### Highlights
+
+- second release
+
+<!-- ```bash
+
+## [core][1.0.0] - 2026-01-01
+
+### Highlights
+
+- first release
+"""
+    try:
+        build_site.parse_changelog_releases(text)
+    except ValueError as exc:
+        assert "unterminated HTML comment" in str(exc)
+        assert "line 9" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("an unclosed comment did not name its opener")
+
+
+def test_an_unclosed_fence_with_a_comment_in_its_info_string_names_the_fence():
+    """Fence precedence must retain the original unterminated-fence diagnostic."""
+    text = """# Changelog
+
+## [core][2.0.0] - 2026-01-02
+
+### Highlights
+
+- second release
+
+```bash <!-- setup
+echo hi
+
+## [core][1.0.0] - 2026-01-01
+
+### Highlights
+
+- first release
+
+<!-- template
+"""
+    try:
+        build_site.parse_changelog_releases(text)
+    except ValueError as exc:
+        assert "unterminated code fence" in str(exc)
+        assert "line 9" in str(exc), str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("an unclosed fence did not name its opener")
+
+
 def test_a_backticked_comment_opener_does_not_swallow_later_releases():
     """A code-span mention must not open a comment or trigger the final raise.
 
