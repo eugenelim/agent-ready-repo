@@ -183,7 +183,7 @@ promotes and approves them.
 
 | Spec | Status |
 | --- | --- |
-| `agent-skill-engineering-foundation` | Implementing |
+| `agent-skill-engineering-foundation` | Shipped |
 
 ## Backlog and prerequisites
 
