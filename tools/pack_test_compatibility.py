@@ -25,7 +25,117 @@ class CompatibilityClass:
     rationale: str
 
 
-CLASSES: tuple[CompatibilityClass, ...] = ()
+#: Every entry below was characterised before it was declared: the isolated
+#: node-ID union was compared against the grouped one, and the group was run
+#: forward, in reverse member order, and across repeated fresh processes. A
+#: class is a permission plus its evidence, never a standing exemption — the
+#: checks in `lint-pack-test-boundary.py` re-derive its safety from source on
+#: every run, so a member that stops being safe reddens the gate.
+#:
+#: Isolation is the default. Adding a suite directory does not add it to a
+#: class; someone has to characterise it and declare it here.
+CLASSES: tuple[CompatibilityClass, ...] = (
+    CompatibilityClass(
+        identifier="agent-skill-engineering-contract",
+        pack="agent-skill-engineering",
+        members=(
+            "packs/agent-skill-engineering/tests/pack",
+            "packs/agent-skill-engineering/tests/integration",
+            "packs/agent-skill-engineering/tests/skills/author_or_update",
+            "packs/agent-skill-engineering/tests/skills/review_or_optimize",
+        ),
+        import_mode="prepend",
+        basename_resolution="packages",
+        subject_imports="none",
+        rationale=(
+            "Both skill suites ship a test_contract.py, but their directories "
+            "carry __init__.py with underscored names while tests/skills/ does "
+            "not, so prepend mode already gives them distinct dotted module "
+            "names — no import-mode flag needed. Every import across all four "
+            "suites is stdlib or installed; no conftest, no sys.path mutation, "
+            "no skill-local subject. 78 node IDs, identical isolated and "
+            "grouped."
+        ),
+    ),
+    CompatibilityClass(
+        identifier="architect-contract",
+        pack="architect",
+        members=(
+            "packs/architect/tests/pack",
+            "packs/architect/tests/skills/architect-assess",
+            "packs/architect/tests/skills/architect-design",
+            "packs/architect/tests/skills/architect-review",
+        ),
+        import_mode="prepend",
+        basename_resolution="none",
+        subject_imports="explicit-qualified",
+        rationale=(
+            "No basename collides. The one subject load goes through a "
+            "same-module helper called with the literal "
+            "'architect_profile_repo_test', which resolves to a single path. "
+            "71 node IDs, identical isolated and grouped."
+        ),
+    ),
+    CompatibilityClass(
+        identifier="converters-invocation-contract",
+        pack="converters",
+        members=(
+            "packs/converters/tests/skills/markdown-to-html",
+            "packs/converters/tests/skills/mermaid-renderer",
+        ),
+        import_mode="importlib",
+        basename_resolution="import-mode",
+        subject_imports="none",
+        rationale=(
+            "Both ship test_invocation_contract.py, which prepend mode refuses "
+            "outright. importlib mode resolves the test-module half and nothing "
+            "else — neither suite imports a skill-local subject, and neither "
+            "has a conftest or a cross-test import that the mode would break. "
+            "12 node IDs, identical isolated and grouped."
+        ),
+    ),
+    CompatibilityClass(
+        identifier="desk-research-content",
+        pack="desk-research",
+        members=(
+            "packs/desk-research/tests/pack",
+            "packs/desk-research/tests/skills/desk-research-project-check",
+            "packs/desk-research/tests/skills/desk-research-project-digest",
+            "packs/desk-research/tests/skills/desk-research-project-status",
+            "packs/desk-research/tests/skills/desk-research-project-synthesize",
+            "packs/desk-research/tests/skills/devils-advocate",
+        ),
+        import_mode="importlib",
+        basename_resolution="import-mode",
+        subject_imports="none",
+        rationale=(
+            "Seven suites in this pack ship test_project_knowledge_boundary.py; "
+            "five of them are here, and prepend mode reports five collection "
+            "errors. importlib mode resolves it. The two floor-bearing suites "
+            "are deliberately absent: pytest_collection_floor counts len(items) "
+            "session-wide and --collection-floor-suite is only a label, so a "
+            "per-suite floor holds only while that suite is the sole target of "
+            "its invocation. 17 node IDs, identical isolated and grouped."
+        ),
+    ),
+    CompatibilityClass(
+        identifier="linear-intake",
+        pack="linear",
+        members=(
+            "packs/linear/tests/skills/linear",
+            "packs/linear/tests/skills/linear-brief-intake",
+        ),
+        import_mode="prepend",
+        basename_resolution="none",
+        subject_imports="explicit-qualified",
+        rationale=(
+            "No basename collides. Two subject loads under the distinct "
+            "literals 'linear_script' and 'linear_intake_adapter', each "
+            "resolving to one path. 32 node IDs, identical isolated and "
+            "grouped."
+        ),
+    ),
+)
 
 _EXCLUDED_DIRS = frozenset({".pytest_cache", "__pycache__", "fixtures", "testdata"})
 _IDENTIFIER = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")

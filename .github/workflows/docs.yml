@@ -64,6 +64,11 @@ on:
       - 'tools/test-all.py'
       - 'tools/lint-pack-test-boundary.py'
       - 'tools/test-lint-pack-test-boundary.py'
+      # The boundary lint's checks are only as live as the declarations
+      # they read, so a CLASSES edit alone must re-trigger the gate.
+      - 'tools/pack_test_compatibility.py'
+      - 'tools/test_pack_test_compatibility.py'
+      - 'tools/test_pack_test_class_characterization.py'
       - 'tools/lint_git_ignore.py'
       - 'tools/test-lint-git-ignore.py'
       - 'tools/lint-no-direct-check-ignore.py'

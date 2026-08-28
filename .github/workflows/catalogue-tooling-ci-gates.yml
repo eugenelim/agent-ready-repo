@@ -137,9 +137,16 @@ jobs:
       - name: Install agentbundle (editable) + pytest
         run: python -m pip install -e packages/agentbundle pytest
       - name: Run repo/pack hook suites (Linux)
-        # Pack tests live outside the runtime payload. Keep each skill directory
-        # in its own pytest process so sibling test and subject names cannot bind —
-        # hence the loop rather than one invocation.
+        # Pack tests live outside the runtime payload, and a skill directory gets
+        # its own pytest process unless it is named in a compatibility class
+        # (tools/pack_test_compatibility.py, ADR-0098). This leg keeps one path
+        # per process for all of them — a runner may be stricter than a class
+        # allows, and here that keeps the per-suite skip guard below meaningful.
+        #
+        # The loop passes "$d", so the boundary lint cannot statically resolve
+        # these paths. That is a declared exception in the lint's
+        # _UNRESOLVABLE_RUNNER_EXCEPTIONS, admitted because the loop body runs
+        # exactly one literal suite per process; grouping cannot hide here.
         #
         # AC8's skip guard belongs HERE, not only on Gate A-tests: this is the leg
         # whose provisioning was narrowed to agentbundle+pytest. No pack suite

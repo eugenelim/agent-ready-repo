@@ -335,7 +335,11 @@ def default_context(root: Path | None = None) -> BoundaryContext:
         ),
         runner_files=_RUNNER_FILES,
         no_runner=_NO_RUNNER,
-        classes=CLASSES,
+        # Declared classes name real repository paths, so they are meaningful
+        # only at the real root. A fixture root gets none and injects its own —
+        # otherwise every staged fixture would report each real member as a
+        # missing directory. Same reasoning as the exceptions map below.
+        classes=CLASSES if base == ROOT else (),
         unresolvable_runner_exceptions=(
             _UNRESOLVABLE_RUNNER_EXCEPTIONS if base == ROOT else {}
         ),
@@ -1441,7 +1445,7 @@ def _parse_runner_files(
         if f.suffix == ".py":
             out.extend(_python_runner_lines(rel, source, findings))
             continue
-        for lineno, line in enumerate(source.splitlines(), 1):
+        for lineno, line in _joined_lines(source):
             if line.lstrip().startswith("#") or not _PYTEST.search(line):
                 continue
             tokens = _path_tokens(line)
@@ -1449,6 +1453,33 @@ def _parse_runner_files(
             if tokens or unresolved:
                 out.append(RunnerInvocation(rel, lineno, tokens, line, unresolved))
     return out, findings
+
+
+def _joined_lines(source: str) -> list[tuple[int, str]]:
+    """Yield `(lineno, text)` with backslash continuations folded into one line.
+
+    A grouped pytest invocation spans several physical lines, and only the first
+    carries the `pytest` token. Reading physically would make every continuation
+    invisible: the invocation would look like it names one suite while actually
+    running several, which is precisely the shape the class checks exist to see.
+    The reported line number stays the first physical line, so a finding still
+    points at the start of the command.
+    """
+    joined: list[tuple[int, str]] = []
+    pending: list[str] = []
+    start = 0
+    for lineno, raw in enumerate(source.splitlines(), 1):
+        if not pending:
+            start = lineno
+        if raw.endswith("\\"):
+            pending.append(raw[:-1])
+            continue
+        pending.append(raw)
+        joined.append((start, " ".join(part.strip() for part in pending)))
+        pending = []
+    if pending:                                  # trailing backslash at EOF
+        joined.append((start, " ".join(part.strip() for part in pending)))
+    return joined
 
 
 def case_compatibility_classes_are_well_formed(

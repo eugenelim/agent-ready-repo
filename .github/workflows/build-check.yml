@@ -559,8 +559,13 @@ jobs:
 
       # skill-script-exit-2-collision: keep the converter entry-point contract
       # suites explicit because pack skill tests are not auto-discovered.
-      # Separate invocations preserve the import-isolation boundary enforced by
-      # lint-pack-test-boundary.py.
+      # Separate invocations here are the default boundary lint-pack-test-boundary.py
+      # enforces: a suite runs alone unless it is named in a declared
+      # compatibility class (tools/pack_test_compatibility.py, ADR-0098). These
+      # two converter suites ARE in one such class, and `make test` groups them —
+      # but each needs its own working-directory for the installed entry-point
+      # contract, so this leg keeps them apart. A class permits grouping; it does
+      # not oblige every runner to group.
       - name: pytest markdown-to-html installed entry-point contract
         working-directory: packs/converters/tests/skills/markdown-to-html
         env:
