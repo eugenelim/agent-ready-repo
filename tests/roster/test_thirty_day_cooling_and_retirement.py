@@ -418,6 +418,13 @@ def _update_kwargs(root: Path, prior: tuple[str, str], proposed: tuple[str, str]
             if proposed[0] == "retain-exception" else None
         ),
     )
+    # Seed the prior on disk. update_record is a compare-and-swap against
+    # persisted state, so a transition test that never writes the prior is
+    # asserting over its own arguments — which is exactly how `Retired` stopped
+    # being terminal without any test noticing.
+    (destination / f"{prior_record.delivery_id}.json").write_bytes(
+        cooling.canonical_bytes(prior_record)
+    )
     return {
         "root": root,
         "prior": prior_record,
@@ -1078,3 +1085,73 @@ def test_instructional_surfaces_describe_the_shipped_cooling_engine() -> None:
         surface = (ROOT / relative_path).read_text(encoding="utf-8")
         assert replacement in surface, relative_path
         assert superseded not in surface, relative_path
+
+
+def test_enrolment_refuses_to_overwrite_an_existing_record(tmp_path) -> None:
+    """AC22 over persisted state, not over arguments.
+
+    A second enrol used to clobber whatever was on disk, silently resetting a
+    Retired record to Cooling and discarding a retain-exception retention
+    decision. The transition table cannot protect a record the writer never
+    reads.
+    """
+    cooling = _load()
+    _destination(tmp_path).mkdir(parents=True)
+    assert cooling.enrol(**_enrol_kwargs(tmp_path)).code == "enrolled"
+
+    second = cooling.enrol(**_enrol_kwargs(tmp_path, make_destination=False))
+
+    assert second.code == "record-invalid"
+    assert second.mutated == ()
+
+
+def test_update_refuses_a_prior_that_does_not_match_disk(tmp_path) -> None:
+    """A stale or fabricated prior must not drive a forbidden transition.
+
+    With the check over arguments alone, passing prior=(cool-30-days, Cooling)
+    against a Retired record on disk returned `accepted` and reopened a terminal
+    state.
+    """
+    cooling = _load()
+    destination = _destination(tmp_path)
+    destination.mkdir(parents=True)
+    retired = _record(cooling, post_closeout_result="Retired")
+    (destination / "spec-example.json").write_bytes(cooling.canonical_bytes(retired))
+
+    kwargs = _update_kwargs(
+        tmp_path, ("cool-30-days", "Cooling"), ("retain-exception", "Retained")
+    )
+    # _update_kwargs seeds its own prior; put the terminal record back so the
+    # supplied prior genuinely disagrees with disk.
+    (destination / "spec-example.json").write_bytes(cooling.canonical_bytes(retired))
+
+    result = cooling.update_record(**kwargs)
+
+    assert result.code == "record-invalid"
+    reloaded = cooling.load_record(tmp_path, destination / "spec-example.json")
+    assert reloaded.record.post_closeout_result == "Retired"
+
+
+def test_the_writer_refuses_a_record_the_reader_would_reject(tmp_path) -> None:
+    """`enrolled` must never mean "written and permanently unreadable"."""
+    cooling = _load()
+    _destination(tmp_path).mkdir(parents=True)
+    kwargs = _enrol_kwargs(tmp_path, make_destination=False)
+    kwargs["record"] = _record(cooling, review_on="2026-12-31")  # not completed_on + 30
+
+    result = cooling.enrol(**kwargs)
+
+    assert result.code == "record-invalid"
+    assert not (_destination(tmp_path) / "spec-example.json").exists()
+
+
+def test_a_deeply_nested_record_refuses_instead_of_raising(tmp_path) -> None:
+    """The depth guard must not exhaust the stack it exists to protect."""
+    cooling = _load()
+    destination = _destination(tmp_path)
+    destination.mkdir(parents=True)
+    path = destination / "spec-example.json"
+    path.write_bytes(("[" * 2000 + "]" * 2000).encode())
+
+    assert cooling.parse_record_bytes(path.read_bytes()).code == "record-invalid"
+    assert cooling.load_record(tmp_path, path).code == "record-invalid"
