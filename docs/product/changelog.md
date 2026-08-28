@@ -52,6 +52,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.15.0] — 2026-08-28
+
+- **Delivered work can now cool on a recorded 30-day schedule.** `close-work`
+  writes a Git-tracked lifecycle record, computes its review date in the recorded
+  time zone, and reports when it is due for human review.
+
+### Added
+
+- A cooling engine for `close-work` that enrols delivered records, checks due
+  state from an injected instant, and records the outcome of a day-30 review.
+
 ## [core][2.14.0] — 2026-08-28
 
 ### Highlights

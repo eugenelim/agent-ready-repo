@@ -80,7 +80,7 @@ passing test, ownership, writability, or a prior approval.
 | `discard-local` | Tool-owned temporary state has no persisted or lasting content | Recommend discard; a persisted file still needs exact confirmation |
 | `delete-before-push` | Exact repository target is eligible and evidence says it was never pushed | Preview an ordinary local file removal and ask separately |
 | `delete-before-merge` | A removal change exists and current evidence says it is not integrated | Preview removal before integration and ask separately |
-| `cool-30-days` | Delivered closed work has a persistent record | Record intent and retain pending; do not calculate or count time |
+| `cool-30-days` | Delivered closed work has a persistent record | Enrol, then answer whether the record is due; review it on or after its computed day-30 date |
 | `retain-exception` | A longer obligation or live dependency requires retention | Retain with bounded reason, owner role, and human-supplied review date |
 | `external-advisory` | The current environment lacks authority over the target | Emit a bounded advisory; do not probe or mutate the external system |
 
@@ -90,9 +90,11 @@ classification. Source, write, and deletion authority remain independent.
 
 ## Exact immediate effect
 
-Use `scripts/close_work.py` only as the deterministic decision/effect seam. It loads
-the sibling resolver and the co-located byte-identical projection of the blessed
-file-safety helper; there is no fallback resolver or weaker filesystem branch.
+Use `scripts/close_work.py` as the deterministic decision/effect seam and
+`scripts/cooling.py` as the cooling seam — enrolment, the review date, due
+state, day-30 review, and retirement all live in the latter.
+It loads the sibling resolver and the co-located byte-identical projection of the
+blessed file-safety helper; there is no fallback resolver or weaker filesystem branch.
 
 Keep these stages separate:
 
@@ -186,7 +188,7 @@ disposing a delivery record.
 
 ## Hard stops
 
-- Do not start a timer, derive dates, calculate due state, or retire cooled work.
+- Do not rely on a background timer; compute `review_on` during enrolment and review only with an injected instant.
 - Do not migrate or prune historical artifacts.
 - Do not exclude ordinary context from `workspace-status`.
 - Do not create a lifecycle database, global surface registry, second resolver, or

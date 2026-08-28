@@ -17,8 +17,9 @@ authorized local changes or separately confirmed coordination actions.
 
 `work-loop` owns implementation and returns bounded completion evidence.
 `close-work` owns the later inventory, whole-surface freshness audit, lifecycle
-projection, disposition intent, initiative settlement, and any separately
-confirmed immediate effect. `workspace-status` may project closeout blockers and
+projection, disposition intent, initiative settlement, lifecycle records in
+`docs/lifecycle/`, and any separately confirmed immediate effect. It is the only
+writer of cooling state. `workspace-status` may project closeout blockers and
 next actions, but it never distils context, selects policy, or mutates closeout
 state.
 
@@ -87,6 +88,7 @@ Absence of the object is standalone Core and follows the existing routes.
 | Completion evidence handoff | Active closeout invocation or stable evidence owner named by the delivery run | `work-loop` produces bounded references; no closeout authority | `close-work` and reviewers |
 | Pause overlay | Existing resolved writable shaping or build coordination surface | `close-work`, after exact write authority | Resume path and status projection |
 | Dependency-scoped completion receipt | Existing compatible coordination surface while a live dependency cites it | `close-work`, after exact write authority | Dependent work and closeout |
+| Cooling lifecycle record | `docs/lifecycle/<delivery_id>.json` | `close-work` | Day-30 review and status projection |
 | Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
 | Optional shaping handoff | Validated `normalized-intake.v1` envelope in the active invocation | Upstream producer owns offered content; Core owns validation and admission | `work-intake`, then the selected existing processor |
 
@@ -198,9 +200,11 @@ invocation already supplies bounded content at the matching pinned revision.
 12. A pause preserves Ready or Implementing state through a reference-only
     restorable overlay in an existing writable surface. Closeout does not start.
 13. A completed, abandoned, or superseded item moves through Closeout-pending
-    only under `close-work`. Disposition is intent, never deletion permission;
-    every persisted effect needs a separately resolved authority fact and fresh
-    human confirmation bound to the exact current resource and evidence.
+    only under `close-work`. For `cool-30-days`, it enrols cooling state in `docs/lifecycle/`, computes
+    the review date, and answers dueness from an injected instant. Disposition is intent,
+    never deletion permission; every persisted effect needs a separately resolved authority
+    fact and fresh human confirmation bound to the exact current
+    resource and evidence.
 14. Initiative coordination can settle independently from artifact retention.
     An RFC or decision family may remain anchored after its terse workspace entry
     leaves. A completion receipt keeps only delivery ID, outcome, completion
@@ -282,9 +286,10 @@ re-resolves, confines, enumerates, fingerprints, and checks source-state evidenc
 before effect; drift expires confirmation. Committed removal is an ordinary
 reviewed change and never a history rewrite.
 
-Wave 4 may classify `cool-30-days` and retain the record. It has no clock, date,
-due-state, retirement, ordinary-context exclusion, or historical migration and
-pruning behavior; RFC-0096 Waves 5, 6, and 7 own those capabilities.
+Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine.
+It requires the platform time-zone database for `zoneinfo`; if a named zone is
+unavailable, it returns `unknown-timezone` with no UTC fallback.
+Wave 6 and 7 own ordinary-context exclusion and historical migration and pruning behavior.
 
 ## 7. Observability, evidence, and the compatibility window
 
@@ -375,7 +380,8 @@ Maintainer procedures live in
 
 ## 10. Last verified surface
 
-Core `2.14.0`, against neutral intake precedence, repository-intent admission,
+Core `2.15.0`, against neutral intake precedence, repository-intent admission,
 delivery-brief create/continue, the normalized-intake handoff, semantic
-resolver, `work-loop` evidence handoff, `close-work` source and tests, workspace
-projection, pack metadata, evaluation, and documentation surfaces.
+resolver, `work-loop` evidence handoff, `close-work` source, cooling source and
+tests, lifecycle record documentation, workspace projection, pack metadata,
+evaluation, and documentation surfaces.

@@ -104,12 +104,12 @@ separately authorized persisted effect. Code and tests remain capability proof;
 they do not replace product intent, rationale, user promises, ownership, or
 operations guidance.
 
-| Disposition | Wave 4 result |
+| Disposition | Result |
 | --- | --- |
 | `discard-local` | Recommend discarding tool-owned temporary state; removing a file still needs confirmation |
 | `delete-before-push` | Prepare one exact never-pushed local removal for fresh confirmation |
 | `delete-before-merge` | Prepare removal before the removal change integrates; an integrated change needs an ordinary follow-up |
-| `cool-30-days` | Classify and retain only; Wave 5 owns dates, clocks, due state, and retirement |
+| `cool-30-days` | Enrol, compute the review date, and review on day 30; confirmed deletion remains separate |
 | `retain-exception` | Retain with a bounded reason, owner role, and human-supplied review date |
 | `external-advisory` | Report evidence and missing external authority without probing or mutation |
 

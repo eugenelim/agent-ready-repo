@@ -270,8 +270,7 @@ compaction. Settled membership may leave even when an RFC, release, or decision
 family remains retained as a semantic anchor. Do not replace removed membership
 with a narrative history. A dependency receipt belongs only in an already
 compatible coordination surface and contains exactly delivery ID, outcome,
-completion event, and evidence reference; `workspace.toml` gains no receipt or
-cooling schema in Wave 4.
+completion event, and evidence reference; workspace.toml may point at cooling state and never owns it.
 
 ```toml
 [backlog]
