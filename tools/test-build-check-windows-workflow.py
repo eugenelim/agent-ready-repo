@@ -25,6 +25,8 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import posture_harness
+
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
@@ -561,69 +563,20 @@ def _differential_failures() -> list[str]:
     return out
 
 
-def _family(label: str) -> str:
-    """Collapse repeated indexed assertions into one mutation family."""
-    return re.sub(r"\[.*\]$", "[*]", label)
-
-
 def self_test() -> int:
-    """Prove the real baseline and every evaluated assertion family."""
-    failures: list[str] = []
-    good = _baseline()
-    evaluated: list[str] = []
-    baseline_violations = audit(good, evaluated)
-    if baseline_violations:
-        # Return before the matrix. Every transform is pinned to the real
-        # workflow's text, so a dirty or missing baseline turns each one into a
-        # no-op — or, where a transform asserts its literal, into an exception —
-        # burying the one true cause under a wall of derived noise that names
-        # neither the cause nor the file to edit.
-        print(
-            f"\u2716 self-test: {WORKFLOW} is not clean; "
-            f"{len(baseline_violations)} posture violation(s) before any mutation:",
-            file=sys.stderr,
-        )
-        for violation in baseline_violations:
-            print(f"  - {violation}", file=sys.stderr)
-        return 1
-
-    for mutation_id, expected, transform in _MUTATIONS:
-        mutated = transform(good)
-        if mutated == good:
-            failures.append(
-                f"{mutation_id}: transform was a no-op against {WORKFLOW.name} — "
-                "proves nothing; re-pin its literal against that file"
-            )
-            continue
-        got = audit(mutated)
-        if expected not in got:
-            failures.append(f"{mutation_id}: expected {expected!r}, got {got}")
-
-    covered = {_family(expected) for _, expected, _ in _MUTATIONS}
-    uncovered = sorted({_family(label) for label in evaluated} - covered)
-    if uncovered:
-        failures.append(f"assertion families evaluated but unmutated: {uncovered}")
-
-    differential = _differential_failures()
-    failures.extend(differential)
-
-    if failures:
-        print(f"✖ self-test: {len(failures)} problem(s):", file=sys.stderr)
-        for failure in failures:
-            print(f"  - {failure}", file=sys.stderr)
-        return 1
-    # Never a static count: an unrun differential must not report agreements.
-    agreed = (
-        f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash"
-        if _bash_path() is not None
-        else "differential skipped, bash unavailable"
+    """Prove the baseline, the mutation matrix, and the model against bash."""
+    return posture_harness.run(
+        workflow=WORKFLOW,
+        baseline=_baseline,
+        audit=audit,
+        mutations=_MUTATIONS,
+        extra_failures=_differential_failures,
+        extra_summary=lambda: (
+            f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash"
+            if _bash_path() is not None
+            else "differential skipped, bash unavailable"
+        ),
     )
-    print(
-        f"✓ self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
-        f"every one of {len(covered)} assertion families has ≥1 mutation; "
-        f"{agreed}"
-    )
-    return 0
 
 
 def main(argv: list[str]) -> int:

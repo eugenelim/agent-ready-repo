@@ -13,12 +13,12 @@ caught.  Pure-stdlib plus PyYAML (already a tools dependency).
 
 from __future__ import annotations
 
-import re
 import sys
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
+import posture_harness
 import yaml
 
 # Windows cp1252 guard — reconfigure stdout/stderr before printing verdict marks.
@@ -325,59 +325,11 @@ _MUTATIONS: list[Mutation] = [
 ]
 
 
-def _family(label: str) -> str:
-    """Collapse repeated indexed assertions into one mutation family."""
-    return re.sub(r"\[.*\]$", "[*]", label)
-
-
 def self_test() -> int:
     """Prove the real baseline and every evaluated assertion family."""
-    failures: list[str] = []
-    good = _baseline()
-    evaluated: list[str] = []
-    baseline_violations = audit(good, evaluated)
-    if baseline_violations:
-        # Return before the matrix. Every transform is pinned to the real
-        # workflow's text, so a dirty or missing baseline turns each one into a
-        # no-op — or, where a transform asserts its literal, into an exception —
-        # burying the one true cause under a wall of derived noise that names
-        # neither the cause nor the file to edit.
-        print(
-            f"\u2716 self-test: {WORKFLOW} is not clean; "
-            f"{len(baseline_violations)} posture violation(s) before any mutation:",
-            file=sys.stderr,
-        )
-        for violation in baseline_violations:
-            print(f"  - {violation}", file=sys.stderr)
-        return 1
-
-    for mutation_id, expected, transform in _MUTATIONS:
-        mutated = transform(good)
-        if mutated == good:
-            failures.append(
-                f"{mutation_id}: transform was a no-op against {WORKFLOW.name} — "
-                "proves nothing; re-pin its literal against that file"
-            )
-            continue
-        got = audit(mutated)
-        if expected not in got:
-            failures.append(f"{mutation_id}: expected {expected!r}, got {got}")
-
-    covered = {_family(expected) for _, expected, _ in _MUTATIONS}
-    uncovered = sorted({_family(label) for label in evaluated} - covered)
-    if uncovered:
-        failures.append(f"assertion families evaluated but unmutated: {uncovered}")
-
-    if failures:
-        print(f"✖ self-test: {len(failures)} problem(s):", file=sys.stderr)
-        for failure in failures:
-            print(f"  - {failure}", file=sys.stderr)
-        return 1
-    print(
-        f"✓ self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
-        f"every one of {len(covered)} assertion families has ≥1 mutation"
+    return posture_harness.run(
+        workflow=WORKFLOW, baseline=_baseline, audit=audit, mutations=_MUTATIONS
     )
-    return 0
 
 
 def main(argv: list[str]) -> int:
