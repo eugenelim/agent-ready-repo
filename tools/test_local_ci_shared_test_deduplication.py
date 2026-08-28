@@ -345,17 +345,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # workspace-status pair command from that same baseline; the construction test
 # path is the sole intentional addition and is checked separately below.
 # Re-pinned 2026-08-26 (RFC-0096 Wave 4), then again after rebasing onto the
-# collection-floor fold. `main` shrank both plans (72->66 standalone, 71->65
-# composed) by folding the pytest collection floors into their real executions.
-# Our delta on top of that remains exactly one added
-# `packs/core/tests/skills/close-work/` pytest line in each route, verified by
-# diffing both normalized dry-run plans against `main`'s Makefile: 66->67 and
-# 65->66, with no other line moved, reordered, or dropped.
+# collection-floor fold, then again on 2026-08-28 for the
+# `agent-skill-engineering` pack. Its four suites join both routes:
+# `tests/pack/`, `tests/integration/`, and the two `tests/skills/` directories.
+# Verified by diffing both normalized dry-run plans against `origin/main`'s
+# Makefile — standalone 67->71 and composed 66->70, the delta being exactly
+# those four added lines with no other line moved, reordered, or dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "0b7d823b3048e2d1b34ae4ca8012661936a9468490a6442d969512e78dbb53c1"
+    "d54c3b61d0733e40255fcddc9b2b0cea980b3e763f309e8dd71e5c718a5af046"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "a5c7dd338ce08a5e029e5d4f3ed8c1d3eddcd2f46dc4e094aa200c3fed316e8b"
+    "d65a848c244c4f8a4c9693be1b7a4432f2795768f13b3c051d006e2989ab4e26"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
