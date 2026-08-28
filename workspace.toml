@@ -227,6 +227,8 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Unblocks when: the RFC-0098 contract is approved through the normal spec-and-plan lifecycle.
+  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Draft RFC-0098 contract for bounded direct-skill repository admission and lifecycle", needs = []},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
