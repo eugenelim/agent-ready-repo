@@ -105,12 +105,12 @@ def _guard_blocks_on_failure(aggregate: str) -> bool:
     one blocking `if` plus two advisory ones satisfied both, leaving two of three
     Windows suites non-blocking behind the required check.
 
-    Three structural requirements, each fail-closed, and each answering a body
-    bash takes green that a looser reading accepted: the guard is the run body's
-    first statement (anything before it can `exit 0`, reassign a result, or open
-    a wrapper); its condition equals `GUARD_CONDITION` exactly; and the `exit 1`
-    is reached without crossing a nested opener, an `else`/`elif` branch, or a
-    subshell.
+    Three structural requirements, the first two fail-closed, each answering a
+    body bash takes green that a looser reading accepted: the guard is the run
+    body's first statement (anything before it can `exit 0`, reassign a result,
+    or open a wrapper); its condition equals `GUARD_CONDITION` exactly; and the
+    `exit 1` is reached without crossing a nested opener, an `else`/`elif`
+    branch, or a subshell.
 
     The condition is compared by equality, not by containment of the three
     comparisons: substring containment accepted `] && [` in place of `] || [`, a

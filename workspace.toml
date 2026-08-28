@@ -489,6 +489,13 @@ open = [
   #    because both routes cost more than they look: duplicating _strip_comments
   #    into a fifth file cuts against the extraction entry above, and retargeting
   #    the assertion to the parsed env widens what the check claims.
+  #  - On a platform with no bash, both this harness and its build-check sibling
+  #    return before the round-trip pin that ties the constructed guard body to
+  #    the workflow, even though that pin is pure string containment and needs no
+  #    shell. Live impact today is one informational echo, since condition drift
+  #    is caught bash-independently by `audit` and guard-block drift by the
+  #    split-guard mutation's no-op rule. Adjudicated out of this unit because the
+  #    ordering is ported byte-for-byte from the sibling and predates the change.
   #  - test-ci-security-workflow.py still tests `cancel-in-progress` by substring
   #    (`"pull_request" in cancel`), so the inverted `!=` form passes while the
   #    docstring claims "pull-request-only concurrency cancellation". The CodeQL
