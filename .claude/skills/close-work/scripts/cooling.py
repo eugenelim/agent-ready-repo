@@ -495,9 +495,13 @@ def _write_record(
     caller's arguments. `expect_prior=None` means the record must not already
     exist, so enrolment cannot overwrite a decision someone already recorded;
     a supplied `expect_prior` must match the bytes on disk, so a stale or
-    fabricated prior cannot drive a transition the table forbids. Both checks
-    run through the same descriptor that the replace uses, which is what makes
-    them a swap rather than a check-then-act.
+    fabricated prior cannot drive a transition the table forbids. Both the
+    read-back and the replace resolve their name against the same validated
+    directory descriptor, so neither can be redirected to another parent. That
+    is not a true atomic swap: the entry itself is resolved twice, so a writer
+    racing between the two resolutions is still a lost update. The bound claim
+    is that a caller's stale or invented view of the record cannot drive the
+    write — concurrent writers are out of scope and untested.
     """
     if not _write_effect_supported():
         return CoolingResult(code="lifecycle-state-unwritable")

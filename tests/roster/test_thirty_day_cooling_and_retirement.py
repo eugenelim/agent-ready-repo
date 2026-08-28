@@ -554,7 +554,25 @@ def _well_formed_binding(cooling, *, action: str, resource: str, issued: bool):
         # Drop the fact from the registry: the binding object stays well formed
         # while ceasing to be reproducible from an issued authority.
         close_work._ISSUED_COORDINATION_AUTHORITIES.pop(fact.issue_digest, None)
+    else:
+        # The registry is process-global and shared with every other test in the
+        # run. Leaving facts in it makes later cases pass on an ordering
+        # accident, so callers restore it via the fixture below.
+        pass
     return binding
+
+
+@pytest.fixture(autouse=True)
+def _restore_the_shared_authority_registry():
+    """Keep one test's authority facts out of every other test's registry."""
+    close_work = _load()._close_work()
+    registry = close_work._ISSUED_COORDINATION_AUTHORITIES
+    snapshot = dict(registry)
+    try:
+        yield
+    finally:
+        registry.clear()
+        registry.update(snapshot)
 
 
 # STUB: AC19
@@ -1124,6 +1142,11 @@ def test_instructional_surfaces_describe_the_shipped_cooling_engine() -> None:
         ),
         (
             "packs/core/.apm/skills/close-work/SKILL.md",
+            "`scripts/cooling.py` as the cooling seam",
+            "deterministic decision/effect and cooling seam",
+        ),
+        (
+            "packs/core/.apm/skills/close-work/SKILL.md",
             "Enrol, then answer whether the record is due",
             "Do not start a timer",
         ),
@@ -1143,13 +1166,20 @@ def test_enrolment_refuses_to_overwrite_an_existing_record(tmp_path) -> None:
     reads.
     """
     cooling = _load()
-    _destination(tmp_path).mkdir(parents=True)
-    assert cooling.enrol(**_enrol_kwargs(tmp_path)).code == "enrolled"
+    destination = _destination(tmp_path)
+    destination.mkdir(parents=True)
+    # Seed a genuinely different record: enrolling the same one twice would
+    # leave identical bytes whether the write was refused or performed, so the
+    # byte assertion would not discriminate.
+    retired = _record(cooling, post_closeout_result="Retired")
+    path = destination / "spec-example.json"
+    path.write_bytes(cooling.canonical_bytes(retired))
 
     second = cooling.enrol(**_enrol_kwargs(tmp_path, make_destination=False))
 
     assert second.code == "record-invalid"
     assert second.mutated == ()
+    assert path.read_bytes() == cooling.canonical_bytes(retired)
 
 
 def test_update_refuses_a_prior_that_does_not_match_disk(tmp_path) -> None:
@@ -1222,7 +1252,9 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
             node = {"n": node}
         return node
 
+    # Straddle the limit exactly: asserting MAX-1 against MAX+1 leaves a
+    # `level > limit + 1` mutant alive, so the bound could silently become 9.
     assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH - 1), cooling.MAX_RECORD_DEPTH) is False
-    assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH + 1), cooling.MAX_RECORD_DEPTH) is True
+    assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH), cooling.MAX_RECORD_DEPTH) is True
     # And it terminates on input that would overflow a recursive implementation.
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True

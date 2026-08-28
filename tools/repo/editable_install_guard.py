@@ -7,11 +7,14 @@ other worktree's *subprocesses* import — and rewriting it while a peer's gates
 are running is what kills them mid-flight. Almost nothing here needs that
 install: `Makefile`'s PYTHONPATH and `pyproject.toml`'s pytest `pythonpath`
 supply both packages from source, and `python3 -m agentbundle` runs the CLI with
-no install at all. The exception is a gate whose child runs under `-I`, which
-ignores PYTHONPATH and resolves only site-packages —
-`tools/test_marketplace_envelope_parity.py` is one. That wants a *plain*
-install, never an editable: a snapshot in site-packages tracks no worktree, so
-it cannot move this failure onto a peer.
+no install at all. One gate is an exception, and it is narrow:
+`test_resolved_layer_refuses_a_module_from_another_tree` audits a temporary tree
+that deliberately does NOT contain the package, so the path it prepends does not
+exist and resolution falls through to site-packages; its child also runs under
+`-I`, so PYTHONPATH cannot supply the gap. With nothing installed it raises
+ModuleNotFoundError instead of reaching the provenance refusal it asserts. That
+wants a *plain* install, never an editable: a snapshot in site-packages tracks
+no worktree, so it cannot move this failure onto a peer.
 
 What this refuses is narrow and unambiguous:
 
@@ -211,9 +214,9 @@ def _second_repair(name: str, root: Path) -> list[str]:
         "        failure onto a peer — which an editable pointing here would do.",
         "        `python3 -m agentbundle ...` already runs from source without any",
         "        install; take this one for the console script on PATH, or when a",
-        "        gate needs the package *installed* rather than importable: the",
-        "        child in `tools/test_marketplace_envelope_parity.py` runs under",
-        "        `-I`, so it ignores PYTHONPATH and sees only site-packages.",
+        "        gate needs the package *installed* rather than importable — see",
+        "        `test_resolved_layer_refuses_a_module_from_another_tree`, which",
+        "        audits a tree without the package and so resolves site-packages.",
     ]
 
 
@@ -236,10 +239,10 @@ def _render(verdict: Verdict, root: Path) -> list[str]:
         f"      python3 -m pip uninstall -y {verdict.name}",
         "        Fixes this for EVERY worktree at once, permanently. Almost",
         "        nothing here needs an install: the gates and suites resolve both",
-        "        packages from source. The exception is a gate whose child runs",
-        "        under `-I` and therefore cannot see PYTHONPATH; if uninstalling",
-        "        reddens one, take the plain install below rather than an",
-        "        editable.",
+        "        packages from source. The exception is a gate that audits a tree",
+        "        without the package, so resolution falls through to site-packages",
+        "        and its `-I` child cannot use PYTHONPATH; if uninstalling reddens",
+        "        one, take the plain install below rather than an editable.",
         *_second_repair(verdict.name, root),
     ]
 

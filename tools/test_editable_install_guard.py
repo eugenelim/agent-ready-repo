@@ -301,7 +301,7 @@ class GuardTest(unittest.TestCase):
         """
         _, text = self.run_with({"agentbundle": editable_record(self.peer)})
         self.assertNotIn("Nothing in", text)
-        self.assertIn("-I", text)
+        self.assertIn("resolution falls through to site-packages", text)
 
     def test_credbroker_is_not_offered_a_console_script_it_lacks(self) -> None:
         """`credbroker` declares no [project.scripts] and has no __main__."""

@@ -496,11 +496,19 @@ def test_canonical_bytes_are_accepted_by_the_parser() -> None:
 
 
 # STUB: AC13
-def test_oversized_and_over_nested_input_refuses_without_raising() -> None:
+# Superseded during EXECUTE. Both fixtures below were refused by unrelated
+# validators — 400 aliases trip the 16-alias cap, and nesting under `authority`
+# trips the authority shape check — so MAX_RECORD_BYTES and MAX_RECORD_DEPTH
+# were each deletable with the suite green. The shipped form pads canonical
+# bytes with insignificant JSON whitespace to isolate the byte ceiling, and
+# exercises the depth bound directly, because no schema-valid record can nest
+# far enough to reach it through the public path.
+def test_input_past_the_byte_ceiling_refuses() -> None:
     cooling = _load()
-    oversized = _payload(aliases=["docs/specs/x/" + "a" * 200 + ".md"] * 400)
+    valid = cooling.canonical_bytes(_record(cooling))
+    assert cooling.parse_record_bytes(valid).code is None
     assert cooling.parse_record_bytes(
-        json.dumps(oversized).encode() + b"\n"
+        b"  " * cooling.MAX_RECORD_BYTES + valid
     ).code == "record-invalid"
 
     nested: dict = {"authority": {}}
@@ -624,12 +632,10 @@ def test_a_swapped_parent_leaves_no_bytes_anywhere(tmp_path) -> None:
 # STUB: AC19
 @pytest.mark.parametrize(
     "binding",
-    [
-        None,
-        "never-issued",  # well-formed literal the seam never registered
-        {"action": "write-pause-overlay"},
-        {"resource": "docs/lifecycle/spec-other.json"},
-    ],
+    # Superseded during EXECUTE: plain dicts all died on the isinstance guard
+    # without reaching the resource comparison or the issued-fact loop. The
+    # shipped fixtures are real close_work.MutationBinding instances.
+    ["absent", "never-issued", "wrong-action", "wrong-resource"],
 )
 def test_the_write_must_be_authorized_for_this_record(tmp_path, binding) -> None:
     cooling = _load()

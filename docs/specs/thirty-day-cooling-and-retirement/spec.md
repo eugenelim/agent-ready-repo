@@ -174,8 +174,11 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
   reproduces the input bytes. A payload containing `NaN` or `Infinity` returns
   `record-invalid`.
 - [x] **AC13 — Oversized and over-nested input refuses without raising.** A
-  schema-valid record padded past 64 KiB and a schema-shaped object nested past
-  depth 8 each return `record-invalid`, and neither raises.
+  schema-valid record padded past 64 KiB returns `record-invalid`. Over-nested
+  JSON also returns `record-invalid` rather than raising, and the depth bound
+  admits `MAX_RECORD_DEPTH` while refusing one level beyond it — asserted
+  directly, because every field of a valid record is constrained and none can
+  nest that far.
 
 ### Enrolment and the write seam
 
@@ -203,7 +206,8 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
   target nor the repository contains a new file.
 - [x] **AC19 — The write is authorized for this exact record.** The binding must
   be the object the shipped `_mutation_binding` returned for an issued authority
-  fact, with `resource` equal to this record's own locator. An absent binding, a
+  fact, with `resource` equal to this record's own lifecycle file path
+  (`docs/lifecycle/<delivery_id>.json`), not the delivered artifact's locator. An absent binding, a
   well-formed binding that was never issued, one naming a different action, and
   one naming a different resource each return `authority-uncertain` and create no
   file.
@@ -289,8 +293,9 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 - [x] **AC38 — No dependency is added.** `pyproject.toml`,
   `packages/*/pyproject.toml`, and `tools/requirements.txt` gain no entry.
 - [x] **AC39 — Each instructional surface gains and loses a named string.** For
-  each of the six file/string pairs enumerated in Task 5, the file contains its
-  replacement string and does not contain its superseded string.
+  each of the seven file/string pairs enumerated in Task 5, the file contains
+  its replacement string and does not contain its superseded string. The seventh
+  is the shipped skill's cooling-seam sentence, which named the wrong module.
 - [x] **AC40 — The Wave 6/7 boundary is still proven.** The amended Wave 4
   roster test asserts the Wave 6/7 boundary sentence, and deleting that sentence
   from the doctrine corpus makes the test fail.
