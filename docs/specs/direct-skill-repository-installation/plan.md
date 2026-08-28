@@ -53,6 +53,14 @@ Test a throwaway schema against catalogue and direct fixtures. **Done when:** bo
 
 Use discriminating projection, adapter, scope, mode, and display fixtures. **Done when:** record whether the map satisfies the digest contract; if it does, reopen the governing digest change through *Ask first* (RFC erratum plus spec amendment) before T6, otherwise retain the digest.
 
+### T0d: Spike — corpus admission
+
+**AC:** AC25  
+**Depends on:** none  
+**Verification:** Goal-based; no stub.
+
+Clone at least fifteen real public skill repositories, classify each, and measure both bound families against the shape's own content. **Done when:** the verdict table is committed and every refusal is attributable to a named shape exclusion or budget. A first run over eighteen repositories (2026-08-28) admitted seven and recorded: the widest real layouts are root-level skill directories (`<name>/SKILL.md`, e.g. 864 and 846 skills in the two most-starred repositories) and category nesting (`skills/<category>/<name>/SKILL.md`), both outside the two accepted shapes; the tightest budget headroom is depth, at a measured 7 against a limit of 10 for `anthropics/skills` (`skills/xlsx/scripts/office/schemas/ecma/fouth-edition/`), which trips AC25's 50% rule; every other budget cleared with 56% or more headroom (worst: 572/5,000 entries, 438/1,000 files, 275 KiB/1 MiB largest file, 10.2/25 MiB total).
+
 ### T1: Harden GitHub acquisition
 
 **AC:** AC2, AC16, AC18  
@@ -171,7 +179,7 @@ Append `"packages/agentbundle/tests/": 3200` after the two desk-research entries
 
 ### T11: Run the joined steel thread
 
-**AC:** AC1–AC24  
+**AC:** AC1–AC25  
 **Depends on:** T1, T9, T10, T10a  
 **Verification:** Manual QA; no stub.
 
