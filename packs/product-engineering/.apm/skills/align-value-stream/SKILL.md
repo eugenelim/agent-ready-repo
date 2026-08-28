@@ -125,7 +125,7 @@ writing.
 directly under `<output_dir>/rollups/<slug>.md`. A per-topic folder is deliberately
 **not** used: each rollup is a single file. `decompose-intent`'s
 `docs/product/briefs/<slug>.md` output stays **pinned** — that path is the
-hand-off to core's `receive-brief` and is not governed by this config (a
+hand-off to core's `author-delivery-brief continue` and is not governed by this config (a
 deliberate non-goal of this layout config).
 
 ## Hard limits — state them honestly

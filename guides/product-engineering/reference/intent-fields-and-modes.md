@@ -63,7 +63,7 @@ At `business-unit` Scale the feature intent is sliced per component into one `co
 
 | Field / artifact | Where it lives | Meaning |
 | --- | --- | --- |
-| `parent-intent` | each per-component **brief** | optional upward pointer to the product `intent` the slice was projected from; provenance only, never interpreted by `receive-brief`. The brief-level analogue of the intent-level `Parent intent` back-link in *Intent fields* above — same upstream-pointer idea, one artifact down. Distinct from `Epic` (an external coordinator). |
+| `parent-intent` | each per-component **brief** | optional upward pointer to the product `intent` the slice was projected from; provenance only, never interpreted by `author-delivery-brief continue`. The brief-level analogue of the intent-level `Parent intent` back-link in *Intent fields* above — same upstream-pointer idea, one artifact down. Distinct from `Epic` (an external coordinator). |
 | federated catalog | meta-repo | Backstage Domain→System→Component→API; **references** each component repo's own `catalog-info.yaml`, never re-authored. |
 | `contract@version` + courier snapshot | each slice | the shared contract referenced by version (never forked) + a read-only snapshot for provenance; provider/consumer roles mirror `providesApi` / `consumesApi` with a compatibility direction. |
 | cross-component rollup | meta-repo | a markdown table, one row per slice → brief → status snapshot + coverage pointer; the **AND across rows** answers "delivered across all components?"; absent-source rows show `unknown / not-yet-catalogued` (never silently delivered). |

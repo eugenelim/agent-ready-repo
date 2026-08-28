@@ -256,11 +256,16 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         _pytest_step(
             "test-lint-brief-coverage",
-            "packs", "core", "tests", "skills", "receive-brief", "test_lint_brief_coverage.py",
+            "packs",
+            "core",
+            "tests",
+            "skills",
+            "author-delivery-brief",
+            "test_lint_brief_coverage.py",
         ),
         _script_step(
             "lint-brief-coverage",
-            ".claude", "skills", "receive-brief", "scripts", "lint-brief-coverage.py",
+            ".claude", "skills", "author-delivery-brief", "scripts", "lint-brief-coverage.py",
         ),
         _pytest_step(
             "test-lint-traceability",

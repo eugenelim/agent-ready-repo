@@ -49,5 +49,5 @@ Because Scale is **app** and this is a single feature, `decompose-intent`'s leaf
 *is* a `core` brief — no new fields, no slicing. It lands at
 `docs/product/briefs/self-serve-password-reset.md` with the same Outcome,
 Success metrics (from the input/lagging/guardrail), Scope/Non-goals, and an
-Appetite, and `receive-brief` → `new-spec` → `work-loop` carry it to delivery.
+Appetite, and `author-delivery-brief continue` → `new-spec` → `work-loop` carry it to delivery.
 The detailed reset-token contract is pinned at the spec stage, not here.

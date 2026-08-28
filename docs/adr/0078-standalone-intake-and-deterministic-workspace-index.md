@@ -1,6 +1,6 @@
 # ADR-0078: Standalone intake with an artifact-backed workspace index
 
-- **Status:** Accepted
+- **Status:** Accepted (superseded in part by [ADR-0098](0098-artifact-admission-and-delivery-brief-lifecycle.md) — the minimum Core intent fields; workspace indexing and dispatch rules stand)
 - **Date:** 2026-08-09
 - **Decision-makers:** eugenelim
 - **Supersedes:** none

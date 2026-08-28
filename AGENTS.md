@@ -56,12 +56,33 @@ make ci
 Commit conventions and the full repository rules live in
 [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
 
-- Prefer the simplest obvious solution; add an option, abstraction, or
-  dependency only when it is needed.
+- Cut before adding. After reading the code a change touches, take the first
+  sufficient option and stop:
+  1. Skip an addition that is not genuinely needed and say so once.
+  2. Make one bounded search for an adequate repository solution; reuse a hit
+     or move on after a decisive empty result.
+  3. Use the standard library when it satisfies the outcome.
+  4. Use a native platform capability when it satisfies the outcome.
+  5. Use an already-installed dependency when it satisfies the outcome. An
+     import missing from the owning manifest is a new dependency.
+  6. Use one obvious line when it is a complete, maintainable solution.
+  7. Otherwise make the minimum correct change in the fewest statements and
+     files that preserve ownership and tests.
+- Prefer obvious code over merely short code. The bounded discovery check does
+  not replace contradictory-evidence handling, freshness checks, required
+  gates, or correctness review.
+- Never cut trust-boundary validation, data-loss-preventing error handling,
+  security or privacy controls, accessibility, accepted requirements, required
+  tests/migrations/documentation/human approval, or non-waivable policy and
+  platform restrictions.
+- Remove claims that do not affect the accepted outcome. Ground a necessary
+  assertion about a named repository target with one bounded read or search;
+  otherwise label it as an assumption or a discovery condition.
+- Lead with the outcome, omit routine tool narration, and end completion
+  receipts with changed state, verification, and remaining work. Continue any
+  interactive updates required by the host.
 - Add types and docstrings to code you change. Validate crossed boundaries,
   trusting internal callers and framework guarantees.
-- Inline a single-use operation; extract a helper when a second caller appears.
-- Grep to verify a function exists before importing it.
 - Record a new dependency in the owning package instructions or an ADR before
   adding it.
 - Do not silently resolve a conflict between documented guidance and code.

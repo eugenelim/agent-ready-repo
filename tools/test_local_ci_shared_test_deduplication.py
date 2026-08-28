@@ -33,7 +33,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 SHARED_TESTS = (
     "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
-    "packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py",
+    "packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py",
     "packs/core/tests/skills/work-loop/test_lint_traceability.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
@@ -52,8 +52,8 @@ CORE_COLLECTIONS = {
         "d049527415098b80da1f748d19fb4eff618cc0482df9f42bdeb4cae66bbc2555",
     ),
     SHARED_TESTS[1]: (
-        15,
-        "1c143713cf47436a7af6b043715d4a2c6434c8f6208d3a4f84f6735d0c2cd4c0",
+        16,
+        "9eb21215317b77e1b24e1433a4219c87aa09ee9220462850475b0431fe1b8bcd",
     ),
     SHARED_TESTS[2]: (
         45,
@@ -80,7 +80,7 @@ EXPECTED_COMPOSED_IGNORES = {
         SHARED_TESTS[0],
         SHARED_TESTS[2],
     },
-    "packs/core/tests/skills/receive-brief/": {SHARED_TESTS[1]},
+    "packs/core/tests/skills/author-delivery-brief/": {SHARED_TESTS[1]},
 }
 
 COLLECTION_FLOORS = {
@@ -348,14 +348,20 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # collection-floor fold, then again on 2026-08-28 for the
 # `agent-skill-engineering` pack. Its four suites join both routes:
 # `tests/pack/`, `tests/integration/`, and the two `tests/skills/` directories.
-# Verified by diffing both normalized dry-run plans against `origin/main`'s
-# Makefile — standalone 67->71 and composed 66->70, the delta being exactly
-# those four added lines with no other line moved, reordered, or dropped.
+# Re-pinned again on 2026-08-28 for the core-guidance routing slice, which adds
+# the canonical `packs/core/tests/skills/author-delivery-brief/` and
+# `packs/core/tests/skills/intake-intent/` suites and moves the shared
+# coverage-test exclusion from the `receive-brief` compatibility alias
+# directory to that canonical owner. Verified by diffing both normalized
+# dry-run plans against `origin/main`'s Makefile — standalone 71->73 and
+# composed 70->72, the delta being exactly those two added suite lines plus
+# the relocated `$(2)` exclusion slot, with no other line moved, reordered,
+# or dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "d54c3b61d0733e40255fcddc9b2b0cea980b3e763f309e8dd71e5c718a5af046"
+    "25a434e991a2a8efe10e62be7dde1268e21694fc7d95784f1fbb9e70f3892571"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "d65a848c244c4f8a4c9693be1b7a4432f2795768f13b3c051d006e2989ab4e26"
+    "744df8123ea5cd1f95b29d1c28aea290ff436b239a905522fee44e85f40aa1c6"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -848,6 +854,7 @@ def _composition_errors(makefile: str, chain_source: str) -> list[str]:
         directory in macro
         for directory in (
             "packs/core/tests/skills/work-loop/",
+            "packs/core/tests/skills/author-delivery-brief/",
             "packs/core/tests/skills/receive-brief/",
         )
     ):
@@ -875,10 +882,12 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
         assert _skip_xfail_calls(relative_path) == expected, relative_path
 
     work_loop = _live_pytest_contract("packs/core/tests/skills/work-loop/")
-    receive_brief = _live_pytest_contract("packs/core/tests/skills/receive-brief/")
+    delivery_brief = _live_pytest_contract(
+        "packs/core/tests/skills/author-delivery-brief/"
+    )
     for relative_path, directory_contract in (
         (SHARED_TESTS[0], work_loop),
-        (SHARED_TESTS[1], receive_brief),
+        (SHARED_TESTS[1], delivery_brief),
         (SHARED_TESTS[2], work_loop),
     ):
         file_contract = _live_pytest_contract(relative_path)
@@ -1843,6 +1852,7 @@ def _effective_composition_errors(makefile_text: str | None = None) -> list[str]
         directory in standalone.stdout and directory in composed.stdout
         for directory in (
             "packs/core/tests/skills/work-loop/",
+            "packs/core/tests/skills/author-delivery-brief/",
             "packs/core/tests/skills/receive-brief/",
         )
     ):
@@ -2028,13 +2038,13 @@ def test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation() -
         without_work_loop_parameter
     )
 
-    without_receive_parameter = makefile.replace(
-        "packs/core/tests/skills/receive-brief/ $(2) -q",
-        "packs/core/tests/skills/receive-brief/ -q",
+    without_delivery_brief_parameter = makefile.replace(
+        "packs/core/tests/skills/author-delivery-brief/ $(2) -q",
+        "packs/core/tests/skills/author-delivery-brief/ -q",
         1,
     )
     assert "composed effective exclusion drift" in _effective_composition_errors(
-        without_receive_parameter
+        without_delivery_brief_parameter
     )
 
     hardcoded_workspace_command = makefile.replace(
@@ -2070,8 +2080,8 @@ def test_effective_make_recipes_apply_exact_composition_and_fail_on_mutation() -
     )
 
     swapped_parameters = makefile.replace(
-        "packs/core/tests/skills/receive-brief/ $(2) -q",
-        "packs/core/tests/skills/receive-brief/ $(1) -q",
+        "packs/core/tests/skills/author-delivery-brief/ $(2) -q",
+        "packs/core/tests/skills/author-delivery-brief/ $(1) -q",
         1,
     ).replace(
         "packs/core/tests/skills/work-loop/ $(1) -q",

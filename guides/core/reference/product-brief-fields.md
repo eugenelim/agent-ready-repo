@@ -7,10 +7,10 @@ kind: reference
 
 # Product brief fields
 
-Authoritative field list for a **product brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md`. Use `author-brief` to draft a brief from unstructured external input (email, stakeholder message, Linear issue); use `receive-brief` to receive a formed brief and decompose it into specs. For how to use either skill, see [Intake an external brief into a product brief](../how-to/intake-an-external-brief.md) or [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
+Authoritative field list for a **delivery brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md`. Use `author-delivery-brief create` to author a Draft from bounded source material; use `author-delivery-brief continue` to review an existing repository brief and offer confirmed slices. For the workflows, see [Intake an external brief into a product brief](../how-to/intake-an-external-brief.md) and [Continue a delivery brief and confirm delivery slices](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
 
 :::note
-The brief template is a **guide, not a schema**. Every field below except Outcome and Scope is optional. `author-brief` elicits missing DoR fields when authoring from unstructured input; `receive-brief` elicits what's missing when receiving a formed brief. Neither rejects a brief for not matching this list.
+The brief template is a **guide, not a schema**. Create mode records a Draft and names Ready gaps; continue mode elicits what is missing for the human Ready decision. Neither rejects a brief merely for not matching this list.
 :::
 
 ## Brief header fields
@@ -35,11 +35,11 @@ The brief template is a **guide, not a schema**. Every field below except Outcom
 | `Spec map` | section required for Ready; rows optional | The coverage table. One row per materialized spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. A Ready brief may have zero rows. |
 | `Rabbit holes` | optional | Named design traps, constraints, or out-of-bounds explorations to avoid. |
 | `Source` | optional until Ready | Durable source provenance. Tracker-origin work also records the reviewed source revision. |
-| `Status` | set by skill | Lifecycle marker. Set by the authoring skill: `Draft` (by `author-brief`); `Ready` (by `receive-brief`, after the human Ready gate). Ready does not imply that a slice or spec exists. |
+| `Status` | set by skill | Lifecycle marker. `author-delivery-brief create` sets `Draft`; `continue` may set `Ready` after the human Ready gate. Ready does not imply that a slice or spec exists. |
 
 ## DoR gate
 
-A brief is **Ready** — eligible for decomposition by `receive-brief` — only
+A brief is **Ready** — eligible for slice selection by `author-delivery-brief continue` — only
 when the human confirms the canonical gate below. These fields are required to
 reach `Ready`, not required for a Draft:
 
@@ -52,8 +52,8 @@ reach `Ready`, not required for a Draft:
 | Durable source provenance | Present; tracker-origin work includes the reviewed source revision |
 | `Spec map` | Section present; placeholder rows are not required |
 
-`author-brief` may elicit these fields but always sets `Status: Draft` and does
-not certify readiness. `receive-brief` owns this gate and is the only skill that
+`author-delivery-brief create` may elicit these fields but always sets `Status: Draft` and does
+not certify readiness. `author-delivery-brief continue` owns this gate and is the only mode that
 sets `Status: Ready`, after human confirmation. A Ready brief may have zero
 materialized specs and remains non-executable until the user confirms a slice.
 
@@ -77,7 +77,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 ## Linkage fields on derived specs
 
-`receive-brief` stamps these on the specs it scaffolds (both are additive and optional — a directly-authored spec omits them and stays valid):
+`author-delivery-brief continue` stamps these on the specs it scaffolds (both are additive and optional — a directly-authored spec omits them and stays valid):
 
 | Field / marker | Where | Meaning |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 ## The coverage lint
 
-`scripts/lint-brief-coverage.py` (bundled with the `receive-brief` skill) reads every spec's `Status:` field, follows the `Brief:` back-links, and rolls each brief's Spec map up from its children. Behavior:
+`scripts/lint-brief-coverage.py` (bundled with `author-delivery-brief`) reads every spec's `Status:` field, follows the `Brief:` back-links, and rolls each brief's Spec map up from its children. Behavior:
 
 - Reports each brief as **delivered** or **not delivered**.
 - A spec that back-links a brief but isn't in that brief's map is reported **untracked** (informational) — add the row; it's not an error.

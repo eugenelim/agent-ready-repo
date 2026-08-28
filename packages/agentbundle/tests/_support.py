@@ -118,7 +118,16 @@ allowed-scopes = {scopes}{allowed_adapters}
         skills: tuple[str, ...] = (f"{name}-skill",)
         agents: tuple[str, ...] = ()
         if name == "core":
-            skills = ("work-loop", "security-checklists", "operational-safety")
+            skills = (
+                "work-loop",
+                "security-checklists",
+                "operational-safety",
+                # The two canonical artifact-routing owners. The per-adapter
+                # projection seam asserts both by name, so they must exist in
+                # the fixture catalogue the seam installs from.
+                "intake-intent",
+                "author-delivery-brief",
+            )
             agents = ("quality-engineer",)
         elif name == "governance-extras":
             skills = ("new-rfc", "new-adr", "update-conventions")

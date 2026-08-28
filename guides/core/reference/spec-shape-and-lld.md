@@ -8,7 +8,7 @@ kind: reference
 # Spec `Shape:` and the plan's `## Design (LLD)`
 
 :::note
-Authoritative description of the **`Shape:`** spec field, the plan's **`## Design (LLD)`** section, and the **stack-derivation** step that fills it. For why the design lives in the plan rather than the spec, see [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md). These are produced by the `new-spec` skill (and inherited by `receive-brief` when it scaffolds a spec).
+Authoritative description of the **`Shape:`** spec field, the plan's **`## Design (LLD)`** section, and the **stack-derivation** step that fills it. For why the design lives in the plan rather than the spec, see [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md). These are produced by the `new-spec` skill (and inherited by `author-delivery-brief continue` when it scaffolds a spec).
 :::
 
 A spec stays the **contract** — objective, durable outputs, boundaries, testing
@@ -56,7 +56,7 @@ An **optional** spec header that names the *kind* of work, so the plan scaffolds
 
 - **Optional and additive.** A spec omits it (or sets `mixed`) and stays valid.
 - **It selects, it doesn't constrain.** A narrower shape scaffolds fewer `## Design (LLD)` sub-sections; `mixed`/unsure scaffolds the full set, then you prune.
-- **`receive-brief`** sets it per slice from the brief's framing; `new-spec` asks when it isn't obvious.
+- **`author-delivery-brief continue`** sets it per slice from the brief's framing; `new-spec` asks when it isn't obvious.
 
 ## The `## Design (LLD)` section
 

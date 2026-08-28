@@ -23,7 +23,9 @@ _ENGINE_PATH = (
 _ROUTER_PATH = _WORK_INTAKE / "scripts" / "intake_router.py"
 _SKILL_BODIES = {
     "work-intake": (_SKILLS / "work-intake" / "SKILL.md").read_text(encoding="utf-8"),
+    "intake-intent": (_SKILLS / "intake-intent" / "SKILL.md").read_text(encoding="utf-8"),
     "capture-work": (_SKILLS / "capture-work" / "SKILL.md").read_text(encoding="utf-8"),
+    "author-delivery-brief": (_SKILLS / "author-delivery-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "author-brief": (_SKILLS / "author-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "receive-brief": (_SKILLS / "receive-brief" / "SKILL.md").read_text(encoding="utf-8"),
     "new-spec": (_SKILLS / "new-spec" / "SKILL.md").read_text(encoding="utf-8"),
@@ -33,13 +35,15 @@ _SKILL_BODIES = {
 _EVAL_QUERY_FILES = {
     "new-spec": _SKILLS / "new-spec" / "evals" / "eval_queries.json",
     "bug-fix": _SKILLS / "bug-fix" / "evals" / "eval_queries.json",
-    "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
     "init-project": _SKILLS / "init-project" / "evals" / "eval_queries.json",
     "adapt-to-project": _SKILLS / "adapt-to-project" / "evals" / "eval_queries.json",
     "workspace-status": _SKILLS / "workspace-status" / "evals" / "eval_queries.json",
     "project-knowledge": _SKILLS / "project-knowledge" / "evals" / "eval_queries.json",
     "work-intake": _SKILLS / "work-intake" / "evals" / "eval_queries.json",
+    "intake-intent": _SKILLS / "intake-intent" / "evals" / "eval_queries.json",
+    "author-delivery-brief": _SKILLS / "author-delivery-brief" / "evals" / "eval_queries.json",
     "author-brief": _SKILLS / "author-brief" / "evals" / "eval_queries.json",
+    "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
     "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
     "close-work": _SKILLS / "close-work" / "evals" / "eval_queries.json",
 }
@@ -98,9 +102,11 @@ _FIXTURE_PATHS = {
 }
 _CHANGED_SKILLS = {
     "work-intake": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
+    "intake-intent": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
     "capture-work": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
-    "author-brief": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
-    "receive-brief": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
+    "author-delivery-brief": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
+    "author-brief": ("Read", set()),
+    "receive-brief": ("Read", set()),
     "new-spec": (
         "Read Write Edit Bash WebFetch WebSearch",
         {"filesystem_write", "filesystem_read_untrusted", "network_fetch"},
@@ -132,6 +138,8 @@ def _frontmatter(body: str) -> str:
 
 
 def _boundaries(frontmatter: str) -> set[str]:
+    if re.search(r"^  boundaries: \[\]$", frontmatter, re.MULTILINE):
+        return set()
     match = re.search(r"^  boundaries:\n((?:    - .+\n)+)", frontmatter, re.MULTILINE)
     assert match is not None
     return {line.removeprefix("    - ") for line in match.group(1).splitlines()}

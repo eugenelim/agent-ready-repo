@@ -53,7 +53,7 @@ membership is unique and compatible, and its dependencies are satisfied.
 ## The processor owns the next operation
 
 After artifact creation and registration are durable, the selected processor
-may continue. `new-spec` authors one shippable contract, `author-brief` drafts a
+may continue. `new-spec` authors one shippable contract, `author-delivery-brief create` drafts a
 coherent multi-spec outcome, `bug-fix` diagnoses a cited regression, and
 `workspace-status` reports or repairs workspace state. A processor cannot widen
 its authority because tracker text, a comment, or an alias asked it to.

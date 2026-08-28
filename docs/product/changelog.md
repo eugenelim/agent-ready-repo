@@ -52,6 +52,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.14.0] — 2026-08-28
+
+### Highlights
+
+- **Agents now cut unnecessary work before adding code or process.** Core's
+  portable Razor ladder stops at the first sufficient option—skip, reuse,
+  standard library, platform, installed dependency, one line, or the minimum
+  working code—while preserving security, validation, accessibility, and
+  explicit requirements.
+- **Repository work now enters through one clear intent and delivery path.**
+  Neutral intake routes to `intake-intent` for a minimum repo-owned intent,
+  `author-delivery-brief create|continue` for multi-spec coordination, or
+  `new-spec` for one independently shippable feature.
+
+### Added
+
+- `intake-intent`, with a minimum repository-intent contract that remains
+  usable without Product Engineering.
+- `author-delivery-brief` create and continue modes, including explicit
+  governance-reference and executable-spec-map separation.
+
+### Changed
+
+- `work-intake` now owns neutral precedence and safe classification rather than
+  intent or brief authoring.
+- New guidance, receipts, tracker handoffs, and internal dispatch use canonical
+  intent and delivery-brief names. `author-brief` and `receive-brief` remain
+  bounded deprecation aliases for the accepted compatibility window.
+- Specs, RFCs, architecture work, and implementation review now apply the
+  cut-before-adding principle at the artifact level that owns the decision.
+
+### Security
+
+- New skills declare least-privilege tools and trust boundaries; external
+  payloads remain passive, minimized data, repository paths remain confined,
+  and aliases cannot widen their canonical target's authority.
+
+## [atlassian][0.9.2] — 2026-08-28
+
+### Changed
+
+- Jira and Jira Align brief-intake matrices now hand multi-spec or
+  cross-repository work to `author-delivery-brief create` while preserving the
+  existing normalized-intake, authority, and refresh contracts.
+
+## [github][0.2.2] — 2026-08-28
+
+### Changed
+
+- GitHub brief intake now writes the canonical `author-delivery-brief create`
+  handoff instead of the deprecated brief identity.
+
+## [linear][0.3.2] — 2026-08-28
+
+### Changed
+
+- Linear brief intake now writes the canonical `author-delivery-brief create`
+  handoff instead of the deprecated brief identity.
+
+## [product-engineering][0.13.6] — 2026-08-28
+
+### Changed
+
+- Product Engineering guidance now makes intent altitude and the Core handoff
+  explicit: a feature intent can become one spec directly, while multi-spec or
+  cross-repository work can use a delivery brief without making Core a
+  user-scope dependency.
+
+## [agentbundle][0.40.1] — 2026-08-28
+
+### Changed
+
+- Workspace MCP lifecycle metadata now dispatches briefs to the canonical
+  `author-delivery-brief` owner.
+
 ## [core][2.13.0] — 2026-08-27
 
 ### Highlights

@@ -2,11 +2,12 @@
 
 ## 1. Purpose and boundary
 
-`work-intake` is the shared local front door for starting, remembering,
-inspecting, and refreshing repository work. It classifies content by delivery
-role, writes a canonical artifact before its lifecycle entry when a durable
-route is selected, and dispatches only after both are valid. An eligible
-explicit direct-light request remains session-local.
+`work-intake` is the neutral local front door for raw, ambiguous, acquisition,
+refresh, and intake-safety requests. Status and explicitly named artifact or
+work-type requests route directly to their owner. For durable classified input,
+it writes the canonical artifact before its lifecycle entry and dispatches only
+after both are valid. An eligible explicit direct-light request remains
+session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
 repository state. `workspace-status` reads and reconciles repository state and
@@ -45,6 +46,10 @@ Absence of the object is standalone Core and follows the existing routes.
 
 - `work-intake` selects direct-light, intent, brief, spec, defect,
   Draft-with-gaps, remember, status, or refresh behavior.
+- `intake-intent` creates or admits the minimum repository intent.
+- `author-delivery-brief create` turns raw multi-spec or cross-repository input
+  into a Draft coordination brief; `continue` makes an existing brief Ready and
+  confirms spec slices.
 - `workspace-status` reports canonical ready, active, blocked, shipped,
   authority, refresh, reconciliation, retained legacy state, and read-only
   closeout orientation.
@@ -177,7 +182,7 @@ invocation already supplies bounded content at the matching pinned revision.
    of these outcomes changes lifecycle state.
 8. An optional shaping handoff validates before content reads or effects. A
    resolved delivery contract continues through `new-spec`; a resolved delivery
-   brief continues through `receive-brief`. Those processors retain their
+   brief continues through `author-delivery-brief continue`. Those processors retain their
    assumption, Ready, slice-confirmation, spec, plan, and human approval gates.
 9. Before implementation, a durable spec maps applicable lasting facts to
    resolver-selected owners and names stale current surfaces as plan work. A
@@ -240,7 +245,7 @@ confirmed shaping gate
 work-intake admission
         |
         +-- delivery contract --> new-spec
-        +-- delivery brief ----> receive-brief
+        +-- delivery brief ----> author-delivery-brief continue
         +-- ambiguity/refusal --> stable zero-effect stop
 ```
 
@@ -370,6 +375,7 @@ Maintainer procedures live in
 
 ## 10. Last verified surface
 
-Core `2.13.0`, against the normalized-intake handoff, semantic resolver,
-`work-loop` evidence handoff, `close-work` source and tests, workspace projection,
-pack metadata, evaluation, and documentation surfaces.
+Core `2.14.0`, against neutral intake precedence, repository-intent admission,
+delivery-brief create/continue, the normalized-intake handoff, semantic
+resolver, `work-loop` evidence handoff, `close-work` source and tests, workspace
+projection, pack metadata, evaluation, and documentation surfaces.

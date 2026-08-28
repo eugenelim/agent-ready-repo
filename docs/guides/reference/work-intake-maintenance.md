@@ -10,7 +10,9 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | --- | --- | --- |
 | Source adapter | Bounded acquisition, provenance, profile-version hints, strict normalization | Artifact classification, repository writes, authorization |
 | Upstream shaping producer | Bounded handoff content after its confirmed delivery gate; capability-negotiated portable fallback | Core imports, destination self-certification, lifecycle or delivery approval |
-| `work-intake` | Content-based route, artifact-before-registration sequencing, processor selection | Tracker vocabulary, source credentials, legacy conversion |
+| `work-intake` | Neutral classification, artifact-before-registration sequencing, processor selection | Intent or brief authoring, tracker vocabulary, source credentials, legacy conversion |
+| `intake-intent` | Minimum repository-intent creation and admission | Product-level shaping, brief lifecycle, downstream implementation |
+| `author-delivery-brief` | Draft creation and existing-brief continuation through Ready and confirmed spec slices | Neutral classification, implementation, governance-reference rollups |
 | Handoff admission | Closed-field validation, source/revision consistency, exact resolver-result reuse, stable zero-effect disposition | Raw source storage, external acquisition, new artifact/lifecycle kinds |
 | Semantic-surface resolver | Six-step destination precedence, mandatory-policy rejection, locator confinement, complete read-only result | Candidate acquisition, artifact applicability, authoring method, lifecycle effects |
 | Architect / governance owner | Role selection and the existing architecture or ADR method after resolution | Reimplementing precedence, coercing external locators, routing architecture into product prose |
@@ -116,11 +118,16 @@ does not guess after a fingerprint conflict.
 
 ## Compatibility release discipline
 
-New writers and seeds emit only target entries. `capture-work` remains a
-deprecation-emitting forwarding alias, and the accepted legacy reader remains
-installed, until every removal predicate in RFC-0083 is proven and its Approver
-authorizes a separately planned removal. The initial delivery records the
-evidence state but does not satisfy or weaken that later gate.
+New writers, receipts, guides, and seeds emit only canonical names.
+`capture-work` forwards to `work-intake`; `author-brief` forwards only to
+`author-delivery-brief create`; and `receive-brief` forwards only to
+`author-delivery-brief continue`. Each alias emits one deprecation notice and
+adds no classifier, writer, reviewer, tool, or boundary. The brief aliases stay
+for at least two minor Core releases and 90 days, whichever is later. Removal
+requires advance notice and a named Approver decision at the first eligible
+release; regression rolls back to the last alias-bearing Core release. The
+accepted legacy workspace reader remains installed until its separately
+accepted predicates and approval gate pass.
 
 Rollback during the window disables target writers, returns to the preceding
 dual-reader release, and uses the current ledger-backed rollback operation to

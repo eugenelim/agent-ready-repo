@@ -15,7 +15,7 @@ kind: explanation
 
 A repo set up for engineering agents can take one independently shippable
 feature directly into `new-spec` → `work-loop`, or decompose a coordinating
-brief through `receive-brief` first. The expensive product failures live
+brief through `author-delivery-brief continue` first. The expensive product failures live
 upstream of either handoff — building the wrong thing, unvalidated bets, and
 requirements with no outcome. The `product-engineering` pack is that upstream,
 expressed as habits rather than infrastructure.

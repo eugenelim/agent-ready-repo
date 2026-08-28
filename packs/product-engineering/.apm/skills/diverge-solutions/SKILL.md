@@ -87,4 +87,4 @@ user to add it via `capture-work` or manually. Do not write to `workspace.toml`.
 - Generating fewer than 3 options without surfacing the constraint first.
 - Deleting non-recommended options from the artifact.
 - Writing to `workspace.toml` or any literal hardcoded path.
-- Producing a brief — that is `place-bet` + `author-brief`'s responsibility.
+- Producing a brief — that is `place-bet` + `author-delivery-brief create`'s responsibility.

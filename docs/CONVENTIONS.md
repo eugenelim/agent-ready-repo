@@ -83,18 +83,20 @@ appears once there are real architecture decisions to hold work to.
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
 
-**The brief altitude.** A *brief* (`docs/product/briefs/<slug>.md`) sits between
-the roadmap and the specs — it is where an externally-authored, multi-feature
-product handoff (a PRD, a solution packet) lands when it's too big to be one
-spec. The altitude reads `roadmap → brief → spec → AC`: the roadmap names
-themes, a brief records one received outcome and the specs that deliver it, a
+**The delivery-brief altitude.** A *delivery brief*
+(`docs/product/briefs/<slug>.md`) sits between the roadmap and the specs — it
+is where a multi-feature delivery handoff (a PRD, a solution packet, or
+repo-authored coordination brief) lands when it is too big to be one spec. The
+altitude reads `roadmap → delivery brief → spec → AC`: the roadmap names
+themes, a delivery brief records one outcome and the specs that deliver it, a
 spec is the engineering contract for one feature, and an acceptance criterion
-is the testable unit. A brief owns only **this repo's slice**; an optional
+is the testable unit. A delivery brief owns only **this repo's slice**; an optional
 `Epic:` field points up to an external coordinator when the work spans repos.
 A derived spec links back to its brief with a `Brief:` field (see § 4), and
 the brief's coverage map rolls up automatically from those specs' `Status:`
-fields. Use the `receive-brief` skill to receive, decompose, and execute a
-brief; it never mandates a schema.
+fields. Use `author-delivery-brief create` for raw input or
+`author-delivery-brief continue` for an existing brief; it never mandates a
+schema beyond the load-bearing delivery contract.
 
 ---
 
@@ -696,9 +698,9 @@ right now?"
   nested inside it. A published package also keeps its own `CHANGELOG.md`
   beside its source — `packages/<name>/CHANGELOG.md` in this layout — for
   readers who get the package and not the repository.
-- `briefs/<slug>.md` (optional) — a received, externally-authored
-  multi-feature product brief and its auto-rolled-up coverage map. Created by
-  the `receive-brief` skill; one file per brief. See the brief altitude under
+- `briefs/<slug>.md` (optional) — a multi-feature delivery brief and its
+  auto-rolled-up coverage map. Created or continued by the
+  `author-delivery-brief` skill; one file per brief. See the delivery-brief altitude under
   *Document hierarchy*.
 - `personas.md` (optional) — who we're building for. Add only if it's
   actively used to make decisions; speculative personas rot.
@@ -1076,7 +1078,7 @@ Each journey phase ships its capability and its guide together. A phase whose to
 
 **What counts as a guide for a phase:** a Diátaxis artifact in `guides/` (see *§ 5c. guides/*) that covers the capability the phase introduces. The guide need not be comprehensive — it should orient the user to the capability and link to the reference for the rest.
 
-**Enforcement:** the `receive-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
+**Enforcement:** the `author-delivery-brief` skill extends the shippability test to include guides; the `new-rfc` skill requires that when an RFC covers multiple phases, each phase's guides ship with that phase — not in a terminal wave.
 
 ### Work-loop state
 

@@ -1,6 +1,6 @@
 ---
 name: map-capabilities
-description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `frame-intent`) or to author a brief (use `lean-canvas` / `author-brief`).
+description: Step 6 (terminal) of the PE six-step shaping sequence. Translates a committed bet into a Capability Map — L1 domain organisation, Wardley × strategic-criticality annotation, Build/Buy/Partner/Adopt disposition, and a Build-only suggested build sequence anchoring M3–M6 spec-writing. Run after `place-bet`. Triggers on "map our capabilities", "what do we need to build", "what's our build/buy split", "capability areas for this bet". Do NOT use for a single feature (use `frame-intent`) or to author a brief (use `lean-canvas` / `author-delivery-brief create`).
 ---
 
 # Skill: map-capabilities
@@ -75,7 +75,7 @@ a build task.
 **5. Emit.** Write `<output_dir>/shaping/<slug>/capability-map.md` using
 `assets/capability-map-template.md`. Surface the resolved absolute path before
 writing; confirm before overwriting an existing file. Append "Next step readiness"
-when `lean-canvas` / `author-brief` is not detected in available skills.
+when `lean-canvas` / `author-delivery-brief create` is not detected in available skills.
 
 **6. Suggest workspace.toml transition.** Print the TOML snippet to transition the
 slug. Direct PE to `capture-work` or manual edit. Do not write to `workspace.toml`.
@@ -87,4 +87,4 @@ slug. Direct PE to `capture-work` or manual edit. Do not write to `workspace.tom
 - Never mint a new slug.
 - Never include Buy / Partner / Adopt capabilities in the suggested build sequence.
 - Never fabricate domains from thin input — elicit more context first.
-- Never produce a brief (`lean-canvas` / `author-brief` owns that hand-off).
+- Never produce a brief (`lean-canvas` / `author-delivery-brief create` owns that hand-off).

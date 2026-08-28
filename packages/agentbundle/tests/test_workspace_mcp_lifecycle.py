@@ -41,9 +41,12 @@ class TestLifecycleManifest:
         mod = _load_wsmcp()
         assert mod._LIFECYCLE_MANIFEST["signal"]["dispatch_skill"] is None
 
-    def test_brief_type_has_receive_brief_skill(self) -> None:
+    def test_brief_type_has_canonical_delivery_brief_skill(self) -> None:
         mod = _load_wsmcp()
-        assert mod._LIFECYCLE_MANIFEST["brief"]["dispatch_skill"] == "receive-brief"
+        assert (
+            mod._LIFECYCLE_MANIFEST["brief"]["dispatch_skill"]
+            == "author-delivery-brief continue"
+        )
 
     def test_output_pattern_for_research(self) -> None:
         mod = _load_wsmcp()

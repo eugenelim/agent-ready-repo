@@ -22,7 +22,7 @@
         "Sends the machine object only when normalized-intake.v1#handoff is explicit",
         "Renders a portable fallback for absent, unknown, and older Core",
         "Treats external locators as opaque data",
-        "Does not skip new-spec or receive-brief gates"
+        "Does not skip new-spec or author-delivery-brief continue gates"
       ]
     }
   ]

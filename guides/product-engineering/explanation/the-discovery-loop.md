@@ -45,7 +45,7 @@ The discovery loop is the upstream half of a two-loop operating model. At G3,
 one independently shippable feature becomes a delivery contract; a multi-spec
 or cross-repository outcome becomes a delivery brief. After human confirmation,
 an explicitly compatible Core invocation admits the bounded handoff through
-`work-intake` and keeps the existing `new-spec` or `receive-brief` gates.
+`work-intake` and keeps the existing `new-spec` or `author-delivery-brief continue` gates.
 
 Core is optional. If it is absent, unknown, or predates the handoff capability,
 the loop renders the same bounded content for portable use and still completes

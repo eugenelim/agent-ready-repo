@@ -164,6 +164,7 @@ shipped = [
   {path = "docs/specs/local-ci-orchestration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Remove duplicate local CI orchestration and resolve Make's default Python once", needs = []},
   {path = "docs/specs/architecture-decision-surface-portability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "d5e68b6969bf601d06479a8ac14613bc9693d8fc"}, summary = "Resolve design, current architecture, and decision-record destinations without changing their methods", needs = []},
   {path = "docs/specs/shaping-intake-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "f7660b00820dc06cf7f4618e0b6479d135e5c726"}, summary = "Reuse optional shaping and external work through portable core intake routing", needs = []},
+  {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
 ]

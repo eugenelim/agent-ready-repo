@@ -41,6 +41,40 @@ When no documented rule exists, use repository-owned framework primitives as
 the strongest evidence. Two matching production examples may guide a proposal;
 one nearby example must not become a rule.
 
+### Cut before adding
+
+After understanding the code a change touches, stop at the first sufficient
+rung:
+
+1. If the requested addition is not genuinely needed, skip it and say so once.
+2. Search once, within the current decision boundary, for an adequate existing
+   repository solution; reuse a hit or move on after a decisive empty result.
+3. Prefer the standard library when it satisfies the outcome.
+4. Prefer a native platform capability when it satisfies the outcome.
+5. Prefer an already-installed dependency when it satisfies the outcome; an
+   import absent from the owning manifest is a new dependency.
+6. Use one obvious line when it is the complete, maintainable solution.
+7. Otherwise write the minimum correct solution in the fewest statements and
+   files that preserve ownership and tests.
+
+Prefer the obvious solution, not merely the shortest text. The bounded search
+in rung 2 limits discovery, not verification: do not ignore contradictory
+evidence, freshness-sensitive facts, required gates, or correctness review.
+
+Never cut validation at a trust boundary; error handling that prevents data
+loss; security or privacy controls; accessibility; an explicit accepted
+requirement; required tests, migrations, documentation, or human approval; or
+a policy or platform restriction the user cannot waive.
+
+Delete claims that do not affect the accepted outcome. Before stating a
+necessary claim about a named repository target as fact, perform one bounded
+read or search of that target. If it remains ungrounded, label it as an
+assumption or a condition to discover during the work.
+
+Lead with the useful outcome and omit routine tool narration. Preserve required
+interactive updates, and end a completion receipt with changed state,
+verification, and remaining work.
+
 <!--
 Recommended additional guidance — add only after verifying its trigger. Each
 option should link to the owning source instead of copying its rules.

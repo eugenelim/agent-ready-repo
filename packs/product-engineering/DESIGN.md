@@ -158,7 +158,7 @@ handoff without the unsupported field.
 
 Core `work-intake` owns admission and semantic destination resolution. It
 routes an admitted contract through `new-spec` and an admitted brief through
-`receive-brief`, preserving all existing gates. Product-engineering imports no
+`author-delivery-brief continue`, preserving all existing gates. Product-engineering imports no
 Core code and declares no mandatory dependency. External locators are opaque
 provenance, not transport.
 

@@ -84,7 +84,7 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
   `frame → de-risk → decompose` loop hands its leaf into `init-project`'s value
   gate — an `intent` from `frame-intent` is one
   of `init-project`'s four recognized discovery sources (alongside `desk-research`, a
-  PRD, and a `receive-brief` brief), named as **optional upstream**: present when
+  PRD, and an `author-delivery-brief` brief), named as **optional upstream**: present when
   this pack is installed.
 - **Install:** in the `inception` profile, or on its own with
   `agentbundle install --pack product-engineering <catalogue>`.
@@ -103,7 +103,7 @@ Read it top to bottom and skip any row whose uncertainty you don't carry.
 
 - **Skills:** `init-project` (runs the trigger and value gates, records the
   foundation — an ADR plus `reference.md` — and authors the walking-skeleton
-  spec via `new-spec`), then `work-loop` builds it. `receive-brief` is the
+  spec via `new-spec`), then `work-loop` builds it. `author-delivery-brief continue` is the
   entry point when someone hands you a multi-feature brief instead of an idea.
 - **How:** [Decide and record your foundation](../../core/how-to/record-your-foundation-during-inception.md)
   and [Plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md).

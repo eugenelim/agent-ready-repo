@@ -107,8 +107,8 @@ def test_core_release_metadata_and_history_agree() -> None:
     changelog = _read("docs/product/changelog.md")
     skill = _read("packs/core/.apm/skills/close-work/SKILL.md")
 
-    assert pack["pack"]["version"] == "2.13.0"
-    assert plugin["version"] == "2.13.0"
+    assert pack["pack"]["version"] == "2.14.0"
+    assert plugin["version"] == "2.14.0"
     assert "close-work" in pack["pack"]["evals"]["skills"]
     # Assert the invariant, not the calendar day. The release date is not this
     # test's to own — it moved twice while this branch was in review, and each
@@ -116,8 +116,8 @@ def test_core_release_metadata_and_history_agree() -> None:
     # version coupling above is the real contract; a dated top-level heading in
     # the documented shape is all this line needs.
     assert re.search(
-        r"^## \[core\]\[2\.13\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
-    ), "no dated top-level core 2.13.0 changelog heading"
+        r"^## \[core\]\[2\.14\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
+    ), "no dated top-level core 2.14.0 changelog heading"
     assert "allowed-tools: Read Write Edit Bash" in skill
     for forbidden in ("WebFetch", "WebSearch", "MCP", "Browser", "Task"):
         assert forbidden not in skill.split("---", 2)[1]

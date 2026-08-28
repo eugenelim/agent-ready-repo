@@ -424,13 +424,15 @@ $(PYTHON) -m pytest packs/core/tests/hooks/ -q
 $(PYTHON) -m pytest packs/core/tests/pack/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/author-delivery-brief/ $(2) -q
 $(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/close-work/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/contract-acquisition/ -q
+$(PYTHON) -m pytest packs/core/tests/skills/intake-intent/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
-$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ $(2) -q
+$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
 $(PYTHON) -m pytest packs/core/tests/skills/work-loop/ $(1) -q
 $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
@@ -517,7 +519,7 @@ test-after-build-check: build-check
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-after-build-check-unleased
 
 test-after-build-check-unleased: lint-editable-install
-	$(call run-test-suite,--ignore=packs/core/tests/skills/work-loop/test_lint_spec_status.py --ignore=packs/core/tests/skills/work-loop/test_lint_traceability.py,--ignore=packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py,)
+	$(call run-test-suite,--ignore=packs/core/tests/skills/work-loop/test_lint_spec_status.py --ignore=packs/core/tests/skills/work-loop/test_lint_traceability.py,--ignore=packs/core/tests/skills/author-delivery-brief/test_lint_brief_coverage.py,)
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per

@@ -103,6 +103,8 @@
 | 0095 | [Level A first-value handoffs may include an optional next action](0095-level-a-first-value-optional-next-action.md) | Accepted |
 | 0096 | [Composed local CI uses an explicit post-build-check test target](0096-composed-local-ci-test-target.md) | Accepted |
 | 0097 | [Knowledge surfaces are capability-detected and OKF access is provider-mediated](0097-knowledge-access-capability-detected-provider-mediated.md) | Accepted |
+| 0098 | [Artifact admission and delivery briefs use distinct canonical owners](0098-artifact-admission-and-delivery-brief-lifecycle.md) | Accepted |
+| 0099 | [Shaping review stays stateless while delivery owns baseline replacement](0099-shaping-review-and-sealed-baseline-replacement.md) | Accepted |
 
 ## Adding a new ADR
 

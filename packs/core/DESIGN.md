@@ -292,7 +292,7 @@ Without persistent context, every session starts blind. The agent doesn't know w
 ```
 [backlog]           ← unscheduled ideas and follow-ons
 [initiative.N]
-  shaping_queue     ← needs framing (author-brief, frame-intent)
+  shaping_queue     ← needs framing (intake-intent, optional Product Engineering)
   work_queue        ← ready to build (spec approved, unblocked)
   done              ← shipped items
 ```
@@ -320,8 +320,9 @@ This orient/close discipline is the habit that makes workspace.toml accurate ove
 
 | Entry point | Use when |
 |-------------|----------|
-| `author-brief` | You have unstructured input — an idea, email, Linear issue — and need to turn it into a DoR-compliant brief queued in workspace.toml. |
-| `receive-brief` | A well-formed brief already exists and you want to decompose it into specs ready for `work-loop`. |
+| `intake-intent` | You need to create or admit a minimum repository intent without requiring Product Engineering. |
+| `author-delivery-brief create` | Raw input describes a multi-spec or cross-repository outcome that needs a Draft coordination brief. |
+| `author-delivery-brief continue` | A delivery brief already exists and you want to make it Ready and confirm independently shippable spec slices. |
 | `new-spec` | You want to author a single feature spec directly, without a brief layer. |
 | `work-loop` | A spec exists (or you give it one inline) and you want to implement it. |
 | `bug-fix` | You have a specific bug. Skip the brief — go straight to diagnosis and fix. |
@@ -330,7 +331,12 @@ This orient/close discipline is the habit that makes workspace.toml accurate ove
 
 ### Why the brief layer exists
 
-The brief layer separates "what should we build?" from "how do we build it?" `author-brief` produces a DoR-compliant brief — outcome, appetite, constraints — that answers the first question. `work-loop` operates on a spec that answers the second. Running `work-loop` directly on a vague idea collapses both questions into one and produces a spec that describes a solution to a problem that wasn't clearly stated.
+The delivery-brief layer coordinates an outcome that needs multiple specs or
+repositories. `author-delivery-brief create` records the outcome, appetite,
+boundaries, and risks; `author-delivery-brief continue` confirms readiness and
+one independently shippable slice. A single feature can go directly from intent
+to `new-spec`. Running `work-loop` on a vague idea still collapses intent and
+implementation into a solution whose problem was never established.
 
 ### Inline depth skills
 

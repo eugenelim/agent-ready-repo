@@ -192,7 +192,7 @@ def test_missing_handoff_returns_standalone_without_consulting_resolution() -> N
     assert result.next_action == "continue-standalone-classification"
 
 
-def test_resolved_brief_routes_to_existing_receive_brief_processor() -> None:
+def test_resolved_brief_routes_to_canonical_delivery_brief_processor() -> None:
     router = _load_router()
     resolver = _load_resolver()
     resolution = _resolution(
@@ -200,14 +200,14 @@ def test_resolved_brief_routes_to_existing_receive_brief_processor() -> None:
         _CONFINEMENT_ROOT,
         "delivery-brief",
         "repository-path",
-        ".apm/skills/receive-brief/SKILL.md",
+        ".apm/skills/author-delivery-brief/SKILL.md",
     )
 
     result = router.route_handoff(_valid_handoff_signals(router), resolution)
 
     assert result.disposition == "reuse"
-    assert result.processor == "receive-brief"
-    assert result.next_action == "receive-brief"
+    assert result.processor == "author-delivery-brief continue"
+    assert result.next_action == "author-delivery-brief continue"
     assert result.surface_resolution is resolution
 
 

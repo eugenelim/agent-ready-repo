@@ -586,6 +586,11 @@ _SENSITIVE_CONSTRAINT_RE = re.compile(
     r"password|passwords|passwd|pwd|(?:api|access|private)?_?(?:token|tokens|key|keys))"
     r"(?:_|$)"
 )
+_SENSITIVE_LOCATOR_RE = re.compile(
+    r"(?i)(?:^|[/;:])(?:password|passwd|pwd|secret|api[_-]?key|"
+    r"access[_-]?token|token)\s*[:=]\s*\S+"
+)
+_ABSOLUTE_LOCAL_LOCATOR_RE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def _finding(code: str, path: str = "", detail: str = "") -> RoutingFinding:
@@ -618,9 +623,16 @@ def _is_strict_locator(value: object) -> bool:
     """
     if not _is_safe_locator(value):
         return False
-    return not any(
+    text = str(value)
+    return (
+        not _SENSITIVE_LOCATOR_RE.search(text)
+        and not _ABSOLUTE_LOCAL_LOCATOR_RE.match(text)
+        and "\\" not in text
+        and not any(part in {".", ".."} for part in text.split("/"))
+        and not any(
         character.isspace() or ord(character) <= 31 or ord(character) == 127
-        for character in str(value)
+            for character in text
+        )
     )
 
 

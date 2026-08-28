@@ -30,7 +30,8 @@ routes are:
   `new-spec` for your approval.
 - A coherent outcome that needs several specs becomes a Draft brief.
 - A cited regression becomes defect context for `bug-fix`.
-- A bounded opportunity that is not ready to ship becomes a Draft intent.
+- A bounded outcome that should be preserved before a solution artifact is
+  chosen goes to `intake-intent` and becomes a Draft repository intent.
 
 If two routes are plausible, the agent asks for the smallest missing choice or
 records the gap. It does not infer that incomplete work is ready.
@@ -45,7 +46,7 @@ Start this confirmed delivery handoff through Core intake.
 
 One independently shippable feature enters as a delivery contract for
 `new-spec`. Multi-spec or cross-repository work enters as a delivery brief for
-`receive-brief` or `author-brief`. The handoff supplies bounded context and
+`author-delivery-brief continue` or `create`. The handoff supplies bounded context and
 provenance; it does not approve an artifact or skip a gate.
 
 If the destination is ambiguous, intake stops for your choice without writing.
@@ -64,6 +65,14 @@ Remember that workspace owners need export retention controls. Do not start impl
 The agent creates a Draft artifact, registers non-dispatchable membership, and
 stops. A future `workspace-status` call can surface it, but `work-loop` cannot
 execute it until the required artifact and approvals exist.
+
+For intent-only capture, `intake-intent` records the outcome, boundary, owner,
+unresolved questions, projection, and source. Product altitude, opportunity,
+assumptions, scale, and JTBD context are optional. If an intent already exists,
+the skill updates that repository path instead of creating a renamed copy.
+Chat-only or personal/vault input also needs a confirmed repository destination
+and explicit authority transfer; its minimized source locator remains
+provenance, never executable work.
 
 ## Check status or request refresh
 
