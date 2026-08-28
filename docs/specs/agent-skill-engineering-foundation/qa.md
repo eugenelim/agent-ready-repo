@@ -12,6 +12,7 @@ unfiltered.
 | --- | --- | --- |
 | Foundation pack + OKF roster contracts | `pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py` | 120 passed |
 | Repository test suite | `python3 -m pytest tests/ -q` | 767 passed, 46 subtests passed, exit 0 |
+| AgentBundle package suite | `python3 -m pytest packages/agentbundle/tests` | 4069 passed, 49 skipped, 1 xfailed, 70 subtests, exit 0 |
 | Shared OKF compiler | `pytest packs/catalogue-curation/tests/skills/compile-okf` | 150 passed |
 | OKF pack-profile contract fixtures | same suite, `-k "contract or profile or schema"` | 6 passed of 150, 144 deselected |
 | Generated-output drift | `compile_okf.py --check` for all four OKF packs | `OKF000 check clean` ×4, exit 0 |
@@ -32,7 +33,11 @@ trigger the SAST leg in CI. `make sast` was therefore run separately rather
 than left for CI to discover.
 
 The local `make build-check` chain (`tools/repo/build_gate_chain.py`) does not
-chain the whole `tests/` tree; it chains individual modules. `make test`
+chain the whole `tests/` tree, nor `packages/agentbundle/tests/`; it chains
+individual modules. The AgentBundle package suite is CI's `Gate A-tests` and is
+listed here because it was the one gate this slice did not run locally: it holds
+two hard-coded agent-plugin roster enumerations that any new pack must join, so
+adding a pack reddens it while every local gate stays green. `make test`
 (`Makefile:422`) and the build-check workflow (`.github/workflows/build-check.yml:365`)
 run `python3 -m pytest tests/ -q`, covering the AC17 seven-adapter projection
 proof and the pack-metadata conformance checks.
