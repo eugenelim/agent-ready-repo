@@ -10,7 +10,7 @@ unfiltered.
 
 | Surface | Command | Result |
 | --- | --- | --- |
-| Foundation pack + OKF roster contracts | `pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py` | 119 passed |
+| Foundation pack + OKF roster contracts | `pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py` | 120 passed |
 | Repository test suite | `python3 -m pytest tests/ -q` | 767 passed, 46 subtests passed, exit 0 |
 | Shared OKF compiler | `pytest packs/catalogue-curation/tests/skills/compile-okf` | 150 passed |
 | OKF pack-profile contract fixtures | same suite, `-k "contract or profile or schema"` | 6 passed of 150, 144 deselected |
@@ -143,24 +143,32 @@ on both sides, not mirrored from one. The review loop now also binds the
 declared `Mode: review` marker, which its `ASE-` prefix filter had been
 dropping, and both loops require a result's `source_files` to be an exact set
 rather than merely a subset — `<=` is satisfied by the empty set, so a result
-could previously record no provenance at all. The two rules are not identical
-and the asymmetry is deliberate: an authoring record must carry its declared
-files **plus** `evals/evals.json`, because `frame-new-skill` prepares no
-workspace and would otherwise be required to record nothing; a review record
-must carry its declared files **only**, because `source_files` keys are
-skill-relative while the fixture is pack-global, so a review record naming
-`evals/evals.json` would collide with the authoring digest parametrization.
+could previously record no provenance at all. Both rules are now the same
+shape: the files the case declares, plus the `evals/evals.json` that declares
+them. The two digest tests are each scoped to their own skill's results,
+because `source_files` keys are skill-relative while this fixture is
+pack-global, so an unscoped sweep reads one skill's `evals/evals.json` as a
+second digest for the other's.
 
-No recorded value changed on the authoring side. The two review records gained
-an `actual_markers` field they had never carried. Those two values were
-**derived, not re-observed**: `grade_behavior` sets `passed` only when
-`output_ok` holds, and `output_ok` requires every `expect.output_contains`
-substring to appear in the captured output
-(`packages/agentbundle/agentbundle/commands/pack_evals.py:900-912`), so the
-recorded 4-of-4 pass entails that `Mode: review` matched. The eval declaring it
-is unchanged since the run. No fresh run was made and `evaluated_at` is
-therefore not re-stamped — this paragraph is what distinguishes these two
-back-derived values from the observed ones beside them.
+Round 5 then found that the review records were bound to no digest of the
+declaration they were recorded against: rewording a prompt in the review
+`evals.json` left all tests green, so a recorded result could be silently
+re-pointed at a declaration it was never run against. The review eval payload
+is now recorded and digest-bound, as the authoring one already was.
+
+**What this record does not attest.** The review evals declare a `Mode: review`
+marker in `expect.output_contains`. The grader enforces it at run time —
+`output_ok` requires every declared substring to appear in the captured output
+(`packages/agentbundle/agentbundle/commands/pack_evals.py:905-910`, feeding
+`passed` at `:922`) — but the durable fixture records findings and assertions
+for review cases and carries no marker, no `passed`, and no `output_ok`. An
+earlier revision of this record filled that gap by *deriving* the marker from
+the run having passed. That derivation was circular: the fixture records none
+of the three conjuncts the argument appealed to, so the premise was the
+conclusion. The derived values have been removed rather than disclosed. The
+marker is therefore declared and enforced during a graded run, and is not
+re-checkable from the committed artifact — a genuine limit of this layer,
+stated here rather than closed with a value nobody measured.
 
 AC4's absence clause was checked for three of its six modes against one of the
 two activation descriptions. It now runs pack-scoped in
@@ -177,10 +185,15 @@ advertises three forbidden modes and passed, because `s` is a word character.
 `\b<mode>s?\b` then missed the space-separated spelling of the hyphenated
 modes — "use for knowledge providers and runtime packages" — and the split
 spelling of a closed one, "sub-agents". Rather than grow the pattern a third
-time against whichever form was tried last, the check no longer matches on
-prose at all: `_names_mode` reduces both the description and the mode to
-alphanumeric token runs, so every separator is equivalent, and compares runs
-with a plural-tolerant last token plus a separator-free fallback.
+time against whichever form was tried last, the predicate changed category:
+`_names_mode` splits the description at punctuation, tokenizes each segment to
+alphanumeric runs, and matches only when a window of at most one more token
+than the mode has parts joins to exactly the mode's letters, allowing one
+trailing plural `s`. An unbounded first attempt at this over-matched ordinary
+prose — "plug into" read as `plugin`, "unhook" as `hook`, and the comma list
+"a runtime, profile, and package review" as `runtime-profile`. Bounding the
+window and splitting at punctuation removed all three while keeping every
+forbidden form.
 
 Six controls, each the exact string injected into a description: `subagent`
 into the review description fails it; `plugin` into the authoring description

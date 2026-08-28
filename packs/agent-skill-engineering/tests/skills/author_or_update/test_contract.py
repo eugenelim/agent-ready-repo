@@ -23,6 +23,7 @@ AUTHOR_ROUTES = (
     "references/safety-and-authority.md",
     "references/update.md",
 )
+AUTHORING_EVAL_IDS = frozenset({"frame-new-skill", "update-existing-skill"})
 AUTHOR_EVIDENCE_SOURCES = (
     "evals/evals.json",
     "evals/files/update-existing-SKILL.md",
@@ -193,6 +194,9 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
             "evals/evals.json",
             *(case.get("files") or ()),
         }
+        # Not redundant with the equality above: that pins *which* sources a
+        # result names, this pins that each is one the digest tests below
+        # cover, so a newly declared source cannot arrive without one.
         assert set(result["source_files"]) <= set(AUTHOR_EVIDENCE_SOURCES)
 
 
@@ -208,10 +212,15 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
     path = AUTHOR_ROOT / relative_path
     assert path.is_file()
     digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    # Scoped to this skill's own results. `source_files` keys are
+    # skill-relative but the fixture is pack-global, so an unscoped sweep
+    # reads the review records' `evals/evals.json` -- a different file under a
+    # different root -- as a second digest for this path and fails.
     recorded = {
         result["source_files"][relative_path]
         for result in evidence["results"]
-        if relative_path in result.get("source_files", {})
+        if result["eval_id"] in AUTHORING_EVAL_IDS
+        and relative_path in result.get("source_files", {})
     }
     assert recorded == {digest}
 

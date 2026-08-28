@@ -79,26 +79,34 @@ def _names_mode(description: str, mode: str) -> bool:
     """Does `description` name `mode`, in any ordinary surface form?
 
     AC4's obligation is mode-level, so matching one spelling is not enough.
-    Two earlier versions of this check were each defeated by the next form a
-    reviewer tried: `\b<mode>\b` missed the plural ("plugins"), and
-    `\b<mode>s?\b` missed the space-separated spelling of the hyphenated
-    modes ("knowledge providers") and the split spelling of the closed ones
-    ("sub-agents"). Rather than grow the pattern again, compare token runs.
+    Three earlier versions were each defeated by the next form a reviewer
+    tried: `\\b<mode>\\b` missed the plural ("plugins"), `\\b<mode>s?\\b`
+    missed the space-separated spelling of the hyphenated modes ("knowledge
+    providers") and the split spelling of a closed one ("sub-agents"), and an
+    unbounded separator-free containment test then over-matched ordinary prose
+    -- "plug into" read as `plugin`, "unhook" as `hook`, and the comma list
+    "a runtime, profile, and package review" as `runtime-profile`.
 
-    Both sides are reduced to alphanumeric tokens, so any separator -- space,
-    hyphen, underscore, punctuation -- is equivalent. A run matches when its
-    leading tokens are exact and its last token matches modulo a plural `s`.
-    The separator-free spelling is checked too, which is what catches a mode
-    split across tokens the vocabulary does not itself split.
+    So the comparison is bounded on both sides. The description is split into
+    segments at punctuation, because a mode name never spans a comma or a full
+    stop; each segment is tokenized to alphanumeric runs; and a mode matches
+    only when some window of at most one more token than the mode has parts
+    joins to exactly the mode's own joined letters, allowing a single trailing
+    plural `s`. Bounding the window is what keeps "plug into" from joining to
+    `plugin`, and splitting at punctuation is what keeps a comma list from
+    forming a mode that was never written.
     """
 
-    words = re.findall(r"[a-z0-9]+", description.lower())
     parts = re.findall(r"[a-z0-9]+", mode.lower())
-    for start in range(len(words) - len(parts) + 1):
-        run = words[start:start + len(parts)]
-        if run[:-1] == parts[:-1] and run[-1].rstrip("s") == parts[-1].rstrip("s"):
-            return True
-    return "".join(parts) in "".join(words)
+    target = "".join(parts)
+    for segment in re.split(r"[^\w\s-]+", description.lower()):
+        words = re.findall(r"[a-z0-9]+", segment)
+        for size in range(1, len(parts) + 2):
+            for start in range(len(words) - size + 1):
+                joined = "".join(words[start:start + size])
+                if joined == target or joined.removesuffix("s") == target:
+                    return True
+    return False
 
 
 def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> None:

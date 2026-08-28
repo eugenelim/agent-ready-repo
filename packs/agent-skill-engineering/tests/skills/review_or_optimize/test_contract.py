@@ -33,7 +33,13 @@ ROUTE_TARGETS = {
         AUTHOR_SKILL_ROOT / "references" / "safety-and-authority.md",
 }
 REVIEW_ROUTES = tuple(ROUTE_TARGETS)
+REVIEW_EVAL_IDS = frozenset(
+    {"detect-activation-failure", "detect-script-contract-failure"}
+)
 REVIEW_EVAL_FILES = (
+    # The declaration itself, so rewording a prompt or an expectation cannot
+    # silently re-point a recorded result at a run it never came from.
+    "evals/evals.json",
     "evals/files/catchall-SKILL.md",
     "evals/files/nondeterministic-SKILL.md",
     "evals/files/nondeterministic-helper.py",
@@ -267,9 +273,6 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         assert set(result["actual_findings"]) == {
             value for value in declared if value.startswith("ASE-")
         }
-        assert set(result["actual_markers"]) == {
-            value for value in declared if not value.startswith("ASE-")
-        }
         assert all(result["assertions"])
         # `all([])` is True, so truthiness alone accepts a record claiming that
         # none of the declared checklist assertions were confirmed. Pin the
@@ -278,12 +281,14 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # Equality, not a subset: `<=` is satisfied by the empty set, so a
         # result could record no provenance at all and the aggregate digest
         # tests below would still pass on a sibling result's copy of the path.
-        # Declared files only. Unlike the authoring cases, both review cases
-        # declare their workspace files, and the eval payload is deliberately
-        # not recorded here: `source_files` keys are skill-relative while the
-        # fixture is pack-global, so a review record naming `evals/evals.json`
-        # would collide with the authoring digest parametrization below.
-        assert set(result["source_files"]) == set(case["files"])
+        # Same shape as the authoring side: declared files plus the eval
+        # payload that declares them. `.get` rather than `[]` so a future
+        # workspace-less case fails this assertion with a message instead of
+        # raising KeyError, and cannot be satisfied by an empty record.
+        assert set(result["source_files"]) == {
+            "evals/evals.json",
+            *(case.get("files") or ()),
+        }
         # Kept alongside the equality: the local confinement invariant, whose
         # authoring counterpart is retained for the same reason.
         assert set(result["source_files"]) <= set(REVIEW_EVAL_FILES)
@@ -299,10 +304,14 @@ def test_review_seeded_fixture_matches_its_recorded_digest(relative_path: str) -
     path = REVIEW_ROOT / relative_path
     assert path.is_file()
     digest = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    # Scoped to this skill's own results, for the reason its authoring
+    # counterpart gives: the `evals/evals.json` key names a different file
+    # under each skill root.
     recorded = {
         result["source_files"][relative_path]
         for result in evidence["results"]
-        if relative_path in result.get("source_files", {})
+        if result["eval_id"] in REVIEW_EVAL_IDS
+        and relative_path in result.get("source_files", {})
     }
     assert recorded == {digest}
 
