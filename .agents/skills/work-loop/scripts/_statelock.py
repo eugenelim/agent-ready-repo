@@ -44,10 +44,10 @@ Hardening, each item a defect the older implementation still has:
   the path visible before the ownership record is written, so an empty record
   may belong to a live creator. It remains eligible for crash recovery, but
   only after the same ``stale_after`` budget as a complete recognised record.
-* **No ``mkdir``.** Creating the lock's parent is safe only for a confined state
-  path, and ``loop-cohort.py``'s spec-dir resolver does not confine to the repo
-  root — so it would gain an arbitrary-directory-creation side effect on a path
-  it then refuses.
+* **No ``mkdir``.** The lock synchronizes an existing state-file operation; it
+  does not initialize state directories. Creating a missing parent here would
+  add an unrelated filesystem mutation before the caller can report its
+  state-path error.
 * **Errors do not derive from ``OSError``.** Both callers carry broad
   ``except OSError`` / ``except Exception`` handlers around the regions that take
   this lock, so an ``OSError``-derived failure is one boundary-drift away from
