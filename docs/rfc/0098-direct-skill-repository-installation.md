@@ -350,3 +350,57 @@ None. Discovery roots, normalization, manifest semantics, state identity, valida
 - Public `skill-repository-format` reference and `make-a-skill-repository-installable` how-to, plus existing install-route and CLI reference updates.
 - Current-state architecture updates to catalogue, skill-and-pack format, pack manifest, AgentBundle command/state, and security pages after implementation ships.
 - Release notes naming the new source shapes, manifestless digest lifecycle, deterministic admission boundary, and compatibility limits.
+
+## Current normative state
+
+For credential-free `git+https` sources, E11 owns the **Family 1 acquisition bounds** and runtime floor before classification on both direct and catalogue routes. A full 40-hex requested ref must equal the archive-derived SHA; redirects re-verify the owner, repository, and archive ref component.
+
+For direct sources, E11 owns the **Family 2 admitted-envelope bounds** and evaluation order. Local paths receive Family 2 only. E1–E4 and E6–E10 remain in force as written. E5 continues to govern library-resolved per-member destination and link-target confinement, and delegates filter mode and ownership behavior to the standard library; it also governs direct-only post-extraction refusal of links and special entries. Catalogue `git+https` symlink support and catalogue selector/precedence behavior remain unchanged.
+
+## Errata
+
+The RFC body above this current-state layer is preserved as the original accepted decision record. These dated, approver-signed corrections govern where that body conflicts with verified repository behavior or later approved decisions.
+
+### E1 — `validate --deep` is refused, not added
+
+**2026-08-27 — Approver: eugenelim.** The body says `agentbundle validate --deep` retains an existing stronger authoring check. That does not hold: only `catalogue lint --deep` exists, and it accepts a catalogue rather than a direct repository. Rather than build that surface, it is now an explicit non-goal. The admitted direct shapes are a root `skills/` collection or a root `SKILL.md`, which the dependency-free baseline already decides, so a deep conformance pass earns nothing the baseline does not already give an author. Deep agentskills.io conformance remains a catalogue concern under `catalogue lint --deep`. Consequences: the author how-to documents plain `validate`; the whole direct path stays dependency-free, removing the optional-PyYAML behaviour contract that would otherwise have sat against the no-runtime-dependency rule; and an author wanting full conformance linting adopts a catalogue.
+
+### E2 — Digest is content-only
+
+**2026-08-27 — Approver: eugenelim.** D4 says the execute-metadata byte is included in the digest. That does not hold because mode availability differs by platform and would create phantom updates. The digest is now sorted path/content entries only: for each entry SHA-256 receives u64be path-byte length, path bytes, u64be content length, and exact content bytes; entries sort by encoded path bytes and include no execute byte. Executable-mode presence is reported in the security summary but is computed at report time and never persisted. The existing `safety.write_jailed` call-site default creates installed direct payloads non-executable, so a source-side bit does not change what lands on disk. A mode-only change is therefore not an update and is not tracked.
+
+### E3 — State migration is lazy and direct-only
+
+**2026-08-27 — Approver: eugenelim.** D4 says every next state mutation upgrades 0.4 to 0.5. That conflicts with ADR-0039’s rollback posture and needlessly changes catalogue-only installations. Readers accept 0.4/0.5, and a mutation writes `max(existing, 0.5 if it adds or updates a direct-source row else 0.4)`: catalogue-only state stays 0.4 when it began there, while an existing 0.5 file is never downgraded.
+
+### E4 — Remote refs resolve to commit SHAs
+
+**2026-08-27 — Approver: eugenelim.** D1/D6 admit the existing GitHub route without a pin, including a default `main`; ADR-0036 accepted that residual only for an upstream public default. That scope no longer holds for arbitrary direct instruction repositories. Remote direct installation refuses bare/defaulted `main`, resolves an explicit branch or tag to a full commit SHA, and records it as `source-revision`. The recorded SHA must be **derived from, or verified against, the acquired archive bytes**, so that it attests to the content actually installed. A separate out-of-band resolution request is not required; if one is made it is uncredentialed, locked to the same GitHub host set, byte-capped and deadline-bound, and the acquired archive must still be verified to correspond to the resolved SHA — otherwise a force-push between the two requests lets `source-revision` attest to a commit the user never received.
+
+### E5 — Shared resource controls, direct-only link refusal
+
+**2026-08-27 — Approver: eugenelim.** D1 says the shared resolver inherits all archive safe-extraction boundaries. That would reject catalogue symlinks, including self-hosted catalogue members. Download/member/expanded-size caps, the acquisition deadline, origin-locked redirects, **and per-member destination validation** apply to the shared path: before any member is written, evaluate the library-resolved `TarInfo.name` and `.size`, never a reconstructed member name; validate its destination, and refuse absolute paths, `..` components, Windows separators, and any destination resolving outside the extraction root. Pax global attributes can override later member `path` and `size`. For every admitted link, `linkname` must be relative and its resolved target must remain below the extraction root; the per-member loop calls `tf.extract(member, path=…, filter="data")`, so the standard library owns its filter’s mode and ownership behavior. Case-fold collisions and device/FIFO refusal apply to both credential-free routes; only symlink and hard-link admission/refusal is direct-only. Direct post-extraction inventory also refuses junctions/reparse points and other special entries, while a catalogue legitimately carries symlinks. A symlinked GitHub catalogue remains a regression case. Replacing the current bulk `extractall(filter="data")` with a per-member loop does not license dropping the destination, link-target, data-filter, or direct-only admission controls that call was providing.
+
+### E6 — Bounds are baseline-validator rules
+
+**2026-08-27 — Approver: eugenelim.** D5 suggests schema-1 length bounds can be expressed in the JSON Schema. The repository’s stdlib schema subset ignores unsupported length keywords. Control-character and byte-length limits on publisher-controlled values are enforced in baseline validator code, not by new schema keywords.
+
+### E7 — Help verification is structural
+
+**2026-08-27 — Approver: eugenelim.** The validation list calls for CLI help snapshots. No snapshot framework exists, while the established tests inspect parser actions and help fields structurally. Help obligations use structural parser assertions, not rendered-help substring checks or a new dependency.
+
+### E8 — GitHub archive components are validated and encoded
+
+**2026-08-27 — Approver: eugenelim.** The body treats parsed GitHub owner/repo/ref as safe for raw archive-URL interpolation. The current ref capture permits path and URL metacharacters, so a crafted ref can traverse to a different repository while state attests the pasted source. Owner, repo, and ref must be GitHub-character validated; dot segments, `?`, `#`, and controls refuse; path segments are percent-encoded; and the assembled URL is re-parsed and verified as `https://github.com/<owner>/<repo>/archive/...` before request.
+
+### E9 — Manifestless display uses `-`
+
+**2026-08-27 — Approver: eugenelim.** D6 adds `KIND` but leaves the manifestless version cell undefined. Rendering the internal sentinel would violate D4. Manifestless rows render `—` in `INSTALLED`; JSON omits version, and the same rule applies to `show`.
+
+### E10 — Direct-pack `source-path` is absent
+
+**2026-08-27 — Approver: eugenelim.** D4 says a direct pack uses `source-kind = "pack"` and the empty path. That does not hold: an empty path is ambiguous with a malformed relative path and conflicts with the direct-state confinement contract. Direct-pack `source-path` is absent; absence and an empty value are distinct, and an empty value is invalid. ADR-0097 §4 and AC8 now govern this representation.
+
+### E11 — Transport acquisition and admitted-content envelopes
+
+**2026-08-27 — Approver: eugenelim.** The RFC body’s 256 MiB / 20,000-member / 1 GiB figures are the descriptor-route constants in `https_catalogue.py`; the credential-free `git+https` route in `catalogue.py` does not apply them. The earlier 10 MiB / 25 MiB / 1,000-member model was in the spec draft, not this RFC, and bound the wrong object for a whole-repository archive. E11 supersedes E5’s resource-bound, acquisition-deadline, and redirect-policy clauses with two distinct families. **Acquisition bounds** attach to every credential-free `git+https` transport fetch before classification, catalogue or direct: 256 MiB downloaded, 20,000 members, 1 GiB incrementally measured decompressed bytes on the decompressed side of gzip and tripping mid-read, a 30-second socket timeout, a 90-second inactivity/stall timeout spanning acquisition and extraction, and GitHub/codeload origin-locked redirects. The existing `git+https` catalogue route gains its first byte/member/expanded bounds and redirect handler. **Admitted-envelope bounds** apply incrementally during direct candidate enumeration and selected-envelope admission in this order: per-file (1 MiB), depth (10), counts (1,000 files and 1,000 candidates), then total (25 MiB). Local paths take the latter family only. Neither family is raised by environment, flag, or configuration. Before the first `tf.extract`, `direct_source_acquisition.py` guards `sys.version_info`: 3.11 needs patch 13 or later, 3.12 patch 11 or later, 3.13 patch 4 or later, and 3.14 patch 0 or later; `packages/agentbundle/pyproject.toml` remains advisory only.

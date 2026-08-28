@@ -102,6 +102,7 @@
 | 0094 | [Per-worktree virtual environments are declined; the packages are imported from source instead](0094-no-per-worktree-virtualenv-source-imports-instead.md) | Accepted |
 | 0095 | [Level A first-value handoffs may include an optional next action](0095-level-a-first-value-optional-next-action.md) | Accepted |
 | 0096 | [Composed local CI uses an explicit post-build-check test target](0096-composed-local-ci-test-target.md) | Accepted |
+| 0097 | [Direct skill sources classify after resolution and normalize into canonical packs](0097-direct-skill-source-classification-and-normalized-lifecycle.md) | Accepted |
 
 ## Adding a new ADR
 
