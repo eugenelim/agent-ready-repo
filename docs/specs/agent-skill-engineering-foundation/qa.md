@@ -139,9 +139,8 @@ Round 4 then found the mirror had the same class of hole: the review loop
 asserted only `all(result["assertions"])`, and `all([])` is `True`, so a record
 claiming that none of the five declared checklist assertions were confirmed was
 indistinguishable from one claiming all five. The count check is therefore new
-on both sides, not mirrored from one. The review loop now also binds the
-declared `Mode: review` marker, which its `ASE-` prefix filter had been
-dropping, and both loops require a result's `source_files` to be an exact set
+on both sides, not mirrored from one. Both loops also require a result's
+`source_files` to be an exact set
 rather than merely a subset — `<=` is satisfied by the empty set, so a result
 could previously record no provenance at all. Both rules are now the same
 shape: the files the case declares, plus the `evals/evals.json` that declares
@@ -169,6 +168,16 @@ conclusion. The derived values have been removed rather than disclosed. The
 marker is therefore declared and enforced during a graded run, and is not
 re-checkable from the committed artifact — a genuine limit of this layer,
 stated here rather than closed with a value nobody measured.
+
+That leaves the declaration and the durable binding disagreeing, which review
+round 4 raised and left as an owner decision between two options: record the
+marker, or drop it from `expect.output_contains` so the eval declares only what
+the evidence attests. The decision taken is neither: the declaration stays,
+because dropping it would weaken what a future graded run checks in order to
+tidy a record, and the value stays unrecorded, because the only honest way to
+record it is to measure it. The gap is therefore deliberate and named. Closing
+it needs one graded review run, which `agentbundle pack evals run --check
+behavior` can grade once a driver supplies the attested report it requires.
 
 AC4's absence clause was checked for three of its six modes against one of the
 two activation descriptions. It now runs pack-scoped in
@@ -271,3 +280,63 @@ ownership; its domain and purpose live in that metadata rather than on the
 activation surface. Skill instructions keep authentication external, require
 confinement before candidate reads and writes, and prevent provider output from
 changing authority.
+
+## Review verdict
+
+```json review-verdict.v1
+{
+  "schema_version": "review-verdict.v1",
+  "state": "READY_WITH_RESIDUAL_RISK",
+  "mode": "full",
+  "review_unit": "spec/agent-skill-engineering-foundation INI-009 M0",
+  "warranted_reviewers": [
+    {"role": "adversarial-reviewer", "mandatory": true, "outcome": "clean", "report_ref": ".context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/5-post-gates-adversarial-reviewer-adjudication.md"},
+    {"role": "quality-engineer", "mandatory": true, "outcome": "findings", "report_ref": ".context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/5-post-gates-quality-engineer-adjudication.md"},
+    {"role": "security-reviewer", "mandatory": true, "outcome": "clean", "report_ref": ".context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/3-post-gates-security-reviewer-adjudication.md"},
+    {"role": "experience-reviewer", "mandatory": false, "outcome": "clean", "report_ref": ".context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/3-post-gates-experience-reviewer-adjudication.md"},
+    {"role": "finding-adjudicator", "mandatory": true, "outcome": "clean", "report_ref": ".context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/"}
+  ],
+  "named_skips": [],
+  "findings": [
+    {"id": "r4-adv-1", "source_role": "adversarial-reviewer", "severity": "blocker", "effective_severity": "blocker", "citation": "packs/agent-skill-engineering/tests/skills/review_or_optimize/test_contract.py", "text": "Review half of AC6's behavior record had no assertion-count binding and no Mode: review binding; all([]) is True so an emptied assertion list stayed green.", "status": "resolved"},
+    {"id": "r4-qe-1", "source_role": "quality-engineer", "severity": "blocker", "effective_severity": "blocker", "citation": "packs/agent-skill-engineering/tests/skills/review_or_optimize/test_contract.py", "text": "Same defect reproduced independently by mutation: assertions:[] on detect-script-contract-failure left 77 tests green.", "status": "resolved"},
+    {"id": "r4-qe-2", "source_role": "quality-engineer", "severity": "blocker", "effective_severity": "blocker", "citation": "docs/specs/agent-skill-engineering-foundation/qa.md", "text": "The QA record's delivery-surface paragraph described the pre-reversal state: no plugin manifest, empty marketplace projection, no source path.", "status": "resolved"},
+    {"id": "r4-adv-2", "source_role": "adversarial-reviewer", "severity": "concern", "effective_severity": "concern", "citation": "packs/agent-skill-engineering/tests/pack/test_pack_boundary.py", "text": "The AC4 absence guard could not match the plural form of any mode name.", "status": "resolved"},
+    {"id": "r4-adv-3", "source_role": "adversarial-reviewer", "severity": "concern", "effective_severity": "concern", "citation": "docs/specs/agent-skill-engineering-foundation/qa.md", "text": "The delivery-surface record enumerated ten marketplace-entry keys against eleven emitted, omitting the schema-required version.", "status": "resolved"},
+    {"id": "r4-adv-8", "source_role": "adversarial-reviewer", "severity": "concern", "effective_severity": "concern", "citation": "docs/specs/agent-skill-engineering-foundation/plan.md", "text": "Rollout stated no rollback disposition for the catalogue-curation provider-capability delta this branch also ships.", "status": "resolved"},
+    {"id": "r4-qe-4", "source_role": "quality-engineer", "severity": "concern", "effective_severity": "concern", "citation": "docs/specs/agent-skill-engineering-foundation/qa.md", "text": "The QA gate table omitted the suite carrying AC17's seven-adapter projection proof and the conformance suite.", "status": "resolved"},
+    {"id": "r4-qe-5", "source_role": "quality-engineer", "severity": "concern", "effective_severity": "concern", "citation": "packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py", "text": "AC4's absence clause was verified for three of six modes on one of two workflow descriptions.", "status": "resolved"},
+    {"id": "r4-adv-9", "source_role": "adversarial-reviewer", "severity": "nit", "effective_severity": "nit", "citation": "packs/agent-skill-engineering/tests/pack/test_pack_boundary.py", "text": "The mode-guard docstring and QA record claimed automatic coverage the exact-count assert prevents; the assert is correct and the prose was wrong.", "status": "resolved"},
+    {"id": "r4-qe-6", "source_role": "quality-engineer", "severity": "nit", "effective_severity": "nit", "citation": "packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py", "text": "A recorded result could carry no source binding at all, because the empty set satisfies the subset relation.", "status": "resolved"},
+    {"id": "r5-qe-1", "source_role": "quality-engineer", "severity": "blocker", "effective_severity": "blocker", "citation": "packs/agent-skill-engineering/tests/fixtures/behavior-results.json", "text": "The two review actual_markers values were derived from a premise the fixture does not carry; the derivation was circular and the assert reading them mirrored its own setup.", "status": "resolved"},
+    {"id": "r5-qe-2", "source_role": "quality-engineer", "severity": "blocker", "effective_severity": "blocker", "citation": "packs/agent-skill-engineering/tests/skills/review_or_optimize/test_contract.py", "text": "The review records were bound to no digest of their own declaration; rewording a review eval prompt left all tests green.", "status": "resolved"},
+    {"id": "r5-qe-3", "source_role": "quality-engineer", "severity": "concern", "effective_severity": "concern", "citation": "packs/agent-skill-engineering/tests/pack/test_pack_boundary.py", "text": "_names_mode over-matched ordinary prose: plug into read as plugin, unhook as hook, and a comma list as runtime-profile.", "status": "resolved"},
+    {"id": "r5-qe-4", "source_role": "quality-engineer", "severity": "concern", "effective_severity": "concern", "citation": "packs/agent-skill-engineering/tests/skills/review_or_optimize/test_contract.py", "text": "The two source_files predicates had different shapes; the review one raised KeyError or inverted on a workspace-less case.", "status": "resolved"},
+    {"id": "r5-qe-5", "source_role": "quality-engineer", "severity": "nit", "effective_severity": "nit", "citation": "packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py", "text": "The surviving authoring subset assert lost the comment stating why it is not redundant with the equality above it.", "status": "resolved"},
+    {"id": "r5-adj-1", "source_role": "quality-engineer", "severity": "concern", "effective_severity": "concern", "citation": "docs/specs/agent-skill-engineering-foundation/qa.md", "text": "The QA record still credited a review-side Mode: review marker binding that the same commit removed, contradicting its own disclosure paragraph.", "status": "resolved"}
+  ],
+  "required_gates": [
+    {"name": "pack + OKF roster contracts", "outcome": "passed", "evidence": "pytest packs/agent-skill-engineering/tests tests/roster/test_okf_contracts.py -> 120 passed"},
+    {"name": "shared OKF compiler", "outcome": "passed", "evidence": "pytest packs/catalogue-curation/tests/skills/compile-okf -> 150 passed"},
+    {"name": "repository roster + conformance", "outcome": "passed", "evidence": "pytest tests/ -> 767 passed, 46 subtests"},
+    {"name": "static quality", "outcome": "passed", "evidence": "make lint-ruff clean; make lint-mypy 125 source files, no issues"},
+    {"name": "spec metadata", "outcome": "passed", "evidence": "lint-spec-status.py --root . -> spec metadata clean"},
+    {"name": "build chain", "outcome": "passed", "evidence": "SKIP_SAST=1 make build-check -> exit 0, 0 errors"},
+    {"name": "SAST/SCA", "outcome": "passed", "evidence": "make sast -> exit 0, 8/8 semgrep rule self-test"},
+    {"name": "activation eval, headless observed", "outcome": "passed", "evidence": "18 of 18 queries, 0 harness errors, 0 exclusivity violations, iteration 14"},
+    {"name": "whitespace", "outcome": "passed", "evidence": "git diff --check -> exit 0"}
+  ],
+  "deferrals": [
+    {"slug": "agent-skill-engineering-guide-and-docsurl", "reason": "No guides/ tree this slice; the pack is the only member of GUIDE_OPTIONAL_PACKS and its docsUrl points at the guides index until the planned docs slice lands.", "accepted_by": "owner", "residual_eligible": true},
+    {"slug": "language-extension-seams-unpopulated", "reason": "The retrieval contract recognizes language extension points but ships no populated seam in M0.", "accepted_by": "owner", "residual_eligible": true},
+    {"slug": "review-mode-marker-unbound", "reason": "Mode: review is declared in the review evals and enforced by the grader at run time, but the durable fixture records findings and assertions only. The declaration was kept rather than weakened, and the value left unrecorded rather than derived; closing it needs one graded review run.", "accepted_by": "owner", "residual_eligible": true}
+  ],
+  "blind_spots": [
+    {"surface": "behavior eval outcomes", "reason": "agentbundle pack evals run --check behavior requires a driver-supplied attested report, so no fresh graded run was made in this slice.", "evidence_limit": "The four recorded behavior results are bound to their declarations by digest and by assertion count, but the run itself was not re-observed here.", "accepted_by": "owner", "residual_eligible": true},
+    {"surface": "activation transcription", "reason": "The headless activation result is transcribed by hand from the runner's summary.json.", "evidence_limit": "The construction test compares the transcription only against itself; its digests bind the eval inputs, never the run. Recorded at qa.md under 'How to reproduce it, and what the suite does not check'.", "accepted_by": "owner", "residual_eligible": true},
+    {"surface": "review rounds 1-3 findings", "reason": "Sustained findings from the first three post-gates rounds were resolved and superseded by rounds 4 and 5, which re-reviewed the repairs.", "evidence_limit": "Their full text lives in the paired raw and adjudication artifacts under .context/reviews/8dfb6e8d-e1b9-4ac2-83ab-07a0d81654dc/ rather than in this record.", "accepted_by": "owner", "residual_eligible": true}
+  ],
+  "human_gate_status": "pending",
+  "non_authoritative_score": null
+}
+```

@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Foundation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
   [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md);
   [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md);
@@ -594,6 +594,10 @@ network permission, migration, or adapter cutover is in scope.
   controlled by their corresponding AC fixtures and boundaries.
 
 ## Changelog
+
+- 2026-08-28: closed the plan on shipped evidence — five post-gates review
+  rounds across four reviewer roles, every report adjudicated independently,
+  and the full gate set green on the rebased base.
 
 - 2026-08-27: recorded the rollback carve-out for the `catalogue-curation`
   provider-capability delta and its 0.4.4 bump, which a rollback of this pack
