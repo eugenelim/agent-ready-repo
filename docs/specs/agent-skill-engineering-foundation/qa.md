@@ -32,6 +32,17 @@ pass, and this diff touches `tools/`, `packs/`, and `Makefile`, all of which
 trigger the SAST leg in CI. `make sast` was therefore run separately rather
 than left for CI to discover.
 
+Shipping the spec moved its `["ini-009".work]` membership from `active` to
+`shipped`, which the lifecycle rules require of a `Shipped` spec, and raised the
+repository's `impossible_transition` ratchet from 1 to 2. The second instance is
+not drift: a programme brief stays `Executing` while every child spec is
+`Shipped` and the next slice is not yet promoted, so no child reads
+`Implementing`. `ini-002` has held that shape for some time; `ini-009` enters it
+as M0 ships ahead of M1. The alternative — moving the brief to
+`brief_queue.shipped` — would require its Status to read `Shipped` and would
+falsely declare a live programme finished. The raise and its reason are recorded
+at the ceiling itself in `tests/roster/test_workspace_status_projection.py`.
+
 The local `make build-check` chain (`tools/repo/build_gate_chain.py`) does not
 chain the whole `tests/` tree, nor `packages/agentbundle/tests/`; it chains
 individual modules. The AgentBundle package suite is CI's `Gate A-tests` and is

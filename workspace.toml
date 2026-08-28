@@ -2067,8 +2067,8 @@ active  = []
 backlog = []
 
 ["ini-009".work]
-active  = [
+active  = []
+queue   = []
+shipped = [
   { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
 ]
-queue   = []
-shipped = []
