@@ -80,9 +80,26 @@ BASELINE = ROOT / "tools" / "lint-boundary-golden.json"
 # The pinned capture subject. Changing either value is a spec amendment: pointing
 # the pin at a post-refactor commit would make the baseline describe the very
 # code it exists to police, while still technically being "a pinned revision".
-PINNED_COMMIT = "0245556305e4d19d16af4c3a71f3003f57ce5788"
+#
+# AMENDED once, deliberately, with owner approval recorded as
+# `docs/specs/pack-test-compatibility-classes/spec.md` AC33 and ADR-0098.
+#
+# Previous pin: 0245556305e4d19d16af4c3a71f3003f57ce5788 / blob
+# 73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b — the lint as
+# it stood before `runners-keep-suites-isolated` was replaced by the
+# compatibility-class checks.
+#
+# Why a repoint rather than a rebaseline: that check's `ok` line appears in every
+# passing case, so replacing it changes all 22 captured cases no matter how the
+# replacement is shaped. There is no honest implementation that leaves the
+# baseline untouched. `lint-performance-p0`'s rail forbids regenerating a golden
+# *to make a failing comparison pass*; this is the amendment path that same spec
+# names — recorded with its reason, and regenerated from the new pinned subject
+# rather than hand-edited. The baseline resumes policing from this commit
+# forward; the next behaviour change faces the same gate.
+PINNED_COMMIT = "e773bb27673eecaa9b9f60f5c98cb61cf23c2b77"
 PINNED_BLOB_SHA256 = (
-    "73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b"
+    "49f6956ebf452ce4668ffd4543e8e6d098d8c74f7f5bcd7adf8dd96fd47c5ef7"
 )
 
 sys.path.insert(0, str(ROOT / "tools"))
