@@ -1,7 +1,7 @@
 # Plan: Direct skill repository installation
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Ready
 - **Repository anchors:** `packages/agentbundle/agentbundle/catalogue.py:resolve_catalogue`, `packages/agentbundle/agentbundle/https_catalogue.py:fetch_catalogue_archive`, `packages/agentbundle/agentbundle/commands/install.py:_render_for_repo_scope` and `_check_source_conflict`, and `packages/agentbundle/agentbundle/config.py:State`.
 
 ## Approach
