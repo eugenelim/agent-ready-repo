@@ -118,7 +118,7 @@ def test_file_valued_root_exits_nonzero() -> None:
                 ok(name)
 
 
-def test_missing_report_classifies_invalid_not_crash() -> None:
+def test_missing_report_classifies_invalid_not_crash(git_repo: Path) -> None:
     """`review inspect --report <missing>` yields `invalid`, and still exits 0.
 
     `--report` is normalise-only at the boundary, unlike the two `--root`
@@ -132,35 +132,34 @@ def test_missing_report_classifies_invalid_not_crash() -> None:
     ever read — green for a reason that has nothing to do with `--report`.
     """
     name = "loop-cohort: missing --report classifies invalid (exit 0)"
-    with tempfile.TemporaryDirectory() as td:
-        spec_dir = Path(td) / "spec"
-        spec_dir.mkdir()
-        run_id = "00000000-1111-2222-3333-444444444444"
-        rc, out, err = run(LOOP_COHORT, "init", str(spec_dir), "--run-id", run_id)
-        if rc != 0 or not (spec_dir / "state.json").is_file():
-            fail(name, f"could not initialise a cohort fixture (rc={rc} err={err!r})")
-            return
+    spec_dir = git_repo / "spec"
+    spec_dir.mkdir()
+    run_id = "00000000-1111-2222-3333-444444444444"
+    rc, out, err = run(LOOP_COHORT, "init", str(spec_dir), "--run-id", run_id)
+    if rc != 0 or not (spec_dir / "state.json").is_file():
+        fail(name, f"could not initialise a cohort fixture (rc={rc} err={err!r})")
+        return
 
-        rc, out, err = run(
-            LOOP_COHORT, "review", "inspect", str(spec_dir),
-            "--report", "no-such-report.md", "--json",
-            cwd=Path(td),
-        )
-        combined = f"{out}\n{err}"
-        if "Traceback" in combined:
-            fail(name, f"raised a traceback instead of classifying:\n{combined}")
-        elif rc != 0:
-            fail(name, f"expected exit 0 for a report-content outcome, got {rc}: {combined!r}")
+    rc, out, err = run(
+        LOOP_COHORT, "review", "inspect", str(spec_dir),
+        "--report", "no-such-report.md", "--json",
+        cwd=git_repo,
+    )
+    combined = f"{out}\n{err}"
+    if "Traceback" in combined:
+        fail(name, f"raised a traceback instead of classifying:\n{combined}")
+    elif rc != 0:
+        fail(name, f"expected exit 0 for a report-content outcome, got {rc}: {combined!r}")
+    else:
+        try:
+            classification = json.loads(out)["classification"]
+        except (ValueError, KeyError) as exc:
+            fail(name, f"could not read classification from {out!r} ({exc})")
+            return
+        if classification != "invalid":
+            fail(name, f"expected classification 'invalid', got {classification!r}")
         else:
-            try:
-                classification = json.loads(out)["classification"]
-            except (ValueError, KeyError) as exc:
-                fail(name, f"could not read classification from {out!r} ({exc})")
-                return
-            if classification != "invalid":
-                fail(name, f"expected classification 'invalid', got {classification!r}")
-            else:
-                ok(name)
+            ok(name)
 
 
 def test_report_sites_route_through_resolver() -> None:

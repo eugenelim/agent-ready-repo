@@ -7,6 +7,8 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs/specs/close-work-extraction-and-immediate-disposition"
 SURVEY = ROOT / "docs/rfc/0096-notes/open-source-context-lifecycle-survey.md"
@@ -15,6 +17,13 @@ SURVEY = ROOT / "docs/rfc/0096-notes/open-source-context-lifecycle-survey.md"
 def _read(relative: str) -> str:
     """Read one UTF-8 repository surface."""
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def _assert_core_manifest_versions_agree(
+    pack: dict[str, object], plugin: dict[str, object]
+) -> None:
+    """Require the shipped pack and plugin manifests to carry one version."""
+    assert pack["pack"]["version"] == plugin["version"]
 
 
 def test_every_planned_durable_output_exists_at_its_owner() -> None:
@@ -107,8 +116,7 @@ def test_core_release_metadata_and_history_agree() -> None:
     changelog = _read("docs/product/changelog.md")
     skill = _read("packs/core/.apm/skills/close-work/SKILL.md")
 
-    assert pack["pack"]["version"] == "2.15.0"
-    assert plugin["version"] == "2.15.0"
+    _assert_core_manifest_versions_agree(pack, plugin)
     assert "close-work" in pack["pack"]["evals"]["skills"]
     # Assert the invariant, not the calendar day. The release date is not this
     # test's to own — it moved twice while this branch was in review, and each
@@ -117,10 +125,19 @@ def test_core_release_metadata_and_history_agree() -> None:
     # the documented shape is all this line needs.
     assert re.search(
         r"^## \[core\]\[2\.15\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
-    ), "no dated top-level core 2.14.0 changelog heading"
+    ), "no dated top-level core changelog heading for this wave's release"
     assert "allowed-tools: Read Write Edit Bash" in skill
     for forbidden in ("WebFetch", "WebSearch", "MCP", "Browser", "Task"):
         assert forbidden not in skill.split("---", 2)[1]
+
+
+def test_core_release_metadata_rejects_manifest_version_drift() -> None:
+    """Mutation guard: a one-sided manifest-version change must be rejected."""
+    pack = {"pack": {"version": "2.15.1"}}
+    plugin = {"version": "2.15.0"}
+
+    with pytest.raises(AssertionError):
+        _assert_core_manifest_versions_agree(pack, plugin)
 
 
 def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
