@@ -2,9 +2,10 @@
 """Pin and mutation-test the split Windows workflow's blocking topology.
 
 Two properties are asserted about the aggregate: it reads every work job's
-result, and its guard — which must be the run body's first statement, with the
-failing `exit 1` directly inside it and no nested opener or subshell wrapper in
-between — exits non-zero when one of them is not `success`.
+result, and its guard exits non-zero when one of them is not `success`. The
+guard must be the run body's first statement, its condition must equal
+`GUARD_CONDITION` exactly, and the failing `exit 1` must be reached without
+crossing an `else`/`elif` branch, a nested opener, or a subshell wrapper.
 
 Deliberately not asserted, and so not claimed: anything outside that run body.
 A step-level `continue-on-error: true` or `if:` on the aggregate step defeats
@@ -71,7 +72,16 @@ GUARD_RUN_MARKER = "        run: |\n"
 # A statement that opens a block bash may never enter. An `exit 1` beneath one
 # of these is conditional on something this checker does not model, so it is
 # refused rather than guessed at.
-_BLOCK_OPENERS = ("if ", "case ", "while ", "until ", "for ", "select ")
+_BLOCK_OPENERS = frozenset(
+    {"if", "case", "while", "until", "for", "select", "else", "elif"}
+)
+
+
+def _bash_path() -> str | None:
+    """Return the bash interpreter, or None where the platform has none."""
+    import shutil
+
+    return shutil.which("bash")
 
 
 def _guard_body(aggregate: str) -> str:
@@ -111,6 +121,12 @@ def _guard_blocks_on_failure(aggregate: str) -> bool:
     this check. That is the documented rule, not an oversight — the guard is
     then not the first statement — and it errs toward reporting a blocking guard
     as unproven rather than the reverse.
+
+    The first two requirements are fail-closed. The third, the reachability
+    scan, is permissive for a line it does not recognize: it passes over such a
+    line and keeps looking for `exit 1`. A heredoc'd exit and a backslash
+    continuation that swallows the next line are both unmodelled and would be
+    accepted; they are not claimed.
     """
     body = [line for line in _guard_body(aggregate).splitlines() if line.strip()]
     if not body:
@@ -123,11 +139,13 @@ def _guard_blocks_on_failure(aggregate: str) -> bool:
             return False
         if stripped == "exit 1":
             return True
-        # `else`/`elif` put the exit on a branch bash need not take: the advisory
-        # echo goes in the `then` arm and every suite stops blocking.
-        if stripped == "else" or stripped.startswith("elif "):
+        if stripped.startswith(("(", "{")):
             return False
-        if stripped.startswith(_BLOCK_OPENERS) or stripped.startswith(("(", "{")):
+        # Compared as a token, not a prefix: `else true`, `else # advisory`, and
+        # a tab-separated `elif`/`if`/`while`/`case` all walked past a
+        # spelling-specific test and put the exit on a branch bash need not take.
+        head = stripped.split(maxsplit=1)[0].rstrip(";")
+        if head in _BLOCK_OPENERS:
             return False
     return False
 
@@ -398,6 +416,13 @@ _DIFFERENTIAL_VARIANTS: list[tuple[str, Callable[[str], str]]] = [
         ),
     ),
     (
+        # Proves the condition-equality pin: with `&&`, the first conjunct is
+        # false for a succeeding suite, so the guard is skipped and bash exits 0.
+        # Nothing else in the matrix perturbs the condition line.
+        "or-to-and",
+        lambda body: body.replace("] || [", "] && ["),
+    ),
+    (
         "subshell-or-true",
         lambda body: body.replace("if [", "( if [", 1).replace(
             "\nfi", "\nfi ) || true", 1
@@ -421,15 +446,19 @@ def _differential_failures() -> list[str]:
     rejecting a body bash would also fail is merely conservative.
     """
     import os
-    import shutil
     import subprocess
 
-    if not shutil.which("bash"):
-        # The make-free Windows contributor path is a shipped acceptance
-        # criterion, so a hard shell dependency would fail a gate it has no
-        # business failing. Announced, not silent: an unrun differential must
-        # not read as a passing one.
-        return ["differential: SKIPPED — bash unavailable, shell model unproven"]
+    if _bash_path() is None:
+        # Announced, never fatal. `build_gate_chain.py build-check` is the shipped
+        # make-free Windows contributor entry point, so turning an absent shell
+        # into a gate failure would fail a gate it has no business failing — the
+        # same call the build-check sibling and assert-sast-chain-reachable make.
+        # The success line reports the skip so it cannot read as a pass.
+        print(
+            "differential: SKIPPED — bash unavailable, shell model unproven",
+            file=sys.stderr,
+        )
+        return []
     good = _baseline()
     indented = "\n".join(
         f"          {line}".rstrip() for line in _GUARD_BASE.splitlines()
@@ -461,7 +490,7 @@ def _differential_failures() -> list[str]:
         accepted = not audit(spliced)
         green = (
             subprocess.run(
-                ["bash", "-c", variant],
+                [str(_bash_path()), "-c", variant],
                 env=env,
                 capture_output=True,
                 text=True,
@@ -548,10 +577,16 @@ def self_test() -> int:
         for failure in failures:
             print(f"  - {failure}", file=sys.stderr)
         return 1
+    # Never a static count: an unrun differential must not report agreements.
+    agreed = (
+        f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash"
+        if _bash_path() is not None
+        else "differential skipped, bash unavailable"
+    )
     print(
         f"✓ self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
         f"every one of {len(covered)} assertion families has ≥1 mutation; "
-        f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash"
+        f"{agreed}"
     )
     return 0
 
