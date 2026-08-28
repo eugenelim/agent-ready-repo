@@ -698,22 +698,30 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     return out
 
 
+# Local git metadata and object reads must not indefinitely stall a lint run.
+# This matches the local-git bound used by the work-loop's engine and cohort.
+GIT_TIMEOUT_S = 20.0
+
+
 def resolve_default_base_ref(root: Path) -> str | None:
     """Resolve the diff base ref, preferring `origin/<default-branch>`."""
     try:
         r = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--abbrev-ref", "origin/HEAD"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
-    except FileNotFoundError:
-        return None  # git not installed
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None  # git unavailable or timed out
     if r.returncode == 0 and r.stdout.strip():
         return r.stdout.strip()
     # Fall back to origin/main if it exists.
-    r = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "origin/main"],
-        capture_output=True, text=True, check=False,
-    )
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "origin/main"],
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     return "origin/main" if r.returncode == 0 else None
 
 
@@ -731,19 +739,23 @@ def base_ref_resolves(root: Path, base_ref: str) -> bool:
         probe = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--verify", "--quiet",
              f"{base_ref}^{{commit}}"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
-    except OSError:
-        return False  # git absent: no base ref is resolvable
+    except (OSError, subprocess.TimeoutExpired):
+        return False  # git unavailable: no base ref is resolvable
     return probe.returncode == 0
 
 
 def base_spec_text(root: Path, relpath: str, base_ref: str) -> str | None:
     """Return the spec's content at `base_ref`, or None if absent/unresolvable."""
-    r = subprocess.run(
-        ["git", "-C", str(root), "show", f"{base_ref}:{relpath}"],
-        capture_output=True, text=True, errors="replace", check=False,
-    )
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "show", f"{base_ref}:{relpath}"],
+            capture_output=True, text=True, errors="replace", check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     return r.stdout if r.returncode == 0 else None
 
 
@@ -844,11 +856,11 @@ def _repo_root() -> Path:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
         if r.returncode == 0 and r.stdout.strip():
             return Path(r.stdout.strip())
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         # `git` may be unavailable on PATH; fall through to the
         # script-relative root, which is the intended fallback.
         pass

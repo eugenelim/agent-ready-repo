@@ -122,13 +122,51 @@ def _emit(message: str | None) -> None:
         print(f"loop-cohort: {_diag(message)}")
 
 
+# Matches `loop-engine.py`'s SUBPROCESS_TIMEOUT_S. Not derived from it — these are
+# separate scripts with no shared module — but deliberately the same number, so the
+# two files do not drift into disagreeing about how long a local git call may take.
+GIT_TIMEOUT_S = 20.0
+
+# Environment variables that could redirect git to a foreign repo root.
+_GIT_OVERRIDE_VARS = frozenset({
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+})
+
+
+def _get_repo_root() -> Path:
+    """Return the repository root without caller-controlled Git overrides."""
+    safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+            env=safe_env, timeout=GIT_TIMEOUT_S,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise ValueError(f"could not determine repo root: {exc}") from exc
+    if result.returncode != 0 or not result.stdout.strip():
+        raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
+    return Path(result.stdout.strip()).resolve()
+
+
 def _resolve_spec_dir(raw: str) -> Path:
-    """Resolve <spec-dir> to an absolute path; reject `..` traversal."""
-    p = Path(raw).resolve()
+    """Resolve and confine <spec-dir> to the current repository."""
     parts = Path(raw).parts
     if ".." in parts:
         raise ValueError(f"spec-dir must not contain '..': {raw!r}")
-    return p
+    resolved = Path(raw).resolve()
+    try:
+        repo_root = _get_repo_root()
+    except ValueError as exc:
+        raise ValueError(f"spec-dir confinement check failed: {exc}") from exc
+    try:
+        resolved.relative_to(repo_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"spec-dir must be inside the repository ({repo_root}): {raw!r}"
+        ) from exc
+    return resolved
 
 
 def write_state_atomic(spec_dir: Path, state: dict) -> None:
@@ -231,12 +269,6 @@ def _locked(verb: str):
             return with_state_lock(spec_dir, verb, lambda: fn(args))
         return wrapper
     return decorate
-
-
-# Matches `loop-engine.py`'s SUBPROCESS_TIMEOUT_S. Not derived from it — these are
-# separate scripts with no shared module — but deliberately the same number, so the
-# two files do not drift into disagreeing about how long a git call may take.
-GIT_TIMEOUT_S = 20.0
 
 
 def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
