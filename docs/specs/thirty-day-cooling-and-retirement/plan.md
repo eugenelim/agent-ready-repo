@@ -1,7 +1,7 @@
 # Plan: Thirty-day cooling and retirement
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`
   at `6e984d67b583b36798efddbb2717ce5784572a49` owns cooling policy;
   `docs/architecture/work-intake-and-artifact-routing.md` owns implemented phase

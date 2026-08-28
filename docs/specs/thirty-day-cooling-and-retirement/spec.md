@@ -1,6 +1,6 @@
 # Spec: Thirty-day cooling and retirement
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6 and §9; `close-work-extraction-and-immediate-disposition` (Shipped, live dependency); `semantic-surface-resolver` (Shipped)
@@ -118,28 +118,28 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 
 ### Dates and dueness
 
-- [ ] **AC1 — The offset is always thirty calendar days.** For every row of
+- [x] **AC1 — The offset is always thirty calendar days.** For every row of
   Task 1's date table, `compute_review_on(completed_on, timezone)` returns a
   date exactly 30 calendar days later. The table contains a window holding a
   spring-forward transition, one holding a fall-back transition, one spanning
   29 February, and one holding none of these.
-- [ ] **AC2 — Dueness flips at local midnight in the recorded zone.** For a
+- [x] **AC2 — Dueness flips at local midnight in the recorded zone.** For a
   record with `review_on = 2026-08-31` and `timezone = Asia/Singapore`,
   `is_due` returns `due=False` at 23:59 on 2026-08-30 local, and `due=True` at
   00:00 on 2026-08-31 and at 00:00 on 2026-09-01 — and returns the same three
   answers when each instant is expressed in `UTC`, `America/New_York`, and
   `Australia/Sydney`.
-- [ ] **AC3 — Late closeout keeps the event date.** Enrolling with
+- [x] **AC3 — Late closeout keeps the event date.** Enrolling with
   `completed_on` forty days before the injected instant produces a record whose
   persisted `completed_on` is that supplied date, not the enrolment day, and for
   which `is_due` returns `due=True`.
-- [ ] **AC4 — A due record carries no permission.** `is_due` on a due record
+- [x] **AC4 — A due record carries no permission.** `is_due` on a due record
   returns `permission_granted=False` and `mutated=()`.
-- [ ] **AC5 — Invalid temporal input returns a named code.** A naive `datetime`
+- [x] **AC5 — Invalid temporal input returns a named code.** A naive `datetime`
   returns `naive-clock`; a `timezone` string that `ZoneInfo` cannot resolve —
   whether malformed or absent from the platform database — returns
   `unknown-timezone`. Neither falls back to UTC or the system zone.
-- [ ] **AC6 — `cooling.py` calls no clock.** With import aliases resolved, the
+- [x] **AC6 — `cooling.py` calls no clock.** With import aliases resolved, the
   AST of `packs/core/.apm/skills/close-work/scripts/cooling.py` contains no call
   to `datetime.now`, `datetime.utcnow`, `datetime.today`, `date.today`,
   `time.time`, `time.monotonic`, `time.perf_counter`, or `os.times`, through any
@@ -147,131 +147,135 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 
 ### The record
 
-- [ ] **AC7 — The schema declares the RFC §6 field set as required.** The
+- [x] **AC7 — The schema declares the RFC §6 field set as required.** The
   contract's top-level `required` equals exactly `schema`, `delivery_id`,
   `locator`, `aliases`, `fingerprint`, `disposition`, `post_closeout_result`,
   `completion_event`, `completion_evidence_ref`, `completed_on`, `timezone`,
   `review_on`, `authority`, `confirmation_proof`; and every object node in the
   schema sets `additionalProperties: false` and a non-empty `required`.
-- [ ] **AC8 — An undeclared key refuses at every level.** A payload carrying an
+- [x] **AC8 — An undeclared key refuses at every level.** A payload carrying an
   extra key at the top level, inside `authority.write`, and inside a complete
   `exception` object each return `record-invalid`; an unmodified valid payload
   returns no code.
-- [ ] **AC9 — A missing required key refuses.** Deleting any single member of
+- [x] **AC9 — A missing required key refuses.** Deleting any single member of
   AC7's required set returns `record-invalid`.
-- [ ] **AC10 — Every value is pattern-constrained.** `delivery_id` matches
+- [x] **AC10 — Every value is pattern-constrained.** `delivery_id` matches
   `^[a-z0-9][a-z0-9-]{0,127}$`; `fingerprint` and `confirmation_proof` match
   `^sha256:[0-9a-f]{64}$`; `owner_role` matches `^[a-z][a-z0-9-]{1,63}$`; each
   `*_evidence_ref` matches one of `commit:<40 hex>`, `pr:<digits>`,
   `run:<digits>`. The inputs `a/b`, `..`, `author:jane-doe`, `owner:j.doe`, and
   `approved by a.person@example.com` each return `record-invalid`.
-- [ ] **AC11 — The filename is the delivery ID.** The record for `delivery_id`
+- [x] **AC11 — The filename is the delivery ID.** The record for `delivery_id`
   `X` is `docs/lifecycle/X.json` with no transformation, and loading a file
   whose stem differs from its own `delivery_id` returns `record-invalid`.
-- [ ] **AC12 — Serialization is canonical.** `canonical_bytes` of a payload
+- [x] **AC12 — Serialization is canonical.** `canonical_bytes` of a payload
   whose keys are supplied in shuffled order equals `canonical_bytes` of the same
   payload sorted, ends with a single `\n`, and re-serializing a loaded record
   reproduces the input bytes. A payload containing `NaN` or `Infinity` returns
   `record-invalid`.
-- [ ] **AC13 — Oversized and over-nested input refuses without raising.** A
+- [x] **AC13 — Oversized and over-nested input refuses without raising.** A
   schema-valid record padded past 64 KiB and a schema-shaped object nested past
   depth 8 each return `record-invalid`, and neither raises.
 
 ### Enrolment and the write seam
 
-- [ ] **AC14 — Each enrolment precondition has its own code.** Not delivered
+- [x] **AC14 — Each enrolment precondition has its own code.** Not delivered
   returns `not-delivered`; not closed returns `not-closed`; no persistent record
   returns `no-persistent-record`; an unset completion event and each of
   `creation`, `ready`, `edit`, `session-end` return `completion-event-required`.
-- [ ] **AC15 — An unconfirmed destination refuses.** Enrolment with no candidate,
+- [x] **AC15 — An unconfirmed destination refuses.** Enrolment with no candidate,
   or with a candidate whose `destination-selection` confirmation is not
   `confirmed`, returns `destination-unconfirmed` and creates no file.
-- [ ] **AC16 — An absent destination refuses; an absent record does not.**
+- [x] **AC16 — An absent destination refuses; an absent record does not.**
   Enrolment against a destination directory that does not exist returns
   `lifecycle-state-unwritable` and creates no directory; against an existing
   destination with a record file not yet present it returns `enrolled` and the
-  file exists afterwards.
-- [ ] **AC17 — A declared attribute cannot make an unwritable destination
+  file exists afterwards. A record file that is already present returns
+  `record-invalid` and leaves it byte-unchanged, so enrolment cannot overwrite a
+  disposition someone already recorded.
+- [x] **AC17 — A declared attribute cannot make an unwritable destination
   writable.** Enrolment against a destination the process cannot write to
   returns `lifecycle-state-unwritable` and creates no file, and supplying a
   candidate whose `writability` is `writable` returns the same code.
-- [ ] **AC18 — A swapped parent refuses with no bytes anywhere.** When the
+- [x] **AC18 — A swapped parent refuses with no bytes anywhere.** When the
   destination's parent is replaced by a symlink to a directory outside the
   repository root, enrolment returns `unsafe-target`, and neither the link
   target nor the repository contains a new file.
-- [ ] **AC19 — The write is authorized for this exact record.** The binding must
+- [x] **AC19 — The write is authorized for this exact record.** The binding must
   be the object the shipped `_mutation_binding` returned for an issued authority
   fact, with `resource` equal to this record's own locator. An absent binding, a
   well-formed binding that was never issued, one naming a different action, and
   one naming a different resource each return `authority-uncertain` and create no
   file.
-- [ ] **AC20 — Refusals carry a code and nothing else.** Every refusal returned
+- [x] **AC20 — Refusals carry a code and nothing else.** Every refusal returned
   by the write seam is a member of the published code set, and its payload
   contains no absolute path, no `errno`, and no exception text.
-- [ ] **AC21 — A stale `review_on` refuses.** Loading a record whose stored
+- [x] **AC21 — A stale `review_on` refuses.** Loading a record whose stored
   `review_on` differs from `completed_on` plus thirty days in its recorded zone
   returns `record-invalid`.
-- [ ] **AC22 — State changes only along the transition table.** `update_record`
-  accepts exactly the `(disposition, post_closeout_result)` pairs enumerated in
-  the plan's transition table and returns `record-invalid` for every other pair,
-  including every pair whose source is `Retired`.
-- [ ] **AC23 — An update survives the process.** A record enrolled and then
+- [x] **AC22 — State changes only along the transition table, over persisted
+  state.** `update_record` accepts exactly the `(disposition,
+  post_closeout_result)` pairs enumerated in the plan's transition table and
+  returns `record-invalid` for every other pair, including every pair whose
+  source is `Retired`. The pair is read from the record on disk, so a stale or
+  fabricated `prior` cannot drive a transition the table forbids.
+- [x] **AC23 — An update survives the process.** A record enrolled and then
   changed by `update_record` in one process yields identical `canonical_bytes`
   when loaded in another process.
-- [ ] **AC24 — `workspace.toml` holds no cooling state.** Parsed as TOML, it
+- [x] **AC24 — `workspace.toml` holds no cooling state.** Parsed as TOML, it
   contains no key named `cooling`, `review_on`, `completed_on`, or
   `lifecycle_record` at any depth.
 
 ### Identity and deletion permission
 
-- [ ] **AC25 — Identity survives five history shapes.** For each of a squash
+- [x] **AC25 — Identity survives five history shapes.** For each of a squash
   merge, a merge commit, a rebase, a `--depth=1` shallow clone, and a `.git`
   deletion, a record written before the operation returns `identity-verified`
   when checked after it.
-- [ ] **AC26 — A rename keeps the old locator.** After `record_rename`, the
+- [x] **AC26 — A rename keeps the old locator.** After `record_rename`, the
   record's `locator` is the new path and the previous locator is a member of
   `aliases`.
-- [ ] **AC27 — Permission is granted, never inferred.** The seam returns
+- [x] **AC27 — Permission is granted, never inferred.** The seam returns
   `deletion-permitted` only when completion evidence, identity, references, and
   deletion authority are each affirmatively proven; drift returns
   `fingerprint-drift`, an unresolvable locator returns `locator-unresolved`, an
   unresolvable completion-evidence reference returns `missing-history`, and any
   `authority.delete.status` outside the recognized set returns
   `authority-uncertain`.
-- [ ] **AC28 — `missing-history` is about evidence, not Git.** A record whose
+- [x] **AC28 — `missing-history` is about evidence, not Git.** A record whose
   completion-evidence reference cannot be resolved returns `missing-history`,
   and a record in a tree with no `.git` directory but a resolvable reference
   does not.
-- [ ] **AC29 — Persisted authority is a hint, never a grant.** A record whose
+- [x] **AC29 — Persisted authority is a hint, never a grant.** A record whose
   stored `authority.delete.status` is `delegated` but for which no live grant
   resolves at review time returns `authority-uncertain`.
-- [ ] **AC30 — Source authority is not deletion authority.** A record whose
+- [x] **AC30 — Source authority is not deletion authority.** A record whose
   `authority.source.status` is `external-owned` and whose
   `authority.delete.status` is `none` returns `authority-uncertain`.
 
 ### Day-30 review
 
-- [ ] **AC31 — All six answers are required.** Omitting any one of `completion`,
+- [x] **AC31 — All six answers are required.** Omitting any one of `completion`,
   `outputs`, `active_use`, `obligations`, `identity`, or `authority` returns
   `review-incomplete`.
-- [ ] **AC32 — The attestation must carry a human's own answers.** A valid
+- [x] **AC32 — The attestation must carry a human's own answers.** A valid
   attestation restates all six answers exactly, names an approver role different
   from the proposing role, and carries a human evidence reference. An
   attestation missing any of the three, one whose restated answers differ from
   the supplied checks, and one whose approver role equals the proposer each
   return `review-incomplete`.
-- [ ] **AC33 — Approval retires and persists.** Six approving answers produce a
+- [x] **AC33 — Approval retires and persists.** Six approving answers produce a
   record whose `post_closeout_result` is `Retired`, written through
   `update_record` and readable afterwards.
-- [ ] **AC34 — Refusal or uncertainty produces a complete exception.** Any
+- [x] **AC34 — Refusal or uncertainty produces a complete exception.** Any
   `refuse` or `uncertain` answer produces `disposition = retain-exception` with
   `reason`, `owner_role`, and `review_on` all present; omitting any of the three
   returns `exception-envelope-invalid`.
-- [ ] **AC35 — Exception review has exactly four outcomes.**
+- [x] **AC35 — Exception review has exactly four outcomes.**
   `confirm-deletion`, `renew`, `choose-cooling`, and `advisory` are each
   accepted and each map to a pair in the transition table; any other outcome
   returns `exception-envelope-invalid`.
-- [ ] **AC36 — `cooling.py` removes nothing but its own temp file.** With import
+- [x] **AC36 — `cooling.py` removes nothing but its own temp file.** With import
   aliases resolved and receiver variables included, its AST contains no call to
   `os.unlink`, `os.remove`, `os.rmdir`, `os.removedirs`, `Path.unlink`,
   `Path.rmdir`, or `shutil.rmtree`, except the single temp-file cleanup the plan
@@ -279,15 +283,15 @@ AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 
 ### Surfaces
 
-- [ ] **AC37 — The reused primitives are byte-unchanged.** The SHA-256 of
+- [x] **AC37 — The reused primitives are byte-unchanged.** The SHA-256 of
   `surface_resolver.py` and of `file_safety.py` equal the values pinned in
   `tests/roster/test_close_work_extraction_and_immediate_disposition.py`.
-- [ ] **AC38 — No dependency is added.** `pyproject.toml`,
+- [x] **AC38 — No dependency is added.** `pyproject.toml`,
   `packages/*/pyproject.toml`, and `tools/requirements.txt` gain no entry.
-- [ ] **AC39 — Each instructional surface gains and loses a named string.** For
+- [x] **AC39 — Each instructional surface gains and loses a named string.** For
   each of the six file/string pairs enumerated in Task 5, the file contains its
   replacement string and does not contain its superseded string.
-- [ ] **AC40 — The Wave 6/7 boundary is still proven.** The amended Wave 4
+- [x] **AC40 — The Wave 6/7 boundary is still proven.** The amended Wave 4
   roster test asserts the Wave 6/7 boundary sentence, and deleting that sentence
   from the doctrine corpus makes the test fail.
 
@@ -319,6 +323,15 @@ live in [`notes/resolve-vs-surface.md`](notes/resolve-vs-surface.md), not here.
 - Wave 5 depends on Wave 4 only and runs alone. (RFC-0096 §9)
 
 ## Changelog
+
+- 2026-08-28: Shipped. Post-GATES adversarial, security, and quality
+  review; eight sustained blockers repaired. The write seam became a
+  compare-and-swap against persisted state after three reviewers independently
+  showed `Retired` was not terminal; the writer now validates what it serialises;
+  the depth guard became iterative after a 2 KB file exhausted the stack inside
+  it; and the AC13 and AC19 guards were rebuilt after mutation showed both could
+  be deleted with the suite green. AC16 and AC22 gained the persisted-state
+  clauses the repair established.
 
 - 2026-08-27: Opened.
 - 2026-08-27: Pre-EXECUTE adversarial and secure-design review; 27 sustained

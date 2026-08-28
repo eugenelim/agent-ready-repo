@@ -71,9 +71,9 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
 ]
 shipped = [
+  {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
   {path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Portable close-work closeout with separately confirmed immediate disposition", needs = []},
   {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
