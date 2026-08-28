@@ -140,7 +140,7 @@ admission harness in T6, mutation-proven on each conjunct independently: a
 claim group with no declared basis; a `doctrine` group missing `retrieved_at`
 on one source; a `repeated-observed-failures` group whose failures name
 different mechanisms; an `observed-practice` group whose observations share a
-pack; a an `observed-practice` limit carrying its population phrase but not its
+pack; an `observed-practice` limit carrying its population phrase but not its
 scope-bound statement; a topic with a declared but unmeasured exclusive case;
 and a topic body
 authored to reproduce the compiled unpopulated record's marker and section
@@ -288,8 +288,11 @@ added under `.apm/skills/author-or-update-agent-skill/references/`.
 `frame` remains the default and only entry point. `knowledge-provider` is
 reachable only by explicit user transition from `frame`, begins read-only, and
 requires a second transition before any write — the two-gate shape `create` and
-`update` already use. The common contract's safety-and-authority module governs
-every read and write in every mode.
+`update` already use — with one difference this mode cannot inherit: their
+shipped sentence gates at the moment of writing, not at entry, so
+`knowledge-provider` needs its own read-only entry sentence and a separate
+write-authorizing transition. The common contract's safety-and-authority module
+governs every read and write in every mode.
 
 ### Behavior & rules
 
@@ -543,8 +546,10 @@ observed running under `pytest tests/` rather than assumed to.
                   assert group["applicability_limit"] in body
   ```
 
-  `stub: true` — EXECUTE adds the doctrine-side source parity and the
-  distinct-pack independence check.
+  `stub: true` — EXECUTE adds the doctrine-side source parity, the distinct-pack
+  independence check, and a `reviewer`-matches-the-role-or-placeholder-form
+  assertion, the sibling of T3's owner-is-not-a-person check. Without it the
+  form the absence assertion is scoped to rests on nothing.
 
 **Approach:**
 - Classify the three under the erratum. They cite no external source today, so
@@ -606,7 +611,7 @@ must close green.
 
   `stub: true` — `_admitted_topics_from_compiled_tree` excludes the unpopulated
   record by its exact compiled path, never by a shape a topic body could copy;
-  EXECUTE writes both helpers and the six mutations.
+  EXECUTE writes both helpers and the seven mutations.
 
 **Approach:**
 - Derive the admitted set from the compiled tree, never a hand-maintained list.
@@ -618,20 +623,21 @@ must close green.
 **Mutation proofs, each alone:** a claim group with no declared basis; a
 `doctrine` group missing `retrieved_at` on one source; a
 `repeated-observed-failures` group whose two failures name different
-mechanisms; an `observed-practice` group whose two observations share a pack; a
-topic with a declared but unmeasured exclusive case; and a topic body
-reproducing the compiled unpopulated record's marker and section shape at a
-non-root path, which must still be iterated. Each must redden. Restore by
+mechanisms; an `observed-practice` group whose two observations share a pack; an `observed-practice` limit carrying its population phrase but not its
+scope-bound statement; a topic with a declared but unmeasured exclusive case;
+and a topic body reproducing the compiled unpopulated record's marker and
+section shape at a non-root path, which must still be iterated. Each must
+redden. Restore by
 editing bytes and verifying a hash.
 
-**Done when:** the pack suite is green at the three shipped topics and all six
+**Done when:** the pack suite is green at the three shipped topics and all seven
 mutations redden it.
 
 ### T7: The corpus carries the topics whose basis can be evidenced
 
 **Depends on:** T6
 
-**Touches:** packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py, packs/agent-skill-engineering/tests/integration/test_provider_contract.py
+**Touches:** packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/tests/fixtures/router-cases.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py, packs/agent-skill-engineering/tests/pack/test_pack_boundary.py, packs/agent-skill-engineering/tests/integration/test_provider_contract.py
 
 **Tests:**
 - The admission harness is green after the re-measurement that closes this
@@ -667,8 +673,13 @@ mutations redden it.
               assert not pattern.search(text), f"{path}: {pattern.pattern}"
   ```
 
-  `no stub (goal-based regression guard)` — executed at PLAN against the live
-  tree and it **passes**, because nothing under `.apm/` names a repository-only
+  `no stub (goal-based regression guard)`, with a non-vacuity floor and a
+  positive control beside it: assert the walk visited at least as many files as
+  the pack ships under `.apm` today, and that a seeded `docs/specs/` string is
+  detected — otherwise a wrong root, an unlisted suffix, or an empty walk is
+  indistinguishable from compliance, which is the trap this session's
+  "7/7 compile-clean" report fell into. Executed at PLAN against the live tree
+  it **passes**, because nothing under `.apm/` names a repository-only
   path today. It is therefore a guard that must keep passing as T7 and T11 add
   content, not a red stub; the spec classes AC9 goal-based and this records that
   honestly rather than mislabelling a green test. The suffix set matches the
@@ -723,13 +734,15 @@ match.
   compiler projects and the generated per-directory index routes to, and which
   the shipped topic-set assertion does not reach because it globs the concept
   root non-recursively. Name the subdirectory and the record's compiled `kind`.
-- **Split that assertion's two halves.** The same loop that pins the topic-set
-  identity also refuses the `executor:`, `attester:`, `remote:` and `tools:`
-  grant tokens. The identity half stays non-recursive, as the home above
-  intends; the inertness half runs recursively over the concept root, so the
-  first document ever to ship from a nested concept directory is refused the
-  same tokens as every other shipped body. Otherwise this record is the one
-  agent-read body in the pack with no inertness control.
+- **Split that loop's three assertions, not two.** It pins the topic-set
+  identity, then an exact closed-key frontmatter equality, then the
+  `executor:`/`attester:`/`remote:`/`tools:` refusal. Only the token refusal
+  goes recursive: the identity assertion stays non-recursive, as the nested home
+  intends, and the frontmatter equality stays with it, because this record
+  carries its own `kind` and a recursive equality pinned to `type: "Reference"`
+  would redden on its first run. Without that split this record is the one
+  agent-read body in the pack with no inertness control; with a two-way split it
+  would be the one with no frontmatter-shape control either.
 - The admission harness excludes that record **by its exact identity** — one
   record, at that known compiled path — and never by a marker field, section
   shape, or name pattern a topic body could reproduce. State the exclusion
@@ -899,7 +912,8 @@ T8 defers to T9 rather than re-measuring.
 
   `stub: true`, and red today for the right reason: `_mode_bullet_names` returns
   three, and the mode is present in the unavailable block. EXECUTE writes the
-  four helpers, each scoped to a named region — `_mode_bullet` reads that mode's
+  five helpers, each scoped to a named region: `_modules_for` reads the mode's
+  own bullet's `references/` links, and `_mode_bullet` reads that mode's
   own bullet in the Modes list, never the section opener, because
   "`frame` is the default and is read-only" would otherwise satisfy the
   read-only assertion for every mode. Widening any helper's scope must redden
@@ -940,19 +954,31 @@ T8 defers to T9 rather than re-measuring.
   never had.
 
 **Approach:**
-- Add the mode and its four modules; reuse the existing two-gate transition.
-- Remove `knowledge-provider` from `unsupported-mode-cases.json` and move the
-  count floor from six to five in the same commit.
-- Update `test_contract.py` in the same commit: it asserts the exact six-mode
-  set, the mode's absence from the activation description, and the fixture's
-  `reason` and `baseline` strings verbatim in `SKILL.md`, so the fixture
-  strings and their `SKILL.md` counterparts move together.
+- Add the mode and its four modules. **Author the distinct
+  `knowledge-provider` read-only entry sentence and its separate
+  write-authorizing transition; do not extend the shipped sentence.** That
+  sentence gates `create` and `update` at the first write, so adding this mode
+  to it would satisfy the assertion while contradicting read-only entry.
+- Remove `knowledge-provider` from `unsupported-mode-cases.json`. The count
+  floor **relocates** into the stub's
+  `test_mode_fixture_holds_the_reduced_enumeration`; delete the inline
+  `assert len(modes) == 6`, do not edit it in place, so the number is stated
+  once.
+- Update `test_contract.py` in the same commit. Three of its assertions move:
+  the exact six-mode set; the hardcoded unavailable-modes tuple, which still
+  lists `` `knowledge-provider` `` and would otherwise keep passing for the
+  wrong reason once the mode joins the Modes list — the same
+  backticked-substring weakness this task's stub repudiates; and
+  `AUTHOR_ROUTES`, an exact tuple that reddens the moment the four new
+  `references/` modules land. The fixture's `reason` and `baseline` strings and
+  their `SKILL.md` counterparts move together.
 - Keep the token-run matcher unchanged and add the positive control beside it.
 
 **Mutation proofs:** weaken `_names_mode` to return `False` unconditionally —
 the AC11 positive control must fail. Separately widen `_mode_bullet` to return
-the whole Modes section, and widen `_transition_sentence` to match any sentence
-containing "transition" — each must fail, because the
+the whole Modes section, and separately widen `_transition_sentence` to return the FIRST sentence
+containing "transition", which is the shipped one naming only `create` and
+`update` — each must fail, because the
 section opener names `frame` as read-only and would otherwise satisfy it for
 every mode. Restore by editing.
 
@@ -1090,7 +1116,7 @@ layer writes durable state outside the repository, and no migration runs.
 | A shipped topic fits neither basis | T5 cannot state an applicability limit or a governing clause for one of the three | Stop and surface under *Ask first*; do not admit it anyway or weaken the rule |
 | The named reviewer becomes a rubber stamp | Every topic records the same reviewer with no recorded reasoning | Accepted and disclosed: the erratum makes soundness a judgment, and the QA record names who made it per topic rather than implying a test proved it |
 | Retrieval regresses as the corpus grows | A pinned foundation pair's measured set moves | Per-case gate against a fixture no re-record writes |
-| The admission harness is satisfied by construction | It stays green under a topic added without evidence | Six independent mutation proofs, one per conjunct, including a `doctrine` group missing `retrieved_at` and a body copying the unpopulated record's shape |
+| The admission harness is satisfied by construction | It stays green under a topic added without evidence | Seven independent mutation proofs, one per conjunct, including a `doctrine` group missing `retrieved_at` and a body copying the unpopulated record's shape |
 | The corpus becomes an encyclopedia | The generic-engineering negative set returns bodies | The RFC's own 5%-of-40 falsifier is a gate |
 | The census records boilerplate as evidence | A family's count is dominated by inherited sections | The census is taken under review, not by pattern match |
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
@@ -1222,3 +1248,25 @@ layer writes durable state outside the repository, and no migration runs.
   intended direction even so — prose asserting obligations went down, executable
   claims went up, and the seventh stub is code that compiles and fails rather
   than a sentence that cannot. The spec has not changed since approval.
+- 2026-08-28: revision 10. Fix-verification pass on revision 9's eleven fixes,
+  which returned four blockers — every one the same defect: a fact stated at
+  several sites, corrected at one. "Six mutations" lived at four sites and moved
+  at one; the `Touches` obligation covered three tasks and landed on two; the
+  two-gate claim lived at three sites and one was corrected while the Design
+  section and T11's Approach still directed the reuse the new Tests bullet
+  forbids. An adjudication record compounded it by recording the `Touches` fix
+  as applied to all three when it reached two; that record now carries its own
+  correction. This revision applies each fix at every site and shows the
+  before/after counts rather than asserting completion.
+  Substantive changes beyond the multi-site sweep: T8's split is three
+  assertions, not two — only the grant-token refusal goes recursive, because the
+  frontmatter equality is pinned to `type: "Reference"` and would redden on the
+  unpopulated record's own `kind`; T11 names the two shipped assertions it
+  breaks, the hardcoded unavailable-modes tuple and the exact `AUTHOR_ROUTES`
+  tuple; the AC11 count floor relocates into the stub rather than being edited
+  in place, so the number is stated once; the `_transition_sentence` mutation
+  gains its own kill condition, since the shared one explained only the
+  `_mode_bullet` widening; `reviewer` gains the form assertion its absence check
+  is scoped to; and the AC9 guard gains a non-vacuity floor and a positive
+  control, because a green absence-only walk is indistinguishable from a wrong
+  root — the same trap the earlier "7/7 compile-clean" report fell into.
