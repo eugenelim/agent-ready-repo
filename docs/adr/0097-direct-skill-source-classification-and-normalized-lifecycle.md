@@ -32,6 +32,8 @@ After the resolver returns a confined directory, classify an existing canonical 
 
 **Revisit trigger:** A classification fixture requires a new precedence rule or a recursive/hidden discovery exception.
 
+**2026-08-28 Erratum — trigger fired, decision retained.** RFC-0098 E14 admits `.claude/skills/` as a second collection root and one bounded category level below a collection root, on corpus evidence that the single-root rule refused six of thirteen legitimate sources. This is a hidden-root exception, so the trigger above fired; the decision in §1 is retained because the exception is enumerable at fixed depth rather than recursive, and because E14 adds compensating refusals — ambiguity when both roots are present, and refusal when the source root lies inside the projection target or bears catalogue markers.
+
 ### 2. Normalize through one named entry point
 
 `direct_source.admit_and_normalize` (or its final explicitly named equivalent) owns classification, confined inventory, normalization, and baseline direct admission. Both `validate` and install preflight reach direct classification only through that entry point; an import-boundary construction test enforces this. Canonical `pack.toml + .apm/` paths retain their existing route.
