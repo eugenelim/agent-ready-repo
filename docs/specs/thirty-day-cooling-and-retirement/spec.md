@@ -111,164 +111,209 @@ disposed of here.
 
 ## Testing Strategy
 
-- **Date and dueness arithmetic: TDD.** The clock is an injected argument, so
-  DST transitions, a reader in a different timezone, a leap day, late closeout,
-  and days 29/30/31 are ordinary table cases over pure functions.
-- **Record schema and refusals: TDD.** A closed field set bounded at every
-  object level, strict parse, and each fail-closed refusal are compressible
-  rules with stable codes.
-- **Write-seam safety: TDD with real filesystem fixtures.** Confined temporary
-  repositories exercise a swapped parent, an escaping symlink, a non-regular
-  target, a real permission-denied destination, and an absent surface.
-- **Identity across history shapes: goal-based fixtures over real Git.** Temporary
-  repositories perform a squash merge, a merge commit, a rebase, and a
-  `--depth=1` shallow clone of the same logical artifact; a fifth fixture deletes
-  `.git` entirely. The record is written *before* each topology operation and
-  verified *after* it, so a topology-derived implementation cannot self-verify.
-  Git is never mocked, because a fixture cannot testify about the thing it mocks.
-- **Review outcomes: TDD.** Approval, refusal, each uncertain recheck, and each
-  exception-review outcome are a finite decision table with stable result codes
-  and an asserted empty mutation trace.
-- **Doctrine and boundary agreement: goal-based checks.** The five updated
-  pointers, the shipped skill's own instructions, the amended Wave 4 roster
-  boundary test, catalogue lint and verify, self-host regeneration, and the site
-  and link gates prove the source doctrine and every projection agree.
+Every acceptance criterion below names a concrete input and the exact observable
+it must produce — a refusal code from the published set, a field value, a byte
+comparison, or a resolved symbol set over a named path. That is the falsifiability
+rule for this spec: an AC that cannot name its input and its observation is not
+finished, and no criterion here asserts a property of the code's character.
 
-**Stub coverage.** TDD-mode ACs are stubbed in `plan.md`'s per-task `Tests:`
-subsections. Covered by a compiled red stub: AC1–AC33. `no stub (mode)`: AC34–AC37
-(Task 5, goal-based and manual QA). Uncovered: none.
+- **Dates, dueness, record shape, enrolment, the write seam, identity, and
+  review: TDD.** The clock and the current instant are injected arguments and
+  every outcome is a code or a value, so each criterion is a table of
+  (input → observable) rows over pure or filesystem-bounded functions.
+- **Identity across history shapes: TDD with real Git fixtures.** Five temporary
+  repositories perform a real squash merge, merge commit, rebase, `--depth=1`
+  shallow clone, and a `.git` deletion. The record is written *before* each
+  operation and verified *after* it, so an implementation deriving identity from
+  commit topology cannot self-verify. Git is never mocked.
+- **Absence criteria: AST over a named path with an enumerated symbol set.**
+  AC6 and AC36 each name one file and one closed set of call targets, resolved
+  through the module's import bindings. Both carry a mutation proof using a
+  receiver-variable form, not the literal form the matcher already sees.
+- **Surfaces: goal-based string pairs.** AC39 enumerates each file with the
+  string it must gain and the string it must lose, so it fails on a missed file
+  and on a stale claim.
+
+**Stub coverage.** TDD-mode criteria are stubbed in `plan.md`'s per-task
+`Tests:` subsections. Compiled red stubs: AC1–AC36. `no stub (mode)`:
+AC37–AC40 (Task 5, goal-based and manual QA). Uncovered: none.
 
 ## Acceptance Criteria
 
 ### Dates and dueness
 
-- [ ] **AC1 — `review_on` is thirty calendar days.** For a record whose
-  `completed_on` is a date in a recorded IANA timezone, `review_on` equals that
-  date plus thirty calendar days.
-- [ ] **AC2 — The arithmetic is calendar-based, not interval-based.** A
-  `completed_on` whose window contains a DST transition in the recorded zone
-  still yields `review_on == completed_on + 30 calendar days`, the same offset
-  as a window containing no transition.
-- [ ] **AC3 — Dueness is evaluated in the recorded zone.** Readers whose local
-  zones differ from the recorded zone and from each other receive the same
-  dueness answer for the same record and the same instant.
-- [ ] **AC4 — Day 29 is not due; days 30 and 31 are.** Dueness flips at local
-  midnight on `review_on` in the recorded zone.
-- [ ] **AC5 — Late closeout preserves the event date.** Enrolling with a
-  `completed_on` already more than thirty days in the past yields a record that
-  is immediately due and whose persisted `completed_on` equals the supplied
-  event date rather than the enrolment day.
-- [ ] **AC6 — Due grants no permission.** A due record returns no deletion
-  permission and an empty mutation trace.
-- [ ] **AC7 — The clock is injected.** Every seam that needs the current instant
-  accepts it as a timezone-aware argument; a naive argument refuses, and no Wave
-  5 module reads the system clock.
+- [ ] **AC1 — The offset is always thirty calendar days.** For every row of
+  Task 1's date table, `compute_review_on(completed_on, timezone)` returns a
+  date exactly 30 calendar days later. The table contains a window holding a
+  spring-forward transition, one holding a fall-back transition, one spanning
+  29 February, and one holding none of these.
+- [ ] **AC2 — Dueness flips at local midnight in the recorded zone.** For a
+  record with `review_on = 2026-08-31` and `timezone = Asia/Singapore`,
+  `is_due` returns `due=False` at 23:59 on 2026-08-30 local, and `due=True` at
+  00:00 on 2026-08-31 and at 00:00 on 2026-09-01 — and returns the same three
+  answers when each instant is expressed in `UTC`, `America/New_York`, and
+  `Australia/Sydney`.
+- [ ] **AC3 — Late closeout keeps the event date.** Enrolling with
+  `completed_on` forty days before the injected instant produces a record whose
+  persisted `completed_on` is that supplied date, not the enrolment day, and for
+  which `is_due` returns `due=True`.
+- [ ] **AC4 — A due record carries no permission.** `is_due` on a due record
+  returns `permission_granted=False` and `mutated=()`.
+- [ ] **AC5 — Invalid temporal input returns a named code.** A naive `datetime`
+  returns `naive-clock`; a `timezone` string that `ZoneInfo` cannot resolve —
+  whether malformed or absent from the platform database — returns
+  `unknown-timezone`. Neither falls back to UTC or the system zone.
+- [ ] **AC6 — `cooling.py` calls no clock.** With import aliases resolved, the
+  AST of `packs/core/.apm/skills/close-work/scripts/cooling.py` contains no call
+  to `datetime.now`, `datetime.utcnow`, `datetime.today`, `date.today`,
+  `time.time`, `time.monotonic`, `time.perf_counter`, or `os.times`, through any
+  receiver.
 
 ### The record
 
-- [ ] **AC8 — The record's keys are exactly what the contract declares.** At
-  every object level, the published schema is the enumeration; any key it does
-  not declare refuses the write.
-- [ ] **AC9 — Exclusion is structural, not detected.** `confirmation_proof` is
-  an opaque digest, every evidence reference is a bounded non-personal
-  reference, and `owner_role` is a pattern-constrained role, so requirements,
-  personal identity, and rationale cannot be expressed rather than being
-  screened for.
-- [ ] **AC10 — The record has one canonical serialization.** Re-serializing a
-  loaded record is byte-identical, and a non-finite numeric value refuses with
+- [ ] **AC7 — The schema declares the RFC §6 field set as required.** The
+  contract's top-level `required` equals exactly `schema`, `delivery_id`,
+  `locator`, `aliases`, `fingerprint`, `disposition`, `post_closeout_result`,
+  `completion_event`, `completion_evidence_ref`, `completed_on`, `timezone`,
+  `review_on`, `authority`, `confirmation_proof`; and every object node in the
+  schema sets `additionalProperties: false` and a non-empty `required`.
+- [ ] **AC8 — An undeclared key refuses at every level.** A payload carrying an
+  extra key at the top level, inside `authority.write`, and inside a complete
+  `exception` object each return `record-invalid`; an unmodified valid payload
+  returns no code.
+- [ ] **AC9 — A missing required key refuses.** Deleting any single member of
+  AC7's required set returns `record-invalid`.
+- [ ] **AC10 — Every value is pattern-constrained.** `delivery_id` matches
+  `^[a-z0-9][a-z0-9-]{0,127}$`; `fingerprint` and `confirmation_proof` match
+  `^sha256:[0-9a-f]{64}$`; `owner_role` matches `^[a-z][a-z0-9-]{1,63}$`; each
+  `*_evidence_ref` matches one of `commit:<40 hex>`, `pr:<digits>`,
+  `run:<digits>`. The inputs `a/b`, `..`, `author:jane-doe`, `owner:j.doe`, and
+  `approved by a.person@example.com` each return `record-invalid`.
+- [ ] **AC11 — The filename is the delivery ID.** The record for `delivery_id`
+  `X` is `docs/lifecycle/X.json` with no transformation, and loading a file
+  whose stem differs from its own `delivery_id` returns `record-invalid`.
+- [ ] **AC12 — Serialization is canonical.** `canonical_bytes` of a payload
+  whose keys are supplied in shuffled order equals `canonical_bytes` of the same
+  payload sorted, ends with a single `\n`, and re-serializing a loaded record
+  reproduces the input bytes. A payload containing `NaN` or `Infinity` returns
   `record-invalid`.
-- [ ] **AC11 — Oversized and over-nested input refuses.** A record exceeding the
-  byte ceiling or the nesting bound refuses with `record-invalid` rather than
-  raising.
+- [ ] **AC13 — Oversized and over-nested input refuses without raising.** A
+  schema-valid record padded past 64 KiB and a schema-shaped object nested past
+  depth 8 each return `record-invalid`, and neither raises.
 
-### Enrolment and persistence
+### Enrolment and the write seam
 
-- [ ] **AC12 — Only delivered work enrols.** Enrolment refuses work that is not
-  delivered, not closed, or has no persistent record.
-- [ ] **AC13 — Enrolment needs a selected completion event.** Absent a policy
-  selection, enrolment refuses with a stable code rather than choosing an event.
-- [ ] **AC14 — Only the completion event starts the clock.** Creation, reaching
-  Ready, editing an artifact, and ending a session each refuse to enrol.
-- [ ] **AC15 — Enrolment needs a confirmed candidate destination.** The resolver
-  performs no discovery, so enrolment refuses unless the caller supplies a
-  candidate carrying its evidence and a completed `destination-selection`
-  confirmation.
-- [ ] **AC16 — The destination must already exist; the record need not.** An
-  absent record file is the normal pre-enrolment state, while an absent,
-  unresolvable, unconfined, or read-only destination refuses with
-  `lifecycle-state-unwritable`. Enrolment never creates the destination.
-- [ ] **AC17 — Writability is a filesystem fact.** The read-only refusal is
-  established at the write seam, not from a candidate's declared `writability`
-  attribute, so a candidate that declares itself writable over a genuinely
-  read-only destination still refuses.
-- [ ] **AC18 — The write seam re-confines immediately before mutation.** A
-  parent swapped for a symlink, an escaping destination, or a non-regular target
-  detected at that point refuses with `unsafe-target` and zero effects.
-- [ ] **AC19 — Every record mutation is authorized before it happens.** A
-  record-mutating seam validates a write-scoped authority binding first, and
-  refuses with `authority-uncertain` and an empty mutation trace when it is
-  absent, uncertain, or names a different action or resource.
-- [ ] **AC20 — A record loaded from disk is revalidated in full.** Every field,
-  not only externally originating claims, is re-checked at the seam that acts on
-  it.
-- [ ] **AC21 — Stored state must be internally consistent.** `review_on` is
-  re-derived from `completed_on` and `timezone` on load, and a disposition may
-  move only forward; a mismatch or a backward move refuses with `record-invalid`.
-- [ ] **AC22 — The record persists across sessions.** A record written in one
-  process is loaded field-equivalently in another.
-- [ ] **AC23 — `workspace.toml` gains no cooling schema.** It may carry a
-  pointer to the lifecycle destination and nothing else.
+- [ ] **AC14 — Each enrolment precondition has its own code.** Not delivered
+  returns `not-delivered`; not closed returns `not-closed`; no persistent record
+  returns `no-persistent-record`; an unset completion event and each of
+  `creation`, `ready`, `edit`, `session-end` return `completion-event-required`.
+- [ ] **AC15 — An unconfirmed destination refuses.** Enrolment with no candidate,
+  or with a candidate whose `destination-selection` confirmation is not
+  `confirmed`, returns `destination-unconfirmed` and creates no file.
+- [ ] **AC16 — An absent destination refuses; an absent record does not.**
+  Enrolment against a destination directory that does not exist returns
+  `lifecycle-state-unwritable` and creates no directory; against an existing
+  destination with a record file not yet present it returns `enrolled` and the
+  file exists afterwards.
+- [ ] **AC17 — A declared attribute cannot make an unwritable destination
+  writable.** Enrolment against a destination the process cannot write to
+  returns `lifecycle-state-unwritable` and creates no file, and supplying a
+  candidate whose `writability` is `writable` returns the same code.
+- [ ] **AC18 — A swapped parent refuses with no bytes anywhere.** When the
+  destination's parent is replaced by a symlink to a directory outside the
+  repository root, enrolment returns `unsafe-target`, and neither the link
+  target nor the repository contains a new file.
+- [ ] **AC19 — The write is authorized for this exact record.** The binding must
+  be the object the shipped `_mutation_binding` returned for an issued authority
+  fact, with `resource` equal to this record's own locator. An absent binding, a
+  well-formed binding that was never issued, one naming a different action, and
+  one naming a different resource each return `authority-uncertain` and create no
+  file.
+- [ ] **AC20 — Refusals carry a code and nothing else.** Every refusal returned
+  by the write seam is a member of the published code set, and its payload
+  contains no absolute path, no `errno`, and no exception text.
+- [ ] **AC21 — A stale `review_on` refuses.** Loading a record whose stored
+  `review_on` differs from `completed_on` plus thirty days in its recorded zone
+  returns `record-invalid`.
+- [ ] **AC22 — State changes only along the transition table.** `update_record`
+  accepts exactly the `(disposition, post_closeout_result)` pairs enumerated in
+  the plan's transition table and returns `record-invalid` for every other pair,
+  including every pair whose source is `Retired`.
+- [ ] **AC23 — An update survives the process.** A record enrolled and then
+  changed by `update_record` in one process yields identical `canonical_bytes`
+  when loaded in another process.
+- [ ] **AC24 — `workspace.toml` holds no cooling state.** Parsed as TOML, it
+  contains no key named `cooling`, `review_on`, `completed_on`, or
+  `lifecycle_record` at any depth.
 
-### Identity
+### Identity and deletion permission
 
-- [ ] **AC24 — Identity survives every history shape.** The same logical
-  artifact verifies after a squash merge, a merge commit, a rebase, and a
-  `--depth=1` shallow clone, and verifies with `.git` removed entirely.
-- [ ] **AC25 — A rename updates the locator and keeps prior aliases.** After a
-  rename the record's locator is the new path and the previous locator is
-  retained as an alias.
-- [ ] **AC26 — Four conditions block deletion.** Missing history, fingerprint
-  drift, an unresolved reference, and uncertain authority each block deletion
-  with a distinct stable code.
-- [ ] **AC27 — Source authority never implies deletion authority.** A record
-  whose source authority covers an external spec and whose deletion authority is
-  absent blocks deletion.
+- [ ] **AC25 — Identity survives five history shapes.** For each of a squash
+  merge, a merge commit, a rebase, a `--depth=1` shallow clone, and a `.git`
+  deletion, a record written before the operation returns `identity-verified`
+  when checked after it.
+- [ ] **AC26 — A rename keeps the old locator.** After `record_rename`, the
+  record's `locator` is the new path and the previous locator is a member of
+  `aliases`.
+- [ ] **AC27 — Permission is granted, never inferred.** The seam returns
+  `deletion-permitted` only when completion evidence, identity, references, and
+  deletion authority are each affirmatively proven; drift returns
+  `fingerprint-drift`, an unresolvable locator returns `locator-unresolved`, an
+  unresolvable completion-evidence reference returns `missing-history`, and any
+  `authority.delete.status` outside the recognized set returns
+  `authority-uncertain`.
+- [ ] **AC28 — `missing-history` is about evidence, not Git.** A record whose
+  completion-evidence reference cannot be resolved returns `missing-history`,
+  and a record in a tree with no `.git` directory but a resolvable reference
+  does not.
+- [ ] **AC29 — Persisted authority is a hint, never a grant.** A record whose
+  stored `authority.delete.status` is `delegated` but for which no live grant
+  resolves at review time returns `authority-uncertain`.
+- [ ] **AC30 — Source authority is not deletion authority.** A record whose
+  `authority.source.status` is `external-owned` and whose
+  `authority.delete.status` is `none` returns `authority-uncertain`.
 
 ### Day-30 review
 
-- [ ] **AC28 — Day-30 review rechecks six things.** Review requires an explicit
-  answer for completion, outputs, active use, obligations, identity, and
-  authority; a missing answer refuses.
-- [ ] **AC29 — The six answers must be human-attested.** An answer or exception
-  envelope carrying only model-proposed input refuses with `review-incomplete`.
-- [ ] **AC30 — Approval retires.** A review whose six answers all approve
-  returns a `Retired` post-closeout result.
-- [ ] **AC31 — Refusal or uncertainty creates an exception.** Either outcome
-  returns a `retain-exception` record carrying a bounded reason, an owner role,
-  and a human-supplied review date.
-- [ ] **AC32 — An exception is itself reviewable.** Exception review offers its
-  owner exactly four outcomes: confirm immediate deletion, renew retention with
-  a new date, choose eligible cooling, or select advisory treatment.
-- [ ] **AC33 — Day 30 never deletes.** No Wave 5 seam removes a file; an
-  approved deletion is performed only by Wave 4's unchanged `preview_deletion`,
-  `confirm_deletion`, and `apply_confirmed_deletion`.
+- [ ] **AC31 — All six answers are required.** Omitting any one of `completion`,
+  `outputs`, `active_use`, `obligations`, `identity`, or `authority` returns
+  `review-incomplete`.
+- [ ] **AC32 — The attestation must carry a human's own answers.** A valid
+  attestation restates all six answers exactly, names an approver role different
+  from the proposing role, and carries a human evidence reference. An
+  attestation missing any of the three, one whose restated answers differ from
+  the supplied checks, and one whose approver role equals the proposer each
+  return `review-incomplete`.
+- [ ] **AC33 — Approval retires and persists.** Six approving answers produce a
+  record whose `post_closeout_result` is `Retired`, written through
+  `update_record` and readable afterwards.
+- [ ] **AC34 — Refusal or uncertainty produces a complete exception.** Any
+  `refuse` or `uncertain` answer produces `disposition = retain-exception` with
+  `reason`, `owner_role`, and `review_on` all present; omitting any of the three
+  returns `exception-envelope-invalid`.
+- [ ] **AC35 — Exception review has exactly four outcomes.**
+  `confirm-deletion`, `renew`, `choose-cooling`, and `advisory` are each
+  accepted and each map to a pair in the transition table; any other outcome
+  returns `exception-envelope-invalid`.
+- [ ] **AC36 — `cooling.py` removes nothing but its own temp file.** With import
+  aliases resolved and receiver variables included, its AST contains no call to
+  `os.unlink`, `os.remove`, `os.rmdir`, `os.removedirs`, `Path.unlink`,
+  `Path.rmdir`, or `shutil.rmtree`, except the single temp-file cleanup the plan
+  names by line.
 
-### Boundaries and surfaces
+### Surfaces
 
-- [ ] **AC34 — The reused primitives are byte-unchanged.** `surface_resolver.py`
-  and `file_safety.py` end this wave with their pinned digests intact.
-- [ ] **AC35 — No runtime dependency is added.** Every date, timezone, hashing,
-  and serialization operation uses the standard library.
-- [ ] **AC36 — The instructional surfaces state shipped behaviour.** The how-to,
-  the lifecycle reference table header and `cool-30-days` row, the workspace
-  schema reference, the pack README, and `close-work/SKILL.md`'s disposition
-  row, deterministic-seam sentence, and timer prohibition no longer say cooling
-  stops at classification.
-- [ ] **AC37 — The Wave 6 and Wave 7 boundary survives.** The doctrine
-  corpus still states, unweakened, that workspace-status projection,
-  ordinary-context exclusion, migration, and pruning are not implemented, and
-  the amended Wave 4 roster test still fails if that statement is removed or
-  weakened.
+- [ ] **AC37 — The reused primitives are byte-unchanged.** The SHA-256 of
+  `surface_resolver.py` and of `file_safety.py` equal the values pinned in
+  `tests/roster/test_close_work_extraction_and_immediate_disposition.py`.
+- [ ] **AC38 — No dependency is added.** `pyproject.toml`,
+  `packages/*/pyproject.toml`, and `tools/requirements.txt` gain no entry.
+- [ ] **AC39 — Each instructional surface gains and loses a named string.** For
+  each of the six file/string pairs enumerated in Task 5, the file contains its
+  replacement string and does not contain its superseded string.
+- [ ] **AC40 — The Wave 6/7 boundary is still proven.** The amended Wave 4
+  roster test asserts the Wave 6/7 boundary sentence, and deleting that sentence
+  from the doctrine corpus makes the test fail.
 
 ## Assumptions
 
