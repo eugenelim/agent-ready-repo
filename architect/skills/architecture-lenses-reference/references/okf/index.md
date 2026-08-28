@@ -10,5 +10,5 @@ okf_version: "0.2"
 - [concepts/operating-model-patterns](concepts/operating-model-patterns/index.md) - 3 concepts
 - [concepts/quality-lenses](concepts/quality-lenses/index.md) - 8 concepts
 - [concepts/system-shapes](concepts/system-shapes/index.md) - 6 concepts
-- [concepts/workload-lenses/genai-agentic](concepts/workload-lenses/genai-agentic/index.md) - 5 concepts
 - [concepts/workload-lenses](concepts/workload-lenses/index.md) - 5 concepts
+- [concepts/workload-lenses/genai-agentic](concepts/workload-lenses/genai-agentic/index.md) - 5 concepts
