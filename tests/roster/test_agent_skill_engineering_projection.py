@@ -12,6 +12,8 @@ and are revalidated at the receiving surface" clause is about.
 
 from __future__ import annotations
 
+import importlib
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -34,32 +36,57 @@ def _boundaries(path: Path) -> list[str]:
     return list(parsed["metadata"]["boundaries"])
 
 
-@pytest.fixture(scope="module")
-def projected(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
-    """Project the pack once through the real claude-code adapter."""
+def _declared_adapters() -> list[str]:
+    """The adapters `pack.toml` actually declares.
 
-    from agentbundle.build.adapters.claude_code import project
+    Resolved from the manifest rather than hard-coded, so widening
+    `allowed-adapters` cannot outrun the boundary check AC17 attaches to it.
+    """
+
+    manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    return list(manifest["pack"]["install"]["allowed-adapters"])
+
+
+def _project(adapter: str, out: Path) -> dict[str, Path]:
     from agentbundle.build.contract import load as load_contract
 
-    out = tmp_path_factory.mktemp("ase-projection")
-    project(PACK_ROOT, load_contract(REPO_ROOT / "contracts" / "adapter.toml"), out)
+    module = importlib.import_module(
+        f"agentbundle.build.adapters.{adapter.replace('-', '_')}"
+    )
+    module.project(PACK_ROOT, load_contract(REPO_ROOT / "contracts" / "adapter.toml"), out)
     return {path.parent.name: path for path in out.rglob("SKILL.md")}
 
 
-def test_projection_emits_every_declared_skill(projected: dict[str, Path]) -> None:
-    assert set(projected) == set(EXPECTED_BOUNDARIES)
+def test_every_declared_adapter_has_a_projector() -> None:
+    """A declared adapter with no importable projector is an unprovable claim."""
+
+    for adapter in _declared_adapters():
+        importlib.import_module(
+            f"agentbundle.build.adapters.{adapter.replace('-', '_')}"
+        )
 
 
-@pytest.mark.parametrize("skill", sorted(EXPECTED_BOUNDARIES))
-def test_declared_boundaries_survive_projection(
-    skill: str, projected: dict[str, Path]
+@pytest.mark.parametrize("adapter", _declared_adapters())
+def test_projection_emits_every_declared_skill(
+    adapter: str, tmp_path: Path
 ) -> None:
-    assert _boundaries(projected[skill]) == EXPECTED_BOUNDARIES[skill]
+    assert set(_project(adapter, tmp_path)) == set(EXPECTED_BOUNDARIES)
 
 
+@pytest.mark.parametrize("adapter", _declared_adapters())
+def test_declared_boundaries_survive_projection(
+    adapter: str, tmp_path: Path
+) -> None:
+    projected = _project(adapter, tmp_path)
+    for skill, expected in EXPECTED_BOUNDARIES.items():
+        assert _boundaries(projected[skill]) == expected, (adapter, skill)
+
+
+@pytest.mark.parametrize("adapter", _declared_adapters())
 def test_router_gains_no_write_authority_in_projection(
-    projected: dict[str, Path],
+    adapter: str, tmp_path: Path
 ) -> None:
     """The inert router must not acquire `filesystem_write` on the way out."""
 
+    projected = _project(adapter, tmp_path)
     assert "filesystem_write" not in projected[ROUTER_SKILL].read_text(encoding="utf-8")

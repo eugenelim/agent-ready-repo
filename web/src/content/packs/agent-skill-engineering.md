@@ -16,7 +16,7 @@ review are read-only; every write, and every optimization, needs its own
 explicit authorization, and an optimization needs an observed failure or a
 measured baseline before it starts.
 
-Three governed reference topics cover trigger quality, progressive disclosure,
+Three governed foundation topics cover trigger quality, progressive disclosure,
 and deterministic script and exit contracts. When a compatible knowledge
 provider is available the workflows call it explicitly; when none is, they keep
 their full baseline rather than guessing. Candidate files and provider replies

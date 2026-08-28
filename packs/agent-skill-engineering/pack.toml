@@ -8,6 +8,14 @@ license = "Apache-2.0 OR MIT"
 categories = ["ai-agent", "documentation", "testing"]
 keywords = ["agent-skills", "skill-authoring", "skill-review", "progressive-disclosure"]
 
+# The published marketplace entry derives its `author` from the first
+# maintainer, and tests/conformance/test_pack_metadata.py requires one for
+# every non-underscore pack, so a published pack without this ships
+# unattributed.
+[[pack.maintainers]]
+name = "eugenelim"
+email = "eugenelim@users.noreply.github.com"
+
 # Catalogue-facing links. `repository` is what derives the marketplace entry's
 # `source`, so a user-capable pack without it publishes an entry a client
 # cannot fetch. `documentation` points at the pack README until the planned

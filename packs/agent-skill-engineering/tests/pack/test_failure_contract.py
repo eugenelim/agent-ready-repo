@@ -34,6 +34,16 @@ FAILURE_IDS = (
 )
 # A retained-state contract is one of exactly these: nothing was kept, something
 # recoverable was kept and must be reported, or a temporary path survived.
+# AC19 calls this the "stable exit/refusal class", so it is pinned the way
+# `retained_state` is — an invented or mistyped class must not ship silently.
+EXIT_CLASSES = {
+    "refused-target",
+    "refused-authority",
+    "refused-confinement",
+    "incomplete-write",
+    "unverified",
+    "incomplete-cleanup",
+}
 RETAINED_STATES = {
     "none",
     "recoverable-partial",
@@ -78,6 +88,7 @@ def test_each_failure_class_carries_its_four_part_contract(case_id: str) -> None
     case = _cases()[case_id]
     for field in REQUIRED_FIELDS:
         assert isinstance(case.get(field), str) and case[field].strip(), field
+    assert case["exit_class"] in EXIT_CLASSES, case["exit_class"]
     assert case["retained_state"] in RETAINED_STATES
     # A resume line must say what the agent does next, not merely restate the
     # failure, so it has to be longer than the diagnostic it accompanies.
@@ -99,3 +110,6 @@ def test_retained_state_classes_are_reachable_and_distinct() -> None:
 
     used = {case["retained_state"] for case in _cases().values()}
     assert used == RETAINED_STATES
+    # Same reachability rule for the exit vocabulary: an unused member would
+    # describe a contract the pack does not actually declare.
+    assert {case["exit_class"] for case in _cases().values()} == EXIT_CLASSES

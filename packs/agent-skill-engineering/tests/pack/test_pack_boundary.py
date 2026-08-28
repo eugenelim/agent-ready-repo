@@ -49,6 +49,9 @@ def test_external_manifest_contains_registration_not_workflow_behavior() -> None
         # Catalogue-facing links; `repository` is what derives the marketplace
         # entry's `source`, without which the published install cannot fetch.
         "links",
+        # Required of every non-underscore pack by tests/conformance, and the
+        # source of the published marketplace entry's `author`.
+        "maintainers",
     }
     serialized = (PACK_ROOT / "pack.toml").read_text(encoding="utf-8").lower()
     for forbidden in ("procedure", "canonicalize", "provider response", "credential"):

@@ -277,8 +277,13 @@ behavioral or artifact contract instead.
 - [ ] **AC21 — External delivery wrapper only.** Any minimal manifest needed to
   register and build the pack uses the repository's existing external pack
   format and contains no portable workflow behavior. This slice does not
-  define or change AgentBundle manifests, adapters, projections, installation,
-  publication, catalogue admission, or catalogue governance. The repository's
+  define or change the *mechanisms* of AgentBundle manifests, adapter code,
+  projection code, installation, publication, or catalogue-admission rules. It
+  does add this pack's own publication *records* — a `.claude-plugin/plugin.json`,
+  the generated `.claude-plugin/marketplace.json` entry that manifest produces,
+  and membership of `tools/lint-plugin-roster.PUBLISHED` — because the pack
+  declares user scope and those records are what make the advertised install
+  resolve. The repository's
   required build gates additionally demand one catalogue-parity record per
   pack: a `web/src/content/packs/<slug>.md` page whose `pluginInstallable`
   mirrors `allowed-scopes`, and a guide-index entry or a recorded exemption.
@@ -290,8 +295,9 @@ behavioral or artifact contract instead.
   no manifest renders a command that cannot resolve (owner decision
   2026-08-27, reversing this slice's earlier no-manifest non-goal). The
   manifest carries name, version, and description only — no portable workflow
-  behavior — and adapters, projections, installation, publication, catalogue
-  admission, and catalogue governance remain unchanged. The public guide
+  behavior — and no adapter, projection, installation, publication, or
+  catalogue-governance *mechanism* is altered: this pack is registered through
+  the existing ones. The public guide
   belongs to a later planned documentation slice; until it exists the page's
   `docsUrl` resolves to the guides index rather than to a page that would 404.
 - [ ] **AC22 — Release gate.** The M1 corpus/router and workflow behavior gates

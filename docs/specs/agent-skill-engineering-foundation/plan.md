@@ -52,8 +52,12 @@ and contract-type decision rather than adding an incidental schema.
   `workspace.toml` until implementation evidence closes them. They block corpus
   generation, not spec approval.
 - No new third-party dependency, top-level directory, adapter behavior,
-  projection behavior, publication path, catalogue admission rule, or
-  authentication mechanism is introduced.
+  projection behavior, catalogue admission rule, or authentication mechanism is
+  introduced. Amended 2026-08-27: the pack does register through the existing
+  publication path — a `.claude-plugin/plugin.json`, its generated marketplace
+  entry, and published-roster membership — per the owner decision recorded in
+  AC21. The publication *mechanism* is unchanged; only this pack's records are
+  added.
 - Repository tests stay strict when cleanup is restricted; tests use confined
   task-local temporary roots and assert retained-state behavior instead of
   weakening the contract.
@@ -640,8 +644,11 @@ lands first; portable workflows and corpus layers then land behind no activation
 alias beyond their explicit descriptions; provider integration remains optional
 and fail-closed; the final task proves the built pack. Rollback removes or
 reverts the new pack as a unit and leaves the compiler hardening in place. No
-infrastructure, service account, secret, network permission, migration, adapter
-cutover, publication, or automatic installation is part of this plan.
+infrastructure, service account, secret, network permission, migration, or
+adapter cutover is part of this plan. Publication is limited to registering
+this pack through the existing route (AC21, owner decision 2026-08-27); no
+automatic installation occurs, and rollback removes those records with the
+pack.
 
 ## Risks
 
@@ -659,8 +666,10 @@ cutover, publication, or automatic installation is part of this plan.
 - Generated output can hide unsafe metadata or host-dependent ordering. T1,
   hostile fixtures, byte comparison, and staged-tree confinement block release.
 - New pack work could accidentally absorb AgentBundle delivery design. The
-  manifest is treated as an external wrapper and adapter/catalogue changes are
-  prohibited by both spec and plan.
+  manifests are treated as external wrappers carrying registration metadata
+  only; adapter, projection, and catalogue-admission *code* changes remain
+  prohibited by both spec and plan, while this pack's publication records are
+  admitted by AC21.
 
 ## Changelog
 
@@ -668,3 +677,17 @@ cutover, publication, or automatic installation is part of this plan.
 - 2026-08-26: filled the mixed-shape foundation plan after product, slice,
   semantic-contract, and shape confirmation; placed both named OKF defects in
   the blocking dependency graph under their existing canonical ownership.
+- 2026-08-27: recorded the owner's publication reversal. The pack ships
+  `.claude-plugin/plugin.json`, gains its generated marketplace entry, and joins
+  `tools/lint-plugin-roster.PUBLISHED`; Constraints, Rollout, and Risks above are
+  amended to match AC21 rather than contradict it.
+- 2026-08-27: T1's compiler hardening was superseded mid-flight. A peer
+  worktree shipped the index escaping and the `OKF012` regression to main as
+  `catalogue-curation` 0.4.3, closing both AC20 prerequisites there. This branch
+  took main's implementation, deleted its own, and now carries only the
+  provider-capability delta as 0.4.4.
+- 2026-08-27: T6 additionally touches `tools/lint-pack-test-boundary.py` and
+  `Makefile`. The pack's four test directories were named by no runner, and the
+  guard that should have said so enumerated only `tests/skills/`, so closing the
+  instance without widening the guard would have left the next pack silently
+  unrun.

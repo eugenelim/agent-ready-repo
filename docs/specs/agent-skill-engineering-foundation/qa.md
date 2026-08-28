@@ -44,13 +44,20 @@ classification that the observed gate contradicted. It now records
 `evaluation_mode: headless-observed`, transcribed from the summary the eval
 runner wrote at `.eval-workspace/agent-skill-engineering/iteration-<n>/summary.json`.
 
-**How to reproduce it.** Run the command above; it writes that summary. Copy
-each skill's per-query outcome into `activation-results.json`, setting `actual`
-to the skill that fired (or `null`), and re-stamp `skill_digest` and
-`query_fixture_digest` from the files the run projected. The construction test
-in `tests/pack/test_pack_boundary.py` then fails unless every case matches its
-expectation with `errored_runs == 0` and no exclusivity violation, so a
-transcription that flatters the run does not pass.
+**How to reproduce it, and what the suite does not check.** Run the command
+above; it writes that summary. Copy each skill's per-query outcome into
+`activation-results.json`, setting `actual` to the skill that fired (or
+`null`), and re-stamp `skill_digest` and `query_fixture_digest` from the files
+the run projected.
+
+The transcription is manual and the suite cannot verify it. The construction
+test in `tests/pack/test_pack_boundary.py` compares the transcribed JSON only
+against itself — `actual == expected`, `errored_runs == 0`, bounded
+`exclusivity_violations` — and its digests bind the *inputs* (`SKILL.md`,
+`eval_queries.json`), never the run. So it catches an honestly transcribed
+failing run, and it does not catch a transcription that flatters a failing one.
+What stops that is the digest binding forcing a fresh run whenever a workflow
+file changes, plus this record naming the iteration the numbers came from.
 
 An earlier revision of this record claimed the artifact had a generator that
 "refuses to write at all unless the run is clean". No such script is committed;

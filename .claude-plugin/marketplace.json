@@ -6,6 +6,10 @@
   },
   "plugins": [
     {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
       "category": "ai-agent",
       "description": "Frame, create, update, review, and optimize portable agent skills with governed reference knowledge.",
       "displayName": "Agent Skill Engineering",
