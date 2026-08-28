@@ -1,7 +1,7 @@
 # Plan: Thirty-day cooling and retirement
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`
   at `6e984d67b583b36798efddbb2717ce5784572a49` owns cooling policy;
   `docs/architecture/work-intake-and-artifact-routing.md` owns implemented phase
@@ -64,12 +64,12 @@ Anchor tests, with the reason each is expected to redden:
 | Anchor | Why it moves |
 | --- | --- |
 | `tests/roster/test_wave4_durable_outputs_and_release.py` | three pack-version literals; two Wave-5-owned doctrine sentences |
-| `packs/core/tests/skills/close-work/test_close_work.py` | pins "Do not start a timer" in the shipped skill, which Task 5 rewrites |
+| `packs/core/tests/skills/close-work/test_close_work.py` | pins "Do not start a timer" in the shipped skill, which T5 rewrites |
 | `tests/roster/test_close_work_extraction_and_immediate_disposition.py` | scans every file under `tests/roster/`; the new roster file must not name `action-not-authorized`, `grant-not-authoritative`, or `session-provenance-invalid` |
 | `tools/test_local_ci_shared_test_deduplication.py` | pins node-ID digests for three core lint files — untouched, listed so a surprise is visible |
 | `tools/test_workspace_status.py` | pins a work-loop `SKILL.md` hash — untouched, listed for the same reason |
 
-Two authoring constraints govern Task 5's prose.
+Two authoring constraints govern T5's prose.
 `packs/core/.apm/skills/close-work/SKILL.md` is projected into `.claude/` and
 `.agents/`, so it must cite no `contracts/`, `docs/`, or other repository-only
 path. `tools/lint-guides-no-repo-only-refs.py` rejects any `RFC-NNNN` or
@@ -86,7 +86,7 @@ a line. Projections are regenerated with `env FORCE=1 make build-self`.
 **The filename is the delivery ID with no transformation** — `delivery_id` is
 constrained so that it is already a safe basename, which removes the id→path
 mapping entirely rather than specifying it. `docs/lifecycle/` is created once in
-Task 5 with a `README.md` naming its single writer; enrolment never creates it.
+T5 with a `README.md` naming its single writer; enrolment never creates it.
 
 **Records are Git-tracked.** They must survive across sessions and machines,
 `workspace.toml` may point at them, and Wave 6 projects them. A record written
@@ -240,7 +240,7 @@ claim is bounded to torn reads and is not exercised against simultaneous writers
 
 ## Tasks
 
-### Task 1 — Contract, record shape, and dates
+### T1: Contract, record shape, and dates
 
 **ACs:** AC1–AC13.
 **Verification mode:** TDD.
@@ -544,11 +544,11 @@ def test_oversized_and_over_nested_input_refuses_without_raising() -> None:
 `parse_record_bytes`, `canonical_bytes`, `compute_review_on`, and `is_due` in
 `packs/core/.apm/skills/close-work/scripts/cooling.py`.
 
-### Task 2 — Enrolment, the guarded write seam, and updates
+### T2: Enrolment, the guarded write seam, and updates
 
 **ACs:** AC14–AC24.
 **Verification mode:** TDD.
-**Depends on:** Task 1.
+**Depends on:** T1.
 
 **Tests:** stub: true.
 
@@ -752,11 +752,11 @@ helpers `_enrol_kwargs`, `_destination`, `_update_kwargs`, `_TRANSITION_TABLE`,
 and `_TRANSITION_COMPLEMENT` are built in this task from the transition table
 above; `_TRANSITION_COMPLEMENT` is the full pair product minus the table.
 
-### Task 3 — Identity and deletion permission
+### T3: Identity and deletion permission
 
 **ACs:** AC25–AC30.
 **Verification mode:** TDD with real Git fixtures.
-**Depends on:** Task 2.
+**Depends on:** T2.
 
 **Tests:** stub: true.
 
@@ -843,11 +843,11 @@ artifact size caller-side, and recomputes the fingerprint via
 `file_safety.sha256_confined_regular_file`. `deletion_allowed()` is affirmative.
 Nothing in `cooling.py` imports `subprocess`; only the fixtures shell out.
 
-### Task 4 — Day-30 review, retirement, and exceptions
+### T4: Day-30 review, retirement, and exceptions
 
 **ACs:** AC31–AC36.
 **Verification mode:** TDD.
-**Depends on:** Task 3.
+**Depends on:** T3.
 
 **Tests:** stub: true.
 
@@ -956,12 +956,12 @@ def test_cooling_module_removes_nothing_but_its_temp_file() -> None:
 checks mapping, an issued attestation, and the injected instant, and route every
 state change through `update_record()`. Neither performs a deletion.
 
-### Task 5 — Doctrine, instructional surfaces, release, projections
+### T5: Doctrine, instructional surfaces, release, projections
 
 **ACs:** AC37–AC40.
 **Verification mode:** Goal-based plus visual/manual QA.
 **Tests:** `no stub (mode)`.
-**Depends on:** Task 4.
+**Depends on:** T4.
 
 AC39's enumerated pairs — each file must gain the first string and lose the second:
 
@@ -1007,7 +1007,7 @@ use and the form a weaker matcher would miss.
 
 - A pack version bump reddens three literals in the Wave 4 roster test, and the
   SKILL.md rewrite reddens the "Do not start a timer" pin in the pack suite. Both
-  are updated in Task 5, not weakened.
+  are updated in T5, not weakened.
 - `close_work.py` gains two public aliases and nothing else. If any further edit
   to that file becomes necessary, surface it rather than absorbing it.
 - The no-lock decision is bounded to torn reads and is not exercised against two
