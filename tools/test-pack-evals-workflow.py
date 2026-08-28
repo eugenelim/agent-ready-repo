@@ -106,26 +106,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         and bool(jobs)
         and all(isinstance(job, dict) for job in jobs.values()),
     )
-    # The key must be bound on the step that uses it. Hoisting it to workflow- or
-    # job-level `env` puts the repository's highest-value secret in the
-    # environment of `pip install` and `npm install -g`, both of which execute
-    # third-party install scripts, while every other assertion stays satisfied.
-    top_env = doc.get("env")
-    check(
-        "secret-not-workflow-level",
-        not (isinstance(top_env, dict) and "ANTHROPIC_API_KEY" in top_env),
-    )
     if isinstance(jobs, dict):
         for job_name, job in jobs.items():
             if isinstance(job, dict):
                 check(
                     f"job-steps-list[{job_name}]",
                     isinstance(job.get("steps", []), list),
-                )
-                job_env = job.get("env")
-                check(
-                    f"secret-not-job-level[{job_name}]",
-                    not (isinstance(job_env, dict) and "ANTHROPIC_API_KEY" in job_env),
                 )
                 # Same posture the ci-security sibling enforces: a job inherits
                 # the top-level grant rather than restating it, so `write-all`
@@ -140,6 +126,28 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         if "agentbundle pack evals run" in str(step.get("run", ""))
     ]
     check("eval-step-present", bool(eval_steps))
+    # Positive, not a two-location denylist. Forbidding only workflow- and
+    # job-level `env` left the step-level route open, which is the very sink the
+    # comment named: binding the key on the `pip install` or `npm install -g`
+    # step reaches the same third-party install scripts. Collect every binding
+    # and require the set to be exactly the eval steps.
+
+    def _binds(scope: object) -> bool:
+        env = scope.get("env") if isinstance(scope, dict) else None
+        return isinstance(env, dict) and "ANTHROPIC_API_KEY" in env
+
+    bound_on: list[str] = []
+    if _binds(doc):
+        bound_on.append("workflow")
+    if isinstance(jobs, dict):
+        for job_name, job in jobs.items():
+            if _binds(job):
+                bound_on.append(f"job:{job_name}")
+    for index, step in enumerate(_steps(jobs)):
+        if _binds(step) and step not in eval_steps:
+            bound_on.append(f"step:{step.get('name', index)}")
+    check("secret-bound-to-eval-step-only", not bound_on)
+
     for index, step in enumerate(eval_steps):
         check(
             f"eval-step-report-only[{index}]",
@@ -245,7 +253,7 @@ _MUTATIONS: list[Mutation] = [
     ),
     (
         "hoist-secret-to-workflow-env",
-        "secret-not-workflow-level",
+        "secret-bound-to-eval-step-only",
         lambda text: text.replace(
             "\njobs:\n",
             "\nenv:\n  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n\njobs:\n",
@@ -254,11 +262,23 @@ _MUTATIONS: list[Mutation] = [
     ),
     (
         "hoist-secret-to-job-env",
-        "secret-not-job-level[activation-evals]",
+        "secret-bound-to-eval-step-only",
         lambda text: text.replace(
             "  activation-evals:\n",
             "  activation-evals:\n    env:\n"
             "      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n",
+            1,
+        ),
+    ),
+    (
+        # The route the two-location denylist left open, and the one its own
+        # comment named: the secret in the environment of `npm install -g`.
+        "bind-secret-on-the-npm-install-step",
+        "secret-bound-to-eval-step-only",
+        lambda text: text.replace(
+            "      - name: Install the claude CLI (activation detector)\n",
+            "      - name: Install the claude CLI (activation detector)\n        env:\n"
+            "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n",
             1,
         ),
     ),

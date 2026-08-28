@@ -4,10 +4,12 @@
 The workflow supplies ADR-0017's interprocedural taint lens. This checker pins
 only the security-extended query suite, the split between the read-only default
 floor and the analyzer's elevated grant, both ``paths-ignore`` surfaces (the
-trigger-level one and the analysis-config one, the latter as an exhaustive list
-so a widening entry cannot silently exempt everything), the presence of the
-analyze step that turns extraction into an uploaded result, Python language
-containment, and the literal concurrency group and cancellation expressions.
+trigger-level one and the analysis-config one, both exhaustive so a widening
+entry cannot silently exempt everything), the absence of a ``paths:`` allowlist
+and of a ``pull_request_target`` trigger, the ``main`` branch targets, the
+weekly re-scan, the presence of the analyze step that turns extraction into an
+uploaded result, Python language containment, and the literal concurrency group
+and cancellation expressions.
 Action SHA pinning remains zizmor-owned.
 
 The concurrency group is pinned as a literal, not as a property: AC12 of
@@ -17,14 +19,17 @@ would accept the bare-ref form that ADR-0086 lines 111-117 tells the next
 author not to copy.
 
 Recognition boundary, stated because a check that silently fails to enumerate
-is worse than one that admits its edge: job headers and ``permissions`` blocks
-are recognized only in block style — a bare ``  <name>:`` header line and a
-``    permissions:`` mapping. A job written with a flow mapping
-(``permissions: {security-events: write}``), a ``write-all`` scalar, or a header
-carrying a trailing comment is not enumerated, so
-``security-events-only-analyze`` is a claim about block-style jobs, not about
-every spelling YAML admits. Widening it is registered follow-up work, not a
-claim made here.
+is worse than one that admits its edge. ``security-events-only-analyze`` reads
+the structured form and so sees only block style — a bare ``  <name>:`` header
+and a ``    permissions:`` mapping. ``no-elevated-grant-outside-analyze`` is the
+backstop for the rest: a parse-free text scan over the jobs block with the
+analyze job removed, which catches a flow mapping, a ``write-all`` scalar, and a
+header carrying a trailing comment.
+
+What that backstop does NOT claim: it matches the two tokens ``security-events``
+and ``write-all`` by text, so a second job granted ``contents: write``,
+``id-token: write`` or ``read-all`` is not detected, and a comment containing
+either token fails it closed. Both are registered, neither is asserted here.
 
 Known limitation: CodeQL is advisory until the repository owner makes it a
 required branch-protection check. This posture test protects that advisory
@@ -178,6 +183,37 @@ def _block_scalar(block: str, key: str, indent: int) -> str:
     return ""
 
 
+def _outside(jobs_block: str, job_name: str) -> str:
+    """Return the jobs block with one job's own lines removed.
+
+    Not `replace(analyze, "", 1)`: `_child_blocks` only recognises a bare
+    `  name:` header, so a following job whose header carries a trailing comment
+    or a quoted key was never a block start and was swallowed by the preceding
+    block — deleting it here took the escalation with it. Bounding on the next
+    indent-2 key in ANY spelling is what makes the backstop fail closed.
+    """
+    lines = jobs_block.splitlines(keepends=True)
+    start = next(
+        (
+            index
+            for index, line in enumerate(lines)
+            if re.match(rf"^ {{2}}\"?{re.escape(job_name)}\"?:", line)
+        ),
+        None,
+    )
+    if start is None:
+        return jobs_block
+    stop = next(
+        (
+            index
+            for index in range(start + 1, len(lines))
+            if lines[index].strip() and re.match(r"^ {2}\S", lines[index])
+        ),
+        len(lines),
+    )
+    return "".join(lines[:start] + lines[stop:])
+
+
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     """Return stable violation labels for one CodeQL workflow text."""
     violations: list[str] = []
@@ -195,9 +231,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     on_block = _named_block(text, "on", 0)
     check("on-block-present", bool(on_block))
     trigger_blocks = _child_blocks(on_block, 2)
+    # Raw text, not the child-block map: a `pull_request_target:  # mirror`
+    # header or a `pull_request_target: {branches: [main]}` flow mapping is not
+    # enumerated by `_child_blocks`, so a membership test on it audits clean.
     check(
         "trigger-forbidden[pull_request_target]",
-        "pull_request_target" not in trigger_blocks,
+        "pull_request_target" not in on_block,
     )
     check("trigger-schedule-present", "schedule" in trigger_blocks)
     for trigger_name in ("pull_request", "push"):
@@ -210,9 +249,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
             set(ignored) == {"docs/**"},
         )
         # A `paths:` allowlist narrows from the other side to the same effect.
+        # `_field_tokens`, not `_sequence`: the block-list parser returns an
+        # empty list for `paths: ["x"]` and for a bare scalar, so negating it
+        # reported clean on two spellings that zero analysis just as effectively.
         check(
             f"trigger-no-paths-allowlist[{trigger_name}]",
-            not _sequence(block, "paths", 4),
+            not _field_tokens(block, "paths", 4),
         )
         check(
             f"trigger-branches-main[{trigger_name}]",
@@ -245,7 +287,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # flow mapping, a `write-all` scalar, or a header with a trailing comment was
     # never enumerated. Scanning the jobs block with the analyze job removed
     # needs no parse at all.
-    outside_analyze = jobs_block.replace(analyze, "", 1) if analyze else jobs_block
+    outside_analyze = _outside(jobs_block, "analyze")
     check(
         "no-elevated-grant-outside-analyze",
         not re.search(r"security-events|write-all", outside_analyze),
@@ -334,6 +376,38 @@ _MUTATIONS: list[Mutation] = [
         lambda text: text.replace(
             "\n  push:\n", "\n  pull_request_target:\n    branches: [main]\n  push:\n", 1
         ),
+    ),
+    (
+        # A commented header is not a child block, so the membership test that
+        # this replaced audited it clean.
+        "add-pull-request-target-with-a-comment",
+        "trigger-forbidden[pull_request_target]",
+        lambda text: text.replace(
+            "\n  push:\n", "\n  pull_request_target:  # mirror\n    branches: [main]\n  push:\n", 1
+        ),
+    ),
+    (
+        "add-pull-request-target-as-a-flow-mapping",
+        "trigger-forbidden[pull_request_target]",
+        lambda text: text.replace(
+            "\n  push:\n", "\n  pull_request_target: {branches: [main]}\n  push:\n", 1
+        ),
+    ),
+    (
+        "narrow-with-a-flow-paths-allowlist",
+        "trigger-no-paths-allowlist[pull_request]",
+        lambda text: text.replace(
+            '    paths-ignore:\n      - "docs/**"\n',
+            '    paths: ["nope/**"]\n    paths-ignore:\n      - "docs/**"\n',
+            1,
+        ),
+    ),
+    (
+        # Appended AFTER analyze, the position the previous bound swallowed.
+        "grant-write-all-to-a-job-after-analyze",
+        "no-elevated-grant-outside-analyze",
+        lambda text: text.rstrip("\n")
+        + "\n\n  advisory:  # helper\n    permissions: write-all\n",
     ),
     (
         "drop-the-weekly-rescan",

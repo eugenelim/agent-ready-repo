@@ -81,12 +81,10 @@ _CHECK_FLAG_RE = re.compile(r"(?:\s-{1,2}c\b|\s--check\b)")
 _ARCHIVE_EXT = r"(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)"
 # The trailing guard is not `\b`: `\b` matched `gl.tar.gz` inside
 # `gl.tar.gz.sha256`, so a digest file credited the archive it merely names.
+# A same-origin digest file is exactly what this workflow says it must not use
+# (see its header), so no crediting path for one is provided — which is what
+# makes `fetch-the-digest-from-the-same-origin` below an expressible mutation.
 _ARCHIVE_RE = re.compile(rf"[\w.@/-]{{1,200}}\.{_ARCHIVE_EXT}(?![\w.-])")
-# ...but a digest file IS how a checksum legitimately names its archive, so that
-# form is recognised explicitly rather than by a loose boundary.
-_DIGEST_FILE_RE = re.compile(
-    rf"([\w.@/-]{{1,200}}\.{_ARCHIVE_EXT})\.(?:sha256sum|sha256|sha512|sha1|md5)(?![\w.-])"
-)
 
 
 def _strip_comments(text: str) -> str:
@@ -163,8 +161,6 @@ def _unverified_archives(run_body: str) -> list[str]:
         if not (_CHECKSUM_RE.search(line) and _CHECK_FLAG_RE.search(line)):
             continue
         for archive in _ARCHIVE_RE.findall(line):
-            checksum_at.setdefault(archive, index)
-        for archive in _DIGEST_FILE_RE.findall(line):
             checksum_at.setdefault(archive, index)
 
     unverified: list[str] = []
@@ -292,11 +288,18 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         # `continue-on-error`, a trailing `|| true`, or `--exit-code 0` each
         # yield a passing secret-scan job over a committed secret.
         stripped = _strip_comments(run_body)
+        # Every spelling of each bypass this label names, not one apiece:
+        # `--exit-code=0` is as valid as the spaced form; a trailing word
+        # boundary after `:` made the `|| :` arm dead code; `continue-on-error`
+        # is honoured when it is an expression or a quoted string, so anything
+        # but None/False blocks; and a step-level `if:` skips the scan entirely,
+        # which the Windows sibling already tests for its own guard step.
         check(
             f"gitleaks-blocks[{index}]",
-            step.get("continue-on-error") is not True
-            and "--exit-code 0" not in stripped
-            and not re.search(r"\|\|\s*(?:true|:)\b", stripped),
+            step.get("continue-on-error") in (None, False)
+            and step.get("if") is None
+            and not re.search(r"--exit-code[= ]+0(?![\w-])", stripped)
+            and not re.search(r"\|\|\s*(?:true|:)(?![\w-])", stripped),
         )
 
     install_steps = [
@@ -587,6 +590,37 @@ _MUTATIONS: list[Mutation] = [
         "gitleaks-blocks[0]",
         lambda text: _replace_once(
             text, "      - name: Scan for secrets", "      - name: Scan for secrets\n        continue-on-error: true"
+        ),
+    ),
+    (
+        "skip-the-secret-scan-with-a-step-if",
+        "gitleaks-blocks[0]",
+        lambda text: _replace_once(
+            text,
+            "      - name: Scan for secrets\n",
+            "      - name: Scan for secrets\n        if: ${{ false }}\n",
+        ),
+    ),
+    (
+        "disable-the-exit-code-with-an-equals-sign",
+        "gitleaks-blocks[0]",
+        lambda text: _replace_once(
+            text,
+            "gitleaks detect --source . --redact --verbose --exit-code 1",
+            "gitleaks detect --source . --redact --verbose --exit-code=0",
+        ),
+    ),
+    (
+        # Proves the archive-match lookahead: the digest is fetched from the same
+        # origin as the binary, the form the workflow header forbids, and nothing
+        # credits it.
+        "fetch-the-digest-from-the-same-origin",
+        "binary-checksum-before-extract[0]",
+        lambda text: _replace_once(
+            text,
+            '          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz" | sha256sum -c\n',
+            '          curl -sfL "${BASE_URL}/${TARBALL}.sha256" -o gl.tar.gz.sha256\n'
+            "          sha256sum -c gl.tar.gz.sha256\n",
         ),
     ),
     (

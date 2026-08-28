@@ -7,10 +7,13 @@ guard must be the run body's first statement, its condition must equal
 `GUARD_CONDITION` exactly, and the failing `exit 1` must be reached without
 crossing an `else`/`elif` branch, a nested opener, or a subshell wrapper.
 
-Deliberately not asserted, and so not claimed: anything outside that run body.
-A step-level `continue-on-error: true` or `if:` on the aggregate step defeats
-the required check while both properties above stay true, and no assertion here
-covers it.
+The aggregate's guard STEP is asserted too: `aggregate-step-unconditional`
+refuses a `continue-on-error` or an `if:` on it, in either key position, because
+either defeats the required check while the guard body stays perfectly correct.
+
+Deliberately not asserted, and so not claimed: a JOB-level `continue-on-error`
+on `build-check-windows` itself, and anything outside the aggregate job. Both
+are registered.
 
 The blocking property is additionally checked against bash rather than only
 modelled, because a text model of a shell is not the shell: see
@@ -77,6 +80,20 @@ GUARD_RUN_MARKER = "        run: |\n"
 _BLOCK_OPENERS = frozenset(
     {"if", "case", "while", "until", "for", "select", "else", "elif"}
 )
+
+
+def _replace_once(text: str, old: str, new: str) -> str:
+    """Substitute exactly one occurrence, or raise.
+
+    Mirrors the ci-security sibling: a mutation whose literal drifts must fail
+    loudly rather than silently become a no-op the matrix reports as caught.
+    """
+    if text.count(old) != 1:
+        raise AssertionError(
+            f"mutation literal is not present exactly once ({text.count(old)}x): "
+            f"{old!r} — re-pin it against {WORKFLOW.name}"
+        )
+    return text.replace(old, new, 1)
 
 
 def _bash_path() -> str | None:
@@ -244,13 +261,19 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # `continue-on-error: true` or `if:` on the step that runs it leaves every
     # assertion above satisfied while the required check reports success over
     # three failed Windows suites.
-    guard_step = (
-        aggregate[: aggregate.index(GUARD_RUN_MARKER)]
-        if GUARD_RUN_MARKER in aggregate
-        else ""
-    )
-    if "      - " in guard_step:
-        guard_step = guard_step[guard_step.rindex("      - ") :]
+    # The WHOLE step, not just what precedes `run:`. YAML mapping keys are
+    # unordered, so `continue-on-error: true` written under the final echo has
+    # identical effect and the earlier slice never looked there — while both
+    # mutations happened to insert above `run:`, the one position it did look at.
+    # The 8-space anchor cannot match the run body, which is indented 10.
+    guard_step = ""
+    if GUARD_RUN_MARKER in aggregate:
+        head = aggregate[: aggregate.index(GUARD_RUN_MARKER)]
+        if "      - " in head:
+            start = head.rindex("      - ")
+            rest = aggregate[aggregate.index(GUARD_RUN_MARKER) :]
+            stop = rest.find("\n      - ")
+            guard_step = aggregate[start:] if stop == -1 else aggregate[start:][: len(head) - start + stop]
     check(
         "aggregate-step-unconditional",
         bool(guard_step)
@@ -353,12 +376,14 @@ _MUTATIONS: list[Mutation] = [
         ),
     ),
     (
-        "gate-the-guard-step-off",
+        # Deliberately AFTER the run block: key order is irrelevant to Actions,
+        # and this is the position the previous slice could not see.
+        "gate-the-guard-step-off-after-the-run-block",
         "aggregate-step-unconditional",
-        lambda text: text.replace(
-            "      - name: Require all Windows suites\n",
-            "      - name: Require all Windows suites\n        if: ${{ false }}\n",
-            1,
+        lambda text: _replace_once(
+            text,
+            '          echo "Windows suites passed"\n',
+            '          echo "Windows suites passed"\n        if: ${{ false }}\n',
         ),
     ),
     (

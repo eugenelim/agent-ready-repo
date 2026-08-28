@@ -477,9 +477,11 @@ def build_check(args: argparse.Namespace) -> int:
         # branch protection does not yet require it. The posture test proves the
         # query suite, the read-only default floor against the analyzer's
         # elevated grant, an exhaustive analysis-config `paths-ignore` list, the
-        # presence of the analyze step, and the literal AC12 concurrency group
-        # and cancellation expressions. It does not pin the analyze job's own
-        # permission mapping or forbid a `pull_request_target` trigger.
+        # presence of the analyze step, the trigger surface (no
+        # `pull_request_target`, no `paths:` allowlist, `main` branches, the
+        # weekly re-scan), an elevated-grant backstop over every job but
+        # `analyze`, and the literal AC12 concurrency group and cancellation
+        # expressions. It does not pin the analyze job's own permission mapping.
         _script_step(
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",

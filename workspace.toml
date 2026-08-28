@@ -460,6 +460,13 @@ open = [
   #    hand-written gitleaks checks do not reach. Left open because pinning it
   #    means choosing which flags are load-bearing, which is a decision about
   #    the scanner contract rather than about this harness.
+  #  - Registered by round-7 adjudication rather than closed: a JOB-level
+  #    `continue-on-error` on build-check-windows; a reusable-workflow route
+  #    binding ANTHROPIC_API_KEY via `secrets: inherit`; a second CodeQL job
+  #    granted `contents: write`, `id-token: write` or `read-all`, which the
+  #    two-token backstop does not match; and the backstop firing on a comment
+  #    that merely mentions a token. Each was adjudicated as neither created nor
+  #    claimed closed by this change.
   #  - The checksum invariant is keyed on EXTRACTION. A non-extraction install
   #    such as `curl -o /usr/local/bin/actionlint && chmod +x` or `curl … | sh`
   #    is never audited. Closing it means re-keying the invariant on every
