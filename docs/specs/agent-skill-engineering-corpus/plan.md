@@ -140,7 +140,9 @@ admission harness in T6, mutation-proven on each conjunct independently: a
 claim group with no declared basis; a `doctrine` group missing `retrieved_at`
 on one source; a `repeated-observed-failures` group whose failures name
 different mechanisms; an `observed-practice` group whose observations share a
-pack; a topic with a declared but unmeasured exclusive case; and a topic body
+pack; a an `observed-practice` limit carrying its population phrase but not its
+scope-bound statement; a topic with a declared but unmeasured exclusive case;
+and a topic body
 authored to reproduce the compiled unpopulated record's marker and section
 shape, which must still be iterated and must still redden, because the harness
 excludes that record by its exact identity and never by a property a topic body
@@ -222,7 +224,10 @@ must exist, so a field-for-field parity assertion is what keeps them one fact.
 `skill-census.json`: `{schema_version, taken_at, population_size, entries: [
 {skill, pack, families: [...], exception: {owner, rationale} | null} ]}`.
 Exactly one of non-empty `families` or `exception` per entry. `owner` is a role
-or generic placeholder, never a person.
+or generic placeholder, never a person, and `reviewer` in
+`topic-admission.json` carries the same form for the same reason — the
+repository's privacy rule reaches every file, and its author-decider carve-out
+does not extend to a pack test fixture.
 
 `topic-admission.json`: per topic — `{topic, claim_groups: [...],
 last_verified, reviewer}`. Each claim group carries `basis` of `doctrine` or
@@ -400,7 +405,7 @@ entry, both linters exit 0, and the ratchet suite is green.
   def test_census_resolves_every_authored_skill() -> None:
       census = json.loads(CENSUS.read_text(encoding="utf-8"))
       discovered = {
-          f"{p.parts[1]}/{p.parent.name}"
+          f"{p.relative_to(REPO).parts[1]}/{p.parent.name}"
           for p in REPO.glob("packs/*/.apm/skills/*/SKILL.md")
       }
       recorded = {f"{e['pack']}/{e['skill']}" for e in census["entries"]}
@@ -412,8 +417,12 @@ entry, both linters exit 0, and the ratchet suite is green.
           assert bool(entry.get("families")) ^ bool(entry.get("exception"))
   ```
 
-  `stub: true` — EXECUTE adds the owner-is-not-a-person assertion and the
-  routing failure message; the resolution and population predicates are final.
+  `stub: true` — validated by execution against the live tree, not only parsed:
+  it reports 135 discovered skills and fails on the absent fixture, which is the
+  right red. The key is relative to the repository root; `p.parts[1]` on the
+  absolute path yields `Users`, which collapses every pack and makes the
+  equality unsatisfiable. EXECUTE adds the owner-is-not-a-person assertion and
+  the routing failure message.
 
 **Approach:**
 - Take the census by reading each skill and classifying it under review — not
@@ -435,7 +444,7 @@ observed running under `pytest tests/` rather than assumed to.
 
 **Depends on:** none
 
-**Touches:** packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json
+**Touches:** packs/agent-skill-engineering/tests/fixtures/topology-leaves.json, packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json, packs/agent-skill-engineering/tests/pack/test_corpus_admission.py (created here)
 
 **Tests:**
 
@@ -460,8 +469,11 @@ observed running under `pytest tests/` rather than assumed to.
       assert all("measured_topics" in pin for pin in pins["pins"])
   ```
 
-  `stub: true` — EXECUTE adds the source-reference assertion; the counts are
-  final and are what fail if the transcription is partial.
+  `stub: true` for AC5. AC8's pin counts ride along in the same block rather
+  than carrying their own stub: the spec declares AC8 goal-based, and the count
+  is a pure predicate over one fixture, so it costs nothing to assert here.
+  EXECUTE adds the source-reference assertion; the counts are final and are what
+  fail if the transcription is partial.
 
 **Approach:**
 - Transcribe RFC-0097 D3's 36 leaves with a `source_ref`.
@@ -475,14 +487,20 @@ observed running under `pytest tests/` rather than assumed to.
 
 **Depends on:** T3, T4
 
-**Touches:** packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
+**Touches:** packs/agent-skill-engineering/tests/fixtures/topic-admission.json, packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/, packs/agent-skill-engineering/.apm/skills/ase-okf-reference/references/okf/, packs/agent-skill-engineering/.okf-generated.json, packs/agent-skill-engineering/tests/fixtures/router-results.json, packs/agent-skill-engineering/tests/pack/test_corpus_admission.py, packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py
 
 **Tests:**
+- Each recorded and shipped `applicability_limit` contains its scope-bound
+  statement, not the population phrase alone. Truthiness on the fixture side and
+  substring parity into the body both read green on a limit missing it, and this
+  is the clause that keeps an `observed-practice` claim from reading as portable
+  doctrine. (AC2, AC3)
 - No shipped provenance-and-lifecycle section contains any `reviewer` value from
   `topic-admission.json` — an absence assertion over the bundle-root bodies and
-  the compiled tree. Nothing else catches it: AC9's forbidden set is paths, AC
-  citations, and governance records, and a person or handle is none of
-  those. (AC3)
+  the compiled tree, scoped to the role-or-placeholder form the schema pins, so
+  it is discriminating rather than liable to fire on ordinary prose. Nothing
+  else catches it: AC9's forbidden set is paths, AC citations, and governance
+  records, and an identity field is none of those. (AC3)
 - No shipped applicability limit contains a pack path, a skill path, or a pack
   name: it names its population in portable terms. This is the clause that
   keeps parity from pushing repository structure across the export
@@ -626,10 +644,10 @@ mutations redden it.
 
 - `no stub (goal-based)` for the admission re-run and the measurement — both are
   commands over an assembled tree.
-- PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
+- PLAN-time regression guard (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
 
   ```python
-  # STUB: AC9 — nothing the pack ships names a repository-only path, an
+  # GUARD (not a red stub): AC9 — nothing the pack ships names a repository-only path, an
   # acceptance criterion, or an internal governance record.
   import pathlib, re
 
@@ -640,15 +658,23 @@ mutations redden it.
       re.compile(r"\bworkspace\.toml\b"),
   )
 
+  SUFFIXES = {".md", ".json", ".toml", ".py"}
+
   def test_shipped_content_names_no_repository_only_reference() -> None:
-      for path in (PACK / ".apm").rglob("*.md"):
+      for path in (p for p in (PACK / ".apm").rglob("*") if p.suffix in SUFFIXES):
           text = path.read_text(encoding="utf-8")
           for pattern in FORBIDDEN:
               assert not pattern.search(text), f"{path}: {pattern.pattern}"
   ```
 
-  `stub: true` — EXECUTE reconciles this with the existing forbidden-string
-  table in the same module rather than adding a second walk.
+  `no stub (goal-based regression guard)` — executed at PLAN against the live
+  tree and it **passes**, because nothing under `.apm/` names a repository-only
+  path today. It is therefore a guard that must keep passing as T7 and T11 add
+  content, not a red stub; the spec classes AC9 goal-based and this records that
+  honestly rather than mislabelling a green test. The suffix set matches the
+  durable forbidden-string table in the same module, which walks
+  `{.md, .json, .toml}`; `.py` is added because `.apm/` ships one. EXECUTE
+  reconciles the two walks rather than adding a second.
 
 **Approach:**
 - Author a body only for a candidate whose basis can be evidenced; record the
@@ -697,6 +723,13 @@ match.
   compiler projects and the generated per-directory index routes to, and which
   the shipped topic-set assertion does not reach because it globs the concept
   root non-recursively. Name the subdirectory and the record's compiled `kind`.
+- **Split that assertion's two halves.** The same loop that pins the topic-set
+  identity also refuses the `executor:`, `attester:`, `remote:` and `tools:`
+  grant tokens. The identity half stays non-recursive, as the home above
+  intends; the inertness half runs recursively over the concept root, so the
+  first document ever to ship from a nested concept directory is refused the
+  same tokens as every other shipped body. Otherwise this record is the one
+  agent-read body in the pack with no inertness control.
 - The admission harness excludes that record **by its exact identity** — one
   record, at that known compiled path — and never by a marker field, section
   shape, or name pattern a topic body could reproduce. State the exclusion
@@ -731,6 +764,11 @@ T8 defers to T9 rather than re-measuring.
   already asserts exact-set, bounded-selection, precision and recall and caps
   every case at three topics. This task extends that suite rather than adding a
   second one, and raises its `len(cases) >= 20` floor. (AC6)
+- The negatives results fixture's three digests and `evaluation_mode` are
+  asserted equal to values recomputed from the current tree, in the shape the
+  shipped guard already uses for the retrieval record. Without it a stale
+  negatives record satisfies both its other assertions forever, and the
+  falsifier reads pass against a tree it never measured. (AC7)
 - The negatives prompt fixture asserts a count of exactly 40, and the negatives
   results fixture asserts that its result set equals that prompt set — pinned on
   both sides, as the taxonomy transcription already is. Equality alone proves
@@ -747,9 +785,9 @@ T8 defers to T9 rather than re-measuring.
   this pack's: run `pytest packs/catalogue-curation/tests/skills/compile-okf/`
   as a command — `test_apply.py` carries the refusal-before-mutation, the
   rejection of writes resolving outside the output root, and the read-only
-  drift check, and `test_parser.py` carries stable diagnostic identity. This
-  pack's own `hostile-title` fixtures cover index-entry escaping, which is a
-  different property. Run it; do not import it, and do not assume it. (AC9)
+  drift check, and `test_parser.py` carries stable diagnostic identity. `catalogue-curation`'s own
+  `hostile-title` fixtures cover index-entry escaping, a different property, and
+  the same command runs them. Run it; do not import it, and do not assume it. (AC9)
 - The provider-side security fixtures inherited from the foundation still pass
   and are unmodified by this change. (AC9)
 
@@ -805,6 +843,13 @@ T8 defers to T9 rather than re-measuring.
   named rather than counted — and no other mode-specific module, while the
   common contract's safety-and-authority module still governs every read and
   write. (AC10)
+- `SKILL.md` gains a distinct `knowledge-provider` entry sentence establishing
+  read-only entry, and a separate write-authorizing transition. The shipped
+  sentence reads "Move to `create` or `update` only after an explicit mode
+  transition and immediately before the first write" — one gate at the moment of
+  writing, which cannot express the two-gate shape this mode needs, so adding
+  the mode to that sentence alone would satisfy the assertion while contradicting
+  read-only entry. `_transition_sentence` is scoped to the new sentence.
 - Entering the mode begins read-only, and a write requires an explicit user
   transition. These are the write-gate properties of the one writable mode this
   slice adds, and they were carried as design prose with nothing verifying
@@ -820,9 +865,10 @@ T8 defers to T9 rather than re-measuring.
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`):
 
   ```python
-  # STUB: AC10 — the mode contract. The shipped pins are satisfied by a sentence
-  # naming only create and update, so they stay green whether or not the new
-  # writable mode is inside the transition gate; these name it.
+  # STUB: AC10 — the mode contract. A backticked match anywhere in the file is
+  # already satisfied by the sentence declaring the mode UNAVAILABLE
+  # (SKILL.md:31), so these read the Modes list and the unavailable block as
+  # separate regions and compare them.
   import pathlib
 
   SKILL = (
@@ -830,12 +876,17 @@ T8 defers to T9 rather than re-measuring.
       / ".apm/skills/author-or-update-agent-skill/SKILL.md"
   )
 
-  def test_advertised_modes_and_write_gate() -> None:
+  def test_mode_is_advertised_and_not_declared_unavailable() -> None:
       text = SKILL.read_text(encoding="utf-8")
-      for mode in ("frame", "create", "update", "knowledge-provider"):
-          assert f"`{mode}`" in text
+      advertised = _mode_bullet_names(text)
+      assert advertised == {"frame", "create", "update", "knowledge-provider"}
+      assert "knowledge-provider" not in _unavailable_modes(text)
+
+  def test_mode_entry_is_read_only_and_write_is_gated() -> None:
+      text = SKILL.read_text(encoding="utf-8")
+      entry = _mode_bullet(text, "knowledge-provider")
+      assert "read-only" in entry
       assert "knowledge-provider" in _transition_sentence(text)
-      assert "read-only" in _mode_entry_sentence(text, "knowledge-provider")
 
   def test_mode_specific_modules_are_exactly_four() -> None:
       assert _modules_for("knowledge-provider") == {
@@ -846,9 +897,14 @@ T8 defers to T9 rather than re-measuring.
       }
   ```
 
-  `stub: true` — EXECUTE writes the three helpers against the shipped SKILL.md
-  structure. The mode contract is one of the six criteria the spec declares TDD,
-  and it was the only one without a stub.
+  `stub: true`, and red today for the right reason: `_mode_bullet_names` returns
+  three, and the mode is present in the unavailable block. EXECUTE writes the
+  four helpers, each scoped to a named region — `_mode_bullet` reads that mode's
+  own bullet in the Modes list, never the section opener, because
+  "`frame` is the default and is read-only" would otherwise satisfy the
+  read-only assertion for every mode. Widening any helper's scope must redden
+  the mutation below. The mode contract is one of the six criteria the spec
+  declares TDD and was the only one without a stub.
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
 
   ```python
@@ -869,10 +925,19 @@ T8 defers to T9 rather than re-measuring.
 
   def test_matcher_does_not_fire_on_neutral_prose() -> None:
       assert not _names_mode("Use when a user asks", "plugin")
+
+  def test_mode_fixture_holds_the_reduced_enumeration() -> None:
+      # Red today: the shipped floor is six.
+      assert len(_unsupported_modes()) == 5
   ```
 
-  `stub: true` — this is the positive control the guard has never had; EXECUTE
-  adds the reduced five-mode enumeration and the count floor beside it.
+  `stub: true` — the matcher table is a **positive control**, and executed
+  against the shipped `_names_mode` it passes today, so it is not the red half.
+  The count floor is: the live assertion is `len(modes) == 6`, so
+  `test_mode_fixture_holds_the_reduced_enumeration` is red at PLAN and goes
+  green only when this task removes `knowledge-provider` from the fixture. That
+  is the stub's failing assertion; the control is the durable half the guard has
+  never had.
 
 **Approach:**
 - Add the mode and its four modules; reuse the existing two-gate transition.
@@ -884,8 +949,12 @@ T8 defers to T9 rather than re-measuring.
   strings and their `SKILL.md` counterparts move together.
 - Keep the token-run matcher unchanged and add the positive control beside it.
 
-**Mutation proof:** weaken `_names_mode` to return `False` unconditionally; the
-positive control must fail. Restore by editing.
+**Mutation proofs:** weaken `_names_mode` to return `False` unconditionally —
+the AC11 positive control must fail. Separately widen `_mode_bullet` to return
+the whole Modes section, and widen `_transition_sentence` to match any sentence
+containing "transition" — each must fail, because the
+section opener names `frame` as read-only and would otherwise satisfy it for
+every mode. Restore by editing.
 
 **Done when:** the mode is advertised, the five remaining modes are proven
 absent, and the matcher's detection half is asserted durably.
@@ -1024,7 +1093,7 @@ layer writes durable state outside the repository, and no migration runs.
 | The admission harness is satisfied by construction | It stays green under a topic added without evidence | Six independent mutation proofs, one per conjunct, including a `doctrine` group missing `retrieved_at` and a body copying the unpopulated record's shape |
 | The corpus becomes an encyclopedia | The generic-engineering negative set returns bodies | The RFC's own 5%-of-40 falsifier is a gate |
 | The census records boilerplate as evidence | A family's count is dominated by inherited sections | The census is taken under review, not by pattern match |
-| Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly; the three long suites are run explicitly |
+| Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
 
@@ -1142,7 +1211,7 @@ layer writes durable state outside the repository, and no migration runs.
   key and count, because an equality between a bare-string list and an
   identified list has no defined key; the module path and command that actually
   prove AC9's hostile-metadata properties, which live in the compiler's pack and
-  which this pack's `hostile-title` fixtures do not cover; and the shipped suite
+  whose `hostile-title` fixtures cover index-entry escaping instead; and the shipped suite
   that already computes AC6's rates, so it is extended rather than duplicated.
   Two changes from revision 8 were reverted as over-reach after adjudication:
   decomposing `applicability_limit` into subfields, where an assertion at T5's
