@@ -1037,3 +1037,44 @@ def test_cooling_module_removes_nothing_but_its_temp_file() -> None:
     source = COOLING_PATH.read_text(encoding="utf-8")
     assert source.count("unlink") == 1, "only the named temp-file cleanup may unlink"
     assert "os.unlink(temporary, dir_fd=" in source
+
+
+# STUB: AC39
+def test_instructional_surfaces_describe_the_shipped_cooling_engine() -> None:
+    """Each Wave 5 surface gains its replacement claim and loses the stale one."""
+    pairs = (
+        (
+            "guides/core/how-to/close-and-disposition-work.md",
+            "Wave 5 computes the review date and enrols the record",
+            "It does not calculate dates, start a timer, or retire anything",
+        ),
+        (
+            "guides/core/reference/work-intake-routing-and-lifecycle.md",
+            "| Disposition | Result |",
+            "| Disposition | Wave 4 result |",
+        ),
+        (
+            "guides/core/reference/work-intake-routing-and-lifecycle.md",
+            "Enrol, compute the review date, and review on day 30",
+            "Wave 5 owns dates, clocks, due state, and retirement",
+        ),
+        (
+            "guides/core/reference/workspace-toml-schema.md",
+            "workspace.toml may point at cooling state and never owns it",
+            "gains no receipt or cooling schema in Wave 4",
+        ),
+        (
+            "packs/core/README.md",
+            "cooling records live outside workspace.toml",
+            "`cool-30-days` is classification only in this release",
+        ),
+        (
+            "packs/core/.apm/skills/close-work/SKILL.md",
+            "Enrol, then answer whether the record is due",
+            "Do not start a timer",
+        ),
+    )
+    for relative_path, replacement, superseded in pairs:
+        surface = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert replacement in surface, relative_path
+        assert superseded not in surface, relative_path

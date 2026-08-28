@@ -123,8 +123,8 @@ def test_core_release_metadata_and_history_agree() -> None:
         assert forbidden not in skill.split("---", 2)[1]
 
 
-def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
-    """Cooling classification does not become retirement or context exclusion."""
+def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
+    """Wave 5 ships cooling while Waves 6 and 7 retain their stated boundary."""
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
     lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
     how_to = _read("guides/core/how-to/close-and-disposition-work.md")
@@ -133,8 +133,7 @@ def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
     # test whose meaning is unchanged.
     combined = " ".join("\n".join((architecture, lifecycle, how_to)).split())
     for statement in (
-        "Wave 5 owns dates, clocks, due state, and retirement",
-        "no clock, date, due-state, retirement, ordinary-context exclusion",
-        "It does not calculate dates, start a timer, or retire anything",
+        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
+        "Wave 6 and 7 own ordinary-context exclusion and historical migration and pruning behavior",
     ):
         assert statement in combined, statement

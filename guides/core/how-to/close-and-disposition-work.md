@@ -65,7 +65,7 @@ Disposition is intent, not deletion permission.
 | `discard-local` | In-memory or tool-owned temporary state with no persisted or lasting content | The temporary state may be discarded. Removing a file still needs separate confirmation. |
 | `delete-before-push` | The exact target was never sent remotely | The workflow can prepare a confirmed local removal. Evidence of a prior push forces a new choice. |
 | `delete-before-merge` | A removal change exists but has not been integrated | The workflow can prepare removal before that change merges. An integrated removal uses an ordinary follow-up change. |
-| `cool-30-days` | Delivered, closed work has a persistent record | Wave 4 records only the disposition intent and retains the record. It does not calculate dates, start a timer, or retire anything. |
+| `cool-30-days` | Delivered, closed work has a persistent record | Wave 5 computes the review date and enrols the record, then keeps it until a day-30 review. |
 | `retain-exception` | A longer obligation requires retention | Record a bounded reason, an owner role, and a human-supplied review date. Nothing is deleted. |
 | `external-advisory` | The current environment lacks authority over the target — an external system, or a local target whose deletion authority cannot be resolved | Report the target, evidence, and missing authority without probing or changing it. Resolve the authority or leave the artifact retained, then re-run; the workflow refuses rather than deleting. |
 

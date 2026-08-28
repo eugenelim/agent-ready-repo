@@ -2175,7 +2175,7 @@ def test_skill_and_evals_keep_policy_confirmation_and_effect_separate() -> None:
         "Re-read every affected durable surface as a whole",
         "Confirmation is single-use",
         "Never reset, rebase, filter, force-push",
-        "Do not start a timer",
+        "Do not rely on a background timer",
         # AC14's record-field obligations, which otherwise live only as table
         # prose and could be deleted with every gate green.
         "Retain with bounded reason, owner role, and human-supplied review date",
