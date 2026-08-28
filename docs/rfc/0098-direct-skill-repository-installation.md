@@ -353,7 +353,7 @@ None. Discovery roots, normalization, manifest semantics, state identity, valida
 
 ## Current normative state
 
-For credential-free `git+https` sources, E11 owns the **Family 1 acquisition bounds**, redirect equivalence, and runtime floor before classification on both direct and catalogue routes. A full 40-hex requested ref must equal the archive-derived SHA.
+For credential-free `git+https` sources, E11 owns the **Family 1 acquisition bounds**, redirect equivalence, and runtime floor on both direct and catalogue routes. They attach to every credential-free `git+https` transport fetch, not only a fetch before classification, so a `list-installed --check` status probe carries them unchanged. A full 40-hex requested ref must equal the archive-derived SHA.
 
 For direct sources, E11 owns the **Family 2 measured-envelope bounds** and evaluation order; E13 owns direct candidate-rooting and root-context disposition. Local paths receive Family 2 only. E1–E4, E6–E10, and E12 remain in force as written. E5 continues to govern library-resolved per-member destination and link-target confinement, and delegates filter mode and ownership behavior to the standard library; it also governs direct-only post-extraction refusal of links and special entries encountered in a candidate path. Catalogue `git+https` symlink support and catalogue selector/precedence behavior remain unchanged.
 

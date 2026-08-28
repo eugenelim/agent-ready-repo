@@ -159,7 +159,7 @@ Use discriminating projection, adapter, scope, mode, and display fixtures. **Don
 **Depends on:** T7, T8, T9  
 **Verification:** Goal-based; no stub.
 
-**Tests:** fixture exercise per published command, help, guide/link build, local-only prompt, direct-code-table equality, and a mutation sibling `tools/test_lint_direct_code_table.py`. **Done when:** the new stdlib-only `tools/lint-direct-code-table.py` imports `DIRECT_CODES`, parses the published direct diagnostic-code table, and verifies set equality; `run-test-suite` invokes it beside `tools/lint-conformance-portability.py`, while its pytest companion is added to `FINAL_TOOL_BATCH` and the matching Makefile final-batch line in lockstep. Published guidance contains no internal-governance identifiers.
+**Tests:** fixture exercise per published command, help, guide/link build, local-only prompt, direct-code-table equality, and a mutation sibling `tools/test_lint_direct_code_table.py`. **Done when:** the new stdlib-only `tools/lint-direct-code-table.py` imports `DIRECT_CODES`, parses the published direct diagnostic-code table, and verifies set equality; `run-test-suite` invokes it beside `tools/lint-conformance-portability.py`, while its pytest companion is added to `FINAL_TOOL_BATCH` and the matching Makefile final-batch line in lockstep. Because CI runs `make build-check` rather than `make test`, register both in `.github/workflows/build-check.yml` as well—the lint beside the `lint-conformance-portability` step and the companion in the pytest batch—matching that precedent's two-place registration; a Makefile-only registration never gates a PR. Published guidance contains no internal-governance identifiers.
 
 ### T10a: Register inherited collection floor
 
