@@ -1,4 +1,4 @@
-# ADR-0097: Direct skill sources classify after resolution and normalize into canonical packs
+# ADR-0100: Direct skill sources classify after resolution and normalize into canonical packs
 
 - **Status:** Accepted
 - **Date:** 2026-08-27

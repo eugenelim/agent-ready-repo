@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0098; RFC-0085; RFC-0031; RFC-0034; ADR-0036; ADR-0039; ADR-0097
+- **Constrained by:** RFC-0098; RFC-0085; RFC-0031; RFC-0034; ADR-0036; ADR-0039; ADR-0100
 - **Shape:** mixed
 
 ## Objective
