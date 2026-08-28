@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 import types
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -120,6 +120,76 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
             pytest.fail(f"{name}: CI must support this symlink regression: {exc}")
         pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
+
+
+def _timed_out_run(calls: list[float]) -> Callable[..., subprocess.CompletedProcess]:
+    """Return a subprocess seam that records and raises the configured timeout."""
+    def run(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+    return run
+
+
+def test_default_base_ref_primary_probe_timeout_degrades_to_no_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert module.resolve_default_base_ref(Path("/repo")) is None
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
+def test_default_base_ref_fallback_probe_timeout_degrades_to_no_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+
+    def run(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(args[0], 1, "", "")
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+
+    assert module.resolve_default_base_ref(Path("/repo")) is None
+    assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S]
+
+
+def test_base_ref_probe_timeout_degrades_to_unresolvable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert not module.base_ref_resolves(Path("/repo"), "origin/main")
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
+def test_base_spec_show_timeout_degrades_to_absent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert module.base_spec_text(Path("/repo"), "docs/spec.md", "origin/main") is None
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
+def test_repo_root_probe_timeout_degrades_to_script_relative_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert module._repo_root() == Path(module.__file__).resolve().parent.parent
+    assert calls == [module.GIT_TIMEOUT_S]
 
 
 def test_clean() -> None:

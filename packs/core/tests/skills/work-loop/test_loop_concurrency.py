@@ -826,11 +826,9 @@ def test_lock_hold_budget() -> None:
 def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
     """AC21's reachability half: `lint-spec-status.py` is not scanned file-wide.
 
-    It imports `subprocess` and makes four `git` calls with no `timeout=`
-    (`resolve_default_base_ref`, `base_spec_text`, `_repo_root`). Those are fine
-    *because the guard path never invokes them* — and that claim is what needs an
-    artifact, since `workspace.toml`'s deferral record cites this assertion by name
-    as the reason the four calls are left unbounded.
+    Its Git calls are outside the engine's locked call graph. This assertion proves
+    that reachability boundary only: it does not scan `lint-spec-status.py` for
+    `timeout=` and must not grow into a separate lint gate.
 
     The guard path enters this module at exactly the symbols `_loop_guards.py`
     requires, so the roots are read from `_PARSER_SYMBOLS` rather than restated:
