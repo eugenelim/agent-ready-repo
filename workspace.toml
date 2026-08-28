@@ -416,46 +416,102 @@ open = [
   # test, making the bypass need a second human. This repo has no CODEOWNERS today.
   # To close: decide between the two (or both) and apply.
   {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
-  # Two defects shared this entry. The FIRST IS CLOSED (2026-08-26):
-  # tools/test-ci-security-workflow.py asserted ci-security.yml's security posture
-  # and was invoked by nothing, which also left a shipped AC in
-  # spec/secret-scanner-for-api-key-workflows live and false. It is now a step in
-  # tools/repo/build_gate_chain.py's build-check chain, pinned in
-  # test_build_gate_chain.py's EXPECTED_SCRIPT_STEPS — that list is the sole source
-  # of the step count, so there is no separate literal to keep in step.
-  # Recorded on the way past, because wiring it did not make its assertions
-  # trustworthy: unlike its chain neighbour test-build-check-workflow.py, which runs
-  # a mutation matrix on every invocation, that file has no --self-test and no
-  # fixture. Its eight assertions now BLOCK make build-check with no automated proof
-  # they can fail, so a silently-weakened one would pass. Building that harness was
-  # outside the wiring chore and needs an owner decision.
-  # The SECOND IS ALSO CLOSED (2026-08-27). ci-security.yml and codeql.yml both
-  # keyed their concurrency group on bare github.ref, and GitHub allows one
-  # running plus one PENDING run per group regardless of cancel-in-progress, so a
-  # third queued run evicted the pending one and a commit could go unscanned with
-  # no signal. Both now carry AC12's expression from spec/ci-gate-parallelization
-  # — PR runs share a ref group, every non-PR run keys on github.run_id — and
-  # ci-security.yml's literal is pinned in test-ci-security-workflow.py, so a
-  # regression to the bare-ref form now fails build-check. codeql.yml's
-  # cancel-in-progress moved to the pull_request gate, so pushes to main and the
-  # weekly re-scan run to completion instead of superseding each other. The two
-  # frozen citations (docs/adr/0086 lines 111-118, spec/ci-gate-parallelization)
-  # stand as the historical record; ADR-0086's "note for the next author" is what
-  # authorised the fix. Accepted consequence, recorded rather than discovered
-  # later: two concurrent CodeQL runs on different main commits can now upload
-  # SARIF out of order, so the Security tab can transiently reflect the older
-  # commit until the next analysis. That is judged better than the previous
-  # behaviour, where the newer commit was simply never scanned.
-  # THE RESIDUAL, and the only reason the slug survives: test-ci-security-workflow.py
-  # still has no --self-test and no fixture. Unlike its chain neighbour
-  # test-build-check-workflow.py, which runs a mutation matrix on every
-  # invocation, its now-nine assertions block make build-check with no automated
-  # proof they can fail, so a silently-weakened one would pass. codeql.yml has no
-  # posture test at all — a mutation of its group expression is caught by nothing,
-  # confirmed by a deliberate control run on 2026-08-27.
-  # To close: decide whether the posture test earns a mutation harness, and
-  # whether codeql.yml earns a posture test of its own. Owner decision, not a chore.
-  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
+  # PARTIALLY CLOSED. The duplication this entry was opened for was created by
+  # the change that gave four posture tests mutation matrices, so that change
+  # paid it: ci-security, pack-evals, build-check-windows and CodeQL now share
+  # `tools/posture_harness.py` — the baseline-clean precondition, the no-op
+  # rejection, the expected-label check, family accounting, and the failure and
+  # success reports. Every `audit`, `_MUTATIONS` and per-file predicate stayed in
+  # its own module, because those are what each harness is FOR and sharing them
+  # would couple four unrelated workflow contracts. Verified against this entry's
+  # own acceptance criterion: every caller's mutation count and family coverage
+  # was byte-identical before and after the extraction commit, and 188 lines left
+  # the four callers. The figures are deliberately not transcribed here — later
+  # commits add mutations, so a copied pair goes stale and a future author would
+  # read a satisfied criterion as violated. Re-measure across the commit.
+  # WHAT REMAINS, and it is genuinely pre-existing rather than that change's
+  # debt: three harnesses in two other shapes still carry their own drivers.
+  # tools/test-build-check-workflow.py has the same core contract plus a bash
+  # differential and a shape-stable fixture; tools/test-pages-workflow.py has
+  # crafted-input predicates; tools/test-pages-concurrency.py uses a four-element
+  # (id, expected, old, new) mutation tuple with no family rule at all. The
+  # inclusion predicate stays the way to re-derive the set rather than a count: a
+  # module under tools/ with a module-level `audit()` plus a `_MUTATIONS`
+  # self-test whose baseline is a real .github/workflows/*.yml file. Deliberately
+  # outside it: tools/test_marketplace_envelope_parity.py, a pytest-parametrized
+  # three-tuple over filesystem fixtures with no `audit()` and no workflow
+  # baseline, so a bare `_MUTATIONS` grep returns one more than the predicate.
+  # To close: converge those three, preserving build-check's differential and
+  # pages' crafted-input predicates, decide whether the four-element tuple joins
+  # or stays out, and prove each caller's mutation count and family coverage is
+  # unchanged — the same criterion the four already satisfy.
+  {slug = "workflow-posture-self-test-helper-extraction", source = "ci-security-posture-test-unwired closeout"},
+  # Coverage gaps in the workflow posture guards that this change did NOT close.
+  # The ones it did close are gone from this list rather than left overstating:
+  # secret binding location, pack-evals job-level permissions, gitleaks failure
+  # propagation, the compute-and-discard checksum, the CodeQL trigger surface,
+  # the elevated-grant spelling enumeration, `pull_request_target` on codeql.yml,
+  # the Windows step-level bypass, and the bash-absent round-trip ordering are
+  # all now asserted with a mutation each. What remains needs either a different
+  # invariant or evidence this change does not have:
+  #  - Nothing pins the actionlint, zizmor, or check-zizmor-excessive-permissions
+  #    steps. Deleting them, appending `|| true`, dropping to `--min-severity
+  #    critical`, or narrowing the scanned path removes Actions-injection and
+  #    excessive-permissions coverage repo-wide with `make build-check` green.
+  #    zizmor is the ONLY control covering template injection in run bodies the
+  #    hand-written gitleaks checks do not reach. Left open because pinning it
+  #    means choosing which flags are load-bearing, which is a decision about
+  #    the scanner contract rather than about this harness.
+  #  - Registered by round-7 adjudication rather than closed: a JOB-level
+  #    `continue-on-error` on build-check-windows; a reusable-workflow route
+  #    binding ANTHROPIC_API_KEY via `secrets: inherit`; a second CodeQL job
+  #    granted `contents: write`, `id-token: write` or `read-all`, which the
+  #    two-token backstop does not match; and the backstop firing on a comment
+  #    that merely mentions a token. Each was adjudicated as neither created nor
+  #    claimed closed by this change.
+  #  - The checksum invariant is keyed on EXTRACTION. A non-extraction install
+  #    such as `curl -o /usr/local/bin/actionlint && chmod +x` or `curl … | sh`
+  #    is never audited. Closing it means re-keying the invariant on every
+  #    download, which is a different invariant, not a tightening of this one.
+  #  - No control asserts the absence of a repo-root `.gitleaks.toml` or a pinned
+  #    `--config`. Left open deliberately: gitleaks' config auto-load precedence
+  #    was never confirmed, and an assertion resting on an unverified premise is
+  #    the defect this whole change set exists to remove.
+  # Workflow-side, needing a repository-settings change and so not closable here:
+  # `ANTHROPIC_API_KEY` is repository-scoped with no GitHub Environment gate, so
+  # any write-access holder can dispatch pack-evals against an arbitrary ref with
+  # no second approver — the repo already gates `pypi` and `claude-plugin-publish`
+  # that way.
+  # To close: decide which of these earn assertions, in which guard, and accept
+  # that each widens what that posture test claims.
+  # Pre-flight, not diff-caused, and NOT STABLE LOCALLY: `make
+  # test-after-build-check` cannot be green in a worktree of this repository,
+  # whichever way the global editable-install state happens to sit. Measured both
+  # ways in one session, minutes apart, because a peer worktree installed the
+  # package in between:
+  #   no editable install        -> lint-editable-install PASSES, but
+  #     tools/test_marketplace_envelope_parity.py::
+  #     test_resolved_layer_refuses_a_module_from_another_tree FAILS: it asserts a
+  #     "provenance mismatch" when the finder resolves a SIBLING worktree, and with
+  #     nothing installed the child exits ModuleNotFoundError first. The child runs
+  #     with `-I`, so PYTHONPATH cannot satisfy it — only a real install can.
+  #   install -> another worktree -> lint-editable-install FAILS by design
+  #     (ADR-0094: this repository imports both packages from source), which is
+  #     what was observed, pointing at 30-day-cooling-specs.
+  # So the two gates are mutually exclusive here and the outcome is owned by
+  # whichever worktree bootstrapped last. Neither file is touched by the work that
+  # registered this, and both are byte-identical to origin/main, so main is red the
+  # same way.
+  # Deliberately NOT repaired by `pip uninstall -y agentbundle`, which the guard
+  # names as the permanent fix: it rewrites state shared by every worktree, the
+  # guard itself says to do it only when no peer gate is running, and 13 peer gate
+  # processes were live when this was measured. It is the owner's call, not a
+  # side effect of an unrelated PR.
+  # To close: decide whether the parity test should skip when no install is
+  # present — which would make the no-install state fully green and consistent with
+  # ADR-0094 — or whether the local gate should provision per worktree.
+  {slug = "pre-existing-marketplace-parity-needs-an-editable-agentbundle", source = "pre-flight/2026-08-28"},
+  {slug = "workflow-posture-guard-coverage-gaps", source = "security+quality review of the posture assertion-proof change"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
   # block. Deliberately NOT bundled into spec/ci-gate-parallelization's Gate A
@@ -1864,6 +1920,14 @@ closed = [
   # as build-site-fence-info-string-opens-a-comment. Pre-existing, different
   # root cause, and the fence state machine was explicitly out of scope.
   {slug = "build-site-comment-strip-ignores-code-spans", source = "spec-less lint-spec-status work (CI failure on PR #1139)", summary = "Closed by giving build-site's changelog comment stripper inline-code-span precedence and adding a release-count floor on the real changelog; the backticked-opener case went from 0 releases to the full population while the bare-opener control stayed collapsed, proving comment handling was made span-aware rather than disabled. The floor and its measured baseline are stated canonically at _MIN_REAL_CHANGELOG_RELEASES in tools/test_build_site_routing.py"},
+
+  # Carries forward the accepted consequence the open entry recorded, because
+  # this closed entry is now the only place in the repository that holds it:
+  # keying non-PR concurrency on run_id means two concurrent CodeQL runs on
+  # different main commits can upload SARIF out of order, so the Security tab
+  # can transiently reflect the older commit until the next analysis. Judged
+  # better than the previous behaviour, where the newer commit went unscanned.
+  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13", summary = "Closed by mutation harnesses for ci-security, pack-evals and build-check-windows plus a new mutation-tested CodeQL posture check wired into build-check. Accepted consequence retained: concurrent CodeQL runs on different main commits can upload SARIF out of order, so the Security tab can transiently show the older commit"},
 
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Closed; successor docs/product/design/workspace-anchor-staleness-invariant.md owns dependency and membership staleness detection"},
 
