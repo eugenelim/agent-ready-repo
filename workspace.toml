@@ -484,19 +484,32 @@ open = [
   # that way.
   # To close: decide which of these earn assertions, in which guard, and accept
   # that each widens what that posture test claims.
-  # Pre-flight, not diff-caused. tools/test_marketplace_envelope_parity.py::
-  # test_resolved_layer_refuses_a_module_from_another_tree fails locally because
-  # its premise is unmet: it asserts a "provenance mismatch" when an editable
-  # install resolves agentbundle from a SIBLING worktree, but this machine has no
-  # editable install at all, so the child dies with ModuleNotFoundError before
-  # the mismatch can be reported. Established as environmental, not a regression:
-  # the file is byte-identical to origin/main (so running it here runs main's
-  # test), it fails in isolation, and `import agentbundle` fails outright with no
-  # path hits. Deliberately NOT fixed by installing the package: a shared
-  # editable install is what makes worktree CI serial, and provisioning it here
-  # can break a peer worktree's in-flight `make ci`.
-  # To close: decide whether this test should skip when no install is present,
-  # or whether the local gate should provision one per worktree.
+  # Pre-flight, not diff-caused, and NOT STABLE LOCALLY: `make
+  # test-after-build-check` cannot be green in a worktree of this repository,
+  # whichever way the global editable-install state happens to sit. Measured both
+  # ways in one session, minutes apart, because a peer worktree installed the
+  # package in between:
+  #   no editable install        -> lint-editable-install PASSES, but
+  #     tools/test_marketplace_envelope_parity.py::
+  #     test_resolved_layer_refuses_a_module_from_another_tree FAILS: it asserts a
+  #     "provenance mismatch" when the finder resolves a SIBLING worktree, and with
+  #     nothing installed the child exits ModuleNotFoundError first. The child runs
+  #     with `-I`, so PYTHONPATH cannot satisfy it — only a real install can.
+  #   install -> another worktree -> lint-editable-install FAILS by design
+  #     (ADR-0094: this repository imports both packages from source), which is
+  #     what was observed, pointing at 30-day-cooling-specs.
+  # So the two gates are mutually exclusive here and the outcome is owned by
+  # whichever worktree bootstrapped last. Neither file is touched by the work that
+  # registered this, and both are byte-identical to origin/main, so main is red the
+  # same way.
+  # Deliberately NOT repaired by `pip uninstall -y agentbundle`, which the guard
+  # names as the permanent fix: it rewrites state shared by every worktree, the
+  # guard itself says to do it only when no peer gate is running, and 13 peer gate
+  # processes were live when this was measured. It is the owner's call, not a
+  # side effect of an unrelated PR.
+  # To close: decide whether the parity test should skip when no install is
+  # present — which would make the no-install state fully green and consistent with
+  # ADR-0094 — or whether the local gate should provision per worktree.
   {slug = "pre-existing-marketplace-parity-needs-an-editable-agentbundle", source = "pre-flight/2026-08-28"},
   {slug = "workflow-posture-guard-coverage-gaps", source = "security+quality review of the posture assertion-proof change"},
   # permissions: contents: read + persist-credentials: false for
