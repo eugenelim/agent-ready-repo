@@ -853,3 +853,187 @@ def test_source_authority_is_not_deletion_authority(tmp_path) -> None:
     }
     inputs["record"] = cooling.CoolingRecord.from_payload(payload)
     assert cooling.deletion_allowed(**inputs).code == "authority-uncertain"
+
+
+def _all_approve() -> dict[str, str]:
+    """Return a complete approving day-30 review response."""
+    return {
+        "completion": "approve",
+        "outputs": "approve",
+        "active_use": "approve",
+        "obligations": "approve",
+        "identity": "approve",
+        "authority": "approve",
+    }
+
+
+def _exception(**overrides: str) -> dict[str, str]:
+    """Return a valid exception envelope for retained work."""
+    envelope = {
+        "reason": "audit-obligation",
+        "owner_role": "release-manager",
+        "review_on": "2026-10-01",
+    }
+    envelope.update(overrides)
+    return envelope
+
+
+def _attestation(checks: dict[str, str]) -> dict[str, object]:
+    """Return a second party's exact review attestation."""
+    return {
+        "answers": checks.copy(),
+        "proposer_role": "release-manager",
+        "approver_role": "delivery-approver",
+        "human_evidence_ref": "run:31",
+    }
+
+
+def _review_kwargs(
+    root: Path,
+    checks: dict[str, str],
+    *,
+    attestation: str | dict[str, object] = "valid",
+    exception: dict[str, str] | None = None,
+) -> dict[str, object]:
+    """Persist a cooling record and return the inputs for a due review."""
+    cooling = _load()
+    enrolment = _enrol_kwargs(root)
+    assert cooling.enrol(**enrolment).code == "enrolled"
+    supplied_attestation = _attestation(checks)
+    if attestation == "missing-answers":
+        del supplied_attestation["answers"]
+    elif attestation == "missing-approver":
+        del supplied_attestation["approver_role"]
+    elif attestation == "missing-evidence":
+        del supplied_attestation["human_evidence_ref"]
+    elif attestation == "answers-differ":
+        supplied_attestation["answers"] = checks | {"identity": "refuse"}
+    elif attestation == "approver-equals-proposer":
+        supplied_attestation["approver_role"] = "release-manager"
+    elif attestation != "valid":
+        raise ValueError(f"unknown attestation fixture: {attestation}")
+    return {
+        "root": root,
+        "record": enrolment["record"],
+        "checks": checks,
+        "attestation": supplied_attestation,
+        "now": datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+        "exception": exception,
+        "candidates": enrolment["candidates"],
+        "authority_binding": enrolment["authority_binding"],
+    }
+
+
+def _exception_kwargs(root: Path, outcome: str) -> dict[str, object]:
+    """Persist a retained record and return the inputs for exception review."""
+    cooling = _load()
+    enrolment = _enrol_kwargs(root)
+    prior = cooling.CoolingRecord.from_payload(
+        enrolment["record"].as_payload()
+        | {
+            "disposition": "retain-exception",
+            "post_closeout_result": "Retained",
+            "exception": _exception(),
+        }
+    )
+    assert cooling._write_record(
+        root, _destination(root), prior, enrolment["authority_binding"]
+    ).code == "enrolled"
+    return {
+        "root": root,
+        "record": prior,
+        "outcome": outcome,
+        "attestation": {"exception": _exception(review_on="2026-11-01")},
+        "now": datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+        "candidates": enrolment["candidates"],
+        "authority_binding": enrolment["authority_binding"],
+    }
+
+
+# STUB: AC31
+@pytest.mark.parametrize(
+    "omitted",
+    ["completion", "outputs", "active_use", "obligations", "identity", "authority"],
+)
+def test_all_six_answers_are_required(tmp_path, omitted: str) -> None:
+    cooling = _load()
+    checks = _all_approve()
+    del checks[omitted]
+    assert cooling.review(**_review_kwargs(tmp_path, checks)).code == "review-incomplete"
+
+
+# STUB: AC32
+@pytest.mark.parametrize(
+    "attestation",
+    ["missing-answers", "missing-approver", "missing-evidence", "answers-differ",
+     "approver-equals-proposer"],
+)
+def test_the_attestation_must_carry_a_humans_own_answers(tmp_path, attestation: str) -> None:
+    cooling = _load()
+    kwargs = _review_kwargs(tmp_path, _all_approve(), attestation=attestation)
+    assert cooling.review(**kwargs).code == "review-incomplete"
+
+
+# STUB: AC33
+def test_approval_retires_and_persists(tmp_path) -> None:
+    cooling = _load()
+    result = cooling.review(**_review_kwargs(tmp_path, _all_approve()))
+    assert result.record.post_closeout_result == "Retired"
+    path = _destination(tmp_path) / "spec-example.json"
+    assert cooling.load_record(tmp_path, path).record.post_closeout_result == "Retired"
+
+
+# STUB: AC34
+@pytest.mark.parametrize("answer", ["refuse", "uncertain"])
+def test_refusal_or_uncertainty_produces_a_complete_exception(tmp_path, answer: str) -> None:
+    cooling = _load()
+    checks = _all_approve() | {"obligations": answer}
+    result = cooling.review(**_review_kwargs(tmp_path, checks, exception=_exception()))
+    assert result.record.disposition == "retain-exception"
+    assert set(dict(result.record.exception)) >= {"reason", "owner_role", "review_on"}
+
+
+# STUB: AC34
+@pytest.mark.parametrize("missing", ["reason", "owner_role", "review_on"])
+def test_an_incomplete_exception_envelope_refuses(tmp_path, missing: str) -> None:
+    cooling = _load()
+    envelope = _exception()
+    del envelope[missing]
+    checks = _all_approve() | {"obligations": "refuse"}
+    result = cooling.review(**_review_kwargs(tmp_path, checks, exception=envelope))
+    assert result.code == "exception-envelope-invalid"
+
+
+# STUB: AC35
+@pytest.mark.parametrize(
+    ("outcome", "target"),
+    [
+        ("confirm-deletion", ("retain-exception", "Retired")),
+        ("renew", ("retain-exception", "Retained")),
+        ("choose-cooling", ("cool-30-days", "Cooling")),
+        ("advisory", ("retain-exception", "ExternalAdvisory")),
+    ],
+)
+def test_exception_review_maps_each_outcome_to_a_table_pair(tmp_path, outcome, target) -> None:
+    cooling = _load()
+    result = cooling.review_exception(**_exception_kwargs(tmp_path, outcome))
+    assert result.code == "accepted"
+    assert (result.record.disposition, result.record.post_closeout_result) == target
+
+
+# STUB: AC35
+def test_an_unlisted_exception_outcome_refuses(tmp_path) -> None:
+    cooling = _load()
+    result = cooling.review_exception(**_exception_kwargs(tmp_path, "delete-now"))
+    assert result.code == "exception-envelope-invalid"
+
+
+# STUB: AC36
+def test_cooling_module_removes_nothing_but_its_temp_file() -> None:
+    called = _called_attributes(COOLING_PATH)
+    for attribute in ("remove", "rmdir", "removedirs", "rmtree"):
+        assert ("<any>", attribute) not in called
+        assert ("<bare>", attribute) not in called
+    source = COOLING_PATH.read_text(encoding="utf-8")
+    assert source.count("unlink") == 1, "only the named temp-file cleanup may unlink"
+    assert "os.unlink(temporary, dir_fd=" in source

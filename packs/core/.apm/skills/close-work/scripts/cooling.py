@@ -50,6 +50,10 @@ _TRANSITIONS = frozenset(
         (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
     }
 )
+_REVIEW_FIELDS = frozenset(
+    {"completion", "outputs", "active_use", "obligations", "identity", "authority"}
+)
+_REVIEW_ANSWERS = frozenset({"approve", "refuse", "uncertain"})
 _CLOSE_WORK: object | None = None
 
 
@@ -636,3 +640,146 @@ def update_record(
     if result.code == "enrolled":
         return CoolingResult(code="accepted", record=proposed, mutated=result.mutated)
     return result
+
+
+def _review_is_complete(checks: object, attestation: object) -> bool:
+    """Require a second party's exact, complete day-30 review response."""
+    if not isinstance(checks, dict) or set(checks) != _REVIEW_FIELDS:
+        return False
+    if any(answer not in _REVIEW_ANSWERS for answer in checks.values()):
+        return False
+    if not isinstance(attestation, dict):
+        return False
+    answers = attestation.get("answers")
+    proposer = attestation.get("proposer_role")
+    approver = attestation.get("approver_role")
+    evidence_ref = attestation.get("human_evidence_ref")
+    return (
+        isinstance(answers, dict)
+        and answers == checks
+        and isinstance(proposer, str)
+        and _ROLE_RE.fullmatch(proposer) is not None
+        and isinstance(approver, str)
+        and _ROLE_RE.fullmatch(approver) is not None
+        and approver != proposer
+        and isinstance(evidence_ref, str)
+        and _EVIDENCE_RE.fullmatch(evidence_ref) is not None
+    )
+
+
+def _proposed_record(
+    record: CoolingRecord,
+    *,
+    disposition: str,
+    post_closeout_result: str,
+    exception: dict[str, str] | None,
+) -> CoolingRecord:
+    """Return a validated transition target with its required exception shape."""
+    payload = record.as_payload()
+    payload["disposition"] = disposition
+    payload["post_closeout_result"] = post_closeout_result
+    if exception is None:
+        payload.pop("exception", None)
+    else:
+        payload["exception"] = exception
+    return CoolingRecord.from_payload(payload)
+
+
+def review(
+    record: CoolingRecord,
+    checks: object,
+    attestation: object,
+    now: datetime,
+    exception: object = None,
+    *,
+    root: Path,
+    candidates: object,
+    authority_binding: object,
+) -> CoolingResult:
+    """Persist a due day-30 retirement or retained-exception decision."""
+    if not _review_is_complete(checks, attestation):
+        return CoolingResult(code="review-incomplete")
+    due = is_due(record, now)
+    if due.code is not None:
+        return due
+    if not due.due:
+        return CoolingResult(code="not-due", record=record)
+    assert isinstance(checks, dict)
+    if any(answer in {"refuse", "uncertain"} for answer in checks.values()):
+        if not _exception_is_valid(exception):
+            return CoolingResult(code="exception-envelope-invalid")
+        proposed = _proposed_record(
+            record,
+            disposition="retain-exception",
+            post_closeout_result="Retained",
+            exception=exception,
+        )
+    else:
+        proposed = _proposed_record(
+            record,
+            disposition="cool-30-days",
+            post_closeout_result="Retired",
+            exception=None,
+        )
+    return update_record(
+        root=root,
+        prior=record,
+        proposed=proposed,
+        candidates=candidates,
+        authority_binding=authority_binding,
+    )
+
+
+def review_exception(
+    record: CoolingRecord,
+    outcome: object,
+    attestation: object,
+    now: datetime,
+    *,
+    root: Path,
+    candidates: object,
+    authority_binding: object,
+) -> CoolingResult:
+    """Persist one closed exception-review outcome without deleting anything."""
+    targets = {
+        "confirm-deletion": ("retain-exception", "Retired"),
+        "renew": ("retain-exception", "Retained"),
+        "choose-cooling": ("cool-30-days", "Cooling"),
+        "advisory": ("retain-exception", "ExternalAdvisory"),
+    }
+    if not isinstance(outcome, str) or outcome not in targets:
+        return CoolingResult(code="exception-envelope-invalid")
+    due = is_due(record, now)
+    if due.code is not None:
+        return due
+    if not due.due:
+        return CoolingResult(code="not-due", record=record)
+    disposition, post_closeout_result = targets[outcome]
+    exception: dict[str, str] | None
+    if disposition == "cool-30-days":
+        exception = None
+    elif outcome == "renew":
+        if not isinstance(attestation, dict):
+            return CoolingResult(code="exception-envelope-invalid")
+        supplied = attestation.get("exception", attestation)
+        if not _exception_is_valid(supplied):
+            return CoolingResult(code="exception-envelope-invalid")
+        exception = supplied
+    else:
+        exception = dict(record.exception or ())
+    try:
+        proposed = _proposed_record(
+            record,
+            disposition=disposition,
+            post_closeout_result=post_closeout_result,
+            exception=exception,
+        )
+    except (TypeError, ValueError):
+        return CoolingResult(code="exception-envelope-invalid")
+    return update_record(
+        root=root,
+        prior=record,
+        proposed=proposed,
+        candidates=candidates,
+        authority_binding=authority_binding,
+    )
