@@ -170,15 +170,37 @@ def test_base_ref_probe_timeout_degrades_to_unresolvable(
     assert calls == [module.GIT_TIMEOUT_S]
 
 
-def test_base_spec_show_timeout_degrades_to_absent(
+def test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A timed-out base object read is not evidence that a spec is new."""
     module = load_linter_module()
     calls: list[float] = []
-    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+    original_run = module.subprocess.run
 
-    assert module.base_spec_text(Path("/repo"), "docs/spec.md", "origin/main") is None
-    assert calls == [module.GIT_TIMEOUT_S]
+    def run(*args, **kwargs):
+        if "show" in args[0]:
+            calls.append(kwargs["timeout"])
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+        return original_run(*args, **kwargs)
+
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        sectionless = root / "docs" / "specs" / "sectionless" / "spec.md"
+        sectionless.parent.mkdir(parents=True)
+        sectionless.write_text(
+            "# Spec: sectionless\n\n- **Status:** Shipped\n", encoding="utf-8"
+        )
+        write_spec(root, "unchecked", "Shipped", "- [ ] grandfathered\n")
+        git_init_commit(root)
+
+        monkeypatch.setattr(module.subprocess, "run", run)
+        monkeypatch.setattr(module, "base_ref_resolves", lambda _root, _ref: True)
+        hard, warn = module.check(root, "HEAD")
+
+    assert hard == []
+    assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S], warn
+    assert sum("diff-triggered invariants (ii) and (vi) skipped" in item for item in warn) == 2
 
 
 def test_repo_root_probe_timeout_degrades_to_script_relative_root(
