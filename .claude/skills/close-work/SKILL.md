@@ -90,7 +90,9 @@ classification. Source, write, and deletion authority remain independent.
 
 ## Exact immediate effect
 
-Use `scripts/close_work.py` as the deterministic decision/effect and cooling seam.
+Use `scripts/close_work.py` as the deterministic decision/effect seam and
+`scripts/cooling.py` as the cooling seam — enrolment, the review date, due
+state, day-30 review, and retirement all live in the latter.
 It loads the sibling resolver and the co-located byte-identical projection of the
 blessed file-safety helper; there is no fallback resolver or weaker filesystem branch.
 

@@ -263,21 +263,25 @@ def test_canonical_bytes_are_accepted_by_the_parser() -> None:
 
 
 # STUB: AC13
-def test_oversized_and_over_nested_input_refuses_without_raising() -> None:
-    cooling = _load()
-    oversized = _payload(aliases=["docs/specs/x/" + "a" * 200 + ".md"] * 400)
-    assert cooling.parse_record_bytes(
-        json.dumps(oversized).encode() + b"\n"
-    ).code == "record-invalid"
+def test_input_past_the_byte_ceiling_refuses() -> None:
+    """Isolate MAX_RECORD_BYTES from every other validator.
 
-    nested: dict = {"authority": {}}
-    cursor = nested["authority"]
-    for _ in range(12):
-        cursor["source"] = {}
-        cursor = cursor["source"]
-    assert cooling.parse_record_bytes(
-        json.dumps(_payload(**nested)).encode() + b"\n"
-    ).code == "record-invalid"
+    The earlier fixture padded `aliases` to 400 entries, which the 16-alias cap
+    already refuses, so the byte ceiling was deletable with the suite green.
+    Insignificant JSON whitespace grows the encoded bytes past the ceiling while
+    leaving a payload every field-level validator accepts, which makes the byte
+    bound the only thing that can produce the refusal.
+    """
+    cooling = _load()
+    valid = cooling.canonical_bytes(_record(cooling))
+    assert cooling.parse_record_bytes(valid).code is None
+    assert len(valid) < cooling.MAX_RECORD_BYTES
+
+    padded = b"  " * cooling.MAX_RECORD_BYTES + valid
+    assert len(padded) > cooling.MAX_RECORD_BYTES
+    assert json.loads(padded.decode()) == json.loads(valid.decode())
+
+    assert cooling.parse_record_bytes(padded).code == "record-invalid"
 
 
 def _destination(root: Path) -> Path:
@@ -521,19 +525,62 @@ def test_a_swapped_parent_leaves_no_bytes_anywhere(tmp_path) -> None:
     assert result.mutated == ()
 
 
+def _well_formed_binding(cooling, *, action: str, resource: str, issued: bool):
+    """Build a real MutationBinding, optionally one the seam never registered.
+
+    AC19's earlier fixtures were plain dicts, so every one of them died on the
+    `isinstance` guard and none reached the resource comparison or the
+    issued-fact loop. A binding has to be genuine to exercise the half of AC19
+    that says "for this exact record".
+    """
+    close_work = cooling._close_work()
+    fields = {
+        "authorized_actor_role": "release-manager",
+        "grant_source": "approval:release",
+        "action": action,
+        "resource": resource,
+        "evidence_ref": "authority:write",
+        "host_session_provenance": "host-session:pytest",
+    }
+    fact = close_work.resolve_mutation_authority(
+        grant_record=dict(fields), authority_evidence_ref="authority-resolution:pytest"
+    )
+    assert fact is not None
+    binding = close_work._mutation_binding(
+        authority_fact=fact, expected_action=action, **fields
+    )
+    assert binding is not None
+    if not issued:
+        # Drop the fact from the registry: the binding object stays well formed
+        # while ceasing to be reproducible from an issued authority.
+        close_work._ISSUED_COORDINATION_AUTHORITIES.pop(fact.issue_digest, None)
+    return binding
+
+
 # STUB: AC19
 @pytest.mark.parametrize(
-    "binding",
-    [
-        None,
-        "never-issued",
-        {"action": "write-pause-overlay"},
-        {"resource": "docs/lifecycle/spec-other.json"},
-    ],
+    "shape",
+    ["absent", "never-issued", "wrong-action", "wrong-resource"],
 )
-def test_the_write_must_be_authorized_for_this_record(tmp_path, binding) -> None:
+def test_the_write_must_be_authorized_for_this_record(tmp_path, shape: str) -> None:
     cooling = _load()
+    mine = "docs/lifecycle/spec-example.json"
+    binding = {
+        "absent": lambda: None,
+        "never-issued": lambda: _well_formed_binding(
+            cooling, action="write-lifecycle-record", resource=mine, issued=False
+        ),
+        "wrong-action": lambda: _well_formed_binding(
+            cooling, action="write-pause-overlay", resource=mine, issued=True
+        ),
+        "wrong-resource": lambda: _well_formed_binding(
+            cooling, action="write-lifecycle-record",
+            resource="docs/lifecycle/spec-other.json", issued=True,
+        ),
+    }[shape]()
+
     result = cooling.enrol(**_enrol_kwargs(tmp_path, authority_binding=binding))
+
     assert result.code == "authority-uncertain"
     assert list(_destination(tmp_path).iterdir()) == []
 
@@ -1146,7 +1193,15 @@ def test_the_writer_refuses_a_record_the_reader_would_reject(tmp_path) -> None:
 
 
 def test_a_deeply_nested_record_refuses_instead_of_raising(tmp_path) -> None:
-    """The depth guard must not exhaust the stack it exists to protect."""
+    """The depth guard must not exhaust the stack it exists to protect.
+
+    This is the integration half. It cannot isolate MAX_RECORD_DEPTH — every
+    field of a schema-valid record is constrained, so no valid payload can nest
+    past a handful of levels, and a payload deep enough to matter is refused by
+    the shape validators too. The bound is therefore exercised directly below;
+    what this case pins is that the traversal returns a code rather than
+    exhausting the stack, which is the property that actually regressed.
+    """
     cooling = _load()
     destination = _destination(tmp_path)
     destination.mkdir(parents=True)
@@ -1155,3 +1210,19 @@ def test_a_deeply_nested_record_refuses_instead_of_raising(tmp_path) -> None:
 
     assert cooling.parse_record_bytes(path.read_bytes()).code == "record-invalid"
     assert cooling.load_record(tmp_path, path).code == "record-invalid"
+
+
+def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
+    """Exercise MAX_RECORD_DEPTH directly, since no valid record can reach it."""
+    cooling = _load()
+
+    def nest(levels: int) -> object:
+        node: object = "leaf"
+        for _ in range(levels):
+            node = {"n": node}
+        return node
+
+    assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH - 1), cooling.MAX_RECORD_DEPTH) is False
+    assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH + 1), cooling.MAX_RECORD_DEPTH) is True
+    # And it terminates on input that would overflow a recursive implementation.
+    assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True

@@ -176,12 +176,26 @@ def _is_date(value: object) -> bool:
     return True
 
 
-def _depth(value: object, level: int = 1) -> int:
-    if isinstance(value, dict):
-        return max([level] + [_depth(item, level + 1) for item in value.values()])
-    if isinstance(value, list):
-        return max([level] + [_depth(item, level + 1) for item in value])
-    return level
+def _exceeds_depth(value: object, limit: int) -> bool:
+    """Report whether a parsed payload nests deeper than the bound.
+
+    Iterative with an explicit worklist, and it stops at the bound rather than
+    measuring the whole shape: recursing here consumed roughly two frames per
+    level against `json.loads`'s one, so a payload well inside MAX_RECORD_BYTES
+    that parsed successfully could still exhaust the stack inside the guard —
+    and `RecursionError` is not a `ValueError`, so it escaped every refusal
+    path and surfaced as a traceback carrying an absolute path.
+    """
+    pending: list[tuple[object, int]] = [(value, 1)]
+    while pending:
+        node, level = pending.pop()
+        if level > limit:
+            return True
+        if isinstance(node, dict):
+            pending.extend((item, level + 1) for item in node.values())
+        elif isinstance(node, list):
+            pending.extend((item, level + 1) for item in node)
+    return False
 
 
 def _authority_is_valid(value: object) -> bool:
@@ -289,7 +303,7 @@ def parse_record_bytes(raw: bytes) -> CoolingResult:
         )
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError, RecursionError):
         return CoolingResult(code="record-invalid")
-    if _depth(payload) > MAX_RECORD_DEPTH:
+    if _exceeds_depth(payload, MAX_RECORD_DEPTH):
         return CoolingResult(code="record-invalid")
     return validate_payload(payload)
 
@@ -469,11 +483,31 @@ def _binding_is_issued(binding: object, resource: str) -> bool:
 
 
 def _write_record(
-    root: Path, destination: Path, record: CoolingRecord, binding: object
+    root: Path,
+    destination: Path,
+    record: CoolingRecord,
+    binding: object,
+    expect_prior: CoolingRecord | None = None,
 ) -> CoolingResult:
-    """Atomically replace one confined lifecycle record through a directory fd."""
+    """Atomically replace one confined lifecycle record through a directory fd.
+
+    The write is a compare-and-swap against persisted state, not against the
+    caller's arguments. `expect_prior=None` means the record must not already
+    exist, so enrolment cannot overwrite a decision someone already recorded;
+    a supplied `expect_prior` must match the bytes on disk, so a stale or
+    fabricated prior cannot drive a transition the table forbids. Both checks
+    run through the same descriptor that the replace uses, which is what makes
+    them a swap rather than a check-then-act.
+    """
     if not _write_effect_supported():
         return CoolingResult(code="lifecycle-state-unwritable")
+    # Never serialise a record the reader would refuse: an unvalidated write
+    # persists a file that `load_record` rejects for the rest of its life.
+    validation = validate_payload(record.as_payload())
+    if validation.code is not None:
+        return validation
+    if compute_review_on(record.completed_on, record.timezone) != record.review_on:
+        return CoolingResult(code="record-invalid")
     try:
         final_path = _record_path(root, destination, record)
         resource = final_path.relative_to(root).as_posix()
@@ -492,6 +526,18 @@ def _write_record(
             target = None
         if target is not None and not stat.S_ISREG(target.st_mode):
             return CoolingResult(code="unsafe-target")
+        existing: bytes | None = None
+        if target is not None:
+            existing_fd = os.open(
+                final_name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=descriptor
+            )
+            with os.fdopen(existing_fd, "rb") as handle:
+                existing = handle.read(MAX_RECORD_BYTES + 1)
+        if expect_prior is None:
+            if existing is not None:
+                return CoolingResult(code="record-invalid")
+        elif existing is None or existing != canonical_bytes(expect_prior):
+            return CoolingResult(code="record-invalid")
         for index in range(32):
             candidate = f".{record.delivery_id}.tmp-{index}"
             try:
@@ -605,7 +651,7 @@ def load_record(root: Path, path: Path) -> CoolingResult:
             root, path, max_bytes=MAX_RECORD_BYTES
         )
         result = parse_record_bytes(raw)
-    except (ImportError, OSError, ValueError):
+    except (ImportError, OSError, ValueError, RecursionError):
         return CoolingResult(code="record-invalid")
     if (
         result.code is not None
@@ -636,7 +682,7 @@ def update_record(
     destination = _resolve_destination(root, candidates)
     if isinstance(destination, str):
         return CoolingResult(code=destination)
-    result = _write_record(root, destination, proposed, authority_binding)
+    result = _write_record(root, destination, proposed, authority_binding, prior)
     if result.code == "enrolled":
         return CoolingResult(code="accepted", record=proposed, mutated=result.mutated)
     return result
