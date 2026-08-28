@@ -134,6 +134,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heading near-miss check now share one notion of what is commented; HTML
   comments elsewhere in a spec remain welcome and untouched.
 
+## [agent-skill-engineering][0.1.0] — 2026-08-27
+
+### Highlights
+
+- **Agents can now frame, create, update, review, and optimize portable agent
+  skills through progressive, least-authority workflows.** The foundation
+  includes activation and behavior evaluations, deterministic compiled
+  reference knowledge, and bounded failure contracts.
+- **Compatible organization or framework knowledge can inform skill work
+  without coupling packs to another corpus.** Workflows detect declared
+  provider capabilities, invoke an eligible provider explicitly, and retain
+  their complete baseline when no provider is available.
+
+### Added
+
+- Added the `author-or-update-agent-skill` and
+  `review-or-optimize-agent-skill` workflows with `frame`, `create`, `update`,
+  review, and measured-optimize modes.
+- Added a governed three-topic OKF foundation corpus, its generated inert
+  router, provider-contract fixtures, language-extension seams, and durable
+  activation, behavior, precision, determinism, security, and failure-mode
+  evidence.
+
+### Security
+
+- Candidate content and provider guidance remain untrusted data; reads and
+  writes are confined before content access, authentication stays external,
+  and provider responses cannot widen authority or authorize execution.
+
+## [catalogue-curation][0.4.4] — 2026-08-27
+
+### Highlights
+
+- **Pack-owned OKF routers can now expose a bounded, explicit-only knowledge
+  provider capability for compatible workflows.** Raw OKF remains governed
+  build-time input, while generated provider metadata supports deterministic
+  discovery without implicit corpus traversal.
+
+### Changed
+
+- Extended the existing OKF build profile and compiler with optional provider
+  capability metadata whose generated description refuses direct user
+  selection and requires an explicit compatible workflow call.
+
 ## [catalogue-curation][0.4.3] — 2026-08-26
 
 ### Highlights

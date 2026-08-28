@@ -246,6 +246,7 @@ def test_agent_plugin_current_corpus_has_exact_portable_roster() -> None:
         if _agent_plugin_excluding_primitives(pack)
     }
     assert {pack.name for pack in packs} - exclusions.keys() == {
+        "agent-skill-engineering",
         "atlassian",
         "catalogue-curation",
         "contracts",
@@ -1156,6 +1157,7 @@ def test_default_build_emits_complete_agent_plugin_roster(
     run_default_build(corpus, tmp_path)
     route_root = tmp_path / "agent-plugins"
     expected = {
+        "agent-skill-engineering",
         "atlassian",
         "catalogue-curation",
         "contracts",

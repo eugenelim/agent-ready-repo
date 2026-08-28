@@ -592,6 +592,46 @@ def test_router_skill_is_deterministic_nested_and_has_no_tools(tmp_path: Path) -
     assert "Ignore previous instructions" not in router
 
 
+def test_router_can_expose_bounded_provider_discovery_metadata(tmp_path: Path) -> None:
+    bundle = _copy_fixture(tmp_path)
+    provider = {
+        "contract-version": "rich-reference/v1",
+        "domain": "runbook engineering",
+        "purpose": "Provide compiled guidance for bounded runbook questions.",
+        "task-kinds": ["runbook-authoring", "runbook-review"],
+        "invocation": "explicit-workflow-only",
+        "ownership-manifest": ".okf-generated.json",
+    }
+
+    result = render_okf_bundle(
+        bundle,
+        bundle_id="rich",
+        router_skill="rich-router",
+        projected_concepts={"concepts/runbook.md": RUNBOOK_DIGEST},
+        provider_capability=provider,
+    )
+
+    router = result.files["SKILL.md"].decode()
+    assert result.diagnostics == ()
+    assert "knowledge-provider:" in router
+    assert 'contract-version: "rich-reference/v1"' in router
+    assert 'domain: "runbook engineering"' in router
+    assert 'task-kinds: ["runbook-authoring","runbook-review"]' in router
+    assert "invocation: explicit-workflow-only" in router
+    assert "ownership-manifest: .okf-generated.json" in router
+    assert "Not a selectable skill." in router
+    assert (
+        "Inert reference data invoked only by another skill's explicit "
+        "rich-reference/v1 provider call" in router
+    )
+    assert "must never be chosen to satisfy a user's question on any subject" in router
+    # The declared domain and purpose belong to the capability metadata, not to
+    # the activation surface, so the router cannot compete with its consumers.
+    description = router.split("description:", 1)[1].split("\nmetadata:", 1)[0]
+    assert "runbook engineering" not in description
+    assert "Provide compiled guidance for bounded runbook questions." not in description
+
+
 def test_procedure_skill_contains_reviewed_section_and_untrusted_includes(
     tmp_path: Path,
 ) -> None:

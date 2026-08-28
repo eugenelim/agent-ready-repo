@@ -330,6 +330,7 @@ def render_okf_bundle(
     bundle_id: str,
     router_skill: str,
     projected_concepts: Mapping[str, str],
+    provider_capability: Mapping[str, Any] | None = None,
 ) -> RenderResult:
     """Render deterministic router, procedure Skills, references, and manifest bytes."""
 
@@ -373,10 +374,16 @@ def render_okf_bundle(
         files[f"references/okf/{record.relative_path}"] = record.data
 
     router_template = (ASSET_ROOT / "router-wrapper.md").read_text(encoding="utf-8")
+    router_description, provider_metadata = _provider_router_metadata(
+        bundle_id,
+        provider_capability,
+    )
     files["SKILL.md"] = router_template.format(
         router_skill=router_skill,
         bundle_id=bundle_id,
         source_digest=source_digest,
+        router_description=router_description,
+        provider_metadata=provider_metadata,
     ).encode("utf-8")
 
     for concept_path, reviewed_digest in sorted(projected_concepts.items()):
@@ -521,6 +528,7 @@ def compile_pack(
             "bundle_id": bundle["id"],
             "router_skill": bundle["router-skill"],
             "projected_concepts": projected,
+            "provider_capability": bundle.get("provider"),
         }
         bundle_root = pack_dir / bundle["path"]
         bundle_boundary = _bundle_root_boundary_diagnostic(
@@ -2442,7 +2450,7 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
         if not isinstance(bundle, Mapping):
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle"))
             continue
-        allowed = {"id", "path", "router-skill", "projected-concepts"}
+        allowed = {"id", "path", "router-skill", "projected-concepts", "provider"}
         if not {"id", "path", "router-skill"}.issubset(bundle) or not set(bundle) <= allowed:
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle properties"))
         bundle_id = bundle.get("id")
@@ -2458,6 +2466,9 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF bundle path"))
         if not _is_slug(router_skill):
             diagnostics.append(_diagnostic("OKF001", bundle_path, "invalid OKF router skill"))
+        diagnostics.extend(
+            _provider_capability_diagnostics(bundle.get("provider"), bundle_path)
+        )
         if (
             isinstance(bundle_id, str)
             and isinstance(source_path, str)
@@ -2503,6 +2514,112 @@ def _pack_profile_diagnostics(profile: Any, path: str) -> list[Diagnostic]:
                     )
                 seen_projected.add(projection_identity)
     return diagnostics
+
+
+def _provider_capability_diagnostics(provider: Any, bundle_path: str) -> list[Diagnostic]:
+    """Validate optional independent-provider discovery metadata."""
+
+    if provider is None:
+        return []
+    provider_path = f"{bundle_path}:provider"
+    if not isinstance(provider, Mapping):
+        return [_diagnostic("OKF001", provider_path, "invalid provider capability")]
+    required = {
+        "contract-version",
+        "domain",
+        "purpose",
+        "task-kinds",
+        "invocation",
+        "ownership-manifest",
+    }
+    diagnostics: list[Diagnostic] = []
+    if set(provider) != required:
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider capability properties")
+        )
+    contract_version = provider.get("contract-version")
+    if (
+        not isinstance(contract_version, str)
+        or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}/v[1-9][0-9]*", contract_version)
+    ):
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider contract version")
+        )
+    for key in ("domain", "purpose"):
+        value = provider.get(key)
+        if (
+            not isinstance(value, str)
+            or not 1 <= len(value) <= 512
+            or not all(" " <= character <= "~" for character in value)
+        ):
+            diagnostics.append(
+                _diagnostic("OKF001", provider_path, f"invalid provider {key}")
+            )
+    task_kinds = provider.get("task-kinds")
+    if (
+        not isinstance(task_kinds, list)
+        or not 1 <= len(task_kinds) <= 16
+        or len(set(task_kinds)) != len(task_kinds)
+        or any(not _is_slug(item) for item in task_kinds)
+    ):
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider task kinds")
+        )
+    if provider.get("invocation") != "explicit-workflow-only":
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider invocation")
+        )
+    if provider.get("ownership-manifest") != ".okf-generated.json":
+        diagnostics.append(
+            _diagnostic("OKF001", provider_path, "invalid provider ownership manifest")
+        )
+    return diagnostics
+
+
+def _provider_router_metadata(
+    bundle_id: str,
+    provider: Mapping[str, Any] | None,
+) -> tuple[str, str]:
+    """Render optional capability metadata without changing ordinary routers."""
+
+    if provider is None:
+        return (
+            f"Route into the compiled OKF bundle `{bundle_id}` using generated indexes.",
+            "",
+        )
+    purpose = str(provider["purpose"])
+    domain = str(provider["domain"])
+    contract_version = str(provider["contract-version"])
+    # The description is the activation surface, so it carries only the
+    # refusal: naming the domain or purpose here makes the router compete with
+    # the workflows it exists to serve. Capability detection reads the
+    # knowledge-provider metadata below instead.
+    description = json.dumps(
+        f"Not a selectable skill. Inert reference data invoked only by another "
+        f"skill's explicit {contract_version} provider call. It answers no user "
+        f"request, performs no user task, and must never be chosen to satisfy a "
+        f"user's question on any subject. When a user's request matches this "
+        f"data's subject, the correct choice is the workflow skill that serves "
+        f"that request, never this one. Its capability declaration lives in "
+        f"metadata.knowledge-provider.",
+        ensure_ascii=False,
+    )
+    metadata = (
+        "\n  knowledge-provider:\n"
+        f"    contract-version: {json.dumps(provider['contract-version'], ensure_ascii=False)}\n"
+        f"    domain: {json.dumps(domain, ensure_ascii=False)}\n"
+        f"    purpose: {json.dumps(purpose, ensure_ascii=False)}\n"
+        "    task-kinds: "
+        + json.dumps(
+            provider["task-kinds"],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "\n"
+        "    invocation: explicit-workflow-only\n"
+        "    ownership-manifest: .okf-generated.json"
+    )
+    return description, metadata
 
 
 def _agentbundle_extension_diagnostics(path: str, extension: Any) -> list[Diagnostic]:

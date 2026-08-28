@@ -146,6 +146,10 @@ def test_repeated_compile_mismatch_returns_okf012_without_mutation(
         bundle_id: str,
         router_skill: str,
         projected_concepts: Mapping[str, str],
+        # Forwarded verbatim so the stub tracks the real signature; an optional
+        # render argument added later must not turn this guard into a TypeError
+        # that looks like the guard firing.
+        **extra: object,
     ) -> okf_compiler.RenderResult:
         nonlocal calls
         calls += 1
@@ -154,6 +158,7 @@ def test_repeated_compile_mismatch_returns_okf012_without_mutation(
             bundle_id=bundle_id,
             router_skill=router_skill,
             projected_concepts=projected_concepts,
+            **extra,
         )
         if calls != 2:
             return rendered

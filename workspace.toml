@@ -255,6 +255,7 @@ open = [
   # plan edit. Discovered by spec/okf-follow-ons, whose plan corrections were
   # blocked mid-run and landed only after an owner-authorized cohort re-seal.
   {slug = "cohort-seal-blocks-in-phase-plan-correction", summary = "loop-engine applies `schedule check-current` to every CODE-* transition except `done`, so any plan.md edit blocks the rest of a run even though the plan contract and docs/CONVENTIONS.md require in-phase correction while Status is Executing; the only escape is a cohort re-seal that clears the review-retry and stasis counters and resets current_wave_index", source = "spec/okf-follow-ons (adversarial review rounds 11-12, tooling conflict)"},
+  {slug = "agent-skill-engineering-guide-and-docsurl", summary = "agent-skill-engineering is the only pack in GUIDE_OPTIONAL_PACKS and its site docsUrl points at the guides index; the planned docs slice must add guides/agent-skill-engineering/, link it from guides/README.md, drop the exemption, and repoint docsUrl", source = "spec/agent-skill-engineering-foundation AC21 (owner decision 2026-08-27)"},
   # Unblocks when: the release checklist owner decides.
   {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
   # Deferred rather than bundled: packages/agentbundle/ is a protected tree
@@ -2052,13 +2053,13 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M0 · provider ADR and foundation-spec decomposition"
+milestone = "M1 · foundation implementation queued"
 
 ["ini-009".brief_queue]
-executing = ""
-ready = [
+executing = [
   { path = "docs/product/briefs/agent-skill-engineering.md", kind = "brief", source = { mode = "repo-origin", ref = "docs/rfc/0097-agent-skill-engineering.md", revision = "sha256-bytes-v1:bcafd5c77e8a849d831b8a8a47aaeeda24f35d124e423ec28ccacb0146c23098" }, summary = "Deliver the agent-skill-engineering pack, corpus, integrations, and repository adaptation", needs = [] },
 ]
+ready = []
 draft = []
 
 ["ini-009".shaping_queue]
@@ -2068,4 +2069,6 @@ backlog = []
 ["ini-009".work]
 active  = []
 queue   = []
-shipped = []
+shipped = [
+  { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
+]

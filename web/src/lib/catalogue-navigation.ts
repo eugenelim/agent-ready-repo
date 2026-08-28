@@ -92,7 +92,12 @@ export const catalogueOutcomes: readonly CatalogueOutcome[] = [
       'Create an organization-owned catalogue, curate packs and profiles, validate contracts, and distribute one governed system.',
     cataloguePromise:
       'Curate organization-owned packs and profiles, validate their contracts, and distribute one governed system.',
-    packs: ['catalogue-curation', 'governance-extras', 'product-documentation'],
+    packs: [
+      'catalogue-curation',
+      'agent-skill-engineering',
+      'governance-extras',
+      'product-documentation',
+    ],
   },
 ];
 

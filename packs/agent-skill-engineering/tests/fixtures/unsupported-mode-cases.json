@@ -1,0 +1,13 @@
+{
+  "contract_version": "agent-skill-engineering-foundation/v1",
+  "cases": [
+    {"mode": "knowledge-provider", "expected_status": "unavailable"},
+    {"mode": "runtime-package", "expected_status": "unavailable"},
+    {"mode": "runtime-profile", "expected_status": "unavailable"},
+    {"mode": "plugin", "expected_status": "unavailable"},
+    {"mode": "hook", "expected_status": "unavailable"},
+    {"mode": "subagent", "expected_status": "unavailable"}
+  ],
+  "reason": "not available in the foundation slice",
+  "baseline": "frame the portable skill concern without inventing mode-specific guidance"
+}

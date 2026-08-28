@@ -51,6 +51,71 @@
     {
       "packages": [
         {
+          "name": "agent-skill-engineering",
+          "version": "0.1.0"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[agent-skill-engineering][0.1.0] — 2026-08-27",
+      "changelogAnchor": "agent-skill-engineering010--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Agents can now frame, create, update, review, and optimize portable agent skills through progressive, least-authority workflows.** The foundation includes activation and behavior evaluations, deterministic compiled reference knowledge, and bounded failure contracts.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Agents can now frame, create, update, review, and optimize portable agent skills through progressive, least-authority workflows."
+            },
+            {
+              "type": "text",
+              "value": " The foundation includes activation and behavior evaluations, deterministic compiled reference knowledge, and bounded failure contracts."
+            }
+          ]
+        },
+        {
+          "source": "**Compatible organization or framework knowledge can inform skill work without coupling packs to another corpus.** Workflows detect declared provider capabilities, invoke an eligible provider explicitly, and retain their complete baseline when no provider is available.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Compatible organization or framework knowledge can inform skill work without coupling packs to another corpus."
+            },
+            {
+              "type": "text",
+              "value": " Workflows detect declared provider capabilities, invoke an eligible provider explicitly, and retain their complete baseline when no provider is available."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "catalogue-curation",
+          "version": "0.4.4"
+        }
+      ],
+      "date": "2026-08-27",
+      "heading": "[catalogue-curation][0.4.4] — 2026-08-27",
+      "changelogAnchor": "catalogue-curation044--2026-08-27",
+      "highlights": [
+        {
+          "source": "**Pack-owned OKF routers can now expose a bounded, explicit-only knowledge provider capability for compatible workflows.** Raw OKF remains governed build-time input, while generated provider metadata supports deterministic discovery without implicit corpus traversal.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Pack-owned OKF routers can now expose a bounded, explicit-only knowledge provider capability for compatible workflows."
+            },
+            {
+              "type": "text",
+              "value": " Raw OKF remains governed build-time input, while generated provider metadata supports deterministic discovery without implicit corpus traversal."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.12.5"
         }
