@@ -84,7 +84,10 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
     pack-scoped rather than per-workflow: naming an unsupported mode on either
     activation surface is what would route an unavailable request into a
     workflow. Modes come from the fixture that already defines the closed
-    vocabulary, so a seventh mode is covered the day it is declared.
+    vocabulary. The count assert below is an anti-vacuity floor pinned to
+    AC4's closed six-mode enumeration: a seventh mode reddens it deliberately,
+    so extending coverage is an AC4-synced decision rather than something that
+    happens silently.
     """
 
     modes = {
@@ -103,9 +106,14 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
         parsed = yaml.safe_load(raw)
         description = str(parsed["description"]).lower()
         for mode in modes:
-            # Word-boundary, so `plugin` and `hook` cannot be satisfied by an
-            # unrelated compound such as "evaluation hooks".
-            assert not re.search(rf"\b{re.escape(mode)}\b", description), (
+            # Trailing `s?`, because a description enumerating capabilities
+            # reaches for the plural -- "use for plugins, hooks, and
+            # subagents" advertises three forbidden modes, and a bare `\b`
+            # after the stem does not match it, `s` being a word character.
+            # The cost is deliberate: a legitimate compound such as
+            # "evaluation hooks" would now trip this and needs an explicit
+            # exception by phrase rather than a weakened stem.
+            assert not re.search(rf"\b{re.escape(mode)}s?\b", description), (
                 f"{name} description names unsupported mode {mode!r}"
             )
 

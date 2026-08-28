@@ -130,22 +130,44 @@ AUTHORIZED` — the exact negation of AC2's read-only frame — and its four
 assertions to one left all pack tests green, because the construction test
 asserted only `all(result["assertions"])` and marker truthiness while the
 digests bound the eval *inputs*. `test_independent_behavior_results_cover_both_authoring_cases`
-now compares recorded markers to the eval's declared `expect.output_contains`
-and the recorded assertion count to the declared count, mirroring the check the
-review side already performed. Re-running that same mutation against the
-repaired suite fails it. No recorded value changed: the record already agreed
-with the declaration, so the binding was addable without restating any result.
+now compares recorded markers to the eval's declared `expect.output_contains`,
+mirroring the `actual_findings` comparison the review side already performed,
+and additionally pins the recorded assertion count to the declared count.
+Re-running that same mutation against the repaired suite fails it.
+
+Round 4 then found the mirror had the same class of hole: the review loop
+asserted only `all(result["assertions"])`, and `all([])` is `True`, so a record
+claiming that none of the five declared checklist assertions were confirmed was
+indistinguishable from one claiming all five. The count check is therefore new
+on both sides, not mirrored from one. The review loop now also binds the
+declared `Mode: review` marker, which its `ASE-` prefix filter had been
+dropping, and both loops require a result's `source_files` to equal the sources
+its case declares rather than merely to be a subset of the allowed list — `<=`
+is satisfied by the empty set, so a result could previously record no
+provenance at all. No recorded value changed on the authoring side; the two
+review records gained the `actual_markers` field they had always been missing,
+carrying the mode marker their cases passed on.
 
 AC4's absence clause was checked for three of its six modes against one of the
 two activation descriptions. It now runs pack-scoped in
 `tests/pack/test_pack_boundary.py`, deriving all six mode names from
 `tests/fixtures/unsupported-mode-cases.json` — the fixture that already defines
-the closed vocabulary, so a seventh mode is covered the day it is declared — and
-asserting each is absent from both descriptions on a word boundary. Three
-controls: injecting `subagent` into the review description fails it, injecting
-`plugin` into the authoring description fails it, and injecting `evaluation
-hooks` does not, which is what the word boundary is for. All six were already
-absent, so this closed unproven coverage rather than a live violation.
+the closed vocabulary — and asserting each is absent from both descriptions.
+The exact-count assert beside it is an anti-vacuity floor pinned to AC4's closed
+six-mode enumeration: a seventh mode reddens it deliberately, so extending
+coverage stays an AC4-synced decision instead of happening silently.
+
+The first version of that check matched `\b<mode>\b`, which round 4 showed
+cannot match a plural — `s` is a word character, so a description reading "use
+for plugins, hooks, and subagents" advertises three forbidden modes and passed.
+It now matches `\b<mode>s?\b`. Four controls: injecting `subagent` into the
+review description fails it, injecting `plugin` into the authoring description
+fails it, injecting the plural "plugins, hooks, and subagents" fails it, and an
+unrelated description change does not. The trade-off is deliberate — a
+legitimate compound such as "evaluation hooks" would now trip this and needs an
+exception named by phrase rather than a weakened stem. All six modes were
+already absent throughout, so this closed unproven coverage rather than a live
+violation.
 
 ## Compiler prerequisites
 
@@ -162,8 +184,10 @@ class 2 and leaves the source tree unchanged.
 fresh `/private/tmp` root emitted three projected trees: `apm/` (30 files),
 `claude-plugins/` (30 files), and `agent-plugins/` (26 files), for 86 files in
 total. `claude-plugins/marketplace.json` carries one `agent-skill-engineering`
-plugin entry with `author`, `category`, `description`, `displayName`,
-`homepage`, `keywords`, `license`, `name`, `repository`, and `source`.
+plugin entry with eleven keys — `author`, `category`, `description`,
+`displayName`, `homepage`, `keywords`, `license`, `name`, `repository`,
+`source`, and `version`, the last being what pins which pack version an
+advertised install resolves and one of the three the entry schema requires.
 At line 7, `ase-okf-reference/SKILL.md` carries
 `source-path: okf/agent-skill-engineering-foundation` in all three projected
 trees, as AC8 requires and `tests/pack/test_foundation_corpus.py` asserts. The

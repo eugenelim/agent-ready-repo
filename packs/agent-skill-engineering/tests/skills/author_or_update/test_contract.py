@@ -183,8 +183,16 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         # recorded outcome. Mirrors the review side's `actual_findings` check.
         assert set(result["actual_markers"]) == set(case["expect"]["output_contains"])
         assert len(result["assertions"]) == len(case["assertions"])
-        # Every source the evidence binds must be one this suite digests below,
-        # so a newly named source cannot arrive unverified.
+        # Equality, not a subset: `<=` is satisfied by the empty set, so a
+        # result could record no provenance at all and the aggregate digest
+        # tests below would still pass on a sibling result's copy of the path.
+        # A case's own `files` may be absent (`frame-new-skill` prepares no
+        # workspace) while it still consumes the eval payload that declares
+        # it, so the floor is the declared files plus that payload.
+        assert set(result["source_files"]) == {
+            "evals/evals.json",
+            *(case.get("files") or ()),
+        }
         assert set(result["source_files"]) <= set(AUTHOR_EVIDENCE_SOURCES)
 
 

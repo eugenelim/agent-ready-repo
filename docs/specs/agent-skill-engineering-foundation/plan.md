@@ -19,8 +19,9 @@
 
 ## Approach
 
-Build in reviewable layers: workflows, corpus/router, provider and language
-seams, then release evidence. Each layer proves its fixtures before downstream
+Build in reviewable layers: the shared compiler and its provider-capability
+schema, then workflows, corpus/router, provider and language seams, then
+release evidence. Each layer proves its fixtures before downstream
 work relies on it. If a deterministic component needs to parse the semantic
 provider envelope, stop for a spec amendment and contract-type decision.
 The pack follows the existing `.apm/` portable-source and same-pack OKF build
@@ -578,8 +579,13 @@ separate release decision without any later-slice implementation.
 
 Delivery follows the task dependencies. Provider integration is optional and
 fail-closed; rollback removes the new pack and its publication records as a
-unit. No infrastructure, secrets, network permission, migration, or adapter
-cutover is in scope.
+unit. It does **not** revert the `catalogue-curation` provider-capability delta
+— the `contracts/jsonschema/okf-pack-profile-v1.schema.json` definition, the
+compiler that validates it, and the 0.4.4 version bump. That pack is separately
+versioned and separately published, the capability declaration is optional and
+fail-closed, and other packs consume the same compiler, so reverting it would
+be a wider change than withdrawing this pack. No infrastructure, secrets,
+network permission, migration, or adapter cutover is in scope.
 
 ## Risks
 

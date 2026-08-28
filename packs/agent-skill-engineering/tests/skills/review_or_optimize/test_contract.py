@@ -258,15 +258,27 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
     }
     assert actual == seeded
     for result in review_results:
-        expected = {
-            value
-            for value in behavior[result["eval_id"]]["expect"]["output_contains"]
-            if value.startswith("ASE-")
+        case = behavior[result["eval_id"]]
+        declared = set(case["expect"]["output_contains"])
+        # The record splits the declaration in two: checklist ids land in
+        # `actual_findings`, the mode marker in `actual_markers`. Bind the
+        # union, so no declared element can go unattested by living in
+        # whichever field the check does not read.
+        assert set(result["actual_findings"]) == {
+            value for value in declared if value.startswith("ASE-")
         }
-        assert set(result["actual_findings"]) == expected
+        assert set(result["actual_markers"]) == {
+            value for value in declared if not value.startswith("ASE-")
+        }
         assert all(result["assertions"])
-        # Every source the evidence binds must be one this suite digests below.
-        assert set(result["source_files"]) <= set(REVIEW_EVAL_FILES)
+        # `all([])` is True, so truthiness alone accepts a record claiming that
+        # none of the declared checklist assertions were confirmed. Pin the
+        # count to the declaration, as the authoring side does.
+        assert len(result["assertions"]) == len(case["assertions"])
+        # Equality, not a subset: `<=` is satisfied by the empty set, so a
+        # result could record no provenance at all and the aggregate digest
+        # tests below would still pass on a sibling result's copy of the path.
+        assert set(result["source_files"]) == set(case["files"])
 
 
 @pytest.mark.parametrize("relative_path", REVIEW_EVAL_FILES)
