@@ -278,7 +278,15 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # Equality, not a subset: `<=` is satisfied by the empty set, so a
         # result could record no provenance at all and the aggregate digest
         # tests below would still pass on a sibling result's copy of the path.
+        # Declared files only. Unlike the authoring cases, both review cases
+        # declare their workspace files, and the eval payload is deliberately
+        # not recorded here: `source_files` keys are skill-relative while the
+        # fixture is pack-global, so a review record naming `evals/evals.json`
+        # would collide with the authoring digest parametrization below.
         assert set(result["source_files"]) == set(case["files"])
+        # Kept alongside the equality: the local confinement invariant, whose
+        # authoring counterpart is retained for the same reason.
+        assert set(result["source_files"]) <= set(REVIEW_EVAL_FILES)
 
 
 @pytest.mark.parametrize("relative_path", REVIEW_EVAL_FILES)

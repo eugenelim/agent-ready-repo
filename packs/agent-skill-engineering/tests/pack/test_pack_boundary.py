@@ -75,6 +75,32 @@ def test_portable_tree_contains_no_adapter_or_publication_implementation() -> No
         assert forbidden not in portable
 
 
+def _names_mode(description: str, mode: str) -> bool:
+    """Does `description` name `mode`, in any ordinary surface form?
+
+    AC4's obligation is mode-level, so matching one spelling is not enough.
+    Two earlier versions of this check were each defeated by the next form a
+    reviewer tried: `\b<mode>\b` missed the plural ("plugins"), and
+    `\b<mode>s?\b` missed the space-separated spelling of the hyphenated
+    modes ("knowledge providers") and the split spelling of the closed ones
+    ("sub-agents"). Rather than grow the pattern again, compare token runs.
+
+    Both sides are reduced to alphanumeric tokens, so any separator -- space,
+    hyphen, underscore, punctuation -- is equivalent. A run matches when its
+    leading tokens are exact and its last token matches modulo a plural `s`.
+    The separator-free spelling is checked too, which is what catches a mode
+    split across tokens the vocabulary does not itself split.
+    """
+
+    words = re.findall(r"[a-z0-9]+", description.lower())
+    parts = re.findall(r"[a-z0-9]+", mode.lower())
+    for start in range(len(words) - len(parts) + 1):
+        run = words[start:start + len(parts)]
+        if run[:-1] == parts[:-1] and run[-1].rstrip("s") == parts[-1].rstrip("s"):
+            return True
+    return "".join(parts) in "".join(words)
+
+
 def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> None:
     """AC4's absence clause, over every mode and both workflow descriptions.
 
@@ -106,14 +132,7 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
         parsed = yaml.safe_load(raw)
         description = str(parsed["description"]).lower()
         for mode in modes:
-            # Trailing `s?`, because a description enumerating capabilities
-            # reaches for the plural -- "use for plugins, hooks, and
-            # subagents" advertises three forbidden modes, and a bare `\b`
-            # after the stem does not match it, `s` being a word character.
-            # The cost is deliberate: a legitimate compound such as
-            # "evaluation hooks" would now trip this and needs an explicit
-            # exception by phrase rather than a weakened stem.
-            assert not re.search(rf"\b{re.escape(mode)}s?\b", description), (
+            assert not _names_mode(description, mode), (
                 f"{name} description names unsupported mode {mode!r}"
             )
 

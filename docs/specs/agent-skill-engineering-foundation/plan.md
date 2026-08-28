@@ -595,6 +595,10 @@ network permission, migration, or adapter cutover is in scope.
 
 ## Changelog
 
+- 2026-08-27: recorded the rollback carve-out for the `catalogue-curation`
+  provider-capability delta and its 0.4.4 bump, which a rollback of this pack
+  deliberately retains, and added T1's compiler and schema layer to the
+  Approach's build order.
 - 2026-08-27: removed redundant non-task narrative and the stale duplicate
   compiler-prerequisite constraint; tasks and acceptance-criterion references
   remain unchanged.

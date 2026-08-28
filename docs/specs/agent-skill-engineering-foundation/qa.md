@@ -141,12 +141,26 @@ claiming that none of the five declared checklist assertions were confirmed was
 indistinguishable from one claiming all five. The count check is therefore new
 on both sides, not mirrored from one. The review loop now also binds the
 declared `Mode: review` marker, which its `ASE-` prefix filter had been
-dropping, and both loops require a result's `source_files` to equal the sources
-its case declares rather than merely to be a subset of the allowed list — `<=`
-is satisfied by the empty set, so a result could previously record no
-provenance at all. No recorded value changed on the authoring side; the two
-review records gained the `actual_markers` field they had always been missing,
-carrying the mode marker their cases passed on.
+dropping, and both loops require a result's `source_files` to be an exact set
+rather than merely a subset — `<=` is satisfied by the empty set, so a result
+could previously record no provenance at all. The two rules are not identical
+and the asymmetry is deliberate: an authoring record must carry its declared
+files **plus** `evals/evals.json`, because `frame-new-skill` prepares no
+workspace and would otherwise be required to record nothing; a review record
+must carry its declared files **only**, because `source_files` keys are
+skill-relative while the fixture is pack-global, so a review record naming
+`evals/evals.json` would collide with the authoring digest parametrization.
+
+No recorded value changed on the authoring side. The two review records gained
+an `actual_markers` field they had never carried. Those two values were
+**derived, not re-observed**: `grade_behavior` sets `passed` only when
+`output_ok` holds, and `output_ok` requires every `expect.output_contains`
+substring to appear in the captured output
+(`packages/agentbundle/agentbundle/commands/pack_evals.py:900-912`), so the
+recorded 4-of-4 pass entails that `Mode: review` matched. The eval declaring it
+is unchanged since the run. No fresh run was made and `evaluated_at` is
+therefore not re-stamped — this paragraph is what distinguishes these two
+back-derived values from the observed ones beside them.
 
 AC4's absence clause was checked for three of its six modes against one of the
 two activation descriptions. It now runs pack-scoped in
@@ -157,17 +171,24 @@ The exact-count assert beside it is an anti-vacuity floor pinned to AC4's closed
 six-mode enumeration: a seventh mode reddens it deliberately, so extending
 coverage stays an AC4-synced decision instead of happening silently.
 
-The first version of that check matched `\b<mode>\b`, which round 4 showed
-cannot match a plural — `s` is a word character, so a description reading "use
-for plugins, hooks, and subagents" advertises three forbidden modes and passed.
-It now matches `\b<mode>s?\b`. Four controls: injecting `subagent` into the
-review description fails it, injecting `plugin` into the authoring description
-fails it, injecting the plural "plugins, hooks, and subagents" fails it, and an
-unrelated description change does not. The trade-off is deliberate — a
-legitimate compound such as "evaluation hooks" would now trip this and needs an
-exception named by phrase rather than a weakened stem. All six modes were
-already absent throughout, so this closed unproven coverage rather than a live
-violation.
+That check was defeated twice by the next surface form a reviewer tried.
+`\b<mode>\b` missed the plural: "use for plugins, hooks, and subagents"
+advertises three forbidden modes and passed, because `s` is a word character.
+`\b<mode>s?\b` then missed the space-separated spelling of the hyphenated
+modes — "use for knowledge providers and runtime packages" — and the split
+spelling of a closed one, "sub-agents". Rather than grow the pattern a third
+time against whichever form was tried last, the check no longer matches on
+prose at all: `_names_mode` reduces both the description and the mode to
+alphanumeric token runs, so every separator is equivalent, and compares runs
+with a plural-tolerant last token plus a separator-free fallback.
+
+Six controls, each the exact string injected into a description: `subagent`
+into the review description fails it; `plugin` into the authoring description
+fails it; `use for plugins, hooks, and subagents` fails it; `use for knowledge
+providers and runtime packages` fails it; `handles sub-agents too` fails it;
+and the negative control `Use when a user asks` — a reworded opening naming no
+mode — passes. Both shipped descriptions name no mode under the new matcher,
+so this closed unproven coverage rather than a live violation.
 
 ## Compiler prerequisites
 
