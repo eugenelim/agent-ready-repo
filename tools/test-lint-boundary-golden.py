@@ -334,6 +334,91 @@ def _fx_runner_spans_two_suites(root: Path) -> None:
     )
 
 
+def _class_members(root: Path, count: int = 2) -> tuple[str, ...]:
+    """Add class-shaped demo suites and return their explicit runner paths."""
+    members = [f"packs/{_PACK}/tests/skills/{_SKILL}"]
+    for index in range(2, count + 1):
+        member = f"packs/{_PACK}/tests/skills/member-{index}"
+        _write(root / member / "test_member.py", "def test_member():\n    pass\n")
+        members.append(member)
+    return tuple(members)
+
+
+def _write_class_runner(root: Path, *operands: str) -> None:
+    """Write the fixture's single Makefile pytest invocation."""
+    _write(root / "Makefile", "test:\n\tpytest " + " ".join(operands) + "\n")
+
+
+def _fx_class_undeclared(root: Path) -> None:
+    """A two-suite invocation for a run with no declared class."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
+def _fx_class_extra(root: Path) -> None:
+    """A class-shaped invocation with one extra suite operand."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root, 3))
+
+
+def _fx_class_missing(root: Path) -> None:
+    """A three-member class tree whose runner omits its final member."""
+    _base_fixture(root)
+    members = _class_members(root, 3)
+    _write_class_runner(root, *members[:2])
+
+
+def _fx_class_required_flag(root: Path) -> None:
+    """A grouped command without the importlib flag its class requires."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
+def _fx_class_ancestor(root: Path) -> None:
+    """An ancestor operand that happens to cover exactly two suites today."""
+    _base_fixture(root)
+    _class_members(root)
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills")
+
+
+def _fx_class_cross_pack(root: Path) -> None:
+    """One pytest invocation spanning the demo and other packs."""
+    _base_fixture(root)
+    other = "packs/other/tests/skills/other"
+    _write(root / "packs/other/pack.toml", '[pack]\nname = "other"\n')
+    _write(root / other / "test_other.py", "def test_other():\n    pass\n")
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills/{_SKILL}", other)
+
+
+def _fx_class_unused(root: Path) -> None:
+    """A three-suite tree whose runner exercises only the first two suites."""
+    _base_fixture(root)
+    members = _class_members(root, 3)
+    _write_class_runner(root, *members[:2])
+
+
+def _fx_class_new_suite(root: Path) -> None:
+    """A newly added suite pulled into an existing class through an ancestor."""
+    _base_fixture(root)
+    _class_members(root)
+    _write(root / f"packs/{_PACK}/tests/skills/new-suite/test_new.py",
+           "def test_new():\n    pass\n")
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills")
+
+
+def _fx_class_unresolvable(root: Path) -> None:
+    """A pytest path operand that static runner inspection cannot resolve."""
+    _base_fixture(root)
+    _class_members(root)
+    _write_class_runner(root, '"$suite"')
+
+
+def _fx_class_stale_exception(root: Path) -> None:
+    """A normal explicit runner for an injected AC31 stale-exception control."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
 def _fx_suite_without_runner(root: Path) -> None:
     _base_fixture(root)
     _write(root / f"packs/{_PACK}/tests/skills/orphan/test_orphan.py",
@@ -382,6 +467,16 @@ FIXTURES: dict[str, Callable[[Path], None]] = {
     "linked-test-dir": _fx_linked_test_dir,
     "linked-test-root": _fx_linked_test_root,
     "runner-spans-two-suites": _fx_runner_spans_two_suites,
+    "class-ancestor": _fx_class_ancestor,
+    "class-cross-pack": _fx_class_cross_pack,
+    "class-extra": _fx_class_extra,
+    "class-missing": _fx_class_missing,
+    "class-new-suite": _fx_class_new_suite,
+    "class-required-flag": _fx_class_required_flag,
+    "class-stale-exception": _fx_class_stale_exception,
+    "class-undeclared": _fx_class_undeclared,
+    "class-unresolvable": _fx_class_unresolvable,
+    "class-unused": _fx_class_unused,
     "suite-without-runner": _fx_suite_without_runner,
     "missing-runner-file": _fx_missing_runner_file,
     "malformed-runner-file": _fx_malformed_runner_file,

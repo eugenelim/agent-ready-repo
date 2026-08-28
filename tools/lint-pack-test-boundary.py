@@ -19,7 +19,7 @@ which is why this lives in `tools/` rather than in one pack's test tree.
 `evals/` is deliberately not flagged: eval fixtures are skill-local runtime
 content and are projected with the skill by design.
 
-Six checks:
+Eight checks:
 
 1. **apm-carries-no-tests** — no pack's `.apm/` holds test content.
 2. **projection-carries-no-tests** — no projected skill does either, asserted
@@ -27,13 +27,17 @@ Six checks:
    of the projection fails rather than passing on an empty iteration.
 3. **tests-live-in-the-pack-tree** — a pack that owns tests has them under
    `packs/<pack>/tests/`.
-4. **runners-keep-suites-isolated** — no single pytest invocation covers two
-   skill test directories. Suite-local imports can bind a sibling skill's
-   same-named subject module and pass green, even when test basenames differ.
-5. **every-suite-dir-has-a-runner** — every skill test directory is named by a
+4. **compatibility-classes-are-well-formed** — declarations are shaped validly
+   before they can authorize grouped execution.
+5. **class-members-keep-distinct-module-identity** — each declared group
+   re-proves its test- and subject-module identity safety.
+6. **runners-use-approved-pack-compatibility-classes** — an invocation covering
+   multiple suite directories must name one declared class exactly; opaque path
+   operands fail unless they are a live, declared exception.
+7. **every-suite-dir-has-a-runner** — every skill test directory is named by a
    runner or declared in `_NO_RUNNER` with a reason. Without this, "which suites
    actually run" has no living home and the next directory is unrun by default.
-6. **pack-tests-stay-in-pack** — Python pack tests may inspect their owning pack
+8. **pack-tests-stay-in-pack** — Python pack tests may inspect their owning pack
    and temporary fixtures, but may not climb to the repository root and inspect
    another source tree.
 """
@@ -54,6 +58,19 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import NamedTuple
 
 import lint_git_ignore  # tools/ is sys.path[0] for a script run
+
+try:
+    from pack_test_compatibility import CLASSES, check_class_identity, validate_classes
+except ModuleNotFoundError:  # Golden fixtures stage this lint without the model.
+    CLASSES = ()
+
+    def validate_classes(classes, root):
+        """Keep historical fixture captures runnable without compatibility data."""
+        return []
+
+    def check_class_identity(cls, root):
+        """Keep historical fixture captures runnable without compatibility data."""
+        return []
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -298,6 +315,10 @@ class BoundaryContext:
     projected_roots: tuple[Path, ...]
     runner_files: tuple[str, ...]
     no_runner: Mapping[str, str]
+    classes: tuple = CLASSES
+    unresolvable_runner_exceptions: Mapping[tuple[str, str], str] = field(
+        default_factory=dict
+    )
 
 
 def default_context(root: Path | None = None) -> BoundaryContext:
@@ -314,6 +335,10 @@ def default_context(root: Path | None = None) -> BoundaryContext:
         ),
         runner_files=_RUNNER_FILES,
         no_runner=_NO_RUNNER,
+        classes=CLASSES,
+        unresolvable_runner_exceptions=(
+            _UNRESOLVABLE_RUNNER_EXCEPTIONS if base == ROOT else {}
+        ),
     )
 
 
@@ -437,7 +462,7 @@ class BoundaryInventory:
             self._destinations = tuple(out)
         return list(self._destinations)
 
-    def runner_lines(self) -> tuple[list[tuple[str, int, set[str]]], list[str]]:
+    def runner_lines(self) -> tuple[list[RunnerInvocation], list[str]]:
         """Parsed pytest invocations, plus the findings the parse itself produced.
 
         Parsed once; the findings are returned so each consuming check can
@@ -450,7 +475,7 @@ class BoundaryInventory:
             lines, findings = _parse_runner_files(self.context)
             self._runners = tuple(lines)
             self._runner_findings = tuple(findings)
-        return [tuple(item) for item in self._runners], list(self._runner_findings)
+        return list(self._runners), list(self._runner_findings)
 
 
 def _enumerate_walk_bases(context: BoundaryContext,
@@ -1202,6 +1227,14 @@ _DEST_PARTS = re.compile(
 _PART = re.compile(r'"([A-Za-z0-9_-]+)"')
 _PYTEST = re.compile(r"(?:^|[\s\"'])pytest(?:$|[\s\"'])")
 
+# This loop executes one literal suite per process, but its ``"$d"`` argument
+# cannot be proved by the runner parser.  Keep the exception explicit: removing
+# or changing the loop makes this entry stale and therefore a finding.
+_UNRESOLVABLE_RUNNER_EXCEPTIONS = {
+    (".github/workflows/catalogue-tooling-ci-gates.yml", 'python -m pytest "$d"'):
+        "the surrounding bash for-loop invokes one literal suite path per process",
+}
+
 # Directories with no runner, and why. A destination directory must either be
 # named by a runner or appear here — that is what keeps "which suites actually
 # run" answerable from the tree rather than from a frozen spec note. Removing an
@@ -1270,12 +1303,44 @@ def _path_tokens(text: str) -> set[str]:
     return tokens
 
 
+class RunnerInvocation(NamedTuple):
+    """One pytest invocation, including facts needed for class enforcement."""
+
+    rel: str
+    lineno: int
+    tokens: set[str]
+    text: str
+    unresolvable_path: str | None = None
+
+
+def _unresolvable_path(text: str) -> str | None:
+    """Return the opaque invocation through its non-static path operand.
+
+    The invocation, rather than just a variable name, is the exception key. It
+    distinguishes two uses of the same variable in one runner and makes a
+    changed pytest command stale its prior exception.
+    """
+
+    command = text.split("|", 1)[0]
+    match = re.search(r"\bpytest\b(?P<tail>.*)", command)
+    if match is None:
+        return None
+    for token in re.finditer(r"\S+", match.group("tail")):
+        value = token.group().strip("'\"")
+        # Make's numbered recipe slots are explicit, repository-owned argv
+        # substitutions; the AC31 concern is indirection that conceals a path
+        # set, such as shell variables and workflow expressions.
+        if value.startswith("$") and not value.startswith("$("):
+            return command[:match.start("tail") + token.end()].strip()
+    return None
+
+
 def _workflow_runner_lines(
     rel: str,
     source: str,
-) -> list[tuple[str, int, set[str]]]:
+) -> list[RunnerInvocation]:
     """Pytest commands in a workflow, paired with their step working directory."""
-    out: list[tuple[str, int, set[str]]] = []
+    out: list[RunnerInvocation] = []
     working_tokens: set[str] = set()
     lines = source.splitlines()
     pytest_helpers: set[str] = set()
@@ -1306,8 +1371,9 @@ def _workflow_runner_lines(
             _PYTEST.search(line) or helper_call is not None
         ):
             tokens = _path_tokens(line) | working_tokens
-            if tokens:
-                out.append((rel, lineno, tokens))
+            unresolved = _unresolvable_path(line)
+            if tokens or unresolved:
+                out.append(RunnerInvocation(rel, lineno, tokens, line, unresolved))
     return out
 
 
@@ -1315,7 +1381,7 @@ def _python_runner_lines(
     rel: str,
     source: str,
     findings: list[str],
-) -> list[tuple[str, int, set[str]]]:
+) -> list[RunnerInvocation]:
     """Structured Python argv lists whose enclosing call record invokes pytest.
 
     A parse failure is appended to *findings* rather than emitted, so the parse
@@ -1326,7 +1392,7 @@ def _python_runner_lines(
     except SyntaxError as exc:
         findings.append(f"runner file {rel} is not parseable: {exc}")
         return []
-    out: list[tuple[str, int, set[str]]] = []
+    out: list[RunnerInvocation] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Tuple):
             continue
@@ -1340,23 +1406,25 @@ def _python_runner_lines(
         ):
             continue
         tokens = _path_tokens(ast.unparse(node))
+        text = ast.unparse(node)
         if tokens:
-            out.append((rel, node.lineno, tokens))
+            out.append(RunnerInvocation(rel, node.lineno, tokens, text))
     return out
 
 
 def _parse_runner_files(
     context: BoundaryContext,
-) -> tuple[list[tuple[str, int, set[str]]], list[str]]:
+) -> tuple[list[RunnerInvocation], list[str]]:
     """Read and parse every runner file **once**, returning lines and findings.
 
-    The findings are returned, not emitted. Both `runners-keep-suites-isolated`
-    and `every-suite-dir-has-a-runner` consume this, and today a missing runner
-    file produces one finding per consumer — two in total, suppressing both
-    checks' `ok` lines. Memoising the parse must not collapse that to one, so the
-    report stays the caller's job.
+    The findings are returned, not emitted. Both
+    `runners-use-approved-pack-compatibility-classes` and
+    `every-suite-dir-has-a-runner` consume this, and a missing runner file
+    produces one finding per consumer — two in total, suppressing both checks'
+    `ok` lines. Memoising the parse must not collapse that to one, so the report
+    stays the caller's job.
     """
-    out: list[tuple[str, int, set[str]]] = []
+    out: list[RunnerInvocation] = []
     findings: list[str] = []
     for rel in context.runner_files:
         f = context.root / rel
@@ -1376,38 +1444,107 @@ def _parse_runner_files(
         for lineno, line in enumerate(source.splitlines(), 1):
             if line.lstrip().startswith("#") or not _PYTEST.search(line):
                 continue
-            if tokens := _path_tokens(line):
-                out.append((rel, lineno, tokens))
+            tokens = _path_tokens(line)
+            unresolved = _unresolvable_path(line)
+            if tokens or unresolved:
+                out.append(RunnerInvocation(rel, lineno, tokens, line, unresolved))
     return out, findings
 
 
-def case_runners_keep_suites_isolated(inv: BoundaryInventory, out: list[str]) -> str | None:
-    """One pytest process per skill test directory — a correctness requirement.
+def case_compatibility_classes_are_well_formed(
+    inv: BoundaryInventory, out: list[str]
+) -> str | None:
+    """Declarations must have a valid shape independent of runner inventory."""
+    before = len(out)
+    out.extend(f"compatibility class: {finding}"
+               for finding in validate_classes(inv.context.classes, inv.context.root))
+    if len(out) == before:
+        return ("ok   [compatibility-classes-are-well-formed] "
+                f"({len(inv.context.classes)} class(es))")
+    return None
 
-    Overlapping basenames *across* destination directories are expected, and a
-    newly added collision must not be what finally makes a broad runner fail.
-    The assertion is therefore about invocation shape, not today's filenames.
-    """
+
+def case_class_members_keep_distinct_module_identity(
+    inv: BoundaryInventory, out: list[str]
+) -> str | None:
+    """Re-derive each class's test and subject-module identity proof."""
+    before = len(out)
+    for cls in inv.context.classes:
+        out.extend(f"compatibility class {cls.identifier}: {finding}"
+                   for finding in check_class_identity(cls, inv.context.root))
+    if len(out) == before:
+        return ("ok   [class-members-keep-distinct-module-identity] "
+                f"({len(inv.context.classes)} class(es))")
+    return None
+
+
+def case_runners_use_approved_pack_compatibility_classes(
+    inv: BoundaryInventory, out: list[str]
+) -> str | None:
+    """Multi-suite runners must exactly enumerate an approved, safe class."""
     before = len(out)
     destinations = inv.destinations()
-    checked = 0
     runner_lines, runner_findings = inv.runner_lines()
     out.extend(runner_findings)
-    for rel, lineno, tokens in runner_lines:
-        covered = sorted(_covered(tokens, destinations, inv.context.root))
+    exceptions = inv.context.unresolvable_runner_exceptions
+    seen_exceptions: set[tuple[str, str]] = set()
+    for invocation in runner_lines:
+        if invocation.unresolvable_path:
+            key = (invocation.rel, invocation.unresolvable_path)
+            if key not in exceptions:
+                out.append(f"{invocation.rel}:{invocation.lineno}: pytest path "
+                           f"{invocation.unresolvable_path!r} is not statically resolvable")
+            else:
+                seen_exceptions.add(key)
+            continue
+        covered = {_rel(path, inv.context.root) for path in _covered(
+            invocation.tokens, destinations, inv.context.root
+        )}
         if len(covered) < 2:
             continue
-        checked += 1
-        out.append(
-            f"{rel}:{lineno}: one pytest invocation covers multiple skill "
-            f"suites {[str(_rel(path, inv.context.root)) for path in covered]} "
-            f"— split it into "
-            "one process per skill directory before a test or subject module "
-            "collision can pass green"
-        )
+        packs = {Path(path).parts[1] for path in covered}
+        if len(packs) != 1:
+            out.append(
+                f"{invocation.rel}:{invocation.lineno}: one pytest invocation "
+                f"spans packs {sorted(packs)}"
+            )
+            continue
+        matches = [cls for cls in inv.context.classes if set(cls.members) == covered]
+        if not matches:
+            out.append(
+                f"{invocation.rel}:{invocation.lineno}: multi-suite invocation "
+                f"{sorted(covered)} does not exactly match a declared compatibility class"
+            )
+            continue
+        cls = matches[0]
+        members = {member.rstrip("/") for member in cls.members}
+        broad = [token for token in invocation.tokens if token.rstrip("/") not in members]
+        if broad:
+            out.append(
+                f"{invocation.rel}:{invocation.lineno}: compatibility class "
+                f"{cls.identifier} is ancestor-shaped via {sorted(broad)}; "
+                "name every member explicitly"
+            )
+        if cls.import_mode == "importlib" and "--import-mode=importlib" not in invocation.text:
+            out.append(
+                f"{invocation.rel}:{invocation.lineno}: compatibility class "
+                f"{cls.identifier} requires --import-mode=importlib"
+            )
+    exercised = {
+        frozenset(_rel(path, inv.context.root) for path in _covered(
+            invocation.tokens, destinations, inv.context.root
+        ))
+        for invocation in runner_lines
+        if invocation.unresolvable_path is None
+    }
+    for cls in inv.context.classes:
+        if frozenset(cls.members) not in exercised:
+            out.append(f"compatibility class {cls.identifier} has no runner")
+    for key, reason in exceptions.items():
+        if key not in seen_exceptions:
+            out.append(f"unresolvable runner exception {key[0]} {key[1]!r} is stale — {reason}")
     if len(out) == before:
-        return (f"ok   [runners-keep-suites-isolated] "
-                f"({checked} multi-directory invocation(s) checked)")
+        return "ok   [runners-use-approved-pack-compatibility-classes]"
     return None
 
 
@@ -1427,8 +1564,8 @@ def case_every_suite_dir_has_a_runner(inv: BoundaryInventory, out: list[str]) ->
     runner_lines, runner_findings = inv.runner_lines()
     out.extend(runner_findings)
     run: set[Path] = set()
-    for _, _, tokens in runner_lines:
-        run |= _covered(tokens, destinations, inv.context.root)
+    for invocation in runner_lines:
+        run |= _covered(invocation.tokens, destinations, inv.context.root)
     for d in destinations:
         rel = _rel(d, inv.context.root)
         if d in run:
@@ -1469,7 +1606,12 @@ CHECKS: tuple[Check, ...] = (
     Check("projection-carries-no-tests", case_projection_carries_no_tests),
     Check("tests-live-in-the-pack-tree", case_tests_live_in_the_pack_tree),
     Check("pack-tests-stay-in-pack", case_pack_tests_stay_in_pack),
-    Check("runners-keep-suites-isolated", case_runners_keep_suites_isolated),
+    Check("compatibility-classes-are-well-formed",
+          case_compatibility_classes_are_well_formed),
+    Check("class-members-keep-distinct-module-identity",
+          case_class_members_keep_distinct_module_identity),
+    Check("runners-use-approved-pack-compatibility-classes",
+          case_runners_use_approved_pack_compatibility_classes),
     Check("every-suite-dir-has-a-runner", case_every_suite_dir_has_a_runner),
 )
 CHECK_NAMES: tuple[str, ...] = tuple(check.name for check in CHECKS)
@@ -1592,12 +1734,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--check", action="append", dest="checks", metavar="NAME",
         choices=CHECK_NAMES,
-        help="run only this check (repeatable). Default: all six, in order.",
+        help="run only this check (repeatable). Default: all eight, in order.",
     )
     parser.add_argument(
         "--root", default=None, metavar="PATH",
         help="catalogue root to inspect (default: this repository). A scoped "
-             "run is marked partial and never prints the six-check pass line.",
+             "run is marked partial and never prints the eight-check pass line.",
     )
     args = parser.parse_args(argv)
 
@@ -1662,7 +1804,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"✓ lint-pack-test-boundary: passed ({len(ran)} of "
               f"{len(CHECKS)} checks — partial run).")
         return 0
-    print("✓ lint-pack-test-boundary: passed (6 cases).")
+    print("✓ lint-pack-test-boundary: passed (8 cases).")
     return 0
 
 
