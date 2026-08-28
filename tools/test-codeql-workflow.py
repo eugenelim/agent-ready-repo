@@ -31,6 +31,11 @@ and ``write-all`` by text, so a second job granted ``contents: write``,
 ``id-token: write`` or ``read-all`` is not detected, and a comment containing
 either token fails it closed. Both are registered, neither is asserted here.
 
+``trigger-forbidden[pull_request_target]`` carries the same caveat and for the
+same reason: it is a raw substring over the ``on`` block, chosen so a flow
+mapping and a commented header cannot slip past, which also means a comment
+merely naming the trigger fails it closed.
+
 Known limitation: CodeQL is advisory until the repository owner makes it a
 required branch-protection check. This posture test protects that advisory
 signal; it does not claim to make the signal merge-blocking.
@@ -153,7 +158,11 @@ def _steps(job_block: str) -> list[str]:
 
 def _field_tokens(block: str, key: str, indent: int) -> set[str]:
     """Normalize a scalar, inline-list, or block-list action input."""
-    pattern = re.compile(rf"^ {{{indent}}}{re.escape(key)}:\s*(.*?)\s*$", re.MULTILINE)
+    # Optional quote: `"paths": [...]` resolves to the same key, and missing it
+    # let a quoted allowlist narrow analysis to nothing while the check passed.
+    pattern = re.compile(
+        rf"^ {{{indent}}}[\"']?{re.escape(key)}[\"']?:\s*(.*?)\s*$", re.MULTILINE
+    )
     match = pattern.search(block)
     if match is None:
         return set()
@@ -391,6 +400,15 @@ _MUTATIONS: list[Mutation] = [
         "trigger-forbidden[pull_request_target]",
         lambda text: text.replace(
             "\n  push:\n", "\n  pull_request_target: {branches: [main]}\n  push:\n", 1
+        ),
+    ),
+    (
+        "narrow-with-a-quoted-paths-allowlist",
+        "trigger-no-paths-allowlist[pull_request]",
+        lambda text: text.replace(
+            '    paths-ignore:\n      - "docs/**"\n',
+            '    "paths": ["nope/**"]\n    paths-ignore:\n      - "docs/**"\n',
+            1,
         ),
     ),
     (

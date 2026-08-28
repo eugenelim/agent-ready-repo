@@ -82,20 +82,6 @@ _BLOCK_OPENERS = frozenset(
 )
 
 
-def _replace_once(text: str, old: str, new: str) -> str:
-    """Substitute exactly one occurrence, or raise.
-
-    Mirrors the ci-security sibling: a mutation whose literal drifts must fail
-    loudly rather than silently become a no-op the matrix reports as caught.
-    """
-    if text.count(old) != 1:
-        raise AssertionError(
-            f"mutation literal is not present exactly once ({text.count(old)}x): "
-            f"{old!r} — re-pin it against {WORKFLOW.name}"
-        )
-    return text.replace(old, new, 1)
-
-
 def _bash_path() -> str | None:
     """Return the bash interpreter, or None where the platform has none."""
     import shutil
@@ -268,16 +254,23 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # The 8-space anchor cannot match the run body, which is indented 10.
     guard_step = ""
     if GUARD_RUN_MARKER in aggregate:
-        head = aggregate[: aggregate.index(GUARD_RUN_MARKER)]
+        marker = aggregate.index(GUARD_RUN_MARKER)
+        head = aggregate[:marker]
         if "      - " in head:
             start = head.rindex("      - ")
-            rest = aggregate[aggregate.index(GUARD_RUN_MARKER) :]
-            stop = rest.find("\n      - ")
-            guard_step = aggregate[start:] if stop == -1 else aggregate[start:][: len(head) - start + stop]
+            stop = aggregate[marker:].find("\n      - ")
+            guard_step = (
+                aggregate[start:] if stop == -1 else aggregate[start : marker + stop]
+            )
     check(
         "aggregate-step-unconditional",
         bool(guard_step)
-        and not re.search(r"^        (?:continue-on-error|if):", guard_step, re.M),
+        # Optional quote: `"continue-on-error": true` resolves to the same active
+        # key. The ci-security sibling reads the parsed step dict and is immune;
+        # this one reads text, so it has to admit the spelling explicitly.
+        and not re.search(
+            r"^        [\"']?(?:continue-on-error|if)[\"']?:", guard_step, re.M
+        ),
     )
 
     return violations
@@ -380,10 +373,35 @@ _MUTATIONS: list[Mutation] = [
         # and this is the position the previous slice could not see.
         "gate-the-guard-step-off-after-the-run-block",
         "aggregate-step-unconditional",
-        lambda text: _replace_once(
+        lambda text: posture_harness.replace_once(
             text,
             '          echo "Windows suites passed"\n',
             '          echo "Windows suites passed"\n        if: ${{ false }}\n',
+            WORKFLOW.name,
+        ),
+    ),
+    (
+        "quote-the-guard-step-key",
+        "aggregate-step-unconditional",
+        lambda text: posture_harness.replace_once(
+            text,
+            "      - name: Require all Windows suites\n",
+            '      - name: Require all Windows suites\n        "continue-on-error": true\n',
+            WORKFLOW.name,
+        ),
+    ),
+    (
+        # Exercises the bounded branch of the step slice, dead while the guard is
+        # the aggregate's only step: appends a trailing step so `stop` is no
+        # longer -1, and defeats the guard from the post-run position.
+        "add-a-trailing-step-and-gate-the-guard-off",
+        "aggregate-step-unconditional",
+        lambda text: posture_harness.replace_once(
+            text,
+            '          echo "Windows suites passed"\n',
+            '          echo "Windows suites passed"\n        if: ${{ false }}\n'
+            "      - name: Trailing step\n        run: echo trailing\n",
+            WORKFLOW.name,
         ),
     ),
     (

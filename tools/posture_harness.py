@@ -45,6 +45,22 @@ def family(label: str) -> str:
     return re.sub(r"\[.*\]$", "[*]", label)
 
 
+def replace_once(text: str, old: str, new: str, workflow: str) -> str:
+    """Substitute exactly one occurrence, or raise.
+
+    Driver-shaped, not a per-file predicate: it enforces the same
+    mutate-or-prove-nothing contract as the no-op rule below. A compound
+    transform whose other half still fires is not a no-op, so without this a
+    drifted literal reports "caught" while proving nothing.
+    """
+    if text.count(old) != 1:
+        raise AssertionError(
+            f"mutation literal is not present exactly once ({text.count(old)}x): "
+            f"{old!r} — re-pin it against {workflow}"
+        )
+    return text.replace(old, new, 1)
+
+
 def run(
     *,
     workflow: Path,

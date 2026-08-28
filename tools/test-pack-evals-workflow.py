@@ -120,10 +120,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
                     f"job-permissions[{job_name}]",
                     job.get("permissions") is None,
                 )
+    # The marker must be a command, not a mention. `eval_steps` is the exemption
+    # for the secret-binding check below, so a step that merely names the marker
+    # in a shell comment above `npm install -g` could otherwise self-issue it.
     eval_steps = [
         step
         for step in _steps(jobs)
-        if "agentbundle pack evals run" in str(step.get("run", ""))
+        if any(
+            "agentbundle pack evals run" in line and not line.lstrip().startswith("#")
+            for line in str(step.get("run", "")).splitlines()
+        )
     ]
     check("eval-step-present", bool(eval_steps))
     # Positive, not a two-location denylist. Forbidding only workflow- and
@@ -141,8 +147,19 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         bound_on.append("workflow")
     if isinstance(jobs, dict):
         for job_name, job in jobs.items():
+            if not isinstance(job, dict):
+                continue
             if _binds(job):
                 bound_on.append(f"job:{job_name}")
+            # A container or service env reaches every step in the job, so it is
+            # the same exposure as a job-level binding by another name.
+            if _binds(job.get("container")):
+                bound_on.append(f"container:{job_name}")
+            services = job.get("services")
+            if isinstance(services, dict):
+                for service_name, service in services.items():
+                    if _binds(service):
+                        bound_on.append(f"service:{job_name}.{service_name}")
     for index, step in enumerate(_steps(jobs)):
         if _binds(step) and step not in eval_steps:
             bound_on.append(f"step:{step.get('name', index)}")
@@ -279,6 +296,29 @@ _MUTATIONS: list[Mutation] = [
             "      - name: Install the claude CLI (activation detector)\n",
             "      - name: Install the claude CLI (activation detector)\n        env:\n"
             "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n",
+            1,
+        ),
+    ),
+    (
+        # A container env reaches every step in the job, including the installs.
+        "bind-secret-on-a-job-container",
+        "secret-bound-to-eval-step-only",
+        lambda text: text.replace(
+            "  activation-evals:\n",
+            "  activation-evals:\n    container:\n      image: python:3.11\n"
+            "      env:\n        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n",
+            1,
+        ),
+    ),
+    (
+        # The marker in a comment must not self-issue the eval-step exemption.
+        "name-the-eval-marker-in-a-comment-only",
+        "secret-bound-to-eval-step-only",
+        lambda text: text.replace(
+            "      - name: Install the claude CLI (activation detector)\n",
+            "      - name: Install the claude CLI (activation detector)\n        env:\n"
+            "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}\n"
+            "        # agentbundle pack evals run — see the eval step below\n",
             1,
         ),
     ),

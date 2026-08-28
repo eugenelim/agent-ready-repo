@@ -481,7 +481,8 @@ def build_check(args: argparse.Namespace) -> int:
         # `pull_request_target`, no `paths:` allowlist, `main` branches, the
         # weekly re-scan), an elevated-grant backstop over every job but
         # `analyze`, and the literal AC12 concurrency group and cancellation
-        # expressions. It does not pin the analyze job's own permission mapping.
+        # expressions, with `analyze` pinned as the sole `security-events`
+        # writer. It does not pin ADDITIONAL grants on the analyze job itself.
         _script_step(
             "test-codeql-workflow",
             "tools", "test-codeql-workflow.py",

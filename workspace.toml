@@ -425,8 +425,10 @@ open = [
   # its own module, because those are what each harness is FOR and sharing them
   # would couple four unrelated workflow contracts. Verified against this entry's
   # own acceptance criterion: every caller's mutation count and family coverage
-  # is byte-identical before and after the extraction (19/18, 28/22, 15/13 plus
-  # the bash differential, 28/22), and 188 lines left the four callers.
+  # was byte-identical before and after the extraction commit, and 188 lines left
+  # the four callers. The figures are deliberately not transcribed here — later
+  # commits add mutations, so a copied pair goes stale and a future author would
+  # read a satisfied criterion as violated. Re-measure across the commit.
   # WHAT REMAINS, and it is genuinely pre-existing rather than that change's
   # debt: three harnesses in two other shapes still carry their own drivers.
   # tools/test-build-check-workflow.py has the same core contract plus a bash

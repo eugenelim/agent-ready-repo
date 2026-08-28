@@ -81,9 +81,10 @@ _CHECK_FLAG_RE = re.compile(r"(?:\s-{1,2}c\b|\s--check\b)")
 _ARCHIVE_EXT = r"(?:tar\.gz|tar\.xz|tar\.bz2|tgz|tar|zip)"
 # The trailing guard is not `\b`: `\b` matched `gl.tar.gz` inside
 # `gl.tar.gz.sha256`, so a digest file credited the archive it merely names.
-# A same-origin digest file is exactly what this workflow says it must not use
-# (see its header), so no crediting path for one is provided — which is what
-# makes `fetch-the-digest-from-the-same-origin` below an expressible mutation.
+# NO digest-file form is credited, whatever its origin — not a fetched one and
+# not a repo-committed at-rest one. The guard reads text and cannot tell where a
+# `.sha256` file came from, so crediting any of them would credit the fetched
+# same-origin form this workflow's header forbids. Inline the SHA-256 here.
 _ARCHIVE_RE = re.compile(rf"[\w.@/-]{{1,200}}\.{_ARCHIVE_EXT}(?![\w.-])")
 
 
@@ -333,22 +334,6 @@ def _baseline() -> str:
     return ""
 
 
-def _replace_once(text: str, old: str, new: str) -> str:
-    """Substitute exactly one occurrence, or raise.
-
-    A compound mutation can go half-inert: if the literal below drifts, the
-    other half still changes the text, so the no-op rule stays satisfied and the
-    mutation reports caught while the property it names is proven by nothing.
-    Raising converts that silent hole into a harness failure.
-    """
-    if text.count(old) != 1:
-        raise AssertionError(
-            f"mutation literal is not present exactly once ({text.count(old)}x): "
-            f"{old!r} — re-pin it against {WORKFLOW.name}"
-        )
-    return text.replace(old, new, 1)
-
-
 def _checksum_extract_pairs(lines: list[str]) -> list[int]:
     """Return indexes of checksum lines immediately followed by an extraction.
 
@@ -423,7 +408,7 @@ def _respell_second_extraction_unverified(text: str) -> str:
     if len(pairs) < 2:
         return text
     index = pairs[1]
-    respelled = _replace_once(lines[index + 1], "tar xzf", "tar -xzf")
+    respelled = posture_harness.replace_once(lines[index + 1], "tar xzf", "tar -xzf", WORKFLOW.name)
     return "".join(lines[:index] + [respelled] + lines[index + 2 :])
 
 
@@ -512,8 +497,11 @@ _MUTATIONS: list[Mutation] = [
         # The one-character inversion the substring test walked past.
         "invert-cancel-condition",
         "concurrency-cancel",
-        lambda text: _replace_once(
-            text, EXPECTED_CANCEL, "${{ github.event_name != 'pull_request' }}"
+        lambda text: posture_harness.replace_once(
+            text,
+            EXPECTED_CANCEL,
+            "${{ github.event_name != 'pull_request' }}",
+            WORKFLOW.name,
         ),
     ),
     (
@@ -572,10 +560,11 @@ _MUTATIONS: list[Mutation] = [
         # caught by the substring form it replaced.
         "path-qualify-the-extraction-and-drop-its-checksum",
         "binary-checksum-before-extract[0]",
-        lambda text: _replace_once(
+        lambda text: posture_harness.replace_once(
             _drop_first_checksum(text),
             "          tar xzf gl.tar.gz",
             "          /usr/bin/tar xzf gl.tar.gz",
+            WORKFLOW.name,
         ),
     ),
     (
@@ -588,46 +577,73 @@ _MUTATIONS: list[Mutation] = [
     (
         "make-the-secret-scan-advisory",
         "gitleaks-blocks[0]",
-        lambda text: _replace_once(
-            text, "      - name: Scan for secrets", "      - name: Scan for secrets\n        continue-on-error: true"
+        lambda text: posture_harness.replace_once(
+            text, "      - name: Scan for secrets", "      - name: Scan for secrets\n        continue-on-error: true",
+            WORKFLOW.name,
         ),
     ),
     (
         "skip-the-secret-scan-with-a-step-if",
         "gitleaks-blocks[0]",
-        lambda text: _replace_once(
+        lambda text: posture_harness.replace_once(
             text,
             "      - name: Scan for secrets\n",
             "      - name: Scan for secrets\n        if: ${{ false }}\n",
+            WORKFLOW.name,
         ),
     ),
     (
         "disable-the-exit-code-with-an-equals-sign",
         "gitleaks-blocks[0]",
-        lambda text: _replace_once(
+        lambda text: posture_harness.replace_once(
             text,
             "gitleaks detect --source . --redact --verbose --exit-code 1",
             "gitleaks detect --source . --redact --verbose --exit-code=0",
+            WORKFLOW.name,
         ),
     ),
     (
-        # Proves the archive-match lookahead: the digest is fetched from the same
-        # origin as the binary, the form the workflow header forbids, and nothing
-        # credits it.
-        "fetch-the-digest-from-the-same-origin",
+        # Proves the archive-match lookahead: no digest-file form is credited,
+        # because the guard cannot see where the file came from. Shown here with
+        # the same-origin fetch the workflow header forbids.
+        "verify-via-a-digest-file-instead-of-an-inline-sha",
         "binary-checksum-before-extract[0]",
-        lambda text: _replace_once(
+        lambda text: posture_harness.replace_once(
             text,
             '          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz" | sha256sum -c\n',
             '          curl -sfL "${BASE_URL}/${TARBALL}.sha256" -o gl.tar.gz.sha256\n'
             "          sha256sum -c gl.tar.gz.sha256\n",
+            WORKFLOW.name,
+        ),
+    ),
+    (
+        # The conjunct round 7 rewrote, and the only one the family rule can
+        # never demand a mutation for: all four share one label.
+        "append-or-true-to-the-gitleaks-scan",
+        "gitleaks-blocks[0]",
+        lambda text: posture_harness.replace_once(
+            text,
+            "gitleaks detect --source . --redact --verbose --exit-code 1",
+            "gitleaks detect --source . --redact --verbose --exit-code 1 || true",
+            WORKFLOW.name,
+        ),
+    ),
+    (
+        "append-or-colon-to-the-gitleaks-scan",
+        "gitleaks-blocks[0]",
+        lambda text: posture_harness.replace_once(
+            text,
+            "gitleaks detect --source . --redact --verbose --exit-code 1",
+            "gitleaks detect --source . --redact --verbose --exit-code 1 || :",
+            WORKFLOW.name,
         ),
     ),
     (
         "compute-the-checksum-without-checking-it",
         "binary-checksum-before-extract[0]",
-        lambda text: _replace_once(
-            text, 'gl.tar.gz" | sha256sum -c', 'gl.tar.gz" >/dev/null; sha256sum gl.tar.gz'
+        lambda text: posture_harness.replace_once(
+            text, 'gl.tar.gz" | sha256sum -c', 'gl.tar.gz" >/dev/null; sha256sum gl.tar.gz',
+            WORKFLOW.name,
         ),
     ),
     (
