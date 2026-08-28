@@ -275,3 +275,377 @@ def test_oversized_and_over_nested_input_refuses_without_raising() -> None:
     assert cooling.parse_record_bytes(
         json.dumps(_payload(**nested)).encode() + b"\n"
     ).code == "record-invalid"
+
+
+def _destination(root: Path) -> Path:
+    """Return the only lifecycle directory used by the write tests."""
+    return root / "docs/lifecycle"
+
+
+_TRANSITION_TABLE = (
+    (("cool-30-days", "Cooling"), ("cool-30-days", "Retired")),
+    (("cool-30-days", "Cooling"), ("retain-exception", "Retained")),
+    (("retain-exception", "Retained"), ("retain-exception", "Retained")),
+    (("retain-exception", "Retained"), ("cool-30-days", "Cooling")),
+    (("retain-exception", "Retained"), ("retain-exception", "Retired")),
+    (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
+)
+_TRANSITION_COMPLEMENT = tuple(
+    (prior, proposed)
+    for prior in (
+        ("cool-30-days", "Cooling"),
+        ("cool-30-days", "Retired"),
+        ("retain-exception", "Retained"),
+        ("retain-exception", "Retired"),
+        ("retain-exception", "ExternalAdvisory"),
+    )
+    for proposed in (
+        ("cool-30-days", "Cooling"),
+        ("cool-30-days", "Retired"),
+        ("retain-exception", "Retained"),
+        ("retain-exception", "Retired"),
+        ("retain-exception", "ExternalAdvisory"),
+    )
+    if (prior, proposed) not in _TRANSITION_TABLE
+)
+
+
+def _candidate(cooling, root: Path, *, confirmation: str, declared_writability: str | None):
+    close_work = cooling._close_work()
+    resolver = close_work.surface_resolver()
+    return resolver.SurfaceCandidate(
+        role="runtime-coordination",
+        logical_locator="docs/lifecycle",
+        physical_locator=resolver.Locator("repository-path", "docs/lifecycle"),
+        provenance=(resolver.Evidence("explicit", "request:cooling", "explicit"),),
+        availability="available",
+        writability=declared_writability or "writable",
+        authority=resolver.Authority(
+            source=resolver.AuthorityFact("repository-owned", "authority:source"),
+            write=resolver.AuthorityFact("delegated", "authority:write"),
+            delete=resolver.AuthorityFact("none", "authority:delete"),
+        ),
+        revision_or_fingerprint="lifecycle-v1",
+        confirmations=(resolver.Confirmation("destination-selection", confirmation),),
+    )
+
+
+def _binding(cooling, resource: str):
+    close_work = cooling._close_work()
+    fact = close_work.resolve_mutation_authority(
+        grant_record={
+            "authorized_actor_role": "release-manager",
+            "grant_source": "approval:release",
+            "action": "write-lifecycle-record",
+            "resource": resource,
+            "evidence_ref": "authority:write",
+            "host_session_provenance": "host-session:pytest",
+        },
+        authority_evidence_ref="authority-resolution:pytest",
+    )
+    assert fact is not None
+    binding = close_work._mutation_binding(
+        authority_fact=fact,
+        authorized_actor_role=fact.authorized_actor_role,
+        grant_source=fact.grant_source,
+        action=fact.action,
+        resource=fact.resource,
+        evidence_ref=fact.evidence_ref,
+        host_session_provenance=fact.host_session_provenance,
+        expected_action="write-lifecycle-record",
+    )
+    assert binding is not None
+    return binding
+
+
+def _enrol_kwargs(
+    root: Path,
+    *,
+    make_destination: bool = True,
+    candidates: object = "confirmed",
+    declared_writability: str | None = None,
+    authority_binding: object = "issued",
+) -> dict[str, object]:
+    cooling = _load()
+    destination = _destination(root)
+    if make_destination:
+        destination.mkdir(parents=True, exist_ok=True)
+    record = _record(cooling)
+    resolved_candidates: object
+    if candidates == "confirmed":
+        resolved_candidates = (_candidate(
+            cooling, root, confirmation="confirmed", declared_writability=declared_writability
+        ),)
+    elif candidates == "unconfirmed":
+        resolved_candidates = (_candidate(
+            cooling, root, confirmation="required", declared_writability=declared_writability
+        ),)
+    else:
+        resolved_candidates = candidates
+    resource = "docs/lifecycle/spec-example.json"
+    return {
+        "root": root,
+        "record": record,
+        "delivered": True,
+        "closed": True,
+        "persisted": True,
+        "completion_event": "merge",
+        "candidates": resolved_candidates,
+        "authority_binding": (
+            _binding(cooling, resource) if authority_binding == "issued" else authority_binding
+        ),
+    }
+
+
+def _update_kwargs(root: Path, prior: tuple[str, str], proposed: tuple[str, str]) -> dict[str, object]:
+    cooling = _load()
+    destination = _destination(root)
+    destination.mkdir(parents=True, exist_ok=True)
+    prior_record = _record(
+        cooling, disposition=prior[0], post_closeout_result=prior[1],
+        exception=(
+            {"reason": "audit-obligation", "owner_role": "release-manager", "review_on": "2026-12-01"}
+            if prior[0] == "retain-exception" else None
+        ),
+    )
+    proposed_record = _record(
+        cooling, disposition=proposed[0], post_closeout_result=proposed[1],
+        exception=(
+            {"reason": "audit-obligation", "owner_role": "release-manager", "review_on": "2026-12-01"}
+            if proposed[0] == "retain-exception" else None
+        ),
+    )
+    return {
+        "root": root,
+        "prior": prior_record,
+        "proposed": proposed_record,
+        "candidates": (_candidate(cooling, root, confirmation="confirmed", declared_writability=None),),
+        "authority_binding": _binding(cooling, "docs/lifecycle/spec-example.json"),
+    }
+
+
+# STUB: AC14
+@pytest.mark.parametrize(
+    ("facts", "code"),
+    [
+        ({"delivered": False}, "not-delivered"),
+        ({"closed": False}, "not-closed"),
+        ({"persisted": False}, "no-persistent-record"),
+        ({"completion_event": None}, "completion-event-required"),
+        ({"completion_event": "creation"}, "completion-event-required"),
+        ({"completion_event": "ready"}, "completion-event-required"),
+        ({"completion_event": "edit"}, "completion-event-required"),
+        ({"completion_event": "session-end"}, "completion-event-required"),
+    ],
+)
+def test_each_enrolment_precondition_has_its_own_code(tmp_path, facts, code) -> None:
+    cooling = _load()
+    result = cooling.enrol(**_enrol_kwargs(tmp_path) | facts)
+    assert result.code == code
+    assert result.mutated == ()
+
+
+# STUB: AC15
+@pytest.mark.parametrize("candidates", [(), "unconfirmed"])
+def test_an_unconfirmed_destination_refuses(tmp_path, candidates) -> None:
+    cooling = _load()
+    result = cooling.enrol(**_enrol_kwargs(tmp_path, candidates=candidates))
+    assert result.code == "destination-unconfirmed"
+    assert list(_destination(tmp_path).iterdir()) == []
+
+
+# STUB: AC16
+def test_absent_destination_refuses_and_present_destination_enrols(tmp_path) -> None:
+    cooling = _load()
+    absent = cooling.enrol(**_enrol_kwargs(tmp_path, make_destination=False))
+    assert absent.code == "lifecycle-state-unwritable"
+    assert not _destination(tmp_path).exists()
+
+    created = cooling.enrol(**_enrol_kwargs(tmp_path))
+    assert created.code == "enrolled"
+    assert (_destination(tmp_path) / "spec-example.json").is_file()
+
+
+# STUB: AC17
+@pytest.mark.parametrize("declared", [None, "writable"])
+def test_a_declared_attribute_cannot_make_a_destination_writable(tmp_path, declared) -> None:
+    import os as _os
+
+    if _os.geteuid() == 0:
+        pytest.skip("root writes through mode 0o555; the case cannot fail here")
+    cooling = _load()
+    destination = _destination(tmp_path)
+    destination.mkdir(parents=True)
+    destination.chmod(0o555)
+    try:
+        result = cooling.enrol(
+            **_enrol_kwargs(tmp_path, make_destination=False, declared_writability=declared)
+        )
+        assert result.code == "lifecycle-state-unwritable"
+        assert list(destination.iterdir()) == []
+    finally:
+        destination.chmod(0o755)
+
+
+# STUB: AC18
+def test_a_swapped_parent_leaves_no_bytes_anywhere(tmp_path) -> None:
+    """The escape target must be outside the repository root, not merely elsewhere.
+
+    A symlink pointing at a sibling *inside* the root is not an escape: the
+    resolver realpath-resolves it and the write legitimately follows to the real
+    directory. Nesting the root under tmp_path is what makes `outside` genuinely
+    outside it, so this fixture exercises AC18 rather than passing on a refusal
+    raised for an unrelated reason.
+    """
+    cooling = _load()
+    root = tmp_path / "repo"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    destination = _destination(root)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.symlink_to(outside, target_is_directory=True)
+    result = cooling.enrol(**_enrol_kwargs(root, make_destination=False))
+    assert result.code == "unsafe-target"
+    assert list(outside.iterdir()) == []
+    assert result.mutated == ()
+
+
+# STUB: AC19
+@pytest.mark.parametrize(
+    "binding",
+    [
+        None,
+        "never-issued",
+        {"action": "write-pause-overlay"},
+        {"resource": "docs/lifecycle/spec-other.json"},
+    ],
+)
+def test_the_write_must_be_authorized_for_this_record(tmp_path, binding) -> None:
+    cooling = _load()
+    result = cooling.enrol(**_enrol_kwargs(tmp_path, authority_binding=binding))
+    assert result.code == "authority-uncertain"
+    assert list(_destination(tmp_path).iterdir()) == []
+
+
+# STUB: AC20
+def test_refusals_carry_a_code_and_leak_nothing(tmp_path) -> None:
+    cooling = _load()
+    result = cooling.enrol(**_enrol_kwargs(tmp_path, make_destination=False))
+    assert result.code in cooling.REFUSAL_CODES
+    rendered = repr(result.as_dict())
+    assert str(tmp_path) not in rendered
+    for leak in ("Traceback", "errno", "Errno"):
+        assert leak not in rendered
+
+
+# STUB: AC21
+def test_a_stale_review_on_refuses(tmp_path) -> None:
+    cooling = _load()
+    path = _destination(tmp_path) / "spec-example.json"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(json.dumps(_payload(review_on="2026-12-31")).encode() + b"\n")
+    assert cooling.load_record(tmp_path, path).code == "record-invalid"
+
+
+# STUB: AC22
+@pytest.mark.parametrize(("prior", "proposed"), _TRANSITION_TABLE)
+def test_every_listed_transition_is_accepted(tmp_path, prior, proposed) -> None:
+    cooling = _load()
+    assert cooling.update_record(**_update_kwargs(tmp_path, prior, proposed)).code == "accepted"
+
+
+# STUB: AC22
+@pytest.mark.parametrize(("prior", "proposed"), _TRANSITION_COMPLEMENT)
+def test_every_unlisted_transition_refuses(tmp_path, prior, proposed) -> None:
+    cooling = _load()
+    result = cooling.update_record(**_update_kwargs(tmp_path, prior, proposed))
+    assert result.code == "record-invalid"
+
+
+# STUB: AC23
+def test_an_update_survives_the_process(tmp_path) -> None:
+    import subprocess
+    import sys
+
+    cooling = _load()
+    cooling.enrol(**_enrol_kwargs(tmp_path))
+    cooling.update_record(
+        **_update_kwargs(tmp_path, ("cool-30-days", "Cooling"), ("cool-30-days", "Retired"))
+    )
+    path = _destination(tmp_path) / "spec-example.json"
+    program = (
+        "import importlib.util,sys;"
+        "s=importlib.util.spec_from_file_location('c', sys.argv[1]);"
+        "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
+        "r=m.load_record(sys.argv[2], sys.argv[3]);"
+        "sys.stdout.buffer.write(m.canonical_bytes(r.record))"
+    )
+    proof = subprocess.run(
+        [sys.executable, "-c", program, str(COOLING_PATH), str(tmp_path), str(path)],
+        capture_output=True, check=True,
+    )
+    assert proof.stdout == path.read_bytes()
+
+
+# STUB: AC24
+def test_workspace_toml_holds_no_cooling_state() -> None:
+    import tomllib
+
+    data = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
+    forbidden = {"cooling", "review_on", "completed_on", "lifecycle_record"}
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            assert forbidden.isdisjoint(node)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(data)
+
+
+def test_the_destination_comes_from_the_validated_physical_locator(tmp_path) -> None:
+    """The resolver path-validates only the physical locator.
+
+    `_validate_logical_locator` checks bounded safe text; `_validate_repository_path`
+    is what rejects a leading separator, a drive letter, a backslash, and any
+    empty, "." or ".." segment — and it runs on the physical locator alone. A
+    candidate may therefore resolve with an escaping logical locator, so the
+    write path must derive its destination from the physical one. Building it
+    from the logical locator instead only fails closed because the descriptor
+    walk rejects ".." afterwards, which makes the confinement depend on a second
+    guard rather than on using the value that was checked.
+    """
+    cooling = _load()
+    close_work = cooling._close_work()
+    resolver = close_work.surface_resolver()
+    destination = _destination(tmp_path)
+    destination.mkdir(parents=True, exist_ok=True)
+
+    escaping = resolver.SurfaceCandidate(
+        role="runtime-coordination",
+        logical_locator="../ESCAPED",
+        physical_locator=resolver.Locator("repository-path", "docs/lifecycle"),
+        provenance=(resolver.Evidence("explicit", "request:cooling", "explicit"),),
+        availability="available",
+        writability="writable",
+        authority=resolver.Authority(
+            source=resolver.AuthorityFact("repository-owned", "authority:source"),
+            write=resolver.AuthorityFact("delegated", "authority:write"),
+            delete=resolver.AuthorityFact("none", "authority:delete"),
+        ),
+        revision_or_fingerprint="lifecycle-v1",
+        confirmations=(resolver.Confirmation("destination-selection", "confirmed"),),
+    )
+    assert resolver.resolve_surface(tmp_path, "runtime-coordination", (escaping,)).status == (
+        "resolved"
+    ), "precondition: the resolver admits an escaping logical locator"
+
+    result = cooling.enrol(**_enrol_kwargs(tmp_path, candidates=(escaping,)))
+
+    assert result.code == "enrolled"
+    assert (destination / "spec-example.json").is_file()
+    assert not (tmp_path.parent / "ESCAPED").exists()

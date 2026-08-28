@@ -1,7 +1,13 @@
 """Pure record, calendar, and validation helpers for thirty-day cooling."""
 
+import errno
+import importlib.util
 import json
+import os
 import re
+import stat
+import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -34,6 +40,17 @@ _REQUIRED = frozenset(
         "authority", "confirmation_proof",
     }
 )
+_TRANSITIONS = frozenset(
+    {
+        (("cool-30-days", "Cooling"), ("cool-30-days", "Retired")),
+        (("cool-30-days", "Cooling"), ("retain-exception", "Retained")),
+        (("retain-exception", "Retained"), ("retain-exception", "Retained")),
+        (("retain-exception", "Retained"), ("cool-30-days", "Cooling")),
+        (("retain-exception", "Retained"), ("retain-exception", "Retired")),
+        (("retain-exception", "Retained"), ("retain-exception", "ExternalAdvisory")),
+    }
+)
+_CLOSE_WORK: object | None = None
 
 
 @dataclass(frozen=True)
@@ -122,6 +139,19 @@ class CoolingResult:
     due: bool = False
     permission_granted: bool = False
     mutated: tuple[object, ...] = ()
+
+    def as_dict(self) -> dict[str, object]:
+        """Return a diagnostic-free public result payload."""
+        payload: dict[str, object] = {
+            "due": self.due,
+            "permission_granted": self.permission_granted,
+            "mutated": self.mutated,
+        }
+        if self.code is not None:
+            payload["code"] = self.code
+        if self.record is not None:
+            payload["record"] = self.record.as_payload()
+        return payload
 
 
 def _is_locator(value: object) -> bool:
@@ -262,7 +292,7 @@ def parse_record_bytes(raw: bytes) -> CoolingResult:
 
 def canonical_bytes(record: CoolingRecord | dict[str, object]) -> bytes:
     """Serialize a record in the published stable JSON representation."""
-    payload = record.as_payload() if isinstance(record, CoolingRecord) else record
+    payload = record.as_payload() if hasattr(record, "as_payload") else record
     rendered = json.dumps(
         payload,
         sort_keys=True,
@@ -293,13 +323,242 @@ def is_due(record: CoolingRecord, moment: datetime) -> CoolingResult:
     return CoolingResult(record=record, due=moment.astimezone(zone).date() >= record.review_on)
 
 
+def _close_work() -> object:
+    """Load the co-located close-work authority seam without package imports."""
+    global _CLOSE_WORK
+    if _CLOSE_WORK is None:
+        path = Path(__file__).with_name("close_work.py")
+        existing = sys.modules.get("cooling_close_work")
+        if existing is not None and getattr(existing, "__file__", None) == str(path):
+            _CLOSE_WORK = existing
+            return _CLOSE_WORK
+        spec = importlib.util.spec_from_file_location("cooling_close_work", path)
+        if spec is None or spec.loader is None:
+            raise ImportError("close-work authority seam is unavailable")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(spec.name, None)
+            raise
+        _CLOSE_WORK = module
+    return _CLOSE_WORK
+
+
+def _record_path(root: Path, destination: Path, record: CoolingRecord) -> Path:
+    """Return the sole permitted lifecycle path for a validated record."""
+    return destination / f"{record.delivery_id}.json"
+
+
+def _write_effect_supported() -> bool:
+    """Require the no-follow descriptor operations used by the writer."""
+    return (
+        {os.open, os.stat, os.rename} <= os.supports_dir_fd
+        and bool(getattr(os, "O_NOFOLLOW", 0))
+        and bool(getattr(os, "O_DIRECTORY", 0))
+    )
+
+
+def _write_refusal(error: OSError) -> str:
+    """Map filesystem failures to the closed, non-diagnostic result set."""
+    if error.errno in {errno.ELOOP, errno.ENOTDIR}:
+        return "unsafe-target"
+    return "lifecycle-state-unwritable"
+
+
+def _binding_is_issued(binding: object, resource: str) -> bool:
+    """Require a registered authority fact to reproduce this exact binding."""
+    close_work = _close_work()
+    binding_type = close_work.MutationBinding
+    if not isinstance(binding, binding_type) or binding.resource != resource:
+        return False
+    authorities = close_work._ISSUED_COORDINATION_AUTHORITIES
+    for fact in authorities.values():
+        expected = close_work._mutation_binding(
+            authority_fact=fact,
+            authorized_actor_role=binding.authorized_actor_role,
+            grant_source=binding.grant_source,
+            action=binding.action,
+            resource=binding.resource,
+            evidence_ref=binding.evidence_ref,
+            host_session_provenance=binding.host_session_provenance,
+            expected_action="write-lifecycle-record",
+        )
+        if expected == binding:
+            return True
+    return False
+
+
+def _write_record(
+    root: Path, destination: Path, record: CoolingRecord, binding: object
+) -> CoolingResult:
+    """Atomically replace one confined lifecycle record through a directory fd."""
+    if not _write_effect_supported():
+        return CoolingResult(code="lifecycle-state-unwritable")
+    try:
+        final_path = _record_path(root, destination, record)
+        resource = final_path.relative_to(root).as_posix()
+    except ValueError:
+        return CoolingResult(code="unsafe-target")
+    if not _binding_is_issued(binding, resource):
+        return CoolingResult(code="authority-uncertain")
+    descriptor: int | None = None
+    temporary: str | None = None
+    try:
+        descriptor = _close_work().open_validated_parent(root, destination)
+        final_name = final_path.name
+        try:
+            target = os.stat(final_name, dir_fd=descriptor, follow_symlinks=False)
+        except FileNotFoundError:
+            target = None
+        if target is not None and not stat.S_ISREG(target.st_mode):
+            return CoolingResult(code="unsafe-target")
+        for index in range(32):
+            candidate = f".{record.delivery_id}.tmp-{index}"
+            try:
+                temporary_fd = os.open(
+                    candidate,
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=descriptor,
+                )
+            except FileExistsError:
+                continue
+            temporary = candidate
+            try:
+                with os.fdopen(temporary_fd, "wb") as handle:
+                    handle.write(canonical_bytes(record))
+                os.replace(temporary, final_name, src_dir_fd=descriptor, dst_dir_fd=descriptor)
+                temporary = None
+                return CoolingResult(code="enrolled", record=record, mutated=(final_path,))
+            except OSError as error:
+                return CoolingResult(code=_write_refusal(error))
+        return CoolingResult(code="lifecycle-state-unwritable")
+    except ValueError:
+        return CoolingResult(code="unsafe-target")
+    except OSError as error:
+        return CoolingResult(code=_write_refusal(error))
+    finally:
+        if temporary is not None and descriptor is not None:
+            with suppress(OSError):
+                os.unlink(temporary, dir_fd=descriptor)
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _resolve_destination(root: Path, candidates: object) -> Path | str:
+    """Resolve a confirmed runtime-coordination destination, or name the refusal.
+
+    Returns the destination path, or the refusal code to report. An absent or
+    unconfirmed candidate is a different failure from a candidate the resolver
+    rejects for an unsafe path, and collapsing both into one sentinel reported a
+    human-confirmation failure for an escaping symlink.
+    """
+    if not isinstance(candidates, (list, tuple)) or not candidates:
+        return "destination-unconfirmed"
+    if not all(
+        any(
+            item.kind == "destination-selection" and item.status == "confirmed"
+            for item in candidate.confirmations
+        )
+        for candidate in candidates
+    ):
+        return "destination-unconfirmed"
+    close_work = _close_work()
+    result = close_work.surface_resolver().resolve_surface(
+        root, "runtime-coordination", candidates
+    )
+    if result.status != "resolved" or result.physical_locator is None:
+        # The resolver realpath-resolves and refuses a locator that leaves the
+        # root, so its refusal here is a path-safety fact, not a missing
+        # confirmation.
+        return "unsafe-target" if result.code == "unsafe_repository_path" else (
+            "destination-unconfirmed"
+        )
+    if result.physical_locator.kind != "repository-path":
+        return "unsafe-target"
+    # The physical locator is the one the resolver path-validates: it rejects a
+    # leading separator, a drive letter, a backslash, and any empty, "." or ".."
+    # segment. The logical locator is an identity string checked only as bounded
+    # safe text, so joining it would let a candidate name a destination outside
+    # the root and rely on the descriptor walk to catch it afterwards.
+    try:
+        return root / result.physical_locator.value
+    except TypeError:
+        return "unsafe-target"
+
+
+def enrol(
+    *,
+    root: Path,
+    record: CoolingRecord,
+    delivered: bool,
+    closed: bool,
+    persisted: bool,
+    completion_event: object,
+    candidates: object,
+    authority_binding: object,
+) -> CoolingResult:
+    """Persist one eligible delivery record through the guarded writer."""
+    if not delivered:
+        return CoolingResult(code="not-delivered")
+    if not closed:
+        return CoolingResult(code="not-closed")
+    if not persisted:
+        return CoolingResult(code="no-persistent-record")
+    if completion_event not in {"merge", "release", "acceptance"}:
+        return CoolingResult(code="completion-event-required")
+    destination = _resolve_destination(root, candidates)
+    if isinstance(destination, str):
+        return CoolingResult(code=destination)
+    try:
+        return _write_record(root, destination, record, authority_binding)
+    except (ImportError, OSError, ValueError):
+        return CoolingResult(code="lifecycle-state-unwritable")
+
+
 def load_record(root: Path, path: Path) -> CoolingResult:
     """Load a record and ensure its filename carries its unmodified delivery ID."""
-    del root
     try:
-        result = parse_record_bytes(path.read_bytes())
-    except OSError:
+        root = Path(root)
+        path = Path(path)
+        raw = _close_work().file_safety().read_confined_regular_file(
+            root, path, max_bytes=MAX_RECORD_BYTES
+        )
+        result = parse_record_bytes(raw)
+    except (ImportError, OSError, ValueError):
         return CoolingResult(code="record-invalid")
-    if result.code is not None or result.record is None or path.stem != result.record.delivery_id:
+    if (
+        result.code is not None
+        or result.record is None
+        or path.stem != result.record.delivery_id
+        or compute_review_on(result.record.completed_on, result.record.timezone)
+        != result.record.review_on
+    ):
         return CoolingResult(code="record-invalid")
+    return result
+
+
+def update_record(
+    *,
+    root: Path,
+    prior: CoolingRecord,
+    proposed: CoolingRecord,
+    candidates: object,
+    authority_binding: object,
+) -> CoolingResult:
+    """Persist an allowed lifecycle transition using the same guarded writer."""
+    transition = (
+        (prior.disposition, prior.post_closeout_result),
+        (proposed.disposition, proposed.post_closeout_result),
+    )
+    if transition not in _TRANSITIONS or prior.delivery_id != proposed.delivery_id:
+        return CoolingResult(code="record-invalid")
+    destination = _resolve_destination(root, candidates)
+    if isinstance(destination, str):
+        return CoolingResult(code=destination)
+    result = _write_record(root, destination, proposed, authority_binding)
+    if result.code == "enrolled":
+        return CoolingResult(code="accepted", record=proposed, mutated=result.mutated)
     return result
