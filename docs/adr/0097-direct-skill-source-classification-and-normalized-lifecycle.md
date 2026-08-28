@@ -26,7 +26,7 @@ The durable limit is **admissible, not safe**: deterministic checks establish a 
 
 ### 1. Classify after resolution
 
-After the resolver returns a confined directory, classify an existing canonical `pack.toml + .apm/` pack through its existing path; a catalogue only when both `catalogue.toml` and `packs/` exist; otherwise a direct pack, manifestless collection, or manifestless single. A `catalogue.toml` without `packs/` is a partial catalogue marker and refuses. Root `SKILL.md + skills/`, root `pack.toml + SKILL.md`, unsupported nested roots, and other overlaps refuse. RFC-0098 E13 and the implementation AC23 own direct candidate enumeration and root-context disposition.
+After the resolver returns a confined directory, classify an existing canonical `pack.toml + .apm/` pack through its existing path; a catalogue only when both `catalogue.toml` and `packs/` exist; otherwise a direct pack, manifestless collection, or manifestless single. A `catalogue.toml` without `packs/` is a partial catalogue marker and refuses. Root `SKILL.md + skills/`, root `pack.toml + SKILL.md`, unsupported nested roots, and other overlaps refuse. RFC-0098 E13 and the implementation AC30 own direct measured-content enumeration and root-context disposition.
 
 **Consequence:** Catalogue precedence is preserved while no transport gains an implicit root-shape rule. A local path already at a skill is allowed; collection/direct-pack child names must equal frontmatter names, while root-single frontmatter is authoritative.
 
