@@ -1026,16 +1026,9 @@ absent, and the matcher's detection half is asserted durably.
   `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
   run, so a failure can be attributed. (AC14)
 - No per-marker value is recorded. (AC14)
-- The QA record names every `tools/` failure observed while taking this slice's
-  gates, with the gate invocation that reproduces it and the base commit
-  identified, and assigns each to exactly one of AC17's four ordered classes.
-  Environmental assignments carry the condition and a register entry;
-  owned-elsewhere-and-unreached assignments carry their owner, their stable
-  register entry, and the re-check obligation; an inherited-and-reached
-  assignment carries its invoking gate line, a named owner, a disposition, and
-  is reported as blocking. The transcripts' failing set and the record's
-  classified set are equal. No count is recorded — the set moves with the base.
-  (AC17)
+- The QA record carries AC17's five fields for every `tools/` failure this
+  slice observed, and drops none. This plan does not restate the fields; AC17
+  is the checklist. (AC17)
 
 - `no stub (manual QA)` — the values are transcribed from an observed graded
   run; there is no predicate to write first.
@@ -1054,10 +1047,8 @@ absent, and the matcher's detection half is asserted durably.
   carried forward, not closed with an unmeasured value.
 
 **Done when:** the record carries measured values, the run is named, no derived
-value appears, every failing node id in the recorded gate transcripts carries
-exactly one class with that class's evidence discharged, and any
-inherited-and-reached failure is reported as blocking with its owner and
-disposition named.
+value appears, and every `tools/` failure this slice observed is present in the
+record with AC17's five fields filled.
 
 ### T14: The pack's surfaces are current everywhere CI looks
 
@@ -1132,7 +1123,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
-| A required gate arrives red from the base | A `Makefile`-invoked `tools/` test reproduces on the base and this slice cannot make it green | AC17 classes it inherited-and-reached: reported as blocking with a named owner and disposition, never absorbed and never re-pinned by this slice |
+| A required gate arrives red from the base | A `tools/` test reproduces on the base and this slice cannot make it green | Attributed `inherited` under AC17 and recorded against its owner with the unblocking event named; never absorbed and never re-pinned by this slice |
 
 ## Changelog
 
@@ -1292,6 +1283,37 @@ layer writes durable state outside the repository, and no migration runs.
   `Makefile:471` names `test_local_ci_shared_test_deduplication.py` explicitly,
   so main's node-count regression is inside this change's gate chain, while the
   two `test_guide_typed_asides.py` ledger tests are named nowhere and are not.
+- 2026-08-29: revision 13. AC17's classification procedure is deleted, on the
+  owner's authority, and the criterion collapses to a form obligation: the QA
+  record names every observed `tools/` failure and carries five fields for each
+  — reproducing invocation, base commit, attribution, attributor, and routing —
+  with correctness of the attribution left to the named attributor. The reason
+  is that the procedure was not converging. Revision 12's own fixes produced
+  revision 13's blockers: the set-equality check it added was unsatisfiable
+  against the classes the same spec required, because an owned-elsewhere
+  failure is by definition invoked by no gate in the chain and so can appear in
+  no chain transcript; narrowing observation to "while taking this slice's
+  gates" made that class vacuous outright; the transcript artifact the check
+  quantified over is produced by no task; and "unchanged tree" read as the base
+  tree would have routed every genuine regression to a register instead of
+  fixing it, because the class was applied first. Revision 12's headline repair
+  was also worthless — redefining "reached" to include required workflow jobs
+  replaced the criterion's one mechanizable term, a search of the Makefile,
+  with branch-protection state that is not in the tree, and the counter-example
+  that motivated it, `tools/test_windows_lock_semantics.py`, is still unreached
+  under the new definition because `lock-semantics-windows` is not a required
+  check. Decomposed, the old criterion asked a build-time checker to decide one
+  term it cannot read, three that exist only in an observation, and one that is
+  a causal judgment. This is the same trajectory this plan already records at
+  revision 6 for topic admission, where a gate over declared expectations, then
+  a class label, then a contract citation were each satisfiable without the
+  substance; the resolution there was the RFC-0097 erratum's seam — form
+  checked mechanically, soundness by a named reviewer — and AC17 now sits on
+  that seam alongside AC2. The class names survive as an enumerated field
+  value, which costs nothing, and "no observed failure is dropped" survives as
+  the completeness half. The plan's two restatements of the classes are reduced
+  to citations of AC17, since four independent copies is what drifted in both
+  rounds.
 - 2026-08-28: revision 12. Review of revision 11 sustained nine findings, and
   the amendment did not survive its own review intact. Three defects were
   structural. The three-class sort was not total: a red that is environmental
@@ -1330,9 +1352,10 @@ layer writes durable state outside the repository, and no migration runs.
   executed against — T3's stub note lost its `135` count mid-wave, when the
   live tree measured 137. The pin was therefore unsatisfiable without writing a
   false count back into a completed section, and no re-pin primitive exists.
-  The pins were re-taken by re-approving the amended contract rather than by
-  replaying the approval gates against superseded content, which would have
-  meant re-asserting an owner approval rather than obtaining one.
+  The pins are re-taken by re-approving the amended contract rather than by
+  replaying the approval gates against superseded content, which would mean
+  re-asserting an owner approval rather than obtaining one. T1, T3 and T4 are
+  re-pinned as completed at that re-approval; they are not re-executed.
   The count was corrected at all three sites it lived at — AC17, the Follow-on,
   and the Assumption — plus T13's implementing bullet; only the historical note
   explaining why no count is pinned still says "four".

@@ -145,15 +145,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   column are current.
 - **Delivery-cut variance: goal-based check** — a grep for the variance
   section heading and the brief's slice-table rows.
-- **Failure attribution (AC17): goal-based check** — every failing node id in
-  this slice's recorded gate transcripts appears exactly once in the QA record
-  carrying one class. Each *owned elsewhere and unreached* assignment cites the
-  absence of its file from every `Makefile` target this slice runs and from
-  every required workflow job; each *inherited and reached* assignment cites
-  the invoking `Makefile` or workflow line, its owner, and its disposition;
-  each *environmental or non-reproducible* assignment cites the condition and
-  its register entry. The check fails when the transcripts' failing set and the
-  QA record's classified set differ in either direction.
+- **Failure attribution: manual QA.** Whether a failure belongs to this change
+  is a judgment over two observed runs, not a fact repository state answers, so
+  the check is over the record's form: every failure the slice observed carries
+  all five of AC17's fields, and no observed failure is absent. Whether an
+  attribution is right is the recorded attributor's judgment.
 
 Six criteria are verified in TDD mode and carry a compilable red stub in their
 implementing task: census completeness, topic admission, taxonomy completeness,
@@ -362,31 +358,19 @@ against the reason. No criterion is left without a declared mode.
   backlog-disposition section, whose scope is RFC-0097 D7 — and the brief's
   slice table reflects both.
 - [ ] **AC17 — Pre-existing failures are attributed, not absorbed.** This
-  slice's QA record names every `tools/` failure observed while taking this
-  slice's gates, with the gate invocation that reproduces it and the base
-  commit identified, and assigns each to exactly one class. A failure is
-  *reached* when this slice's gate chain invokes it; that chain is every
-  `Makefile` target this slice runs together with every `.github/workflows/`
-  job among its required checks. The classes are applied in order, and the
-  first that matches decides:
-  *environmental or non-reproducible* — the failure does not reproduce under
-  the same gate invocation on an unchanged tree; it is recorded with the
-  condition that produced it and routed to the known-issue register, never
-  counted against this slice and never silently dropped.
-  *caused here* — the failure reproduces here but not on the base; it is
-  fixed, or escalated under *Ask first* when the only available fix crosses a
-  Boundary.
-  *inherited and reached* — the failure reproduces on the base and the chain
-  invokes it; it is reported as blocking this slice's completion, with a named
-  owner and a stated disposition, because a required gate is red for a reason
-  this change did not create and absorbing it silently would make this slice's
-  green a lie.
-  *owned elsewhere and unreached* — the failure reproduces on the base and the
-  chain does not invoke it; it is routed to that surface's owner against a
-  stable register entry and recorded, not fixed here, with the obligation to
-  re-check it before that surface's next change.
-  The criterion states no count and no list, because the set moves as the base
-  moves.
+  slice's QA record names every `tools/` failure it observed, and records five
+  fields for each: the invocation that reproduces it, the base commit it was
+  observed on, an attribution — one of `caused-here`, `inherited`,
+  `owned-elsewhere`, `environmental` — the person who made that attribution,
+  and, for anything not `caused-here`, where it was routed. A `caused-here`
+  failure is fixed, or escalated under *Ask first* when the only available fix
+  crosses a Boundary. No observed failure is dropped without a recorded
+  attribution.
+  The criterion checks the record's form and completeness. Whether an
+  attribution is correct is the recorded attributor's judgment, on the same
+  seam AC2 uses: a mechanical check asserts the declared value and its required
+  fields, and soundness stays with a named person. It states no count and no
+  list, because the set moves as the base moves.
 - [ ] **AC18 — Published surfaces stay joined.** The pack satisfies the
   conformance metadata contract, and its membership of the two agent-plugin
   roster enumerations, the catalogue navigation outcome map, and the
@@ -420,20 +404,23 @@ against the reason. No criterion is left without a declared mode.
   independently of it —
   `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`
   and `::test_ledger_matches_converted_asides_and_unchanged_quotations`.
-  `test_guide_typed_asides.py` is named in no `Makefile` target this slice runs
-  and in no required workflow job, which places both in AC17's *owned elsewhere
-  and unreached* class. They are routed against the existing `[backlog].open`
-  entry `guide-blockquote-ledger-has-no-regenerator`, whose subject is the same
-  ungated ledger; extending that entry's summary adds no new legacy-shaped
-  entry, so the ceiling is not reached and no raise is proposed.
+  `test_guide_typed_asides.py` is named in no `Makefile` line, which is why
+  they are attributed `owned-elsewhere`. They are routed against the existing
+  `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`, whose
+  subject is the same ungated ledger; extending that entry's summary adds no
+  new legacy-shaped entry, so the ceiling is not reached and no raise is
+  proposed.
 - Core owner: `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
   reproduces on this slice's base — `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
-  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, which
-  places it in AC17's *inherited and reached* class. It is reported as blocking
-  this slice's completion. Its disposition belongs to that module's owner under
-  its own stated rule at `tools/test_local_ci_shared_test_deduplication.py:44-50`,
-  which requires the node-set change be dispositioned before the pin moves;
-  this slice neither re-pins it nor absorbs it.
+  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, so it is
+  attributed `inherited`. This slice's disposition is to report it and change
+  nothing: it neither re-pins the guard nor absorbs the red, because that
+  module's own rule at `tools/test_local_ci_shared_test_deduplication.py:43-49`
+  requires the node-set change be dispositioned before the pin moves, and this
+  slice cannot make that disposition — `Never do` bars it from any `packs/core`
+  surface. The unblocking event is the core owner re-pinning after
+  dispositioning; until then the red is recorded against that owner, not
+  against this slice.
 
 ## Assumptions
 
@@ -497,13 +484,13 @@ against the reason. No criterion is left without a declared mode.
 - Technical: the `tools/` failure set moves with the base and is therefore
   recorded, not enumerated in this contract. Two `test_guide_typed_asides.py`
   ledger tests reproduce and are invoked by no `Makefile` target this slice
-  runs and no required workflow job, and
-  `test_local_ci_shared_test_deduplication.py` reproduces and *is* invoked at
-  `Makefile:471`, which places it in AC17's inherited-and-reached class
-  (source: the gate invocations at `Makefile:471` and `Makefile:492-507`, taken
-  on the base this slice's QA record identifies; a whole-directory
-  `pytest tools/` run is a non-authoritative probe, because `Makefile:477-479`
-  records the per-class split as a stability property)
+  runs, and `test_local_ci_shared_test_deduplication.py` reproduces and *is*
+  invoked at `Makefile:471`, so the two are attributed `owned-elsewhere` and
+  `inherited` respectively (source: `Makefile:471` for the positive
+  invocation, and a search of the whole `run-test-suite` macro,
+  `Makefile:407-506`, for the absence; the observation was taken with a
+  whole-directory `pytest tools/` run, which is why `Makefile:477-479` records
+  the per-class split as a stability property and the per-gate result governs)
 - Process: `[backlog].open`'s legacy-shape ceiling of 160 is at its measured
   maximum and its failure message forbids raising it; only entries carrying a
   `path` key are exempt, and those require a real artifact (source:
