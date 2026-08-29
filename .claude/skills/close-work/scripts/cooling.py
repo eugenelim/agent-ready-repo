@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 MAX_RECORD_BYTES = 64 * 1024
 MAX_RECORD_DEPTH = 8
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
+MAX_TIMEZONE_LENGTH = 255
+MAX_LOCATOR_LENGTH = 1000
 REFUSAL_CODES = frozenset(
     {
         "not-delivered", "not-closed", "no-persistent-record",
@@ -159,7 +161,7 @@ class CoolingResult:
 
 
 def _is_locator(value: object) -> bool:
-    if not isinstance(value, str) or not value or len(value) > 1000:
+    if not isinstance(value, str) or not value or len(value) > MAX_LOCATOR_LENGTH:
         return False
     if value.startswith("/") or "\\" in value or "//" in value:
         return False
@@ -174,6 +176,21 @@ def _is_date(value: object) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _zone(timezone: object) -> ZoneInfo | None:
+    """Resolve a bounded IANA key, or None when it does not resolve.
+
+    OSError is neither a ValueError nor the KeyError that
+    ZoneInfoNotFoundError extends, so an over-long key escaped every refusal
+    path carrying an absolute host path and an errno.
+    """
+    if not isinstance(timezone, str) or len(timezone) > MAX_TIMEZONE_LENGTH:
+        return None
+    try:
+        return ZoneInfo(timezone)
+    except (ZoneInfoNotFoundError, OSError, ValueError):
+        return None
 
 
 def _exceeds_depth(value: object, limit: int) -> bool:
@@ -215,7 +232,7 @@ def _exception_is_valid(value: object) -> bool:
     permitted = {"reason", "owner_role", "review_on", "evidence_ref"}
     if not isinstance(value, dict) or set(value) - permitted:
         return False
-    if set(value) < {"reason", "owner_role", "review_on"}:
+    if not set(value) >= {"reason", "owner_role", "review_on"}:
         return False
     reasons = {
         "audit-obligation", "dependency-obligation", "legal-obligation",
@@ -276,9 +293,7 @@ def validate_payload(payload: object) -> CoolingResult:
         or not _authority_is_valid(payload["authority"])
     ):
         return CoolingResult(code="record-invalid")
-    try:
-        ZoneInfo(str(payload["timezone"]))
-    except (ZoneInfoNotFoundError, ValueError):
+    if _zone(payload["timezone"]) is None:
         return CoolingResult(code="record-invalid")
     has_exception = "exception" in payload
     if (payload["disposition"] == "retain-exception") != has_exception:
@@ -323,9 +338,7 @@ def canonical_bytes(record: CoolingRecord | dict[str, object]) -> bytes:
 
 def compute_review_on(completed_on: date, timezone: str) -> date | CoolingResult:
     """Return the calendar date thirty days after a completion date."""
-    try:
-        ZoneInfo(timezone)
-    except (ZoneInfoNotFoundError, ValueError):
+    if _zone(timezone) is None:
         return CoolingResult(code="unknown-timezone")
     return completed_on + timedelta(days=30)
 
@@ -334,9 +347,8 @@ def is_due(record: CoolingRecord, moment: datetime) -> CoolingResult:
     """Compare an injected aware instant with the record's local review date."""
     if moment.tzinfo is None or moment.utcoffset() is None:
         return CoolingResult(code="naive-clock")
-    try:
-        zone = ZoneInfo(record.timezone)
-    except (ZoneInfoNotFoundError, ValueError):
+    zone = _zone(record.timezone)
+    if zone is None:
         return CoolingResult(code="unknown-timezone")
     return CoolingResult(record=record, due=moment.astimezone(zone).date() >= record.review_on)
 
