@@ -62,3 +62,6 @@ or a reference, consult `instruction-density-and-progressive-disclosure`.
 Foundation reference for the portable agent-skill-engineering pack. Maintain as
 governed OKF source; generated router copies are not authoring surfaces.
 
+**Applicability limit:** This guidance is an observed practice from the 137
+authored agent skills in the catalogue that developed this pack, censused on
+2026-08-28. It is not established beyond that population.
