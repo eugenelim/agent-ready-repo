@@ -107,10 +107,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   reviewed exception; the predicate is compressible and the fixture declares the
   mapping first. The live-discovery half runs in `tests/roster/`, the only tree
   permitted to walk every pack.
-- **Topic admission: TDD.** "Admitted implies every claim group declares a
-  basis, carries that basis's fields well-formed, and the topic is measurably
-  distinguishable" is a predicate over the admission fixture, the compiled
-  topic set, and the measured retrieval record. It is the spec's load-bearing
+- **Topic admission (AC2, AC3, AC4): TDD.** "Admitted implies every claim group
+  declares a basis, carries that basis's fields well-formed, the shipped body
+  and the record agree, and the topic is measurably distinguishable" is a
+  predicate over the admission fixture, the compiled topic set, and the
+  measured retrieval record. One stub covers the three, as `plan.md`'s
+  `# STUB: AC2, AC4, AC5` records. It is the spec's load-bearing
   invariant, and it deliberately stops at form: the erratum assigns soundness
   to the reviewer AC2 names.
 - **Taxonomy completeness: TDD.** "Each of the 36 topology leaves is in exactly
@@ -392,16 +394,16 @@ edit a completed task section.
   independently of it —
   `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`
   and `::test_ledger_matches_converted_asides_and_unchanged_quotations`.
-  `test_guide_typed_asides.py` is named in no `Makefile` line, so no gate this
-  slice runs reaches them. They are routed against the existing
+  No gate this slice runs reaches them, per the Assumption below that sources
+  the claim. They are routed against the existing
   `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`, whose
   subject is the same ungated ledger; extending that entry's summary adds no
   new legacy-shaped entry, so the ceiling is not reached and no raise is
   proposed.
 - Core owner: `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
   reproduces on this slice's base — `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
-  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, so a
-  gate this slice runs does reach it. This slice's disposition is to report it
+  yields 78 nodes against a pin of 73 — and a gate this slice runs does reach
+  it, per the Assumption below. This slice's disposition is to report it
   and change nothing: it neither re-pins the guard nor absorbs the red, because
   that module's own rule at
   `tools/test_local_ci_shared_test_deduplication.py:43-49` requires the
