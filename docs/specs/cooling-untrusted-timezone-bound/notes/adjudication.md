@@ -69,6 +69,29 @@ over the grant payload (`close_work.py:464-470`), so popping invalidates a held
 *binding object*, never a held *grant record* — a caller retaining the grant
 re-mints the fact by calling `resolve_mutation_authority` again.
 
+### Residual the adjudication did not examine: unbounded retention
+
+Traced after round-2 security review, which framed the question as *what does
+never-evicting cost?* rather than *may this actor act?*
+
+- `_ISSUED_COORDINATION_AUTHORITIES` is a process-global dict declared at
+  `close_work.py:46`.
+- It is written on every successful `resolve_mutation_authority`
+  (`close_work.py:470`), under a digest deterministic over the grant payload
+  (`close_work.py:464-468`).
+- It is popped **only** on the deletion path (`close_work.py:1780`, `:2017`).
+  Nothing on the write path removes an entry.
+- `_binding_is_issued` (`cooling.py:462-482`) iterates `authorities.values()`
+  and calls `_mutation_binding` per entry; each call performs six
+  `_bounded_text` normalisations that scan every character
+  (`close_work.py:392-399`, `:487-494`) plus a regex match and two prefix checks.
+
+So N distinct resolved grants make each subsequent lifecycle write O(N), and the
+dict grows unbounded for the process lifetime. The growth is driven by the same
+in-process trusted caller that mints the grants, so this is resource hygiene
+rather than an authorization weakness — but bounded retention, not single-use,
+is the repair the per-write scan makes load-bearing.
+
 Orchestrator note: making the write grant single-use remains a defensible
 hardening with Wave 4 precedent, and it would shrink the blast radius of a
 leaked binding object from unlimited legal transitions to one. It is not a

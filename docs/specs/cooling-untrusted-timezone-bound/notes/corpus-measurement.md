@@ -7,8 +7,17 @@ A 32-case malformed corpus was run against both public untrusted-input seams —
 **12 of 64 raise an uncaught exception. The other 52 refuse correctly with a
 published code.**
 
-This is the evidence the acceptance criteria are built on. It replaces two
-reviewers' partially-correct reasoning with one measurement.
+Two corrections to that headline, both found by round-2 review and confirmed
+before being written down:
+
+1. **The scope is two seams, not the module.** `validate_payload` and
+   `parse_record_bytes` are the two public entry points sampled here. The
+   caller-facing `review()` and `review_exception()` were not, and defect B below
+   reaches both — 20 of 80 seam-cases once they are counted. Nothing in this
+   note supports a whole-module claim.
+2. **Defect A's count is environment-contingent.** With the optional `tzdata`
+   wheel blocked, the two timezone rows refuse cleanly and the figure is 8 of 64.
+   Defect B's count is not contingent — it is plain dict access.
 
 ## The 12 failures
 
@@ -54,8 +63,14 @@ at `cooling.py:240` (`not set(payload) >= _REQUIRED`).
 
 ## The 26 cases that already refuse correctly
 
-No further defect class was found. These all return a published refusal code
-from both seams:
+No further defect class was found **in this two-seam sample**. That is a
+statement about what was measured, not about the module. Round-2 review
+subsequently found two more residuals by reading rather than by corpus — the
+`delivery_id` `str()` coercion at `cooling.py:246` and the unwrapped
+`_close_work()` resolution at `:345`/`:390`/`:520`/`:689` — both recorded as
+spec follow-ons.
+
+These all return a published refusal code from both sampled seams:
 
 `tz-int`, `tz-none`, `tz-list`, `tz-empty`, `exc-empty`, `exc-notadict`,
 `loc-1001`, `loc-empty`, `loc-abs`, `loc-dotdot`, `loc-int`, `aliases-17`,

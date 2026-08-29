@@ -28,10 +28,11 @@ would alter what a conforming producer may emit, and would require the `x-spec`
 co-ownership the brief describes. Nothing here needs that. The correct repair is
 to make the validator honour the number the contract already publishes.
 
-This keeps the delivery off the published-contract path entirely. AC12 makes
-that mechanical: the schema file's SHA-256 must still equal
-`8bb85ebde713c3b9f6bdd4aeca8b50dfb8291608c731607a426517e7f474a6f3`, its value at
-`97a0b6ad`.
+This keeps the delivery off the published-contract path entirely. AC15 makes
+that mechanical: the schema file's SHA-256 must still equal its value at the
+merge base. The digest literal lives in exactly one place, the
+`test_the_published_contract_is_unchanged` construction test, so a legitimate
+future contract change updates one value rather than three.
 
 ## Why the bound alone is not the whole fix
 
@@ -52,10 +53,12 @@ So the repair is both halves, and each is proven independently:
 ## Keeping the two from drifting again
 
 Wave 5's review found the schema and the validator diverging on both `locator`
-and `timezone`, and nothing checked that they matched. AC8 and AC9 close that
+and `timezone`, and nothing checked that they matched. AC11 and AC13 close that
 for the numeric bounds by reading them out of the schema file and comparing them
-to the module's constants, so a future edit to either side that is not mirrored
-fails a test rather than shipping.
+to the module's constants, and AC11a and AC14 prove each constant actually
+governs its guard — parity alone is satisfied by a dead constant beside a bare
+literal. So a future edit to either side that is not mirrored fails a test
+rather than shipping.
 
 Two limits worth stating plainly:
 
@@ -66,5 +69,11 @@ Two limits worth stating plainly:
   those changes behaviour, and the change needs a spec that decides which side
   is right.
 - Parity is not conformance. Nothing here starts running a real JSON Schema
-  validator against the payload; that would be a new dependency, which AC15
-  forbids.
+  validator against the payload. That is **not** declined as a new dependency —
+  `jsonschema>=4.0` is already declared at `tools/requirements.txt:5` and eleven
+  `tests/roster/` modules import it, one of which validates another
+  `contracts/jsonschema/` file with `Draft202012Validator`. It is declined
+  because `cooling.py` is a `packs/core/.apm/` runtime script that must stay
+  stdlib-only, and because a test-side differential validator would surface every
+  divergence including the deferred `locator` pattern, exceeding the sustained
+  finding's scope.
