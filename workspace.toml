@@ -227,6 +227,25 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Surfaced 2026-08-29 by the security review of spec-dir confinement (PR #1156).
+  # loop-cohort and loop-engine both canonicalize a --spec-dir and check it is
+  # under the repo root BEFORE using it, but nothing binds the later file
+  # operations to the object that was checked: a concurrent local writer can
+  # replace a checked directory with a symlink to an external path between the
+  # check and the use, and the operation follows the new link.
+  # NOT introduced by that PR -- the identical race pre-exists in loop-engine.py,
+  # whose resolver has always had this shape. Confinement was strictly improved
+  # there, not weakened. Same class as adjudicator-cited-read-toctou.
+  # Deliberately NOT partly mitigated: a path-level half-measure would read as a
+  # boundary that is not one. Closing it needs a directory-FD design -- openat-
+  # style operations with O_NOFOLLOW, all state reads and writes performed
+  # relative to verified descriptors -- which is a redesign of both resolvers and
+  # every call site downstream of them, not a local fix.
+  # Exploiting it requires an attacker with concurrent write access to the working
+  # tree, who has strictly more direct options such as editing the source itself.
+  # Unblocks when: someone takes the directory-FD redesign as its own spec.
+  {slug = "loop-spec-dir-confinement-toctou", source = "spec-dir confinement security review (2026-08-29)", summary = "loop-cohort and loop-engine check a resolved --spec-dir is inside the repo but nothing binds the later file operations to the checked object, so a concurrent symlink swap is followed; closing it needs an openat/O_NOFOLLOW directory-FD design, not a path-level mitigation"},
+
   # Unblocks when: the RFC-0098 contract is approved through the normal spec-and-plan lifecycle.
   {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Draft RFC-0098 contract for bounded direct-skill repository admission and lifecycle", needs = []},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
@@ -667,21 +686,6 @@ open = [
   # Settle by reproducing the exact cases in a supported clean evidence environment and
   # identifying the state or platform variable before changing the controls.
   {slug = "rfc0088-r12-fact-negative-tests-red", source = "pre-flight/2026-08-22"},
-  # Closed 2026-08-21. Root AGENTS.md § "Commands you'll need" now names
-  # `make bootstrap-sites`, the sanctioned target that installs BOTH npm trees
-  # (tools/repo/bootstrap.py profile_commands("sites")). Two corrections the entry
-  # text got wrong, recorded so a reader arriving from a stale reference is not
-  # misled: AGENTS.md listed NEITHER npm command, not "only docs-site"; and the
-  # Makefile's own § Site publishing header carried the same one-sided claim, which
-  # was corrected in the same change. `make test` needs the docs-site tree only;
-  # `site-build` / `site-link-check` need both. No `(deferred: …)` marker anchored
-  # this slug, so removing the entry reds no lint-spec-status invariant.
-  # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
-  # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
-  # assertion in test_loop_concurrency.py — so bounding them is not a mechanical
-  # ride-along but an observable change to a shipped CLI's failure mode on a slow
-  # repository, which needs its own criterion.
-  {slug = "lint-spec-status-git-unbounded", source = "spec/work-loop-in-process-guards AC21"},
 
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
@@ -720,7 +724,6 @@ open = [
   # reviewer, which is a non-control in a single-maintainer repo.
   {slug = "plugin-publish-required-reviewer", source = "spec/claude-plugin-route-scope"},
 
-  {slug = "publish-control-evidence-max-age", summary = "Bound the age of the publish-control evidence -- observed_at is checked for being a non-empty string and nothing else, so a stale artifact certifies settings that may have changed", source = "spec/publish-control-evidence-repo-binding security review"},
 
   # Current: a schema-valid adopter pack with no adapter-contract resolves repo scope and
   # can disappear from its own marketplace.
@@ -784,15 +787,6 @@ open = [
     # lock with a documented acquisition order relative to the per-spec lock. Unblocks: needs
     # design — a second lock scope risks deadlock without an ordering rule.
   {slug = "loop-outbox-cross-spec-rmw", source = "spec/loop-cohort-state-lock"},
-    # loop-cohort.py's _resolve_spec_dir (:110) only rejects a literal '..'; it does not
-    # confine the resolved path under the repo root the way loop-engine.py's twin (:514) does,
-    # and it follows a symlinked spec_dir because resolve() runs before any check. So an
-    # absolute or symlinked --spec-dir reaches file operations unconfined (CWE-73).
-    # loop-cohort-state-lock declines to widen the gap (its lock creates no directory) but
-    # does not close it. Fix: route both resolvers through the blessed canonicalize-then-
-    # verify-prefix helper, append-knowledge.py's confine(). Unblocks: now — but it narrows
-    # the CLI's accepted inputs, so it needs a compatibility call.
-  {slug = "loop-cohort-resolve-spec-dir-confinement", source = "spec/loop-cohort-state-lock"},
 
   # Current: _capture uses two booleans for three valid modes and relies on refusing the
   # meaningless fourth combination.
@@ -1169,27 +1163,6 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # PRE-EXISTING and verified identical on origin/main -- NOT introduced by the
-  # code-span fix, which is why that change left it alone. In
-  # parse_changelog_releases, comment stripping runs BEFORE the fence-opener
-  # match, so a `<!--` in a fence opener's INFO STRING (```bash <!-- setup)
-  # sets in_fence and in_comment together. The `if in_fence` branch then
-  # `continue`s past the in_comment handler, and the first `-->` after the
-  # fence silently absorbs everything between. Measured: a 2-release fixture
-  # with such an opener parses ONE release, no raise, no diagnostic -- the same
-  # silent-collapse class as build-site-comment-strip-ignores-code-spans, and
-  # the >=130 release floor has ~42 releases of slack before it notices.
-  # Without a trailing `-->` it instead hard-fails naming the fence line.
-  # The comment at :1795 claims "fenced code wins over comment syntax"; that
-  # holds for lines INSIDE a fence, not for the opener line itself.
-  # Fix: when _FENCE_RE_CHANGELOG matches, do not honour that line's
-  #   opens_comment -- the `<!--` was sample text in the info string -- or
-  #   strip comments only from the text preceding the fence marker.
-  # Deliberately NOT bundled: the fence state machine has a documented history
-  #   of fail-open regressions, and this is a different root cause from
-  #   code-span blindness. It wants its own change and its own review.
-  # Unblocks when: picked up -- no dependency.
-  {slug = "build-site-fence-info-string-opens-a-comment", source = "adversarial review of the code-span fix (2026-08-27)", summary = "build-site.py strips HTML comments before matching a fence opener, so `<!--` in a fence info string sets in_fence and in_comment together and the next `-->` swallows every release between; pre-existing on origin/main, silent, and invisible to the release floor"},
 
 
   # Unblocks when: the allowlist gains its first entry.
@@ -1615,7 +1588,6 @@ open = [
 
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   {slug = "e2e-spec-runner-boundary", summary = "docs-wayfinding.spec.ts is invoked by no Makefile line, workflow or package script; decide whether orphaned web/src/test/e2e specs get a runner or an explicit on-demand contract", source = "spec/site-browser-quality-gate review"},
-  {slug = "site-test-source-substring-assertions", summary = "Re-express test_check_rendered_site_links' pages.yml ordering assertion and test_catalogue_navigation's web/src assertions against parsed structure, and verify each by deletion", source = "spec/build-check-coverage-gaps review"},
 
   {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
 
@@ -1898,6 +1870,16 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  {slug = "build-site-fence-info-string-opens-a-comment", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1153. parse_changelog_releases now commits comment state only AFTER the fence-opener match, so a `<!--` in an opener's info string is sample text rather than a cross-line comment. Three mutation-verified cases, including one that is the sole catcher of the plausible wrong fix (suppressing comment state on any line containing a fence marker)"},
+
+  {slug = "loop-cohort-resolve-spec-dir-confinement", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1156. loop-cohort's _resolve_spec_dir is now at parity with loop-engine's: reject `..`, resolve, read the repo root with the git relocation variables stripped, then relative_to(repo_root). The entry's named helper (append-knowledge.py's confine()) does not exist; parity was the fix. _get_repo_root stays duplicated because _loop_guards.py contracts that no public function spawns a process and assigns confinement to each caller's own resolver"},
+
+  {slug = "lint-spec-status-git-unbounded", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1156. All five git calls carry timeout=GIT_TIMEOUT_S (20.0, the local-git figure loop-engine and loop-cohort already agree on) and each catches TimeoutExpired, degrading to that site's pre-existing fallback. A timed-out `git show` returns a typed sentinel rather than None, so it is not read as 'spec is new' -- the false-hard-violation mode base_ref_resolves' docstring already records"},
+
+  {slug = "publish-control-evidence-max-age", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1162. observed_at is now bounded two-tier: warn past 30 days, hard-fail past 90. Two tiers rather than one because recapture needs a maintainer-only GitHub App key with no automated refresh, so a single 30-day hard bound would have reddened build-check and the publish workflow within two weeks. Non-ISO, naive and future-dated values are errors at any age"},
+
+  {slug = "site-test-source-substring-assertions", source = "auto-mechanical-chores-run-16", summary = "Closed 2026-08-29 by PR #1163. pages.yml is parsed with PyYAML and asserted within jobs.build.steps with per-trigger path counts; the Astro surfaces use an anchored import pattern that resolves the import to the canonical file on disk. Measured old-vs-new on four mutations, including a real gate hole the old whole-file count could not see: a path duplicated under push and removed from pull_request"},
+
   {slug = "okf-index-title-interpolation-unescaped", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; compiler-owned OKF indexes bound and context-escape title, status, and type, and exact hostile fixtures prove a fabricated link or entry stays data"},
 
   {slug = "okf012-nondeterminism-guard-untested", source = "spec/okf-authoring-projection (whole-spec quality review)", summary = "Closed by spec/okf-follow-ons; a mutation-proven compile_pack test asserts exit 2, diagnostics exactly OKF012, and no pack mutation when the two renders differ"},
