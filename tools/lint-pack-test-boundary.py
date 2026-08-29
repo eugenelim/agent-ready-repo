@@ -61,7 +61,20 @@ import lint_git_ignore  # tools/ is sys.path[0] for a script run
 
 try:
     from pack_test_compatibility import CLASSES, check_class_identity, validate_classes
-except ModuleNotFoundError:  # Golden fixtures stage this lint without the model.
+    _MODEL_PRESENT = True
+except ModuleNotFoundError:
+    # Golden fixtures stage this lint alone, without the model beside it.
+    #
+    # `_MODEL_PRESENT` gates the two vacuity refusals below, and the reason is
+    # not obvious: `ROOT` comes from this file's own `__file__`, so a staged copy
+    # makes the *fixture* its ROOT. `inv.context.root == ROOT` is therefore true
+    # in every fixture run, and a refusal keyed on that alone fires everywhere.
+    #
+    # Deleting the model from the real repository is not the hole this leaves it
+    # looks like: `CLASSES` then becomes empty while the Makefile still carries
+    # five grouped invocations, and `runners-use-approved-pack-compatibility-
+    # classes` reddens on every one of them.
+    _MODEL_PRESENT = False
     CLASSES = ()
 
     def validate_classes(classes, root):
@@ -1317,7 +1330,7 @@ class RunnerInvocation(NamedTuple):
     unresolvable_path: str | None = None
 
 
-def _unresolvable_path(text: str) -> str | None:
+def _unresolvable_path(text: str, *, makefile: bool) -> str | None:
     """Return the opaque invocation through its non-static path operand.
 
     The invocation, rather than just a variable name, is the exception key. It
@@ -1332,10 +1345,20 @@ def _unresolvable_path(text: str) -> str | None:
     for token in re.finditer(r"\S+", match.group("tail")):
         value = token.group().strip("'\"")
         # Make's numbered recipe slots are explicit, repository-owned argv
-        # substitutions; the AC31 concern is indirection that conceals a path
-        # set, such as shell variables and workflow expressions.
-        if value.startswith("$") and not value.startswith("$("):
-            return command[:match.start("tail") + token.end()].strip()
+        # substitutions. Other command substitutions conceal a path set and
+        # must be visible to AC31, especially in workflow shell blocks.
+        if makefile and re.fullmatch(r"\$\([1-9]\d*\)", value):
+            continue
+        if not (value.startswith("$") or "`" in value):
+            continue
+        key = command[:match.start("tail") + token.end()].strip()
+        # A command substitution spans whitespace, so stopping at the offending
+        # token cuts it in half — `pytest $(cat` — which is both unreadable and
+        # a poor exception key. Take the whole command in that case. A bare
+        # `$VAR` operand is one token and keeps the tighter key.
+        if key.count("(") != key.count(")") or key.count("`") % 2:
+            return command.strip()
+        return key
     return None
 
 
@@ -1361,7 +1384,7 @@ def _workflow_runner_lines(
         if any(_PYTEST.search(candidate) for candidate in body):
             pytest_helpers.add(definition.group(1))
 
-    for lineno, line in enumerate(lines, 1):
+    for lineno, line in _joined_lines(source):
         if re.match(r"^\s*-\s+name:", line):
             working_tokens = set()
         if re.match(r"^\s*working-directory:", line):
@@ -1375,7 +1398,7 @@ def _workflow_runner_lines(
             _PYTEST.search(line) or helper_call is not None
         ):
             tokens = _path_tokens(line) | working_tokens
-            unresolved = _unresolvable_path(line)
+            unresolved = _unresolvable_path(line, makefile=False)
             if tokens or unresolved:
                 out.append(RunnerInvocation(rel, lineno, tokens, line, unresolved))
     return out
@@ -1449,7 +1472,7 @@ def _parse_runner_files(
             if line.lstrip().startswith("#") or not _PYTEST.search(line):
                 continue
             tokens = _path_tokens(line)
-            unresolved = _unresolvable_path(line)
+            unresolved = _unresolvable_path(line, makefile=f.name == "Makefile")
             if tokens or unresolved:
                 out.append(RunnerInvocation(rel, lineno, tokens, line, unresolved))
     return out, findings
@@ -1475,7 +1498,10 @@ def _joined_lines(source: str) -> list[tuple[int, str]]:
             pending.append(raw[:-1])
             continue
         pending.append(raw)
-        joined.append((start, " ".join(part.strip() for part in pending)))
+        parts = [part.strip() for part in pending]
+        if not all(part.startswith("#") for part in parts):
+            parts = [part for part in parts if not part.startswith("#")]
+        joined.append((start, " ".join(parts)))
         pending = []
     if pending:                                  # trailing backslash at EOF
         joined.append((start, " ".join(part.strip() for part in pending)))
@@ -1487,6 +1513,10 @@ def case_compatibility_classes_are_well_formed(
 ) -> str | None:
     """Declarations must have a valid shape independent of runner inventory."""
     before = len(out)
+    if _MODEL_PRESENT and inv.context.root == ROOT and not inv.context.classes:
+        out.append(
+            "compatibility class declarations must not pass vacuously on the repository root"
+        )
     out.extend(f"compatibility class: {finding}"
                for finding in validate_classes(inv.context.classes, inv.context.root))
     if len(out) == before:
@@ -1500,6 +1530,10 @@ def case_class_members_keep_distinct_module_identity(
 ) -> str | None:
     """Re-derive each class's test and subject-module identity proof."""
     before = len(out)
+    if _MODEL_PRESENT and inv.context.root == ROOT and not inv.context.classes:
+        out.append(
+            "compatibility class identity checks must not pass vacuously on the repository root"
+        )
     for cls in inv.context.classes:
         out.extend(f"compatibility class {cls.identifier}: {finding}"
                    for finding in check_class_identity(cls, inv.context.root))

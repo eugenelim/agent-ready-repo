@@ -139,6 +139,9 @@ CLASSES: tuple[CompatibilityClass, ...] = (
 
 _EXCLUDED_DIRS = frozenset({".pytest_cache", "__pycache__", "fixtures", "testdata"})
 _IDENTIFIER = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_IMPORT_MODES = frozenset({"prepend", "importlib"})
+_BASENAME_RESOLUTIONS = frozenset({"none", "import-mode", "packages"})
+_SUBJECT_IMPORTS = frozenset({"none", "explicit-qualified"})
 
 
 def classes_by_identifier(
@@ -166,9 +169,12 @@ def _relative(path: Path, root: Path) -> str:
 
 
 def _under_excluded(path: Path, base: Path) -> bool:
-    """Whether *path* is below a fixture tree relative to *base*."""
+    """Whether a non-imported fixture helper lies below an excluded tree."""
 
-    return any(part in _EXCLUDED_DIRS for part in path.relative_to(base).parts)
+    relative = path.relative_to(base)
+    if _is_test_file(path) or path.name == "conftest.py":
+        return False
+    return any(part in _EXCLUDED_DIRS for part in relative.parts)
 
 
 def _is_test_file(path: Path) -> bool:
@@ -211,6 +217,15 @@ def import_set_for(member: str | Path, root: Path) -> tuple[Path, ...]:
     target = _path(member, root)
     directory = target if target.is_dir() else target.parent
     paths = {path for path in _python_files(target) if _is_test_file(path)}
+    for test_file in tuple(paths):
+        current = test_file.parent
+        while current.is_relative_to(root):
+            conftest = current / "conftest.py"
+            if conftest.is_file() and not _under_excluded(conftest, root):
+                paths.add(conftest)
+            if current == root:
+                break
+            current = current.parent
     current = root
     root_conftest = root / "conftest.py"
     if root_conftest.is_file() and not _under_excluded(root_conftest, root):
@@ -277,13 +292,11 @@ def _assigned_values(tree: ast.Module, source: Path) -> dict[str, ast.expr]:
     return values
 
 
-def _function_values(
-    function: ast.FunctionDef, module_values: dict[str, ast.expr]
-) -> dict[str, ast.expr]:
-    """Return assignments in *function*, shadowing module-level values."""
+def _scope_values(scope: ast.AST, parent_values: dict[str, ast.expr]) -> dict[str, ast.expr]:
+    """Return direct assignments in one scope, shadowing its parent values."""
 
-    values = module_values.copy()
-    for node in function.body:
+    values = parent_values.copy()
+    for node in getattr(scope, "body", ()):
         if (
             isinstance(node, ast.Assign)
             and len(node.targets) == 1
@@ -296,12 +309,14 @@ def _function_values(
 
 
 def _calls_in_scope(node: ast.AST) -> list[ast.Call]:
-    """Return calls in *node* without descending into nested functions."""
+    """Return calls in *node* without descending into a nested scope."""
 
     calls: list[ast.Call] = []
 
     def visit(current: ast.AST) -> None:
-        if current is not node and isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if current is not node and isinstance(
+            current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
             return
         if isinstance(current, ast.Call):
             calls.append(current)
@@ -310,6 +325,25 @@ def _calls_in_scope(node: ast.AST) -> list[ast.Call]:
 
     visit(node)
     return calls
+
+
+def _scopes(
+    scope: ast.AST, values: dict[str, ast.expr]
+) -> list[tuple[ast.AST, dict[str, ast.expr]]]:
+    """Return every lexical scope with its intraprocedural constants."""
+
+    scoped_values = _scope_values(scope, values)
+    result = [(scope, scoped_values)]
+
+    def visit(node: ast.AST) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                result.extend(_scopes(child, scoped_values))
+            else:
+                visit(child)
+
+    visit(scope)
+    return result
 
 
 def _path_join_operand(
@@ -420,19 +454,17 @@ def subject_loader_names_for(
                         parameters.index(call.args[0].id),
                         parameters.index(call.args[1].id),
                     )
-        scoped_calls: list[tuple[ast.Call, dict[str, ast.expr], ast.FunctionDef | None]] = [
-            (call, values, None) for call in _calls_in_scope(tree)
+        scoped_calls: list[tuple[ast.Call, dict[str, ast.expr], ast.AST]] = [
+            (call, scope_values, scope)
+            for scope, scope_values in _scopes(tree, values)
+            for call in _calls_in_scope(scope)
         ]
-        for function in (node for node in tree.body if isinstance(node, ast.FunctionDef)):
-            scoped_calls.extend(
-                (call, _function_values(function, values), function)
-                for call in _calls_in_scope(function)
-            )
-        for call, call_values, function in scoped_calls:
+        for call, call_values, scope in scoped_calls:
             if _is_loader(call):
                 if len(call.args) < 2:
+                    results.append((f"<unresolved:{_relative(source, root)}:{call.lineno}>", None))
                     continue
-                if function is not None and function.name in helpers:
+                if isinstance(scope, ast.FunctionDef) and scope.name in helpers:
                     continue
                 name = _string_value(call.args[0], call_values)
                 results.append((name or f"<unresolved:{_relative(source, root)}:{call.lineno}>",
@@ -519,6 +551,14 @@ def validate_classes(classes: tuple[CompatibilityClass, ...], root: Path) -> lis
         identifiers.add(cls.identifier)
         if not _IDENTIFIER.fullmatch(cls.identifier):
             findings.append(f"identifier is not kebab-case: {cls.identifier}")
+        if cls.import_mode not in _IMPORT_MODES:
+            findings.append(f"{cls.identifier} has invalid import mode: {cls.import_mode}")
+        if cls.basename_resolution not in _BASENAME_RESOLUTIONS:
+            findings.append(
+                f"{cls.identifier} has invalid basename resolution: {cls.basename_resolution}"
+            )
+        if cls.subject_imports not in _SUBJECT_IMPORTS:
+            findings.append(f"{cls.identifier} has invalid subject imports: {cls.subject_imports}")
         if len(cls.members) < 2:
             findings.append(f"{cls.identifier} has fewer than two members")
         for member in cls.members:
@@ -541,6 +581,17 @@ def _common_parent(paths: list[Path]) -> Path:
     for path in paths[1:]:
         common = [left for left, right in zip(common, path.parts, strict=False) if left == right]
     return Path(*common)
+
+
+def _dotted_module_name(path: Path) -> str:
+    """Derive pytest's package-mode module name for one test module."""
+
+    names = [path.stem]
+    current = path.parent
+    while (current / "__init__.py").is_file():
+        names.append(current.name)
+        current = current.parent
+    return ".".join(reversed(names))
 
 
 def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
@@ -569,11 +620,24 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
                     findings.append(
                         f"duplicate test basename {basename} shared parent has __init__.py"
                     )
+                module_names = [_dotted_module_name(path) for path in (
+                    path
+                    for member in cls.members
+                    for path in _python_files(_path(member, root))
+                    if _is_test_file(path) and path.name == basename
+                )]
+                if len(module_names) != len(set(module_names)):
+                    findings.append(
+                        f"duplicate test basename {basename} has colliding package module names"
+                    )
         else:
             findings.extend(f"duplicate test basename: {name}" for name in sorted(collisions))
     names: dict[str, Path] = {}
+    loaders: list[tuple[str, Path | None]] = []
     for member in cls.members:
-        for name, path in subject_loader_names_for(member, root):
+        member_loaders = subject_loader_names_for(member, root)
+        loaders.extend(member_loaders)
+        for name, path in member_loaders:
             if path is None:
                 if name.startswith("<unresolved:"):
                     findings.append(f"unresolvable loader name: {name}")
@@ -581,6 +645,9 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
                     findings.append(f"unresolvable loader path: {name}")
                 continue
             resolved = path.resolve()
+            if not resolved.is_file():
+                findings.append(f"loader path does not exist: {name}: {resolved}")
+                continue
             prior = names.setdefault(name, resolved)
             if prior != resolved:
                 findings.append(
@@ -596,4 +663,11 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
             _, error = _parse(source)
             if error:
                 findings.append(error)
+    if cls.subject_imports == "none" and loaders:
+        findings.append("subject imports none but derived subject loaders")
+    if cls.subject_imports == "explicit-qualified":
+        if not loaders:
+            findings.append("explicit-qualified subject imports require a derived loader")
+        elif any(path is None for _, path in loaders):
+            findings.append("explicit-qualified subject imports require resolvable loaders")
     return findings

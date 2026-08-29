@@ -21,7 +21,14 @@ import pytest
 from tools.pack_test_compatibility import CLASSES, CompatibilityClass
 
 ROOT = Path(__file__).resolve().parent.parent
-_COLLECTION_ERROR_MARKER = re.compile(r"(?m)^(?:=+ ERRORS =+|ERROR(?:\\s|$))")
+_COLLECTION_ERROR_MARKER = re.compile(r"(?m)^(?:=+ ERRORS =+|ERROR(?:\s|$))")
+_EXPECTED_NODE_ID_COUNTS = {
+    "agent-skill-engineering-contract": 78,
+    "architect-contract": 71,
+    "converters-invocation-contract": 12,
+    "desk-research-content": 17,
+    "linear-intake": 32,
+}
 
 
 class CollectedNodeIds(list[str]):
@@ -126,6 +133,11 @@ def test_declared_class_collection_characterization(
         compatibility_class.members, compatibility_class.import_mode
     )
     _assert_success(compatibility_class, "grouped forward", forward_exit_code, forward_node_ids)
+    assert forward_node_ids, (
+        f"{compatibility_class.identifier}: grouped forward collection produced no node IDs; "
+        f"captured output:\n{forward_node_ids.output}"
+    )
+    assert len(forward_node_ids) == _EXPECTED_NODE_ID_COUNTS[compatibility_class.identifier]
     _assert_unique(compatibility_class, "isolated", isolated_node_ids)
     _assert_unique(compatibility_class, "grouped forward", forward_node_ids)
     _assert_same_nodes(

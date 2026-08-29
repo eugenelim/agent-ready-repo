@@ -571,6 +571,18 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         inv = M.build_inventory(M.default_context())
         for spec_check in M.CHECKS:
             _silent(spec_check.run, inv, _Recording())
+        # The two vacuity refusals fire only where the model is importable, the
+        # root is the real repository, and no class is declared — a combination
+        # no staged fixture can present (a staged copy makes the fixture its own
+        # ROOT, and the model is not staged beside it) and the real tree never
+        # reaches (it declares five). Drive it directly, or the refusals are
+        # emission sites nothing exercises.
+        import dataclasses as _dc
+        _empty = M.build_inventory(
+            _dc.replace(M.default_context(), classes=())
+        )
+        for spec_check in M.CHECKS:
+            _silent(spec_check.run, _empty, _Recording())
 
     check("every finding-emission site is exercised by the fixture corpus",
           not (_sites - _hit),

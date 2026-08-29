@@ -626,6 +626,37 @@ steps:
     ):
         failures.append("a pytest workflow step must inherit its working-directory")
 
+    cases += 1
+    continued_workflow = """
+steps:
+  - name: grouped runner
+    run: |
+      python -m pytest packs/demo/tests/a \\
+        packs/demo/tests/b -q
+"""
+    continued_runners = mod._workflow_runner_lines("fake.yml", continued_workflow)
+    if not any({"packs/demo/tests/a", "packs/demo/tests/b"} <= runner.tokens
+               for runner in continued_runners):
+        failures.append("a continued workflow pytest command must retain every path token")
+
+    cases += 1
+    comment_continuation = "test:\n\t# note \\\n\t$(PYTHON) -m pytest packs/demo/tests/a packs/demo/tests/b -q\n"
+    comment_runners = [
+        runner for runner in mod._joined_lines(comment_continuation)
+        if mod._PYTEST.search(runner[1]) and not runner[1].lstrip().startswith("#")
+    ]
+    if not comment_runners or not {"packs/demo/tests/a", "packs/demo/tests/b"} <= mod._path_tokens(comment_runners[0][1]):
+        failures.append("a comment continuation must not hide the following pytest command")
+
+    cases += 1
+    for command in ("pytest $(cat suites.txt)", "pytest `cat suites.txt`"):
+        if mod._unresolvable_path(command, makefile=False) != command:
+            failures.append(f"workflow substitution {command!r} must be unresolvable")
+    if mod._unresolvable_path("pytest $(1)", makefile=True) is not None:
+        failures.append("Make numbered recipe slots must remain statically owned")
+    if mod._unresolvable_path("pytest $(PACK_TESTS)", makefile=True) != "pytest $(PACK_TESTS)":
+        failures.append("named Make substitutions must remain unresolvable")
+
     # ---- layer 2: fixture falsification -----------------------------------
     # Each planted violation is proven against a small temporary catalogue via
     # the callable API. Four properties per plant, and the third is the one that
@@ -951,6 +982,43 @@ steps:
             lambda: (_rewrite(root / "Makefile", 'test:\n\tpytest "$suite"\n') or declared),
             runner_check, "'pytest \"$suite\"' is not statically resolvable",
         )
+
+        root, members = _class_fixture(tmp, "class-workflow-substitution")
+        workflow = root / ".github/workflows/build-check.yml"
+        # The mutation must live in the lambda: `class_control` captures the
+        # clean state first, so rewriting before the call leaves no clean state
+        # to contrast against and the control can never show a transition.
+        class_control(
+            "workflow command substitution", root, (_class(members),),
+            lambda: (
+                _rewrite(workflow, "steps:\n  - run: pytest $(cat suites.txt)\n"),
+                (_class(members),),
+            )[-1],
+            runner_check, "is not statically resolvable",
+        )
+
+        cases += 1
+        fixture_context = _fixture_context(mod, root)
+        empty_context = mod.BoundaryContext(
+            root=fixture_context.root,
+            packs_root=fixture_context.packs_root,
+            recipe_path=fixture_context.recipe_path,
+            projected_roots=fixture_context.projected_roots,
+            runner_files=fixture_context.runner_files,
+            no_runner=fixture_context.no_runner,
+            classes=(),
+        )
+        if list(mod.inspect_boundary(empty_context, [well_formed])):
+            failures.append("fixture roots must allow empty compatibility-class stubs")
+        with mock.patch.object(mod, "ROOT", root):
+            findings = list(mod.inspect_boundary(empty_context, [well_formed]))
+        if not any("must not pass vacuously" in finding.message for finding in findings):
+            failures.append("repository-root empty compatibility classes must fail closed")
+        identity = "class-members-keep-distinct-module-identity"
+        with mock.patch.object(mod, "ROOT", root):
+            findings = list(mod.inspect_boundary(empty_context, [identity]))
+        if not any("must not pass vacuously" in finding.message for finding in findings):
+            failures.append("repository-root empty compatibility identity checks must fail closed")
 
         root, members = _class_fixture(tmp, "class-stale-exception")
         declared = (_class(members),)

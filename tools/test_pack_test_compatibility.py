@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -55,13 +56,18 @@ def _member(root: Path, name: str, source: str = "def test_ok() -> None: pass\n"
     return relative
 
 
-def test_classes_are_empty_and_sorted() -> None:
-    """The declaration table remains typed-but-empty until T5."""
+def test_shipped_classes_are_well_formed_and_sorted() -> None:
+    """The shipped declaration table has stable, valid identifiers."""
 
-    assert CLASSES == ()
+    assert len(CLASSES) == 5
+    identifiers = [item.identifier for item in CLASSES]
+    assert len(identifiers) == len(set(identifiers))
+    assert all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", item) for item in identifiers)
+    assert validate_classes(CLASSES, ROOT) == []
     unordered = (_class("packs/example/tests/skills/b", "packs/example/tests/skills/c", identifier="z"),
                  _class("packs/example/tests/skills/a", "packs/example/tests/skills/d", identifier="a"))
     assert [item.identifier for item in classes_by_identifier(unordered)] == ["a", "z"]
+    assert [item.identifier for item in classes_by_identifier()] == sorted(identifiers)
 
 
 @pytest.mark.parametrize(
@@ -75,6 +81,9 @@ def test_classes_are_empty_and_sorted() -> None:
          "appears in classes"),
         (lambda root: (_class(_member(root, "one"), _member(root, "two")),
                        _class(_member(root, "three"), _member(root, "four"))), "duplicate identifier"),
+        (lambda root: (_class(_member(root, "one"), _member(root, "two"), import_mode="typo"),), "invalid import mode"),
+        (lambda root: (_class(_member(root, "one"), _member(root, "two"), basename_resolution="typo"),), "invalid basename resolution"),
+        (lambda root: (_class(_member(root, "one"), _member(root, "two"), subject_imports="typo"),), "invalid subject imports"),
     ],
 )
 def test_validate_classes_rejects_bad_declarations(
@@ -85,8 +94,8 @@ def test_validate_classes_rejects_bad_declarations(
     assert needle in "\n".join(validate_classes(classes(tmp_path), tmp_path))  # type: ignore[operator]
 
 
-def test_import_set_contains_conftests_and_local_imports_but_not_fixtures(tmp_path: Path) -> None:
-    """Pytest-reachable imports include conftests and exclude fixture trees."""
+def test_import_set_includes_test_shaped_fixture_files_and_conftests(tmp_path: Path) -> None:
+    """Fixture trees exclude helpers only, never pytest-imported modules."""
 
     member = _member(tmp_path, "one", "from helper import VALUE\ndef test_ok() -> None: assert VALUE\n")
     _write(tmp_path / "conftest.py", "ROOT = True\n")
@@ -94,13 +103,15 @@ def test_import_set_contains_conftests_and_local_imports_but_not_fixtures(tmp_pa
     _write(tmp_path / member / "conftest.py", "LOCAL = True\n")
     _write(tmp_path / member / "helper.py", "VALUE = True\n")
     _write(tmp_path / member / "testdata/test_hidden.py", "def test_hidden() -> None: pass\n")
+    _write(tmp_path / member / "testdata/conftest.py", "FIXTURE_TREE = True\n")
     paths = {path.relative_to(tmp_path).as_posix() for path in import_set_for(member, tmp_path)}
     assert f"{member}/test_contract.py" in paths
     assert f"{member}/conftest.py" in paths
     assert f"{member}/helper.py" in paths
     assert "conftest.py" in paths
     assert "packs/example/tests/conftest.py" in paths
-    assert not any("testdata" in path for path in paths)
+    assert f"{member}/testdata/test_hidden.py" in paths
+    assert f"{member}/testdata/conftest.py" in paths
     assert f"{member}/conftest.py" in {
         path.relative_to(tmp_path).as_posix()
         for path in import_set_for(tmp_path / member / "test_contract.py", tmp_path)
@@ -126,6 +137,18 @@ def test_identity_controls_for_basenames_loader_paths_and_parse_errors(tmp_path:
     assert "cannot parse" in "\n".join(check_class_identity(packaged, tmp_path))
 
 
+def test_package_basename_resolution_requires_unique_dotted_module_names(tmp_path: Path) -> None:
+    """Separate package roots with the same basename still collide in pytest."""
+
+    one = "packs/example/tests/skills/p/x"
+    two = "packs/example/tests/skills/q/x"
+    for member in (one, two):
+        _write(tmp_path / member / "__init__.py")
+        _write(tmp_path / member / "test_contract.py", "def test_ok() -> None: pass\n")
+    cls = _class(one, two, basename_resolution="packages")
+    assert "colliding package module names" in "\n".join(check_class_identity(cls, tmp_path))
+
+
 def test_loader_name_path_and_import_safety_controls(tmp_path: Path) -> None:
     """Load names, path mutation, and importlib sibling imports fail closed."""
 
@@ -144,6 +167,8 @@ def test_loader_name_path_and_import_safety_controls(tmp_path: Path) -> None:
         "def test_ok() -> None: pass\n",
     )
     cls = _class(one, two)
+    _write(tmp_path / one / "one.py")
+    _write(tmp_path / two / "two.py")
     assert "two different paths" in "\n".join(check_class_identity(cls, tmp_path))
     _write(tmp_path / two / "test_contract.py", "import sys\nsys.path.insert(0, 'x')\ndef test_ok() -> None: pass\n")
     assert path_mutations_in(two, tmp_path)
@@ -163,6 +188,44 @@ def test_loader_name_path_and_import_safety_controls(tmp_path: Path) -> None:
     assert "unresolvable loader path: resolved_name" in "\n".join(
         check_class_identity(cls, tmp_path)
     )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "class TestLoader:\n    spec = importlib.util.spec_from_file_location('shared', 'one.py')\n",
+        "async def load() -> None:\n    spec = importlib.util.spec_from_file_location('shared', 'one.py')\n",
+        "def outer() -> None:\n    def inner() -> None:\n        spec = importlib.util.spec_from_file_location('shared', 'one.py')\n",
+    ],
+    ids=("class-body", "async-function", "nested-function"),
+)
+def test_loader_calls_in_every_scope_are_fail_closed(tmp_path: Path, source: str) -> None:
+    """A loader hidden in any lexical scope still contributes identity proof."""
+
+    one = _member(tmp_path, "one", "import importlib.util\n" + source)
+    two = _member(
+        tmp_path,
+        "two",
+        "import importlib.util\nspec = importlib.util.spec_from_file_location('shared', 'two.py')\n",
+    )
+    _write(tmp_path / one / "one.py")
+    _write(tmp_path / two / "two.py")
+    assert "two different paths" in "\n".join(check_class_identity(_class(one, two), tmp_path))
+
+
+def test_loader_declaration_and_missing_subject_controls(tmp_path: Path) -> None:
+    """Subject-import declarations and paths cannot overclaim safety."""
+
+    one = _member(
+        tmp_path,
+        "one",
+        "import importlib.util\nspec = importlib.util.spec_from_file_location('one', 'gone.py')\n",
+    )
+    two = _member(tmp_path, "two")
+    none = _class(one, two)
+    assert "subject imports none" in "\n".join(check_class_identity(none, tmp_path))
+    qualified = _class(one, two, subject_imports="explicit-qualified")
+    assert "loader path does not exist" in "\n".join(check_class_identity(qualified, tmp_path))
 
 
 def test_path_value_preserves_all_segments_in_a_join(tmp_path: Path) -> None:

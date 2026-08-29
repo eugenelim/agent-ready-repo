@@ -436,6 +436,17 @@ def _fx_class_stale_exception(root: Path) -> None:
     _write_class_runner(root, *_class_members(root))
 
 
+def _fx_class_workflow_substitution(root: Path) -> None:
+    """A workflow whose pytest operand is a shell command substitution.
+
+    AC31's `$(` carve-out exists for Make's numbered recipe slots. Outside a
+    Makefile the same syntax is a real command substitution, so the operand is
+    not statically resolvable and grouping could hide behind it.
+    """
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
 def _fx_suite_without_runner(root: Path) -> None:
     _base_fixture(root)
     _write(root / f"packs/{_PACK}/tests/skills/orphan/test_orphan.py",
@@ -493,6 +504,7 @@ FIXTURES: dict[str, Callable[[Path], None]] = {
     "class-stale-exception": _fx_class_stale_exception,
     "class-undeclared": _fx_class_undeclared,
     "class-unresolvable": _fx_class_unresolvable,
+    "class-workflow-substitution": _fx_class_workflow_substitution,
     "class-unused": _fx_class_unused,
     "suite-without-runner": _fx_suite_without_runner,
     "missing-runner-file": _fx_missing_runner_file,
