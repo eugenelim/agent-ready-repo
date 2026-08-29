@@ -40,6 +40,8 @@ After the resolver returns a confined directory, classify an existing canonical 
 
 Normalization copies into a temporary canonical pack only the byte string returned by the single confined read of each admitted regular file, never symlinks or reopens source content. It reuses canonical validation → rendering → planning → installation → state, and the temporary path is never provenance or receipt content.
 
+Family-2 inventory is likewise single-traversal. `catalogue_tooling/file_safety.py` raises `BoundExceeded`, an `UnsafeContentError` subclass carrying the breached budget, so direct admission maps a bound to its registered diagnostic without message parsing; existing catalogue callers retain their `UnsafeContentError` catch behavior. A separate direct diagnostic represents a source that cannot be traversed or changes during admission, rather than misclassifying that condition as measured-path integrity.
+
 **Consequence:** Byte-identical projection and plan parity against hand-authored canonical fixtures is release-critical.
 
 **Revisit trigger:** The import-boundary test fails or parity requires a direct-only downstream branch.
