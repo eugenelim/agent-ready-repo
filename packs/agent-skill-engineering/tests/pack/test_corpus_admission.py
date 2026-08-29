@@ -7,14 +7,11 @@ PACK = Path(__file__).resolve().parents[2]
 FIXTURES = PACK / "tests" / "fixtures"
 
 
-def _read_fixture(name: str) -> dict[str, object]:
-    """Return one JSON fixture owned by this pack."""
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
-
-
 def test_topology_transcription_is_complete() -> None:
     """RFC-0097 D3's topology remains a complete, sourced enumeration."""
-    leaves = _read_fixture("topology-leaves.json")
+    leaves = json.loads(
+        (FIXTURES / "topology-leaves.json").read_text(encoding="utf-8")
+    )
     names = leaves["leaves"]
 
     assert leaves["source_ref"] == "docs/rfc/0097-agent-skill-engineering.md:D3"
@@ -26,8 +23,12 @@ def test_topology_transcription_is_complete() -> None:
 
 def test_foundation_pins_hold_the_shipped_cases() -> None:
     """Pins reproduce every pre-change measured foundation result exactly."""
-    pins = _read_fixture("foundation-retrieval-pins.json")
-    results = _read_fixture("router-results.json")
+    pins = json.loads(
+        (FIXTURES / "foundation-retrieval-pins.json").read_text(encoding="utf-8")
+    )
+    results = json.loads(
+        (FIXTURES / "router-results.json").read_text(encoding="utf-8")
+    )
     recorded = pins["pins"]
     measured = results["results"]
 
