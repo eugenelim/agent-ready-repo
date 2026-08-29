@@ -7,6 +7,7 @@ import copy
 import importlib.util
 import json
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 SCRIPT = Path(__file__).with_name("lint-claude-plugin-publish-control.py")
@@ -14,6 +15,8 @@ SPEC = importlib.util.spec_from_file_location("publish_control_lint", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 lint = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(lint)
+
+TEST_NOW = datetime(2026, 8, 28, tzinfo=UTC)
 
 
 def main() -> int:
@@ -145,7 +148,37 @@ def main() -> int:
             "observation_source": "github-api-sanitized",
         }
     )
-    check("matching independent evidence passes", not lint.compare_evidence(desired, evidence))
+    check(
+        "matching independent evidence passes",
+        not lint.compare_evidence(desired, evidence, now_utc=TEST_NOW),
+    )
+
+    def freshness_result(observed_at: str) -> tuple[list[str], list[str]]:
+        changed = copy.deepcopy(evidence)
+        changed["observed_at"] = observed_at
+        warnings: list[str] = []
+        errors = lint.compare_evidence(
+            desired, changed, now_utc=TEST_NOW, warnings=warnings
+        )
+        return errors, warnings
+
+    fresh_errors, fresh_warnings = freshness_result("2026-08-27T00:00:00Z")
+    check(
+        "fresh evidence has no warning or error", not fresh_errors and not fresh_warnings
+    )
+    warn_errors, warn_warnings = freshness_result("2026-07-28T00:00:00Z")
+    check(
+        "31-day-old evidence warns without an error",
+        not warn_errors and bool(warn_warnings),
+    )
+    fail_errors, fail_warnings = freshness_result("2026-05-29T00:00:00Z")
+    check("91-day-old evidence fails", bool(fail_errors) and not fail_warnings)
+    malformed_errors, _ = freshness_result("not-a-timestamp")
+    check("non-ISO observed_at fails", bool(malformed_errors))
+    naive_errors, _ = freshness_result("2026-08-10T00:00:00")
+    check("naive observed_at fails without a TypeError", bool(naive_errors))
+    future_errors, _ = freshness_result("2026-08-29T00:00:00Z")
+    check("future-dated evidence fails", bool(future_errors))
 
     mutations = {
         "bypass actor": ("branch", "bypass", "actor_type", "OrganizationAdmin"),
@@ -166,20 +199,20 @@ def main() -> int:
         changed["repo"] = value
         check(
             f"evidence naming {label} fails",
-            bool(lint.compare_evidence(desired, changed)),
+            bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
         )
     changed = copy.deepcopy(evidence)
     changed.pop("repo")
     check(
         "evidence with no repo at all fails",
-        bool(lint.compare_evidence(desired, changed)),
+        bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
     )
     # Both keys absent compare EQUAL, so without a self-standing check the
     # binding would rest on validate_desired happening to run first.
     stripped_desired = {k: v for k, v in desired.items() if k != "repo"}
     check(
         "evidence and desired BOTH missing repo still fails",
-        bool(lint.compare_evidence(stripped_desired, changed)),
+        bool(lint.compare_evidence(stripped_desired, changed, now_utc=TEST_NOW)),
     )
     # The schema-version comparison is the only thing that rejects a stale v1
     # artifact against the v2 desired file -- the migration this change makes.
@@ -187,7 +220,7 @@ def main() -> int:
     changed["version"] = 1
     check(
         "stale v1 evidence against a v2 desired control fails",
-        bool(lint.compare_evidence(desired, changed)),
+        bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
     )
 
     # --subject: the one half of the binding a fork or clone cannot satisfy,
@@ -210,14 +243,27 @@ def main() -> int:
             ("an empty subject is refused", "", 1),
         ):
             argv = list(base) if subject is None else [*base, "--subject", subject]
-            check(f"--subject: {label}", lint.main(argv) == expected)
+            check(
+                f"--subject: {label}", lint.main(argv, now_utc=TEST_NOW) == expected
+            )
+
+        warning_evidence = copy.deepcopy(evidence)
+        warning_evidence["observed_at"] = "2026-07-28T00:00:00Z"
+        evidence_path.write_text(json.dumps(warning_evidence), encoding="utf-8")
+        check(
+            "31-day warning does not change the lint exit code",
+            lint.main(base, now_utc=TEST_NOW) == 0,
+        )
     for name, (group, key, nested, value) in mutations.items():
         changed = copy.deepcopy(evidence)
         if nested is None:
             changed[group][key] = value
         else:
             changed[group][key][nested] = value
-        check(f"mutated {name} fails", bool(lint.compare_evidence(desired, changed)))
+        check(
+            f"mutated {name} fails",
+            bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
+        )
 
     for label, mutate in (
         ("absent", lambda e: e.pop("identities_agree")),
@@ -228,7 +274,7 @@ def main() -> int:
         mutate(changed)
         check(
             f"identities_agree {label} fails",
-            bool(lint.compare_evidence(desired, changed)),
+            bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
         )
 
     for label, path in (
@@ -243,7 +289,7 @@ def main() -> int:
         cursor[path[-1]] = 4242424
         check(
             f"a leaked {label} fails",
-            bool(lint.compare_evidence(desired, changed)),
+            bool(lint.compare_evidence(desired, changed, now_utc=TEST_NOW)),
         )
     check(
         "a nested identifier anywhere is caught by the walk",
