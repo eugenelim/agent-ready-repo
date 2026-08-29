@@ -49,7 +49,13 @@ later.
 
 For reusable inert knowledge, consult
 `depth-libraries-and-okf-knowledge-providers`. For concise source structure,
-consult `instruction-density-and-progressive-disclosure`.
+consult `instruction-density-and-progressive-disclosure`. This topic owns one
+decision: which detail belongs on the always-read path and which belongs
+behind a condition. Every other question about the same files — whether an
+over-long entrypoint should be split at all, where information belongs once it
+is, how long a source may run, and auditing whether a resource has a caller —
+stays with `instruction-density-and-progressive-disclosure`, which owns
+resource discovery and placement.
 
 ## Provenance and lifecycle
 

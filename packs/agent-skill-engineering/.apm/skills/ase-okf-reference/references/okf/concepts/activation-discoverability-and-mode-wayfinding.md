@@ -51,7 +51,10 @@ For trigger quality, consult `framing-and-trigger-quality`. For routing
 conditional detail, consult `inline-and-progressive-reference-skills`. This
 topic's authority rule applies to choosing between modes; a question about what
 activation itself grants, where no second mode is in play, belongs to
-`framing-and-trigger-quality`.
+`framing-and-trigger-quality`. Which modules a mode loads, and where a file's
+information is placed, belong to
+`instruction-density-and-progressive-disclosure`; this topic covers entry
+conditions and how a reader chooses between modes, not loading mechanics.
 
 ## Provenance and lifecycle
 
