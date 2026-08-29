@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Corpus
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` (D3 topology
   at 207-254, D8 promotion classes at 496-506 and security rules at 507-519,
   Gate 1/2 measures at 577-591, the encyclopedia falsifier at 536) and
