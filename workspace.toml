@@ -2056,7 +2056,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M1 · foundation implementation queued"
+milestone = "M2 · corpus delivery in flight"
 
 ["ini-009".brief_queue]
 executing = [
@@ -2070,8 +2070,12 @@ active  = []
 backlog = []
 
 ["ini-009".work]
-active  = []
-queue   = []
+active  = [
+  { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
+]
+queue   = [
+  { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
+]
 shipped = [
   { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
 ]

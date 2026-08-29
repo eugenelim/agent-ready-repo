@@ -169,7 +169,9 @@ and plan are approved and registered under `ini-009`.
 | --- | --- | --- |
 | 0 — governance and compiler prerequisites | Provider-mediated knowledge ADR; resolution of the two named OKF compiler guard prerequisites; approved delivery contracts | — |
 | 1 — foundation | Portable pack; `frame`, `create`, and `update` modes; review/optimize workflow; secure deterministic router; foundational corpus and evaluations | Slice 0 |
-| 2 — corpus, languages, patterns, and execution economics | Census-backed pattern topics; Python/pytest and TypeScript/Node depth; CI, worktree, sandbox, lock, shared-host, and load-management practice; provider and runtime-package modes | Slice 1 |
+| 2a — corpus and skill patterns | Census-backed pattern topics, governed corpus admission, topology, retrieval baseline, and `knowledge-provider` authoring mode | Slice 1 |
+| 2b — languages and execution economics | Python/pytest and TypeScript/Node depth; CI, worktree, sandbox, lock, shared-host, and load-management practice | Slice 2a |
+| runtime-package — deferred capability | `runtime-package` remains unavailable until its package-lifecycle claims and runtime-profile gates are complete | RFC-0097 D1, M2 availability rule |
 | 3 — runtime composition profiles | Portable floors and retrieval-dated Claude, Codex, Copilot, Cursor, Kiro IDE, Kiro CLI, Gemini CLI, and Antigravity profiles for skills, subagents, hooks, and plugins | Slices 1–2 |
 | 4 — consumer integrations | Optional work-loop and architect-design invocation, explicit provider contract, clean absence behavior, and extension path for other loops | Slices 1 and 3 |
 | 5 — self-host and footprint adaptation | Repository self-host install; author/maintainer-guide updates; skill/pack creation journey changes; measured collapse of duplicated guidance, tooling rationale, and catalogue-curation footprint | Slice 4 |
@@ -184,6 +186,8 @@ promotes and approves them.
 | Spec | Status |
 | --- | --- |
 | `agent-skill-engineering-foundation` | Shipped |
+| `agent-skill-engineering-corpus` | Approved |
+| `agent-skill-engineering-languages-and-execution` | Draft |
 
 ## Backlog and prerequisites
 
