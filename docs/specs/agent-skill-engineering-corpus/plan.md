@@ -126,8 +126,8 @@ What lives here instead:
 - **Mechanism an implementer cannot infer** — which suite proves a property and
   where it lives, which fixture carries which join key, which shipped assertion
   a change will move. That is the only thing a `Tests:` bullet is for here.
-- **Red stubs** for the six criteria the spec's Testing Strategy declares TDD,
-  and a `no stub (mode)` record for the rest.
+- **Red stubs** for the seven criteria the spec's Testing Strategy declares
+  TDD, and a `no stub (mode)` record for the rest.
 
 Verification happens at GATES, by running things. The QA record captures what
 was observed, after the fact. Where a criterion's conjunct needs no mechanism
@@ -917,7 +917,7 @@ T8 defers to T9 rather than re-measuring.
   own bullet in the Modes list, never the section opener, because
   "`frame` is the default and is read-only" would otherwise satisfy the
   read-only assertion for every mode. Widening any helper's scope must redden
-  the mutation below. The mode contract is one of the six criteria the spec
+  the mutation below. The mode contract is one of the seven criteria the spec
   declares TDD and was the only one without a stub.
 - PLAN-time red stub (`packs/agent-skill-engineering/tests/pack/test_pack_boundary.py`):
 

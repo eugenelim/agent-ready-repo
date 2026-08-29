@@ -27,8 +27,9 @@ to fill a slot. The authoring workflow additionally offers
 router skill, or a procedure-to-reference handoff gets the modules that pattern
 needs instead of a general framing pass.
 
-Success is measurable at retrieval rather than at word count. No request returns more than three topics; every prompt that shipped with the
-foundation returns exactly the topic set it returned before; a fixed 40-prompt
+Success is measurable at retrieval rather than at word count. No request
+returns more than three topics; every prompt that shipped with the foundation
+returns exactly the topic set it returned before; a fixed 40-prompt
 generic-engineering negative set returns a topic body for no more than 5% of
 its prompts; and no file the pack ships names a repository-only path.
 
