@@ -47,9 +47,22 @@ CORE_COLLECTIONS = {
     # longer makes a newly shipped AC valid. The count therefore tracks main
     # unchanged while the digest moves; if a future rebase shows any other
     # delta, disposition it before re-pinning rather than taking either side.
+    # Re-pinned 2026-08-28: 73 -> 78. `2d435502e` ("a timed-out base read must
+    # not read as 'spec is new'") added five timeout-degradation tests —
+    # test_default_base_ref_primary_probe_timeout_degrades_to_no_base,
+    # ..._fallback_probe_timeout_degrades_to_no_base,
+    # test_base_ref_probe_timeout_degrades_to_unresolvable,
+    # test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs, and
+    # test_repo_root_probe_timeout_degrades_to_script_relative_root — and this
+    # contract was not re-pinned with them, so the check has been red on main
+    # since that commit. Dispositioned rather than taken from either side, as the
+    # note above requires: all five are genuine additions covering git-probe
+    # timeout degradation, nothing was removed or renamed, and the other two
+    # entries below still reproduce. Adding a test here is expected; leaving this
+    # number behind is what makes the contract stop meaning anything.
     SHARED_TESTS[0]: (
-        73,
-        "d049527415098b80da1f748d19fb4eff618cc0482df9f42bdeb4cae66bbc2555",
+        78,
+        "dd567702b9fe8bdbcff7c8da65b501c64ccaba1fb1cf009fd438befd67db51fc",
     ),
     SHARED_TESTS[1]: (
         16,
@@ -147,6 +160,15 @@ FINAL_TOOL_BATCH = (
     "tools/test_conformance_portability.py",
     "tools/test_lint_guides_no_repo_only_refs.py",
     "tools/test_okf_pre_pr.py",
+    # Added 2026-08-28 with the pack-test compatibility classes (ADR-0101).
+    # Nothing globs `tools/test_*.py`, so a module absent from this batch is
+    # never executed. Only the declaration/derivation suite is here: its sibling
+    # `tools/test_pack_test_class_characterization.py` spawns 30 collect-only
+    # pytest processes for ~36s and runs in build-check.yml instead, with a ~2s
+    # two-check `lint-pack-test-boundary.py` invocation carrying the local
+    # signal. That invocation is a separate recipe line, not a member of this
+    # batch, which is why it does not appear here.
+    "tools/test_pack_test_compatibility.py",
 )
 
 WORKSPACE_STATUS_PAIR = SHARED_TESTS[3:]
@@ -348,20 +370,38 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # collection-floor fold, then again on 2026-08-28 for the
 # `agent-skill-engineering` pack. Its four suites join both routes:
 # `tests/pack/`, `tests/integration/`, and the two `tests/skills/` directories.
+# Verified by diffing both normalized dry-run plans against `origin/main`'s
+# Makefile — standalone 67->71 and composed 66->70, the delta being exactly
+# those four added lines with no other line moved, reordered, or dropped.
+#
 # Re-pinned again on 2026-08-28 for the core-guidance routing slice, which adds
 # the canonical `packs/core/tests/skills/author-delivery-brief/` and
 # `packs/core/tests/skills/intake-intent/` suites and moves the shared
 # coverage-test exclusion from the `receive-brief` compatibility alias
-# directory to that canonical owner. Verified by diffing both normalized
-# dry-run plans against `origin/main`'s Makefile — standalone 71->73 and
-# composed 70->72, the delta being exactly those two added suite lines plus
-# the relocated `$(2)` exclusion slot, with no other line moved, reordered,
-# or dropped.
+# directory to that canonical owner: standalone 71->73, composed 70->72.
+#
+# Re-pinned once more on the same day for the pack-test compatibility classes
+# (ADR-0101, spec/pack-test-compatibility-classes), MERGED on top of the routing
+# slice above. Eighteen pack lines fold into five grouped invocations, so both
+# plans shrink by 13 from the routing-slice baseline and then gain one line for
+# the two-check `lint-pack-test-boundary.py` invocation that now carries the
+# identity derivation locally: standalone 73->61, composed 72->60. The net -12
+# is deliberate arithmetic, not a miscount — the grouping removes 13 pytest
+# launches and the identity gate adds one non-pytest command.
+# Both deltas are additive and independent — the routing slice
+# adds two core suites that no class claims, and the classes fold suites in five
+# other packs — so the merged figure is the arithmetic of the two, not a
+# reconciliation of competing edits. Verified three ways: the counts move
+# together, `_parse_runner_files` reports 32 pack-scoped invocations against 45
+# on this branch's base and 47 after the routing slice, and the collected node-ID
+# set is unchanged with raw equal to unique on both sides. The two floor-bearing
+# desk-research lines are untouched, and both new `tools/test_pack_test_*.py`
+# modules join the final batch's single continued command.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "25a434e991a2a8efe10e62be7dde1268e21694fc7d95784f1fbb9e70f3892571"
+    "1e097b6dcf6b1264ac50222cba6d905748a69ddd391384293f613c3df3aaf4f3"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "744df8123ea5cd1f95b29d1c28aea290ff436b239a905522fee44e85f40aa1c6"
+    "847607344749b41c8efeb978a400f77c11d8c075012533967c321b4bb99e733e"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

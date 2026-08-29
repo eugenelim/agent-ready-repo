@@ -266,10 +266,10 @@ tooling. Neither is a root `tests/` tree; a catalogue that wants the separate
 tree can add one. Don't create a top-level directory for a single test — the
 ownership rule is what matters, not the path.
 
-### One test process per skill
+### One test process per skill, unless a compatibility class says otherwise
 
-Run each skill's suite in its own process. This is a correctness requirement,
-not a performance preference.
+Each skill's suite runs in its own process by default. This is a correctness
+default, not a performance preference, and a new suite gets it without asking.
 
 Skills are independent, so two of them may reasonably ship a `render.py`, and
 their suites may both be called `test_render.py`. Collect them into one pytest
@@ -278,19 +278,57 @@ run and two things break: pytest refuses the duplicate test basenames outright
 would serve every suite that expects its own.
 
 ```
-pytest packs/<pack>/tests/skills/<skill>/     # one invocation per skill
+pytest packs/<pack>/tests/skills/<skill>/     # the default: one per skill
 ```
 
-An invocation that spans two skill test directories is safe only while their
-basenames happen not to collide — which is a property of today's contents, not
-of the layout. Keep the invocations separate and the question never arises.
+A single process may cover several suites only when they form an explicitly
+declared **compatibility class**. A class:
+
+- lives entirely inside one pack — the pack stays the execution boundary;
+- names its exact member paths, never an ancestor directory, so a suite added
+  later cannot join it silently;
+- declares how duplicate test basenames are resolved and which pytest flags the
+  grouping requires;
+- is re-derived from source by a fail-closed gate on every run, so it stops
+  being valid the moment a member stops being safe.
+
+A grouping justified only by "nothing collides today" is not a class. That is a
+property of the current contents, not of the layout.
+
+**How to prove a class before declaring it.** Collect each member alone, then
+collect the group, and compare the node-ID sets:
+
+```
+pytest <member> --collect-only -q          # once per member; union the output
+pytest <member-1> <member-2> … --collect-only -q
+```
+
+The union must equal the grouped set exactly, and the raw line count must equal
+the unique count on both sides — otherwise something is collected twice. Repeat
+the grouped command with the members in reverse order; a difference means an
+import in one member is deciding what another member sees. Any suite that needs
+a flag to collect cleanly must carry that flag in the runner, and the class
+should record why.
+
+That is the test-module half. The subject half is separate, and no collection
+comparison can see it: two suites can bind the same module object and still
+produce identical node IDs.
+
+Retaining isolation is a valid result. A suite that needs a clean interpreter,
+carries a collection floor, or reaches a subject through `sys.path` should stay
+in its own process, and saying so is engineering rather than a failure to
+optimise.
+
+Record the decision behind each class where your repository keeps decisions,
+and keep the class declaration itself next to the gate that enforces it.
 
 ### Write suites that do not depend on isolation
 
-Process isolation is the guarantee above. It is not a licence to write suites
+Process isolation is the default above. It is not a licence to write suites
 that only work because they run alone — a suite that depends on being the sole
 occupant of an interpreter is fragile even when isolated, because collection
-order inside its own directory can still decide a binding.
+order inside its own directory can still decide a binding. It is also what
+keeps a suite eligible to join a compatibility class later.
 
 Two collisions matter, and they are not the same:
 
@@ -303,6 +341,17 @@ Two collisions matter, and they are not the same:
   object for every later importer. No pytest setting changes this, because the
   collision is in the interpreter's module namespace rather than in pytest's
   collection.
+
+These are separate obligations, and solving one proves nothing about the other.
+`--import-mode=importlib` gives two same-named *test* modules distinct
+identities; it does **not** touch subject-module identity, and must never be
+offered as a fix for it. Where two suites already carry `__init__.py` and their
+shared parent does not, the test-module half is resolved by that packaging
+alone and no flag is needed.
+
+The subject rule is that one module name maps to exactly one path. Two suites
+loading the *same* file under one name is idempotent and safe; one name
+resolving to two different files is the silent failure above.
 
 Load a subject module under a name that includes its pack and skill:
 
@@ -322,6 +371,15 @@ This leaves the runtime payload untouched — the script stays a standalone
 module that an agent can still invoke directly — while making the test's
 binding explicit rather than positional. Apply the same rule to shared test
 helpers, which collide across packs for exactly the same reason.
+
+Do not repackage a runtime payload to suit a test. Hyphenated skill directories
+and standalone scripts under `.apm/skills/<skill>/scripts/` are valid runtime
+shapes; the test adapts to them, not the other way round.
+
+Remember that a suite's import set is larger than its test files. A
+`conftest.py` is loaded even for a single-file invocation, so a `sys.path`
+mutation there applies to everything the process runs afterwards — which is
+where this hazard usually lives.
 
 ### Keep a suite's cost in assertions, not in processes
 
@@ -344,6 +402,18 @@ asserting — so it grows worse on a loaded machine, not better.
 
 - A pack **MUST** be the ownership boundary for its tests.
 - Pack-specific tests **MUST** live under `packs/<pack>/tests/`.
+- A pack test suite **MUST** run in its own pytest process unless it is named
+  in an explicitly declared compatibility class.
+- A compatibility class **MUST NOT** span packs, **MUST** name its exact member
+  paths rather than an ancestor directory, and **MUST** be re-derived from
+  source by a fail-closed gate rather than trusted as a standing permission.
+- A suite bearing a collection floor **MUST** remain the sole target of its own
+  invocation, because the floor counts a whole pytest session.
+- Test-module identity and subject-module identity **MUST** be proven
+  separately; `--import-mode=importlib` **MUST NOT** be used as evidence about
+  subject modules.
+- A runtime payload under `.apm/` **MUST NOT** be repackaged to make tests
+  cohabit.
 - Ordinary tests **MUST NOT** live under `.apm/`.
 - `.apm/` **MUST** contain only runtime or projectable content.
 - Agent evaluations **MUST** live under `.apm/skills/<skill>/evals/` and stay

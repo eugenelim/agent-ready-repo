@@ -399,8 +399,23 @@ lint-mypy:
 # import — three skills ship a `render.py`, two ship a byte-identical
 # `ssrf_check.py`. pytest refuses the duplicate test basenames outright, and a
 # sys.path-based sibling import would bind the first `render` for all three
-# renderers. One process per skill test directory is a correctness requirement,
-# not a style choice; see catalogue-authoring-standards.md § 4.
+# renderers.
+#
+# So a pack test suite gets its own process by default. The grouped invocations
+# below are not exceptions to that rule — each one is a compatibility class
+# declared in tools/pack_test_compatibility.py, whose members were characterised
+# (isolated vs grouped node IDs, forward and reverse order) before being
+# declared, and whose safety lint-pack-test-boundary.py re-derives from source on
+# every run. Adding a suite directory does not add it to a class.
+#
+# Two consequences worth knowing before editing these lines. A grouped command
+# must name every member: an ancestor path like `packs/<pack>/tests/` would let a
+# future suite join the class silently, and the lint refuses it. And a suite with
+# a collection floor must stay the sole target of its own invocation, because
+# pytest_collection_floor counts a whole session — which is why the two
+# desk-research floor lines are separate from the six-member class.
+#
+# See ADR-0098 and catalogue-authoring-standards.md § 4.
 test:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 
@@ -439,10 +454,11 @@ $(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
 $(PYTHON) -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q
 $(PYTHON) -m pytest packs/product-documentation/tests/ -q
-$(PYTHON) -m pytest packs/architect/tests/pack/ -q
-$(PYTHON) -m pytest packs/architect/tests/skills/architect-assess/ -q
-$(PYTHON) -m pytest packs/architect/tests/skills/architect-design/ -q
-$(PYTHON) -m pytest packs/architect/tests/skills/architect-review/ -q
+$(PYTHON) -m pytest \
+	packs/architect/tests/pack/ \
+	packs/architect/tests/skills/architect-assess/ \
+	packs/architect/tests/skills/architect-design/ \
+	packs/architect/tests/skills/architect-review/ -q
 $(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 $(PYTHON) -c "import httpx"
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
@@ -452,22 +468,26 @@ $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
 $(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
-$(PYTHON) -m pytest packs/agent-skill-engineering/tests/pack/ -q
-$(PYTHON) -m pytest packs/agent-skill-engineering/tests/integration/ -q
-$(PYTHON) -m pytest packs/agent-skill-engineering/tests/skills/author_or_update/ -q
-$(PYTHON) -m pytest packs/agent-skill-engineering/tests/skills/review_or_optimize/ -q
-$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
-$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
-$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
-$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
+$(PYTHON) -m pytest \
+	packs/agent-skill-engineering/tests/pack/ \
+	packs/agent-skill-engineering/tests/integration/ \
+	packs/agent-skill-engineering/tests/skills/author_or_update/ \
+	packs/agent-skill-engineering/tests/skills/review_or_optimize/ -q
+$(PYTHON) -m pytest \
+	packs/linear/tests/skills/linear/ \
+	packs/linear/tests/skills/linear-brief-intake/ -q
+$(PYTHON) -m pytest --import-mode=importlib \
+	packs/converters/tests/skills/markdown-to-html/ \
+	packs/converters/tests/skills/mermaid-renderer/ -q
 $(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q -p tools.pytest_collection_floor --minimum-collected=9 --collection-floor-suite=packs/desk-research/tests/skills/desk-research/
 $(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q -p tools.pytest_collection_floor --minimum-collected=7 --collection-floor-suite=packs/desk-research/tests/skills/desk-research-project-start/
-$(PYTHON) -m pytest packs/desk-research/tests/pack/ -q
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-check/ -q
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-digest/ -q
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-status/ -q
-$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-synthesize/ -q
-$(PYTHON) -m pytest packs/desk-research/tests/skills/devils-advocate/ -q
+$(PYTHON) -m pytest --import-mode=importlib \
+	packs/desk-research/tests/pack/ \
+	packs/desk-research/tests/skills/desk-research-project-check/ \
+	packs/desk-research/tests/skills/desk-research-project-digest/ \
+	packs/desk-research/tests/skills/desk-research-project-status/ \
+	packs/desk-research/tests/skills/desk-research-project-synthesize/ \
+	packs/desk-research/tests/skills/devils-advocate/ -q
 $(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_journey_editorial_decisions.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_check_docs_contrast.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_browser_gate_subset.py tools/test_local_ci_shared_test_deduplication.py -q
 $(3)
 $(PYTHON) -m pytest tools/test_worktree_hygiene.py -q
@@ -503,7 +523,17 @@ $(PYTHON) -m pytest \
 	tools/test_scaffold_projection.py \
 	tools/test_conformance_portability.py \
 	tools/test_lint_guides_no_repo_only_refs.py \
-	tools/test_okf_pre_pr.py -q
+	tools/test_okf_pre_pr.py \
+	tools/test_pack_test_compatibility.py -q
+# The identity derivation is what catches the SILENT hazard — a subject module
+# bound to the wrong path, or a sys.path mutation added to a class member.
+# Collection-only characterization cannot see either, and at ~2s this is the
+# fast feedback for anyone editing packs/*/tests/**. The full characterization
+# (isolated-vs-grouped node IDs, reverse order, importlib controls) spawns 30
+# collect-only processes for ~36s and runs in build-check.yml instead.
+$(PYTHON) tools/lint-pack-test-boundary.py \
+	--check compatibility-classes-are-well-formed \
+	--check class-members-keep-distinct-module-identity
 endef
 
 test-unleased: lint-editable-install

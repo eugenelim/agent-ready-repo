@@ -426,6 +426,16 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "pytest catalogue-test carve-out destinations (RFC-0082)":
         LOCAL("test-after-build-check"),
+    "pytest pack-test compatibility class characterization (ADR-0101)":
+        CI_ONLY(
+            "deliberately not local: proving isolated-vs-grouped collection "
+            "equivalence spawns 30 collect-only pytest processes (~36s), more "
+            "launches than the compatibility classes remove, so wiring it into "
+            "`make test` would leave the local loop slower than before the "
+            "change. The local signal is the ~2s two-check "
+            "lint-pack-test-boundary invocation, which covers the silent hazard "
+            "this step cannot see."
+        ),
     "pytest user-libs vendored floor (credbroker-user-scope T3)":
         LOCAL("test-after-build-check"),
     "pytest cursor adapter (cursor-full-parity)":
@@ -904,7 +914,30 @@ def _expanded_recipe_lines(text: str, recipe_line: str) -> list[str]:
         expanded = expanded.replace(f"$({index})", value)
     if re.search(r"\$\([1-9]\)", expanded):
         return [recipe_line]
-    return expanded.splitlines()
+    return _join_continuations(expanded.splitlines())
+
+
+def _join_continuations(lines: list[str]) -> list[str]:
+    """Fold backslash continuations so one command is one line.
+
+    A grouped pytest invocation spans several physical lines and only the first
+    carries the `pytest` token, so splitting physically hides every path operand
+    from the reachability match — the step reads as "not reachable from make ci"
+    while it in fact runs. `_iter_rules` already folds for the same reason; this
+    is the macro-body path it does not cover.
+    """
+    out: list[str] = []
+    pending: list[str] = []
+    for raw in lines:
+        if raw.endswith("\\"):
+            pending.append(raw[:-1].rstrip())
+            continue
+        pending.append(raw)
+        out.append(" ".join(part.strip() for part in pending) if len(pending) > 1 else pending[0])
+        pending = []
+    if pending:
+        out.append(" ".join(part.strip() for part in pending) if len(pending) > 1 else pending[0])
+    return out
 
 
 def makefile_recipe_targets(text: str, reachable: set[str]) -> set[str]:
