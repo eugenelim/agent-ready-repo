@@ -1337,6 +1337,31 @@ def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
     ).code == "unknown-timezone"
 
 
+# STUB: AC6a (spec/cooling-untrusted-input-refusals)
+def test_the_zone_catch_set_is_exactly_the_three_named_classes() -> None:
+    """A bare `except Exception` passes every other criterion and hides bugs.
+
+    Widening the tuple would turn a future `TypeError` or `AttributeError` raised
+    inside the lookup into `record-invalid`, which is why the members are pinned
+    structurally rather than trusted.
+    """
+    tree = ast.parse(COOLING_PATH.read_text(encoding="utf-8"))
+    zone = next(
+        (n for n in ast.walk(tree)
+         if isinstance(n, ast.FunctionDef) and n.name == "_zone"),
+        None,
+    )
+    assert zone is not None, "_zone is not defined in cooling.py"
+    handlers = [n for n in ast.walk(zone) if isinstance(n, ast.ExceptHandler)]
+    assert len(handlers) == 1, f"expected one except handler, found {len(handlers)}"
+    caught = handlers[0].type
+    assert isinstance(caught, ast.Tuple), "the handler must name an explicit tuple"
+    names = sorted(
+        element.id for element in caught.elts if isinstance(element, ast.Name)
+    )
+    assert names == ["OSError", "ValueError", "ZoneInfoNotFoundError"], names
+
+
 # STUB: AC7 (spec/cooling-untrusted-input-refusals)
 @pytest.mark.parametrize("timezone", [123, True, None, ["UTC"], {"a": 1}])
 def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> None:
@@ -1356,12 +1381,12 @@ def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> Non
     assert cooling.compute_review_on(date(2026, 8, 1), timezone).code == "unknown-timezone"
     assert calls == []
 
-    calls.clear()
-    assert cooling.is_due(
-        cooling.CoolingRecord.from_payload(payload),
-        datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
-    ).code == "unknown-timezone"
-    assert calls == []
+    # `is_due` is deliberately not asserted here. `CoolingRecord.from_payload`
+    # coerces with `str(payload["timezone"])`, so by the time a record exists its
+    # timezone is always a string — "123", "True", "['UTC']" — and that seam
+    # cannot observe the original type. Asserting zero lookups there would be
+    # asserting something no implementation can deliver. AC5 and AC11a cover the
+    # ordering at that seam with keys that really are strings.
 
 
 # STUB: AC8 (spec/cooling-untrusted-input-refusals)
@@ -1521,7 +1546,11 @@ def test_the_release_surfaces_agree_and_advance() -> None:
     # The repository writes these headings with an em dash, not a hyphen; the
     # shipped Wave 4 release test pins the same shape.
     headings = re.findall(
-        r"^## \[core\]\[([0-9.]+)\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
+        # The topmost heading may cover several artifacts:
+        # `## [core][2.15.2] / [governance-extras][0.10.2] / ... — <date>`.
+        # Anchoring the em dash straight after the core segment skipped it
+        # entirely and returned the *previous* release as "topmost".
+        r"^## \[core\]\[([0-9.]+)\][^\n]* — \d{4}-\d{2}-\d{2}$", changelog, re.M
     )
     assert headings, "no dated core changelog heading"
     assert headings[0] == version, (
@@ -1538,3 +1567,82 @@ def test_the_cooling_projections_match_their_source() -> None:
 
     assert (ROOT / ".claude/skills/close-work/scripts/cooling.py").read_bytes() == source
     assert (ROOT / ".agents/skills/close-work/scripts/cooling.py").read_bytes() == source
+
+
+# STUB: AC20 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "exception",
+    [
+        {"reason": "legal-obligation", "owner_role": "ab", "evidence_ref": "pr:1"},
+        {"reason": "legal-obligation", "review_on": "2026-12-01", "evidence_ref": "pr:1"},
+        {"owner_role": "ab", "review_on": "2026-12-01", "evidence_ref": "pr:1"},
+        {"evidence_ref": "pr:1"},
+    ],
+)
+def test_an_evidence_bearing_incomplete_envelope_refuses(exception: dict[str, str]) -> None:
+    cooling = _load()
+    payload = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=exception,
+    )
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+
+
+# STUB: AC21 (spec/cooling-untrusted-input-refusals)
+def test_the_review_seams_refuse_an_incomplete_envelope() -> None:
+    cooling = _load()
+    bad_envelope = {
+        "reason": "legal-obligation",
+        "owner_role": "ab",
+        "evidence_ref": "pr:1",
+    }
+    checks = dict.fromkeys(_all_approve(), "refuse")
+    now = datetime(2026, 9, 1, tzinfo=ZoneInfo(SG))
+    record = _record(cooling)
+
+    assert cooling.review(
+        record,
+        checks,
+        _attestation(checks),
+        now,
+        bad_envelope,
+        root=ROOT,
+        candidates=(),
+        authority_binding=None,
+    ).code == "exception-envelope-invalid"
+    assert cooling.review_exception(
+        record,
+        "renew",
+        {"exception": bad_envelope},
+        now,
+        root=ROOT,
+        candidates=(),
+        authority_binding=None,
+    ).code == "exception-envelope-invalid"
+
+
+# STUB: AC22 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "exception",
+    [
+        {"reason": "legal-obligation", "owner_role": "ab", "review_on": "2026-12-01"},
+        {
+            "reason": "legal-obligation",
+            "owner_role": "ab",
+            "review_on": "2026-12-01",
+            "evidence_ref": "pr:1",
+        },
+    ],
+)
+def test_a_complete_exception_envelope_is_accepted(exception: dict[str, str]) -> None:
+    cooling = _load()
+    payload = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=exception,
+    )
+
+    assert cooling.validate_payload(payload).code is None

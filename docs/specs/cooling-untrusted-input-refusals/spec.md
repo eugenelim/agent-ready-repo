@@ -36,14 +36,16 @@ unnoticed.
 | `decision-record` | Applicable: the schema-versus-code decision, the three adjudicated Wave 5 findings, and the measured corpus are the durable reasoning this delivery produces; all spec-local, so no new ADR. | [`notes/schema-decision.md`](notes/schema-decision.md), [`notes/adjudication.md`](notes/adjudication.md), [`notes/corpus-measurement.md`](notes/corpus-measurement.md) | This spec | The three notes exist and the Changelog cites them | Each note resolves and states its evidence. |
 | `release-history` | Applicable: a shipped `packs/core` runtime script changes, so the pack version advances one patch step. | [`docs/product/changelog.md`](../../product/changelog.md) | Release surface | AC16 | A dated `[core]` heading names the version `packs/core/pack.toml` carries. |
 | `current-architecture` | Not applicable: `docs/architecture/work-intake-and-artifact-routing.md` §10 pins a verified Core version, but this change alters nothing §10 describes — intake precedence, routing, and phase boundaries are untouched. Advancing its number would assert a whole-surface re-verification this delivery does not perform, and the `2.15.1` release set the same precedent by leaving it. | — | — | — | — |
-| `user-documentation` | Not applicable: no published refusal code, guide table, or maintainer task changes. `record-invalid` and `unknown-timezone` keep their existing meanings and are already documented. | — | — | — | — |
+| `user-documentation` | Not applicable: no published refusal code, guide table, or maintainer task changes. `record-invalid`, `unknown-timezone`, and `exception-envelope-invalid` keep their existing meanings and are already documented. | — | — | — | — |
 
 ## Boundaries
 
 ### Always do
 
-- Refuse untrusted temporal input with a published code rather than an exception.
-- Keep every seam that resolves a zone behind the same guard.
+- Refuse untrusted input with a published code rather than an exception,
+  wherever the hand-written validator is weaker than the published contract.
+- Keep every seam that resolves a zone behind the same guard, and every seam
+  that reads an exception envelope behind the same predicate.
 - Keep the code's numeric bounds equal to the published contract's.
 - Bound and type-check input before handing it to a platform lookup that
   touches the filesystem.
@@ -73,7 +75,8 @@ unnoticed.
 Unit tests in `tests/roster/test_thirty_day_cooling_and_retirement.py`, the
 suite that already owns this module. Every criterion drives the shipped public
 functions — `validate_payload`, `parse_record_bytes`, `compute_review_on`,
-`is_due` — with a literal payload, never a mock seam.
+`is_due`, and for AC21 the two caller-facing seams `review` and
+`review_exception` — with a literal payload, never a mock seam.
 
 That file already carries 43 `# STUB: AC<n>` markers belonging to the frozen
 Wave 5 spec, so every marker this spec adds is disambiguated as
@@ -100,24 +103,21 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Stub coverage at PLAN — all 24 criteria are materialised, none deferred to
-EXECUTE, and the split is measured, not claimed:
+Stub coverage at PLAN — all 25 criteria are materialised, none deferred to
+EXECUTE, and the split is measured, not claimed. Measured on the stubs:
+**22 failures with `tzdata` importable, 18 with it blocked**, out of 174
+collected cases.
 
-- **Red in both environments (12 criteria):** AC5, AC6, AC7, AC9, AC11, AC11a,
-  AC13, AC14, AC16, AC20, AC21, AC22. These are the detectors: each fails
-  whether or not `tzdata` is present. AC7 contributes 5 cases and AC20 four.
-  AC9 is in this group only because it now also covers AC6's
-  substituted-`OSError` results.
-- **Red only where `tzdata` is importable (4 criteria, 4 cases):** AC1, AC2,
-  AC3, AC4, plus two of AC8's eleven rows.
-
-Measured on the materialised stubs: **16 failures with `tzdata` importable, 12
-with it blocked.**
-- **Green by construction (4):** AC10, AC12, AC15, AC17 — non-regression
+- **Red in both environments (14 criteria, 18 cases).** These are the detectors;
+  each fails whether or not `tzdata` is present.
+  AC5 (1), AC6 (1), AC6a (1), AC7 (5), AC9 (1), AC11 and AC13 (1 shared),
+  AC11a (1), AC14 (1), AC16 (1), AC20 (4), AC21 (1).
+- **Red only where `tzdata` is importable (5 criteria, 4 cases).**
+  AC1 and AC2 (1 shared), AC3 and AC4 (1 shared), AC8 rows 1 and 2 (2).
+  These assert the contract; they do not detect the defect in CI.
+- **Green by construction (5):** AC10, AC12, AC15, AC17, AC22 — non-regression
   invariants that hold today and must keep holding. Each carries a mutation
   proof in `plan.md`, because a criterion that cannot fail proves nothing.
-  AC22 belongs to the same family but is listed above: a complete envelope is
-  accepted today, so only its mutation proof makes it falsifiable.
 - **Goal-based (3):** AC18, AC18a, AC19 — a named command, no test file.
 
 ## Acceptance Criteria
@@ -144,13 +144,21 @@ with it blocked.**
   replaced by one raising `OSError(63, "File name too long")` for `"UTC"`, and
   `timezone = "UTC"`: `validate_payload` returns `record-invalid`, and
   `compute_review_on` and `is_due` each return `unknown-timezone`.
-- [ ] **AC7 — A non-string `timezone` refuses without reaching the lookup, at
-  every seam.** For each of `123`, `true`, `null`, `["UTC"]`, and `{"a": 1}`:
-  `validate_payload` and `parse_record_bytes` return `record-invalid`,
-  `compute_review_on` and `is_due` return `unknown-timezone`, the counting spy
-  records zero calls, and none raises.
-- [ ] **AC8 — The enumerated timezone corpus never raises.** For each of the ten
-  `timezone` values in the plan's corpus table, `validate_payload` and
+- [ ] **AC6a — The catch set is exactly the three named classes.** The `except`
+  handler guarding the zone lookup names `ZoneInfoNotFoundError`, `OSError`, and
+  `ValueError` and nothing else, asserted over `cooling.py`'s AST. A bare
+  `except Exception` would satisfy every other criterion while turning a future
+  `TypeError` or `AttributeError` inside the lookup into `record-invalid`.
+- [ ] **AC7 — A non-string `timezone` refuses without reaching the lookup.** For
+  each of `123`, `true`, `null`, `["UTC"]`, and `{"a": 1}`: `validate_payload`,
+  `parse_record_bytes`, and `compute_review_on` refuse — `record-invalid` from
+  the first two, `unknown-timezone` from the third — with the counting spy
+  recording zero calls, and none raises. `is_due` is excluded by construction:
+  `CoolingRecord.from_payload` coerces `timezone` with `str()` at
+  `cooling.py:100`, so a record's `timezone` is always a string and that seam
+  cannot observe the original type.
+- [ ] **AC8 — The enumerated timezone corpus never raises.** For each of the
+  eleven `timezone` values in the plan's corpus table, `validate_payload` and
   `parse_record_bytes` return a `CoolingResult` whose `code` is a member of
   `REFUSAL_CODES`.
 - [ ] **AC9 — A timezone refusal carries a code and nothing else.** For each of
@@ -253,7 +261,7 @@ the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
   numeric coercion can produce.
 - **A `_close_work()` failure escapes four functions uncaught.** `enrol`
   (`:645`) and `load_record` (`:658`) wrap the dependency; `verify_identity`
-  resolves it outside its own `try` (`:345`), `deletion_allowed` calls
+  resolves it outside its own `try` (`:346`), `deletion_allowed` calls
   `verify_identity` bare (`:390`), `_binding_is_issued` resolves it (`:464`)
   from `_write_record` before that function's `try` opens (`:520`, `:524`), and
   `update_record` (`:689`) wraps nothing — so the failure propagates out of

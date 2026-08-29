@@ -69,6 +69,7 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC3, AC4 | `test_the_temporal_helpers_name_the_timezone_refusal` | TDD | `stub: true` |
 | AC5 | `test_the_timezone_bound_precedes_the_lookup_at_every_seam` | TDD | `stub: true` |
 | AC6 | `test_an_oserror_from_the_zone_lookup_escapes_no_seam` | TDD | `stub: true` |
+| AC6a | asserted inside `test_an_oserror_from_the_zone_lookup_escapes_no_seam` over `cooling.py`'s AST | TDD | `stub: true` |
 | AC7 | `test_a_non_string_timezone_refuses_without_a_lookup` | TDD | `stub: true` |
 | AC8 | `test_the_timezone_corpus_never_raises` | TDD | `stub: true` |
 | AC9 | `test_a_timezone_refusal_carries_a_code_and_no_mutation` | TDD | `stub: true` |
@@ -80,14 +81,14 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC15 | `test_the_published_contract_is_unchanged` | TDD | `stub: true` |
 | AC16 | `test_the_release_surfaces_agree_and_advance` | TDD | `stub: true` |
 | AC17 | `test_the_cooling_projections_match_their_source` | TDD | `stub: true` |
-| AC20 | `test_an_incomplete_exception_envelope_refuses` | TDD | `stub: true` |
+| AC20 | `test_an_evidence_bearing_incomplete_envelope_refuses` | TDD | `stub: true` |
 | AC21 | `test_the_review_seams_refuse_an_incomplete_envelope` | TDD | `stub: true` |
 | AC22 | `test_a_complete_exception_envelope_is_accepted` | TDD | `stub: true` |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-24 of 24 criteria carry a materialised stub or a named goal-based check. None
+25 of 25 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -156,7 +157,7 @@ filesystem and the presence of `tzdata` change the answer.
 | 8 | `"../../etc/passwd"` | `record-invalid` | unchanged |
 | 9 | `"Not/A/Zone"` | `record-invalid` | unchanged |
 | 10 | `"a\x00b"` | `record-invalid` | unchanged |
-| 11 | `"é" * 200` | `ZoneInfoNotFoundError` on APFS; **raises `OSError`** on a byte-limited filesystem | `record-invalid` |
+| 11 | `"é" * 200` (third in the stub's parametrize list; the table groups by kind, not by order) | `ZoneInfoNotFoundError` on APFS; **raises `OSError`** on a byte-limited filesystem | `record-invalid` |
 
 Two of eleven are red on darwin/APFS. Row 11 is the one inside the code-point
 bound: it is the only corpus value that can reach the `OSError` arm through a
@@ -179,15 +180,17 @@ bound. It is red on ext4, which is what CI runs.
 
 | Durable output | Task |
 | --- | --- |
-| `interface-contract` (read-only, byte-unchanged) | T2 |
+| `interface-contract` (read-only, byte-unchanged) | T3 |
 | `decision-record` (`notes/`) | authored at PLAN |
-| `release-history` | T3 |
+| `release-history` | T4 |
 
 ## Tasks
 
 ### T1: Bound, type-check, and catch the timezone lookup
 
-- **ACs:** AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10
+- **ACs:** AC1, AC2, AC3, AC4, AC5, AC6, AC6a, AC7, AC8, AC9, AC10, AC11a
+  — AC11a's guard is built here, since T1 introduces `MAX_TIMEZONE_LENGTH`;
+  its mutation proof M7a sits with the parity proofs in T3
 - **Verification mode:** TDD
 - **Depends on:** none
 - **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
@@ -227,8 +230,8 @@ mutating, so a mutation that fails to apply cannot yield a vacuous pass.
 
 | # | Invariant | Mutation | Expected failure |
 | --- | --- | --- | --- |
-| M1 | The bound precedes the lookup | `len(timezone) > MAX_TIMEZONE_LENGTH` → `> 100_000` | **AC5's zero-call assertion alone.** AC1–AC4 still pass, because the `OSError` arm the same task adds absorbs the escape — which is precisely why AC5 is the only detector for this mutation. |
-| M2 | `OSError` is caught at every seam | drop `OSError` from the `except` tuple | AC6 fails at all three seams with an uncaught `OSError` |
+| M1 | The bound precedes the lookup | `len(timezone) > MAX_TIMEZONE_LENGTH` → `> 100_000` | **AC5 and AC11a.** AC1–AC4 still pass, because the `OSError` arm the same task adds absorbs the escape — which is why the zero-call assertions are the only detectors for this mutation. |
+| M2 | `OSError` is caught at every seam | drop `OSError` from the `except` tuple | AC6 and AC9 fail at all three seams with an uncaught `OSError`; AC9 is in the set because it now covers AC6's results |
 | M3 | The arm is not seam-local | restore `except (ZoneInfoNotFoundError, ValueError)` at `compute_review_on` and `is_due` only, keeping `_zone` for `validate_payload` | AC6 fails at those two seams and passes at the first — the exact half-repair AC6 exists to reject |
 | M4 | The type guard precedes the bound | drop `isinstance(timezone, str)` from `_zone` | AC7 fails with an uncaught `TypeError` from `len()` |
 | M5 | The bound is the contract's number | `MAX_TIMEZONE_LENGTH = 255` → `= 256` | AC11 fails |
@@ -309,12 +312,12 @@ the contract instead of the code. The digest literal lives in the test only.
 | M7 | Parity is read from the contract | `MAX_LOCATOR_LENGTH = 1000` → `= 999` | AC13 fails |
 | M7a | The timezone constant governs the guard | leave a bare literal `255` inside `_zone` while adding `MAX_TIMEZONE_LENGTH` | AC11a fails at all three seams — the patched constant does not move the boundary. Without AC11a, a dead constant beside a bare literal passes AC1–AC5, AC11, and M5 |
 | M8 | The contract pin is live | change any byte of the schema file | AC15 fails |
-| M8a | The lower-bound criterion is live | drop `ValueError` from `_zone`'s `except` tuple | AC12 and the corpus's `""` row fail — `ZoneInfo("")` raises `ValueError`, which is what actually refuses the empty key, since the Approach has no emptiness path to drop |
-| M8b | The happy path is still asserted | make `_zone` return `None` unconditionally | AC10 fails, and so do most of AC1–AC9's non-regression halves |
+| M8a | The `ValueError` arm is live | drop `ValueError` from `_zone`'s `except` tuple | AC12 fails, and five corpus rows fail with it — `""`, `"."`, `"/etc/passwd"`, `"../../etc/passwd"`, and `"a\x00b"` are all `ValueError` shapes. The Approach has no emptiness path to drop, so this is the mutation that actually reaches the empty key |
+| M8b | The happy path is still asserted | make `_zone` return `None` unconditionally | AC5, AC10, AC11a, and AC14 fail. AC1–AC4, AC6, AC8, and AC9 all still pass, because refusing everything satisfies every criterion that only asserts a refusal — which is why the non-regression criteria exist |
 
 ### T4: Release, projections, and registration
 
-- **ACs:** AC16, AC17, AC18, AC19
+- **ACs:** AC16, AC17, AC18, AC18a, AC19
 - **Verification mode:** mixed — AC16 and AC17 are TDD construction tests; AC18
   and AC19 are goal-based checks
 - **Depends on:** T1, T2, T3 — the release ships all three repairs
@@ -390,7 +393,7 @@ The razor run, recorded once. Each was considered and cut.
 | A lease or token store for finding 2 | Finding 2 was refuted; and issue digests are deterministic over the grant payload, so a store would not stop replay by a grant holder. |
 | A timezone-validation module | One module-private function in the owning module covers three call sites. A module is a new boundary for eleven lines. |
 | Rewriting `_exception_is_valid` rather than changing its comparison | The four checks below the gate are already correct once an incomplete envelope cannot reach them. One operator is the whole repair; enumeration over all eight envelope shapes proved it before it was written. |
-| A real JSON Schema validator to make code and contract agree by construction | Not a new dependency — `jsonschema>=4.0` is declared at `tools/requirements.txt:5` and ten `tests/roster/` modules import it, including `test_semantic_surface_resolution_contract.py`, which does exactly this for another contract. Declined on its true grounds: `cooling.py` is a `packs/core/.apm/` runtime script that must stay stdlib-only, and a test-side differential validator would surface every divergence including the deferred `locator` pattern, exceeding the sustained finding's scope. |
+| A real JSON Schema validator to make code and contract agree by construction | Not a new dependency — `jsonschema>=4.0` is declared at `tools/requirements.txt:5` and several `tests/roster/` modules import it, including `test_semantic_surface_resolution_contract.py`, which does exactly this for another contract. The exact count lives in [`notes/schema-decision.md`](notes/schema-decision.md). Declined on its true grounds: `cooling.py` is a `packs/core/.apm/` runtime script that must stay stdlib-only, and a test-side differential validator would surface every divergence including the deferred `locator` pattern, exceeding the sustained finding's scope. |
 | Reconciling the `locator` pattern divergence | Behaviour change with no decision on which side is right. Recorded as a follow-on. |
 | A shared `_bounded_key` helper generalising both bounds | Two constants at two unrelated call sites. Generalising couples `locator` to `timezone` for no gain. |
 | Widening `except` to bare `Exception` | Would swallow programming errors as `record-invalid`. The four named classes are the reachable set. |
@@ -401,7 +404,7 @@ The razor run, recorded once. Each was considered and cut.
 
 | Risk | Mitigation |
 | --- | --- |
-| The version bump collides with a concurrent release on `main` | T3 re-reads `origin/main` immediately before the bump; AC16 pins the merge-base version as a literal and requires strictly-greater, which a stale self-consistent set fails. Recurred **twice** during PLAN: `2.15.0` → `2.15.1`, then `2.15.1` → `2.15.2`. Each rebase re-pins the literal. |
+| The version bump collides with a concurrent release on `main` | T4 re-reads `origin/main` immediately before the bump; AC16 pins the merge-base version as a literal and requires strictly-greater, which a stale self-consistent set fails. Recurred **twice** during PLAN: `2.15.0` → `2.15.1`, then `2.15.1` → `2.15.2`. Each rebase re-pins the literal. |
 | A rebase regenerates a projected file and silently drops the change | Generated files are regenerated, never merged; deliverables are digest-manifested before each rebase and verified after. AC17 asserts the projections match. |
 | The bound does not remove every `ENAMETOOLONG` on a byte-limited filesystem | The `OSError` arm is independent of the bound and is proven at all three seams by AC6. Recorded as a spec Assumption with its measurement. |
 | A new `# STUB:` marker collides with the frozen Wave 5 spec's 43 markers | Every marker is disambiguated with the spec slug, per `tools/assert-sast-chain-reachable.py:4`. |
