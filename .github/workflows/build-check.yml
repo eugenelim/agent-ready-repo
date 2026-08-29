@@ -385,7 +385,18 @@ jobs:
             tools/test_scaffold_projection.py \
             tools/test_conformance_portability.py \
             tools/test_lint_guides_no_repo_only_refs.py \
-            tools/test_okf_pre_pr.py -q
+            tools/test_okf_pre_pr.py \
+            tools/test_pack_test_compatibility.py -q
+
+      # CI-only by design, and lint-ci-parity holds the disposition. Proving
+      # collection equivalence costs 30 collect-only pytest processes (~36s) —
+      # more launches than the compatibility classes remove — so putting it in
+      # `make test` would make the local loop slower than before the change.
+      # The local signal is the ~2s two-check lint invocation in the Makefile,
+      # which covers the SILENT hazard this cannot: a mis-bound subject module
+      # or a sys.path mutation does not change a node-ID set.
+      - name: pytest pack-test compatibility class characterization (ADR-0101)
+        run: python -m pytest tools/test_pack_test_class_characterization.py -q
 
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
@@ -559,8 +570,13 @@ jobs:
 
       # skill-script-exit-2-collision: keep the converter entry-point contract
       # suites explicit because pack skill tests are not auto-discovered.
-      # Separate invocations preserve the import-isolation boundary enforced by
-      # lint-pack-test-boundary.py.
+      # Separate invocations here are the default boundary lint-pack-test-boundary.py
+      # enforces: a suite runs alone unless it is named in a declared
+      # compatibility class (tools/pack_test_compatibility.py, ADR-0101). These
+      # two converter suites ARE in one such class, and `make test` groups them —
+      # but each needs its own working-directory for the installed entry-point
+      # contract, so this leg keeps them apart. A class permits grouping; it does
+      # not oblige every runner to group.
       - name: pytest markdown-to-html installed entry-point contract
         working-directory: packs/converters/tests/skills/markdown-to-html
         env:

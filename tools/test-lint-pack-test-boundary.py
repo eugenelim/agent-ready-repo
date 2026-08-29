@@ -14,10 +14,8 @@ Three layers:
 3. **Source confinement.** Direct owning-pack anchors pass; climbing to the
    repository root fails even when the expression later walks back into the
    owning pack. Temporary fixture paths are outside this source-path rule.
-4. **Runner isolation.** The collision check keys on what a single invocation
-   covers, not on the tree: overlapping basenames across destination directories
-   are the intended end state, so a lint that reds on those would red on a
-   correct implementation.
+4. **Compatibility classes.** Grouping is explicit: a multi-suite invocation
+   must match a declared class and cannot hide a future member behind an ancestor.
 """
 
 from __future__ import annotations
@@ -30,6 +28,8 @@ import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
+
+from pack_test_compatibility import CompatibilityClass
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -135,6 +135,7 @@ def _fixture_context(mod, root: Path):
         projected_roots=base.projected_roots,
         runner_files=base.runner_files,
         no_runner={},
+        classes=base.classes,
     )
 
 
@@ -156,6 +157,69 @@ def _findings(mod, root: Path, check_name: str | None):
         return list(
             mod.inspect_boundary(_fixture_context(mod, root), selection)
         )
+
+
+def _class_fixture(tmp: Path, name: str, members: int = 2) -> tuple[Path, tuple[str, ...]]:
+    """A clean declared-class fixture with explicit runner operands."""
+    root = _fixture(tmp, name)
+    paths = ["packs/demo/tests/skills/demo"]
+    for index in range(2, members + 1):
+        member = f"packs/demo/tests/skills/member-{index}"
+        target = root / member / "test_member.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("def test_member():\n    pass\n", encoding="utf-8")
+        paths.append(member)
+    (root / "Makefile").write_text(
+        "test:\n\tpytest " + " ".join(paths) + "\n", encoding="utf-8"
+    )
+    return root, tuple(paths)
+
+
+def _class(members: tuple[str, ...], import_mode: str = "prepend") -> CompatibilityClass:
+    """One otherwise-valid declaration for a fixture class."""
+    return CompatibilityClass(
+        identifier="demo-class",
+        pack="demo",
+        members=members,
+        import_mode=import_mode,
+        basename_resolution="none",
+        subject_imports="none",
+        rationale="self-test fixture",
+    )
+
+
+def _class_findings(mod, root: Path, classes: tuple[CompatibilityClass, ...],
+                    check: str, exceptions=None):
+    """Run one class check with fixture-only declarations and exceptions."""
+    context = _fixture_context(mod, root)
+    if exceptions is not None:
+        context = mod.BoundaryContext(
+            root=context.root,
+            packs_root=context.packs_root,
+            recipe_path=context.recipe_path,
+            projected_roots=context.projected_roots,
+            runner_files=context.runner_files,
+            no_runner=context.no_runner,
+            classes=classes,
+            unresolvable_runner_exceptions=exceptions,
+        )
+    else:
+        context = mod.BoundaryContext(
+            root=context.root,
+            packs_root=context.packs_root,
+            recipe_path=context.recipe_path,
+            projected_roots=context.projected_roots,
+            runner_files=context.runner_files,
+            no_runner=context.no_runner,
+            classes=classes,
+            unresolvable_runner_exceptions=context.unresolvable_runner_exceptions,
+        )
+    return list(mod.inspect_boundary(context, [check]))
+
+
+def _rewrite(path: Path, text: str) -> None:
+    """Replace one temporary-fixture runner, returning `None` for plants."""
+    path.write_text(text, encoding="utf-8")
 
 
 def _symlinks_available() -> bool:
@@ -558,9 +622,40 @@ steps:
     workflow_runners = mod._workflow_runner_lines("fake.yml", real_workflow)
     if not workflow_runners or not any(
         "packs/core/tests/skills/work-loop" in tokens
-        for _, _, tokens in workflow_runners
+        for _, _, tokens, _, _ in workflow_runners
     ):
         failures.append("a pytest workflow step must inherit its working-directory")
+
+    cases += 1
+    continued_workflow = """
+steps:
+  - name: grouped runner
+    run: |
+      python -m pytest packs/demo/tests/a \\
+        packs/demo/tests/b -q
+"""
+    continued_runners = mod._workflow_runner_lines("fake.yml", continued_workflow)
+    if not any({"packs/demo/tests/a", "packs/demo/tests/b"} <= runner.tokens
+               for runner in continued_runners):
+        failures.append("a continued workflow pytest command must retain every path token")
+
+    cases += 1
+    comment_continuation = "test:\n\t# note \\\n\t$(PYTHON) -m pytest packs/demo/tests/a packs/demo/tests/b -q\n"
+    comment_runners = [
+        runner for runner in mod._joined_lines(comment_continuation)
+        if mod._PYTEST.search(runner[1]) and not runner[1].lstrip().startswith("#")
+    ]
+    if not comment_runners or not {"packs/demo/tests/a", "packs/demo/tests/b"} <= mod._path_tokens(comment_runners[0][1]):
+        failures.append("a comment continuation must not hide the following pytest command")
+
+    cases += 1
+    for command in ("pytest $(cat suites.txt)", "pytest `cat suites.txt`"):
+        if mod._unresolvable_path(command, makefile=False) != command:
+            failures.append(f"workflow substitution {command!r} must be unresolvable")
+    if mod._unresolvable_path("pytest $(1)", makefile=True) is not None:
+        failures.append("Make numbered recipe slots must remain statically owned")
+    if mod._unresolvable_path("pytest $(PACK_TESTS)", makefile=True) != "pytest $(PACK_TESTS)":
+        failures.append("named Make substitutions must remain unresolvable")
 
     # ---- layer 2: fixture falsification -----------------------------------
     # Each planted violation is proven against a small temporary catalogue via
@@ -580,7 +675,7 @@ steps:
     # only in CI, against a tree the developer could not reproduce.
     # Checks that both consume the runner inventory, so both report its failures.
     _RUNNER_CONSUMERS = frozenset(
-        {"runners-keep-suites-isolated", "every-suite-dir-has-a-runner"}
+        {"runners-use-approved-pack-compatibility-classes", "every-suite-dir-has-a-runner"}
     )
     plants = (
         # (fixture, check, needle[, expected bearer set — defaults to {check}])
@@ -600,16 +695,14 @@ steps:
         ("symlinked-test-source", "pack-tests-stay-in-pack", "is a symlink"),
         ("linked-test-dir", "pack-tests-stay-in-pack", "linked directory"),
         ("linked-test-root", "pack-tests-stay-in-pack", "root is linked"),
-        ("runner-spans-two-suites", "runners-keep-suites-isolated",
-         "multiple skill suites"),
         ("suite-without-runner", "every-suite-dir-has-a-runner",
          "no runner names"),
         # These two are reported by BOTH consuming checks — one cause, two
         # findings — which is preserved behaviour, so the expected bearer set is
         # explicit rather than assumed to be a single check.
-        ("missing-runner-file", "runners-keep-suites-isolated",
+        ("missing-runner-file", "runners-use-approved-pack-compatibility-classes",
          "does not exist", _RUNNER_CONSUMERS),
-        ("malformed-runner-file", "runners-keep-suites-isolated",
+        ("malformed-runner-file", "runners-use-approved-pack-compatibility-classes",
          "is not parseable", _RUNNER_CONSUMERS),
         ("empty-include-list", "projection-carries-no-tests",
          "lists no packs to project"),
@@ -701,12 +794,38 @@ steps:
                 f.check for f in both
                 if "does not exist" in f.message or "is not parseable" in f.message
             }
-            if reporters != {"runners-keep-suites-isolated",
+            if reporters != {"runners-use-approved-pack-compatibility-classes",
                              "every-suite-dir-has-a-runner"}:
                 failures.append(
                     f"{fixture}: expected both consuming checks to report the "
                     f"runner-inventory failure, got {sorted(reporters)}"
                 )
+
+        # A parse failure is not permission to suppress an independent coverage
+        # failure. The malformed Python runner remains one runner-inventory
+        # finding per consumer while this new suite still needs its own report.
+        cases += 1
+        root = _fixture(tmp, "malformed-runner-file")
+        orphan = root / "packs/demo/tests/skills/orphan/test_orphan.py"
+        orphan.parent.mkdir(parents=True, exist_ok=True)
+        orphan.write_text("def test_orphan():\n    pass\n", encoding="utf-8")
+        combined = _findings(mod, root, None)
+        parse_reporters = {
+            finding.check for finding in combined
+            if "is not parseable" in finding.message
+        }
+        orphan_reporters = {
+            finding.check for finding in combined
+            if "orphan holds a suite that no runner names" in finding.message
+        }
+        if parse_reporters != _RUNNER_CONSUMERS or orphan_reporters != {
+            "every-suite-dir-has-a-runner"
+        }:
+            failures.append(
+                "a malformed runner suppressed an independent suite-coverage "
+                f"finding: parse={sorted(parse_reporters)} "
+                f"orphan={sorted(orphan_reporters)}"
+            )
 
         if skipped_links:
             sys.stderr.write(
@@ -734,6 +853,203 @@ steps:
                 f"{[f.message[:90] for f in clean_findings]}"
             )
 
+        # ---- compatibility-class red controls ----------------------------
+        # Each begins with an otherwise-valid declaration and explicit runner,
+        # then changes exactly one runner/declaration fact.  These are fixtures,
+        # not real-worktree plants: the temporary directory is their cleanup.
+        def class_control(label, root, baseline, planted, check_name, needle):
+            nonlocal cases
+            cases += 1
+            before = _class_findings(mod, root, baseline, check_name)
+            if before:
+                failures.append(
+                    f"{label}: clean control fails [{check_name}]: "
+                    f"{[f.message for f in before]}"
+                )
+            cases += 1
+            found = _class_findings(mod, root, planted(), check_name)
+            if not any(needle in finding.message for finding in found):
+                failures.append(
+                    f"{label}: plant did not produce {needle!r}: "
+                    f"{[f.message for f in found]}"
+                )
+
+        runner_check = "runners-use-approved-pack-compatibility-classes"
+        well_formed = "compatibility-classes-are-well-formed"
+
+        root, members = _class_fixture(tmp, "class-undeclared")
+        declared = (_class(members),)
+        class_control(
+            "undeclared broad invocation", root, declared, lambda: (), runner_check,
+            "does not exactly match a declared compatibility class",
+        )
+
+        root, members = _class_fixture(tmp, "class-extra")
+        declared = (_class(members[:2]),)
+        extra = root / "packs/demo/tests/skills/member-3/test_member.py"
+        class_control(
+            "broad invocation with an extra path", root, declared,
+            lambda: (
+                extra.parent.mkdir(parents=True, exist_ok=True),
+                _rewrite(
+                    extra, "def test_member():\n    pass\n"
+                ),
+                _rewrite(
+                    root / "Makefile",
+                    "test:\n\tpytest " + " ".join((*members, "packs/demo/tests/skills/member-3")) + "\n",
+                ),
+                declared,
+            )[-1], runner_check,
+            "does not exactly match a declared compatibility class",
+        )
+
+        root, members = _class_fixture(tmp, "class-missing")
+        declared = (_class(members),)
+        missing = root / "packs/demo/tests/skills/member-3/test_member.py"
+        missing.parent.mkdir(parents=True, exist_ok=True)
+        missing.write_text("def test_member():\n    pass\n", encoding="utf-8")
+        class_control(
+            "broad invocation missing a class member", root, declared,
+            lambda: (_class((*members, "packs/demo/tests/skills/member-3")),),
+            runner_check, "does not exactly match a declared compatibility class",
+        )
+
+        root, members = _class_fixture(tmp, "class-required-flag")
+        importlib_class = (_class(members, import_mode="importlib"),)
+        (root / "Makefile").write_text(
+            "test:\n\tpytest --import-mode=importlib " + " ".join(members) + "\n",
+            encoding="utf-8",
+        )
+        class_control(
+            "grouped command missing its required flag", root, importlib_class,
+            lambda: (_rewrite(
+                root / "Makefile", "test:\n\tpytest " + " ".join(members) + "\n"
+            ) or importlib_class),
+            runner_check, "requires --import-mode=importlib",
+        )
+
+        root, members = _class_fixture(tmp, "class-ancestor")
+        declared = (_class(members),)
+        class_control(
+            "ancestor-shaped invocation matching a class today", root, declared,
+            lambda: (_rewrite(
+                root / "Makefile", "test:\n\tpytest packs/demo/tests/skills\n"
+            ) or declared),
+            runner_check, "is ancestor-shaped",
+        )
+
+        root, members = _class_fixture(tmp, "class-cross-pack")
+        declared = (_class(members),)
+        cross_member = "packs/other/tests/skills/other"
+        cross_test = root / cross_member / "test_other.py"
+        cross_test.parent.mkdir(parents=True, exist_ok=True)
+        (root / "packs/other/pack.toml").write_text("[pack]\nname = 'other'\n",
+                                                     encoding="utf-8")
+        cross_test.write_text("def test_other():\n    pass\n", encoding="utf-8")
+        class_control(
+            "class spanning two packs", root, declared,
+            lambda: (_class((members[0], cross_member)),), well_formed,
+            "is outside pack demo",
+        )
+
+        root, members = _class_fixture(tmp, "class-unused", members=3)
+        unused = (_class(members),)
+        class_control(
+            "declared class with no runner", root, unused,
+            lambda: (_rewrite(
+                root / "Makefile", "test:\n\tpytest " + " ".join(members[:2]) + "\n"
+            ) or unused),
+            runner_check, "has no runner",
+        )
+
+        root, members = _class_fixture(tmp, "class-new-suite")
+        declared = (_class(members),)
+        new_suite = root / "packs/demo/tests/skills/new-suite/test_new.py"
+        new_suite.parent.mkdir(parents=True, exist_ok=True)
+        new_suite.write_text("def test_new():\n    pass\n", encoding="utf-8")
+        class_control(
+            "new suite does not join an existing class", root, declared,
+            lambda: (_rewrite(
+                root / "Makefile", "test:\n\tpytest packs/demo/tests/skills\n"
+            ) or declared),
+            runner_check, "does not exactly match a declared compatibility class",
+        )
+
+        root, members = _class_fixture(tmp, "class-unresolvable")
+        declared = (_class(members),)
+        class_control(
+            "non-static pytest path", root, declared,
+            lambda: (_rewrite(root / "Makefile", 'test:\n\tpytest "$suite"\n') or declared),
+            runner_check, "'pytest \"$suite\"' is not statically resolvable",
+        )
+
+        root, members = _class_fixture(tmp, "class-workflow-substitution")
+        workflow = root / ".github/workflows/build-check.yml"
+        # The mutation must live in the lambda: `class_control` captures the
+        # clean state first, so rewriting before the call leaves no clean state
+        # to contrast against and the control can never show a transition.
+        class_control(
+            "workflow command substitution", root, (_class(members),),
+            lambda: (
+                _rewrite(workflow, "steps:\n  - run: pytest $(cat suites.txt)\n"),
+                (_class(members),),
+            )[-1],
+            runner_check, "is not statically resolvable",
+        )
+
+        cases += 1
+        fixture_context = _fixture_context(mod, root)
+        empty_context = mod.BoundaryContext(
+            root=fixture_context.root,
+            packs_root=fixture_context.packs_root,
+            recipe_path=fixture_context.recipe_path,
+            projected_roots=fixture_context.projected_roots,
+            runner_files=fixture_context.runner_files,
+            no_runner=fixture_context.no_runner,
+            classes=(),
+        )
+        if list(mod.inspect_boundary(empty_context, [well_formed])):
+            failures.append("fixture roots must allow empty compatibility-class stubs")
+        with mock.patch.object(mod, "ROOT", root):
+            findings = list(mod.inspect_boundary(empty_context, [well_formed]))
+        if not any("must not pass vacuously" in finding.message for finding in findings):
+            failures.append("repository-root empty compatibility classes must fail closed")
+        identity = "class-members-keep-distinct-module-identity"
+        with mock.patch.object(mod, "ROOT", root):
+            findings = list(mod.inspect_boundary(empty_context, [identity]))
+        if not any("must not pass vacuously" in finding.message for finding in findings):
+            failures.append("repository-root empty compatibility identity checks must fail closed")
+
+        root, members = _class_fixture(tmp, "class-stale-exception")
+        declared = (_class(members),)
+        stale = {("Makefile", 'pytest "$gone"'): "no such runner invocation"}
+        cases += 1
+        if _class_findings(mod, root, declared, runner_check):
+            failures.append("stale AC31 exception: clean control fails")
+        cases += 1
+        stale_findings = _class_findings(
+            mod, root, declared, runner_check, exceptions=stale
+        )
+        if not any("unresolvable runner exception Makefile 'pytest \"$gone\"' is stale" in finding.message
+                   for finding in stale_findings):
+            failures.append(
+                "stale AC31 exception: plant did not report the stale entry: "
+                f"{[f.message for f in stale_findings]}"
+            )
+
+        # AC31's shipped exception must match the parser's exact opaque
+        # invocation key, rather than merely a substring of the source line.
+        cases += 1
+        real_exception_findings = list(mod.inspect_boundary(
+            mod.default_context(), [runner_check]
+        ))
+        if any("unresolvable runner exception" in finding.message
+               for finding in real_exception_findings):
+            failures.append(
+                "the shipped AC31 exception is stale on the real runner tree: "
+                f"{[f.message for f in real_exception_findings]}"
+            )
+
     # ---- layer 3: minimal real-tree end-to-end ----------------------------
     # Fixtures cannot prove the production CLI is wired to the real catalogue.
     # Only running it against the real catalogue can — so a small number of
@@ -745,12 +1061,12 @@ steps:
         failures.append(f"real tree, clean: expected exit 0, got {rc}\n{err}")
     # Every captured baseline exits 1, so no golden case pins the SUCCESS path.
     # Assert the terminal wording here, byte-exact — it is the line an operator
-    # reads to conclude the gate held, and the six-check count in it is the claim
-    # that all six ran.
+    # reads to conclude the gate held, and the eight-check count in it is the
+    # claim that all eight ran.
     cases += 1
-    if "✓ lint-pack-test-boundary: passed (6 cases)." not in out:
+    if "✓ lint-pack-test-boundary: passed (8 cases)." not in out:
         failures.append(
-            f"the clean real tree did not print the six-check pass line; "
+            f"the clean real tree did not print the eight-check pass line; "
             f"stdout tail: {out[-300:]!r}"
         )
     cases += 1
@@ -764,18 +1080,20 @@ steps:
         "ok   [projection-carries-no-tests]",
         "ok   [tests-live-in-the-pack-tree]",
         "ok   [pack-tests-stay-in-pack]",
-        "ok   [runners-keep-suites-isolated]",
+        "ok   [compatibility-classes-are-well-formed]",
+        "ok   [class-members-keep-distinct-module-identity]",
+        "ok   [runners-use-approved-pack-compatibility-classes]",
         "ok   [every-suite-dir-has-a-runner]",
     ]
     missing_ok = [line for line in expected_ok if line not in out]
     if missing_ok:
         failures.append(f"clean run omitted success lines: {missing_ok}")
-    # Order matters: it is the documented execution order of the six checks.
+    # Order matters: it is the documented execution order of the eight checks.
     cases += 1
     positions = [out.find(line) for line in expected_ok]
     if positions != sorted(positions):
         failures.append(
-            f"the six success lines are out of documented order: {positions}"
+            f"the eight success lines are out of documented order: {positions}"
         )
 
     # One representative runtime-boundary plant.

@@ -34,6 +34,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from pack_test_compatibility import CompatibilityClass
+
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
@@ -471,7 +473,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
 
     # ---- every finding-emission site is exercised ----------------------
     # A case *count* is not coverage. This derives the answer mechanically:
-    # walk the six checks for `out.append`/`out.extend` sites, then drive the
+    # walk the eight checks for `out.append`/`out.extend` sites, then drive the
     # whole fixture corpus with a recording list that captures the caller's line
     # number. It found four unreached non-vacuity refusals when first written.
     import ast as _ast
@@ -481,7 +483,10 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     _check_fns = {f"case_{n}" for n in (
         "apm_carries_no_tests", "projection_carries_no_tests",
         "tests_live_in_the_pack_tree", "pack_tests_stay_in_pack",
-        "runners_keep_suites_isolated", "every_suite_dir_has_a_runner")}
+        "compatibility_classes_are_well_formed",
+        "class_members_keep_distinct_module_identity",
+        "runners_use_approved_pack_compatibility_classes",
+        "every_suite_dir_has_a_runner")}
     _sites: set[int] = set()
     for _fn in _ast.walk(_tree):
         if isinstance(_fn, _ast.FunctionDef) and _fn.name in _check_fns:
@@ -504,6 +509,29 @@ def main() -> int:  # noqa: C901 — independent structural assertions
             super().extend(items)
 
     _golden = _load_golden()
+
+    def fixture_classes(name: str) -> tuple[CompatibilityClass, ...]:
+        """Return the declaration injected for one class-control fixture."""
+        demo = "packs/demo/tests/skills/demo"
+        member_two = "packs/demo/tests/skills/member-2"
+        member_three = "packs/demo/tests/skills/member-3"
+        members = (demo, member_two)
+        if name == "class-undeclared":
+            return ()
+        if name in {"class-missing", "class-unused"}:
+            members = (*members, member_three)
+        if name == "class-cross-pack":
+            members = (demo, "packs/other/tests/skills/other")
+        return (CompatibilityClass(
+            identifier="demo-class",
+            pack="demo",
+            members=members,
+            import_mode="importlib" if name == "class-required-flag" else "prepend",
+            basename_resolution="none",
+            subject_imports="none",
+            rationale="structural fixture declaration",
+        ),)
+
     with tempfile.TemporaryDirectory(prefix="boundary-coverage-") as td:
         tmp = Path(td)
         for name in _golden.FIXTURES:
@@ -524,6 +552,17 @@ def main() -> int:  # noqa: C901 — independent structural assertions
                     projected_roots=base.projected_roots,
                     runner_files=base.runner_files,
                     no_runner={"packs/demo/tests/skills/demo": "planted"}),
+                M.BoundaryContext(
+                    root=base.root, packs_root=base.packs_root,
+                    recipe_path=base.recipe_path,
+                    projected_roots=base.projected_roots,
+                    runner_files=base.runner_files, no_runner={},
+                    classes=fixture_classes(name),
+                    unresolvable_runner_exceptions=(
+                        {("Makefile", 'pytest "$gone"'): "planted"}
+                        if name == "class-stale-exception" else {}
+                    ),
+                ),
             )
             for ctx in variants:
                 inv = M.build_inventory(ctx)
@@ -532,13 +571,28 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         inv = M.build_inventory(M.default_context())
         for spec_check in M.CHECKS:
             _silent(spec_check.run, inv, _Recording())
+        # The two vacuity refusals fire only where the model is importable, the
+        # root is the real repository, and no class is declared — a combination
+        # no staged fixture can present (a staged copy makes the fixture its own
+        # ROOT, and the model is not staged beside it) and the real tree never
+        # reaches (it declares five). Drive it directly, or the refusals are
+        # emission sites nothing exercises.
+        import dataclasses as _dc
+        _empty = M.build_inventory(
+            _dc.replace(M.default_context(), classes=())
+        )
+        for spec_check in M.CHECKS:
+            _silent(spec_check.run, _empty, _Recording())
 
     check("every finding-emission site is exercised by the fixture corpus",
           not (_sites - _hit),
           "unreached: " + ", ".join(
               f":{n} {lint_src.splitlines()[n - 1].strip()[:70]}"
               for n in sorted(_sites - _hit)))
-    check("the emission-site scan is not vacuous", len(_sites) >= 20,
+    # The AST scan currently finds 28 calls that emit a finding into `out`.
+    # Keep that measured count as a floor: deleting an emission branch must
+    # red even when fixture coverage happens not to expose the missing branch.
+    check("the emission-site scan is not vacuous", len(_sites) >= 28,
           f"found only {len(_sites)} sites")
 
     # ---- ignore-layer degradation is fatal, and named correctly ---------
@@ -578,7 +632,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
 
     # ---- the CLI selector contract, on stdout not just rc ---------------
     # Nothing asserted the partial-run output before: a scoped run could have
-    # printed the six-check pass line and every rc-only assertion would still
+    # printed the eight-check pass line and every rc-only assertion would still
     # have been green.
     with tempfile.TemporaryDirectory(prefix="boundary-cli-") as td:
         fixture = Path(td) / "fx"
@@ -596,10 +650,10 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         check("a --check run announces itself as partial",
               "partial run — checks: apm-carries-no-tests" in one.stdout,
               one.stdout[-400:])
-        check("a --check run does NOT print the six-check pass line",
-              "passed (6 cases)." not in one.stdout, one.stdout[-400:])
-        check("a --check run reports how many of six ran",
-              "passed (1 of 6 checks — partial run)." in one.stdout,
+        check("a --check run does NOT print the eight-check pass line",
+              "passed (8 cases)." not in one.stdout, one.stdout[-400:])
+        check("a --check run reports how many of eight ran",
+              "passed (1 of 8 checks — partial run)." in one.stdout,
               one.stdout[-400:])
         check("a --check run prints only the selected check's ok line",
               one.stdout.count("ok   [") == 1, one.stdout[-400:])
@@ -607,7 +661,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         two = cli("--check", "apm-carries-no-tests",
                   "--check", "tests-live-in-the-pack-tree")
         check("--check is repeatable", two.returncode == 0
-              and "passed (2 of 6 checks — partial run)." in two.stdout,
+              and "passed (2 of 8 checks — partial run)." in two.stdout,
               two.stdout[-400:])
 
         unknown = cli("--check", "no-such-check")
@@ -620,8 +674,8 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         scoped = cli("--root", str(fixture))
         check("a --root run announces itself as partial",
               "partial run" in scoped.stdout, scoped.stdout[-400:])
-        check("a --root run does NOT print the six-check pass line",
-              "passed (6 cases)." not in scoped.stdout, scoped.stdout[-400:])
+        check("a --root run does NOT print the eight-check pass line",
+              "passed (8 cases)." not in scoped.stdout, scoped.stdout[-400:])
 
         # --root refusals that had no case: unresolvable, and a linked root.
         missing = cli("--root", str(Path(td) / "does-not-exist"))

@@ -22,6 +22,16 @@ MARKDOWN_SURFACES = (
     REPO_ROOT / "docs-site/src/content/docs/index.mdx",
 )
 EXCLUDED_PACKS = {"user-guide-diataxis"}
+CATALOGUE_IMPORT = re.compile(
+    r"^import\s+\{\s*(?P<bindings>[^}]+?)\s*\}\s+from\s+"
+    r"['\"](?P<module>(?:\.\./)+lib/catalogue-navigation(?:\.ts)?)['\"]\s*;?\s*$",
+    flags=re.MULTILINE,
+)
+# This detects only direct `const|let|var outcomes =` declarations; aliased or
+# destructured bindings and object-literal `outcomes:` values remain outside regex coverage.
+LOCAL_OUTCOMES_DECLARATION = re.compile(
+    r"^\s*(?:const|let|var)\s+outcomes\s*=", flags=re.MULTILINE
+)
 
 
 def _navigation_source() -> str:
@@ -53,8 +63,20 @@ def test_all_active_packs_have_an_outcome() -> None:
 def test_marketing_surfaces_import_the_canonical_map() -> None:
     for surface in MARKETING_SURFACES:
         content = surface.read_text(encoding="utf-8")
-        assert "../../lib/catalogue-navigation" in content, surface
-        assert "const outcomes = [" not in content, surface
+        import_match = CATALOGUE_IMPORT.search(content)
+        assert import_match is not None, f"{surface}: imports catalogue-navigation"
+        bindings = {
+            binding.strip()
+            for binding in import_match.group("bindings").split(",")
+        }
+        assert "catalogueOutcomes" in bindings, f"{surface}: imports catalogueOutcomes"
+        imported_module = surface.parent / import_match.group("module")
+        assert imported_module.with_suffix(".ts").resolve() == NAVIGATION_SOURCE.resolve(), (
+            f"{surface}: catalogueOutcomes import resolves to canonical navigation source"
+        )
+        assert not LOCAL_OUTCOMES_DECLARATION.search(content), (
+            f"{surface}: must not declare a local outcomes map"
+        )
 
 
 def test_markdown_entry_points_keep_canonical_outcome_labels() -> None:

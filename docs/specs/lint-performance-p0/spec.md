@@ -1,6 +1,6 @@
 # Spec: lint-performance-p0
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by ADR-0098 — the golden baseline's pin was amended once, with approval, when `runners-keep-suites-isolated` was replaced by the compatibility-class checks; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071 (`evals/` is skill-local runtime content); ADR-0075 (test ownership and homes — this spec adds four `tools/` suites and one committed baseline file); `guides/_shared/reference/catalogue-authoring-standards.md` § 4 (cross-pack behaviour is not pack-owned)

@@ -80,9 +80,37 @@ BASELINE = ROOT / "tools" / "lint-boundary-golden.json"
 # The pinned capture subject. Changing either value is a spec amendment: pointing
 # the pin at a post-refactor commit would make the baseline describe the very
 # code it exists to police, while still technically being "a pinned revision".
-PINNED_COMMIT = "0245556305e4d19d16af4c3a71f3003f57ce5788"
+#
+# AMENDED once, deliberately, with owner approval recorded as
+# `docs/specs/pack-test-compatibility-classes/spec.md` AC33 and ADR-0098.
+#
+# Original pin: 0245556305e4d19d16af4c3a71f3003f57ce5788 / blob
+# 73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b — the lint as
+# it stood before `runners-keep-suites-isolated` was replaced by the
+# compatibility-class checks. Moved forward once more within the same
+# approved amendment, to 40292d6e, after adversarial review closed eleven
+# fail-open gaps in the new checks; re-pinning to an intermediate commit
+# would leave the baseline describing code that was never shipped.
+#
+# Why a repoint rather than a rebaseline: that check's `ok` line appears in every
+# passing case, so replacing it changes all 22 captured cases no matter how the
+# replacement is shaped. There is no honest implementation that leaves the
+# baseline untouched. `lint-performance-p0`'s rail forbids regenerating a golden
+# *to make a failing comparison pass*; this is the amendment path that same spec
+# names — recorded with its reason, and regenerated from the new pinned subject
+# rather than hand-edited. The baseline resumes policing from this commit
+# forward; the next behaviour change faces the same gate.
+#
+# MAINTENANCE HAZARD, learned the hard way: this pin names a commit on the
+# branch that introduces it, and a rebase rewrites those SHAs. The pin then
+# dangles — locally it still resolves because the pre-rebase objects survive
+# until GC, so the harness stays green on the machine that did the rebase and
+# aborts on a fresh CI clone, where `git show` returns 128. Re-point it after
+# any history rewrite, and prefer a commit that will be reachable from main
+# once the branch merges.
+PINNED_COMMIT = "90693424965772df8a90dfd015f1466db8781747"
 PINNED_BLOB_SHA256 = (
-    "73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b"
+    "0c3510a0ebdc2fc4c5cf6a965b2cca67f060286bf8cdba34de92d33c02fe2977"
 )
 
 sys.path.insert(0, str(ROOT / "tools"))
@@ -334,6 +362,102 @@ def _fx_runner_spans_two_suites(root: Path) -> None:
     )
 
 
+def _class_members(root: Path, count: int = 2) -> tuple[str, ...]:
+    """Add class-shaped demo suites and return their explicit runner paths."""
+    members = [f"packs/{_PACK}/tests/skills/{_SKILL}"]
+    for index in range(2, count + 1):
+        member = f"packs/{_PACK}/tests/skills/member-{index}"
+        _write(root / member / "test_member.py", "def test_member():\n    pass\n")
+        members.append(member)
+    return tuple(members)
+
+
+def _write_class_runner(root: Path, *operands: str) -> None:
+    """Write the fixture's single Makefile pytest invocation."""
+    _write(root / "Makefile", "test:\n\tpytest " + " ".join(operands) + "\n")
+
+
+def _fx_class_undeclared(root: Path) -> None:
+    """A two-suite invocation for a run with no declared class."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
+def _fx_class_extra(root: Path) -> None:
+    """A class-shaped invocation with one extra suite operand."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root, 3))
+
+
+def _fx_class_missing(root: Path) -> None:
+    """A three-member class tree whose runner omits its final member."""
+    _base_fixture(root)
+    members = _class_members(root, 3)
+    _write_class_runner(root, *members[:2])
+
+
+def _fx_class_required_flag(root: Path) -> None:
+    """A grouped command without the importlib flag its class requires."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
+def _fx_class_ancestor(root: Path) -> None:
+    """An ancestor operand that happens to cover exactly two suites today."""
+    _base_fixture(root)
+    _class_members(root)
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills")
+
+
+def _fx_class_cross_pack(root: Path) -> None:
+    """One pytest invocation spanning the demo and other packs."""
+    _base_fixture(root)
+    other = "packs/other/tests/skills/other"
+    _write(root / "packs/other/pack.toml", '[pack]\nname = "other"\n')
+    _write(root / other / "test_other.py", "def test_other():\n    pass\n")
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills/{_SKILL}", other)
+
+
+def _fx_class_unused(root: Path) -> None:
+    """A three-suite tree whose runner exercises only the first two suites."""
+    _base_fixture(root)
+    members = _class_members(root, 3)
+    _write_class_runner(root, *members[:2])
+
+
+def _fx_class_new_suite(root: Path) -> None:
+    """A newly added suite pulled into an existing class through an ancestor."""
+    _base_fixture(root)
+    _class_members(root)
+    _write(root / f"packs/{_PACK}/tests/skills/new-suite/test_new.py",
+           "def test_new():\n    pass\n")
+    _write_class_runner(root, f"packs/{_PACK}/tests/skills")
+
+
+def _fx_class_unresolvable(root: Path) -> None:
+    """A pytest path operand that static runner inspection cannot resolve."""
+    _base_fixture(root)
+    _class_members(root)
+    _write_class_runner(root, '"$suite"')
+
+
+def _fx_class_stale_exception(root: Path) -> None:
+    """A normal explicit runner for an injected AC31 stale-exception control."""
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
+def _fx_class_workflow_substitution(root: Path) -> None:
+    """A workflow whose pytest operand is a shell command substitution.
+
+    AC31's `$(` carve-out exists for Make's numbered recipe slots. Outside a
+    Makefile the same syntax is a real command substitution, so the operand is
+    not statically resolvable and grouping could hide behind it.
+    """
+    _base_fixture(root)
+    _write_class_runner(root, *_class_members(root))
+
+
 def _fx_suite_without_runner(root: Path) -> None:
     _base_fixture(root)
     _write(root / f"packs/{_PACK}/tests/skills/orphan/test_orphan.py",
@@ -382,6 +506,17 @@ FIXTURES: dict[str, Callable[[Path], None]] = {
     "linked-test-dir": _fx_linked_test_dir,
     "linked-test-root": _fx_linked_test_root,
     "runner-spans-two-suites": _fx_runner_spans_two_suites,
+    "class-ancestor": _fx_class_ancestor,
+    "class-cross-pack": _fx_class_cross_pack,
+    "class-extra": _fx_class_extra,
+    "class-missing": _fx_class_missing,
+    "class-new-suite": _fx_class_new_suite,
+    "class-required-flag": _fx_class_required_flag,
+    "class-stale-exception": _fx_class_stale_exception,
+    "class-undeclared": _fx_class_undeclared,
+    "class-unresolvable": _fx_class_unresolvable,
+    "class-workflow-substitution": _fx_class_workflow_substitution,
+    "class-unused": _fx_class_unused,
     "suite-without-runner": _fx_suite_without_runner,
     "missing-runner-file": _fx_missing_runner_file,
     "malformed-runner-file": _fx_malformed_runner_file,

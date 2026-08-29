@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CHECKER = REPO_ROOT / "tools" / "check-rendered-site-links.py"
@@ -333,15 +334,64 @@ def test_local_site_gate_builds_before_audit_and_aggregates_focused_tests() -> N
 
 
 def test_pages_gate_runs_after_both_builds_before_upload_and_has_path_filters() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
-
-    marketing_build = workflow.index("run: npm run build --prefix web")
-    docs_build = workflow.index("run: npm run build --prefix docs-site")
-    link_check = workflow.index(
-        "run: python3 tools/check-rendered-site-links.py --build-dir build"
+    workflow = yaml.safe_load(
+        (REPO_ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
     )
-    upload = workflow.index("uses: actions/upload-pages-artifact@")
+    assert isinstance(workflow, dict), "pages workflow must decode to a mapping"
 
-    assert marketing_build < docs_build < link_check < upload
-    assert workflow.count("- 'tools/check-rendered-site-links.py'") == 2
-    assert workflow.count("- 'tools/test_check_rendered_site_links.py'") == 2
+    # PyYAML follows YAML 1.1 here, where an unquoted `on` key becomes Boolean true.
+    if True in workflow:
+        triggers = workflow[True]
+    elif "on" in workflow:
+        triggers = workflow["on"]
+    else:
+        raise AssertionError("pages workflow must define an 'on' trigger mapping")
+    assert isinstance(triggers, dict), "pages workflow must define trigger mappings"
+    jobs = workflow.get("jobs")
+    assert isinstance(jobs, dict), "pages workflow must define job mappings"
+    build_job = jobs.get("build")
+    assert isinstance(build_job, dict), "pages workflow must define the build job"
+    steps = build_job.get("steps")
+    assert isinstance(steps, list), "pages build job must define an ordered steps list"
+
+    def step_index(run: str) -> int:
+        matches = [
+            index
+            for index, step in enumerate(steps)
+            if isinstance(step, dict)
+            and isinstance(step.get("run"), str)
+            and step["run"].strip() == run
+        ]
+        assert len(matches) == 1, f"build job must contain exactly one step running {run!r}"
+        return matches[0]
+
+    marketing_build = step_index("npm run build --prefix web")
+    docs_build = step_index("npm run build --prefix docs-site")
+    link_check = step_index("python3 tools/check-rendered-site-links.py --build-dir build")
+    upload_steps = [
+        index
+        for index, step in enumerate(steps)
+        if isinstance(step, dict)
+        and isinstance(step.get("uses"), str)
+        and step["uses"].startswith("actions/upload-pages-artifact@")
+    ]
+
+    assert len(upload_steps) == 1, (
+        "build job must contain exactly one Pages artifact upload"
+    )
+    assert marketing_build < docs_build < link_check < upload_steps[0], (
+        "build job must build web, then docs, check links, then upload the artifact"
+    )
+
+    for trigger_name in ("push", "pull_request"):
+        trigger = triggers.get(trigger_name)
+        assert isinstance(trigger, dict), f"{trigger_name} trigger must be a mapping"
+        paths = trigger.get("paths")
+        assert isinstance(paths, list), f"{trigger_name} trigger must define a paths list"
+        for path in (
+            "tools/check-rendered-site-links.py",
+            "tools/test_check_rendered_site_links.py",
+        ):
+            assert paths.count(path) == 1, (
+                f"{trigger_name} paths must include {path!r} exactly once"
+            )
