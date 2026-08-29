@@ -104,9 +104,20 @@ Three boundaries are deliberately retained:
 with the collected node-ID set unchanged at 1958 and raw count equal to unique
 count on both sides — nothing lost, nothing run twice.
 
-The benefit is bounded and now measured. It accrues where interpreter startup
-and repeated collection dominate: `desk-research`'s six content suites go from
-18.45 s to 2.91 s. It does not accrue where suites are dominated by real work. A
+The benefit is bounded and now measured, and it is not free. Proving collection
+equivalence costs its own processes: the characterization gate spawns 30
+collect-only pytest runs (18 members, five forward, five reverse, two unflagged
+controls), more than the 13 launches the regrouping removes. It therefore runs
+in `build-check` rather than `make test`, and a two-check lint invocation
+(~2 s) carries the local signal instead — deliberately, because that invocation
+covers the *silent* hazard and collection-only characterization cannot: a
+`sys.path` mutation or a mis-bound subject module does not change a node-ID set.
+Anyone weighing a sixth class should read this paragraph beside the numbers
+below, not the numbers alone.
+
+The saving accrues where interpreter startup and repeated collection dominate:
+`desk-research`'s six content suites go from 18.45 s to 2.91 s. It does not
+accrue where suites are dominated by real work. A
 nine-member `core` class was characterised in full and **rejected**: correctness
 was clean (523 node IDs identical, forward and reverse green, 522 passed and 1
 skipped either way) but peak resident memory rose 222 MiB → 239 MiB against an

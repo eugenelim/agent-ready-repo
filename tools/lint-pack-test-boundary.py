@@ -1603,6 +1603,17 @@ def case_runners_use_approved_pack_compatibility_classes(
         if invocation.unresolvable_path is None
     }
     for cls in inv.context.classes:
+        empty_members = [
+            member
+            for member in cls.members
+            if not any(
+                path.is_file() and _is_test_file(path)
+                for path in inv.walk(inv.context.root / member)
+            )
+        ]
+        out.extend(f"member {member} declares no test files" for member in empty_members)
+        if empty_members:
+            continue
         if frozenset(cls.members) not in exercised:
             out.append(f"compatibility class {cls.identifier} has no runner")
     for key, reason in exceptions.items():

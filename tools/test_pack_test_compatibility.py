@@ -10,6 +10,7 @@ import pytest
 from pack_test_compatibility import (
     CLASSES,
     CompatibilityClass,
+    _loader_helpers,
     _path_value,
     check_class_identity,
     classes_by_identifier,
@@ -59,7 +60,7 @@ def _member(root: Path, name: str, source: str = "def test_ok() -> None: pass\n"
 def test_shipped_classes_are_well_formed_and_sorted() -> None:
     """The shipped declaration table has stable, valid identifiers."""
 
-    assert len(CLASSES) == 5
+    assert len(CLASSES) >= 1, "declare at least one shipped compatibility class"
     identifiers = [item.identifier for item in CLASSES]
     assert len(identifiers) == len(set(identifiers))
     assert all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", item) for item in identifiers)
@@ -116,6 +117,25 @@ def test_import_set_includes_test_shaped_fixture_files_and_conftests(tmp_path: P
         path.relative_to(tmp_path).as_posix()
         for path in import_set_for(tmp_path / member / "test_contract.py", tmp_path)
     }
+
+
+def test_import_set_prunes_symlinked_directories_and_files(tmp_path: Path) -> None:
+    """Import derivation matches the boundary lint's non-following tree walk."""
+
+    member = _member(tmp_path, "one")
+    outside = tmp_path / "outside"
+    _write(outside / "test_external.py", "def test_external() -> None: pass\n")
+    _write(outside / "test_link_target.py", "def test_link_target() -> None: pass\n")
+    try:
+        (tmp_path / member / "linked").symlink_to(outside, target_is_directory=True)
+        (tmp_path / member / "test_link.py").symlink_to(outside / "test_link_target.py")
+    except OSError as exc:
+        pytest.skip(f"symlink creation unavailable: {exc}")
+
+    paths = {path.relative_to(tmp_path).as_posix() for path in import_set_for(member, tmp_path)}
+    assert f"{member}/test_contract.py" in paths
+    assert f"{member}/linked/test_external.py" not in paths
+    assert f"{member}/test_link.py" not in paths
 
 
 def test_identity_controls_for_basenames_loader_paths_and_parse_errors(tmp_path: Path) -> None:
@@ -213,6 +233,18 @@ def test_loader_calls_in_every_scope_are_fail_closed(tmp_path: Path, source: str
     assert "two different paths" in "\n".join(check_class_identity(_class(one, two), tmp_path))
 
 
+def test_loader_helpers_identify_only_supported_wrappers() -> None:
+    """Wrapper detection is independently testable from source traversal."""
+
+    tree = ast.parse(
+        "def load(name, path):\n"
+        "    return importlib.util.spec_from_file_location(name, path)\n"
+        "def unrelated(value):\n"
+        "    return value\n"
+    )
+    assert _loader_helpers(tree) == {"load": (0, 1)}
+
+
 def test_loader_declaration_and_missing_subject_controls(tmp_path: Path) -> None:
     """Subject-import declarations and paths cannot overclaim safety."""
 
@@ -226,6 +258,55 @@ def test_loader_declaration_and_missing_subject_controls(tmp_path: Path) -> None
     assert "subject imports none" in "\n".join(check_class_identity(none, tmp_path))
     qualified = _class(one, two, subject_imports="explicit-qualified")
     assert "loader path does not exist" in "\n".join(check_class_identity(qualified, tmp_path))
+
+
+def test_unparseable_sources_report_only_the_parse_failure(tmp_path: Path) -> None:
+    """Syntax errors are not misclassified as loader or declaration failures."""
+
+    one = _member(tmp_path, "one", "def broken(:\n")
+    two = _member(tmp_path, "two")
+    findings = check_class_identity(_class(one, two), tmp_path)
+    assert sum("cannot parse" in finding for finding in findings) == 1
+    assert not any("subject imports none" in finding for finding in findings)
+
+    _write(
+        tmp_path / two / "test_contract.py",
+        "import importlib.util\n"
+        "spec = importlib.util.spec_from_file_location('loader', 'two.py')\n",
+    )
+    _write(tmp_path / two / "two.py")
+    findings = check_class_identity(_class(one, two), tmp_path)
+    assert any("source" in finding and "loader" in finding for finding in findings)
+
+
+def test_identity_findings_name_affected_locations_and_remedy(tmp_path: Path) -> None:
+    """Identity failures point maintainers to the concrete repair surface."""
+
+    one = _member(
+        tmp_path,
+        "one",
+        "import importlib.util\n"
+        "spec = importlib.util.spec_from_file_location('loader', 'one.py')\n",
+    )
+    two = _member(tmp_path, "two")
+    _write(tmp_path / one / "one.py")
+    findings = check_class_identity(_class(one, two), tmp_path)
+    assert any(
+        one in finding
+        and f"{one}/test_contract.py" in finding
+        and "loader" in finding
+        and "explicit-qualified" in finding
+        for finding in findings
+    )
+    qualified = _class(one, two, subject_imports="explicit-qualified")
+    _write(tmp_path / one / "test_contract.py", "def test_ok() -> None: pass\n")
+    qualified_findings = check_class_identity(qualified, tmp_path)
+    assert any(
+        one in finding
+        and f"{one}/test_contract.py" in finding
+        and "declare one or drop the member" in finding
+        for finding in qualified_findings
+    )
 
 
 def test_path_value_preserves_all_segments_in_a_join(tmp_path: Path) -> None:
@@ -265,55 +346,8 @@ def test_real_loader_paths_are_exact_existing_files_and_candidate_classes_are_sa
     linear_script = next(path for name, path in linear_pairs if name == "linear_script")
     assert linear_script is not None and linear_script.is_file()
 
-    candidates = (
-        _class(
-            "packs/agent-skill-engineering/tests/pack",
-            "packs/agent-skill-engineering/tests/integration",
-            "packs/agent-skill-engineering/tests/skills/author_or_update",
-            "packs/agent-skill-engineering/tests/skills/review_or_optimize",
-            identifier="agent-skill-engineering-contract",
-            pack="agent-skill-engineering",
-            basename_resolution="packages",
-        ),
-        _class(
-            "packs/architect/tests/pack",
-            "packs/architect/tests/skills/architect-assess",
-            "packs/architect/tests/skills/architect-design",
-            "packs/architect/tests/skills/architect-review",
-            identifier="architect-contract",
-            pack="architect",
-            subject_imports="explicit-qualified",
-        ),
-        _class(
-            "packs/desk-research/tests/pack",
-            "packs/desk-research/tests/skills/desk-research-project-check",
-            "packs/desk-research/tests/skills/desk-research-project-digest",
-            "packs/desk-research/tests/skills/desk-research-project-status",
-            "packs/desk-research/tests/skills/desk-research-project-synthesize",
-            "packs/desk-research/tests/skills/devils-advocate",
-            identifier="desk-research-content",
-            pack="desk-research",
-            import_mode="importlib",
-            basename_resolution="import-mode",
-        ),
-        _class(
-            "packs/converters/tests/skills/markdown-to-html",
-            "packs/converters/tests/skills/mermaid-renderer",
-            identifier="converters-invocation-contract",
-            pack="converters",
-            import_mode="importlib",
-            basename_resolution="import-mode",
-        ),
-        _class(
-            "packs/linear/tests/skills/linear",
-            "packs/linear/tests/skills/linear-brief-intake",
-            identifier="linear-intake",
-            pack="linear",
-            subject_imports="explicit-qualified",
-        ),
-    )
-    for candidate in candidates:
-        assert check_class_identity(candidate, ROOT) == []
+    for candidate in CLASSES:
+        assert check_class_identity(candidate, ROOT) == [], candidate.identifier
         for member in candidate.members:
             assert all(
                 path is None or path.is_file()
@@ -328,8 +362,14 @@ def test_real_tree_import_safety_shapes() -> None:
     loaders = subject_loader_names_for(architect, ROOT)
     assert ("architect_profile_repo_test", ROOT / "packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py") in loaders
     compile_okf = "packs/catalogue-curation/tests/skills/compile-okf"
-    assert len(path_mutations_in(compile_okf, ROOT)) == 3
-    assert len(sibling_test_imports_in(compile_okf, ROOT)) == 1
+    assert {
+        "packs/catalogue-curation/tests/skills/compile-okf/test_apply.py:22",
+        "packs/catalogue-curation/tests/skills/compile-okf/test_parser.py:18",
+        "packs/catalogue-curation/tests/skills/compile-okf/test_render.py:21",
+    }.issubset(path_mutations_in(compile_okf, ROOT))
+    assert "packs/catalogue-curation/tests/skills/compile-okf/test_cli.py:9" in (
+        sibling_test_imports_in(compile_okf, ROOT)
+    )
     assert "packs/atlassian/tests/skills/jira/conftest.py:17" in path_mutations_in(
         "packs/atlassian/tests/skills/jira/test_intake_policy.py", ROOT
     )

@@ -7,6 +7,7 @@ lint consumes this model, never the other way around.
 from __future__ import annotations
 
 import ast
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -144,6 +145,12 @@ _BASENAME_RESOLUTIONS = frozenset({"none", "import-mode", "packages"})
 _SUBJECT_IMPORTS = frozenset({"none", "explicit-qualified"})
 
 
+def _is_linked_dir(path: Path) -> bool:
+    """Whether a directory entry redirects the walk to another tree."""
+
+    return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+
+
 def classes_by_identifier(
     classes: tuple[CompatibilityClass, ...] = CLASSES,
 ) -> tuple[CompatibilityClass, ...]:
@@ -190,12 +197,25 @@ def _python_files(member: Path) -> list[Path]:
     """Return Python files below a member without pytest-inert fixture trees."""
 
     if member.is_file():
-        return [member] if member.suffix == ".py" else []
-    if not member.is_dir():
+        return [member] if member.suffix == ".py" and not member.is_symlink() else []
+    if not member.is_dir() or _is_linked_dir(member):
         return []
-    return sorted(
-        path for path in member.rglob("*.py") if not _under_excluded(path, member)
-    )
+    paths: list[Path] = []
+    for directory, directories, filenames in os.walk(member, followlinks=False):
+        base = Path(directory)
+        directories[:] = [
+            name
+            for name in directories
+            if not _is_linked_dir(base / name)
+        ]
+        paths.extend(
+            base / name
+            for name in filenames
+            if name.endswith(".py")
+            and not (base / name).is_symlink()
+            and not _under_excluded(base / name, member)
+        )
+    return sorted(paths)
 
 
 def _parse(path: Path) -> tuple[ast.Module | None, str | None]:
@@ -207,6 +227,28 @@ def _parse(path: Path) -> tuple[ast.Module | None, str | None]:
         return None, f"{path}:{getattr(exc, 'lineno', 0) or 0}: cannot parse: {exc}"
 
 
+def _conftests_between(root: Path, directory: Path) -> tuple[Path, ...]:
+    """Return pytest conftests from *root* through *directory*, inclusively."""
+
+    try:
+        parts = directory.relative_to(root).parts
+    except ValueError:
+        return ()
+    current = root
+    conftests: list[Path] = []
+    for part in ("", *parts):
+        if part:
+            current /= part
+        conftest = current / "conftest.py"
+        if (
+            conftest.is_file()
+            and not conftest.is_symlink()
+            and not _under_excluded(conftest, root)
+        ):
+            conftests.append(conftest)
+    return tuple(conftests)
+
+
 def import_set_for(member: str | Path, root: Path) -> tuple[Path, ...]:
     """Return pytest's reachable module set for one member.
 
@@ -215,30 +257,9 @@ def import_set_for(member: str | Path, root: Path) -> tuple[Path, ...]:
     """
 
     target = _path(member, root)
-    directory = target if target.is_dir() else target.parent
     paths = {path for path in _python_files(target) if _is_test_file(path)}
     for test_file in tuple(paths):
-        current = test_file.parent
-        while current.is_relative_to(root):
-            conftest = current / "conftest.py"
-            if conftest.is_file() and not _under_excluded(conftest, root):
-                paths.add(conftest)
-            if current == root:
-                break
-            current = current.parent
-    current = root
-    root_conftest = root / "conftest.py"
-    if root_conftest.is_file() and not _under_excluded(root_conftest, root):
-        paths.add(root_conftest)
-    try:
-        parts = directory.relative_to(root).parts
-    except ValueError:
-        return ()
-    for part in parts:
-        current /= part
-        conftest = current / "conftest.py"
-        if conftest.is_file() and not _under_excluded(conftest, root):
-            paths.add(conftest)
+        paths.update(_conftests_between(root, test_file.parent))
     pending = list(paths)
     while pending:
         source = pending.pop()
@@ -276,7 +297,7 @@ def test_basenames_for(members: tuple[str, ...], root: Path) -> set[str]:
 test_basenames_for.__test__ = False
 
 
-def _assigned_values(tree: ast.Module, source: Path) -> dict[str, ast.expr]:
+def _assigned_values(tree: ast.Module) -> dict[str, ast.expr]:
     """Collect module-level simple assignments for local constant resolution."""
 
     values: dict[str, ast.expr] = {}
@@ -425,35 +446,41 @@ def _is_loader(call: ast.Call) -> bool:
     return isinstance(call.func, ast.Attribute) and call.func.attr == "spec_from_file_location"
 
 
-def subject_loader_names_for(
-    member: str | Path, root: Path
-) -> tuple[tuple[str, Path | None], ...]:
-    """Return static subject-loader ``(name, path)`` pairs, unresolved as ``None``."""
+def _loader_helpers(tree: ast.Module) -> dict[str, tuple[int, int]]:
+    """Map supported wrapper functions to their loader name and path arguments."""
 
-    results: list[tuple[str, Path | None]] = []
+    helpers: dict[str, tuple[int, int]] = {}
+    for function in (node for node in tree.body if isinstance(node, ast.FunctionDef)):
+        parameters = [argument.arg for argument in function.args.args]
+        for call in ast.walk(function):
+            if (
+                isinstance(call, ast.Call)
+                and _is_loader(call)
+                and len(call.args) >= 2
+                and isinstance(call.args[0], ast.Name)
+                and isinstance(call.args[1], ast.Name)
+                and call.args[0].id in parameters
+                and call.args[1].id in parameters
+            ):
+                helpers[function.name] = (
+                    parameters.index(call.args[0].id),
+                    parameters.index(call.args[1].id),
+                )
+    return helpers
+
+
+def _subject_loader_records_for(
+    member: str | Path, root: Path
+) -> tuple[tuple[str, Path | None, Path], ...]:
+    """Return static subject-loader pairs with the source that derives each one."""
+
+    results: list[tuple[str, Path | None, Path]] = []
     for source in import_set_for(member, root):
-        tree, error = _parse(source)
+        tree, _ = _parse(source)
         if tree is None:
-            results.append((f"<unparseable:{_relative(source, root)}>", None))
             continue
-        values = _assigned_values(tree, source)
-        helpers: dict[str, tuple[int, int]] = {}
-        for function in (node for node in tree.body if isinstance(node, ast.FunctionDef)):
-            parameters = [argument.arg for argument in function.args.args]
-            for call in ast.walk(function):
-                if (
-                    isinstance(call, ast.Call)
-                    and _is_loader(call)
-                    and len(call.args) >= 2
-                    and isinstance(call.args[0], ast.Name)
-                    and isinstance(call.args[1], ast.Name)
-                    and call.args[0].id in parameters
-                    and call.args[1].id in parameters
-                ):
-                    helpers[function.name] = (
-                        parameters.index(call.args[0].id),
-                        parameters.index(call.args[1].id),
-                    )
+        values = _assigned_values(tree)
+        helpers = _loader_helpers(tree)
         scoped_calls: list[tuple[ast.Call, dict[str, ast.expr], ast.AST]] = [
             (call, scope_values, scope)
             for scope, scope_values in _scopes(tree, values)
@@ -462,23 +489,44 @@ def subject_loader_names_for(
         for call, call_values, scope in scoped_calls:
             if _is_loader(call):
                 if len(call.args) < 2:
-                    results.append((f"<unresolved:{_relative(source, root)}:{call.lineno}>", None))
+                    results.append((
+                        f"<unresolved:{_relative(source, root)}:{call.lineno}>",
+                        None,
+                        source,
+                    ))
                     continue
                 if isinstance(scope, ast.FunctionDef) and scope.name in helpers:
                     continue
                 name = _string_value(call.args[0], call_values)
-                results.append((name or f"<unresolved:{_relative(source, root)}:{call.lineno}>",
-                                _path_value(call.args[1], call_values, source) if name else None))
+                results.append((
+                    name or f"<unresolved:{_relative(source, root)}:{call.lineno}>",
+                    _path_value(call.args[1], call_values, source) if name else None,
+                    source,
+                ))
             elif isinstance(call.func, ast.Name) and call.func.id in helpers:
                 name_index, path_index = helpers[call.func.id]
                 if len(call.args) <= max(name_index, path_index):
-                    results.append((f"<unresolved:{_relative(source, root)}:{call.lineno}>", None))
+                    results.append((
+                        f"<unresolved:{_relative(source, root)}:{call.lineno}>",
+                        None,
+                        source,
+                    ))
                     continue
                 name = _string_value(call.args[name_index], call_values)
                 path = _path_value(call.args[path_index], call_values, source)
                 unresolved = f"<unresolved:{_relative(source, root)}:{call.lineno}>"
-                results.append((name or unresolved, path if name else None))
+                results.append((name or unresolved, path if name else None, source))
     return tuple(results)
+
+
+def subject_loader_names_for(
+    member: str | Path, root: Path
+) -> tuple[tuple[str, Path | None], ...]:
+    """Return static subject-loader ``(name, path)`` pairs, unresolved as ``None``."""
+
+    return tuple(
+        (name, path) for name, path, _ in _subject_loader_records_for(member, root)
+    )
 
 
 def path_mutations_in(member: str | Path, root: Path) -> tuple[str, ...]:
@@ -486,9 +534,8 @@ def path_mutations_in(member: str | Path, root: Path) -> tuple[str, ...]:
 
     findings: list[str] = []
     for source in import_set_for(member, root):
-        tree, error = _parse(source)
+        tree, _ = _parse(source)
         if tree is None:
-            findings.append(error or f"{source}: cannot parse")
             continue
         for node in ast.walk(tree):
             def is_sys_path(value: ast.expr) -> bool:
@@ -524,9 +571,8 @@ def sibling_test_imports_in(member: str | Path, root: Path) -> tuple[str, ...]:
     siblings = {path.stem for path in _python_files(target) if _is_test_file(path)}
     findings: list[str] = []
     for source in import_set_for(member, root):
-        tree, error = _parse(source)
+        tree, _ = _parse(source)
         if tree is None:
-            findings.append(error or f"{source}: cannot parse")
             continue
         for node in ast.walk(tree):
             names: list[str] = []
@@ -613,8 +659,14 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
                 ]
                 shared = _common_parent(directories)
                 if not all((directory / "__init__.py").is_file() for directory in directories):
+                    missing = [
+                        _relative(directory, root)
+                        for directory in directories
+                        if not (directory / "__init__.py").is_file()
+                    ]
                     findings.append(
-                        f"duplicate test basename {basename} lacks package __init__.py"
+                        f"duplicate test basename {basename} lacks package __init__.py in "
+                        f"{sorted(missing)}"
                     )
                 if (shared / "__init__.py").is_file():
                     findings.append(
@@ -634,10 +686,14 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
             findings.extend(f"duplicate test basename: {name}" for name in sorted(collisions))
     names: dict[str, Path] = {}
     loaders: list[tuple[str, Path | None]] = []
+    loader_members: list[tuple[str, str, Path]] = []
+    parsed_sources_by_member: dict[str, list[str]] = {}
+    has_unparseable_source = False
     for member in cls.members:
-        member_loaders = subject_loader_names_for(member, root)
-        loaders.extend(member_loaders)
-        for name, path in member_loaders:
+        records = _subject_loader_records_for(member, root)
+        loaders.extend((name, path) for name, path, _ in records)
+        loader_members.extend((member, name, source) for name, _, source in records)
+        for name, path, _ in records:
             if path is None:
                 if name.startswith("<unresolved:"):
                     findings.append(f"unresolvable loader name: {name}")
@@ -659,15 +715,35 @@ def check_class_identity(cls: CompatibilityClass, root: Path) -> list[str]:
                 f"sibling test import: {item}"
                 for item in sibling_test_imports_in(member, root)
             )
+        parsed_sources: list[str] = []
         for source in import_set_for(member, root):
             _, error = _parse(source)
             if error:
                 findings.append(error)
+                has_unparseable_source = True
+            else:
+                parsed_sources.append(_relative(source, root))
+        parsed_sources_by_member[member] = parsed_sources
     if cls.subject_imports == "none" and loaders:
-        findings.append("subject imports none but derived subject loaders")
+        member, name, source = loader_members[0]
+        findings.append(
+            f"{cls.identifier}: subject imports none but {member} source "
+            f"{_relative(source, root)} derives loader {name}; "
+            "declare explicit-qualified or drop the member in "
+            "tools/pack_test_compatibility.py"
+        )
     if cls.subject_imports == "explicit-qualified":
-        if not loaders:
-            findings.append("explicit-qualified subject imports require a derived loader")
+        if not loaders and not has_unparseable_source:
+            members = ", ".join(cls.members)
+            checked = "; ".join(
+                f"{member}: {', '.join(sources) if sources else 'no parsed source files'}"
+                for member, sources in parsed_sources_by_member.items()
+            )
+            findings.append(
+                f"{cls.identifier}: members {members} declare explicit-qualified but derive "
+                f"no loader from their parsed sources ({checked}); declare one or drop "
+                "the member in tools/pack_test_compatibility.py"
+            )
         elif any(path is None for _, path in loaders):
             findings.append("explicit-qualified subject imports require resolvable loaders")
     return findings

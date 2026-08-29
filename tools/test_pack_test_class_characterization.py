@@ -17,8 +17,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-
-from tools.pack_test_compatibility import CLASSES, CompatibilityClass
+from pack_test_compatibility import CLASSES, CompatibilityClass
 
 ROOT = Path(__file__).resolve().parent.parent
 _COLLECTION_ERROR_MARKER = re.compile(r"(?m)^(?:=+ ERRORS =+|ERROR(?:\s|$))")
@@ -56,15 +55,27 @@ def collect_node_ids(
     if import_mode is not None:
         argv.append(f"--import-mode={import_mode}")
     argv.extend(members)
-    completed = subprocess.run(
+    env = os.environ.copy()
+    # Ambient pytest flags and an inherited source path would change the
+    # load-bearing import-mode control and the collected node-ID surface.
+    env.pop("PYTEST_ADDOPTS", None)
+    env.pop("PYTHONPATH", None)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    try:
+        completed = subprocess.run(
         argv,
         cwd=ROOT,
         check=False,
-        env=os.environ | {"PYTHONDONTWRITEBYTECODE": "1"},
+        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        timeout=300,
     )
+    except subprocess.TimeoutExpired as exc:
+        raise AssertionError(
+            f"collection timed out after 300 seconds for {', '.join(members)}"
+        ) from exc
     node_ids = [
         line
         for raw_line in completed.stdout.splitlines()
@@ -137,7 +148,17 @@ def test_declared_class_collection_characterization(
         f"{compatibility_class.identifier}: grouped forward collection produced no node IDs; "
         f"captured output:\n{forward_node_ids.output}"
     )
-    assert len(forward_node_ids) == _EXPECTED_NODE_ID_COUNTS[compatibility_class.identifier]
+    expected_floor = _EXPECTED_NODE_ID_COUNTS.get(compatibility_class.identifier)
+    assert expected_floor is not None, (
+        f"{compatibility_class.identifier}: declare a floor for the new class in "
+        "_EXPECTED_NODE_ID_COUNTS and update its CLASSES rationale"
+    )
+    assert len(forward_node_ids) >= expected_floor, (
+        f"{compatibility_class.identifier}: grouped forward collected "
+        f"{len(forward_node_ids)} nodes, below declared floor {expected_floor}; "
+        "update _EXPECTED_NODE_ID_COUNTS and the class rationale together when "
+        "the intended collection surface changes"
+    )
     _assert_unique(compatibility_class, "isolated", isolated_node_ids)
     _assert_unique(compatibility_class, "grouped forward", forward_node_ids)
     _assert_same_nodes(

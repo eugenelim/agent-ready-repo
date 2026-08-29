@@ -524,8 +524,16 @@ $(PYTHON) -m pytest \
 	tools/test_conformance_portability.py \
 	tools/test_lint_guides_no_repo_only_refs.py \
 	tools/test_okf_pre_pr.py \
-	tools/test_pack_test_compatibility.py \
-	tools/test_pack_test_class_characterization.py -q
+	tools/test_pack_test_compatibility.py -q
+# The identity derivation is what catches the SILENT hazard — a subject module
+# bound to the wrong path, or a sys.path mutation added to a class member.
+# Collection-only characterization cannot see either, and at ~2s this is the
+# fast feedback for anyone editing packs/*/tests/**. The full characterization
+# (isolated-vs-grouped node IDs, reverse order, importlib controls) spawns 30
+# collect-only processes for ~36s and runs in build-check.yml instead.
+$(PYTHON) tools/lint-pack-test-boundary.py \
+	--check compatibility-classes-are-well-formed \
+	--check class-members-keep-distinct-module-identity
 endef
 
 test-unleased: lint-editable-install

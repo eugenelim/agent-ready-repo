@@ -295,6 +295,25 @@ declared **compatibility class**. A class:
 A grouping justified only by "nothing collides today" is not a class. That is a
 property of the current contents, not of the layout.
 
+**How to prove a class before declaring it.** Collect each member alone, then
+collect the group, and compare the node-ID sets:
+
+```
+pytest <member> --collect-only -q          # once per member; union the output
+pytest <member-1> <member-2> … --collect-only -q
+```
+
+The union must equal the grouped set exactly, and the raw line count must equal
+the unique count on both sides — otherwise something is collected twice. Repeat
+the grouped command with the members in reverse order; a difference means an
+import in one member is deciding what another member sees. Any suite that needs
+a flag to collect cleanly must carry that flag in the runner, and the class
+should record why.
+
+That is the test-module half. The subject half is separate, and no collection
+comparison can see it: two suites can bind the same module object and still
+produce identical node IDs.
+
 Retaining isolation is a valid result. A suite that needs a clean interpreter,
 carries a collection floor, or reaches a subject through `sys.path` should stay
 in its own process, and saying so is engineering rather than a failure to

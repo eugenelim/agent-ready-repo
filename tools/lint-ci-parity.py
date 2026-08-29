@@ -904,7 +904,30 @@ def _expanded_recipe_lines(text: str, recipe_line: str) -> list[str]:
         expanded = expanded.replace(f"$({index})", value)
     if re.search(r"\$\([1-9]\)", expanded):
         return [recipe_line]
-    return expanded.splitlines()
+    return _join_continuations(expanded.splitlines())
+
+
+def _join_continuations(lines: list[str]) -> list[str]:
+    """Fold backslash continuations so one command is one line.
+
+    A grouped pytest invocation spans several physical lines and only the first
+    carries the `pytest` token, so splitting physically hides every path operand
+    from the reachability match — the step reads as "not reachable from make ci"
+    while it in fact runs. `_iter_rules` already folds for the same reason; this
+    is the macro-body path it does not cover.
+    """
+    out: list[str] = []
+    pending: list[str] = []
+    for raw in lines:
+        if raw.endswith("\\"):
+            pending.append(raw[:-1].rstrip())
+            continue
+        pending.append(raw)
+        out.append(" ".join(part.strip() for part in pending) if len(pending) > 1 else pending[0])
+        pending = []
+    if pending:
+        out.append(" ".join(part.strip() for part in pending) if len(pending) > 1 else pending[0])
+    return out
 
 
 def makefile_recipe_targets(text: str, reachable: set[str]) -> set[str]:
