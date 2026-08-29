@@ -10,8 +10,6 @@ metadata:
 
 # Skill: {router_skill}
 
-{output_rendering}
-
 ## Module index
 
 Read `references/okf/index.md` first. Descend only through named child indexes
