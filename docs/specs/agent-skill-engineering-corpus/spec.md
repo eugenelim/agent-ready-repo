@@ -63,9 +63,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   walks outside the owning pack in `tests/roster/`.
 - Re-measure the foundation retrieval cases after every corpus change and treat
   a regression in any single case as a defect in the change.
-- Record every `tools/` failure this slice observes with the invocation that
-  reproduces it, the base it was seen on, an attribution, and who attributed
-  it. Never absorb a red this change did not cause into a green result.
+- Record every failure this slice's gate chain observes — wherever it lives —
+  with the invocation that reproduces it, the base it was seen on, an
+  attribution, and who attributed it. Never absorb a red this change did not
+  cause into a green result.
 - Regenerate every projection through its owning command rather than editing a
   generated or self-hosted file.
 - Close this pack's publication obligations — matching manifest bump, eval
@@ -396,20 +397,29 @@ edit a completed task section.
   subject is the same ungated ledger; extending that entry's summary adds no
   new legacy-shaped entry, so the ceiling is not reached and no raise is
   proposed.
-- Pack owner: four tests in this pack's own suite arrive red from the base —
-  `test_foundation_corpus.py::test_independent_router_results_meet_precision_and_recall_gate`,
-  `test_pack_boundary.py::test_independent_activation_results_bind_all_queries_and_descriptions`,
-  and `test_contract.py`'s `test_authoring_behavior_evals_cover_frame_and_existing_update`
-  and `::test_authoring_behavior_evidence_matches_its_source_digest`. A
-  `cognitive-load-output-quality` case was added to
+- Pack suite: four tests in this pack's own suite arrive red from the base,
+  from **two** upstream causes, and each carries its own disposition. All four
+  are attributed `inherited`; `Makefile:471-475` invokes the suite, so this
+  slice's gate chain reaches them, and no workflow names it, so they are
+  invisible to the PR checks and surface only under `make test`.
+  *Cause 1 — an eval case added without its assertions.*
+  `test_contract.py::test_authoring_behavior_evals_cover_frame_and_existing_update`
+  and `::test_authoring_behavior_evidence_matches_its_source_digest`: a
+  `cognitive-load-output-quality` case entered
   `author-or-update-agent-skill/evals/evals.json` without updating the exact-set
-  assertion or the recorded digest. `Makefile:472-475` invokes this suite, so a
-  gate this slice runs reaches them. They are attributed `inherited`. Because
-  T12 and T13 author this pack's behavior fixtures and their evidence record,
-  this slice's disposition is to reconcile them as part of that work rather
-  than route them away — the files are inside its own scope. No workflow names
-  this suite, so the failures are invisible to the PR checks and surface only
-  under `make test`.
+  assertion or the recorded digest. **T12 owns both** — it rewrites that evals
+  tree and re-records its digest — so the red clears as a byproduct of work this
+  plan already compels, and is reported as inherited-and-fixed-here.
+  *Cause 2 — `c7ed3f910` wrote the managed rendering block into this pack's
+  skills, moving their bytes.*
+  `test_foundation_corpus.py::test_independent_router_results_meet_precision_and_recall_gate`
+  pins `router_digest` to `ase-okf-reference/SKILL.md`'s bytes; **T9 owns it**,
+  which re-records `router-results.json`.
+  `test_pack_boundary.py::test_independent_activation_results_bind_all_queries_and_descriptions`
+  pins per-skill digests to the authoring workflow's `SKILL.md` bytes and cannot
+  be reconciled by editing — it needs a fresh headless observation, which
+  `Never do` forbids back-filling. **T11 owns it**, because T11 moves those same
+  bytes again and so must re-record the fixture regardless.
 
 ## Assumptions
 
@@ -473,15 +483,15 @@ edit a completed task section.
 - Technical: the `tools/` failure set moves with the base and is therefore
   recorded, not enumerated in this contract, and it has already moved twice
   while this slice was in flight. Two `test_guide_typed_asides.py` ledger tests
-  reproduce and are invoked by no `Makefile` target this slice runs; four tests
-  in this pack's own suite reproduce and *are* invoked at `Makefile:472-475`;
-  and `test_local_ci_shared_test_deduplication.py`, which an earlier base left
-  red at `Makefile:471`, now passes because its owner re-pinned it (source:
-  each gate invocation run directly on the rebased base, and a search of the
-  whole `run-test-suite` macro, `Makefile:407-506`, for the absence. A
-  whole-directory `pytest tools/` run is a non-authoritative probe, because
-  `Makefile:477-479` records the per-class split as a stability property; where
-  the two disagree the per-gate invocation governs)
+  reproduce and are invoked by no `Makefile` line; four tests in this pack's own
+  suite reproduce and *are* invoked at `Makefile:471-475`; and
+  `test_local_ci_shared_test_deduplication.py`, which an earlier base left red,
+  now passes because its owner re-pinned it (source: each gate invocation run
+  directly on the rebased base, and a search of the whole `run-test-suite`
+  macro, `Makefile:422-537`, for the absence. A whole-directory `pytest tools/`
+  run is a non-authoritative probe, because `Makefile:497-499` records the
+  per-class split as a stability property; where the two disagree the per-gate
+  invocation governs)
 - Process: `[backlog].open`'s legacy-shape ceiling of 160 is at its measured
   maximum and its failure message forbids raising it; only entries carrying a
   `path` key are exempt, and those require a real artifact (source:

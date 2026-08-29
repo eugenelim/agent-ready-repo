@@ -848,7 +848,7 @@ T8 defers to T9 rather than re-measuring.
 
 **Depends on:** T10
 
-**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md, .../references/, packs/agent-skill-engineering/tests/fixtures/unsupported-mode-cases.json, packs/agent-skill-engineering/tests/pack/test_pack_boundary.py, packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py
+**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md, .../references/, packs/agent-skill-engineering/tests/fixtures/unsupported-mode-cases.json, packs/agent-skill-engineering/tests/pack/test_pack_boundary.py, packs/agent-skill-engineering/tests/fixtures/activation-results.json, packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py
 
 **Tests:**
 - The mode loads exactly its four mode-specific modules — the knowledge-provider
@@ -1026,9 +1026,9 @@ absent, and the matcher's detection half is asserted durably.
   `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
   run, so a failure can be attributed. (AC14)
 - No per-marker value is recorded. (AC14)
-- The QA record carries, for every `tools/` failure this slice observed, the
-  invocation that reproduces it, the base it was seen on, an attribution, and
-  who attributed it; none is dropped. This is the *Always do* Boundary, not an
+- The QA record carries, for every failure this slice's gate chain observed,
+  the invocation that reproduces it, the base it was seen on, an attribution,
+  and who attributed it; none is dropped. This is the *Always do* Boundary, not an
   acceptance criterion — no gate scores it.
 
 - `no stub (manual QA)` — the values are transcribed from an observed graded
@@ -1048,8 +1048,8 @@ absent, and the matcher's detection half is asserted durably.
   carried forward, not closed with an unmeasured value.
 
 **Done when:** the record carries measured values, the run is named, no derived
-value appears, and every `tools/` failure this slice observed is present in the
-record with its invocation, base, attribution, and attributor.
+value appears, and every failure this slice's gate chain observed is present in
+the record with its invocation, base, attribution, and attributor.
 
 ### T14: The pack's surfaces are current everywhere CI looks
 
@@ -1403,4 +1403,27 @@ layer writes durable state outside the repository, and no migration runs.
   slice's scope rather than someone else's. No workflow names this suite, so
   they are invisible to the PR checks and surface only under `make test` — the
   same ungated shape the guides tests have.
+- 2026-08-29: revision 16. Revision 15's re-observation was wrong in three ways
+  and is corrected here; the entry above stands as written, this one supersedes
+  it. It gave **one** cause for four failures, and the cause is right for only
+  two: the `test_contract.py` pair comes from the `cognitive-load-output-quality`
+  eval case, but `test_foundation_corpus.py` and `test_pack_boundary.py` fail on
+  `SKILL.md` **byte digests** invalidated by `c7ed3f910`, which wrote the managed
+  rendering block into this pack's skills — a different upstream change. It then
+  justified reconciling all four in-scope on T12 and T13, which own neither:
+  `router-results.json` is T9's, and `activation-results.json` was in no task's
+  `Touches` at all. That last one is the real defect — a red with no owner,
+  declared not-routed, would have sat there until L6 with nobody left to hand it
+  to, which is absorption wearing an attribution. Disposition is now per failure
+  with its owning task named, and T11 takes `activation-results.json` because
+  T11 moves those same bytes again and must re-record the fixture regardless.
+  The Boundary's subject was also still `tools/` while every observed red was a
+  pack-suite red, so it now reads "every failure this slice's gate chain
+  observes"; T13's two sites follow. Finally the rebase moved the `Makefile` and
+  revision 15 re-took one citation but not the others: the macro is `422-537`
+  not `407-506`, the per-class stability comment is `497-499` not `477-479`, the
+  dedup test is at `491` not `471`, and the pack invocation begins at `471` —
+  `472-475` are only its path arguments. Seventh instance on this change of an
+  edit reaching some sites and not all, and the first where re-observation
+  itself was the thing done partially.
 
