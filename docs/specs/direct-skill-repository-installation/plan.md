@@ -35,7 +35,7 @@ TDD covers parity, bounds, admission, state/digest, diagnostics, selection, re-c
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
-Hand-author canonical, direct, and expected-normalized fixtures; compare repo/user projections, local footprint, and per-file plans. **Done when:** all direct shapes match; a divergence stops T4 and reopens the design.
+Hand-author canonical, direct, and expected-normalized fixtures; compare repo/user projections, local footprint, and per-file plans. **Done when:** all direct shapes match; a divergence stops T4 and reopens the design. **Result (2026-08-28): design retained.** Parity for the skill primitive holds by construction and does not depend on the manifest. `contracts/adapter.toml` gives every adapter `primitive = "skill"` with `mode = "direct-directory"`, and `build/self_host.py:866-869` builds that projection as `mapping[target_prefix / entry.name] = entry` over each subdirectory of `<pack>/skills/` — the only inputs are the envelope directory name and its bytes. No pack-manifest field reaches a skill projection, so parity reduces to tree equality, which AC15's read-bytes-are-written-bytes rule already guarantees. Residual to cover in T4: pack name and version reach state rows and receipts, not the projection, and a manifestless synthetic pack's sentinel must stay unrendered per AC26.
 
 ### T0b: Spike — manifest schema expressiveness
 
@@ -43,7 +43,7 @@ Hand-author canonical, direct, and expected-normalized fixtures; compare repo/us
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
-Test a throwaway schema against catalogue and direct fixtures. **Done when:** both profiles validate as required; unsupported expression reopens the design rather than widening the validator.
+Test a throwaway schema against catalogue and direct fixtures. **Done when:** both profiles validate as required; unsupported expression reopens the design rather than widening the validator. **Result (2026-08-28): design retained, no widening.** Adding top-level `schema: {"enum": [1]}` to `contracts/pack.schema.json` behaves exactly as AC10 requires against the repository's stdlib subset (`build/validate.py:49`): a catalogue manifest with no `schema` key still validates, so implicit v1 is preserved; `schema = 1` validates; `schema = 2` refuses with `$.schema: value 2 not in enum [1]`; the string `"1"` refuses; and unknown keys refuse at both the root and inside `[pack]`. **The skills-only subset is not expressible in the schema and must be enforced in baseline code:** a direct manifest declaring `recipes`, `runtime-dependencies`, `adaptation`, or `seeds` passes the schema unchanged. **Trap for authors — an `if`/`then`/`not` conditional restricting the direct profile is silently ignored rather than erroring**, so it passes everything; this extends E6's known behaviour for length keywords to conditionals, and T2 must assert the code-side refusal rather than trusting the schema.
 
 ### T0c: Spike — installed-file map versus digest
 
@@ -51,7 +51,7 @@ Test a throwaway schema against catalogue and direct fixtures. **Done when:** bo
 **Depends on:** none  
 **Verification:** Goal-based; no stub.
 
-Use discriminating projection, adapter, scope, mode, and display fixtures. **Done when:** record whether the map satisfies the digest contract; if it does, reopen the governing digest change through *Ask first* (RFC erratum plus spec amendment) before T6, otherwise retain the digest.
+Use discriminating projection, adapter, scope, mode, and display fixtures. **Done when:** record whether the map satisfies the digest contract; if it does, reopen the governing digest change through *Ask first* (RFC erratum plus spec amendment) before T6, otherwise retain the digest. **Result (2026-08-28): the map does not satisfy the contract — digest retained, no *Ask first* reopening.** `PackState.files` records `{relpath: {sha, from-pack-version}}` (`config.py:159-161`, written at `commands/install.py:1452`), which is a hash of the **installed projection** keyed by projection path. Three disqualifiers: its keys vary by adapter — `contracts/adapter.toml` targets `.claude/skills/` for `claude-code` but `.agents/skills/` for codex, copilot, and gemini — so one source would carry different map values per adapter row and AC26's digest-only update rule would report a spurious update on every adapter; its keys vary by scope; and its bytes are post-normalization projected bytes rather than the admitted source envelope AC13 digests. The content-only source digest stays.
 
 ### T0d: Spike — corpus admission
 
