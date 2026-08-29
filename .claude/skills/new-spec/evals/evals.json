@@ -78,6 +78,19 @@
         "Names stable post-closeout evidence outside the temporary pair",
         "Separates intended retention from immediate-disposition authority"
       ]
+    },
+    {
+      "id": "plan-stays-a-strategy-before-review",
+      "prompt": "Draft a spec and plan for a small parser change. Its draft acceptance criterion says the parser accepts valid input and preserves trailing comments. The plan repeats every acceptance criterion in Tests, invents final fixture and join-key details before code exists, and proposes another review pass instead of checking its assumed harness setup. The reviewer keeps finding plan under-specification rather than a spec defect. What should the author change before adversarial review?",
+      "expected_output": "The agent splits conjunctions into single-obligation criteria, removes repeated criteria from Tests, and keeps only non-inferable verification mechanisms there. It treats the overlong plan and Tests-heavy task as smells, keeps unknown file and fixture details incomplete until execution, and runs one side-effect-free throwaway check against the plan's riskiest mechanism before review, citing the result in the plan without committing the spike. If review keeps finding plan under-specification rather than a spec defect, it reduces the plan instead of extending it.",
+      "assertions": [
+        "Splits conjunctions into single-obligation acceptance criteria",
+        "Uses Tests for non-inferable mechanisms rather than repeating criteria",
+        "Treats plan and Tests-to-Approach imbalance as a smell rather than a hard gate",
+        "Does not freeze unknown fixture or join-key details at approval",
+        "Runs and cites one throwaway side-effect-free disconfirming check before review without committing it",
+        "Reduces the plan rather than extending it when review keeps finding plan under-specification"
+      ]
     }
   ]
 }

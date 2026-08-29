@@ -4,6 +4,45 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.15.3"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[core][2.15.3] — 2026-08-29",
+      "changelogAnchor": "core2153--2026-08-29",
+      "highlights": [
+        {
+          "source": "**Spec authors can keep the contract and the plan independently sharp.** An acceptance criterion now states one checkable obligation, and a plan's tests name the verification mechanism an implementer cannot infer instead of repeating the criterion.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Spec authors can keep the contract and the plan independently sharp."
+            },
+            {
+              "type": "text",
+              "value": " An acceptance criterion now states one checkable obligation, and a plan's tests name the verification mechanism an implementer cannot infer instead of repeating the criterion."
+            }
+          ]
+        },
+        {
+          "source": "**A plan now tests its riskiest assumption before anyone reviews it.** One cheap throwaway check can reshape the approach before reviewers spend rounds arguing about work nobody has started.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A plan now tests its riskiest assumption before anyone reviews it."
+            },
+            {
+              "type": "text",
+              "value": " One cheap throwaway check can reshape the approach before reviewers spend rounds arguing about work nobody has started."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agentbundle",
           "version": "0.40.2"
         }

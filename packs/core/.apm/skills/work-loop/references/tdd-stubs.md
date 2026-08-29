@@ -7,11 +7,13 @@ move on. Light mode's lean path runs none of this.
 
 This reference turns the loop's existing "write construction tests up front"
 obligation from *prose* into a **compilable, validated red stub** in
-`plan.md`'s per-task `Tests:` subsection. The payoff is timing: a vague or
-untestable acceptance criterion shows up **mechanically at PLAN** — the moment
-you cannot type a test against it — instead of as a surprise mid-EXECUTE, the
-most expensive place to discover an AC is under-specified. The stub is consumed
-unchanged by EXECUTE's red step; usually the red test is then already written.
+`plan.md`'s per-task `Tests:` subsection. A stub is an executable claim that
+fails; a bullet is not. When a stub exists, it replaces the prose bullet. The
+payoff is timing: a vague or untestable acceptance criterion shows up
+**mechanically at PLAN** — the moment you cannot type a test against it —
+instead of as a surprise mid-EXECUTE, the most expensive place to discover an
+AC is under-specified. The stub is consumed unchanged by EXECUTE's red step;
+usually the red test is then already written.
 
 This is one owner — the loop — progressing across its own phases, not a second
 test-design tool with a handoff. The full progression is the existing
@@ -68,17 +70,23 @@ Read the inputs the stub is derived from:
 
 - the spec's **Testing Strategy** — which ACs are TDD-mode (those are the only
   ones you stub);
-- each TDD-mode task's **`Tests:` prose** in `plan.md` — the construction-test
+- each TDD-mode task's **`Tests:` entry** in `plan.md` — the construction-test
   intent you are making compilable;
 - the **`Contract:`** file if the spec names one (its types/operations are what
   the stub imports and asserts against). If the spec names no contract, fall
   back to the component names in the plan's `## Design (LLD)`.
 
 For each TDD-mode AC, name the test function after the criterion. If you cannot
-even name the function — the AC is too abstract to type a test against — that
+even name the function because the AC is too abstract to type a test against, that
 **is** the under-specification signal: surface it as a finding ("AC N is not
 concrete enough to stub") and sharpen the spec, rather than writing a hollow
 `TODO`-test.
+
+If the criterion is concrete but its verification mode does not admit a stub,
+record `no stub (mode)` with the reason. That branch is not a licence to leave
+an abstract criterion unsharpened, and it does not add prose in place of the
+stub. A hard *surface* is not that branch: an out-of-process surface still
+stubs the nearest in-process contract (see Validate).
 
 ### 2. Resolve stack
 
@@ -113,10 +121,10 @@ test:
    naming the acceptance criterion the function pins. Use your stack's line-
    comment token; the `STUB:` keyword and the `AC<n>` reference are the fixed
    parts.
-2. **In `plan.md`** — a `stub: true` field in that task's `Tests:` subsection,
-   so the plan records that the construction test was materialised as a
-   compilable stub (vs. left as prose). A task that degraded (see Validate)
-   records `stub: draft (uncompiled)` with the reason instead.
+2. **In `plan.md`** — the test function name plus its AC identifier and a
+   `stub: true` field in that task's `Tests:` subsection. This is the `Tests:`
+   entry, not a prose restatement of the behaviour. A task that degraded (see
+   Validate) records `stub: draft (uncompiled)` with the reason instead.
 
 Everywhere else that refers to "the stub marker" means exactly this pair.
 
@@ -148,11 +156,13 @@ assertion as a deferred assertion for the full test — again, never a bare
 
 ### 5. Record
 
-Write each stub into its task's `Tests:` subsection in `plan.md`, flagged with
-the `stub: true` field from the marker convention above. No separate file — the
-coverage signal is the set of `Tests:` subsections plus a one-line covered /
-uncovered / `no stub (mode)` tally rolled into the spec's Testing Strategy.
-There is no `coverage-matrix.md`.
+Write each stub reference — test function name plus AC identifier — into its
+task's `Tests:` subsection in `plan.md`, flagged with the `stub: true` field
+from the marker convention above. This replaces a prose descriptor. An
+obligation without a stub records `no stub (mode)` and its reason, not more
+prose. No separate file — the coverage signal is the set of `Tests:`
+subsections plus a one-line covered / uncovered / `no stub (mode)` tally rolled
+into the spec's Testing Strategy. There is no `coverage-matrix.md`.
 
 ## Worked example — Python / pytest
 
@@ -192,7 +202,7 @@ against. In `plan.md`, the task records:
 
 ```
 Tests:
-- test_create_order_returns_201_with_order_id — asserts 201 + id shape (AC3)
+- test_create_order_returns_201_with_order_id (AC3)
   stub: true
 ```
 

@@ -262,6 +262,9 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      dependency, no new module boundary) so the diff can't sprawl into
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
+   - **An acceptance criterion carries more than one obligation.** If it needs
+     "and" to join two checkable properties, split it. A conjunction lets a
+     coverage check pass while half the criterion remains unimplemented.
    - **Body narrates history or the future.** Write the spec in the
      present tense, as if the feature already exists and always worked
      this way — the *retcon* discipline. No "will be implemented", no
@@ -401,6 +404,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      shape is DEEP.
    - Carry **construction tests** per task — `Tests:` before `Approach:`
      in each task, designed up front. "We'll test it" is not a strategy.
+   - Treat these as author-side smells, not gates: a plan substantially longer
+     than its spec, or a task whose `Tests:` lines outnumber its `Approach:`
+     lines, is specifying rather than strategising. Around 2×, stop and reduce
+     duplicated detail before review.
 
    Push back hard on these plan-stage failure modes (mirror of step 4):
    - **Task too big.** "Implement the feature" is not a task; "add the
@@ -425,6 +432,15 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      file paths and function or symbol names where they're known.
      "Update the parser" is too coarse to verify; "add a null-check
      in `parser/lex.ts:Lexer.next`" is the right level.
+   - **Freeze-time detail.** Per-task file lists, fixture shapes, join keys,
+     and assertion wording are expected to be incomplete at approval when code
+     does not yet exist. Name paths and symbols where known; do not ask the
+     approval gate to bless detail it cannot yet decide.
+   - **Restating an acceptance criterion.** The criteria are the checklist. A
+     `Tests:` bullet names a mechanism the implementer cannot infer: the suite
+     and its location, the fixture carrying a join key, or a shipped assertion
+     that moves. Repeating a criterion creates a second home for that fact with
+     nothing to keep it in sync.
    - **Open AC as delivery debt.** A newly `Shipped` spec has every final
      acceptance criterion checked. If required accepted work remains, the spec
      stays `Implementing` across sessions. If the work is separable, pause,
@@ -436,13 +452,22 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      exception; historical frozen specs that already used that form are
      migration work for a later governed wave.
 
+5a. **Take the cheapest disconfirming evidence before review.** Before the
+   first review round, run one throwaway check that could disconfirm the
+   plan's load-bearing mechanism: one fixture against the existing harness,
+   one measurement, or one read-only probe. Reuse step 3's side-effect-free
+   probe constraint. Let the result change the plan, cite it there, and do not
+   commit the spike.
+
 6. Spec-mode adversarial review. Before announcing the spec in the README,
    select a subagent matching `adversarial-reviewer` and ask it to review
    the freshly drafted `spec.md` + `plan.md` in spec mode — the role
    supports this explicitly. Iterate on findings until the reviewer returns
    `Clean — ready to commit.` Spec-mode reviews should converge in 1-2
    passes; if you can't reach clean in 3, the spec has a structural problem
-   — surface to a human rather than grinding. Absence of any subagent
+   — surface to a human rather than grinding. If the reviewer keeps finding
+   under-specification in the plan rather than defects in the spec, the plan is
+   over-specified: reduce it; do not extend it. Absence of any subagent
    matching this role is a note in the final summary
    (`adversarial-reviewer: no matching subagent installed; review skipped`),
    not a blocker.
