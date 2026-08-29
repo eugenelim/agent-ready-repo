@@ -114,7 +114,10 @@ class LoopCohortCliTest(unittest.TestCase):
             prefix="loop-cohort-cli-", ignore_cleanup_errors=True
         )
         self.addCleanup(temporary.cleanup)
-        return Path(temporary.name)
+        root = Path(temporary.name)
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        self._cwd = root
+        return root
 
     def _spec_dir(self) -> Path:
         spec_dir = self._temp_root() / "spec1"
@@ -124,7 +127,7 @@ class LoopCohortCliTest(unittest.TestCase):
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(COHORT), *map(str, args)],
-            cwd=PACK_ROOT,
+            cwd=getattr(self, "_cwd", PACK_ROOT),
             capture_output=True,
             text=True,
             encoding="utf-8",

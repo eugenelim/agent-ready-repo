@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 import types
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -57,10 +57,12 @@ def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
 
 
 def run_lint(root: Path, base_ref: str | None = None) -> tuple[int, str, str]:
+    """Run the CLI from the temporary repository that owns ``root``."""
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
     argv = [sys.executable, str(LINTER), "--root", str(root)]
     if base_ref is not None:
         argv += ["--base-ref", base_ref]
-    proc = subprocess.run(argv, capture_output=True, text=True)
+    proc = subprocess.run(argv, capture_output=True, text=True, cwd=str(root))
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -122,8 +124,100 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
     return True
 
 
+def _timed_out_run(calls: list[float]) -> Callable[..., subprocess.CompletedProcess]:
+    """Return a subprocess seam that records and raises the configured timeout."""
+    def run(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+    return run
+
+
+def test_default_base_ref_primary_probe_timeout_degrades_to_no_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert module.resolve_default_base_ref(Path("/repo")) is None
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
+def test_default_base_ref_fallback_probe_timeout_degrades_to_no_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+
+    def run(*args, **kwargs):
+        calls.append(kwargs["timeout"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(args[0], 1, "", "")
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+
+    assert module.resolve_default_base_ref(Path("/repo")) is None
+    assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S]
+
+
+def test_base_ref_probe_timeout_degrades_to_unresolvable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert not module.base_ref_resolves(Path("/repo"), "origin/main")
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
+def test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A timed-out base object read is not evidence that a spec is new."""
+    module = load_linter_module()
+    calls: list[float] = []
+    original_run = module.subprocess.run
+
+    def run(*args, **kwargs):
+        if "show" in args[0]:
+            calls.append(kwargs["timeout"])
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+        return original_run(*args, **kwargs)
+
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        sectionless = root / "docs" / "specs" / "sectionless" / "spec.md"
+        sectionless.parent.mkdir(parents=True)
+        sectionless.write_text(
+            "# Spec: sectionless\n\n- **Status:** Shipped\n", encoding="utf-8"
+        )
+        write_spec(root, "unchecked", "Shipped", "- [ ] grandfathered\n")
+        git_init_commit(root)
+
+        monkeypatch.setattr(module.subprocess, "run", run)
+        monkeypatch.setattr(module, "base_ref_resolves", lambda _root, _ref: True)
+        hard, warn = module.check(root, "HEAD")
+
+    assert hard == []
+    assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S], warn
+    assert sum("diff-triggered invariants (ii) and (vi) skipped" in item for item in warn) == 2
+
+
+def test_repo_root_probe_timeout_degrades_to_script_relative_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = load_linter_module()
+    calls: list[float] = []
+    monkeypatch.setattr(module.subprocess, "run", _timed_out_run(calls))
+
+    assert module._repo_root() == Path(module.__file__).resolve().parent.parent
+    assert calls == [module.GIT_TIMEOUT_S]
+
+
 def test_clean() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "ok", "Draft", "- [ ] AC1 open\n")
         rc, _, err = run_lint(root)  # no base ref → invariant (ii) skipped
@@ -131,7 +225,7 @@ def test_clean() -> None:
 
 
 def test_invariant_i_out_of_vocab() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "bad", "Drafting", "- [ ] AC1\n")
         rc, out, err = run_lint(root)
@@ -140,7 +234,7 @@ def test_invariant_i_out_of_vocab() -> None:
 
 
 def test_invariant_i_lenient() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "annotated", "Shipped (2026-05-26)", "- [x] AC1\n")
         write_spec(root, "arrowed", "Approved → Shipped (landed)", "- [x] AC1\n")
@@ -149,7 +243,7 @@ def test_invariant_i_lenient() -> None:
 
 
 def test_invariant_ii_transition_fails() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
         git_init_commit(root)
@@ -161,7 +255,7 @@ def test_invariant_ii_transition_fails() -> None:
 
 
 def test_invariant_ii_transition_fails_when_deferred() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_workspace_backlog(root, ["later-work"])
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
@@ -177,7 +271,7 @@ def test_invariant_ii_transition_fails_when_deferred() -> None:
 
 
 def test_invariant_ii_grandfather() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # Already Shipped on the base with an unchecked AC → grandfathered.
         write_spec(root, "old", "Shipped", "- [ ] AC1 never checked\n")
@@ -187,7 +281,7 @@ def test_invariant_ii_grandfather() -> None:
 
 
 def test_invariant_ii_no_base() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)  # plain dir, not a git repo, no base ref
         write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
         rc, _, err = run_lint(root)  # resolve_default_base_ref → None
@@ -196,7 +290,7 @@ def test_invariant_ii_no_base() -> None:
 
 
 def test_invariant_i_missing_status() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # A spec with no `- **Status:**` header line at all.
         p = root / "docs" / "specs" / "headless" / "spec.md"
@@ -208,7 +302,7 @@ def test_invariant_i_missing_status() -> None:
 
 
 def test_invariant_iv_resolves_workspace_slug() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # A slug in workspace.toml [backlog].open must resolve a (deferred:) marker.
         write_workspace_backlog(root, ["some-deferred-item"])
@@ -220,7 +314,7 @@ def test_invariant_iv_resolves_workspace_slug() -> None:
 
 # STUB: AC1 — repository metadata must not be read through an outside symlink.
 def test_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
         root.mkdir()
@@ -252,7 +346,7 @@ def test_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
 
 # STUB: AC1 — link and code-reference probes must not consult outside targets.
 def test_reference_candidates_outside_root_do_not_resolve() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
         root.mkdir()
@@ -279,7 +373,7 @@ def test_reference_candidates_outside_root_do_not_resolve() -> None:
 
 # CONTRACT CONTROL: AC1 — the existing contract-file confinement stays pinned.
 def test_contract_file_symlink_outside_root_does_not_resolve() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
         root.mkdir()
@@ -307,7 +401,7 @@ def test_contract_file_symlink_outside_root_does_not_resolve() -> None:
 
 
 def test_invariant_ii_born_shipped_fails() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # A brand-new spec absent at base, born Shipped with an unchecked AC.
         write_spec(root, "preexisting", "Draft", "- [x] AC1\n")
@@ -319,7 +413,7 @@ def test_invariant_ii_born_shipped_fails() -> None:
 
 
 def test_invariant_iv_missing_anchor() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "deferring", "Draft",
                    "- [ ] AC1 (deferred: nonexistent-anchor)\n")
@@ -329,7 +423,7 @@ def test_invariant_iv_missing_anchor() -> None:
 
 
 def test_invariant_iv_placeholder_ignored() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # The template placeholder `<anchor>` must NOT be treated as a real
         # deferral marker (it would never resolve).
@@ -340,7 +434,7 @@ def test_invariant_iv_placeholder_ignored() -> None:
 
 
 def test_invariant_iii_warn_only() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         p = root / "docs" / "specs" / "linky" / "spec.md"
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -373,7 +467,7 @@ def touch(root: Path, rel: str) -> None:
 
 
 def test_iii_code_ref_resolves_and_missing() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         touch(root, "tools/real.py")
         write_spec_body(root, "coderef",
@@ -387,7 +481,7 @@ def test_iii_code_ref_resolves_and_missing() -> None:
 def test_iii_code_ref_exclusions_with_controls() -> None:
     # Each excluded shape is paired with a shape-matched full-path control that
     # IS flagged — so a no-op extractor (matching nothing) fails this case.
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec_body(
             root, "excl",
@@ -414,7 +508,7 @@ def test_iii_code_ref_exclusions_with_controls() -> None:
 
 
 def test_iii_code_ref_suffix_strip() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         touch(root, "tools/y.py")
         write_spec_body(
@@ -429,7 +523,7 @@ def test_iii_code_ref_suffix_strip() -> None:
 
 
 def test_iii_code_ref_markdown_link() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec_body(root, "linkref", "See [the helper](../../tools/nope.py).")
         rc, _, err = run_lint(root)
@@ -457,7 +551,7 @@ def write_contract(root: Path, relpath: str, content: str) -> None:
 
 
 def test_v_agreement_passes() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_contract(root, "contracts/openapi/orders.yaml",
                        "openapi: 3.1.0\nx-spec: [docs/specs/orders/]\n")
@@ -468,7 +562,7 @@ def test_v_agreement_passes() -> None:
 
 
 def test_v_forward_without_backward_warns() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # contract exists but carries no x-spec back-ref, and no REGISTRY.md
         write_contract(root, "contracts/openapi/orders.yaml", "openapi: 3.1.0\n")
@@ -479,7 +573,7 @@ def test_v_forward_without_backward_warns() -> None:
 
 
 def test_v_no_contracts_noop() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # template placeholder value + an explicit "none"; no contracts/ tree
         write_spec_with_contract(
@@ -491,7 +585,7 @@ def test_v_no_contracts_noop() -> None:
 
 
 def test_v_extensionless_registry_and_dangling() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         # extensionless format → REGISTRY.md is the backward channel
         write_contract(root, "contracts/proto/payments/v1/payments.proto",
@@ -514,7 +608,7 @@ def test_v_extensionless_registry_and_dangling() -> None:
 
 # STUB: AC1 — the contract registry must not be read through an outside symlink.
 def test_contract_registry_symlink_outside_root_does_not_supply_backref() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
         root.mkdir()
@@ -548,7 +642,7 @@ def test_multiline_comment_not_matched() -> None:
     """Regression: a **Status:** inside a multiline HTML comment must not
     be returned before the live status field (parse_status was applying
     _HTML_COMMENT_RE per-line, so block comments were never stripped)."""
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         spec = root / "docs" / "specs" / "commented" / "spec.md"
         spec.parent.mkdir(parents=True, exist_ok=True)
@@ -607,7 +701,7 @@ def test_unchecked_ac_is_caught_whatever_the_heading_casing(header: str) -> None
     sentence-case arm EXITED 0 — a clean bill of health for a spec shipping an
     unmet criterion, because the linter never found the section to read.
     """
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         _write_spec_with_header(root, "preexisting", "Draft", "- [x] AC1\n", header)
         git_init_commit(root)
@@ -632,7 +726,7 @@ def test_fully_checked_spec_under_either_casing(header: str) -> None:
     has one.
     """
     canonical = header == "## Acceptance Criteria\n\n"
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         _write_spec_with_header(root, "preexisting", "Draft", "- [x] AC1\n", header)
         git_init_commit(root)
@@ -677,7 +771,7 @@ def write_spec_without_ac_section(
 
 
 def test_vi_heading_present_without_marker_is_clean() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "has-criteria", "Draft", "- [ ] AC1 open\n")
 
@@ -687,7 +781,7 @@ def test_vi_heading_present_without_marker_is_clean() -> None:
 
 
 def test_vi_missing_heading_with_reasoned_marker_is_clean() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         reason = "this investigation prescribes no work"
         spec = write_spec_without_ac_section(root, "opted-out", f"none — {reason}")
@@ -809,7 +903,7 @@ def test_vi_lowercase_marker_has_precise_near_miss_error() -> None:
     ids=["missing-reason", "empty-reason"],
 )
 def test_vi_reasonless_marker_is_hard(marker_value: str) -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         spec = write_spec_without_ac_section(root, "reasonless", marker_value)
 
@@ -824,7 +918,7 @@ def test_vi_reasonless_marker_is_hard(marker_value: str) -> None:
 
 
 def test_vi_heading_and_marker_are_a_hard_contradiction() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         spec = root / "docs" / "specs" / "contradiction" / "spec.md"
         spec.parent.mkdir(parents=True, exist_ok=True)
@@ -844,7 +938,7 @@ def test_vi_heading_and_marker_are_a_hard_contradiction() -> None:
 
 
 def test_vi_lowercase_heading_counts_as_present() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         _write_spec_with_header(
             root,
@@ -981,7 +1075,7 @@ def test_collector_accepts_a_superset_of_what_the_detector_accepts() -> None:
 
 
 def test_vi_mutation_missing_section_fires_until_only_marker_is_added() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "mutation", "Draft", "- [ ] AC1 open\n")
         git_init_commit(root)
@@ -1036,7 +1130,7 @@ def test_near_miss_heading_is_warned_not_silently_accepted() -> None:
     hard invariant (ii) violation to exit 0. Not breaking a build is not the
     same as still working.
     """
-    with tempfile.TemporaryDirectory() as tmp:
+    with best_effort_tempdir() as tmp:
         root = Path(tmp)
         _write_spec_with_header(root, "legacy", "Draft", "- [x] AC1\n", _LOWER_AC_HEADER)
         git_init_commit(root)

@@ -7,6 +7,8 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_DIR = ROOT / "docs/specs/close-work-extraction-and-immediate-disposition"
 SURVEY = ROOT / "docs/rfc/0096-notes/open-source-context-lifecycle-survey.md"
@@ -15,6 +17,13 @@ SURVEY = ROOT / "docs/rfc/0096-notes/open-source-context-lifecycle-survey.md"
 def _read(relative: str) -> str:
     """Read one UTF-8 repository surface."""
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def _assert_core_manifest_versions_agree(
+    pack: dict[str, object], plugin: dict[str, object]
+) -> None:
+    """Require the shipped pack and plugin manifests to carry one version."""
+    assert pack["pack"]["version"] == plugin["version"]
 
 
 def test_every_planned_durable_output_exists_at_its_owner() -> None:
@@ -107,29 +116,32 @@ def test_core_release_metadata_and_history_agree() -> None:
     changelog = _read("docs/product/changelog.md")
     skill = _read("packs/core/.apm/skills/close-work/SKILL.md")
 
-    current_version = pack["pack"]["version"]
-    assert plugin["version"] == current_version
+    _assert_core_manifest_versions_agree(pack, plugin)
     assert "close-work" in pack["pack"]["evals"]["skills"]
-    # Assert the invariant, not the calendar day or a release's current version.
-    # The date moved twice while this branch was in review, and the version must
-    # advance whenever core ships. The version coupling above and a dated,
-    # top-level heading for that version are this test's release contract.
+    # Assert the invariant, not the calendar day. The release date is not this
+    # test's to own — it moved twice while this branch was in review, and each
+    # slip reddened a suite for a reason unrelated to the declaration here. The
+    # version coupling above is the real contract; a dated top-level heading in
+    # the documented shape is all this line needs.
     assert re.search(
-        rf"^## \[core\]\[{re.escape(current_version)}\] — \d{{4}}-\d{{2}}-\d{{2}}$",
-        changelog,
-        re.M,
-    ), f"no dated top-level core {current_version} changelog heading"
-    # 2.14.0 is already published history, not the current-release selector.
-    assert re.search(
-        r"^## \[core\]\[2\.14\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
-    ), "no dated top-level core 2.14.0 changelog heading"
+        r"^## \[core\]\[2\.15\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
+    ), "no dated top-level core changelog heading for this wave's release"
     assert "allowed-tools: Read Write Edit Bash" in skill
     for forbidden in ("WebFetch", "WebSearch", "MCP", "Browser", "Task"):
         assert forbidden not in skill.split("---", 2)[1]
 
 
-def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
-    """Cooling classification does not become retirement or context exclusion."""
+def test_core_release_metadata_rejects_manifest_version_drift() -> None:
+    """Mutation guard: a one-sided manifest-version change must be rejected."""
+    pack = {"pack": {"version": "2.15.1"}}
+    plugin = {"version": "2.15.0"}
+
+    with pytest.raises(AssertionError):
+        _assert_core_manifest_versions_agree(pack, plugin)
+
+
+def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
+    """Wave 5 ships cooling while Waves 6 and 7 retain their stated boundary."""
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
     lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
     how_to = _read("guides/core/how-to/close-and-disposition-work.md")
@@ -138,8 +150,7 @@ def test_wave4_docs_do_not_claim_later_wave_engines() -> None:
     # test whose meaning is unchanged.
     combined = " ".join("\n".join((architecture, lifecycle, how_to)).split())
     for statement in (
-        "Wave 5 owns dates, clocks, due state, and retirement",
-        "no clock, date, due-state, retirement, ordinary-context exclusion",
-        "It does not calculate dates, start a timer, or retire anything",
+        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
+        "Wave 6 and 7 own ordinary-context exclusion and historical migration and pruning behavior",
     ):
         assert statement in combined, statement

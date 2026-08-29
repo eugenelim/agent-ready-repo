@@ -1,6 +1,6 @@
 [pack]
 name = "catalogue-curation"
-version = "0.4.4"
+version = "0.4.5"
 description = "For catalogue maintainers: assimilate outside skills, survey repositories, propose packs, and compile pack-owned OKF knowledge."
 readme = "README.md"
 display_name = "Catalogue Curation"

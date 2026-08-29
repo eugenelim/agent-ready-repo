@@ -1,6 +1,6 @@
 [pack]
 name = "cost-engineering"
-version = "0.0.0"
+version = "0.0.1"
 description = "Reserved OKF pilot fixture for cost-engineering knowledge routing evidence."
 readme = "README.md"
 display_name = "Cost Engineering OKF Pilot"

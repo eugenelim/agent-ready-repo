@@ -1385,6 +1385,10 @@ def _open_validated_parent(repository_root: Path, directory: Path) -> int:
     return descriptor
 
 
+open_validated_parent = _open_validated_parent
+load_regular_sibling = _load_regular_sibling
+
+
 def _directory_path_matches_fd(directory: Path, descriptor: int) -> bool:
     try:
         opened = os.fstat(descriptor)

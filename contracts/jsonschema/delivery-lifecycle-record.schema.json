@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/delivery-lifecycle-record.schema.json",
+  "title": "Delivery lifecycle record",
+  "description": "Portable persistent state for a delivered artifact in cooling or retention.",
+  "type": "object",
+  "contract_version": "delivery-lifecycle-record.v1",
+  "x-spec": ["docs/specs/thirty-day-cooling-and-retirement/"],
+  "additionalProperties": false,
+  "required": ["schema", "delivery_id", "locator", "aliases", "fingerprint", "disposition", "post_closeout_result", "completion_event", "completion_evidence_ref", "completed_on", "timezone", "review_on", "authority", "confirmation_proof"],
+  "properties": {
+    "schema": {"const": "delivery-lifecycle-record.v1"},
+    "delivery_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"},
+    "locator": {"$ref": "#/$defs/locator"},
+    "aliases": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/locator"}},
+    "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "disposition": {"enum": ["cool-30-days", "retain-exception"]},
+    "post_closeout_result": {"enum": ["Cooling", "Retained", "Retired", "ExternalAdvisory"]},
+    "completion_event": {"enum": ["merge", "release", "acceptance"]},
+    "completion_evidence_ref": {"$ref": "#/$defs/evidenceRef"},
+    "completed_on": {"$ref": "#/$defs/calendarDate"},
+    "timezone": {"type": "string", "minLength": 1, "maxLength": 255},
+    "review_on": {"$ref": "#/$defs/calendarDate"},
+    "authority": {"$ref": "#/$defs/authority"},
+    "confirmation_proof": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "exception": {"$ref": "#/$defs/exception"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"disposition": {"const": "retain-exception"}}, "required": ["disposition"]},
+      "then": {"required": ["exception"]},
+      "else": {"not": {"required": ["exception"]}}
+    }
+  ],
+  "$defs": {
+    "locator": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*//)[^\\u0000-\\u001f\\u007f\\\\]+$"},
+    "evidenceRef": {"type": "string", "pattern": "^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$"},
+    "calendarDate": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "authorityFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"},
+        "evidence_ref": {"$ref": "#/$defs/evidenceRef"}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "write", "delete"],
+      "properties": {
+        "source": {"$ref": "#/$defs/authorityFact"},
+        "write": {"$ref": "#/$defs/authorityFact"},
+        "delete": {"$ref": "#/$defs/authorityFact"}
+      }
+    },
+    "exception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "owner_role", "review_on"],
+      "properties": {
+        "reason": {"enum": ["audit-obligation", "dependency-obligation", "legal-obligation", "operational-obligation", "retention-obligation"]},
+        "owner_role": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+        "review_on": {"$ref": "#/$defs/calendarDate"},
+        "evidence_ref": {"$ref": "#/$defs/evidenceRef"}
+      }
+    }
+  }
+}

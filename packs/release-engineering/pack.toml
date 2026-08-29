@@ -1,6 +1,6 @@
 [pack]
 name = "release-engineering"
-version = "0.1.9"
+version = "0.1.10"
 description = "Ship it the way production will see it. Deploy to a throwaway environment, run the tests, read the telemetry, and go round again until it holds. Then it stops and asks, because the next step is the one you cannot undo."
 readme = "README.md"
 display_name = "Release Engineering"

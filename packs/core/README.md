@@ -138,7 +138,9 @@ blockers plus one disposition recommendation before anything changes.
 Disposition is never permission. A local deletion or content-removing workspace
 compaction needs a separately resolved authority fact and fresh human confirmation
 bound to the exact current locator, fingerprint, evidence, action, resource, and
-session; drift expires it. `cool-30-days` is classification only in this release.
+session; drift expires it. The resulting cooling records live outside workspace.toml, where
+`close-work` enrols them, computes their review dates, and records day-30 review
+outcomes.
 Use [Close work without losing lasting context](../../guides/core/how-to/close-and-disposition-work.md)
 for close, pause/resume, temporary full-mode records, and initiative settlement.
 

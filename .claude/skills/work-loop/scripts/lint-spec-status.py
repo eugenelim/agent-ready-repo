@@ -698,22 +698,42 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     return out
 
 
+# Local git metadata and object reads must not indefinitely stall a lint run.
+# This matches the local-git bound used by the work-loop's engine and cohort.
+GIT_TIMEOUT_S = 20.0
+
+
+class _BaseTextUndetermined:
+    """Private sentinel for a base object read that did not complete.
+
+    This is deliberately distinct from ``None``, which means the path was
+    absent at an otherwise-resolvable base.  The union return type requires a
+    caller to handle this state before using the text in a diff invariant.
+    """
+
+
+_BASE_TEXT_UNDETERMINED = _BaseTextUndetermined()
+
+
 def resolve_default_base_ref(root: Path) -> str | None:
     """Resolve the diff base ref, preferring `origin/<default-branch>`."""
     try:
         r = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--abbrev-ref", "origin/HEAD"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
-    except FileNotFoundError:
-        return None  # git not installed
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None  # git unavailable or timed out
     if r.returncode == 0 and r.stdout.strip():
         return r.stdout.strip()
     # Fall back to origin/main if it exists.
-    r = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "origin/main"],
-        capture_output=True, text=True, check=False,
-    )
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "origin/main"],
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     return "origin/main" if r.returncode == 0 else None
 
 
@@ -731,19 +751,29 @@ def base_ref_resolves(root: Path, base_ref: str) -> bool:
         probe = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--verify", "--quiet",
              f"{base_ref}^{{commit}}"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
-    except OSError:
-        return False  # git absent: no base ref is resolvable
+    except (OSError, subprocess.TimeoutExpired):
+        return False  # git unavailable: no base ref is resolvable
     return probe.returncode == 0
 
 
-def base_spec_text(root: Path, relpath: str, base_ref: str) -> str | None:
-    """Return the spec's content at `base_ref`, or None if absent/unresolvable."""
-    r = subprocess.run(
-        ["git", "-C", str(root), "show", f"{base_ref}:{relpath}"],
-        capture_output=True, text=True, errors="replace", check=False,
-    )
+def base_spec_text(
+    root: Path, relpath: str, base_ref: str
+) -> str | None | _BaseTextUndetermined:
+    """Return base content, ``None`` when absent, or a timeout sentinel.
+
+    The sentinel cannot be treated as a new spec: callers must skip their
+    diff-triggered checks and report the undetermined base read.
+    """
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "show", f"{base_ref}:{relpath}"],
+            capture_output=True, text=True, errors="replace", check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return _BASE_TEXT_UNDETERMINED
     return r.stdout if r.returncode == 0 else None
 
 
@@ -844,11 +874,11 @@ def _repo_root() -> Path:
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, timeout=GIT_TIMEOUT_S,
         )
         if r.returncode == 0 and r.stdout.strip():
             return Path(r.stdout.strip())
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         # `git` may be unavailable on PATH; fall through to the
         # script-relative root, which is the intended fallback.
         pass
@@ -901,6 +931,12 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             if base_resolvable
             else None
         )
+        base_text_undetermined = base_text is _BASE_TEXT_UNDETERMINED
+        if base_text_undetermined:
+            warn.append(
+                f"{rel}: git show at base ref {base_ref!r} timed out — "
+                "diff-triggered invariants (ii) and (vi) skipped"
+            )
 
         # (i) status vocabulary
         token = parse_status(text)
@@ -985,6 +1021,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             and ac_opt_out is None
             and ac_opt_out_near_miss is None
             and base_resolvable
+            and not base_text_undetermined
             and (
                 base_text is None
                 or acceptance_criteria_section_present(base_text)
@@ -1011,7 +1048,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                 )
 
         # (ii) ACs at the ship transition (diff-triggered)
-        if base_resolvable and token == "Shipped":
+        if base_resolvable and not base_text_undetermined and token == "Shipped":
             base_token = parse_status(base_text) if base_text is not None else None
             transitioned = base_token != "Shipped"  # incl. new spec (None)
             if transitioned:

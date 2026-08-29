@@ -1,6 +1,6 @@
 [pack]
 name = "monorepo-extras"
-version = "0.1.8"
+version = "0.1.9"
 description = "Add a package to the monorepo without hand-wiring the build."
 readme = "README.md"
 display_name = "Monorepo Extras"

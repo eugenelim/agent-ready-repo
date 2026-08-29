@@ -26,6 +26,7 @@
 │   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans
 │   ├── architecture/     # this directory — internals for contributors
+│   ├── lifecycle/        # Git-tracked delivery lifecycle records
 │   ├── knowledge/        # living practitioner observations captured by core
 │   ├── product/          # roadmap + changelog
 │   └── guides/           # maintainer-only tooling and repository guidance

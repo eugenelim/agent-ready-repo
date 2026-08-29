@@ -52,25 +52,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [core][2.14.1] — 2026-08-28
+## [core][2.15.3] — 2026-08-29
 
 ### Highlights
 
-- **Spec authors can keep contracts and plans independently sharp.** Acceptance
-  criteria now express one checkable obligation, while plan tests name only
-  non-inferable verification mechanisms instead of mirroring the contract.
-- **Plans now test their riskiest mechanism before review.** A cheap throwaway
-  check can reshape the implementation strategy before reviewers spend rounds
-  on an unstarted plan.
+- **Spec authors can keep the contract and the plan independently sharp.** An
+  acceptance criterion now states one checkable obligation, and a plan's tests
+  name the verification mechanism an implementer cannot infer instead of
+  repeating the criterion.
+- **A plan now tests its riskiest assumption before anyone reviews it.** One
+  cheap throwaway check can reshape the approach before reviewers spend rounds
+  arguing about work nobody has started.
 
 ### Changed
 
-- `new-spec` now flags overlong plans and verification-heavy tasks as reduction
-  smells, keeps approval-time file and fixture details provisional, and reduces
-  plans when review finds their over-specification.
-- TDD stub guidance now makes an executable stub replace its prose test entry;
-  obligations without a stub record why their mode or surface cannot support
-  one.
+- `new-spec` flags an overlong plan and a verification-heavy task as signals to
+  reduce, keeps approval-time file lists and fixture shapes provisional, and
+  reduces a plan when review keeps finding it under-specified.
+- TDD stub guidance makes an executable stub replace its prose test entry. An
+  obligation whose verification mode admits no stub records `no stub (mode)`
+  with its reason; a hard out-of-process surface still stubs the nearest
+  in-process contract.
+
+## [agentbundle][0.40.2] — 2026-08-28
+
+### Highlights
+
+- **Catalogue checks now admit the portable rule lookups shipped by the core
+  pack while rejecting undeclared seed paths.** Adopters can receive the new
+  bounded rule router and scoped docs guidance through the normal seed flow.
+
+### Changed
+
+- Declared the three cognitive-load lookup paths in the fail-closed seed
+  linter.
+
+## [core][2.15.2] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] / [agent-skill-engineering][0.1.1] — 2026-08-28
+
+### Highlights
+
+- **Agents now make chat, documentation, and skill-led work easier to scan
+  without dropping checks, warnings, evidence, or depth.** Repository rules,
+  generated artifacts, and independent skills share the same outcome-first
+  behavior without requiring a new host primitive.
+
+### Changed
+
+- Added portable cognitive-load rules, focused output evals, and core seed
+  lookups for Claude, Codex, and Gemini adopters.
+
+## [catalogue-curation][0.4.5] — 2026-08-28
+
+### Highlights
+
+- **Compiled OKF skills now carry the same outcome-first output contract as
+  hand-authored ones.** A generated router or procedure skill reads the same
+  way as the rest of the catalogue without a separate rule file.
+
+### Changed
+
+- Injected the managed output-rendering block into the OKF router and
+  procedure wrappers.
+
+## [architect][0.15.4] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.7] / [product-strategy][0.2.4] — 2026-08-28
+
+### Highlights
+
+- **Architecture, design, and product artifacts now lead with the decision and
+  keep long work easy to resume.** The output stays plain and scan-friendly
+  while preserving requested depth, evidence, constraints, and exact terms.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
+## [contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-28
+
+### Highlights
+
+- **Engineering artifacts and handoffs now stay quiet during routine tool work
+  while keeping exact code, errors, and verification.** Results lead with the
+  current outcome and name a next action only when one remains.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
+## [atlassian][0.9.3] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.3] / [linear][0.3.3] — 2026-08-28
+
+### Highlights
+
+- **Connected-service and research workflows now ask for less at once and
+  return the current result without routine tool narration.** Safety issues,
+  blockers, needed choices, and host requirements still interrupt silence.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
+## [core][2.15.1] — 2026-08-28
+
+### Highlights
+
+- **Work-loop tools now reject execution state outside the current repository and
+  finish safely when local Git stops responding.**
+
+### Fixed
+
+- Confined `loop-cohort` spec directories to the current repository, including
+  paths redirected through symlinks.
+- Bounded local Git lookups in the spec-status lint so an unavailable Git process
+  skips the affected diff check instead of hanging or crashing the lint.
+
+## [core][2.15.0] — 2026-08-28
+
+- **Delivered work can now cool on a recorded 30-day schedule.** `close-work`
+  writes a Git-tracked lifecycle record, computes its review date in the recorded
+  time zone, and reports when it is due for human review.
+
+### Added
+
+- A cooling engine for `close-work` that enrols delivered records, checks due
+  state from an injected instant, and records the outcome of a day-30 review.
 
 ## [core][2.14.0] — 2026-08-28
 

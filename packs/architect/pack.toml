@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.15.3"
+version = "0.15.4"
 description = "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence."
 readme = "README.md"
 display_name = "Architect"

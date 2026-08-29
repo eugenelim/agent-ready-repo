@@ -4,16 +4,31 @@
     {
       "id": 1,
       "prompt": "Run a SWOT analysis for a mid-market B2B SaaS company entering the HR analytics market. No prior strategy artifacts exist.",
-      "expected_output": "A swot-analysis.md artifact committed to the resolved layout path (docs/product/shaping/swot-analysis.md by default). The artifact names the scope (B2B SaaS, HR analytics, specific time horizon). Each of the four quadrants — Strengths, Weaknesses, Opportunities, Threats — contains at least three entries with specific, evidence-grounded claims (not generic assertions). The synthesis section derives at least one SO, ST, WO, and WT strategic implication pair. The framework (SWOT) is named; no definition or verbatim framework text appears. The resolved path is surfaced before writing.",
+      "expected_output": "A swot-analysis.md artifact committed to the resolved layout path (docs/product/shaping/swot-analysis.md by default). The artifact names the scope (B2B SaaS, HR analytics, specific time horizon). Each of the four quadrants \u2014 Strengths, Weaknesses, Opportunities, Threats \u2014 contains at least three entries with specific, evidence-grounded claims (not generic assertions). The synthesis section derives at least one SO, ST, WO, and WT strategic implication pair. The framework (SWOT) is named; no definition or verbatim framework text appears. The resolved path is surfaced before writing.",
       "assertions": [
-        "Scope is named before the quadrants are populated — entity, time horizon, and competitive reference point are explicit",
+        "Scope is named before the quadrants are populated \u2014 entity, time horizon, and competitive reference point are explicit",
         "Each quadrant has at least three entries; entries are specific (name a real capability, asset, gap, trend, or risk) not generic",
-        "Weaknesses are direct and honest — softened weaknesses or positive reframings are not accepted",
+        "Weaknesses are direct and honest \u2014 softened weaknesses or positive reframings are not accepted",
         "Opportunities reference at least one observable external signal (trend, regulatory shift, competitor gap) with a named source or proxy",
         "Threats include a rough time horizon (near-term / medium-term) for at least one entry",
         "Strategic implications section derives at least one SO, ST, WO, and WT pair",
         "SWOT is named as the framework; no definition, template structure, or verbatim explanation of SWOT appears in the output",
         "The artifact is committed to the resolved path with frontmatter type: swot-analysis; path is surfaced before writing"
+      ]
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing strategy analysis. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The strategy analysis leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
       ]
     }
   ]

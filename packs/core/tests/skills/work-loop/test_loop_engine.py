@@ -29,6 +29,19 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 # packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
 SCRIPT_DIR = _SKILL_DIR / "scripts"
+# The session-resumption transition table is disclosed progressively: SKILL.md
+# links it rather than inlining it. The obligations are asserted where they
+# live, plus a reachability check so the extraction cannot orphan them.
+_RESUMPTION_REFERENCE = "references/session-resumption.md"
+_RESUMPTION_PATH = _SKILL_DIR / "references" / "session-resumption.md"
+
+
+def _skill_reaches_resumption_reference() -> bool:
+    """Whether SKILL.md still points a reader at the resumption reference."""
+    return _RESUMPTION_REFERENCE in (
+        _SKILL_DIR / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
 
 if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
@@ -2731,9 +2744,16 @@ def test_findings_remain_no_auto_replay(tmp: Path) -> None:
 
 
 def test_findings_remain_skill_prose_present(tmp: Path) -> None:
-    """findings-remain SKILL.md row contains required phrases."""
-    skill_path = _SKILL_DIR / "SKILL.md"
-    lines = skill_path.read_text(encoding="utf-8").splitlines()
+    """findings-remain resumption row contains required phrases."""
+    if not _RESUMPTION_PATH.is_file():
+        fail("findings-remain-skill-prose-present",
+             f"resumption reference missing at {_RESUMPTION_PATH.name}")
+        return
+    if not _skill_reaches_resumption_reference():
+        fail("findings-remain-skill-prose-present",
+             "SKILL.md no longer links references/session-resumption.md")
+        return
+    lines = _RESUMPTION_PATH.read_text(encoding="utf-8").splitlines()
     row_line = next(
         (ln for ln in lines
          if ("| `findings-remain`" in ln or "findings-remain" in ln)
@@ -2742,7 +2762,7 @@ def test_findings_remain_skill_prose_present(tmp: Path) -> None:
     )
     if row_line is None:
         fail("findings-remain-skill-prose-present",
-             "could not find findings-remain row in SKILL.md")
+             "could not find findings-remain row in the resumption reference")
         return
     required = ["stale fingerprint baseline", "under-count", "do NOT auto-reissue"]
     missing = [p for p in required if p not in row_line]
@@ -2795,9 +2815,16 @@ def test_reviewers_clean_no_silent_replay(tmp: Path) -> None:
 
 
 def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
-    """reviewers-clean SKILL.md row contains required consequence phrases."""
-    skill_path = _SKILL_DIR / "SKILL.md"
-    lines = skill_path.read_text(encoding="utf-8").splitlines()
+    """reviewers-clean resumption row contains required consequence phrases."""
+    if not _RESUMPTION_PATH.is_file():
+        fail("reviewers-clean-skill-prose-obligations",
+             f"resumption reference missing at {_RESUMPTION_PATH.name}")
+        return
+    if not _skill_reaches_resumption_reference():
+        fail("reviewers-clean-skill-prose-obligations",
+             "SKILL.md no longer links references/session-resumption.md")
+        return
+    lines = _RESUMPTION_PATH.read_text(encoding="utf-8").splitlines()
     row_line = next(
         (ln for ln in lines
          if ("| `reviewers-clean`" in ln or "reviewers-clean" in ln)
@@ -2806,7 +2833,7 @@ def test_reviewers_clean_skill_prose_obligations(tmp: Path) -> None:
     )
     if row_line is None:
         fail("reviewers-clean-skill-prose-obligations",
-             "could not find reviewers-clean row in SKILL.md")
+             "could not find reviewers-clean row in the resumption reference")
         return
     required = ["non-idempotent", "double-increment",
                 "fingerprint audit history", "authorized"]

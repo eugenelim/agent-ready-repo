@@ -22,8 +22,8 @@ scope: `validate_run_id` and `assert_status_legal` return `str | None`.
 
 `spec_dir` precondition: callers pass an absolute, already-resolved,
 already-confined `Path`. Confinement stays with the caller that owns it —
-`loop-engine._resolve_spec_dir` (repo-root anchored), `loop-cohort._resolve_spec_dir`
-(`..`-rejecting), and `check-spec-status.py`'s bare `resolve()`, which is the
+`loop-engine._resolve_spec_dir` and `loop-cohort._resolve_spec_dir` (both
+repo-root anchored), and `check-spec-status.py`'s bare `resolve()`, which is the
 weakest of the three and stays that way under its frozen argument surface. What a
 callee can actually check, it does: that `spec_dir` exists and is a directory.
 Re-testing "absolute, no `..`" would be dead code, because every caller resolves

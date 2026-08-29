@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Design the system the user asked for and produce the design doc.",
-      "expected_output": "A Google-style design doc with the sections in order — TL;DR (≤3 sentences), Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions — with Mermaid where structure helps. Alternatives are considered honestly (each rejected with a concrete reason), Non-goals do real scoping work, every named risk is paired with a mitigation, the rollout is reversible/staged, and the proposal reasons about the design (trade-offs, NFRs) rather than restating the request.",
+      "expected_output": "A Google-style design doc with the sections in order \u2014 TL;DR (\u22643 sentences), Context, Goals and Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions \u2014 with Mermaid where structure helps. Alternatives are considered honestly (each rejected with a concrete reason), Non-goals do real scoping work, every named risk is paired with a mitigation, the rollout is reversible/staged, and the proposal reasons about the design (trade-offs, NFRs) rather than restating the request.",
       "assertions": [
         "Has all the required sections, in order (TL;DR, Context, Goals, Non-goals, Proposal, Alternatives Considered, Risks, Rollout, Open Questions)",
         "Non-goals do real scoping work, not filler",
@@ -27,11 +27,11 @@
     },
     {
       "id": 3,
-      "prompt": "Shape a one-page concept for a link-shortener service — I only want the concept, don't write the full design doc. I'm not going to continue past the concept this session. If you aren't saving a file, say so plainly.",
-      "expected_output": "A Stage-0 concept only — problem + constraints, one or two candidate shapes, provider or provider-class, and the top prioritized quality attributes — and nothing more: the agent does NOT proceed to the full Google-style design doc (no Proposal / Alternatives Considered / Rollout sections). Saving is offered, never forced, and stopping at the concept is honored. The response ends with a Stage-0 completion receipt that is exactly one of: 'Result: chat only; no file was created.' or the exact file path written plus a one-line note of what it contains.",
+      "prompt": "Shape a one-page concept for a link-shortener service \u2014 I only want the concept, don't write the full design doc. I'm not going to continue past the concept this session. If you aren't saving a file, say so plainly.",
+      "expected_output": "A Stage-0 concept only \u2014 problem + constraints, one or two candidate shapes, provider or provider-class, and the top prioritized quality attributes \u2014 and nothing more: the agent does NOT proceed to the full Google-style design doc (no Proposal / Alternatives Considered / Rollout sections). Saving is offered, never forced, and stopping at the concept is honored. The response ends with a Stage-0 completion receipt that is exactly one of: 'Result: chat only; no file was created.' or the exact file path written plus a one-line note of what it contains.",
       "assertions": [
         "Produces a Stage-0 concept (problem + constraints + one or two candidate shapes + prioritized quality attributes), not a full design doc",
-        "Does not proceed to the full design doc — no Proposal / Alternatives Considered / Rollout sections are drafted",
+        "Does not proceed to the full design doc \u2014 no Proposal / Alternatives Considered / Rollout sections are drafted",
         "Does not make saving the concept conditional on continuing to the full design-document stage",
         "Ends with an explicit completion receipt: either 'chat only; no file was created' or an exact file path with a one-line description of its contents"
       ]
@@ -82,6 +82,21 @@
         "Does not append a topic folder beneath the file or write beside it",
         "Asks for an exact directory or offers chat-only",
         "Invokes no write"
+      ]
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing architecture recommendation. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The architecture recommendation leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
       ]
     }
   ]

@@ -38,6 +38,7 @@ disagree, `contracts/` is authoritative.
 | `skill-manifest.schema.json` | JSON Schema for skill manifest files | yes |
 | `target-vocab.toml` | Vocabulary constraint for adapter target names | yes |
 | `jsonschema/knowledge-captured-observation.schema.json` | Captured project-knowledge observation envelope | yes |
+| `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |
 | `jsonschema/normalized-intake.schema.json` | Transient normalized work-intake envelope | no |
 | `jsonschema/workspace-entry.schema.json` | Target structured `workspace.toml` entry | no |
 | `jsonschema/work-intake-migration-selection.schema.json` | Human-reviewed legacy-route selection | no |

@@ -1,6 +1,6 @@
 [pack]
 name            = "example-pack"
-version         = "0.1.0"
+version         = "0.1.1"
 description     = "The skeleton to copy when you start a new pack."
 display_name    = "Example Pack"
 categories      = ["productivity"]

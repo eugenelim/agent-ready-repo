@@ -1,0 +1,32 @@
+{
+  "claude": {
+    "entry": "CLAUDE.md -> AGENTS.md",
+    "observation": "semantic-fallback",
+    "limitation": "host-loader-order-and-refusal-surface-not-exposed",
+    "ordered_agent_reads": [
+      "AGENT_RULES.md",
+      ".agents/rules/cognitive-load.md"
+    ],
+    "refusal_assertion": "lookup-refused"
+  },
+  "codex": {
+    "entry": "AGENTS.md",
+    "observation": "semantic-fallback",
+    "limitation": "host-loader-order-and-refusal-surface-not-exposed",
+    "ordered_agent_reads": [
+      "AGENT_RULES.md",
+      ".agents/rules/cognitive-load.md"
+    ],
+    "refusal_assertion": "lookup-refused"
+  },
+  "gemini": {
+    "entry": "context.fileName -> AGENTS.md",
+    "observation": "semantic-fallback",
+    "limitation": "host-loader-order-and-refusal-surface-not-exposed",
+    "ordered_agent_reads": [
+      "AGENT_RULES.md",
+      ".agents/rules/cognitive-load.md"
+    ],
+    "refusal_assertion": "lookup-refused"
+  }
+}
