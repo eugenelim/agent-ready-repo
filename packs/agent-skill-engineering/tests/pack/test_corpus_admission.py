@@ -15,6 +15,35 @@ ROLE_OR_PLACEHOLDER = re.compile(
     r"^(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:reviewer|maintainer)|<[^<>]+>)$"
 )
 SCOPE_BOUND_STATEMENT = "It is not established beyond that population."
+DOCTRINE_CLASSES = {
+    "two-runtime-public-contract": ("clause", "runtimes"),
+    "repeated-observed-failures": ("mechanism", "failures"),
+    "severe-safety-failure": ("boundary", "reproduction"),
+    "controlled-measurement": ("setup", "preserved_semantics", "repetitions"),
+}
+
+
+def _admitted_topics_from_compiled_tree() -> set[str]:
+    """Return the admitted topic ids, read from the compiled bundle root.
+
+    The root is iterated non-recursively and `index.md` is dropped by name, so
+    the declared-unpopulated record -- authored in a subdirectory -- is excluded
+    by where it lives, never by a marker field, section shape, or name pattern a
+    topic body could reproduce.
+    """
+    return {
+        path.stem
+        for path in COMPILED_CONCEPTS.glob("*.md")
+        if path.is_file() and path.stem != "index"
+    }
+
+
+def _assert_source_is_attributable(source: dict[str, object]) -> None:
+    """Every cited source names itself, when it was read, and its version state."""
+    assert source.get("identity"), source
+    assert source.get("retrieved_at"), source
+    exposed = source.get("version") or source.get("last_updated")
+    assert exposed or source.get("version_state") == "none exposed", source
 
 
 def test_topology_transcription_is_complete() -> None:
@@ -66,6 +95,29 @@ def test_every_claim_group_declares_a_basis_and_its_fields() -> None:
                 assert len(observations) >= 2
                 assert len({Path(path).parts[1] for path in observations}) >= 2
                 assert SCOPE_BOUND_STATEMENT in group["applicability_limit"]
+                # An observed-practice group states a limit, never a class.
+                assert "promotion_class" not in group, group["name"]
+            else:
+                promotion_class = group["promotion_class"]
+                assert promotion_class in DOCTRINE_CLASSES, promotion_class
+                for field in DOCTRINE_CLASSES[promotion_class]:
+                    assert group.get(field), (promotion_class, field)
+                if promotion_class == "two-runtime-public-contract":
+                    # Two runtimes documenting *that clause*, not the topic.
+                    assert len({r["runtime"] for r in group["runtimes"]}) >= 2
+                    for runtime in group["runtimes"]:
+                        assert runtime["clause"] == group["clause"]
+                if promotion_class == "repeated-observed-failures":
+                    # Repeated failures earn a class only by sharing one
+                    # mechanism; distinct mechanisms are separate anecdotes.
+                    assert len(group["failures"]) >= 2
+                    assert {f["mechanism"] for f in group["failures"]} == {
+                        group["mechanism"]
+                    }
+                if promotion_class == "controlled-measurement":
+                    assert int(group["repetitions"]) >= 2
+                for source in group.get("sources", ()):
+                    _assert_source_is_attributable(source)
 
 
 def _collapse(text: str) -> str:
@@ -94,3 +146,32 @@ def test_shipped_body_matches_the_admission_record() -> None:
             assert _collapse(limit) in _collapse(compiled)
             for repository_marker in ("packs/", ".apm/skills/", "agent-skill-engineering"):
                 assert repository_marker not in limit
+
+
+def test_admitted_topics_are_topology_leaves() -> None:
+    """Nothing enters the corpus that the governing taxonomy does not name."""
+    leaves = set(
+        json.loads((FIXTURES / "topology-leaves.json").read_text(encoding="utf-8"))["leaves"]
+    )
+    admitted = _admitted_topics_from_compiled_tree()
+
+    assert admitted, "the compiled bundle root carries no admitted topic"
+    assert admitted <= leaves, sorted(admitted - leaves)
+
+
+def test_admitted_topics_are_measurably_distinguishable() -> None:
+    """Each admitted topic is selected alone by at least two measured prompts."""
+    results = json.loads(
+        (FIXTURES / "router-results.json").read_text(encoding="utf-8")
+    )["results"]
+    admitted = _admitted_topics_from_compiled_tree()
+    recorded = {topic["topic"] for topic in json.loads(
+        ADMISSION.read_text(encoding="utf-8")
+    )["topics"]}
+
+    # A topic cannot be admitted on a declaration alone: the fixture must also
+    # hold a measured outcome for it, so an unmeasured claim cannot pass.
+    assert admitted <= recorded, sorted(admitted - recorded)
+    for topic in sorted(admitted):
+        exclusive = [r for r in results if r["actual_topics"] == [topic]]
+        assert len(exclusive) >= 2, (topic, len(exclusive))
