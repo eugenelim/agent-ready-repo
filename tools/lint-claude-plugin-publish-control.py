@@ -9,6 +9,7 @@ import json
 import re
 import sys
 import tomllib
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,13 @@ EVIDENCE_PATH = (
     / "publish-control-evidence.json"
 )
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "publish-claude-plugins.yml"
+
+# Capturing this evidence requires a maintainer-only GitHub App private key and
+# has no automated refresh. Warn at 30 days so stale controls are visible
+# without breaking routine gates, but fail at 90 days so the artifact cannot
+# certify settings indefinitely.
+EVIDENCE_WARN_AFTER = timedelta(days=30)
+EVIDENCE_FAIL_AFTER = timedelta(days=90)
 
 # AC36 — the workflow must authenticate with the identity that actually exists.
 # Presence of the committed evidence file is the only offline signal for whether
@@ -393,7 +401,52 @@ def validate_desired(desired: dict) -> list[str]:
     return errors
 
 
-def compare_evidence(desired: dict, evidence: dict) -> list[str]:
+def _validate_evidence_freshness(
+    evidence: dict, now_utc: datetime | None = None
+) -> tuple[list[str], list[str]]:
+    """Return timestamp errors and non-fatal freshness warnings for evidence."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    observed_at = evidence.get("observed_at")
+    if not isinstance(observed_at, str) or not observed_at:
+        return ["evidence must include a non-empty observed_at timestamp"], warnings
+    try:
+        observed = datetime.fromisoformat(observed_at)
+    except ValueError:
+        return ["evidence observed_at must be an ISO 8601 timestamp"], warnings
+    if observed.tzinfo is None or observed.utcoffset() is None:
+        return ["evidence observed_at must include a timezone offset"], warnings
+
+    current = datetime.now(UTC) if now_utc is None else now_utc
+    if current.tzinfo is None or current.utcoffset() is None:
+        raise ValueError("now_utc must be timezone-aware")
+    age = current.astimezone(UTC) - observed.astimezone(UTC)
+    if age < timedelta(0):
+        # Future evidence cannot demonstrate that controls were actually
+        # observed; accepting it would let a hand-edited timestamp bypass both
+        # freshness thresholds.
+        errors.append("evidence observed_at must not be in the future")
+    elif age > EVIDENCE_FAIL_AFTER:
+        errors.append(
+            "evidence observed_at is older than "
+            f"{EVIDENCE_FAIL_AFTER.days} days; recapture publish-control evidence"
+        )
+    elif age > EVIDENCE_WARN_AFTER:
+        warnings.append(
+            "evidence observed_at is older than "
+            f"{EVIDENCE_WARN_AFTER.days} days; recapture publish-control evidence "
+            f"before {EVIDENCE_FAIL_AFTER.days} days"
+        )
+    return errors, warnings
+
+
+def compare_evidence(
+    desired: dict,
+    evidence: dict,
+    *,
+    now_utc: datetime | None = None,
+    warnings: list[str] | None = None,
+) -> list[str]:
     """Compare independently captured sanitized state with desired state."""
     errors: list[str] = []
     # Against the literal, not against each other: `.get(...) != .get(...)`
@@ -445,16 +498,19 @@ def compare_evidence(desired: dict, evidence: dict) -> list[str]:
         )
     if evidence.get("canary") != desired.get("canary"):
         errors.append("evidence canary differs from desired control")
-    observed_at = evidence.get("observed_at")
-    if not isinstance(observed_at, str) or not observed_at:
-        errors.append("evidence must include a non-empty observed_at timestamp")
+    freshness_errors, freshness_warnings = _validate_evidence_freshness(
+        evidence, now_utc
+    )
+    errors.extend(freshness_errors)
+    if warnings is not None:
+        warnings.extend(freshness_warnings)
     source = evidence.get("observation_source")
     if source != "github-api-sanitized":
         errors.append("evidence observation_source must be github-api-sanitized")
     return errors
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, now_utc: datetime | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--desired", type=Path, default=DESIRED_PATH)
     parser.add_argument("--evidence", type=Path, default=EVIDENCE_PATH)
@@ -478,6 +534,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-claude-plugin-publish-control: {exc}", file=sys.stderr)
         return 1
     errors = validate_desired(desired)
+    warnings: list[str] = []
     if args.subject is not None and args.subject != desired.get("repo"):
         errors.append(
             f"this run is in {args.subject!r} but the publication control is "
@@ -496,7 +553,11 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError as exc:
             errors.append(str(exc))
         else:
-            errors.extend(compare_evidence(desired, evidence))
+            errors.extend(
+                compare_evidence(
+                    desired, evidence, now_utc=now_utc, warnings=warnings
+                )
+            )
     elif (
         desired.get("control_status") == "decommissioned"
         and not args.require_live_evidence
@@ -518,6 +579,8 @@ def main(argv: list[str] | None = None) -> int:
 
     for error in errors:
         print(f"lint-claude-plugin-publish-control: {error}", file=sys.stderr)
+    for warning in warnings:
+        print(f"lint-claude-plugin-publish-control: warning: {warning}", file=sys.stderr)
     return 1 if errors else 0
 
 
