@@ -300,6 +300,9 @@ carries a collection floor, or reaches a subject through `sys.path` should stay
 in its own process, and saying so is engineering rather than a failure to
 optimise.
 
+Record the decision behind each class where your repository keeps decisions,
+and keep the class declaration itself next to the gate that enforces it.
+
 ### Write suites that do not depend on isolation
 
 Process isolation is the default above. It is not a licence to write suites

@@ -34,7 +34,7 @@ semantic test surface: every node ID that ran before still runs, exactly once.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Applicable — the stable public authoring contract changes from an unconditional per-skill rule to default isolation plus explicit classes; the choice between declaration designs is expensive to reverse | `docs/adr/` (next free ordinal) | work-loop | ADR accepted, naming what it supersedes in the authoring standard, carrying the measured before/after | ADR exists, Accepted, and the authoring standard cites it |
-| Maintainer/adopter guidance | Applicable — `guides/_shared/reference/catalogue-authoring-standards.md` § 4 states the unconditional rule | that guide **and its byte-identical scaffold projection** under `packages/agentbundle/agentbundle/_data/catalogue-scaffold/` | work-loop | § 4 revised; normative summary updated; projection regenerated | Guide states default isolation + class exception, and both identity obligations; projection has no drift |
+| Maintainer/adopter guidance | Applicable — `guides/_shared/reference/catalogue-authoring-standards.md` § 4 states the unconditional rule | that guide **and its byte-identical scaffold projection** under `packages/agentbundle/agentbundle/_data/catalogue-scaffold/` | work-loop | § 4 revised; normative summary updated; projection regenerated | Guide states default isolation + class exception, and both identity obligations; projection has no drift. The guide **must not** name ADR-0098: it is projected into adopter repositories that have no `docs/adr/`, and `tools/lint-guides-no-repo-only-refs.py` refuses both the path and the `ADR-NNNN` token. The ADR is cited from repo-only surfaces instead — `Makefile`, the lint module, and this spec. |
 | Current architecture | Applicable — runner topology is a system fact | `tools/pack_test_compatibility.py` docstring; `tools/lint-pack-test-boundary.py` docstring; the `Makefile` comment at 396-403; the two workflow comments that state the old rule | work-loop | Each file describes the shipped model | No living document states the unconditional rule |
 | Interface compatibility | Not applicable — no published schema, catalogue contract, or `agentbundle` CLI behavior changes | — | — | — | — |
 | Release history | Not applicable — `tools/**`, `docs/**`, and workflow files are not part of the released artifact surface | — | — | — | — |
@@ -130,8 +130,16 @@ No behavior in this spec needs visual or manual QA.
       (`work-loop/test_lint_spec_status.py`,
       `work-loop/test_lint_traceability.py`,
       `receive-brief/test_lint_brief_coverage.py`) via `$(1)`/`$(2)`, and the
-      two `tools/` files via the empty `$(3)` slot; nothing else changes, and
-      `tools/test_local_ci_shared_test_deduplication.py` passes unmodified.
+      two `tools/` files via the empty `$(3)` slot, and nothing else changes.
+      `tools/test_local_ci_shared_test_deduplication.py` must **pass**. Its
+      approved roster and plan digests are re-pinned, because that guard exists
+      precisely to force an explicit, reasoned update when the recipe changes —
+      the same discipline its own constant comment already demands. An earlier
+      draft of this criterion said "passes unmodified", which would have made
+      any recipe change impossible; the real obligation is that the delta is
+      verified and recorded, not that the file is frozen. The recorded delta is
+      standalone 71 → 58 and composed 70 → 57 plan lines, exactly the −13 from
+      folding eighteen pack lines into five.
 - [ ] **AC6** Each floor-bearing suite remains **the sole target of its own
       invocation**, so the plugin's session-wide `len(items)` count equals that
       suite's count: `desk-research` ≥ 9 and `desk-research-project-start` ≥ 7.
@@ -240,7 +248,10 @@ No behavior in this spec needs visual or manual QA.
       `docs/specs/lint-performance-p0/spec.md` routes to *Ask first*
       ("A required difference is a spec amendment, recorded with the reason and
       the new expected bytes — never a silently rebaselined golden file").
-      Owner approval was given at the plan checkpoint. Therefore:
+      Owner approval was given at the plan checkpoint. The corpus also grew
+      from 22 to 32 cases, because each new rule needed a red control and the
+      fixture registry is the corpus; that growth is part of the same amendment.
+      Therefore:
       `PINNED_COMMIT` and `PINNED_BLOB_SHA256` in
       `tools/test-lint-boundary-golden.py` are repointed to the commit carrying
       the new lint; `tools/lint-boundary-golden.json` is regenerated from that

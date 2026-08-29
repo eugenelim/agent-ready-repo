@@ -76,13 +76,34 @@ Eight more are `_NO_RUNNER`. Every table below is therefore labelled
 | `atlassian` | 5 | `desk-research` | 8 |
 | | | **Total** | **45** |
 
-**Derivation command (AC2).** Reproduces the 45 and the per-pack split:
+**Derivation command (AC2).** An earlier draft used a `sed` line range plus
+`grep -oE 'packs/[a-z-]+/tests'`. That was wrong twice over: it counted *path
+occurrences* rather than invocations, so the two `--collection-floor-suite=`
+arguments were double-counted (yielding 47, and desk-research 10 rather than 8);
+and a pinned line range stops describing the pack block the moment the block
+moves. It reproduced neither 45 nor 32.
+
+Count invocations by driving the lint's own parser — the same code the gate
+uses, so the figure cannot drift from what is enforced:
 
 ```bash
-sed -n '423,468p' Makefile \
-  | grep -oE 'packs/[a-z-]+/tests' \
-  | cut -d/ -f2 | sort | uniq -c | sort -rn
+python3 -c "
+import importlib.util, sys
+sys.path.insert(0, 'tools')
+spec = importlib.util.spec_from_file_location('lb', 'tools/lint-pack-test-boundary.py')
+m = importlib.util.module_from_spec(spec); sys.modules['lb'] = m
+spec.loader.exec_module(m)
+inv = m.build_inventory(m.default_context())
+lines, _ = inv.runner_lines()
+print(sum(1 for i in lines
+          if i.rel == 'Makefile' and any('packs/' in t for t in i.tokens)))
+"
 ```
+
+Prints **32** on the shipped tree and **45** against the baseline `Makefile`
+from `939147d6`. `sys.modules` assignment is required: the module is
+hyphen-named, and a dataclass in it resolves its own module at class-creation
+time.
 
 ## Collision matrices (derived)
 
@@ -800,8 +821,77 @@ unused infrastructure, and this plan records the disproof.
 runner-form parsing) but not executed — this worktree is macOS. No grouped
 command introduces a shell construct, and the Windows runner is unmodified.
 
+## Implementation record
+
+Landed as five commits, each independently revertible:
+
+| Commit | Wave | What |
+| --- | --- | --- |
+| `6c9309ba9` | A | The model and its fail-closed derivations; `CLASSES` empty |
+| `e773bb276` | A | Lint enforces classes; `CHECKS` 6 → 8; ten fixtures |
+| `80c549dd` | A | Golden pin amendment, 22 → 32 cases |
+| `111be149` | B+D | Five classes declared; Makefile 45 → 32 launches |
+| `0c5274db` | E | ADR-0098, authoring standard, scaffold projection |
+
+### Defects found during implementation that the plan had not predicted
+
+1. **`_path_value` fabricated paths.** Its `Path` join used `right.name`, so a
+   multi-segment operand silently lost its leading segments —
+   `SKILL_ROOT` resolved to `packs/atlassian/jira-brief-intake` instead of
+   `packs/atlassian/.apm/skills/jira-brief-intake`. AC12 compares paths, so a
+   resolver that invents plausible ones makes the invariant worthless. The
+   first-round tests could not have caught it: they asserted that *findings*
+   appeared, never that a resolved path equalled a real file. Fixed, and every
+   loader path is now asserted to exist on disk.
+2. **`default_context` leaked real `CLASSES` into fixture roots**, so declaring
+   them would have made all 32 staged golden fixtures report the five members as
+   missing directories. Gated on `base == ROOT`, matching the
+   `unresolvable_runner_exceptions` map beside it.
+3. **The Makefile runner parser read physical lines**, so backslash
+   continuations were invisible. A grouped invocation looked like it named one
+   suite while running several — precisely the shape the class checks exist to
+   detect. This was latent before this spec, not introduced by it.
+
+### Mutation proofs performed
+
+| Invariant | Mutation | Result |
+| --- | --- | --- |
+| Runner/class matching | `case_runners_use_approved_pack_compatibility_classes` returns `ok` unconditionally | 14 assertions red |
+| Ancestor / extra-path rule | `broad = []` | its control red, named specifically |
+| Continuation joining | restore physical-line iteration | real-tree control red, 18 lint failures |
+| Multi-segment path join | reinstate `.name` truncation | 2 tests red |
+| Function-local propagation | disable enclosing-scope lookup | linear loader-path test red |
+| Fixture-tree exclusion | remove it | `testdata/` control red |
+| Declaration validation | `validate_classes` returns `[]` | all five shape controls red |
+
+### Verified numbers
+
+Boundary lint: green at 8 cases, 5 classes, 61 destinations, 8 declared unrun.
+Self-tests: `test-lint-pack-test-boundary` 148 cases,
+`test-lint-boundary-structural` 117 cases, `test-lint-boundary-golden` 32 cases
+reproduced. Whole-surface equivalence re-derived from the **shipped** Makefile:
+32 invocations, 1958 node IDs, raw equal to unique, set identical to the
+45-invocation baseline.
+
+### An honest cost the plan did not anticipate
+
+`tools/test_pack_test_class_characterization.py` costs 36.6 s locally (69.5 s on
+a loaded machine), because proving collection equivalence means spawning a
+collect-only pytest per member plus per group — around 23 processes, more than
+the 13 the regrouping removes. Set against the ~39 s the five classes save, the
+standalone `make test` effect is roughly net-neutral rather than a clear win.
+
+That is a real tradeoff and it is stated rather than buried: the durable benefit
+of this change is the model that prevents unsafe grouping and the 13 fewer
+launches, not a materially faster `make test`. Runners that do not execute the
+characterization gate — the CI legs — take the saving without the cost.
+
 ## Changelog
 
+- **Rev 4 (implementation).** Five commits landed. Three unpredicted defects
+  recorded above, the worst being a path resolver that returned wrong paths
+  rather than failing. Characterization-gate cost measured and reported as a
+  net-neutral tradeoff for standalone `make test`.
 - **Rev 3 (plan checkpoint decisions).** Owner decisions recorded: core
   characterized in full and **rejected on AC27** (+17 MiB against a +8 MiB
   tolerance) despite clean correctness and a nominal −13 % wall time — see
