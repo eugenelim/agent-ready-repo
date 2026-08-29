@@ -169,8 +169,8 @@
   "comment": "Captured behaviour of the boundary lint. Compared as a canonical surface (see the harness docstring); raw streams retained for diagnosis. Regenerating this file to make a comparison pass is forbidden by the spec's Never-do rails.",
   "schema": 1,
   "subject": {
-    "blob_sha256": "e1129672e3ba79ea88d261a79c6d3b4d7408b499fae87c71c4c6872e5e4c40a8",
-    "commit": "40292d6efc5f32c6f3958d510b5d8606542bc24c",
+    "blob_sha256": "0c3510a0ebdc2fc4c5cf6a965b2cca67f060286bf8cdba34de92d33c02fe2977",
+    "commit": "90693424965772df8a90dfd015f1466db8781747",
     "path": "tools/lint-pack-test-boundary.py"
   }
 }

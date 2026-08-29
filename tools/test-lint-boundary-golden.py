@@ -100,9 +100,17 @@ BASELINE = ROOT / "tools" / "lint-boundary-golden.json"
 # names — recorded with its reason, and regenerated from the new pinned subject
 # rather than hand-edited. The baseline resumes policing from this commit
 # forward; the next behaviour change faces the same gate.
-PINNED_COMMIT = "40292d6efc5f32c6f3958d510b5d8606542bc24c"
+#
+# MAINTENANCE HAZARD, learned the hard way: this pin names a commit on the
+# branch that introduces it, and a rebase rewrites those SHAs. The pin then
+# dangles — locally it still resolves because the pre-rebase objects survive
+# until GC, so the harness stays green on the machine that did the rebase and
+# aborts on a fresh CI clone, where `git show` returns 128. Re-point it after
+# any history rewrite, and prefer a commit that will be reachable from main
+# once the branch merges.
+PINNED_COMMIT = "90693424965772df8a90dfd015f1466db8781747"
 PINNED_BLOB_SHA256 = (
-    "e1129672e3ba79ea88d261a79c6d3b4d7408b499fae87c71c4c6872e5e4c40a8"
+    "0c3510a0ebdc2fc4c5cf6a965b2cca67f060286bf8cdba34de92d33c02fe2977"
 )
 
 sys.path.insert(0, str(ROOT / "tools"))
