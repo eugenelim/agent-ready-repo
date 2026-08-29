@@ -5,6 +5,45 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.14.1"
+        }
+      ],
+      "date": "2026-08-28",
+      "heading": "[core][2.14.1] — 2026-08-28",
+      "changelogAnchor": "core2141--2026-08-28",
+      "highlights": [
+        {
+          "source": "**Spec authors can keep contracts and plans independently sharp.** Acceptance criteria now express one checkable obligation, while plan tests name only non-inferable verification mechanisms instead of mirroring the contract.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Spec authors can keep contracts and plans independently sharp."
+            },
+            {
+              "type": "text",
+              "value": " Acceptance criteria now express one checkable obligation, while plan tests name only non-inferable verification mechanisms instead of mirroring the contract."
+            }
+          ]
+        },
+        {
+          "source": "**Plans now test their riskiest mechanism before review.** A cheap throwaway check can reshape the implementation strategy before reviewers spend rounds on an unstarted plan.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Plans now test their riskiest mechanism before review."
+            },
+            {
+              "type": "text",
+              "value": " A cheap throwaway check can reshape the implementation strategy before reviewers spend rounds on an unstarted plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.14.0"
         }
       ],

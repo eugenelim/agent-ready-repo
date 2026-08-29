@@ -52,6 +52,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.14.1] — 2026-08-28
+
+### Highlights
+
+- **Spec authors can keep contracts and plans independently sharp.** Acceptance
+  criteria now express one checkable obligation, while plan tests name only
+  non-inferable verification mechanisms instead of mirroring the contract.
+- **Plans now test their riskiest mechanism before review.** A cheap throwaway
+  check can reshape the implementation strategy before reviewers spend rounds
+  on an unstarted plan.
+
+### Changed
+
+- `new-spec` now flags overlong plans and verification-heavy tasks as reduction
+  smells, keeps approval-time file and fixture details provisional, and reduces
+  plans when review finds their over-specification.
+- TDD stub guidance now makes an executable stub replace its prose test entry;
+  obligations without a stub record why their mode or surface cannot support
+  one.
+
 ## [core][2.14.0] — 2026-08-28
 
 ### Highlights

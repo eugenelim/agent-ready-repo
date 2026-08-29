@@ -642,6 +642,18 @@
         "Schedules only unfinished tasks",
         "Rejects automatic amendment from time, retry, stasis, or model judgment"
       ]
+    },
+    {
+      "id": "tdd-stub-replaces-prose-or-records-no-stub-reason",
+      "prompt": "In a full-mode plan, AC3 is a concrete TDD-mode obligation whose red test is `test_rejects_duplicate_keys`, but the task's `Tests:` entry still carries a prose bullet describing the behaviour. AC4 is concrete and manual-QA mode. AC5 is concrete and TDD-mode, but its only true surface is a CLI exit code. How should the task record these three obligations?",
+      "expected_output": "Replace AC3's prose bullet with `test_rejects_duplicate_keys (AC3)` and `stub: true` — the executable stub is the entry, not an accompaniment to it. Record AC4 as `no stub (mode)` with the reason that manual-QA mode generates no stub. Do not record AC5 as no-stub: an out-of-process surface still stubs the nearest in-process data contract and carries the exit-code check as a deferred assertion. Add no compensating prose in place of any of the three records, and do not treat AC4 or AC5 as under-specified.",
+      "assertions": [
+        "Replaces AC3's prose bullet with the test function name, its AC identifier, and `stub: true`",
+        "Records `no stub (mode)` for the manual-QA AC4 with its reason",
+        "Stubs AC5's nearest in-process contract with the exit code as a deferred assertion, rather than recording no-stub for a hard surface",
+        "Does not substitute prose for the executable stub or the no-stub record",
+        "Does not treat the concrete AC4 or AC5 as under-specified"
+      ]
     }
   ]
 }

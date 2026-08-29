@@ -107,14 +107,19 @@ def test_core_release_metadata_and_history_agree() -> None:
     changelog = _read("docs/product/changelog.md")
     skill = _read("packs/core/.apm/skills/close-work/SKILL.md")
 
-    assert pack["pack"]["version"] == "2.14.0"
-    assert plugin["version"] == "2.14.0"
+    current_version = pack["pack"]["version"]
+    assert plugin["version"] == current_version
     assert "close-work" in pack["pack"]["evals"]["skills"]
-    # Assert the invariant, not the calendar day. The release date is not this
-    # test's to own — it moved twice while this branch was in review, and each
-    # slip reddened a suite for a reason unrelated to the declaration here. The
-    # version coupling above is the real contract; a dated top-level heading in
-    # the documented shape is all this line needs.
+    # Assert the invariant, not the calendar day or a release's current version.
+    # The date moved twice while this branch was in review, and the version must
+    # advance whenever core ships. The version coupling above and a dated,
+    # top-level heading for that version are this test's release contract.
+    assert re.search(
+        rf"^## \[core\]\[{re.escape(current_version)}\] — \d{{4}}-\d{{2}}-\d{{2}}$",
+        changelog,
+        re.M,
+    ), f"no dated top-level core {current_version} changelog heading"
+    # 2.14.0 is already published history, not the current-release selector.
     assert re.search(
         r"^## \[core\]\[2\.14\.0\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
     ), "no dated top-level core 2.14.0 changelog heading"
