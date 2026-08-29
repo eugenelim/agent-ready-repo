@@ -4,8 +4,10 @@ import ast
 import hashlib
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
+import tomllib
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -1258,3 +1260,216 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
     assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH), cooling.MAX_RECORD_DEPTH) is True
     # And it terminates on input that would overflow a recursive implementation.
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True
+
+
+# STUB: AC1 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC2 (spec/cooling-untrusted-timezone-bound)
+def test_an_over_long_timezone_refuses_through_both_seams() -> None:
+    cooling = _load()
+    payload = _payload(timezone="a" * 256)
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+
+
+# STUB: AC3 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC4 (spec/cooling-untrusted-timezone-bound)
+def test_the_temporal_helpers_name_the_timezone_refusal() -> None:
+    cooling = _load()
+    timezone = "a" * 256
+
+    assert cooling.compute_review_on(date(2026, 8, 1), timezone).code == "unknown-timezone"
+    assert cooling.is_due(
+        _record(cooling, timezone=timezone),
+        datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+    ).code == "unknown-timezone"
+
+
+# STUB: AC5 (spec/cooling-untrusted-timezone-bound)
+def test_the_timezone_bound_precedes_the_lookup_at_every_seam() -> None:
+    cooling = _load()
+    calls: list[object] = []
+
+    def counting_zoneinfo(key: object) -> ZoneInfo:
+        calls.append(key)
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = counting_zoneinfo
+    seams = (
+        lambda timezone: cooling.validate_payload(_payload(timezone=timezone)),
+        lambda timezone: cooling.compute_review_on(date(2026, 8, 1), timezone),
+        lambda timezone: cooling.is_due(
+            _record(cooling, timezone=timezone), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+        ),
+    )
+    for seam in seams:
+        calls.clear()
+        seam("a" * 256)
+        assert len(calls) == 0
+
+        calls.clear()
+        seam("a" * 255)
+        assert len(calls) == 1
+
+
+# STUB: AC6 (spec/cooling-untrusted-timezone-bound)
+def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
+    cooling = _load()
+
+    def zoneinfo_raising_oserror(key: object) -> ZoneInfo:
+        if key == "UTC":
+            raise OSError(63, "File name too long")
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = zoneinfo_raising_oserror
+
+    assert cooling.validate_payload(_payload(timezone="UTC")).code == "record-invalid"
+    assert cooling.compute_review_on(date(2026, 8, 1), "UTC").code == "unknown-timezone"
+    assert cooling.is_due(
+        _record(cooling, timezone="UTC"), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+    ).code == "unknown-timezone"
+
+
+# STUB: AC7 (spec/cooling-untrusted-timezone-bound)
+@pytest.mark.parametrize("timezone", [123, True, None, ["UTC"], {"a": 1}])
+def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> None:
+    cooling = _load()
+    calls: list[object] = []
+
+    def counting_zoneinfo(key: object) -> ZoneInfo:
+        calls.append(key)
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = counting_zoneinfo
+    payload = _payload(timezone=timezone)
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert calls == []
+
+    calls.clear()
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+    assert calls == []
+
+
+# STUB: AC8 (spec/cooling-untrusted-timezone-bound)
+@pytest.mark.parametrize(
+    "timezone",
+    [
+        "a" * 256,
+        "é" * 300,
+        "a" * 255,
+        "",
+        " ",
+        ".",
+        "/etc/passwd",
+        "../../etc/passwd",
+        "Not/A/Zone",
+        "a\x00b",
+    ],
+)
+def test_the_timezone_corpus_never_raises(timezone: str) -> None:
+    cooling = _load()
+    payload = _payload(timezone=timezone)
+
+    assert cooling.validate_payload(payload).code in cooling.REFUSAL_CODES, timezone
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code in cooling.REFUSAL_CODES, timezone
+
+
+# STUB: AC9 (spec/cooling-untrusted-timezone-bound)
+def test_a_timezone_refusal_carries_a_code_and_no_mutation() -> None:
+    cooling = _load()
+    timezone = "a" * 256
+    results = (
+        cooling.validate_payload(_payload(timezone=timezone)),
+        cooling.parse_record_bytes(json.dumps(_payload(timezone=timezone)).encode()),
+        cooling.compute_review_on(date(2026, 8, 1), timezone),
+        cooling.is_due(
+            _record(cooling, timezone=timezone),
+            datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+        ),
+    )
+
+    for result in results:
+        assert set(result.as_dict()) == {"due", "permission_granted", "mutated", "code"}
+        assert result.mutated == ()
+
+
+# STUB: AC10 (spec/cooling-untrusted-timezone-bound)
+def test_a_resolvable_timezone_is_unaffected() -> None:
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(timezone=SG)).code is None
+
+
+# STUB: AC11 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC13 (spec/cooling-untrusted-timezone-bound)
+def test_the_code_bounds_equal_the_published_bounds() -> None:
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        schema = json.load(schema_file)
+
+    assert schema["properties"]["timezone"]["maxLength"] == cooling.MAX_TIMEZONE_LENGTH
+    assert schema["$defs"]["locator"]["maxLength"] == cooling.MAX_LOCATOR_LENGTH
+
+
+# STUB: AC12 (spec/cooling-untrusted-timezone-bound)
+def test_an_empty_timezone_refuses() -> None:
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(timezone="")).code == "record-invalid"
+
+
+# STUB: AC14 (spec/cooling-untrusted-timezone-bound)
+def test_the_locator_constant_governs_the_guard() -> None:
+    cooling = _load()
+    cooling.MAX_LOCATOR_LENGTH = 8
+
+    assert cooling.validate_payload(_payload(locator="a" * 9)).code == "record-invalid"
+    assert cooling.validate_payload(_payload(locator="a" * 8)).code is None
+
+
+# STUB: AC15 (spec/cooling-untrusted-timezone-bound)
+def test_the_published_contract_is_unchanged() -> None:
+    assert hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest() == (
+        "8bb85ebde713c3b9f6bdd4aeca8b50dfb8291608c731607a426517e7f474a6f3"
+    )
+
+
+# STUB: AC16 (spec/cooling-untrusted-timezone-bound)
+def test_the_release_surfaces_agree_and_advance() -> None:
+    """The two manifests, the topmost changelog heading, and the step all agree.
+
+    "Advance" is read from the changelog rather than from git: the predecessor
+    is the second dated `[core]` heading, so this holds in a shallow clone and
+    in CI, where `origin/main` may not be a local ref. A self-consistent but
+    stale version set fails the strict-greater comparison.
+    """
+    pack = tomllib.loads((ROOT / "packs/core/pack.toml").read_text(encoding="utf-8"))
+    plugin = json.loads(
+        (ROOT / "packs/core/.claude-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    version = pack["pack"]["version"]
+    assert plugin["version"] == version
+
+    changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    # The repository writes these headings with an em dash, not a hyphen; the
+    # shipped Wave 4 release test pins the same shape.
+    headings = re.findall(
+        r"^## \[core\]\[([0-9.]+)\] — \d{4}-\d{2}-\d{2}$", changelog, re.M
+    )
+    assert headings, "no dated core changelog heading"
+    assert headings[0] == version, (
+        f"topmost core heading is {headings[0]!r}, manifests say {version!r}"
+    )
+    assert len(headings) > 1, "no predecessor release to advance past"
+    step = tuple(int(part) for part in version.split("."))
+    predecessor = tuple(int(part) for part in headings[1].split("."))
+    assert step > predecessor, f"{version} does not advance past {headings[1]}"
+
+
+# STUB: AC17 (spec/cooling-untrusted-timezone-bound)
+def test_the_cooling_projections_match_their_source() -> None:
+    source = COOLING_PATH.read_bytes()
+
+    assert (ROOT / ".claude/skills/close-work/scripts/cooling.py").read_bytes() == source
+    assert (ROOT / ".agents/skills/close-work/scripts/cooling.py").read_bytes() == source

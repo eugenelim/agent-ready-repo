@@ -77,8 +77,16 @@ counts calls to prove the bound fires *before* the lookup, and AC6 forces the
 `ZoneInfo` in the freshly-loaded module's namespace, and both assert all three
 seams — a guard proven at one seam does not prove the other two.
 
-Stub coverage at PLAN: 19 of 19 criteria carry a materialised red stub
-(`stub: true` on every task). None is deferred to EXECUTE.
+Stub coverage at PLAN — all 19 criteria are materialised, none deferred to
+EXECUTE, and the split is stated rather than claimed uniformly red:
+
+- **Red now (12):** AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC11, AC13,
+  AC14 — 14 failing test cases, since AC7 and AC8 are parametrized.
+- **Green by construction (5):** AC10, AC12, AC15, AC16, AC17 — non-regression
+  and consistency invariants that hold today and must keep holding. Each carries
+  a mutation proof in `plan.md`, because a criterion that cannot fail proves
+  nothing.
+- **Goal-based (2):** AC18, AC19 — a named command, no test file.
 
 ## Acceptance Criteria
 
