@@ -1264,6 +1264,18 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
 
 # STUB: AC1 (spec/cooling-untrusted-timezone-bound)
 # STUB: AC2 (spec/cooling-untrusted-timezone-bound)
+MERGE_BASE_CORE_VERSION = "2.15.1"  # packs/core/pack.toml at 8fc40040
+
+
+def _counting_zoneinfo(calls: list[object]):
+    """Return a ZoneInfo replacement that records each lookup key."""
+    def counting_zoneinfo(key: object) -> ZoneInfo:
+        calls.append(key)
+        return ZoneInfo(key)
+
+    return counting_zoneinfo
+
+
 def test_an_over_long_timezone_refuses_through_both_seams() -> None:
     cooling = _load()
     payload = _payload(timezone="a" * 256)
@@ -1289,12 +1301,7 @@ def test_the_temporal_helpers_name_the_timezone_refusal() -> None:
 def test_the_timezone_bound_precedes_the_lookup_at_every_seam() -> None:
     cooling = _load()
     calls: list[object] = []
-
-    def counting_zoneinfo(key: object) -> ZoneInfo:
-        calls.append(key)
-        return ZoneInfo(key)
-
-    cooling.ZoneInfo = counting_zoneinfo
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
     seams = (
         lambda timezone: cooling.validate_payload(_payload(timezone=timezone)),
         lambda timezone: cooling.compute_review_on(date(2026, 8, 1), timezone),
@@ -1335,12 +1342,7 @@ def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
 def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> None:
     cooling = _load()
     calls: list[object] = []
-
-    def counting_zoneinfo(key: object) -> ZoneInfo:
-        calls.append(key)
-        return ZoneInfo(key)
-
-    cooling.ZoneInfo = counting_zoneinfo
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
     payload = _payload(timezone=timezone)
 
     assert cooling.validate_payload(payload).code == "record-invalid"
@@ -1350,6 +1352,17 @@ def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> Non
     assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
     assert calls == []
 
+    calls.clear()
+    assert cooling.compute_review_on(date(2026, 8, 1), timezone).code == "unknown-timezone"
+    assert calls == []
+
+    calls.clear()
+    assert cooling.is_due(
+        cooling.CoolingRecord.from_payload(payload),
+        datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+    ).code == "unknown-timezone"
+    assert calls == []
+
 
 # STUB: AC8 (spec/cooling-untrusted-timezone-bound)
 @pytest.mark.parametrize(
@@ -1357,6 +1370,7 @@ def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> Non
     [
         "a" * 256,
         "é" * 300,
+        "é" * 200,
         "a" * 255,
         "",
         " ",
@@ -1379,19 +1393,47 @@ def test_the_timezone_corpus_never_raises(timezone: str) -> None:
 def test_a_timezone_refusal_carries_a_code_and_no_mutation() -> None:
     cooling = _load()
     timezone = "a" * 256
-    results = (
-        cooling.validate_payload(_payload(timezone=timezone)),
-        cooling.parse_record_bytes(json.dumps(_payload(timezone=timezone)).encode()),
-        cooling.compute_review_on(date(2026, 8, 1), timezone),
-        cooling.is_due(
-            _record(cooling, timezone=timezone),
-            datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+    results = [
+        (cooling.validate_payload(_payload(timezone=timezone)), "record-invalid"),
+        (cooling.parse_record_bytes(json.dumps(_payload(timezone=timezone)).encode()), "record-invalid"),
+        (cooling.compute_review_on(date(2026, 8, 1), timezone), "unknown-timezone"),
+        (
+            cooling.is_due(
+                _record(cooling, timezone=timezone),
+                datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+            ),
+            "unknown-timezone",
         ),
+    ]
+
+    def zoneinfo_raising_oserror(key: object) -> ZoneInfo:
+        if key == "UTC":
+            raise OSError(63, "File name too long")
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = zoneinfo_raising_oserror
+    results.extend(
+        [
+            (cooling.validate_payload(_payload(timezone="UTC")), "record-invalid"),
+            (cooling.compute_review_on(date(2026, 8, 1), "UTC"), "unknown-timezone"),
+            (
+                cooling.is_due(
+                    _record(cooling, timezone="UTC"),
+                    datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+                ),
+                "unknown-timezone",
+            ),
+        ]
     )
 
-    for result in results:
-        assert set(result.as_dict()) == {"due", "permission_granted", "mutated", "code"}
-        assert result.mutated == ()
+    for result, code in results:
+        assert result.as_dict() == {
+            "due": False,
+            "permission_granted": False,
+            "mutated": (),
+            "code": code,
+        }
+        assert "record" not in result.as_dict()
 
 
 # STUB: AC10 (spec/cooling-untrusted-timezone-bound)
@@ -1419,6 +1461,30 @@ def test_an_empty_timezone_refuses() -> None:
     assert cooling.validate_payload(_payload(timezone="")).code == "record-invalid"
 
 
+# STUB: AC11a (spec/cooling-untrusted-timezone-bound)
+def test_the_timezone_constant_governs_the_guard() -> None:
+    cooling = _load()
+    cooling.MAX_TIMEZONE_LENGTH = 8
+    calls: list[object] = []
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
+    seams = (
+        (lambda timezone: cooling.validate_payload(_payload(timezone=timezone)), "record-invalid"),
+        (lambda timezone: cooling.compute_review_on(date(2026, 8, 1), timezone), "unknown-timezone"),
+        (lambda timezone: cooling.is_due(
+            _record(cooling, timezone=timezone), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+        ), "unknown-timezone"),
+    )
+
+    for seam, code in seams:
+        calls.clear()
+        assert seam("a" * 9).code == code
+        assert calls == []
+
+        calls.clear()
+        seam("a" * 8)
+        assert len(calls) == 1
+
+
 # STUB: AC14 (spec/cooling-untrusted-timezone-bound)
 def test_the_locator_constant_governs_the_guard() -> None:
     cooling = _load()
@@ -1430,6 +1496,7 @@ def test_the_locator_constant_governs_the_guard() -> None:
 
 # STUB: AC15 (spec/cooling-untrusted-timezone-bound)
 def test_the_published_contract_is_unchanged() -> None:
+    """Pin the schema file's SHA-256 at merge base 8fc40040."""
     assert hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest() == (
         "8bb85ebde713c3b9f6bdd4aeca8b50dfb8291608c731607a426517e7f474a6f3"
     )
@@ -1439,10 +1506,9 @@ def test_the_published_contract_is_unchanged() -> None:
 def test_the_release_surfaces_agree_and_advance() -> None:
     """The two manifests, the topmost changelog heading, and the step all agree.
 
-    "Advance" is read from the changelog rather than from git: the predecessor
-    is the second dated `[core]` heading, so this holds in a shallow clone and
-    in CI, where `origin/main` may not be a local ref. A self-consistent but
-    stale version set fails the strict-greater comparison.
+    The merge-base version is a literal so this holds in a shallow clone and in
+    CI, where `origin/main` may not be a local ref. A self-consistent but stale
+    version set fails the strict-greater comparison.
     """
     pack = tomllib.loads((ROOT / "packs/core/pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads(
@@ -1461,10 +1527,9 @@ def test_the_release_surfaces_agree_and_advance() -> None:
     assert headings[0] == version, (
         f"topmost core heading is {headings[0]!r}, manifests say {version!r}"
     )
-    assert len(headings) > 1, "no predecessor release to advance past"
     step = tuple(int(part) for part in version.split("."))
-    predecessor = tuple(int(part) for part in headings[1].split("."))
-    assert step > predecessor, f"{version} does not advance past {headings[1]}"
+    merge_base = tuple(int(part) for part in MERGE_BASE_CORE_VERSION.split("."))
+    assert step > merge_base, f"{version} does not advance past {MERGE_BASE_CORE_VERSION}"
 
 
 # STUB: AC17 (spec/cooling-untrusted-timezone-bound)

@@ -94,11 +94,15 @@ defect.
 Stub coverage at PLAN — all 21 criteria are materialised, none deferred to
 EXECUTE, and the split is measured, not claimed:
 
-- **Red in both environments (8):** AC5, AC6, AC7, AC11, AC11a, AC13, AC14,
-  AC16. These are the detectors: each fails whether or not `tzdata` is present.
-- **Red only where `tzdata` is importable (5):** AC1, AC2, AC3, AC4, AC9, plus
-  two of AC8's eleven rows. AC7 contributes 5 failing cases and AC8 contributes
-  2 of its 11. Measured: 14 failures with `tzdata` present, 9 with it blocked.
+- **Red in both environments (9 criteria, 12 cases):** AC5, AC6, AC7, AC9, AC11,
+  AC11a, AC13, AC14, AC16. These are the detectors: each fails whether or not
+  `tzdata` is present. AC7 contributes 5 of the 12 cases. AC9 is in this group
+  only because it now also covers AC6's substituted-`OSError` results.
+- **Red only where `tzdata` is importable (4 criteria, 4 cases):** AC1, AC2,
+  AC3, AC4, plus two of AC8's eleven rows.
+
+Measured on the materialised stubs: **16 failures with `tzdata` importable, 12
+with it blocked.**
 - **Green by construction (4):** AC10, AC12, AC15, AC17 — non-regression
   invariants that hold today and must keep holding. Each carries a mutation
   proof in `plan.md`, because a criterion that cannot fail proves nothing.
