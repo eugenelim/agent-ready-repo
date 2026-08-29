@@ -1262,8 +1262,8 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True
 
 
-# STUB: AC1 (spec/cooling-untrusted-timezone-bound)
-# STUB: AC2 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC1 (spec/cooling-untrusted-input-refusals)
+# STUB: AC2 (spec/cooling-untrusted-input-refusals)
 MERGE_BASE_CORE_VERSION = "2.15.2"  # packs/core/pack.toml at 3e5098dd6
 
 
@@ -1284,8 +1284,8 @@ def test_an_over_long_timezone_refuses_through_both_seams() -> None:
     assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
 
 
-# STUB: AC3 (spec/cooling-untrusted-timezone-bound)
-# STUB: AC4 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC3 (spec/cooling-untrusted-input-refusals)
+# STUB: AC4 (spec/cooling-untrusted-input-refusals)
 def test_the_temporal_helpers_name_the_timezone_refusal() -> None:
     cooling = _load()
     timezone = "a" * 256
@@ -1297,7 +1297,7 @@ def test_the_temporal_helpers_name_the_timezone_refusal() -> None:
     ).code == "unknown-timezone"
 
 
-# STUB: AC5 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC5 (spec/cooling-untrusted-input-refusals)
 def test_the_timezone_bound_precedes_the_lookup_at_every_seam() -> None:
     cooling = _load()
     calls: list[object] = []
@@ -1319,7 +1319,7 @@ def test_the_timezone_bound_precedes_the_lookup_at_every_seam() -> None:
         assert len(calls) == 1
 
 
-# STUB: AC6 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC6 (spec/cooling-untrusted-input-refusals)
 def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
     cooling = _load()
 
@@ -1337,7 +1337,7 @@ def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
     ).code == "unknown-timezone"
 
 
-# STUB: AC7 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC7 (spec/cooling-untrusted-input-refusals)
 @pytest.mark.parametrize("timezone", [123, True, None, ["UTC"], {"a": 1}])
 def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> None:
     cooling = _load()
@@ -1364,7 +1364,7 @@ def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> Non
     assert calls == []
 
 
-# STUB: AC8 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC8 (spec/cooling-untrusted-input-refusals)
 @pytest.mark.parametrize(
     "timezone",
     [
@@ -1389,7 +1389,7 @@ def test_the_timezone_corpus_never_raises(timezone: str) -> None:
     assert cooling.parse_record_bytes(json.dumps(payload).encode()).code in cooling.REFUSAL_CODES, timezone
 
 
-# STUB: AC9 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC9 (spec/cooling-untrusted-input-refusals)
 def test_a_timezone_refusal_carries_a_code_and_no_mutation() -> None:
     cooling = _load()
     timezone = "a" * 256
@@ -1436,15 +1436,15 @@ def test_a_timezone_refusal_carries_a_code_and_no_mutation() -> None:
         assert "record" not in result.as_dict()
 
 
-# STUB: AC10 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC10 (spec/cooling-untrusted-input-refusals)
 def test_a_resolvable_timezone_is_unaffected() -> None:
     cooling = _load()
 
     assert cooling.validate_payload(_payload(timezone=SG)).code is None
 
 
-# STUB: AC11 (spec/cooling-untrusted-timezone-bound)
-# STUB: AC13 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC11 (spec/cooling-untrusted-input-refusals)
+# STUB: AC13 (spec/cooling-untrusted-input-refusals)
 def test_the_code_bounds_equal_the_published_bounds() -> None:
     cooling = _load()
     with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
@@ -1454,14 +1454,14 @@ def test_the_code_bounds_equal_the_published_bounds() -> None:
     assert schema["$defs"]["locator"]["maxLength"] == cooling.MAX_LOCATOR_LENGTH
 
 
-# STUB: AC12 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC12 (spec/cooling-untrusted-input-refusals)
 def test_an_empty_timezone_refuses() -> None:
     cooling = _load()
 
     assert cooling.validate_payload(_payload(timezone="")).code == "record-invalid"
 
 
-# STUB: AC11a (spec/cooling-untrusted-timezone-bound)
+# STUB: AC11a (spec/cooling-untrusted-input-refusals)
 def test_the_timezone_constant_governs_the_guard() -> None:
     cooling = _load()
     cooling.MAX_TIMEZONE_LENGTH = 8
@@ -1485,7 +1485,7 @@ def test_the_timezone_constant_governs_the_guard() -> None:
         assert len(calls) == 1
 
 
-# STUB: AC14 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC14 (spec/cooling-untrusted-input-refusals)
 def test_the_locator_constant_governs_the_guard() -> None:
     cooling = _load()
     cooling.MAX_LOCATOR_LENGTH = 8
@@ -1494,7 +1494,7 @@ def test_the_locator_constant_governs_the_guard() -> None:
     assert cooling.validate_payload(_payload(locator="a" * 8)).code is None
 
 
-# STUB: AC15 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC15 (spec/cooling-untrusted-input-refusals)
 def test_the_published_contract_is_unchanged() -> None:
     """Pin the schema file's SHA-256 at merge base 3e5098dd6 (unchanged since 97a0b6ad)."""
     assert hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest() == (
@@ -1502,7 +1502,7 @@ def test_the_published_contract_is_unchanged() -> None:
     )
 
 
-# STUB: AC16 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC16 (spec/cooling-untrusted-input-refusals)
 def test_the_release_surfaces_agree_and_advance() -> None:
     """The two manifests, the topmost changelog heading, and the step all agree.
 
@@ -1532,7 +1532,7 @@ def test_the_release_surfaces_agree_and_advance() -> None:
     assert step > merge_base, f"{version} does not advance past {MERGE_BASE_CORE_VERSION}"
 
 
-# STUB: AC17 (spec/cooling-untrusted-timezone-bound)
+# STUB: AC17 (spec/cooling-untrusted-input-refusals)
 def test_the_cooling_projections_match_their_source() -> None:
     source = COOLING_PATH.read_bytes()
 

@@ -1,4 +1,4 @@
-# Spec: Cooling untrusted timezone bound
+# Spec: Cooling untrusted input refusals
 
 - **Status:** Draft
 - **Owner:** eugenelim
@@ -14,11 +14,17 @@
 
 ## Objective
 
-A maintainer hands the cooling engine a lifecycle record whose `timezone` field
-came from outside the process. Every unresolvable zone — malformed, non-string,
-absent from the platform database, or longer than the published contract permits
-— comes back as a named refusal code from every seam that resolves one. Nothing
-raises, and no host filesystem path or `errno` reaches the caller. The two
+A maintainer hands the cooling engine a lifecycle record that came from outside
+the process. Where the hand-written validator is weaker than the published
+contract, it now refuses with a named code instead of raising.
+
+Two fields are repaired. An unresolvable `timezone` — malformed, non-string,
+absent from the platform database, or longer than the contract permits — returns
+a named refusal from every seam that resolves one. An `exception` envelope
+missing a required key returns a named refusal from every seam that reads one,
+including the two caller-facing review seams.
+
+Nothing raises, so no host filesystem path or `errno` reaches the caller. The two
 numeric bounds this spec names can no longer drift from the published contract
 unnoticed.
 
@@ -47,7 +53,6 @@ unnoticed.
 
 - Changing any published field, bound, pattern, or `x-spec` entry in the contract.
 - Changing which refusal code an existing input shape produces.
-- Widening this spec's objective beyond the `timezone` field.
 
 ### Never do
 
@@ -72,7 +77,7 @@ functions — `validate_payload`, `parse_record_bytes`, `compute_review_on`,
 
 That file already carries 43 `# STUB: AC<n>` markers belonging to the frozen
 Wave 5 spec, so every marker this spec adds is disambiguated as
-`# STUB: AC<n> (spec/cooling-untrusted-timezone-bound)`, the form already used
+`# STUB: AC<n> (spec/cooling-untrusted-input-refusals)`, the form already used
 at `tools/assert-sast-chain-reachable.py:4`.
 
 Two criteria replace the platform lookup rather than varying the input: AC5
@@ -91,13 +96,18 @@ rests on AC5 and AC6, which substitute `ZoneInfo` and hold in either
 environment — never on AC1–AC4, which assert the contract rather than detect the
 defect.
 
-Stub coverage at PLAN — all 21 criteria are materialised, none deferred to
+AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
+red in every environment, because the escape is plain dict access rather than a
+platform lookup.
+
+Stub coverage at PLAN — all 24 criteria are materialised, none deferred to
 EXECUTE, and the split is measured, not claimed:
 
-- **Red in both environments (9 criteria, 12 cases):** AC5, AC6, AC7, AC9, AC11,
-  AC11a, AC13, AC14, AC16. These are the detectors: each fails whether or not
-  `tzdata` is present. AC7 contributes 5 of the 12 cases. AC9 is in this group
-  only because it now also covers AC6's substituted-`OSError` results.
+- **Red in both environments (12 criteria):** AC5, AC6, AC7, AC9, AC11, AC11a,
+  AC13, AC14, AC16, AC20, AC21, AC22. These are the detectors: each fails
+  whether or not `tzdata` is present. AC7 contributes 5 cases and AC20 four.
+  AC9 is in this group only because it now also covers AC6's
+  substituted-`OSError` results.
 - **Red only where `tzdata` is importable (4 criteria, 4 cases):** AC1, AC2,
   AC3, AC4, plus two of AC8's eleven rows.
 
@@ -106,6 +116,8 @@ with it blocked.**
 - **Green by construction (4):** AC10, AC12, AC15, AC17 — non-regression
   invariants that hold today and must keep holding. Each carries a mutation
   proof in `plan.md`, because a criterion that cannot fail proves nothing.
+  AC22 belongs to the same family but is listed above: a complete envelope is
+  accepted today, so only its mutation proof makes it falsifiable.
 - **Goal-based (3):** AC18, AC18a, AC19 — a named command, no test file.
 
 ## Acceptance Criteria
@@ -149,6 +161,24 @@ with it blocked.**
   errno or a host path.
 - [ ] **AC10 — A resolvable timezone is unaffected.** `validate_payload` on an
   otherwise-valid payload with `timezone = "Asia/Singapore"` returns no code.
+
+### The exception envelope
+
+- [ ] **AC20 — An incomplete envelope refuses instead of raising.** For each of
+  the four shapes that carry `evidence_ref` and omit a required key —
+  `{reason, owner_role, evidence_ref}`, `{reason, review_on, evidence_ref}`,
+  `{owner_role, review_on, evidence_ref}`, and `{evidence_ref}` — a
+  `retain-exception` payload returns `record-invalid` from `validate_payload`
+  and from `parse_record_bytes`, and raises nothing.
+- [ ] **AC21 — The caller-facing review seams refuse it too.** Given the
+  `{reason, owner_role, evidence_ref}` envelope and a due record, `review` with
+  six `refuse` answers returns `exception-envelope-invalid`, and
+  `review_exception` with `outcome = "renew"` and that envelope in the
+  attestation returns `exception-envelope-invalid`. Neither raises.
+- [ ] **AC22 — A complete envelope is still accepted.** A `retain-exception`
+  payload whose `exception` carries `reason`, `owner_role`, and `review_on`
+  returns no code from `validate_payload`, both with and without an
+  `evidence_ref`.
 
 ### Bounds that match the published contract
 
@@ -207,27 +237,9 @@ artifact yet — the work-loop's DECIDE step forbids creating one by default for
 work this loop did not include, so the owner registers them through
 `work-intake` if and when they are picked up.
 
-The first entry is the one this delivery most recommends for an owner decision:
-it is measured, live in every environment, and one operator to repair.
+The `_exception_is_valid` defect that used to head this list is no longer here:
+the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
 
-- **`_exception_is_valid` admits a payload that raises `KeyError` — the largest
-  residual, and the one most worth an owner decision.** `cooling.py:218` gates on
-  `set(value) < {"reason", "owner_role", "review_on"}` — a *proper subset* test —
-  so any envelope carrying `evidence_ref` escapes it and falls through to a bare
-  subscript. Four shapes raise `KeyError` from **four** seams, not two:
-  `validate_payload` and `parse_record_bytes`, and also the caller-facing
-  `review()` (`cooling.py:759`, envelope supplied as the `exception` argument)
-  and `review_exception(outcome="renew")` (`:815`, envelope taken from the
-  attestation) — 20 of 80 seam-cases. Unlike this spec's subject the defect is
-  **not** environment-contingent: it is plain dict access, so it is live in CI
-  and everywhere else. The escaping traceback carries `cooling.py`'s absolute
-  host path. The published contract rejects all four shapes
-  (`$defs/exception` `required`). Measured and traced in
-  [`notes/corpus-measurement.md`](notes/corpus-measurement.md). The repair is one
-  operator — a superset test, the form `validate_payload` already uses at
-  `cooling.py:240`. It is the same defect class as this spec's, on a different
-  field, so including it would widen this spec's stated Objective: an owner
-  scope decision, not the smallest change on this target.
 - **`delivery_id` accepts a non-string the contract forbids.** `cooling.py:246`
   matches `_DELIVERY_ID_RE.fullmatch(str(payload["delivery_id"]))`, coercing
   before matching, so `{"delivery_id": 123}` validates clean and becomes
@@ -305,6 +317,13 @@ it is measured, live in every environment, and one operator to repair.
 
 ## Changelog
 
+- 2026-08-29: Scope widened by the owner. The `_exception_is_valid`
+  proper-subset defect moves from a recorded follow-on into this spec's criteria
+  as AC20 to AC22, and the spec is renamed from
+  `cooling-untrusted-timezone-bound` to match what it now covers. Both repairs
+  are the same class — a hand-written validator weaker than the published
+  contract, failing by exception rather than by refusal code — so the Objective
+  now names the class rather than one field.
 - 2026-08-28: Opened. Three Wave 5 post-code review Concerns were adjudicated
   before any repair; one sustained and two refuted, all recorded in
   [`notes/adjudication.md`](notes/adjudication.md). Pre-EXECUTE adversarial and

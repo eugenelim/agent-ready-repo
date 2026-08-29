@@ -1,4 +1,4 @@
-# Plan: Cooling untrusted timezone bound
+# Plan: Cooling untrusted input refusals
 
 - **Spec:** [spec.md](spec.md)
 - **Status:** Drafting
@@ -23,14 +23,19 @@
 
 ## Approach
 
-Three dependency-ordered tasks. T1 closes the escape in `cooling.py` at all
-three seams and proves each half independently. T2 makes the schema-versus-code
-bound divergence mechanical so it cannot recur silently. T3 lands the release,
-projection, and registration surfaces.
+Four tasks. T1 closes the timezone escape at all three seams and proves each
+half independently. T2 closes the exception-envelope escape, which reaches four
+seams including the two caller-facing review entries. T3 makes the
+schema-versus-code bound divergence mechanical so it cannot recur silently. T4
+lands the release, projection, and registration surfaces.
+
+T1 and T2 are independent and repair the same class: a hand-written validator
+weaker than the published contract, failing by exception rather than by refusal
+code.
 
 The whole change to production code is one new module-private function, two new
-module constants, and five call-site edits. Nothing new is introduced; the razor
-run is recorded under [Declined](#declined).
+module constants, five call-site edits, and one comparison operator. Nothing new
+is introduced; the razor run is recorded under [Declined](#declined).
 
 ## Constraints
 
@@ -51,7 +56,7 @@ run is recorded under [Declined](#declined).
 - `cooling.py` is a `packs/core/.apm/` runtime script: stdlib only, no
   third-party import, even one already declared for tests.
 - Every `# STUB:` marker added to the shared suite is disambiguated as
-  `# STUB: AC<n> (spec/cooling-untrusted-timezone-bound)`; the file already
+  `# STUB: AC<n> (spec/cooling-untrusted-input-refusals)`; the file already
   carries 43 markers belonging to the frozen Wave 5 spec.
 
 ## Construction tests
@@ -75,11 +80,14 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC15 | `test_the_published_contract_is_unchanged` | TDD | `stub: true` |
 | AC16 | `test_the_release_surfaces_agree_and_advance` | TDD | `stub: true` |
 | AC17 | `test_the_cooling_projections_match_their_source` | TDD | `stub: true` |
+| AC20 | `test_an_incomplete_exception_envelope_refuses` | TDD | `stub: true` |
+| AC21 | `test_the_review_seams_refuse_an_incomplete_envelope` | TDD | `stub: true` |
+| AC22 | `test_a_complete_exception_envelope_is_accepted` | TDD | `stub: true` |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-21 of 21 criteria carry a materialised stub or a named goal-based check. None
+24 of 24 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -225,11 +233,58 @@ mutating, so a mutation that fails to apply cannot yield a vacuous pass.
 | M4 | The type guard precedes the bound | drop `isinstance(timezone, str)` from `_zone` | AC7 fails with an uncaught `TypeError` from `len()` |
 | M5 | The bound is the contract's number | `MAX_TIMEZONE_LENGTH = 255` → `= 256` | AC11 fails |
 
-### T2: Pin the schema and validator bounds together
+### T2: Refuse an incomplete exception envelope
+
+- **ACs:** AC20, AC21, AC22
+- **Verification mode:** TDD
+- **Depends on:** none
+- **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
+  `tests/roster/test_thirty_day_cooling_and_retirement.py`
+
+**Tests:** the three rows covering AC20-AC22. `stub: true`.
+
+**Approach.** `_exception_is_valid` (`cooling.py:214-232`) filters permitted keys,
+then gates on
+
+```python
+if set(value) < {"reason", "owner_role", "review_on"}:
+    return False
+```
+
+`<` is a proper-subset test. `evidence_ref` is a permitted key that is not in the
+compared set, so any envelope carrying it is not a subset of the required three,
+the gate is false, and control reaches `value["reason"]`, `value["owner_role"]`,
+and `value["review_on"]` — raising `KeyError` for whichever is absent.
+
+Replace the gate with a superset test:
+
+```python
+if not set(value) >= {"reason", "owner_role", "review_on"}:
+    return False
+```
+
+That is the form the neighbouring `validate_payload` already uses at
+`cooling.py:240` (`not set(payload) >= _REQUIRED`). Proved by enumeration before
+writing it: the superset test rejects exactly the four dangerous shapes and
+still admits both valid ones, `{reason, owner_role, review_on}` with and without
+`evidence_ref`.
+
+Nothing else changes. The reason, role, date, and evidence checks below the gate
+are already correct once they cannot be reached with a missing key.
+
+**Mutation proofs.**
+
+| # | Invariant | Mutation | Expected failure |
+| --- | --- | --- | --- |
+| M13 | The gate is a superset test | restore `set(value) < {...}` | AC20 and AC21 fail with `KeyError`, the shipped defect |
+| M14 | The gate still admits a valid envelope | `not set(value) >= {...}` becomes `set(value) != {...}` | AC22 fails for the envelope carrying `evidence_ref`, since exact equality rejects the permitted fourth key |
+| M15 | The caller-facing seams are covered | fix `validate_payload`'s path only, leaving `review` and `review_exception` reading the unfixed helper | impossible by construction here — both call the same helper — which is why AC21 asserts them directly rather than trusting that |
+
+### T3: Pin the schema and validator bounds together
 
 - **ACs:** AC11, AC12, AC13, AC14, AC15
 - **Verification mode:** TDD
-- **Depends on:** T1
+- **Depends on:** T1 — it needs `MAX_TIMEZONE_LENGTH` from T1's helper
 - **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
   `tests/roster/test_thirty_day_cooling_and_retirement.py`
 
@@ -257,12 +312,12 @@ the contract instead of the code. The digest literal lives in the test only.
 | M8a | The lower-bound criterion is live | drop `ValueError` from `_zone`'s `except` tuple | AC12 and the corpus's `""` row fail — `ZoneInfo("")` raises `ValueError`, which is what actually refuses the empty key, since the Approach has no emptiness path to drop |
 | M8b | The happy path is still asserted | make `_zone` return `None` unconditionally | AC10 fails, and so do most of AC1–AC9's non-regression halves |
 
-### T3: Release, projections, and registration
+### T4: Release, projections, and registration
 
 - **ACs:** AC16, AC17, AC18, AC19
 - **Verification mode:** mixed — AC16 and AC17 are TDD construction tests; AC18
   and AC19 are goal-based checks
-- **Depends on:** T2
+- **Depends on:** T1, T2, T3 — the release ships all three repairs
 - **Files:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
   `docs/product/changelog.md`, `docs/specs/README.md`, `workspace.toml`,
   `tests/roster/test_thirty_day_cooling_and_retirement.py`
@@ -334,7 +389,7 @@ The razor run, recorded once. Each was considered and cut.
 | A path-sanitising helper for finding 1 | Finding 1 was refuted; and `resource` at `:517` is already the relativized value, so even a repair needed no helper. |
 | A lease or token store for finding 2 | Finding 2 was refuted; and issue digests are deterministic over the grant payload, so a store would not stop replay by a grant holder. |
 | A timezone-validation module | One module-private function in the owning module covers three call sites. A module is a new boundary for eleven lines. |
-| Fixing `_exception_is_valid`'s proper-subset guard in this spec | A measured, reachable defect of the same class — but on a different field, so including it widens this spec's stated Objective. That is an owner scope decision. Recorded as a follow-on with its full trace and measurement instead. |
+| Rewriting `_exception_is_valid` rather than changing its comparison | The four checks below the gate are already correct once an incomplete envelope cannot reach them. One operator is the whole repair; enumeration over all eight envelope shapes proved it before it was written. |
 | A real JSON Schema validator to make code and contract agree by construction | Not a new dependency — `jsonschema>=4.0` is declared at `tools/requirements.txt:5` and ten `tests/roster/` modules import it, including `test_semantic_surface_resolution_contract.py`, which does exactly this for another contract. Declined on its true grounds: `cooling.py` is a `packs/core/.apm/` runtime script that must stay stdlib-only, and a test-side differential validator would surface every divergence including the deferred `locator` pattern, exceeding the sustained finding's scope. |
 | Reconciling the `locator` pattern divergence | Behaviour change with no decision on which side is right. Recorded as a follow-on. |
 | A shared `_bounded_key` helper generalising both bounds | Two constants at two unrelated call sites. Generalising couples `locator` to `timezone` for no gain. |
