@@ -713,18 +713,31 @@ def test_discovery_applies_explicit_caps_to_every_confined_read(
     assert all(limit is not None for limit in observed.values())
 
 
+@pytest.mark.parametrize("descriptor_walk", (False, True))
 def test_direct_read_rejects_windows_reparse_attribute(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, descriptor_walk: bool
 ) -> None:
+    """Reject a reparse-flagged leaf on both leaf-inspection branches.
+
+    "Windows" names the simulated attribute, not the branch. The confined read
+    inspects the leaf through `Path.lstat` on the fallback branch Windows
+    takes, and through `os.stat` bound to the parent descriptor everywhere
+    else, so each branch needs its own stand-in or the simulated attribute
+    never reaches the guard under test.
+    """
+    if descriptor_walk:
+        if os.name == "nt":
+            pytest.skip("Windows never binds path components to directory descriptors")
+        # Keyed on the platform, not the capability: a regression in
+        # `_supports_descriptor_walk` must fail here rather than skip away the
+        # only coverage of the branch this platform actually runs.
+        assert okf_discovery.file_safety._supports_descriptor_walk()
     source = tmp_path / "source.md"
     source.write_bytes(b"safe")
-    original_lstat = Path.lstat
+    root_inode = tmp_path.stat().st_ino
     reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 
-    def reparse_lstat(path: Path) -> os.stat_result | SimpleNamespace:
-        inspected = original_lstat(path)
-        if path != source:
-            return inspected
+    def as_reparse(inspected: os.stat_result) -> SimpleNamespace:
         return SimpleNamespace(
             st_mode=inspected.st_mode,
             st_nlink=inspected.st_nlink,
@@ -734,7 +747,42 @@ def test_direct_read_rejects_windows_reparse_attribute(
             st_file_attributes=reparse_flag,
         )
 
-    monkeypatch.setattr(Path, "lstat", reparse_lstat)
+    if descriptor_walk:
+        original_stat = okf_discovery.file_safety.os.stat
+
+        def reparse_stat(
+            path: Any, *args: Any, dir_fd: int | None = None, **kwargs: Any
+        ) -> os.stat_result | SimpleNamespace:
+            inspected = original_stat(path, *args, dir_fd=dir_fd, **kwargs)
+            # The patch lands on the process-global `os`, so bind the
+            # injection to this test's own leaf under this test's own parent.
+            # `str` accepts every argument shape `os.stat` takes, including an
+            # int descriptor, where `os.fspath` would raise.
+            if (
+                dir_fd is not None
+                and str(path) == source.name
+                and os.fstat(dir_fd).st_ino == root_inode
+            ):
+                return as_reparse(inspected)
+            return inspected
+
+        monkeypatch.setattr(okf_discovery.file_safety.os, "stat", reparse_stat)
+    else:
+        original_lstat = Path.lstat
+
+        def reparse_lstat(path: Path) -> os.stat_result | SimpleNamespace:
+            inspected = original_lstat(path)
+            if path != source:
+                return inspected
+            return as_reparse(inspected)
+
+        monkeypatch.setattr(Path, "lstat", reparse_lstat)
+
+    monkeypatch.setattr(
+        okf_discovery.file_safety,
+        "_supports_descriptor_walk",
+        lambda: descriptor_walk,
+    )
 
     with pytest.raises(okf_discovery.file_safety.UnsafeContentError) as exc:
         okf_discovery.file_safety.read_confined_regular_file(

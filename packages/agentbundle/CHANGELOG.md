@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.40.2] — 2026-08-28
+
+### Changed
+
+- Catalogue seed lint now admits the core pack's bounded rule router,
+  cognitive-load topic, and scoped docs guidance while it keeps rejecting
+  undeclared seed paths.
+
 ## [0.40.1] — 2026-08-28
 
 ### Changed

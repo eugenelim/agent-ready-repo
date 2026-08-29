@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import subprocess
 import sys
@@ -11,6 +12,28 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LINTER = ROOT / "tools" / "lint-agents-md.py"
+
+
+def test_seed_adapter_path_classifier_has_a_narrow_rules_exception() -> None:
+    sys.path.insert(0, str(ROOT / "tools"))
+    spec = importlib.util.spec_from_file_location("lint_agents_md", LINTER)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    roots = {".agents", ".claude"}
+
+    assert not module._seed_names_adapter_path(
+        ".agents/rules/cognitive-load.md", roots
+    )
+    assert not module._seed_names_adapter_path(".portable/../docs/example.md", roots)
+    for unsafe in (
+        ".agents/rules/../skills/example",
+        ".agents/rules/./cognitive-load.md",
+        ".agents/rules/nested/cognitive-load.md",
+        ".agents/rules/cognitive-load.txt",
+        ".claude/skills/example",
+    ):
+        assert module._seed_names_adapter_path(unsafe, roots), unsafe
 
 
 def lint(root: Path) -> str:
@@ -206,12 +229,34 @@ class ProgressiveDisclosureLintTests(unittest.TestCase):
             contract = root / "contracts/adapter.toml"
             contract.parent.mkdir()
             contract.write_text(
-                "[adapter.example]\nprojection = [{target-path = '.claude/skills'}]\n",
+                "[adapter.example]\n"
+                "projection = ["
+                "{target-path = '.claude/skills/'}, "
+                "{target-path = '.agents/skills/'}"
+                "]\n",
                 encoding="utf-8",
             )
             active = root / "packs/example/seeds/README.md"
             active.parent.mkdir(parents=True)
             active.write_text(".claude/skills/example/\n", encoding="utf-8")
+            self.assertIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".agents/rules/cognitive-load.md\n", encoding="utf-8")
+            self.assertNotIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".agents/rules/../skills/example\n", encoding="utf-8")
+            self.assertIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".agents/rules/./cognitive-load.md\n", encoding="utf-8")
+            self.assertIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".agents/rules/nested/cognitive-load.md\n", encoding="utf-8")
+            self.assertIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".claude/cache/state.json\n", encoding="utf-8")
+            self.assertIn("seed vendor path", lint(root))
+            active.unlink()
+            active.write_text(".agents/cache/state.json\n", encoding="utf-8")
             self.assertIn("seed vendor path", lint(root))
             active.unlink()
             ignored = root / "packs/example/seeds/.gitignore"

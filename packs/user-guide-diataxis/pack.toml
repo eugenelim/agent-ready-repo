@@ -1,6 +1,6 @@
 [pack]
 name = "user-guide-diataxis"
-version = "0.3.0"
+version = "0.3.1"
 description = "Deprecated. Install product-documentation instead; this exists so older installs keep working."
 readme = "README.md"
 display_name = "User Guide (Diátaxis) — Deprecated"
@@ -15,8 +15,8 @@ version = "0.8"
 default-scope = "repo"
 allowed-scopes = ["repo"]
 
-# No evals: the new-guide shim has no live authoring implementation to eval.
-# author-product-docs (from the product-documentation dependency) ships its own evals.
+# The new-guide shim has a focused output-quality eval. The depended-on
+# author-product-docs skill keeps its separate authoring evals.
 
 # This pack installs product-documentation as a required dependency.
 # Installing user-guide-diataxis gives you product-documentation and its author-product-docs skill.

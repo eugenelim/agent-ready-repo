@@ -12,13 +12,18 @@
         "Proposes a progressively disclosed file tree without writing"
       ],
       "expect": {
-        "output_contains": ["Mode: frame", "Write status: not authorized"]
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
       }
     },
     {
       "id": "update-existing-skill",
       "prompt": "Update the supplied migration review skill without widening its activation boundary. First inventory the current contract, then describe the exact patch and verification; do not write until explicitly authorized.",
-      "files": ["evals/files/update-existing-SKILL.md"],
+      "files": [
+        "evals/files/update-existing-SKILL.md"
+      ],
       "expected_output": "An update plan that inventories the existing behavior, preserves its narrow trigger and read-only boundary, proposes an exact minimal diff, and retains an explicit write transition and verification step.",
       "assertions": [
         "Inventories the existing skill before proposing changes",
@@ -27,8 +32,26 @@
         "Requires explicit authorization before write and names verification"
       ],
       "expect": {
-        "output_contains": ["Mode: update", "Write status: awaiting explicit authorization"]
+        "output_contains": [
+          "Mode: update",
+          "Write status: awaiting explicit authorization"
+        ]
       }
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing skill-authoring result. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The authoring result leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
+      ]
     }
   ]
 }

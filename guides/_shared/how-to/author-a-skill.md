@@ -380,7 +380,16 @@ grading (pass-rate deltas, with/without-skill, train/validation) is a future RFC
 
 ## Output rendering
 
-When a skill surfaces structured output in chat — tables, status lists, review queues, confirmation dialogs — add an `## Output rendering` section in the SKILL.md body **before the first procedural `##`**. Declare the rendering contract there: what columns appear and their alignment rules, which status glyphs the skill uses, truncation limits, and whether it maintains a persistent command bar.
+Every skill has an `## Output rendering` section before its first procedural
+`##`. Include the universal managed block even for conversational and
+artifact-only skills. It governs chat, input requests, prose artifacts, code,
+comments, quiet tool work, and substance preservation without relying on
+another skill or repository file.
+
+After that block, add only the shape directives the skill needs. Keep custom
+shape rules outside the managed markers so synchronization preserves them.
+The full contract and canonical block are in [Output
+rendering](../reference/output-rendering.md).
 
 The full conventions — status glyph set (●/✓/○/⚠), column alignment and truncation limits, persistent command bar pattern, delete-gate box template, card format for one-by-one review flows, and progress reporting form — are in [`guides/_shared/reference/skill-ux-patterns.md`](../reference/skill-ux-patterns.md).
 

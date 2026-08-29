@@ -29,6 +29,7 @@ def test_seed_agents_distinguishes_minimum_from_conditional_guidance() -> None:
     headings = _headings(SEED_AGENTS)
     assert headings == [
         "Project overview",
+        "Rule lookups",
         "Development workflow",
         "Build and test commands",
         "Coding conventions",

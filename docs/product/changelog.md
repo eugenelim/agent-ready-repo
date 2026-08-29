@@ -52,6 +52,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [agentbundle][0.40.2] — 2026-08-28
+
+### Highlights
+
+- **Catalogue checks now admit the portable rule lookups shipped by the core
+  pack while rejecting undeclared seed paths.** Adopters can receive the new
+  bounded rule router and scoped docs guidance through the normal seed flow.
+
+### Changed
+
+- Declared the three cognitive-load lookup paths in the fail-closed seed
+  linter.
+
+## [core][2.15.2] / [governance-extras][0.10.2] / [product-documentation][0.1.1] / [user-guide-diataxis][0.3.1] / [agent-skill-engineering][0.1.1] — 2026-08-28
+
+### Highlights
+
+- **Agents now make chat, documentation, and skill-led work easier to scan
+  without dropping checks, warnings, evidence, or depth.** Repository rules,
+  generated artifacts, and independent skills share the same outcome-first
+  behavior without requiring a new host primitive.
+
+### Changed
+
+- Added portable cognitive-load rules, focused output evals, and core seed
+  lookups for Claude, Codex, and Gemini adopters.
+
+## [catalogue-curation][0.4.5] — 2026-08-28
+
+### Highlights
+
+- **Compiled OKF skills now carry the same outcome-first output contract as
+  hand-authored ones.** A generated router or procedure skill reads the same
+  way as the rest of the catalogue without a separate rule file.
+
+### Changed
+
+- Injected the managed output-rendering block into the OKF router and
+  procedure wrappers.
+
+## [architect][0.15.4] / [experience-design][2.0.2] / [figma][0.3.3] / [product-engineering][0.13.7] / [product-strategy][0.2.4] — 2026-08-28
+
+### Highlights
+
+- **Architecture, design, and product artifacts now lead with the decision and
+  keep long work easy to resume.** The output stays plain and scan-friendly
+  while preserving requested depth, evidence, constraints, and exact terms.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
+## [contracts][0.3.6] / [converters][0.9.6] / [frontend-engineering][0.2.1] / [iac-terraform][0.1.9] / [monorepo-extras][0.1.9] / [release-engineering][0.1.10] — 2026-08-28
+
+### Highlights
+
+- **Engineering artifacts and handoffs now stay quiet during routine tool work
+  while keeping exact code, errors, and verification.** Results lead with the
+  current outcome and name a next action only when one remains.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
+## [atlassian][0.9.3] / [credential-brokers][0.3.3] / [desk-research][1.1.6] / [github][0.2.3] / [linear][0.3.3] — 2026-08-28
+
+### Highlights
+
+- **Connected-service and research workflows now ask for less at once and
+  return the current result without routine tool narration.** Safety issues,
+  blockers, needed choices, and host requirements still interrupt silence.
+
+### Changed
+
+- Added an independent cognitive-load contract and a scored representative
+  output scenario to each pack.
+
 ## [core][2.15.1] — 2026-08-28
 
 ### Highlights

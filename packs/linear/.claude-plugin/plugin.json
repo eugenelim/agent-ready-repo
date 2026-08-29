@@ -1,5 +1,5 @@
 {
   "name": "linear",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs."
 }

@@ -15,7 +15,7 @@
     },
     {
       "id": 2,
-      "prompt": "Convert this architecture-diagram.png to Markdown — it's a C4 component view.",
+      "prompt": "Convert this architecture-diagram.png to Markdown \u2014 it's a C4 component view.",
       "expected_output": "The agent runs split_image.py overview, reads the overview to produce a structural_map, runs split_image.py detail, loads references/strategy_architecture.md, reads each tile and writes extractions.json, runs reconcile.py with --strategy architecture, and reports the output.",
       "assertions": [
         "Agent runs `python scripts/split_image.py overview` against the input",
@@ -24,27 +24,27 @@
         "Agent loads `references/strategy_architecture.md` (and ONLY that strategy reference, not all five)",
         "Agent reads each tile listed in detail_manifest.json and writes a per-tile element list to an extractions.json file",
         "Agent runs `python scripts/reconcile.py --manifest detail_manifest.json --extractions extractions.json --strategy architecture --output-json merged.json --output-md <output>.md`",
-        "Agent does NOT dedup elements across tiles in chat — it lets the reconciler do that",
-        "Agent does NOT sort the canonical element list itself — it lets the reconciler sort by the structural map's layout",
+        "Agent does NOT dedup elements across tiles in chat \u2014 it lets the reconciler do that",
+        "Agent does NOT sort the canonical element list itself \u2014 it lets the reconciler sort by the structural map's layout",
         "Agent does NOT write the YAML frontmatter by hand; the script produces it"
       ]
     },
     {
       "id": 3,
-      "prompt": "Read this event-storming board photo. The stickies are colored — extract them properly.",
+      "prompt": "Read this event-storming board photo. The stickies are colored \u2014 extract them properly.",
       "expected_output": "The agent loads references/strategy_event-storm.md (only that strategy), maps colors to types per the table (orange=event, blue=command, etc.), captures bbox_in_tile for every sticky (critical for the timeline reconstruction), and runs reconcile.py with --strategy event-storm. The output Markdown's element table groups by type.",
       "assertions": [
         "Agent loads `references/strategy_event-storm.md` (and not other strategy refs)",
-        "Agent extracts color → type mapping per the reference (orange→event, blue→command, yellow→aggregate, lilac→policy, red/pink→hot-spot, green→read-model, white→external)",
+        "Agent extracts color \u2192 type mapping per the reference (orange\u2192event, blue\u2192command, yellow\u2192aggregate, lilac\u2192policy, red/pink\u2192hot-spot, green\u2192read-model, white\u2192external)",
         "Agent captures `bbox_in_tile` for each sticky (required for temporal sequencing)",
         "Agent invokes reconcile.py with `--strategy event-storm`",
-        "Agent does NOT reorder stickies by perceived narrative — leaves spatial sort to the reconciler"
+        "Agent does NOT reorder stickies by perceived narrative \u2014 leaves spatial sort to the reconciler"
       ]
     },
     {
       "id": 4,
       "prompt": "The same component appears in two adjacent tiles. Should I deduplicate before running reconcile?",
-      "expected_output": "The agent says NO — emit every observation, including duplicates. The reconciler collapses elements that share `(type, normalized_name)` across tiles automatically. If the agent dedupes manually, the reconciler can't pick the higher-confidence record (the central-tile observation usually has more legible labels).",
+      "expected_output": "The agent says NO \u2014 emit every observation, including duplicates. The reconciler collapses elements that share `(type, normalized_name)` across tiles automatically. If the agent dedupes manually, the reconciler can't pick the higher-confidence record (the central-tile observation usually has more legible labels).",
       "assertions": [
         "Agent advises against manual cross-tile deduplication",
         "Agent explains the reconciler collapses by `(type, normalized_name)` and by IoU within the same type",
@@ -54,11 +54,11 @@
     },
     {
       "id": 5,
-      "prompt": "The diagram is small — only 800x600 pixels. Do I really need the two-pass pipeline?",
-      "expected_output": "The agent says no — a single tile suffices below 1200px on both dimensions. It runs split_image.py detail with --viewport 1200 --stride 1200 (or just reads the image directly), still emits an extractions.json with one tile entry, and runs reconcile.py.",
+      "prompt": "The diagram is small \u2014 only 800x600 pixels. Do I really need the two-pass pipeline?",
+      "expected_output": "The agent says no \u2014 a single tile suffices below 1200px on both dimensions. It runs split_image.py detail with --viewport 1200 --stride 1200 (or just reads the image directly), still emits an extractions.json with one tile entry, and runs reconcile.py.",
       "assertions": [
         "Agent skips the overview pass (image is small enough that the structural_map can be produced from the source directly)",
-        "Agent runs detail with viewport ≥ image dimensions so there's only one tile",
+        "Agent runs detail with viewport \u2265 image dimensions so there's only one tile",
         "Agent still runs reconcile.py to get the merged JSON + Markdown output",
         "Agent does NOT decline the request because the image is small"
       ]
@@ -88,7 +88,7 @@
     {
       "id": 8,
       "prompt": "I have a 12000x8000-pixel diagram export. Will the toolchain handle it?",
-      "expected_output": "The agent confirms yes — split_image.py auto-prescales sources whose longest dim exceeds 8000 px or whose tiles would exceed the per-tile size limit. The scale factor is recorded in the overview manifest and the tile manifest. No agent action needed beyond the standard flow.",
+      "expected_output": "The agent confirms yes \u2014 split_image.py auto-prescales sources whose longest dim exceeds 8000 px or whose tiles would exceed the per-tile size limit. The scale factor is recorded in the overview manifest and the tile manifest. No agent action needed beyond the standard flow.",
       "assertions": [
         "Agent mentions the auto-prescale behavior",
         "Agent does NOT propose to manually downscale the image with PIL or ImageMagick first",
@@ -99,14 +99,36 @@
       "id": 9,
       "prompt": "Convert sample.docx to Markdown.",
       "expected_output": "The agent confirms Docling (`python -c 'import docling'`), then runs `python scripts/convert.py sample.docx`, which extracts the text via Docling and writes `sample.md` alongside, printing OUTPUT/LINES/WORDS. It reports the output path.",
-      "files": ["evals/files/sample.docx"],
+      "files": [
+        "evals/files/sample.docx"
+      ],
       "assertions": [
         "Agent invokes `python scripts/convert.py sample.docx` (Docling text extraction, not a hand transcription)"
       ],
       "expect": {
-        "produces": ["sample.md"],
-        "output_contains": ["OUTPUT:", "WORDS:"]
+        "produces": [
+          "sample.md"
+        ],
+        "output_contains": [
+          "OUTPUT:",
+          "WORDS:"
+        ]
       }
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing converted artifact handoff. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The converted artifact handoff leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
+      ]
     }
   ]
 }
