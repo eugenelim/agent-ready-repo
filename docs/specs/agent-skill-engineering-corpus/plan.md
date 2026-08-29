@@ -1124,7 +1124,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
-| A required gate arrives red from the base | A `tools/` test a gate this slice runs reproduces on the base, and this slice cannot make it green | Recorded against its owner under the *Always do* Boundary, with the unblocking event named; never absorbed and never re-pinned by this slice |
+| A required gate arrives red from the base | A `tools/` test a gate this slice runs reproduces on the base, and this slice cannot make it green | Recorded against its owner under the *Always do* Boundary; never absorbed and never re-pinned by this slice |
 
 ## Changelog
 

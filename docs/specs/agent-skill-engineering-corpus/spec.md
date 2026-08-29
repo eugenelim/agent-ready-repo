@@ -27,9 +27,7 @@ to fill a slot. The authoring workflow additionally offers
 router skill, or a procedure-to-reference handoff gets the modules that pattern
 needs instead of a general framing pass.
 
-Success is measurable at retrieval rather than at word count. Every admitted
-topic is selected by at least two prompts that return it and no other topic;
-no request returns more than three topics; every prompt that shipped with the
+Success is measurable at retrieval rather than at word count. No request returns more than three topics; every prompt that shipped with the
 foundation returns exactly the topic set it returned before; a fixed 40-prompt
 generic-engineering negative set returns a topic body for no more than 5% of
 its prompts; and no file the pack ships names a repository-only path.
@@ -107,14 +105,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   reviewed exception; the predicate is compressible and the fixture declares the
   mapping first. The live-discovery half runs in `tests/roster/`, the only tree
   permitted to walk every pack.
-- **Topic admission (AC2, AC3, AC4): TDD.** "Admitted implies every claim group
-  declares a basis, carries that basis's fields well-formed, the shipped body
-  and the record agree, and the topic is measurably distinguishable" is a
-  predicate over the admission fixture, the compiled topic set, and the
-  measured retrieval record. One stub covers the three, as `plan.md`'s
-  `# STUB: AC2, AC4, AC5` records. It is the spec's load-bearing
-  invariant, and it deliberately stops at form: the erratum assigns soundness
-  to the reviewer AC2 names.
+- **Topic admission (AC2, AC4): TDD.** "Admitted implies every claim group
+  declares a basis, carries that basis's fields well-formed, and the topic is
+  measurably distinguishable" is a predicate over the admission fixture, the
+  compiled topic set, and the measured retrieval record. It is the spec's
+  load-bearing invariant, and it deliberately stops at form: the erratum
+  assigns soundness to the reviewer AC2 names.
 - **Taxonomy completeness: TDD.** "Each of the 36 topology leaves is in exactly
   one of two sets" is a predicate over a transcribed enumeration.
 - **Retrieval precision, per-case non-regression, and the generic-engineering
@@ -127,8 +123,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Determinism, staged-tree confinement, and hostile-metadata refusal:
   goal-based check** — repeated compiles compared byte-for-byte, and a staged
   tree exercised with the checkout unavailable.
-- **Body-to-record parity: TDD.** Comparing a shipped section against a fixture
-  is a pure predicate over two files in the owning pack.
+- **Body-to-record parity (AC3): TDD.** Comparing a shipped section against a
+  fixture is a pure predicate over two files in the owning pack.
 - **Unpopulated-topic fallback: goal-based check** over the compiled tree — a
   request naming an unpopulated leaf returns the gap statement and applicable
   admitted topics, and no body for that leaf.
@@ -151,10 +147,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Delivery-cut variance: goal-based check** — a grep for the variance
   section heading and the brief's slice-table rows.
 
-Six criteria are verified in TDD mode and carry a compilable red stub in their
-implementing task: census completeness, topic admission, taxonomy completeness,
-body-to-record parity, the mode contract, and the mode-availability guard. The
-remaining eleven are goal-based checks or manual QA and record `no stub (mode)`
+Seven criteria are verified in TDD mode — AC1, AC2, AC3, AC4, AC5, AC10, and
+AC11 — and each carries a compilable red stub in its implementing task. The
+remaining ten are goal-based checks or manual QA and record `no stub (mode)`
 against the reason. No criterion is left without a declared mode. Seventeen
 criteria are numbered AC1–AC16 and AC18: failure attribution is a rule about
 how this change is conducted rather than a property of what it ships, so it is
@@ -394,8 +389,8 @@ edit a completed task section.
   independently of it —
   `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`
   and `::test_ledger_matches_converted_asides_and_unchanged_quotations`.
-  No gate this slice runs reaches them, per the Assumption below that sources
-  the claim. They are routed against the existing
+  No `Makefile` target this slice runs invokes them, per the Assumption below
+  that sources the claim. They are routed against the existing
   `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`, whose
   subject is the same ungated ledger; extending that entry's summary adds no
   new legacy-shaped entry, so the ceiling is not reached and no raise is
