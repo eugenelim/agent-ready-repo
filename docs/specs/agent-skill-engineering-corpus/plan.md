@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Corpus
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` (D3 topology
   at 207-254, D8 promotion classes at 496-506 and security rules at 507-519,
   Gate 1/2 measures at 577-591, the encyclopedia falsifier at 536) and
@@ -1015,7 +1015,7 @@ absent, and the matcher's detection half is asserted durably.
 
 **Done when:** the expanded record passes every binding the foundation enforces.
 
-### T13: Review-case grading is observed, and the routed failures are recorded
+### T13: Review-case grading is observed, and every observed failure is attributed
 
 **Depends on:** T12
 
@@ -1026,11 +1026,16 @@ absent, and the matcher's detection half is asserted durably.
   `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
   run, so a failure can be attributed. (AC14)
 - No per-marker value is recorded. (AC14)
-- The QA record names every `tools/` failure observed on the base it was taken
-  against, with the reproducing command and the base identified, sorted into
-  AC17's three classes. Owned-elsewhere-and-unreached failures carry their owner
-  and the re-check obligation; an inherited-and-reached failure is reported as
-  blocking. No count is recorded — the set moves with the base. (AC17)
+- The QA record names every `tools/` failure observed while taking this slice's
+  gates, with the gate invocation that reproduces it and the base commit
+  identified, and assigns each to exactly one of AC17's four ordered classes.
+  Environmental assignments carry the condition and a register entry;
+  owned-elsewhere-and-unreached assignments carry their owner, their stable
+  register entry, and the re-check obligation; an inherited-and-reached
+  assignment carries its invoking gate line, a named owner, a disposition, and
+  is reported as blocking. The transcripts' failing set and the record's
+  classified set are equal. No count is recorded — the set moves with the base.
+  (AC17)
 
 - `no stub (manual QA)` — the values are transcribed from an observed graded
   run; there is no predicate to write first.
@@ -1049,7 +1054,10 @@ absent, and the matcher's detection half is asserted durably.
   carried forward, not closed with an unmeasured value.
 
 **Done when:** the record carries measured values, the run is named, no derived
-value appears, and the known-skip block is present.
+value appears, every failing node id in the recorded gate transcripts carries
+exactly one class with that class's evidence discharged, and any
+inherited-and-reached failure is reported as blocking with its owner and
+disposition named.
 
 ### T14: The pack's surfaces are current everywhere CI looks
 
@@ -1124,6 +1132,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
+| A required gate arrives red from the base | A `Makefile`-invoked `tools/` test reproduces on the base and this slice cannot make it green | AC17 classes it inherited-and-reached: reported as blocking with a named owner and disposition, never absorbed and never re-pinned by this slice |
 
 ## Changelog
 
@@ -1283,6 +1292,47 @@ layer writes durable state outside the repository, and no migration runs.
   `Makefile:471` names `test_local_ci_shared_test_deduplication.py` explicitly,
   so main's node-count regression is inside this change's gate chain, while the
   two `test_guide_typed_asides.py` ledger tests are named nowhere and are not.
+- 2026-08-28: revision 12. Review of revision 11 sustained nine findings, and
+  the amendment did not survive its own review intact. Three defects were
+  structural. The three-class sort was not total: a red that is environmental
+  or non-reproducible was neither inherited nor caused here, so it fell to the
+  default reading and would have been reported as blocking — the classes are
+  now four, applied in a stated order, with reproducibility tested first.
+  "Reached" was grounded in Makefile naming alone, which the repository
+  disproves — `tools/test_windows_lock_semantics.py` appears zero times in the
+  `Makefile` and runs at `.github/workflows/build-check-windows.yml:163` — so
+  the chain is now defined once, as the Makefile targets this slice runs plus
+  the required workflow jobs. And AC17's verification row still greped for a
+  known-skip block the amended criterion had deleted, which no more
+  discriminates a correct sort from any sort than a count did; it now requires
+  the transcripts' failing set and the record's classified set to be equal.
+  Three further sites carried the old framing after revision 11 claimed the
+  correction was complete — T13's heading, T13's Done-when predicate, and the
+  Testing Strategy row — which is the fourth time on this change that a
+  multi-site edit reached some sites and not all; the sweep is now run over
+  both files for every phrase the edit retires, not over the sites the edit
+  intended. The routing target was also wrong: `[backlog].open` was declined on
+  ceiling grounds, but `workspace.toml:257` already carries
+  `guide-blockquote-ledger-has-no-regenerator` on the same subject, and
+  extending an existing entry's summary adds no legacy-shaped entry, so the
+  ceiling never applied. The blocking class gained the owner, disposition, and
+  Risks row it lacked. Revision 11's spec body also narrated its own revision
+  history at three sites, which the retcon rule forbids; that history is here,
+  where it belongs.
+  Amendment record, preserved here because the cohort's machine copy could not
+  survive the repair: the contract amended was spec `30c41a9e0a6a` / plan
+  `e99576e90cbc` (`4d577d76a`), the completed work at amendment time was T1, T3
+  and T4, and the authority and reason are
+  `https://github.com/eugenelim/agent-ready-repo/pull/1157#issuecomment-5459816900`.
+  The `contract-amendment` transition was fired against that state and
+  succeeded, but `wave advance` had been run while the plan was reverted to
+  `4d577d76a`, so it pinned T3's pre-execution text rather than the text T3
+  executed against — T3's stub note lost its `135` count mid-wave, when the
+  live tree measured 137. The pin was therefore unsatisfiable without writing a
+  false count back into a completed section, and no re-pin primitive exists.
+  The pins were re-taken by re-approving the amended contract rather than by
+  replaying the approval gates against superseded content, which would have
+  meant re-asserting an owner approval rather than obtaining one.
   The count was corrected at all three sites it lived at — AC17, the Follow-on,
   and the Assumption — plus T13's implementing bullet; only the historical note
   explaining why no count is pinned still says "four".

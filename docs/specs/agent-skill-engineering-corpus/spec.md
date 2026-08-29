@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Corpus
 
-- **Status:** Approved
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
@@ -143,9 +143,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   reconciliation output together answer whether the milestone, the two
   registrations, the Spec-map rows, and the `docs/specs/README.md` Status
   column are current.
-- **Delivery-cut variance and routed known-skips: goal-based check** — a grep
-  for the variance section heading, the brief's slice-table rows, and the
-  known-skip block in this slice's QA record.
+- **Delivery-cut variance: goal-based check** — a grep for the variance
+  section heading and the brief's slice-table rows.
+- **Failure attribution (AC17): goal-based check** — every failing node id in
+  this slice's recorded gate transcripts appears exactly once in the QA record
+  carrying one class. Each *owned elsewhere and unreached* assignment cites the
+  absence of its file from every `Makefile` target this slice runs and from
+  every required workflow job; each *inherited and reached* assignment cites
+  the invoking `Makefile` or workflow line, its owner, and its disposition;
+  each *environmental or non-reproducible* assignment cites the condition and
+  its register entry. The check fails when the transcripts' failing set and the
+  QA record's classified set differ in either direction.
 
 Six criteria are verified in TDD mode and carry a compilable red stub in their
 implementing task: census completeness, topic admission, taxonomy completeness,
@@ -354,22 +362,31 @@ against the reason. No criterion is left without a declared mode.
   backlog-disposition section, whose scope is RFC-0097 D7 — and the brief's
   slice table reflects both.
 - [ ] **AC17 — Pre-existing failures are attributed, not absorbed.** This
-  slice's QA record names every `tools/` failure observed on the base it was
-  taken against, with the command that reproduces it and the base identified,
-  and sorts each into one of three classes:
-  *owned elsewhere and unreached* — the failure belongs to another surface and
-  no gate in this change's chain invokes it; it is routed to that owner and
-  recorded, not registered and not fixed here, with the obligation to re-check
-  it before that surface's next change.
-  *inherited and reached* — the failure came from the base and a gate this
-  change must pass does invoke it; it is reported as blocking this slice's
-  completion, because a required gate is red for a reason this change did not
-  create, and absorbing it silently would make this slice's green a lie.
-  *caused here* — fixed.
-  The criterion states no count and no list. The set moves as the base moves:
-  an earlier revision pinned four failures, two of which upstream fixed before
-  this slice reached them, and a fifth arrived from the base in the same
-  interval.
+  slice's QA record names every `tools/` failure observed while taking this
+  slice's gates, with the gate invocation that reproduces it and the base
+  commit identified, and assigns each to exactly one class. A failure is
+  *reached* when this slice's gate chain invokes it; that chain is every
+  `Makefile` target this slice runs together with every `.github/workflows/`
+  job among its required checks. The classes are applied in order, and the
+  first that matches decides:
+  *environmental or non-reproducible* — the failure does not reproduce under
+  the same gate invocation on an unchanged tree; it is recorded with the
+  condition that produced it and routed to the known-issue register, never
+  counted against this slice and never silently dropped.
+  *caused here* — the failure reproduces here but not on the base; it is
+  fixed, or escalated under *Ask first* when the only available fix crosses a
+  Boundary.
+  *inherited and reached* — the failure reproduces on the base and the chain
+  invokes it; it is reported as blocking this slice's completion, with a named
+  owner and a stated disposition, because a required gate is red for a reason
+  this change did not create and absorbing it silently would make this slice's
+  green a lie.
+  *owned elsewhere and unreached* — the failure reproduces on the base and the
+  chain does not invoke it; it is routed to that surface's owner against a
+  stable register entry and recorded, not fixed here, with the obligation to
+  re-check it before that surface's next change.
+  The criterion states no count and no list, because the set moves as the base
+  moves.
 - [ ] **AC18 — Published surfaces stay joined.** The pack satisfies the
   conformance metadata contract, and its membership of the two agent-plugin
   roster enumerations, the catalogue navigation outcome map, and the
@@ -400,17 +417,23 @@ against the reason. No criterion is left without a declared mode.
 - Slice-5 owner: `agent-skill-engineering-guide-and-docsurl` in `[backlog].open`
   — the public guide and the site `docsUrl` repoint.
 - Guides owner: the `tools/` failures that reproduce on this slice's base
-  independently of it. At the base this slice was last re-certified against,
-  that is `test_guide_typed_asides.py`'s two ledger tests; the two
-  `test_live_demo_guide.py` failures an earlier revision also named were fixed
-  upstream before this slice reached them. AC17 governs the live set —
-  `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`,
-  `::test_ledger_matches_converted_asides_and_unchanged_quotations`,
-  and neither file is named in the `Makefile`, which lists its tools tests
-  explicitly, nor in any workflow — which is what puts them in AC17's
-  *owned elsewhere and unreached* class. They are recorded under AC17 rather
-  than registered in `[backlog].open`, whose legacy-shape ceiling is at its
-  measured maximum and whose failure message forbids raising it.
+  independently of it —
+  `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`
+  and `::test_ledger_matches_converted_asides_and_unchanged_quotations`.
+  `test_guide_typed_asides.py` is named in no `Makefile` target this slice runs
+  and in no required workflow job, which places both in AC17's *owned elsewhere
+  and unreached* class. They are routed against the existing `[backlog].open`
+  entry `guide-blockquote-ledger-has-no-regenerator`, whose subject is the same
+  ungated ledger; extending that entry's summary adds no new legacy-shaped
+  entry, so the ceiling is not reached and no raise is proposed.
+- Core owner: `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
+  reproduces on this slice's base — `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
+  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, which
+  places it in AC17's *inherited and reached* class. It is reported as blocking
+  this slice's completion. Its disposition belongs to that module's owner under
+  its own stated rule at `tools/test_local_ci_shared_test_deduplication.py:44-50`,
+  which requires the node-set change be dispositioned before the pin moves;
+  this slice neither re-pins it nor absorbs it.
 
 ## Assumptions
 
@@ -472,13 +495,15 @@ against the reason. No criterion is left without a declared mode.
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2471-2474`,
   `tests/roster/test_workspace_status_projection.py:1032`)
 - Technical: the `tools/` failure set moves with the base and is therefore
-  recorded, not enumerated in this contract. At the last re-certification two
-  `test_guide_typed_asides.py` ledger tests reproduce and are named by no
-  Makefile gate; two `test_live_demo_guide.py` failures an earlier revision
-  named were fixed upstream; and `test_local_ci_shared_test_deduplication.py`
-  arrived red from the base and *is* named at `Makefile:471`, which puts it in
-  AC17's inherited-and-reached class (source: `pytest tools/` on the
-  re-certified base; `Makefile:471`)
+  recorded, not enumerated in this contract. Two `test_guide_typed_asides.py`
+  ledger tests reproduce and are invoked by no `Makefile` target this slice
+  runs and no required workflow job, and
+  `test_local_ci_shared_test_deduplication.py` reproduces and *is* invoked at
+  `Makefile:471`, which places it in AC17's inherited-and-reached class
+  (source: the gate invocations at `Makefile:471` and `Makefile:492-507`, taken
+  on the base this slice's QA record identifies; a whole-directory
+  `pytest tools/` run is a non-authoritative probe, because `Makefile:477-479`
+  records the per-class split as a stability property)
 - Process: `[backlog].open`'s legacy-shape ceiling of 160 is at its measured
   maximum and its failure message forbids raising it; only entries carrying a
   `path` key are exempt, and those require a real artifact (source:
