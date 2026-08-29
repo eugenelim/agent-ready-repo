@@ -64,6 +64,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   walks outside the owning pack in `tests/roster/`.
 - Re-measure the foundation retrieval cases after every corpus change and treat
   a regression in any single case as a defect in the change.
+- Record every `tools/` failure this slice observes with the invocation that
+  reproduces it, the base it was seen on, an attribution, and who attributed
+  it. Never absorb a red this change did not cause into a green result.
 - Regenerate every projection through its owning command rather than editing a
   generated or self-hosted file.
 - Close this pack's publication obligations — matching manifest bump, eval
@@ -145,17 +148,16 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   column are current.
 - **Delivery-cut variance: goal-based check** — a grep for the variance
   section heading and the brief's slice-table rows.
-- **Failure attribution: manual QA.** Whether a failure belongs to this change
-  is a judgment over two observed runs, not a fact repository state answers, so
-  the check is over the record's form: every failure the slice observed carries
-  all five of AC17's fields, and no observed failure is absent. Whether an
-  attribution is right is the recorded attributor's judgment.
 
 Six criteria are verified in TDD mode and carry a compilable red stub in their
 implementing task: census completeness, topic admission, taxonomy completeness,
 body-to-record parity, the mode contract, and the mode-availability guard. The
-remaining twelve are goal-based checks or manual QA and record `no stub (mode)`
-against the reason. No criterion is left without a declared mode.
+remaining eleven are goal-based checks or manual QA and record `no stub (mode)`
+against the reason. No criterion is left without a declared mode. Seventeen
+criteria are numbered AC1–AC16 and AC18: failure attribution is a rule about
+how this change is conducted rather than a property of what it ships, so it is
+an *Always do* Boundary, and AC18 keeps its number because renumbering it would
+edit a completed task section.
 
 ## Acceptance Criteria
 
@@ -357,20 +359,6 @@ against the reason. No criterion is left without a declared mode.
   variances` section of INI-009 with their authority — not appended to the
   backlog-disposition section, whose scope is RFC-0097 D7 — and the brief's
   slice table reflects both.
-- [ ] **AC17 — Pre-existing failures are attributed, not absorbed.** This
-  slice's QA record names every `tools/` failure it observed, and records five
-  fields for each: the invocation that reproduces it, the base commit it was
-  observed on, an attribution — one of `caused-here`, `inherited`,
-  `owned-elsewhere`, `environmental` — the person who made that attribution,
-  and, for anything not `caused-here`, where it was routed. A `caused-here`
-  failure is fixed, or escalated under *Ask first* when the only available fix
-  crosses a Boundary. No observed failure is dropped without a recorded
-  attribution.
-  The criterion checks the record's form and completeness. Whether an
-  attribution is correct is the recorded attributor's judgment, on the same
-  seam AC2 uses: a mechanical check asserts the declared value and its required
-  fields, and soundness stays with a named person. It states no count and no
-  list, because the set moves as the base moves.
 - [ ] **AC18 — Published surfaces stay joined.** The pack satisfies the
   conformance metadata contract, and its membership of the two agent-plugin
   roster enumerations, the catalogue navigation outcome map, and the
@@ -404,23 +392,23 @@ against the reason. No criterion is left without a declared mode.
   independently of it —
   `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`
   and `::test_ledger_matches_converted_asides_and_unchanged_quotations`.
-  `test_guide_typed_asides.py` is named in no `Makefile` line, which is why
-  they are attributed `owned-elsewhere`. They are routed against the existing
+  `test_guide_typed_asides.py` is named in no `Makefile` line, so no gate this
+  slice runs reaches them. They are routed against the existing
   `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`, whose
   subject is the same ungated ledger; extending that entry's summary adds no
   new legacy-shaped entry, so the ceiling is not reached and no raise is
   proposed.
 - Core owner: `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
   reproduces on this slice's base — `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
-  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, so it is
-  attributed `inherited`. This slice's disposition is to report it and change
-  nothing: it neither re-pins the guard nor absorbs the red, because that
-  module's own rule at `tools/test_local_ci_shared_test_deduplication.py:43-49`
-  requires the node-set change be dispositioned before the pin moves, and this
-  slice cannot make that disposition — `Never do` bars it from any `packs/core`
-  surface. The unblocking event is the core owner re-pinning after
-  dispositioning; until then the red is recorded against that owner, not
-  against this slice.
+  yields 78 nodes against a pin of 73 — and `Makefile:471` invokes it, so a
+  gate this slice runs does reach it. This slice's disposition is to report it
+  and change nothing: it neither re-pins the guard nor absorbs the red, because
+  that module's own rule at
+  `tools/test_local_ci_shared_test_deduplication.py:43-49` requires the
+  node-set change be dispositioned before the pin moves, and this slice is not
+  the party that can disposition a core test's node set. The unblocking event
+  is the core owner re-pinning after dispositioning; until then the red is
+  recorded against that owner, not against this slice.
 
 ## Assumptions
 
@@ -485,12 +473,12 @@ against the reason. No criterion is left without a declared mode.
   recorded, not enumerated in this contract. Two `test_guide_typed_asides.py`
   ledger tests reproduce and are invoked by no `Makefile` target this slice
   runs, and `test_local_ci_shared_test_deduplication.py` reproduces and *is*
-  invoked at `Makefile:471`, so the two are attributed `owned-elsewhere` and
-  `inherited` respectively (source: `Makefile:471` for the positive
-  invocation, and a search of the whole `run-test-suite` macro,
-  `Makefile:407-506`, for the absence; the observation was taken with a
-  whole-directory `pytest tools/` run, which is why `Makefile:477-479` records
-  the per-class split as a stability property and the per-gate result governs)
+  invoked at `Makefile:471` (source: `Makefile:471` for the positive
+  invocation, confirmed by running that gate directly, and a search of the
+  whole `run-test-suite` macro, `Makefile:407-506`, for the absence. A
+  whole-directory `pytest tools/` run is a non-authoritative probe, because
+  `Makefile:477-479` records the per-class split as a stability property; where
+  the two disagree the per-gate invocation governs)
 - Process: `[backlog].open`'s legacy-shape ceiling of 160 is at its measured
   maximum and its failure message forbids raising it; only entries carrying a
   `path` key are exempt, and those require a real artifact (source:

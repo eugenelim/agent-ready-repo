@@ -1026,9 +1026,10 @@ absent, and the matcher's detection half is asserted durably.
   `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
   run, so a failure can be attributed. (AC14)
 - No per-marker value is recorded. (AC14)
-- The QA record carries AC17's five fields for every `tools/` failure this
-  slice observed, and drops none. This plan does not restate the fields; AC17
-  is the checklist. (AC17)
+- The QA record carries, for every `tools/` failure this slice observed, the
+  invocation that reproduces it, the base it was seen on, an attribution, and
+  who attributed it; none is dropped. This is the *Always do* Boundary, not an
+  acceptance criterion — no gate scores it.
 
 - `no stub (manual QA)` — the values are transcribed from an observed graded
   run; there is no predicate to write first.
@@ -1048,7 +1049,7 @@ absent, and the matcher's detection half is asserted durably.
 
 **Done when:** the record carries measured values, the run is named, no derived
 value appears, and every `tools/` failure this slice observed is present in the
-record with AC17's five fields filled.
+record with its invocation, base, attribution, and attributor.
 
 ### T14: The pack's surfaces are current everywhere CI looks
 
@@ -1123,7 +1124,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
-| A required gate arrives red from the base | A `tools/` test reproduces on the base and this slice cannot make it green | Attributed `inherited` under AC17 and recorded against its owner with the unblocking event named; never absorbed and never re-pinned by this slice |
+| A required gate arrives red from the base | A `tools/` test a gate this slice runs reproduces on the base, and this slice cannot make it green | Recorded against its owner under the *Always do* Boundary, with the unblocking event named; never absorbed and never re-pinned by this slice |
 
 ## Changelog
 
@@ -1283,37 +1284,6 @@ layer writes durable state outside the repository, and no migration runs.
   `Makefile:471` names `test_local_ci_shared_test_deduplication.py` explicitly,
   so main's node-count regression is inside this change's gate chain, while the
   two `test_guide_typed_asides.py` ledger tests are named nowhere and are not.
-- 2026-08-29: revision 13. AC17's classification procedure is deleted, on the
-  owner's authority, and the criterion collapses to a form obligation: the QA
-  record names every observed `tools/` failure and carries five fields for each
-  — reproducing invocation, base commit, attribution, attributor, and routing —
-  with correctness of the attribution left to the named attributor. The reason
-  is that the procedure was not converging. Revision 12's own fixes produced
-  revision 13's blockers: the set-equality check it added was unsatisfiable
-  against the classes the same spec required, because an owned-elsewhere
-  failure is by definition invoked by no gate in the chain and so can appear in
-  no chain transcript; narrowing observation to "while taking this slice's
-  gates" made that class vacuous outright; the transcript artifact the check
-  quantified over is produced by no task; and "unchanged tree" read as the base
-  tree would have routed every genuine regression to a register instead of
-  fixing it, because the class was applied first. Revision 12's headline repair
-  was also worthless — redefining "reached" to include required workflow jobs
-  replaced the criterion's one mechanizable term, a search of the Makefile,
-  with branch-protection state that is not in the tree, and the counter-example
-  that motivated it, `tools/test_windows_lock_semantics.py`, is still unreached
-  under the new definition because `lock-semantics-windows` is not a required
-  check. Decomposed, the old criterion asked a build-time checker to decide one
-  term it cannot read, three that exist only in an observation, and one that is
-  a causal judgment. This is the same trajectory this plan already records at
-  revision 6 for topic admission, where a gate over declared expectations, then
-  a class label, then a contract citation were each satisfiable without the
-  substance; the resolution there was the RFC-0097 erratum's seam — form
-  checked mechanically, soundness by a named reviewer — and AC17 now sits on
-  that seam alongside AC2. The class names survive as an enumerated field
-  value, which costs nothing, and "no observed failure is dropped" survives as
-  the completeness half. The plan's two restatements of the classes are reduced
-  to citations of AC17, since four independent copies is what drifted in both
-  rounds.
 - 2026-08-28: revision 12. Review of revision 11 sustained nine findings, and
   the amendment did not survive its own review intact. Three defects were
   structural. The three-class sort was not total: a red that is environmental
@@ -1359,3 +1329,62 @@ layer writes durable state outside the repository, and no migration runs.
   The count was corrected at all three sites it lived at — AC17, the Follow-on,
   and the Assumption — plus T13's implementing bullet; only the historical note
   explaining why no count is pinned still says "four".
+
+- 2026-08-29: revision 13. AC17's classification procedure is deleted, on the
+  owner's authority, and the criterion collapses to a form obligation: the QA
+  record names every observed `tools/` failure and carries five fields for each
+  — reproducing invocation, base commit, attribution, attributor, and routing —
+  with correctness of the attribution left to the named attributor. The reason
+  is that the procedure was not converging. Review of revision 12 sustained the
+  blockers this revision answers, and revision 12's own fixes are what produced
+  them: the set-equality check it added was unsatisfiable
+  against the classes the same spec required, because an owned-elsewhere
+  failure is by definition invoked by no gate in the chain and so can appear in
+  no chain transcript; narrowing observation to "while taking this slice's
+  gates" made that class vacuous outright; the transcript artifact the check
+  quantified over is produced by no task; and "unchanged tree" read as the base
+  tree would have routed every genuine regression to a register instead of
+  fixing it, because the class was applied first. Revision 12's headline repair
+  was also worthless — redefining "reached" to include required workflow jobs
+  replaced the criterion's one mechanizable term, a search of the Makefile,
+  with branch-protection state that is not in the tree, and the counter-example
+  that motivated it, `tools/test_windows_lock_semantics.py`, is still unreached
+  under the new definition because `lock-semantics-windows` is not a required
+  check. Decomposed, the old criterion asked a build-time checker to decide one
+  term it cannot read, three that exist only in an observation, and one that is
+  a causal judgment. This is the same trajectory this plan already records at
+  revision 6 for topic admission, where a gate over declared expectations, then
+  a class label, then a contract citation were each satisfiable without the
+  substance; the resolution there was the RFC-0097 erratum's seam — form
+  checked mechanically, soundness by a named reviewer — and AC17 now sits on
+  that seam alongside AC2. The class names survive as an enumerated field
+  value, which costs nothing, and "no observed failure is dropped" survives as
+  the completeness half. The plan's two restatements of the classes are reduced
+  to citations of AC17, since four independent copies is what drifted in both
+  rounds.
+- 2026-08-29: revision 14. AC17 is removed as an acceptance criterion and its
+  obligation becomes an *Always do* Boundary, on the owner's authority. The
+  reason is a category error the three preceding revisions were paying for
+  without naming: AC1-AC16 and AC18 each assert a property of what this slice
+  ships, while AC17 asserted a property of how the slice is conducted — nothing
+  in the delivered pack differs according to whether it holds. The Testing
+  Strategy pairs every criterion with a verification mode over an artifact, so
+  a criterion with no artifact forced each round to invent one: declared
+  expectations, then class labels, then gate transcripts no task produces. The
+  spec already had the right home for a conduct rule — *Always do* carries
+  "treat a regression in any single case as a defect in the change" — and the
+  obligation now sits beside it, with T13's Done-when still producing the
+  record. AC18 keeps its number: renumbering it to AC17 would edit T3, a
+  completed task section, which is the rule that already cost this change a
+  cohort replay, so the numbering carries a deliberate gap instead, stated in
+  the Testing Strategy tally. Three residual defects from the revision-13
+  review are fixed here. The dependent sites demanded "all five fields" while
+  the criterion made routing conditional, which was unsatisfiable the moment a
+  `caused-here` failure existed. The Assumption had inverted its own evidence
+  chain, citing the comment that documents why the `tools/` suite is split as
+  licence for a whole-directory run, when that comment is precisely why such a
+  run is only a probe; the per-gate invocation governs, and the observation is
+  now sourced from it. And three sites still derived an attribution from
+  Makefile membership in modal prose — the deleted rule wearing different
+  words — so they now state the reach fact and stop. Revision 13's entry was
+  also filed between revisions 11 and 12; it is now in order.
