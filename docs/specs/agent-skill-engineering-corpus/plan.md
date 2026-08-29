@@ -1156,12 +1156,6 @@ layer writes durable state outside the repository, and no migration runs.
 
 ## Changelog
 
-- 2026-08-29: T5 classified the three foundation topics as
-  `observed-practice`. Their limits are scoped to the 137 authored agent skills
-  in the catalogue that developed this pack, censused on 2026-08-28, and state
-  that the claims are not established beyond that population. A
-  `foundation-corpus-reviewer` recorded the per-topic soundness judgment in
-  the non-projected admission fixture.
 - 2026-08-28: initial plan. Six dependency-ordered layers; review shape DEEP.
 - 2026-08-28: revised against 30 adjudicated round-1 findings.
 - 2026-08-28: revised against 25 adjudicated round-2 findings and two owner
@@ -1488,3 +1482,4 @@ layer writes durable state outside the repository, and no migration runs.
   slice" contradicted the per-failure dispositions. It now splits routed from
   reconciled-in-scope. The Technical assumption still said "not enumerated in
   this contract" while the Follow-on enumerates four tests by name.
+
