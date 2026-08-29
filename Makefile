@@ -415,7 +415,7 @@ lint-mypy:
 # pytest_collection_floor counts a whole session — which is why the two
 # desk-research floor lines are separate from the six-member class.
 #
-# See ADR-0098 and catalogue-authoring-standards.md § 4.
+# See ADR-0101 and catalogue-authoring-standards.md § 4.
 test:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 

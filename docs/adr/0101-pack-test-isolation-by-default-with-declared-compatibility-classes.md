@@ -1,4 +1,4 @@
-# ADR-0098: Pack tests are isolated by default, grouped only by a declared compatibility class
+# ADR-0101: Pack tests are isolated by default, grouped only by a declared compatibility class
 
 - **Status:** Accepted <!-- Proposed | Accepted | Rejected | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-08-28
