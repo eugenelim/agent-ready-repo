@@ -25,14 +25,14 @@
       "raw": {"key": "EX-200", "issueType": "Epic", "updated": "2026-08-02T00:00:00Z", "summary": "Account recovery outcome", "description": "Customers recover accounts through several independently shippable capabilities. Verify identity. Restore access.", "confidentiality": "internal"},
       "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Customers recover accounts through several independently shippable capabilities."], "constraints": [], "evidence": [], "behaviors": ["Verify identity.", "Restore access."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-200", "revision": "2026-08-02T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Epic"}, "constraints": {"confidentiality": "internal"}, "proposed_authority": "tracker-origin"},
       "routing_signals": {"action": "start", "artifact": "docs/product/briefs/account-recovery.md", "artifact_kind": "brief", "authority_mode": "tracker-origin"},
-      "expected_route": {"artifact": "docs/product/briefs/account-recovery.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-brief", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+      "expected_route": {"artifact": "docs/product/briefs/account-recovery.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-delivery-brief create", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
     },
     {
       "id": "cross-repo-brief",
       "raw": {"key": "EX-300", "issueType": "Epic", "updated": "2026-08-03T00:00:00Z", "repositories": ["service-a", "service-b"], "description": "Two repositories coordinate one customer outcome. Each repository requires a linked local brief. Record parent and coordination provenance.", "cross_repo": true},
       "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Two repositories coordinate one customer outcome."], "constraints": ["Each repository requires a linked local brief."], "evidence": [], "behaviors": ["Record parent and coordination provenance."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-300", "revision": "2026-08-03T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Epic"}, "constraints": {"cross_repo": true}, "proposed_authority": "tracker-origin"},
       "routing_signals": {"action": "start", "artifact": "docs/product/briefs/coordinated-outcome.md", "artifact_kind": "brief", "authority_mode": "tracker-origin"},
-      "expected_route": {"artifact": "docs/product/briefs/coordinated-outcome.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-brief", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+      "expected_route": {"artifact": "docs/product/briefs/coordinated-outcome.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-delivery-brief create", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
     },
     {
       "id": "incoherent-collection",

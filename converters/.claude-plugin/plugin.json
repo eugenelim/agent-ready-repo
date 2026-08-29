@@ -1,6 +1,6 @@
 {
   "name": "converters",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Say \"convert this PDF to Markdown\" or \"turn this into a branded deck\" and it happens. Documents, images, and Outlook email go in; Markdown, HTML, Word, PowerPoint, and Excel come out.",
   "hooks": {
     "SessionStart": [

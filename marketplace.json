@@ -10,6 +10,32 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
+      "category": "ai-agent",
+      "description": "Frame, create, update, review, and optimize portable agent skills with governed reference knowledge.",
+      "displayName": "Agent Skill Engineering",
+      "homepage": "https://github.com/eugenelim/agent-ready-repo",
+      "keywords": [
+        "agent-skills",
+        "skill-authoring",
+        "skill-review",
+        "progressive-disclosure"
+      ],
+      "license": "Apache-2.0 OR MIT",
+      "name": "agent-skill-engineering",
+      "repository": "https://github.com/eugenelim/agent-ready-repo",
+      "source": {
+        "path": "agent-skill-engineering",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
+      },
+      "version": "0.1.1"
+    },
+    {
+      "author": {
+        "email": "eugenelim@users.noreply.github.com",
+        "name": "eugenelim"
+      },
       "category": "architecture",
       "description": "Understand the architecture you have, decide what to do next, design the future, diagram it, and review the evidence.",
       "displayName": "Architect",
@@ -30,7 +56,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.15.3"
+      "version": "0.15.4"
     },
     {
       "author": {
@@ -56,7 +82,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.9.1"
+      "version": "0.9.3"
     },
     {
       "author": {
@@ -82,7 +108,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.5"
+      "version": "0.3.6"
     },
     {
       "author": {
@@ -109,7 +135,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.9.5"
+      "version": "0.9.6"
     },
     {
       "author": {
@@ -135,7 +161,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.2"
+      "version": "0.3.3"
     },
     {
       "author": {
@@ -161,7 +187,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "1.1.5"
+      "version": "1.1.6"
     },
     {
       "author": {
@@ -188,7 +214,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "2.0.1"
+      "version": "2.0.2"
     },
     {
       "author": {
@@ -214,7 +240,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.2"
+      "version": "0.3.3"
     },
     {
       "author": {
@@ -241,7 +267,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "author": {
@@ -268,7 +294,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.1"
+      "version": "0.2.3"
     },
     {
       "author": {
@@ -294,7 +320,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.1"
+      "version": "0.3.3"
     },
     {
       "author": {
@@ -321,7 +347,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "author": {
@@ -347,7 +373,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.13.5"
+      "version": "0.13.7"
     },
     {
       "author": {
@@ -374,7 +400,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.3"
+      "version": "0.2.4"
     }
   ]
 }

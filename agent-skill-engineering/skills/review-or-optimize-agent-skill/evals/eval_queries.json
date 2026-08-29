@@ -1,0 +1,12 @@
+[
+  {"query":"Review this agent skill for trigger precision and portability","should_trigger":true},
+  {"query":"Audit this SKILL.md for progressive disclosure and unsafe authority","should_trigger":true},
+  {"query":"Optimize this skill against the activation false-positive baseline I measured","should_trigger":true},
+  {"query":"The helper fails determinism checks; review and then optimize the skill","should_trigger":true},
+  {"query":"Review this pull request for Python bugs","should_trigger":false},
+  {"query":"Edit this paragraph to be more concise","should_trigger":false},
+  {"query":"Clean up these repository files","should_trigger":false},
+  {"query":"Refactor this module to look nicer","should_trigger":false},
+  {"query":"Review our distributed architecture","should_trigger":false}
+]
+

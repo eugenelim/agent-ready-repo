@@ -26,7 +26,7 @@ output_dir = "docs/product"   # a base directory; output files go *under* it
 
   A **per-topic folder** is deliberately **not** used: each intent and each
   rollup is a single file handed downstream (`de-risk-intent`, `decompose-intent`,
-  `receive-brief`).
+  `author-delivery-brief continue`).
 
 ## Repo-root first, then user-profile
 
@@ -66,6 +66,6 @@ output_dir = "~/Documents/MyVault/product"   # absolute path; ~ is expanded
 ## Pinned output — `decompose-intent`'s briefs
 
 `decompose-intent`'s `docs/product/briefs/<slug>.md` output is **not** governed
-by this table. That path is the hand-off to core's `receive-brief` skill and
+by this table. That path is the hand-off to core's `author-delivery-brief continue` skill and
 stays pinned (a deliberate non-goal of this layout config). Only `frame-intent`
 (intents) and `align-value-stream` (rollups) read `[product]`.

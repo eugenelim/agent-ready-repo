@@ -1,6 +1,6 @@
 {
   "name": "desk-research",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over.",
   "hooks": {
     "SessionStart": [

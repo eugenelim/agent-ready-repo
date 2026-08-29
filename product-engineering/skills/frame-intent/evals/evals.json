@@ -4,13 +4,28 @@
     {
       "id": 1,
       "prompt": "Shape the idea the user gave into an intent.",
-      "expected_output": "A level-tagged intent: a clear OUTCOME (what changes, and for whom) plus the OPPORTUNITY/problem behind it — never a solution or a spec. The level is tagged from the open recognized set (product-vision, product-strategy, capability, or feature), Scale (app ↔ business-unit) is resolved, and the artifact stops at the intent: it does not jump ahead to a design, tasks, or de-risking. The outcome is concrete enough to later test as a bet.",
+      "expected_output": "A level-tagged intent: a clear OUTCOME (what changes, and for whom) plus the OPPORTUNITY/problem behind it \u2014 never a solution or a spec. The level is tagged from the open recognized set (product-vision, product-strategy, capability, or feature), Scale (app \u2194 business-unit) is resolved, and the artifact stops at the intent: it does not jump ahead to a design, tasks, or de-risking. The outcome is concrete enough to later test as a bet.",
       "assertions": [
-        "States an outcome (what changes, for whom) — not a solution or an implementation",
+        "States an outcome (what changes, for whom) \u2014 not a solution or an implementation",
         "Names the opportunity / problem behind the outcome",
-        "Is level-tagged from the open recognized set (product-vision / product-strategy / capability / feature) and resolves Scale (app ↔ business-unit)",
+        "Is level-tagged from the open recognized set (product-vision / product-strategy / capability / feature) and resolves Scale (app \u2194 business-unit)",
         "Does NOT jump ahead to a design, a spec, tasks, or de-risking",
         "The outcome is concrete/falsifiable enough to later de-risk as a bet"
+      ]
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Complete a representative task that produces a user-facing product intent. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
+      "expected_output": "The product intent leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
+      "assertions": [
+        "Leads with the useful outcome or decision",
+        "Uses plain non-blaming language and a scan-friendly structure",
+        "Preserves requested depth, evidence, constraints, warnings, and exact errors",
+        "Emits no optional assistant narration between routine tool calls",
+        "Ends with verification or current state and only a necessary next action"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
       ]
     }
   ]

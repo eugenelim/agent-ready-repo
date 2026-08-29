@@ -1,6 +1,6 @@
 [pack]
 name = "linear"
-version = "0.3.1"
+version = "0.3.3"
 description = "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs."
 readme = "README.md"
 display_name = "Linear"

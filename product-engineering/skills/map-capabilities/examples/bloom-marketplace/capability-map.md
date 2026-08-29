@@ -67,7 +67,7 @@ Onboards, verifies, and manages the quality and compliance of marketplace seller
 
 ## Next step readiness
 
-`lean-canvas` (or `author-brief`) was not detected in available skills. The next
+`lean-canvas` (or `author-delivery-brief create`) was not detected in available skills. The next
 step after capability mapping is brief-authoring — translating the committed bet
 and this capability map into an initiative brief that anchors M3–M6 spec-writing.
-Resume when `lean-canvas` or `author-brief` becomes available.
+Resume when `lean-canvas` or `author-delivery-brief create` becomes available.

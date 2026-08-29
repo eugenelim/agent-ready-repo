@@ -117,7 +117,7 @@ The base paths are configurable — `[product] output_dir` and `[discovery] outp
 `decompose-intent` becomes a delivery contract; a multi-spec or
 cross-repository result becomes a delivery brief. A compatible Core invocation
 admits the bounded handoff through `work-intake`, then preserves the existing
-`new-spec` or `receive-brief` approval path. Core is optional.
+`new-spec` or `author-delivery-brief continue` approval path. Core is optional.
 
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 

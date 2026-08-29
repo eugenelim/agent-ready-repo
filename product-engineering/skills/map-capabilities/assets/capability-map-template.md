@@ -59,12 +59,12 @@ vision: <1–2 sentence product vision>
 
 ---
 
-<!-- Next step readiness — include when lean-canvas or author-brief is not detected.
+<!-- Next step readiness — include when lean-canvas or author-delivery-brief create is not detected.
      Remove this section when the skill becomes available. -->
 
 ## Next step readiness
 
-`lean-canvas` (or `author-brief`) was not detected in available skills. The next
+`lean-canvas` (or `author-delivery-brief create`) was not detected in available skills. The next
 step after capability mapping is brief-authoring — translating the committed bet
 and this capability map into an initiative brief that anchors M3–M6 spec-writing
-and brief-authoring. Resume when `lean-canvas` or `author-brief` becomes available.
+and brief-authoring. Resume when `lean-canvas` or `author-delivery-brief create` becomes available.

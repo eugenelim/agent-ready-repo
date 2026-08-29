@@ -70,7 +70,7 @@ edges and contract references from the meta-repo's catalog (the
 
 - **`parent-intent:`** — an optional upward pointer to the capability/feature
   intent the slice was projected from (additive on `core`'s brief template,
-  distinct from `Epic:`; `receive-brief` carries it but never interprets it).
+  distinct from `Epic:`; `author-delivery-brief continue` carries it but never interprets it).
 - **A `contract@version` reference + a read-only courier snapshot** — never the
   contract copied in as authority (that forks it). See `align-value-stream`'s
   `shared-contract-handoff` reference.
@@ -79,7 +79,7 @@ edges and contract references from the meta-repo's catalog (the
 
 Then seed **one rollup row per slice** in the meta-repo's cross-component rollup
 so `align-value-stream` can answer "delivered across all components?" Each brief
-crosses into its component repo, where `receive-brief` → `new-spec` → `work-loop`
+crosses into its component repo, where `author-delivery-brief continue` → `new-spec` → `work-loop`
 take it the rest of the way. When a component slice is independently shippable,
 it may instead enter as its own delivery contract; the semantic role follows
 the shippability boundary, not the Scale label.
