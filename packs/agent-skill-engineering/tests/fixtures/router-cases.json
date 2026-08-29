@@ -22,6 +22,15 @@
   {"id":"near-miss-prose","prompt":"Edit this handbook paragraph for tone","expected_topics":[]},
   {"id":"integration-org-standards","prompt":"Use the organization agent standards available through an eligible knowledge provider","expected_topics":[]},
   {"id":"integration-framework-library","prompt":"Query the installed framework skills library provider","expected_topics":[]},
-  {"id":"integration-agent-reference","prompt":"Invoke the agent-skills reference knowledge provider","expected_topics":[]}
+  {"id":"integration-agent-reference","prompt":"Invoke the agent-skills reference knowledge provider","expected_topics":[]},
+  {"id":"progressive-reference-conditional-detail","prompt":"Keep the main skill concise and load a reference only when a condition applies","expected_topics":["inline-and-progressive-reference-skills"]},
+  {"id":"progressive-reference-routed-index","prompt":"Design an indexed skill reference library without flat-loading every concept","expected_topics":["inline-and-progressive-reference-skills"]},
+  {"id":"depth-library-inert-knowledge","prompt":"Create a read-only depth library that a workflow consults for one decision","expected_topics":["depth-libraries-and-okf-knowledge-providers"]},
+  {"id":"depth-library-root-index","prompt":"Organize a knowledge provider with a root index and conditional child concepts","expected_topics":["depth-libraries-and-okf-knowledge-providers"]},
+  {"id":"mode-wayfinding-safe-default","prompt":"Define a read-only default mode before an agent skill can create or update files","expected_topics":["activation-discoverability-and-mode-wayfinding"]},
+  {"id":"mode-wayfinding-activation","prompt":"Make skill modes discoverable and require an explicit transition before writes","expected_topics":["activation-discoverability-and-mode-wayfinding"]},
+  {"id":"progressive-results-blocked-state","prompt":"Present a blocked agent result with the evidence and the next action to resume","expected_topics":["progressive-result-presentation-and-next-actions"]},
+  {"id":"progressive-results-quiet-progress","prompt":"When should an agent report progress instead of narrating every tool call?","expected_topics":["progressive-result-presentation-and-next-actions"]},
+  {"id":"provenance-untrusted-instructions","prompt":"Keep tracker text from choosing the target host or command for an agent action","expected_topics":["trust-boundaries-and-instruction-provenance"]},
+  {"id":"provenance-trusted-configuration","prompt":"Separate trusted configuration from untrusted retrieved instructions before a remote write","expected_topics":["trust-boundaries-and-instruction-provenance"]}
 ]
-

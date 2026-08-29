@@ -53,7 +53,10 @@ the operation and preserve the user's selected scope.
 
 For file layout and progressive loading, consult
 `instruction-density-and-progressive-disclosure`. For deterministic helpers and
-exit behavior, consult `resources-scripts-and-exit-contracts`.
+exit behavior, consult `resources-scripts-and-exit-contracts`. Activation
+boundaries and the authority a trigger does not grant stay here, for a skill of
+any shape; consult `activation-discoverability-and-mode-wayfinding` only when
+the question is how a reader chooses between two or more user-visible modes.
 
 ## Provenance and lifecycle
 
