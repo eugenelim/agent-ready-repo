@@ -831,7 +831,7 @@ Landed as five commits, each independently revertible:
 | `e773bb276` | A | Lint enforces classes; `CHECKS` 6 → 8; ten fixtures |
 | `80c549dd` | A | Golden pin amendment, 22 → 32 cases |
 | `111be149` | B+D | Five classes declared; Makefile 45 → 32 launches |
-| `0c5274db` | E | ADR-0098, authoring standard, scaffold projection |
+| `0c5274db` | E | ADR-0101, authoring standard, scaffold projection |
 
 ### Defects found during implementation that the plan had not predicted
 

@@ -139,7 +139,7 @@ jobs:
       - name: Run repo/pack hook suites (Linux)
         # Pack tests live outside the runtime payload, and a skill directory gets
         # its own pytest process unless it is named in a compatibility class
-        # (tools/pack_test_compatibility.py, ADR-0098). This leg keeps one path
+        # (tools/pack_test_compatibility.py, ADR-0101). This leg keeps one path
         # per process for all of them — a runner may be stricter than a class
         # allows, and here that keeps the per-suite skip guard below meaningful.
         #
