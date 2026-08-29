@@ -396,17 +396,20 @@ edit a completed task section.
   subject is the same ungated ledger; extending that entry's summary adds no
   new legacy-shaped entry, so the ceiling is not reached and no raise is
   proposed.
-- Core owner: `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact`
-  reproduces on this slice's base — `packs/core/tests/skills/work-loop/test_lint_spec_status.py`
-  yields 78 nodes against a pin of 73 — and a gate this slice runs does reach
-  it, per the Assumption below. This slice's disposition is to report it
-  and change nothing: it neither re-pins the guard nor absorbs the red, because
-  that module's own rule at
-  `tools/test_local_ci_shared_test_deduplication.py:43-49` requires the
-  node-set change be dispositioned before the pin moves, and this slice is not
-  the party that can disposition a core test's node set. The unblocking event
-  is the core owner re-pinning after dispositioning; until then the red is
-  recorded against that owner, not against this slice.
+- Pack owner: four tests in this pack's own suite arrive red from the base —
+  `test_foundation_corpus.py::test_independent_router_results_meet_precision_and_recall_gate`,
+  `test_pack_boundary.py::test_independent_activation_results_bind_all_queries_and_descriptions`,
+  and `test_contract.py`'s `test_authoring_behavior_evals_cover_frame_and_existing_update`
+  and `::test_authoring_behavior_evidence_matches_its_source_digest`. A
+  `cognitive-load-output-quality` case was added to
+  `author-or-update-agent-skill/evals/evals.json` without updating the exact-set
+  assertion or the recorded digest. `Makefile:472-475` invokes this suite, so a
+  gate this slice runs reaches them. They are attributed `inherited`. Because
+  T12 and T13 author this pack's behavior fixtures and their evidence record,
+  this slice's disposition is to reconcile them as part of that work rather
+  than route them away — the files are inside its own scope. No workflow names
+  this suite, so the failures are invisible to the PR checks and surface only
+  under `make test`.
 
 ## Assumptions
 
@@ -468,11 +471,13 @@ edit a completed task section.
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2471-2474`,
   `tests/roster/test_workspace_status_projection.py:1032`)
 - Technical: the `tools/` failure set moves with the base and is therefore
-  recorded, not enumerated in this contract. Two `test_guide_typed_asides.py`
-  ledger tests reproduce and are invoked by no `Makefile` target this slice
-  runs, and `test_local_ci_shared_test_deduplication.py` reproduces and *is*
-  invoked at `Makefile:471` (source: `Makefile:471` for the positive
-  invocation, confirmed by running that gate directly, and a search of the
+  recorded, not enumerated in this contract, and it has already moved twice
+  while this slice was in flight. Two `test_guide_typed_asides.py` ledger tests
+  reproduce and are invoked by no `Makefile` target this slice runs; four tests
+  in this pack's own suite reproduce and *are* invoked at `Makefile:472-475`;
+  and `test_local_ci_shared_test_deduplication.py`, which an earlier base left
+  red at `Makefile:471`, now passes because its owner re-pinned it (source:
+  each gate invocation run directly on the rebased base, and a search of the
   whole `run-test-suite` macro, `Makefile:407-506`, for the absence. A
   whole-directory `pytest tools/` run is a non-authoritative probe, because
   `Makefile:477-479` records the per-class split as a stability property; where

@@ -1388,3 +1388,19 @@ layer writes durable state outside the repository, and no migration runs.
   Makefile membership in modal prose — the deleted rule wearing different
   words — so they now state the reach fact and stop. Revision 13's entry was
   also filed between revisions 11 and 12; it is now in order.
+- 2026-08-29: revision 15. Rebased onto main, 24 commits ahead of the base the
+  failure record was taken against, and the record was re-observed rather than
+  carried forward — which is the *Always do* Boundary doing its job on its first
+  real base move. `test_local_ci_shared_test_deduplication.py` now passes: its
+  owner re-pinned the node set, so the inherited-and-reached failure this
+  contract named is gone and its Follow-on with it. In its place four tests in
+  this pack's own suite arrive red, because a `cognitive-load-output-quality`
+  case was added to `author-or-update-agent-skill/evals/evals.json` upstream
+  without updating the exact-set assertion or the recorded digest. Those are
+  attributed `inherited`, but unlike the guides ledger tests they are not routed
+  away: `Makefile:472-475` invokes the suite, and T12 and T13 author exactly
+  those fixtures and their evidence record, so reconciling them is inside this
+  slice's scope rather than someone else's. No workflow names this suite, so
+  they are invisible to the PR checks and surface only under `make test` — the
+  same ungated shape the guides tests have.
+
