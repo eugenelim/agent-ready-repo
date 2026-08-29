@@ -277,7 +277,7 @@ the contract instead of the code. The digest literal lives in the test only.
 the bump and advance one **patch** step from it — `packs/AGENTS.md` § "Version
 bump rule" gives patch for changed content, minor for new primitives, major for
 removals, and this adds no primitive. The merge base already moved from `2.15.0`
-to `2.15.1` once during this spec's PLAN phase, so the number is read, never
+twice during this spec's PLAN phase, so the number is read, never
 assumed. AC16 requires the result to be strictly greater than the merge base's,
 which a self-consistent but stale set cannot satisfy.
 
@@ -346,7 +346,7 @@ The razor run, recorded once. Each was considered and cut.
 
 | Risk | Mitigation |
 | --- | --- |
-| The version bump collides with a concurrent release on `main` | T3 re-reads `origin/main` immediately before the bump; AC16 requires strictly-greater-than-merge-base, which a stale self-consistent set fails. Already recurred once: `2.15.0` → `2.15.1` during PLAN. |
+| The version bump collides with a concurrent release on `main` | T3 re-reads `origin/main` immediately before the bump; AC16 pins the merge-base version as a literal and requires strictly-greater, which a stale self-consistent set fails. Recurred **twice** during PLAN: `2.15.0` → `2.15.1`, then `2.15.1` → `2.15.2`. Each rebase re-pins the literal. |
 | A rebase regenerates a projected file and silently drops the change | Generated files are regenerated, never merged; deliverables are digest-manifested before each rebase and verified after. AC17 asserts the projections match. |
 | The bound does not remove every `ENAMETOOLONG` on a byte-limited filesystem | The `OSError` arm is independent of the bound and is proven at all three seams by AC6. Recorded as a spec Assumption with its measurement. |
 | A new `# STUB:` marker collides with the frozen Wave 5 spec's 43 markers | Every marker is disambiguated with the spec slug, per `tools/assert-sast-chain-reachable.py:4`. |
