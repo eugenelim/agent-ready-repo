@@ -1,7 +1,7 @@
 # Plan: Cooling untrusted input refusals
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`
   §6 owns cooling policy; `packs/core/.apm/skills/close-work/scripts/cooling.py`
   is the module under change and its own `_exceeds_depth` docstring (`:179-198`)
