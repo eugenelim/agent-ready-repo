@@ -82,7 +82,7 @@ BASELINE = ROOT / "tools" / "lint-boundary-golden.json"
 # code it exists to police, while still technically being "a pinned revision".
 #
 # AMENDED once, deliberately, with owner approval recorded as
-# `docs/specs/pack-test-compatibility-classes/spec.md` AC33 and ADR-0098.
+# `docs/specs/pack-test-compatibility-classes/spec.md` AC33 and ADR-0101.
 #
 # Original pin: 0245556305e4d19d16af4c3a71f3003f57ce5788 / blob
 # 73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b — the lint as
