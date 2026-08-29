@@ -982,14 +982,31 @@ containing "transition", which is the shipped one naming only `create` and
 section opener names `frame` as read-only and would otherwise satisfy it for
 every mode. Restore by editing.
 
+- Re-record `activation-results.json` from a fresh headless observation
+  covering **both** workflow skills. `test_pack_boundary.py:18-21` digests
+  `author-or-update-agent-skill/SKILL.md` and
+  `review-or-optimize-agent-skill/SKILL.md`; `c7ed3f910` moved both, and this
+  task moves the first again, so both digests are stale and the fixture cannot
+  be repaired by editing — `Never do` forbids back-filling an unobserved
+  result. `review-or-optimize`'s digest is re-recorded from base bytes this
+  slice does not otherwise touch.
+- `eval_queries.json` is frozen from this task onward. It feeds the same
+  fixture's `query_fixture_digest` and case count, so any later task that moves
+  it re-records `activation-results.json` in the same change.
+
+- `no stub (manual QA)` for the re-record — a headless observation cannot be
+  asserted before it is run.
+
 **Done when:** the mode is advertised, the five remaining modes are proven
-absent, and the matcher's detection half is asserted durably.
+absent, the matcher's detection half is asserted durably, and
+`test_pack_boundary.py::test_independent_activation_results_bind_all_queries_and_descriptions`
+is green against a fixture recorded from this task's own observation.
 
 ### T12: Behavior evidence covers this slice's cases
 
 **Depends on:** T7, T11
 
-**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, packs/agent-skill-engineering/tests/fixtures/behavior-results.json
+**Touches:** packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, packs/agent-skill-engineering/tests/fixtures/behavior-results.json, packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py
 
 **Tests:**
 - Fixtures cover the four foundation cases plus cold-start orientation,
@@ -1012,8 +1029,19 @@ absent, and the matcher's detection half is asserted durably.
 - Declare markers, checklist items, and seeded defects before running anything.
 - Extend the existing digest bindings; do not weaken the equality checks the
   foundation arrived at.
+- Move the two assertions in `test_contract.py` that the base already reddened
+  and this task reddens again. `:147`'s `set(cases)` equality names two ids
+  while the tree carries three — `c7ed3f910` added
+  `cognitive-load-output-quality` — and this task adds a fourth,
+  `knowledge-provider`; widen it to the set actually shipped, one id per line so
+  the next addition is a one-line diff. `:153` reads `case["expect"]` directly
+  and raises `KeyError` on the upstream case, which declares none; read it with
+  `.get` and assert the marker only where an `expect` block exists. Do not
+  delete the upstream case to satisfy the equality — that reverts `c7ed3f910`.
 
-**Done when:** the expanded record passes every binding the foundation enforces.
+**Done when:** the expanded record passes every binding the foundation enforces,
+and `pytest packs/agent-skill-engineering/tests/skills/author_or_update/` is
+green — including the two assertions this task moved.
 
 ### T13: Review-case grading is observed, and every observed failure is attributed
 
@@ -1124,7 +1152,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Gates pass locally and fail in CI | A surface is absent from an enumeration no local target reaches | T14 runs each owning gate directly, and the three long suites are named and run explicitly: `pytest packs/agent-skill-engineering/tests`, `pytest packs/catalogue-curation/tests/skills/compile-okf/`, and `pytest tests/` |
 | 2b's registration trips a ratchet with no headroom | `unsatisfied_dependency` exceeds its ceiling | Measured in T2; surfaced to the owner under *Ask first* before any raise |
 | A mode is advertised before its evidence exists | The mode ships with T10 incomplete | T11 depends on T10, so the fixtures pass first |
-| A required gate arrives red from the base | A `tools/` test a gate this slice runs reproduces on the base, and this slice cannot make it green | Recorded against its owner under the *Always do* Boundary; never absorbed and never re-pinned by this slice |
+| A gate arrives red from the base | A test any gate this slice runs reproduces on the base, wherever it lives | Recorded under the *Always do* Boundary with its cause and attribution. Routed to its owner when no task of this slice writes the artifact; reconciled in-scope, and still reported as inherited, when a task the plan already compels does. Never silently cleared |
 
 ## Changelog
 
@@ -1426,4 +1454,32 @@ layer writes durable state outside the repository, and no migration runs.
   `472-475` are only its path arguments. Seventh instance on this change of an
   edit reaching some sites and not all, and the first where re-observation
   itself was the thing done partially.
+- 2026-08-29: revision 17. Revision 16 assigned owners to the inherited reds but
+  gave two of them owners that could not discharge them, which is the same
+  ownerless-red defect one level down. T12 was named owner of the eval-set
+  failure while `test_contract.py` was not in its `Touches`, and no edit to the
+  evals tree can satisfy an exact-set assertion except by deleting the upstream
+  case — which would revert `c7ed3f910`. T12's own second Tests bullet adds a
+  `knowledge-provider` case that reddens the same assertion a second way, so the
+  task was scheduled to break what it was scheduled to fix. It now owns the file
+  and names both moving assertions: the id set, widened one-per-line so the next
+  addition is a one-line diff, and the `case["expect"]` access, which raises
+  `KeyError` on an upstream case that declares no `expect` block. T11 had gained
+  `activation-results.json` in `Touches` but no Tests bullet, Approach step, or
+  Done-when clause naming it — a permission without an obligation, so T11 could
+  reach done with the red intact. It now carries the headless re-record, its
+  manual-QA mode, and a Done-when that requires the test green; and because
+  `c7ed3f910` moved **both** workflow skills' bytes, the run covers
+  `review-or-optimize` as well, whose digest is re-recorded from base bytes this
+  slice does not otherwise touch. `eval_queries.json` is frozen from T11 onward,
+  because it feeds the same fixture and T12 and T14 both reach its directory.
+  Revision 16 also called the two mechanisms "a different upstream change": they
+  are one commit, `c7ed3f910`, by two mechanisms — an eval case added without
+  its assertions, and the managed rendering block moving three `SKILL.md` files
+  — and mechanism 1 carried no attribution at all, which the Boundary requires.
+  The Risks row was the eighth partial edit: still scoped to `tools/`, so it
+  described none of the four observed reds, and its "never re-pinned by this
+  slice" contradicted the per-failure dispositions. It now splits routed from
+  reconciled-in-scope. The Technical assumption still said "not enumerated in
+  this contract" while the Follow-on enumerates four tests by name.
 

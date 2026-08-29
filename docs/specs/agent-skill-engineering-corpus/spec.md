@@ -398,11 +398,12 @@ edit a completed task section.
   new legacy-shaped entry, so the ceiling is not reached and no raise is
   proposed.
 - Pack suite: four tests in this pack's own suite arrive red from the base,
-  from **two** upstream causes, and each carries its own disposition. All four
+  from one upstream commit, `c7ed3f910`, by **two** mechanisms, and each
+  carries its own disposition. All four
   are attributed `inherited`; `Makefile:471-475` invokes the suite, so this
   slice's gate chain reaches them, and no workflow names it, so they are
   invisible to the PR checks and surface only under `make test`.
-  *Cause 1 — an eval case added without its assertions.*
+  *Mechanism 1 — `c7ed3f910` added an eval case without moving its assertions.*
   `test_contract.py::test_authoring_behavior_evals_cover_frame_and_existing_update`
   and `::test_authoring_behavior_evidence_matches_its_source_digest`: a
   `cognitive-load-output-quality` case entered
@@ -410,16 +411,18 @@ edit a completed task section.
   assertion or the recorded digest. **T12 owns both** — it rewrites that evals
   tree and re-records its digest — so the red clears as a byproduct of work this
   plan already compels, and is reported as inherited-and-fixed-here.
-  *Cause 2 — `c7ed3f910` wrote the managed rendering block into this pack's
-  skills, moving their bytes.*
+  *Mechanism 2 — the same commit wrote the managed rendering block into this
+  pack's skills, moving their bytes.*
   `test_foundation_corpus.py::test_independent_router_results_meet_precision_and_recall_gate`
   pins `router_digest` to `ase-okf-reference/SKILL.md`'s bytes; **T9 owns it**,
   which re-records `router-results.json`.
   `test_pack_boundary.py::test_independent_activation_results_bind_all_queries_and_descriptions`
-  pins per-skill digests to the authoring workflow's `SKILL.md` bytes and cannot
-  be reconciled by editing — it needs a fresh headless observation, which
-  `Never do` forbids back-filling. **T11 owns it**, because T11 moves those same
-  bytes again and so must re-record the fixture regardless.
+  pins digests for **both** workflow skills' `SKILL.md` bytes, and `c7ed3f910`
+  moved both. It cannot be reconciled by editing — it needs a fresh headless
+  observation, which `Never do` forbids back-filling. **T11 owns it**, because
+  T11 moves `author-or-update`'s bytes again and so must re-record regardless;
+  the run covers `review-or-optimize` too, whose digest is re-recorded from base
+  bytes this slice does not otherwise change.
 
 ## Assumptions
 
@@ -480,8 +483,8 @@ edit a completed task section.
   slice requires no engine change and raises no ratchet (source:
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2471-2474`,
   `tests/roster/test_workspace_status_projection.py:1032`)
-- Technical: the `tools/` failure set moves with the base and is therefore
-  recorded, not enumerated in this contract, and it has already moved twice
+- Technical: the inherited failure set moves with the base and is therefore
+  re-observed rather than assumed, and it has already moved twice
   while this slice was in flight. Two `test_guide_typed_asides.py` ledger tests
   reproduce and are invoked by no `Makefile` line; four tests in this pack's own
   suite reproduce and *are* invoked at `Makefile:471-475`; and
