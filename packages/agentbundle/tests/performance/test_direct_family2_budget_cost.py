@@ -18,6 +18,7 @@ import resource
 import statistics
 import sys
 import time
+import warnings
 from pathlib import Path
 
 from agentbundle.catalogue_tooling.file_safety import (
@@ -92,18 +93,21 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path) -> No
 
     median = statistics.median(timings)
     # AC36: emit the observed environment rather than pinning a machine.
-    print(
-        "\nAC36 Family-2 budget cost"
-        f"\n  environment : {platform.system()} {platform.machine()}"
+    report = (
+        "AC36 Family-2 budget cost"
+        f" | env={platform.system()}/{platform.machine()}"
         f" cpus={os.cpu_count()} python={platform.python_version()}"
-        f"\n  budgets     : entries={MAX_ENTRIES} files={MAX_FILES}"
-        f" skills={MAX_SKILLS} depth={MAX_DEPTH}"
-        f" total={MAX_TOTAL_BYTES // (1024 * 1024)}MiB"
-        f"\n  collected   : {collected} files"
-        f"\n  wall-clock  : median {median:.2f}s"
+        f" | budgets entries={MAX_ENTRIES} files={MAX_FILES} skills={MAX_SKILLS}"
+        f" depth={MAX_DEPTH} total={MAX_TOTAL_BYTES // (1024 * 1024)}MiB"
+        f" | collected={collected}"
+        f" | wall-clock median {median:.2f}s"
         f" range {min(timings):.2f}-{max(timings):.2f}s over {RUNS} runs"
-        f"\n  peak RSS    : {rss_mib:.0f} MiB"
+        f" | peak RSS {rss_mib:.0f} MiB"
+        f" | ceiling {CEILING_SECONDS}s / {CEILING_RSS_MIB} MiB"
     )
+    # pytest captures stdout for a passing test, so the measurement is emitted as
+    # a warning: AC36 requires the figure be readable from the CI run itself.
+    warnings.warn(report, stacklevel=2)
 
     assert collected == MAX_FILES
     assert median <= CEILING_SECONDS, (
