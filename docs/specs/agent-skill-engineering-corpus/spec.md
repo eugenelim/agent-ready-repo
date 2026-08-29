@@ -353,11 +353,23 @@ against the reason. No criterion is left without a declared mode.
   variances` section of INI-009 with their authority — not appended to the
   backlog-disposition section, whose scope is RFC-0097 D7 — and the brief's
   slice table reflects both.
-- [ ] **AC17 — Routed pre-existing failures are recorded as known-skips.** This
-  slice's QA record names the four `tools/` failures that reproduce on a clean
-  base, their owning surface, the fact that no gate in this change's chain
-  invokes them, and the obligation to re-check them before the owning surface's
-  next change. They are recorded, not registered, and not fixed here.
+- [ ] **AC17 — Pre-existing failures are attributed, not absorbed.** This
+  slice's QA record names every `tools/` failure observed on the base it was
+  taken against, with the command that reproduces it and the base identified,
+  and sorts each into one of three classes:
+  *owned elsewhere and unreached* — the failure belongs to another surface and
+  no gate in this change's chain invokes it; it is routed to that owner and
+  recorded, not registered and not fixed here, with the obligation to re-check
+  it before that surface's next change.
+  *inherited and reached* — the failure came from the base and a gate this
+  change must pass does invoke it; it is reported as blocking this slice's
+  completion, because a required gate is red for a reason this change did not
+  create, and absorbing it silently would make this slice's green a lie.
+  *caused here* — fixed.
+  The criterion states no count and no list. The set moves as the base moves:
+  an earlier revision pinned four failures, two of which upstream fixed before
+  this slice reached them, and a fifth arrived from the base in the same
+  interval.
 - [ ] **AC18 — Published surfaces stay joined.** The pack satisfies the
   conformance metadata contract, and its membership of the two agent-plugin
   roster enumerations, the catalogue navigation outcome map, and the
@@ -387,14 +399,16 @@ against the reason. No criterion is left without a declared mode.
   subagent composition and hook/plugin design.
 - Slice-5 owner: `agent-skill-engineering-guide-and-docsurl` in `[backlog].open`
   — the public guide and the site `docsUrl` repoint.
-- Guides and live-demo-guide owner: four `tools/` failures that reproduce on a
-  clean base independently of this slice —
+- Guides owner: the `tools/` failures that reproduce on this slice's base
+  independently of it. At the base this slice was last re-certified against,
+  that is `test_guide_typed_asides.py`'s two ledger tests; the two
+  `test_live_demo_guide.py` failures an earlier revision also named were fixed
+  upstream before this slice reached them. AC17 governs the live set —
   `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications`,
   `::test_ledger_matches_converted_asides_and_unchanged_quotations`,
-  `test_live_demo_guide.py::LiveDemoGuideTests::test_nontechnical_contract_crosses_user_to_repo_scope`,
-  and `::test_track_map_pins_real_pack_paths`. No gate in this change's chain
-  invokes them: neither file is named in the `Makefile`, which lists its tools
-  tests explicitly, nor in any workflow. They are recorded under AC17 rather
+  and neither file is named in the `Makefile`, which lists its tools tests
+  explicitly, nor in any workflow — which is what puts them in AC17's
+  *owned elsewhere and unreached* class. They are recorded under AC17 rather
   than registered in `[backlog].open`, whose legacy-shape ceiling is at its
   measured maximum and whose failure message forbids raising it.
 
@@ -457,10 +471,14 @@ against the reason. No criterion is left without a declared mode.
   slice requires no engine change and raises no ratchet (source:
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2471-2474`,
   `tests/roster/test_workspace_status_projection.py:1032`)
-- Technical: four `tools/` failures in the guides and live-demo-guide surfaces
-  reproduce on this base, touch no pack file, and are invoked by no gate in
-  this change's chain (source: probe over those two modules; `Makefile:469,
-  490-504`)
+- Technical: the `tools/` failure set moves with the base and is therefore
+  recorded, not enumerated in this contract. At the last re-certification two
+  `test_guide_typed_asides.py` ledger tests reproduce and are named by no
+  Makefile gate; two `test_live_demo_guide.py` failures an earlier revision
+  named were fixed upstream; and `test_local_ci_shared_test_deduplication.py`
+  arrived red from the base and *is* named at `Makefile:471`, which puts it in
+  AC17's inherited-and-reached class (source: `pytest tools/` on the
+  re-certified base; `Makefile:471`)
 - Process: `[backlog].open`'s legacy-shape ceiling of 160 is at its measured
   maximum and its failure message forbids raising it; only entries carrying a
   `path` key are exempt, and those require a real artifact (source:

@@ -421,7 +421,8 @@ entry, both linters exit 0, and the ratchet suite is green.
   ```
 
   `stub: true` — validated by execution against the live tree, not only parsed:
-  it reports 135 discovered skills and fails on the absent fixture, which is the
+  it reports the live discovered-skill count and fails on the absent fixture,
+  which is the
   right red. The key is relative to the repository root; `p.parts[1]` on the
   absolute path yields `Users`, which collapses every pack and makes the
   equality unsatisfiable. EXECUTE adds the owner-is-not-a-person assertion and
@@ -434,8 +435,7 @@ entry, both linters exit 0, and the ratchet suite is green.
   of them having chosen a presentation pattern.
 - Fixture in the pack tree, live-discovery assertion in `tests/roster/`.
 - **Add no Makefile wiring.** The suite target and the build-check workflow
-  both run pytest over `tests/`, which collects `tests/roster/` — 716 nodes
-  today — so the module runs without being named. Naming it would double-run it
+  both run pytest over `tests/`, which collects `tests/roster/`, so the module runs without being named. Naming it would double-run it
   and force a re-pin of two hard-pinned digests for no coverage. An earlier
   draft did exactly that, on a `grep` for `tests/roster` in the Makefile that
   returned nothing because collection is by directory.
@@ -1026,9 +1026,11 @@ absent, and the matcher's detection half is asserted durably.
   `output_ok`, `assertions_ok`, `errored`, `passed` — transcribed from a named
   run, so a failure can be attributed. (AC14)
 - No per-marker value is recorded. (AC14)
-- The QA record names the four routed `tools/` failures, their owning surface,
-  the fact that no gate in this change's chain invokes them, and the re-check
-  obligation. (AC17)
+- The QA record names every `tools/` failure observed on the base it was taken
+  against, with the reproducing command and the base identified, sorted into
+  AC17's three classes. Owned-elsewhere-and-unreached failures carry their owner
+  and the re-check obligation; an inherited-and-reached failure is reported as
+  blocking. No count is recorded — the set moves with the base. (AC17)
 
 - `no stub (manual QA)` — the values are transcribed from an observed graded
   run; there is no predicate to write first.
@@ -1270,3 +1272,17 @@ layer writes durable state outside the repository, and no migration runs.
   is scoped to; and the AC9 guard gains a non-vacuity floor and a positive
   control, because a green absence-only walk is indistinguishable from a wrong
   root — the same trap the earlier "7/7 compile-clean" report fell into.
+- 2026-08-28: revision 11. AC17 amended to reality after wave 0. The criterion
+  pinned four `tools/` failures; by the time the slice reached them upstream had
+  fixed two, and a fifth had arrived from the base. It now states no count and
+  no list, and instead sorts every observed failure into three classes —
+  owned-elsewhere-and-unreached (route and record),
+  inherited-and-reached (report as blocking, because a required gate is red for
+  a reason this change did not create and absorbing it would make this slice's
+  green a lie), and caused-here (fix). That distinction was collapsed before:
+  `Makefile:471` names `test_local_ci_shared_test_deduplication.py` explicitly,
+  so main's node-count regression is inside this change's gate chain, while the
+  two `test_guide_typed_asides.py` ledger tests are named nowhere and are not.
+  The count was corrected at all three sites it lived at — AC17, the Follow-on,
+  and the Assumption — plus T13's implementing bullet; only the historical note
+  explaining why no count is pinned still says "four".
