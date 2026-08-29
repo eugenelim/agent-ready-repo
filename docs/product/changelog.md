@@ -52,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.1] — 2026-08-30
+
+### Fixed
+
+- `close-work` now refuses malformed lifecycle-record input with a named code
+  instead of raising. An unresolvable time zone and an exception envelope
+  missing a required field each return a published refusal, so no host file path
+  or error number reaches the caller.
+
 ## [core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29
 
 ### Highlights
