@@ -35,10 +35,10 @@ the work rather than an incidental fix.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Current product truth | The pack gains five topics, so its own description of what it offers goes stale. | `packs/agent-skill-engineering/README.md` | This spec | README's topic count and language-availability paragraph match the admitted set; `catalogue lint --deep` clean | No README sentence asserts an absence the corpus no longer has |
+| Current product truth | The pack gains five topics, so both its topic count and its language-availability paragraph go stale. | `packs/agent-skill-engineering/README.md` | This spec | Both sentences match the admitted set, asserted by the AC7 test rather than by lint alone; `catalogue lint --deep` clean | No README sentence states a topic count or an absence the corpus no longer has |
 | Current architecture | RFC-0097 requires each delivery spec to update the planned architecture with its slice's implemented names, paths, and verification evidence. | `docs/architecture/agent-skill-engineering.md` | This spec | Topology counts name 12 admitted and 24 unpopulated leaves; the slice's verification date is recorded | Architecture claims no later-slice surface |
 | Release history | The pack's version bump is a released-artifact change. | `docs/product/changelog.md` — a `## [agent-skill-engineering][<version>] — <date>` entry | This spec | Entry present in the same change that bumps the manifests | Entry names the admitted topic set and the language-availability change |
-| Interface compatibility | The pack's published surface is consumed externally. | `packs/agent-skill-engineering/pack.toml`, `.claude-plugin/plugin.json`, and the aggregated marketplace manifest — regenerated, never hand-edited | This spec | Matching version bump per `packs/AGENTS.md`; publication and roster gates green | Both manifests carry the same bumped version |
+| Interface compatibility | The pack's published surface is consumed externally. | `packs/agent-skill-engineering/pack.toml` and `.claude-plugin/plugin.json`, both authored and edited in lockstep under the pack version-bump rule; the aggregated marketplace manifest, which is regenerated and never hand-edited | This spec | Matching version bump per `packs/AGENTS.md`; publication and roster gates green | Both authored manifests carry the same bumped version, and the aggregate is regenerated |
 | Spec index | The index row states this spec's shape and counts. | `docs/specs/README.md` | This spec | Row's criterion and task counts equal this document's | Row matches the shipped spec |
 | Reusable learning | Work-loop's `spec-approved` and `plan-locked` gates capture authoring residue. | `project-knowledge` public seam | work-loop | Capture receipts, or the named skip `project-knowledge unavailable` | Receipts distilled at `plan-locked`, or the skip recorded |
 
@@ -121,9 +121,11 @@ the work rather than an incidental fix.
 - [ ] **AC3 — Execution economics is bounded.** Process, filesystem, pack/CI
   critical-path, worktree, lock, shared-host, and machine-load guidance stays
   limited to skill scripts, evaluations, packs, and their execution
-  environments, and is supported by measured retrieval evidence. No recorded
-  evidence field carries an absolute home path, username, hostname, or worktree
-  name.
+  environments, and is supported by measured retrieval evidence. No free-text
+  field in any artifact this slice records carries an absolute home path,
+  username, hostname, or worktree name. That set is the admission record, the
+  retrieval and near-miss cases, the eval declarations and their fixture
+  payloads, and the four re-measured result records.
 - [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
   pinned foundation result. Both the retrieval record and the generic-negative
@@ -132,24 +134,32 @@ the work rather than an incidental fix.
 - [ ] **AC5 — Behavior evidence expands.** The pytest-suite and Node/browser
   behavior fixtures are declared and recorded through the established observed
   evaluation process, and every graded result whose pinned source digest this
-  slice moves is re-measured rather than re-stamped.
+  slice moves is re-measured rather than re-stamped. Every declared fixture
+  payload ships as inert review material and falls inside the export-boundary
+  content scan, whose covered suffixes and file floor are extended to include
+  each payload this slice adds.
 - [ ] **AC6 — Doctrine-side source parity is enforced, not deferred.** For every
   doctrine claim group, the group's shipped fields appear in the topic's
   provenance-and-lifecycle section and equal the admission record field-for-field
   — source identities *and* dates, including each source's exposed version or
-  last-updated date, or its explicit `none exposed`. Every projected source
-  identity resolves outside this repository: a title plus a stable URL. No
-  repository-internal evidence — commit hash, internal note filename, or
-  repository path — reaches either projection; it stays in the non-projected
-  admission fixture. The check replaces the corpus slice's unconditional
-  failure, and each predicate limb the doctrine arm newly exercises carries a
-  recorded mutation proof.
+  last-updated date, or its explicit `none exposed`. Every doctrine group cites
+  at least one source meeting the inherited attributability shape, so the
+  externality requirement cannot be satisfied vacuously by citing nothing.
+  A projected source identity takes a checkable form: a non-empty title followed
+  by an absolute URL, never a bare hash, a repository path, or a relative
+  reference. Parity holds in both directions — no external reference appears in
+  either projection that the citing topic's admission record does not carry —
+  and repository-internal evidence reaches neither the authored nor the compiled
+  concept root, staying in the non-projected admission fixture. The check
+  replaces the corpus slice's unconditional failure, and each predicate limb the
+  doctrine arm newly exercises carries a recorded mutation proof.
 - [ ] **AC7 — Shipped language-availability statements match what shipped.**
-  Each of the four shipped statements that today asserts these language families
-  are unpopulated or future — the two workflow `SKILL.md` bodies, the
-  language-extension seam reference, and the pack README — agrees with the
-  admitted topic set. Because two of them are digest-pinned, activation is
-  re-observed rather than reconciled by editing.
+  Every shipped statement that today describes the corpus as lacking these
+  language families, or states a topic count that admission changes, agrees with
+  the admitted topic set: the two workflow `SKILL.md` bodies, the
+  language-extension seam reference, and both the language-availability
+  paragraph and the topic-count sentence in the pack README. Because two of them
+  are digest-pinned, activation is re-observed rather than reconciled by editing.
 - [ ] **AC8 — Records and published surfaces are current.** The initiative's
   milestone string names the slice actually in flight; this spec is registered
   as active work while in flight and moved to shipped work at close, in the same
@@ -188,8 +198,11 @@ the work rather than an incidental fix.
   re-declaring all five absent. The owner chose all five on doctrine, having
   been shown that the governing evidence note withholds maturity from the
   TypeScript/Node topic. The accepted risk is that this topic carries the
-  weakest distinctness evidence and is the likeliest to fail measurement; the
-  agreed response is to report and withdraw it, never to reword its cases.
+  weakest distinctness evidence and is the likeliest to fail measurement. A leaf
+  that fails measurement is surfaced with the measurement that caused it and
+  routed through an approved spec amendment before close, never reworded and
+  never withdrawn in flight: the ship transition requires every criterion
+  checked, and a deferral marker no longer satisfies it.
 
 ## Follow-ons
 
