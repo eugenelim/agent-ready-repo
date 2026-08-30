@@ -128,3 +128,29 @@ def test_widened_boundaries_on_a_read_only_agent_is_rejected(tmp_path: Path) -> 
     """Write and network boundaries cannot ride along with read-only tools."""
     # STUB: AC6 — no declaration widens beyond the agent's tools
     assert _boundary_diagnostics(_catalogue(tmp_path, _WIDENED))
+
+
+def test_core_shaping_reviewer_projection_strips_source_metadata() -> None:
+    """The real Core reviewer excludes source-only metadata when projected.
+
+    Lives here, not beside the package, because it reads `packs/core`. The sdist
+    carries `packages/agentbundle/tests/` and re-runs it via
+    `tools/check-artifact-contents.py`, where no pack tree exists — a packaged
+    test that reaches into repository content fails inside the extracted sdist.
+    The synthetic-fixture projection tests stay in the package; only this
+    real-pack assertion moves.
+    """
+    import tempfile
+
+    from agentbundle.build.adapters import ADAPTERS
+    from agentbundle.build.contract import load as load_contract
+
+    repo = Path(__file__).resolve().parents[2]
+    contract = load_contract(repo / "contracts" / "adapter.toml")
+    with tempfile.TemporaryDirectory() as tmp:
+        output = Path(tmp) / "output"
+        ADAPTERS["claude-code"](repo / "packs" / "core", contract, output)
+        rendered = (output / ".claude" / "agents" / "shaping-reviewer.md").read_text(
+            encoding="utf-8"
+        )
+        assert "metadata:" not in rendered

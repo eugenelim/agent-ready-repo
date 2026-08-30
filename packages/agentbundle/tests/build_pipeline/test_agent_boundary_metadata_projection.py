@@ -28,7 +28,6 @@ metadata:
 
 # Read-only
 """
-_CORE_PACK = Path(__file__).resolve().parents[4] / "packs" / "core"
 
 
 def _seed_pack(root: Path) -> Path:
@@ -122,16 +121,6 @@ class AgentBoundaryMetadataProjectionTests(unittest.TestCase):
             finally:
                 self_host.SELF_HOST_PACKS = original_packs
             rendered = (output / ".claude" / "agents" / "read-only.md").read_text(
-                encoding="utf-8"
-            )
-            self.assertNotIn("metadata:", rendered)
-
-    def test_core_shaping_reviewer_projection_strips_source_metadata(self) -> None:
-        """The real Core reviewer excludes source-only metadata when projected."""
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            output = Path(temporary_directory) / "output"
-            ADAPTERS["claude-code"](_CORE_PACK, self.contract, output)
-            rendered = (output / ".claude" / "agents" / "shaping-reviewer.md").read_text(
                 encoding="utf-8"
             )
             self.assertNotIn("metadata:", rendered)
