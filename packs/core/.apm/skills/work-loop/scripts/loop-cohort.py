@@ -618,8 +618,6 @@ def parse_completed_task_evidence_entries(
     entries: tuple[str, ...], allowed_task_ids: set[str] | None = None
 ) -> dict[str, list[str]]:
     """Parse repeated `Tn=<stable-ref>` arguments into an auditable task map."""
-    if not entries:
-        raise ValueError("completed_evidence_ref is required")
     if len(entries) > MAX_AMENDMENT_EVIDENCE_REFS:
         raise ValueError(
             f"completed_evidence_ref count exceeds {MAX_AMENDMENT_EVIDENCE_REFS}"
@@ -647,8 +645,8 @@ def parse_completed_task_evidence_entries(
 def _normalize_completed_task_evidence_map(
     mapping: dict[str, list[str]], allowed_task_ids: set[str]
 ) -> dict[str, list[str]]:
-    if not isinstance(mapping, dict) or not mapping:
-        raise ValueError("completed_task_evidence is required")
+    if not isinstance(mapping, dict):
+        raise ValueError("completed_task_evidence must be a mapping")
     entries: list[str] = []
     for task_id, references in mapping.items():
         if not isinstance(task_id, str):
@@ -743,8 +741,6 @@ def begin_contract_amendment(
         raise ValueError("completed_task_ids must be a list")
     newly_completed = [task for wave in waves[:current_index] for task in wave]
     completed = list(dict.fromkeys([*prior_completed, *newly_completed]))
-    if not completed:
-        raise ValueError("contract-amendment requires completed task evidence")
     if set(completed_task_section_hashes) != set(completed):
         raise ValueError("completed task section hashes do not match completed task IDs")
     if any(

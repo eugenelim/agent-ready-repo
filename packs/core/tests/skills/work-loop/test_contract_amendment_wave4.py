@@ -202,9 +202,7 @@ def test_contract_amendment_event_is_legal_only_from_code_implementation() -> No
         ({}, {"expected_run_id": "stale-run"}, "run_id"),
         ({}, {"owner_authority_ref": ""}, "owner_authority_ref"),
         ({}, {"reason_ref": ""}, "reason_ref"),
-        ({}, {"completed_task_evidence": {}}, "completed_task_evidence"),
         ({"plan_review_status": "pending"}, {}, "approved plan"),
-        ({"current_wave_index": 0}, {}, "completed task"),
     ],
 )
 def test_contract_amendment_refuses_invalid_authority_or_state_without_mutation(
@@ -230,12 +228,19 @@ def test_contract_amendment_refuses_invalid_authority_or_state_without_mutation(
     assert state == before
 
 
-def test_engine_cli_requires_completed_evidence_before_any_state_read() -> None:
-    engine = _load("loop-engine.py")
+def test_contract_amendment_succeeds_before_wave_one_without_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine, _cohort, spec_dir, _args, _evidence_map = _integration_fixture(
+        tmp_path, monkeypatch
+    )
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    state["current_wave_index"] = 0
+    _write_json(spec_dir / "state.json", state)
     args = engine.build_parser().parse_args(
         [
             "transition",
-            "unused-spec",
+            str(spec_dir),
             "contract-amendment",
             "--owner-authority-ref",
             "approval:scope-owner",
@@ -244,7 +249,60 @@ def test_engine_cli_requires_completed_evidence_before_any_state_read() -> None:
         ]
     )
 
-    assert engine.cmd_transition.__wrapped__(args) == 1
+    assert engine.cmd_transition(args) == 0
+
+    amended = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    snapshot = amended["amendment_history"][-1]
+    assert snapshot["completed_task_ids"] == []
+    assert snapshot["completed_task_section_hashes"] == {}
+    assert snapshot["completed_task_evidence"] == {}
+
+
+def test_contract_amendment_requires_evidence_for_completed_tasks_without_mutation() -> None:
+    cohort = _load("loop-cohort.py")
+    state = _state()
+    before = copy.deepcopy(state)
+
+    with pytest.raises(ValueError, match="completed task has no evidence binding"):
+        cohort.begin_contract_amendment(
+            state,
+            expected_run_id="run-current",
+            owner_authority_ref="approval:scope-owner",
+            reason_ref="follow-on:owned-record",
+            completed_task_section_hashes=_hashes(),
+            completed_task_evidence={},
+            amendment_id="amendment-missing-evidence",
+        )
+
+    assert state == before
+
+
+def test_contract_amendment_pre_wave_replay_is_idempotent_without_evidence() -> None:
+    cohort = _load("loop-cohort.py")
+    state = _state()
+    state["current_wave_index"] = 0
+    first = cohort.begin_contract_amendment(
+        state,
+        expected_run_id="run-current",
+        owner_authority_ref="approval:scope-owner",
+        reason_ref="follow-on:owned-record",
+        completed_task_section_hashes={},
+        completed_task_evidence={},
+        amendment_id="amendment-pre-wave",
+    )
+
+    replay = cohort.begin_contract_amendment(
+        first,
+        expected_run_id="run-current",
+        owner_authority_ref="approval:scope-owner",
+        reason_ref="follow-on:owned-record",
+        completed_task_section_hashes={},
+        completed_task_evidence={},
+        amendment_id="amendment-pre-wave",
+    )
+
+    assert replay == first
+    assert len(replay["amendment_history"]) == 1
 
 
 def test_engine_finishes_cohort_first_contract_amendment_crash_window(

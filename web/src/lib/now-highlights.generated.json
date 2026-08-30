@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.15.5"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[core][2.15.5] — 2026-08-29",
+      "changelogAnchor": "core2155--2026-08-29",
+      "highlights": [
+        {
+          "source": "**`work-loop` can now correct a sealed spec or plan before the first wave runs.** Review that finds a defect in the window between sealing the baseline and executing wave 1 previously had no legal move: `contract-amendment` refused until at least one task had completed, so the only way out was resetting the run and losing its identity and amendment history.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "`work-loop` can now correct a sealed spec or plan before the first wave runs."
+            },
+            {
+              "type": "text",
+              "value": " Review that finds a defect in the window between sealing the baseline and executing wave 1 previously had no legal move: "
+            },
+            {
+              "type": "code",
+              "value": "contract-amendment"
+            },
+            {
+              "type": "text",
+              "value": " refused until at least one task had completed, so the only way out was resetting the run and losing its identity and amendment history."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.15.4"
         }
       ],

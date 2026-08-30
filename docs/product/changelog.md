@@ -52,6 +52,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.15.5] — 2026-08-29
+
+### Highlights
+
+- **`work-loop` can now correct a sealed spec or plan before the first wave
+  runs.** Review that finds a defect in the window between sealing the baseline
+  and executing wave 1 previously had no legal move: `contract-amendment`
+  refused until at least one task had completed, so the only way out was
+  resetting the run and losing its identity and amendment history.
+
+### Fixed
+
+- `contract-amendment` no longer requires completed-task evidence when no task
+  has completed. RFC-0099 § 7 declares the post-seal correction route legal from
+  implementation, verification, or review, and lists only preservation effects;
+  four guards enforced a completed-work precondition that route never stated.
+  The evidence binding is now conditional on completed work existing, and
+  `begin_contract_amendment`'s `missing_evidence` check remains the sole enforcer
+  — every completed task still requires at least one binding, and owner
+  authority, reason reference, run identity, and the approved-hash pins remain
+  unconditional.
+
 ## [core][2.15.4] — 2026-08-29
 
 ### Highlights

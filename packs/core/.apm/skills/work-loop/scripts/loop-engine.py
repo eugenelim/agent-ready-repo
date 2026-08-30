@@ -1248,10 +1248,6 @@ def cmd_transition(args: argparse.Namespace) -> int:
             return stop("transition contract-amendment requires --owner-authority-ref")
         if not reason_ref:
             return stop("transition contract-amendment requires --reason-ref")
-        if not completed_evidence_entries:
-            return stop(
-                "transition contract-amendment requires --completed-evidence-ref"
-            )
         try:
             completed_task_evidence = (
                 _cohort_mutator().parse_completed_task_evidence_entries(
