@@ -35,9 +35,32 @@ rules:
     # repo, advisory) is the broad net for those. This keeps the *blocking*
     # rule on the surface where the threat is real, not on trusted-context
     # flows it would only have to suppress.
+    #
+    # The leading `/` anchors the pattern at the scan root — the ONE
+    # shipped-primitives tree at the repository root, which is what the scoping
+    # above has always meant. Semgrep 1.166 warns that a bare `packs/**` will
+    # soon be read as anchored anyway and offers `**/packs/**` to keep it
+    # unanchored; 18 other tracked directories in this tree are named `packs`,
+    # and none of them ships as an agent primitive.
+    #
+    # Measured, so the reason is not overstated: all three spellings scan an
+    # identical 130 files under SAST_DIRS today. The five nested `packs/` trees
+    # that contain any `.py` all sit under `packages/agentbundle/tests/`, which
+    # semgrep's default ignore drops on a directory walk, and `web/` is not in
+    # SAST_DIRS at all. So this respell states the intended scope explicitly
+    # rather than leaning on that default — it is a deliberate narrowing in
+    # pattern semantics with no coverage change on the gate as run today.
+    #
+    # KNOWN GAP: unlike its sibling in argv-path-boundary.yml, this rule has no
+    # fixture and no self-test, so a mis-anchored pattern here would match
+    # nothing and read as green — `make sast` cannot tell "no findings" from "no
+    # targets". Closing it means a positive fixture plus a finding-count
+    # assertion, the shape tools/test-semgrep-argv-boundary.py already uses.
+    # Verified by hand at the time of this respell: the anchored form still
+    # scans 130 files under packs/ and still fires on a planted canary.
     paths:
       include:
-        - "packs/**"
+        - "/packs/**"
     pattern-sources:
       - pattern-either:
           - pattern: os.environ.get(...)

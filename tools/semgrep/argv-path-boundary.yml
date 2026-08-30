@@ -70,13 +70,20 @@ rules:
       confidence: HIGH
       references:
         - https://docs.snyk.io/scan-with-snyk/snyk-code
+    # Every entry is `/`-anchored at the scan root. Semgrep 1.166 warns that a
+    # bare `packs/...` will soon be read this way regardless; the other spelling
+    # it offers, `**/packs/...`, would match a same-named file at ANY depth,
+    # which is not what a ratchet over four named production scripts means.
+    # tools/test-semgrep-argv-boundary.py parses these entries and strips the
+    # anchor before joining them to the repository root — see `ratcheted_scope`,
+    # which refuses the `**/` spelling outright so the two cannot drift.
     paths:
       include:
-        - "packs/core/.apm/skills/work-loop/scripts/lint-traceability.py"
-        - "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py"
-        - "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
-        - "packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
-        - "tools/semgrep/fixtures/argv-path-boundary/**"
+        - "/packs/core/.apm/skills/work-loop/scripts/lint-traceability.py"
+        - "/packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py"
+        - "/packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+        - "/packs/core/.apm/skills/work-loop/scripts/_loop_guards.py"
+        - "/tools/semgrep/fixtures/argv-path-boundary/**"
     patterns:
       - pattern-either:
           - pattern: $ARGS.$FIELD.resolve()

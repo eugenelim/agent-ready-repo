@@ -409,13 +409,21 @@ APPROVED_COMPOSED_PLAN_DIGEST = (
 # change moves it: ``sast-unleased`` was re-pinned when `main` retired semgrep's
 # four transitive-dep ``--ignore-vuln`` suppressions, verified as byte-identical
 # to `origin/main`'s recipe rather than recomputed from this worktree alone.
+# ``SEMGREP_EXCLUDE`` and ``sast-unleased`` were re-pinned again by the change
+# that owns them here — the two timing-out harness files joined the exclusion
+# list, the scan moved behind ``tools/run-semgrep-gate.py`` with ``--strict``,
+# and ``tools/check-semgrep-version.py`` joined the recipe's tool checks.
+# Recomputed from this worktree because this branch authored the edit, and
+# checked the only way that is safe: the other six surfaces were recomputed at
+# the same time and are unchanged, so the move is confined to the two blocks the
+# change deliberately edits.
 MAKE_BASELINE_DIGESTS = {
     "build-check-unleased": "f9df737082cf0a4f1ee554ca3eac710da77623a447c8ef62a3678c8a7d8ad4ca",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
-    "sast-unleased": "12506ba4bdf8c1052c7548b18e597b87db0b5dca6d5b6186a61b014af8cb4980",
+    "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
-    "SEMGREP_EXCLUDE": "1d0b1f660cacc22707dab071efbe95ef333d7f4ea382310be0cb5aed8774dac6",
+    "SEMGREP_EXCLUDE": "f838b4f5433821278a8004ae90eba5d024b579055ccc9b23b8e659ee6d5c8115",
     "gate_verdict": "aa9d2cc83cc7d9e59fe411c5788f5abf6c5810772407170fff21d28107564d79",
     "gate_verdict_calls": "116c367fbb376618b499ffba4f4d79138a5ca32f7948631e678519e9a16565be",
 }

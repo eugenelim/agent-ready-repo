@@ -88,6 +88,27 @@ RULE_ID = "argv-path-without-boundary-validator"
 NOSEMGREP_COMMENT = re.compile(r"#.*\bnosem(?:grep)?\b")
 
 
+# Semgrep 1.166 reads a leading `/` in `paths.include` as "anchored at the scan
+# root", per Semgrepignore v2 / Gitignore semantics. The slash is a marker, not a
+# path segment, so it must come off before the entry is either classified or
+# joined to REPO_ROOT.
+ANCHOR = "/"
+# The other spelling semgrep offers, `**/<path>`, is deliberately NOT normalised
+# away — see `ratcheted_scope`, which refuses it.
+UNANCHORED_PREFIX = "**/"
+
+
+def _include_path(entry: str) -> str:
+    """The repo-relative path carried by a `paths.include` entry.
+
+    Strips the anchoring `/`. Without this, `Path(REPO_ROOT) / "/packs/core/..."`
+    evaluates to `/packs/core/...` — pathlib discards the left operand on a
+    leading slash — so every `is_file()` and scan target would silently address
+    an absolute path OUTSIDE the repository.
+    """
+    return entry[len(ANCHOR):] if entry.startswith(ANCHOR) else entry
+
+
 def ratcheted_scope() -> tuple[list[Path], list[str]]:
     """Split the rule's own `paths.include` into (concrete files, glob patterns).
 
@@ -122,8 +143,22 @@ def ratcheted_scope() -> tuple[list[Path], list[str]]:
     include = rules[0].get("paths", {}).get("include") or []
     if not include:
         raise RuntimeError(f"{RULE.name}: rule declares no paths.include — nothing is ratcheted")
-    concrete = [REPO_ROOT / entry for entry in include if "*" not in entry]
-    globs = [entry for entry in include if "*" in entry]
+    unanchored = [entry for entry in include if entry.startswith(UNANCHORED_PREFIX)]
+    if unanchored:
+        # `**/lint-traceability.py` matches that name at any depth, so it is a
+        # glob however it is spelled — it would land in `globs` and leave that
+        # production script unasserted. When only SOME entries are respelled the
+        # `not concrete` guard below still sees the rest and stays green, so the
+        # drop would be silent. Refuse instead: the rule's scope is anchored at
+        # the repository root by design (see its paths.include comment).
+        raise RuntimeError(
+            f"{RULE.name}: paths.include entries {unanchored!r} use the unanchored "
+            f"'{UNANCHORED_PREFIX}' form; this ratchet requires the '{ANCHOR}'-anchored "
+            "form, because a depth-agnostic pattern names no single file to assert"
+        )
+    entries = [_include_path(entry) for entry in include]
+    concrete = [REPO_ROOT / entry for entry in entries if "*" not in entry]
+    globs = [entry for entry in entries if "*" in entry]
     if not concrete:
         # Every entry a glob would mean no production script is ratcheted, which
         # is the fail-open state this function exists to make impossible.
