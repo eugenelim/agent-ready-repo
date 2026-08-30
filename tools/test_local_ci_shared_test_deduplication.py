@@ -412,7 +412,7 @@ APPROVED_COMPOSED_PLAN_DIGEST = (
 # ``SEMGREP_EXCLUDE`` and ``sast-unleased`` were re-pinned again by the change
 # that owns them here — the two timing-out harness files joined the exclusion
 # list, the scan moved behind ``tools/run-semgrep-gate.py`` with ``--strict``,
-# and a semgrep version-floor preflight joined the recipe's tool checks.
+# and ``tools/check-semgrep-version.py`` joined the recipe's tool checks.
 # Recomputed from this worktree because this branch authored the edit, and
 # checked the only way that is safe: the other six surfaces were recomputed at
 # the same time and are unchanged, so the move is confined to the two blocks the
@@ -420,7 +420,7 @@ APPROVED_COMPOSED_PLAN_DIGEST = (
 MAKE_BASELINE_DIGESTS = {
     "build-check-unleased": "f9df737082cf0a4f1ee554ca3eac710da77623a447c8ef62a3678c8a7d8ad4ca",
     "sast": "6e3046497a9f9ed10e559865ecd9e330d88e37417ccfc35af20bc610616ef0b4",
-    "sast-unleased": "4f2e1ddccddc57030a65e1b433ec15ddbf5b23a38f0f3d50db0f31cc854718ee",
+    "sast-unleased": "cb4177f36bd64773812db97f879ad7e49e197370ecb9934ecb8a133318d4b1e5",
     "SAST_DIRS": "7cb835cf14ea0c97bf450810aea5b0194dbf289b03659ad9308c6efde146ba8c",
     "SAST_CONFIG": "df0eeff32c8f18c84f917e7ea579039c8cc3ab54f4e7adb4b1bc6d09b857961c",
     "SEMGREP_EXCLUDE": "f838b4f5433821278a8004ae90eba5d024b579055ccc9b23b8e659ee6d5c8115",

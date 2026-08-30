@@ -269,17 +269,19 @@ print-sast-config:
 # reported by `dangerous-subprocess-use-tainted-env-args` with the rules on and
 # reported by NOTHING with them off — not by bandit at this gate's floor
 # (run-bandit-gate.py pins --severity-level medium, and B603/B606/B607 are LOW),
-# and not blockingly by CodeQL, which is not a required check on main. (codeql.yml
-# now declares `threat-models: environment` so CodeQL can at least see the source
-# kind; that makes it a better advisory lens, not a blocking one.) Excluding the
+# and not by CodeQL, which is not a required check on main AND cannot see the
+# source kind at all: its default `remote` threat model treats os.environ as
+# trusted, and the pinned codeql-action accepts no `threat-models` setting to
+# change that (tracked as `codeql-cannot-see-environment-sources`). Excluding the
 # two rules would therefore have left packages/credbroker/ and
 # packs/core/.apm/hooks/session-start.py — the surface
 # tools/semgrep/env-path-taint.yml calls the one place the threat is real — with
 # no blocking detector for env-tainted subprocess argv at all.
 #
 # Excluding the two FILES instead keeps both rules live everywhere else. What it
-# gives up is the whole 227-rule set on two dev-CLI test harnesses, which
-# codeql.yml's `**/test_*.py` already ignores. Bandit still scans them, but not
+# gives up is every rule that applies to them — measured on one of the two at
+# this recipe's config: 344 rules loaded, 196 run on that file, 0 findings —
+# which codeql.yml's `**/test_*.py` already ignores. Bandit still scans them, but not
 # for the class dropped here: its subprocess tail is LOW and this gate's floor is
 # medium. Measured at the time of writing, the full config at --timeout 60 finds
 # 0 findings and 0 errors on both files, so nothing detected is being hidden.
@@ -323,18 +325,11 @@ sast-unleased:
 	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
-	# Presence is not enough for semgrep, unlike the tools around it. Its per-rule
-	# timeouts and its --strict diagnostics are engine behaviour that moves between
-	# releases, and SEMGREP_EXCLUDE's justification is a set of measurements taken
-	# at a specific version. A below-floor local semgrep produces evidence that
-	# does not describe what CI runs — which is how this block's figures were once
-	# taken eight releases early. The floor is read from the manifest so the two
-	# cannot drift.
-	@$(PYTHON) -c "import re,sys,pathlib;t=pathlib.Path('tools/requirements-sast.txt').read_text();m=re.search(r'^semgrep>=([0-9.]+)',t,re.M);sys.exit(0) if m else sys.exit('make sast: no semgrep floor in tools/requirements-sast.txt')" || exit 1
-	@floor=$$($(PYTHON) -c "import re,pathlib;print(re.search(r'^semgrep>=([0-9.]+)',pathlib.Path('tools/requirements-sast.txt').read_text(),re.M).group(1))"); \
-	have=$$(semgrep --version 2>/dev/null | tail -1); \
-	$(PYTHON) -c "import sys;f=tuple(int(x) for x in sys.argv[1].split('.'));h=tuple(int(x) for x in sys.argv[2].split('.'));sys.exit(0 if h>=f else 1)" "$$floor" "$$have" \
-	  || { echo "make sast: semgrep $$have is below the $$floor floor in tools/requirements-sast.txt — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	# Presence is not enough for semgrep, unlike the tools around it: its timeouts
+	# and --strict diagnostics are engine behaviour that moves between releases,
+	# and SEMGREP_EXCLUDE's justification is measurements taken at one version.
+	# Both bounds are read from the manifest so the two cannot drift.
+	@$(PYTHON) tools/check-semgrep-version.py
 	@command -v npm       >/dev/null 2>&1 || { echo "make sast: npm not found — install Node.js (>=24, per docs-site/package.json engines) for the npm SCA leg" >&2; exit 1; }
 	# Bandit's stderr is a gate signal, not chatter (ADR-0084): under -q it
 	# carries only diagnostics about the scan's own integrity — a `# nosec` it

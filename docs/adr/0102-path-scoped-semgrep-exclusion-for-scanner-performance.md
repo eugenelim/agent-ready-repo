@@ -88,3 +88,23 @@ The staleness gap in decision 3 is the known weakness of this ADR. It is recorde
 rather than solved because the detector belongs in scheduled CI, not in
 `make sast`: re-scanning the excluded paths at a raised timeout on every
 developer run would reintroduce the cost the exclusion exists to avoid.
+
+**Revisit if:** (1) semgrep gains rule+path scoping in one flag, which would make
+both exclusion forms unnecessary; (2) a path-scoped entry is added without a
+stated residual or retirement trigger; or (3) the staleness gap below is closed
+and an exclusion is found to have outlived its cause.
+
+## Confirmation
+
+- **Mode:** reviewer-checked, with a `none` residual on the retirement half.
+- **Signal:** decisions 2 and 3 are prose requirements on a comment block, so a
+  reviewer reading the `SEMGREP_EXCLUDE` diff is the check: a new path-scoped
+  entry either carries a stated residual and a retirement trigger beside it, or
+  it does not. That half is confirmable on sight.
+- **Residual:** whether a trigger has *fired* is not mechanically checked, and
+  semgrep accepts an `--exclude` naming a path that no longer exists, silently
+  and with exit 0. So a stale entry outlives its cause with nothing to notice.
+  Tracked as `sast-semgrep-exclude-has-no-staleness-detector`; the detector
+  belongs in scheduled CI for the reason in Consequences above. Recorded as a
+  visible `none` rather than omitted, because a reader would reasonably expect
+  the retirement trigger to be enforced and it is not.

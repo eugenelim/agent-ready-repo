@@ -23,7 +23,8 @@ Run: python3 tools/run-semgrep-gate.py <semgrep-arg> [<semgrep-arg> …]
 Every argument is passed through to `semgrep` untouched; only
 `--json-output` is added. The exit code is semgrep's own.
 Exit 0 = clean, 1 = findings, 2 = usage/tool error or a `--strict` rule timeout,
-3 = a `--strict` parse diagnostic.
+3 = a `--strict` parse diagnostic. Any other code is semgrep's own and is passed
+through unchanged (e.g. 7 for a `--config` it cannot fetch or read).
 Proven by tools/test-semgrep-strict-gate.py.
 """
 
@@ -42,13 +43,27 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-HINT = (
+# Only for the two classes --strict actually promotes. Semgrep also exits
+# non-zero on a config it cannot fetch or parse, and pointing that reader at
+# SEMGREP_EXCLUDE would steer them to delete coverage for a network failure.
+STRICT_HINT = (
     "run-semgrep-gate: semgrep exited non-zero because of --strict. The entries\n"
     "run-semgrep-gate: above are its own diagnostics, not findings in your code: a\n"
     "run-semgrep-gate: target it could not fully parse, or a rule that exceeded its\n"
-    "run-semgrep-gate: per-file time budget. Fix the target, or scope the rule in\n"
-    "run-semgrep-gate: SEMGREP_EXCLUDE with a comment saying what that gives up."
+    "run-semgrep-gate: per-file time budget.\n"
+    "run-semgrep-gate: Fix the target first. If a registry rule is the problem,\n"
+    "run-semgrep-gate: prefer pinning or vendoring the ruleset (see the Revisit-if\n"
+    "run-semgrep-gate: note beside --strict in the Makefile) over widening\n"
+    "run-semgrep-gate: SEMGREP_EXCLUDE. A new exclusion needs ADR-0102's shape:\n"
+    "run-semgrep-gate: a stated residual AND a retirement trigger."
 )
+OTHER_HINT = (
+    "run-semgrep-gate: semgrep failed for a reason --strict did not promote — see\n"
+    "run-semgrep-gate: the diagnostics above. This is not a finding in your code,\n"
+    "run-semgrep-gate: and SEMGREP_EXCLUDE is very unlikely to be the remedy."
+)
+# The `type` values --strict promotes, lowercased for comparison.
+STRICT_TYPES = ("partialparsing", "timeout", "ruletimeout", "timeouterror")
 
 
 def _safe(text: object) -> str:
@@ -62,18 +77,32 @@ def _safe(text: object) -> str:
     return str(text).encode("unicode_escape").decode("ascii")
 
 
-def _format(error: dict) -> str:
-    """One diagnostic as `path: LEVEL kind — first line of message`."""
-    path = error.get("path") or "<no path>"
-    level = (error.get("level") or "error").upper()
-    # `type` is sometimes a bare string and sometimes `[name, [details]]`; the
-    # name is the useful half either way.
+def _kind(error: dict) -> str:
+    """The diagnostic's type name.
+
+    `type` is sometimes a bare string and sometimes `[name, [details]]`; the name
+    is the useful half either way.
+    """
     kind = error.get("type")
     if isinstance(kind, list) and kind:
         kind = kind[0]
-    message = (error.get("message") or "").strip().splitlines()
-    head = message[0] if message else "(no message)"
-    return f"{_safe(path)}: {level} {_safe(kind)} — {_safe(head)}"
+    return str(kind)
+
+
+def _format(error: dict) -> list[str]:
+    """One diagnostic as `path: LEVEL kind — message`, one list entry per line.
+
+    The whole message, not just its first line. For both classes --strict
+    promotes, line 1 is a header that repeats the path and the payload is on the
+    lines after it — `Syntax error at line foo.py:2:` followed by the token that
+    was unexpected. Printing only the head reproduces the very complaint this
+    wrapper exists to fix: a red gate that does not say what is wrong.
+    """
+    path = _safe(error.get("path") or "<no path>")
+    level = _safe((error.get("level") or "error").upper())
+    lines = (error.get("message") or "").strip().splitlines() or ["(no message)"]
+    head = f"{path}: {level} {_safe(_kind(error))} — {_safe(lines[0])}"
+    return [head] + [f"    {_safe(line)}" for line in lines[1:]]
 
 
 def main(argv: list[str]) -> int:
@@ -134,8 +163,10 @@ def main(argv: list[str]) -> int:
             return proc.returncode
 
         for error in errors:
-            print(f"run-semgrep-gate: {_format(error)}", file=sys.stderr)
-        print(HINT, file=sys.stderr)
+            for line in _format(error):
+                print(f"run-semgrep-gate: {line}", file=sys.stderr)
+        strict_class = any(_kind(e).lower() in STRICT_TYPES for e in errors)
+        print(STRICT_HINT if strict_class else OTHER_HINT, file=sys.stderr)
         return proc.returncode
 
 

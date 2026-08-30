@@ -1593,7 +1593,7 @@ open = [
   {slug = "sast-env-path-taint-has-no-fires-assertion", summary = "env-var-into-pathlib-path has no fixture or self-test, so a mis-anchored paths.include makes the blocking CWE-22/73 rule a silent no-op with make sast green", source = "spec/semgrep-selftest-batching review"},
   # Unblocks when: a scheduled-CI job exists to hold it; it must not run per
   # `make sast`. Required shape is in ADR-0102 decision 3.
-  {slug = "sast-semgrep-exclude-has-no-staleness-detector", summary = "semgrep accepts an --exclude naming a path that no longer exists, silently and with exit 0, so a SEMGREP_EXCLUDE entry outlives its retirement trigger undetected", source = "adr/0101 decision 3"},
+  {slug = "sast-semgrep-exclude-has-no-staleness-detector", summary = "semgrep accepts an --exclude naming a path that no longer exists, silently and with exit 0, so a SEMGREP_EXCLUDE entry outlives its retirement trigger undetected", source = "adr/0102 decision 3"},
   # Unblocks when: a codeql-action release supports threat models. Verified on
   # pinned v3.37.7: no `threat-models` config property, no such action input.
   {slug = "codeql-cannot-see-environment-sources", summary = "CodeQL's default remote threat model treats os.environ as trusted and the pinned codeql-action accepts no threat-models setting, so security-extended's taint queries are not a residual lens for env-taint on this repo", source = "spec/semgrep-selftest-batching security review"},

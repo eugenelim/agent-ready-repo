@@ -106,8 +106,8 @@
 | 0098 | [Artifact admission and delivery briefs use distinct canonical owners](0098-artifact-admission-and-delivery-brief-lifecycle.md) | Accepted |
 | 0099 | [Shaping review stays stateless while delivery owns baseline replacement](0099-shaping-review-and-sealed-baseline-replacement.md) | Accepted |
 | 0100 | [Direct skill sources classify after resolution and normalize into canonical packs](0100-direct-skill-source-classification-and-normalized-lifecycle.md) | Accepted |
-| 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted |
 | 0101 | [Pack tests are isolated by default, grouped only by a declared compatibility class](0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md) | Accepted |
+| 0102 | [A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger](0102-path-scoped-semgrep-exclusion-for-scanner-performance.md) | Accepted |
 
 ## Adding a new ADR
 

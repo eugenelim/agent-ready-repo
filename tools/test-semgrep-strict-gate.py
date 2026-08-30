@@ -29,6 +29,8 @@ Asserts:
      reverting the point of the gate — and cases 1-7 would all still pass.
   9. semgrep's own stdout reaches the caller, so findings still stream. Without
      this the wrapper could capture and swallow every finding, silently.
+ 10. semgrep's own stderr reaches the caller too. Both streams are inherited, and
+     a mutation discarding only stderr passed every one of cases 1-9.
 
 Run: python3 tools/test-semgrep-strict-gate.py
 Exit 0 = all pass; non-zero = at least one failure.
@@ -69,14 +71,18 @@ for arg in sys.argv[1:]:
 with open(argv_sink, "w", encoding="utf-8") as handle:
     json.dump(sys.argv[1:], handle)
 sys.stdout.write({marker!r} + "\\n")
+sys.stderr.write({err_marker!r} + "\\n")
 if write_report and target:
     with open(target, "w", encoding="utf-8") as handle:
         handle.write(payload)
 sys.exit({code})
 """
 
-# Written by the stub to stdout; the wrapper must let it through untouched.
+# Written by the stub to stdout and stderr; the wrapper must let both through
+# untouched. It inherits BOTH streams, so both need an assertion — a mutation
+# that discards only stderr passed every other case.
 STDOUT_MARKER = "stub-semgrep-finding-line"
+STDERR_MARKER = "stub-semgrep-stderr-line"
 
 PARTIAL_PARSE = json.dumps(
     {
@@ -125,6 +131,7 @@ def _run_gate(payload: str, code: int, args: list[str], write_report: bool = Tru
                 write_report=write_report,
                 argv_sink=str(argv_sink),
                 marker=STDOUT_MARKER,
+                err_marker=STDERR_MARKER,
             ),
             encoding="utf-8",
         )
@@ -209,6 +216,19 @@ def _check_passthrough() -> list[str]:
     return problems
 
 
+def _check_stderr_reaches_caller() -> list[str]:
+    """semgrep's own stderr still reaches the caller.
+
+    The wrapper inherits both streams. A mutation discarding only stderr passed
+    every other case in this file, including the stdout check — semgrep writes
+    its scan summary and its non-JSON warnings there.
+    """
+    _code, stderr, _stdout, _seen = _run_gate(NO_ERRORS, 1, ARGS)
+    if STDERR_MARKER not in stderr:
+        return [f"semgrep stderr did not reach the caller: {stderr.strip()!r}"]
+    return []
+
+
 def _check_stdout_reaches_caller() -> list[str]:
     """semgrep's own stdout still reaches the caller.
 
@@ -246,6 +266,7 @@ def main() -> int:
     for name, check in (
         ("every argument is forwarded, plus exactly one --json-output", _check_passthrough),
         ("semgrep's own stdout still reaches the caller", _check_stdout_reaches_caller),
+        ("semgrep's own stderr still reaches the caller", _check_stderr_reaches_caller),
     ):
         problems = check()
         if problems:
@@ -257,7 +278,7 @@ def main() -> int:
     if failures:
         print(f"\ntest-semgrep-strict-gate: {failures} failure(s).", file=sys.stderr)
         return 1
-    print(f"\ntest-semgrep-strict-gate: all {len(CASES) + 2} cases passed.")
+    print(f"\ntest-semgrep-strict-gate: all {len(CASES) + 3} cases passed.")
     return 0
 
 
