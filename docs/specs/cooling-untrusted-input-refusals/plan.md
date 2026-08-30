@@ -1,7 +1,7 @@
 # Plan: Cooling untrusted input refusals
 
 - **Spec:** [spec.md](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`
   §6 owns cooling policy; `packs/core/.apm/skills/close-work/scripts/cooling.py`
   is the module under change and its own `_exceeds_depth` docstring (`:179-198`)
@@ -84,11 +84,15 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC20 | `test_an_evidence_bearing_incomplete_envelope_refuses` | TDD | `stub: true` |
 | AC21 | `test_the_review_seams_refuse_an_incomplete_envelope` | TDD | `stub: true` |
 | AC22 | `test_a_complete_exception_envelope_is_accepted` | TDD | `stub: true` |
+| AC23 | `test_a_container_where_a_scalar_belongs_refuses` | TDD | added post-GATES |
+| AC24 | `test_a_container_in_the_exception_envelope_refuses` | TDD | added post-GATES |
+| AC25 | `test_the_caller_supplied_enums_refuse_a_container` | TDD | added post-GATES |
+| AC26 | `test_the_alias_bound_equals_the_published_one` | TDD | added post-GATES |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-25 of 25 criteria carry a materialised stub or a named goal-based check. None
+29 of 29 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -268,7 +272,8 @@ if not set(value) >= {"reason", "owner_role", "review_on"}:
 
 That is the form the neighbouring `validate_payload` already uses at
 `cooling.py:240` (`not set(payload) >= _REQUIRED`). Proved by enumeration before
-writing it: the superset test rejects exactly the four dangerous shapes and
+writing it — of the sixteen envelope shapes, eight carry `evidence_ref` and so
+fall through the old gate, and seven of those omit a required key: the superset test rejects exactly the seven dangerous shapes and
 still admits both valid ones, `{reason, owner_role, review_on}` with and without
 `evidence_ref`.
 
@@ -413,6 +418,16 @@ The razor run, recorded once. Each was considered and cut.
 
 - 2026-08-28: Opened. Scope is the one sustained finding of three adjudicated;
   the two refuted ones are recorded in `notes/adjudication.md`.
+- 2026-08-29: Post-GATES review found a second escape class the PLAN-time
+  corpus had missed — six membership tests comparing an untrusted JSON value
+  against a set of strings, where a list or dict is unhashable and `in` raises
+  `TypeError`. `_is_one_of` guards all six. `delivery_id`'s `str()` coercion and
+  the bare alias literal were closed in the same pass, and AC23 to AC26 cover
+  the class by enumeration rather than by sampling. AC20 was corrected from four
+  envelope shapes to seven.
+- 2026-08-29: T2 added on an owner scope widening — the `_exception_is_valid`
+  proper-subset defect moved from a recorded follow-on into the criteria, with
+  mutation proofs M13 to M15, and the spec and plan were re-approved.
 - 2026-08-28: Revised from pre-EXECUTE adversarial and secure-design review.
   AC5/AC6 widened from one seam to three; non-string, corpus, empty-timezone,
   locator-binding, and projection criteria added; version step corrected from
@@ -420,4 +435,5 @@ The razor run, recorded once. Each was considered and cut.
   to `none`; M1's expected failure corrected — the `OSError` arm absorbs the
   bound mutation, so AC5 is its only detector; the `jsonschema` decline restated
   on true grounds. A 32-case corpus measurement found a second defect of the
-  same class in `_exception_is_valid`, recorded as a follow-on.
+  same class in `_exception_is_valid`; it was recorded as a follow-on then and
+  built later, under T2.

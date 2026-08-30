@@ -1,6 +1,6 @@
 # Spec: Cooling untrusted input refusals
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0096 §6; `thirty-day-cooling-and-retirement` (Shipped and frozen — this spec repairs its AC5 without editing that file at all)
@@ -103,136 +103,157 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Stub coverage at PLAN — all 25 criteria are materialised, none deferred to
-EXECUTE, and the split is measured, not claimed. Measured on the stubs:
-**22 failures with `tzdata` importable, 18 with it blocked**, out of 174
-collected cases.
+Coverage — all 29 criteria are materialised and none is deferred.
 
-- **Red in both environments (14 criteria, 18 cases).** These are the detectors;
-  each fails whether or not `tzdata` is present.
-  AC5 (1), AC6 (1), AC6a (1), AC7 (5), AC9 (1), AC11 and AC13 (1 shared),
-  AC11a (1), AC14 (1), AC16 (1), AC20 (4), AC21 (1).
-- **Red only where `tzdata` is importable (5 criteria, 4 cases).**
-  AC1 and AC2 (1 shared), AC3 and AC4 (1 shared), AC8 rows 1 and 2 (2).
-  These assert the contract; they do not detect the defect in CI.
-- **Green by construction (5):** AC10, AC12, AC15, AC17, AC22 — non-regression
-  invariants that hold today and must keep holding. Each carries a mutation
-  proof in `plan.md`, because a criterion that cannot fail proves nothing.
-- **Goal-based (3):** AC18, AC18a, AC19 — a named command, no test file.
+Twenty-five were written at PLAN, before any implementation existed. Twenty of
+those were red then; the other five are non-regression or consistency
+invariants that held already and each carries a mutation proof in `plan.md`,
+because a criterion that cannot fail proves nothing.
+
+Four more — AC23 to AC26 — were added after post-GATES review found a second
+escape class the PLAN-time corpus had missed: a membership test against an
+untrusted value. JSON admits lists and dicts, both unhashable, so
+`value in {...}` raised `TypeError`. Each of the four was red against the code
+as it then stood.
+
+Measured now: **214 cases pass, none fail, identically with `tzdata` importable
+and with it blocked.** Running both matters, because the `OSError` this repairs
+only arises when the optional `tzdata` wheel is importable, and this repository
+declares it nowhere. A single-environment green run would prove nothing about
+that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
+`ZoneInfo` and hold either way.
 
 ## Acceptance Criteria
 
 ### The timezone bound
 
-- [ ] **AC1 — A `timezone` one character past the published bound refuses.** An
+- [x] **AC1 — A `timezone` one character past the published bound refuses.** An
   otherwise-valid payload whose `timezone` is 256 `a` characters returns
   `code = "record-invalid"` from `validate_payload`, and raises nothing.
-- [ ] **AC2 — The bytes seam refuses the same payload.** `parse_record_bytes` on
+- [x] **AC2 — The bytes seam refuses the same payload.** `parse_record_bytes` on
   that payload's canonical JSON encoding returns `code = "record-invalid"`, and
   raises nothing.
-- [ ] **AC3 — `compute_review_on` names the timezone refusal.**
+- [x] **AC3 — `compute_review_on` names the timezone refusal.**
   `compute_review_on(date(2026, 8, 1), "a" * 256)` returns a `CoolingResult`
   whose `code` is `unknown-timezone`.
-- [ ] **AC4 — `is_due` names the timezone refusal.** A record carrying
+- [x] **AC4 — `is_due` names the timezone refusal.** A record carrying
   `timezone = "a" * 256`, given an aware instant, returns
   `code = "unknown-timezone"`.
-- [ ] **AC5 — The bound precedes the lookup at all three seams.** With
+- [x] **AC5 — The bound precedes the lookup at all three seams.** With
   `ZoneInfo` replaced by a counting spy, a 256-character `timezone` calls it
   zero times through each of `validate_payload`, `compute_review_on`, and
   `is_due`; a 255-character one calls it once through each.
-- [ ] **AC6 — An `OSError` from the lookup escapes no seam.** With `ZoneInfo`
+- [x] **AC6 — An `OSError` from the lookup escapes no seam.** With `ZoneInfo`
   replaced by one raising `OSError(63, "File name too long")` for `"UTC"`, and
   `timezone = "UTC"`: `validate_payload` returns `record-invalid`, and
   `compute_review_on` and `is_due` each return `unknown-timezone`.
-- [ ] **AC6a — The catch set is exactly the three named classes.** The `except`
+- [x] **AC6a — The catch set is exactly the three named classes.** The `except`
   handler guarding the zone lookup names `ZoneInfoNotFoundError`, `OSError`, and
   `ValueError` and nothing else, asserted over `cooling.py`'s AST. A bare
   `except Exception` would satisfy every other criterion while turning a future
   `TypeError` or `AttributeError` inside the lookup into `record-invalid`.
-- [ ] **AC7 — A non-string `timezone` refuses without reaching the lookup.** For
+- [x] **AC7 — A non-string `timezone` refuses without reaching the lookup.** For
   each of `123`, `true`, `null`, `["UTC"]`, and `{"a": 1}`: `validate_payload`,
   `parse_record_bytes`, and `compute_review_on` refuse — `record-invalid` from
   the first two, `unknown-timezone` from the third — with the counting spy
   recording zero calls, and none raises. `is_due` is excluded by construction:
   `CoolingRecord.from_payload` coerces `timezone` with `str()` at
-  `cooling.py:100`, so a record's `timezone` is always a string and that seam
+  `cooling.py:106`, so a record's `timezone` is always a string and that seam
   cannot observe the original type.
-- [ ] **AC8 — The enumerated timezone corpus never raises.** For each of the
+- [x] **AC8 — The enumerated timezone corpus never raises.** For each of the
   eleven `timezone` values in the plan's corpus table, `validate_payload` and
   `parse_record_bytes` return a `CoolingResult` whose `code` is a member of
   `REFUSAL_CODES`.
-- [ ] **AC9 — A timezone refusal carries a code and nothing else.** For each of
+- [x] **AC9 — A timezone refusal carries a code and nothing else.** For each of
   AC1–AC4's four results **and each of AC6's three**, `as_dict()` equals
   `{"due": False, "permission_granted": False, "mutated": (), "code": <the
   seam's code>}` — no `record` key — and none raises. AC6's results are the
   ones produced from a real `OSError`, so they are the ones that could carry an
   errno or a host path.
-- [ ] **AC10 — A resolvable timezone is unaffected.** `validate_payload` on an
+- [x] **AC10 — A resolvable timezone is unaffected.** `validate_payload` on an
   otherwise-valid payload with `timezone = "Asia/Singapore"` returns no code.
 
 ### The exception envelope
 
-- [ ] **AC20 — An incomplete envelope refuses instead of raising.** For each of
-  the four shapes that carry `evidence_ref` and omit a required key —
-  `{reason, owner_role, evidence_ref}`, `{reason, review_on, evidence_ref}`,
-  `{owner_role, review_on, evidence_ref}`, and `{evidence_ref}` — a
-  `retain-exception` payload returns `record-invalid` from `validate_payload`
-  and from `parse_record_bytes`, and raises nothing.
-- [ ] **AC21 — The caller-facing review seams refuse it too.** Given the
+- [x] **AC20 — An incomplete envelope refuses instead of raising.** Of the
+  sixteen envelope shapes, eight carry the permitted `evidence_ref` and so fell
+  through the old proper-subset gate; seven of those omit a required key. For
+  each of those seven, a `retain-exception` payload returns `record-invalid`
+  from `validate_payload` and from `parse_record_bytes`, and raises nothing.
+- [x] **AC21 — The caller-facing review seams refuse it too.** Given the
   `{reason, owner_role, evidence_ref}` envelope and a due record, `review` with
   six `refuse` answers returns `exception-envelope-invalid`, and
   `review_exception` with `outcome = "renew"` and that envelope in the
   attestation returns `exception-envelope-invalid`. Neither raises.
-- [ ] **AC22 — A complete envelope is still accepted.** A `retain-exception`
+- [x] **AC22 — A complete envelope is still accepted.** A `retain-exception`
   payload whose `exception` carries `reason`, `owner_role`, and `review_on`
   returns no code from `validate_payload`, both with and without an
   `evidence_ref`.
 
+### Untrusted values where a scalar belongs
+
+- [x] **AC23 — A container where a scalar belongs refuses.** For each required
+  field other than `aliases`, and for each of `["x"]` and `{"a": 1}`,
+  `validate_payload` and `parse_record_bytes` return a code in `REFUSAL_CODES`,
+  and neither raises. `aliases` is excluded because the contract publishes
+  `"type": "array"` for it; its own shape is asserted separately.
+- [x] **AC24 — A container in the exception envelope refuses.** For each of
+  `reason`, `owner_role`, `review_on`, and `evidence_ref`, and for each of the
+  same two containers, both seams return a code in `REFUSAL_CODES`.
+- [x] **AC25 — The caller-supplied enums refuse a container.** `enrol` with
+  `completion_event = ["merge"]` returns `completion-event-required`, and
+  `review` with a check answer of `["refuse"]` returns `review-incomplete`.
+  Neither raises.
+- [x] **AC26 — The alias bound equals the published one.**
+  `cooling.MAX_ALIAS_COUNT` equals `properties.aliases.maxItems`, and with the
+  constant patched to `2` a three-element `aliases` returns `record-invalid`
+  while a two-element one returns no code.
+
 ### Bounds that match the published contract
 
-- [ ] **AC11 — The timezone bound equals the published one.**
+- [x] **AC11 — The timezone bound equals the published one.**
   `cooling.MAX_TIMEZONE_LENGTH` equals `properties.timezone.maxLength` in
   `contracts/jsonschema/delivery-lifecycle-record.schema.json`.
-- [ ] **AC11a — The timezone constant governs the guard.** With
+- [x] **AC11a — The timezone constant governs the guard.** With
   `cooling.MAX_TIMEZONE_LENGTH` patched to `8` on a freshly loaded module, a
   9-character `timezone` is refused without a lookup at each of
   `validate_payload`, `compute_review_on`, and `is_due`, and an 8-character one
   reaches the lookup once at each. Numbered `11a` because it pairs with AC11;
   renumbering the list would invalidate references the notes already carry.
-- [ ] **AC12 — The published lower bound needs no mirrored constant.**
+- [x] **AC12 — The published lower bound needs no mirrored constant.**
   `validate_payload` on a payload with `timezone = ""` returns `record-invalid`,
   so the contract's `minLength: 1` is left to the lookup by design.
-- [ ] **AC13 — The locator bound equals the published one.**
+- [x] **AC13 — The locator bound equals the published one.**
   `cooling.MAX_LOCATOR_LENGTH` equals `$defs.locator.maxLength` in that same
   contract.
-- [ ] **AC14 — The locator constant governs the guard.** With
+- [x] **AC14 — The locator constant governs the guard.** With
   `cooling.MAX_LOCATOR_LENGTH` patched to `8` on a freshly loaded module, a
   9-character `locator` returns `record-invalid` and an 8-character one returns
   no code.
-- [ ] **AC15 — The published contract is unchanged.** The schema file's SHA-256
+- [x] **AC15 — The published contract is unchanged.** The schema file's SHA-256
   equals its value at this branch's merge base.
 
 ### Surfaces
 
-- [ ] **AC16 — The release surfaces agree and advance past the merge base.**
+- [x] **AC16 — The release surfaces agree and advance past the merge base.**
   `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` name the
   same version, the topmost dated `[core]` changelog heading names it, and it is
   strictly greater than the merge base's `packs/core/pack.toml` version, which
   the test pins as a literal. Comparing against the changelog's previous heading
   instead would pass with no bump at all, because the merge base already carries
   the topmost heading's version.
-- [ ] **AC17 — The projections match their source.**
+- [x] **AC17 — The projections match their source.**
   `.claude/skills/close-work/scripts/cooling.py` and
   `.agents/skills/close-work/scripts/cooling.py` are byte-identical to
   `packs/core/.apm/skills/close-work/scripts/cooling.py`.
-- [ ] **AC18 — The reused primitives stay byte-unchanged.** The SHA-256 of
+- [x] **AC18 — The reused primitives stay byte-unchanged.** The SHA-256 of
   `surface_resolver.py` and of `file_safety.py` equal the values pinned in
   `tests/roster/test_close_work_extraction_and_immediate_disposition.py`, which
   passes with that file unedited.
-- [ ] **AC18a — The spec is indexed and registered.** `docs/specs/README.md`
+- [x] **AC18a — The spec is indexed and registered.** `docs/specs/README.md`
   carries a row whose link resolves to this spec, and `workspace.toml` carries an
   entry for it in the room matching its Status.
-- [ ] **AC19 — No dependency is added.** `pyproject.toml`,
+- [x] **AC19 — No dependency is added.** `pyproject.toml`,
   `packages/*/pyproject.toml`, and `tools/requirements.txt` are unchanged from
   the merge base.
 
@@ -251,8 +272,8 @@ the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
 - **`delivery_id` accepts a non-string the contract forbids.** `cooling.py:246`
   matches `_DELIVERY_ID_RE.fullmatch(str(payload["delivery_id"]))`, coercing
   before matching, so `{"delivery_id": 123}` validates clean and becomes
-  `"123"` — which is then the on-disk filename (`:443`) and the authority
-  binding's `resource` (`:517`). The contract declares
+  `"123"` — which is then the on-disk filename (`:477`) and the authority
+  binding's `resource` (`:551`). The contract declares
   `{"type": "string", ...}`. Not exploitable today, since `str()` of a
   non-negative integer is filename-safe and the binding compares the coerced
   value on both sides, but it is the same class on the field with the widest
@@ -260,11 +281,11 @@ the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
   `:258-259`, and `:270` are inert: their regexes are anchored on literals no
   numeric coercion can produce.
 - **A `_close_work()` failure escapes four functions uncaught.** `enrol`
-  (`:645`) and `load_record` (`:658`) wrap the dependency; `verify_identity`
-  resolves it outside its own `try` (`:346`), `deletion_allowed` calls
-  `verify_identity` bare (`:390`), `_binding_is_issued` resolves it (`:464`)
-  from `_write_record` before that function's `try` opens (`:520`, `:524`), and
-  `update_record` (`:689`) wraps nothing — so the failure propagates out of
+  (`:679`) and `load_record` (`:692`) wrap the dependency; `verify_identity`
+  resolves it outside its own `try` (`:378`), `deletion_allowed` calls
+  `verify_identity` bare (`:424`), `_binding_is_issued` resolves it (`:496`)
+  from `_write_record` before that function's `try` opens (`:554`), and
+  `update_record` (`:723`) wraps nothing — so the failure propagates out of
   `review()` and `review_exception()`. The outcome is fail-closed, but the
   observable is a traceback carrying the absolute paths of both `cooling.py` and
   `close_work.py` from the permission-granting seam.
@@ -281,7 +302,7 @@ the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
   N resolved grants make each subsequent write O(N) and the dict grows unbounded
   for the process lifetime. Bounded retention — eviction and a cap — is what the
   per-write scan makes load-bearing.
-- **Locator pattern divergence.** `_is_locator` (`cooling.py:161-166`) admits the
+- **Locator pattern divergence.** `_is_locator` (`cooling.py:167-172`) admits the
   C0 control range and `U+007F`, which the contract's `$defs/locator` pattern
   excludes; `_is_locator` rejects a `.` segment, which the pattern admits. AC13
   and AC14 pin only the numeric bound. The write path is unaffected — it binds

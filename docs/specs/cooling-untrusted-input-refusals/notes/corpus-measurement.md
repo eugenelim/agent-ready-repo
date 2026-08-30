@@ -53,8 +53,11 @@ subset of the required three, so the test is false and execution falls through t
 `KeyError` for whichever required key is absent.
 
 Found by the security reviewer on one shape (`exc-no-review_on`). The corpus
-shows it is **four** shapes: every envelope that carries `evidence_ref` and omits
-any one of the three required keys. The published contract rejects all four
+showed four. Full enumeration later showed **seven**: of the sixteen envelope
+shapes, eight carry `evidence_ref` and so fall through the old gate, and seven of
+those omit a required key. The corpus under-counted because it sampled shapes
+rather than enumerating them — the same mistake, one level down, that made it
+miss the membership-test class entirely. The published contract rejects all four
 cleanly (`$defs/exception` `required: ["reason", "owner_role", "review_on"]`).
 
 The correct predicate is a superset test — reject when the required set is not
@@ -69,6 +72,11 @@ subsequently found two more residuals by reading rather than by corpus — the
 `delivery_id` `str()` coercion at `cooling.py:246` and the unwrapped
 `_close_work()` resolution at `:345`/`:390`/`:520`/`:689` — both recorded as
 spec follow-ons.
+
+A later pass found one more class the corpus missed: a **container** where a
+scalar belongs. Every case below used a scalar for the enum fields, so none
+tripped `value in {set of strings}`, which raises `TypeError` for an unhashable
+list or dict. AC23 to AC26 now enumerate that space instead of sampling it.
 
 These all return a published refusal code from both sampled seams:
 
