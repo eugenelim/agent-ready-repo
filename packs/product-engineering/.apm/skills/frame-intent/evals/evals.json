@@ -27,6 +27,17 @@
       "files": [
         "evals/files/cognitive-load/ordinary-prose.md"
       ]
+    },
+    {
+      "id": "core-absent-intent-review-degrades-when-unavailable",
+      "prompt": "Frame this product intent in an installation where Core and shaping-reviewer are unavailable. Do not claim an independent review happened.",
+      "expected_output": "frame-intent continues authoring the intent, records that the optional Core intent shaping review is unavailable, and does not claim Clean. It may name a genuinely fresh context or independent human reviewing the same attributed evidence packet as an optional alternative.",
+      "assertions": [
+        "Treats the Core review route as optional and Core-only",
+        "Records the unavailable optional review without claiming Clean",
+        "Continues authoring the intent through the documented degradation path",
+        "Keeps any alternative review independent and bound to the same evidence"
+      ]
     }
   ]
 }

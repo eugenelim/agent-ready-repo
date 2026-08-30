@@ -69,6 +69,12 @@ then goes through plan, execute, gate, review, and decide.
 
 **Key mechanics:**
 
+- **Two contract reviews before approval.** `new-spec` first sends the drafted
+  contract to a cold shaping review, then sends the complete spec-plan pair to
+  adversarial review. The first checks whether the contract is observable and
+  bounded; the second checks whether the construction plan can deliver it.
+  Shaping review is distinct from the later adversarial, security, and quality
+  code-review lenses; neither replaces code review after implementation.
 - **Risk-scaled modes.** Eligible low-risk work runs direct-light from the current request with one bounded adversarial pass and no persisted spec. Full mode uses a durable spec and plan when a risk trigger fires — unfamiliar territory, new dependency, compliance surface, multi-person work, destructive operation. The mode is chosen by the work's risk profile, not by file count.
 - **Hard gates.** Lint, typecheck, and tests run as mechanical gates. No path through the loop lets the agent claim success on a red gate.
 - **Cold-eyed review.** Three specialist reviewers — adversarial (spec/plan/impl drift), security (OWASP 2025 + ASVS + STRIDE), quality (testability, observability, reliability) — each read every diff in a fresh context with no sunk cost in the design. The loop iterates on findings until reviewers say `Clean — ready to commit.`

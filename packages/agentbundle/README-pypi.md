@@ -14,6 +14,11 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.40.3
+
+Catalogue validation now checks bounded reviewer declarations and keeps their
+least-privilege posture in supported adapter projections.
+
 ## What's new in 0.40.2
 
 Catalogue seed lint now accepts the core pack's bounded rule router,

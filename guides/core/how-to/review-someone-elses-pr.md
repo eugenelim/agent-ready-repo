@@ -21,6 +21,8 @@ Name whatever your agent can reach. A local branch always works; if the agent ha
 
 It resolves the diff and runs `adversarial-reviewer` (plus `security-reviewer` / `quality-engineer` if the diff warrants) — the same REVIEW step described in [Plan and execute non-trivial work](plan-and-execute-non-trivial-work.md).
 
+`shaping-reviewer` checks a draft intent, brief, or spec before construction; it is separate from the adversarial, security, and quality code-review lenses and is not a PR-diff reviewer.
+
 Two things worth saying out loud:
 
 - **No spec? Say so.** An in-flight branch usually has no spec, so the reviewer falls back to the spec-less self-review lens. If the branch *does* carry a `docs/specs/<feature>/spec.md`, name it — the reviewer then checks the diff against the spec instead.

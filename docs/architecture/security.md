@@ -105,8 +105,10 @@ The audit reviewed ~60 skills across 14 packs. Findings and their status:
 
 ### Security metadata convention — `metadata.boundaries`
 
-Non-credentialed skills that cross a security boundary declare it in frontmatter under
-`metadata.boundaries` (a list). Defined values:
+Non-credentialed skills and agents that cross a security boundary declare it in
+frontmatter under `metadata.boundaries` (a list). Compatibility aliases carry
+the same declaration as their canonical target; they do not create a separate
+boundary contract. Defined values:
 
 | Value | Meaning |
 |---|---|
@@ -116,13 +118,27 @@ Non-credentialed skills that cross a security boundary declare it in frontmatter
 | `filesystem_read_untrusted` | Skill reads potentially hostile files (untrusted documents, email, archives) |
 | `deploy_action` | Skill deploys to real environments (ephemeral or production) |
 
+An agent declaration must be no broader than its declared tools. The validator
+uses these capability correspondences; a boundary may name any tool in its row:
+
+| Boundary | Required tool capability |
+|---|---|
+| `network_fetch` | `WebFetch` or `WebSearch` |
+| `network_egress` | `Bash` |
+| `filesystem_write` | `Edit` or `Write` |
+| `filesystem_read_untrusted` | `Read`, `Grep`, or `Glob` |
+| `deploy_action` | `Bash` |
+
+`metadata` itself is optional. When an agent declares `metadata.boundaries`,
+the value must be a list of the defined values above.
+
 Credentialed skills (those with `metadata.credentialed: true` and auth details) already carry
 sufficient security metadata via their auth-scheme declaration; they do not need `boundaries`.
 
-This metadata survives cross-platform porting in the SKILL.md frontmatter, satisfying AST10.
+This metadata survives cross-platform porting in source frontmatter, satisfying AST10.
 When a platform automates security-policy enforcement, `metadata.boundaries` provides the
-machine-readable signal; when it does not, the skill body's security rules carry the same
-intent in prose.
+machine-readable signal; when it does not, the skill or agent body's security rules carry the
+same intent in prose.
 
 ## Related decisions
 

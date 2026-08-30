@@ -5,6 +5,62 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.16.0"
+        },
+        {
+          "name": "product-engineering",
+          "version": "0.13.8"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29",
+      "changelogAnchor": "core2160--product-engineering0138--2026-08-29",
+      "highlights": [
+        {
+          "source": "**Authors can independently check an intent, delivery brief, or draft spec before construction starts.** Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Authors can independently check an intent, delivery brief, or draft spec before construction starts."
+            },
+            {
+              "type": "text",
+              "value": " Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "agentbundle",
+          "version": "0.40.3"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[agentbundle][0.40.3] — 2026-08-29",
+      "changelogAnchor": "agentbundle0403--2026-08-29",
+      "highlights": [
+        {
+          "source": "**A read-only agent's declared boundaries are now checked where they are written, and never shipped into a projection that cannot use them.** Adopters get the least-privilege posture their source declares on every supported adapter.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "A read-only agent's declared boundaries are now checked where they are written, and never shipped into a projection that cannot use them."
+            },
+            {
+              "type": "text",
+              "value": " Adopters get the least-privilege posture their source declares on every supported adapter."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.15.5"
         }
       ],

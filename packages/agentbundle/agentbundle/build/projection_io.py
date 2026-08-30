@@ -13,7 +13,7 @@ import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal
+from typing import Callable, Literal
 
 from agentbundle.safety import _is_reparse_point as _safety_is_reparse_point
 from agentbundle.safety import _secure_dir_fd_available as _safety_secure_dir_fd_available
@@ -282,13 +282,22 @@ def _overwrite_existing_no_follow(
     content: bytes,
     *,
     base: Path,
+    source_stat: os.stat_result | None = None,
+    metadata: MetadataPolicy | None = None,
 ) -> bool:
     """Overwrite an existing regular target in place, or report it absent."""
     relative = target.relative_to(base)
     _validate_relative(relative)
     with open_directory_no_follow(base, relative.parent) as parent_fd:
         if parent_fd is None:
-            _validate_fallback_path(base, relative, allow_missing_leaf=False)
+            # `allow_missing_leaf=True` because reporting an absent target is
+            # this function's contract, not an error: the caller falls through
+            # to `_create_new_no_follow`. Ancestors are still walked and
+            # link/reparse-checked in order, so only the leaf that does not
+            # exist goes unvalidated. With `False` here the portable branch
+            # raised before reaching the `FileNotFoundError` handler below,
+            # which only self-host reached — it always has an existing target.
+            _validate_fallback_path(base, relative, allow_missing_leaf=True)
             try:
                 target_stat = target.lstat()
             except FileNotFoundError:
@@ -387,6 +396,9 @@ def _overwrite_existing_no_follow(
                 _replace_open_file_without_rollback(handle.fileno(), content)
             else:
                 _replace_open_file(handle.fileno(), content, original)
+            if source_stat is not None:
+                assert metadata is not None
+                _apply_new_file_metadata(handle.fileno(), source_stat, metadata)
         return True
 
 
@@ -493,6 +505,7 @@ def copy_projected_file(
     base: Path,
     metadata: MetadataPolicy,
     preserve_existing_metadata: bool = False,
+    transform: Callable[[bytes], bytes] | None = None,
 ) -> None:
     """Copy one projected file using the selected existing-target policy.
 
@@ -500,13 +513,14 @@ def copy_projected_file(
     behavior. Self-host real writes update existing regular files through a
     held descriptor, preserving inode, ownership, and mode without attempting
     owner-only metadata operations. Newly-created files still inherit the
-    source metadata selected by ``metadata``.
+    source metadata selected by ``metadata``. ``transform`` changes the
+    confined source bytes while retaining the source file's metadata policy.
     """
     relative = target.relative_to(base)
     _validate_relative(relative)
     if metadata not in ("mode", "stat"):
         raise ValueError(f"unsupported projection metadata policy: {metadata}")
-    if not preserve_existing_metadata:
+    if transform is None and not preserve_existing_metadata:
         if not _secure_dir_fd_available():
             _validate_fallback_path(
                 base,
@@ -519,6 +533,8 @@ def copy_projected_file(
         return
 
     source_bytes, source_stat = _read_source_no_follow(source)
+    if transform is not None:
+        source_bytes = transform(source_bytes)
     if not _secure_dir_fd_available():
         _validate_fallback_path(
             base,
@@ -527,7 +543,13 @@ def copy_projected_file(
         )
     ensure_directory_no_follow(base, relative.parent)
     while True:
-        if _overwrite_existing_no_follow(target, source_bytes, base=base):
+        if _overwrite_existing_no_follow(
+            target,
+            source_bytes,
+            base=base,
+            source_stat=None if preserve_existing_metadata else source_stat,
+            metadata=None if preserve_existing_metadata else metadata,
+        ):
             return
         if _create_new_no_follow(
             target,

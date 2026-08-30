@@ -42,7 +42,7 @@ The tell for a delivery brief is multiplicity: one coherent outcome, several ind
 
 2. **Answer the elicitation for the load-bearing fields.** The skill insists on only two things: the **Outcome** (the problem and the user-facing result) and the **Scope / Non-goals** (where this repo's slice begins and ends). Everything else — success metrics, appetite, user stories — it *offers* and you can supply or skip. It surfaces gaps rather than inventing answers.
 
-3. **Decide whether the brief is Ready.** Review the outcome, scope, constraints and appetite, assumptions and risks, plus source provenance and revision. Passing this gate moves the whole structured entry from Draft to Ready atomically. It does not require a spec.
+3. **Run the cold shaping review, then decide whether the brief is Ready.** Review the outcome, scope, constraints and appetite, assumptions and risks, plus source provenance and revision. The owner supplies that evidence in one attributed packet to an independent reviewer; findings return for revision. A revision-bound `Clean` plus explicit human confirmation moves the whole structured entry from Draft to Ready atomically. If no isolated subagent, fresh context, or independent human is available, the owner emits `BLOCKED` and leaves the brief Draft. It does not require a spec.
 
 4. **Choose whether to cut a slice now.** You can stop with a Ready brief and zero specs. If you confirm one independently shippable slice, the skill chains `new-spec` to create `spec.md` + `plan.md`, stamps a `Brief:` back-link on the spec, and adds the materialized spec to the brief's Spec map.
 

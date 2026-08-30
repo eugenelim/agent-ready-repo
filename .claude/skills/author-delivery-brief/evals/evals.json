@@ -33,6 +33,26 @@
         "Maps specs only",
         "Leaves deferred slices out of execution"
       ]
+    },
+    {
+      "id": "delivery-brief-material-revision-requires-fresh-review",
+      "prompt": "A Ready delivery brief with a revision-bound Clean result receives a material scope change. What must happen before it can be Ready again?",
+      "expected_output": "The material edit returns the brief to Draft and invalidates the prior review evidence. The caller revises the brief, obtains a fresh independent review of the changed revision, and requires human confirmation before restoring Ready.",
+      "assertions": [
+        "Returns the materially changed brief to Draft",
+        "Invalidates the prior revision-bound result",
+        "Requires fresh independent review and human confirmation"
+      ]
+    },
+    {
+      "id": "delivery-brief-independent-route-unavailable",
+      "prompt": "A Draft delivery brief is ready for shaping review, but no independent route is available. What receipt and transition result should the caller produce?",
+      "expected_output": "The caller refuses before dispatch and returns `BLOCKED: delivery-brief shaping review — independent route unavailable`. This is a caller lifecycle receipt, not a reviewer result, and the brief cannot transition to Ready.",
+      "assertions": [
+        "Refuses before dispatch when independence is unavailable",
+        "Returns the exact BLOCKED lifecycle receipt",
+        "Keeps the brief from transitioning to Ready"
+      ]
     }
   ]
 }

@@ -77,7 +77,7 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 3. You read the Unverified list and confirm or revise. If the Unverified list is empty, the skill surfaces the Verified list with the highest-stakes item called out and asks you to confirm *that one specifically* — a vague "looks good" doesn't count.
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.
-6. `adversarial-reviewer` reads the spec and plan cold. Iterate to clean — usually one to two passes; if you can't reach clean in three, the skill stops and asks for human direction (the spec likely has a structural problem, not a wording one).
+6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses. Iterate to clean — usually one to two passes; if you can't reach clean in three, the skill stops and asks for human direction.
 7. The skill updates `docs/specs/README.md` and reminds you that spec drift is a bug — update the spec in the same PR when implementation diverges.
 
 If you want to stop here (pure planning, no build yet), this is the natural exit point. The spec and plan are durable; come back to `work-loop` whenever you're ready.

@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.40.3] — 2026-08-29
+
+### Changed
+
+- Catalogue validation now checks the bounded agent-reviewer declaration and
+  projects its least-privilege posture across supported adapters.
+
 ## [0.40.2] — 2026-08-28
 
 ### Changed

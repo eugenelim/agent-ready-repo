@@ -118,6 +118,9 @@ The base paths are configurable — `[product] output_dir` and `[discovery] outp
 cross-repository result becomes a delivery brief. A compatible Core invocation
 admits the bounded handoff through `work-intake`, then preserves the existing
 `new-spec` or `author-delivery-brief continue` approval path. Core is optional.
+When Core is present, `frame-intent` can also request its independent
+`shaping-reviewer` for a cold intent check; a fresh context or an independent
+human is the fallback, and Product Engineering retains lifecycle authority.
 
 **Downstream — `experience-design`:** The per-screen state matrix from `user-flow` feeds `ux-writing`. Pass it to write per-state copy for every screen × state cell.
 

@@ -20,6 +20,7 @@ import re
 import stat
 import tomllib
 from pathlib import Path
+from typing import Any
 
 from agentbundle.build.self_host import projects_claude_artifacts
 from agentbundle.catalogue_tooling.config import (
@@ -34,6 +35,11 @@ from agentbundle.catalogue_tooling.file_safety import (
     sha256_confined_regular_file,
 )
 from agentbundle.catalogue_tooling.manifest import plugin_json_path
+from agentbundle.catalogue_tooling.okf_discovery import (
+    DiscoveryError,
+    DiscoveryLimits,
+    parse_frontmatter_subset,
+)
 from agentbundle.catalogue_tooling.package import _TRANSIENT_DIRS
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
 from agentbundle.catalogue_tooling.version_ranges import (
@@ -49,6 +55,16 @@ _SKILL_REQUIRED_KEYS = ("name", "description")
 
 # Agent frontmatter required keys
 _AGENT_REQUIRED_KEYS = ("name", "description")
+
+# `metadata.boundaries` is a source-only declaration. The security convention
+# defines the capabilities that justify each boundary.
+_AGENT_BOUNDARY_TOOLS: dict[str, frozenset[str]] = {
+    "network_fetch": frozenset({"WebFetch", "WebSearch"}),
+    "network_egress": frozenset({"Bash"}),
+    "filesystem_write": frozenset({"Edit", "Write"}),
+    "filesystem_read_untrusted": frozenset({"Read", "Grep", "Glob"}),
+    "deploy_action": frozenset({"Bash"}),
+}
 
 # Adapter names cache
 _ADAPTER_NAMES: frozenset[str] | None = None
@@ -213,6 +229,98 @@ def _parse_frontmatter(text: str) -> dict[str, str] | None:
             k, _, v = raw_line.partition(":")
             fields[k.strip()] = v.strip()
     return fields
+
+
+def _agent_tools(value: Any) -> set[str]:
+    """Normalize supported source-agent tool declarations for boundary checks."""
+    if isinstance(value, str):
+        return {tool.strip() for tool in value.split(",") if tool.strip()}
+    if isinstance(value, list):
+        return {tool for tool in value if isinstance(tool, str)}
+    return set()
+
+
+def _agent_boundary_diagnostics(
+    frontmatter: str,
+    agent_file: Path,
+    *,
+    pack: str,
+    root: Path,
+) -> list[Diagnostic]:
+    """Validate source-only agent ``metadata.boundaries`` declarations."""
+    if not re.search(r"^metadata\s*:", frontmatter, flags=re.MULTILINE):
+        return []
+    try:
+        parsed = parse_frontmatter_subset(
+            frontmatter,
+            _diagnostic_path(root, agent_file),
+            DiscoveryLimits(),
+        )
+    except DiscoveryError as exc:
+        return [_diag(
+            DiagnosticCode.CAT_L012,
+            Severity.ERROR,
+            f"agent frontmatter cannot be parsed: {exc.diagnostic}",
+            pack=pack,
+            path=_diagnostic_path(root, agent_file),
+            remediation=(
+                "Use the supported frontmatter subset: top-level scalar or list "
+                "values, one nested mapping level, and two- or four-space list items."
+            ),
+        )]
+
+    metadata = parsed.get("metadata")
+    if metadata is None:
+        return []
+    if not isinstance(metadata, dict):
+        return [_diag(
+            DiagnosticCode.CAT_L012,
+            Severity.ERROR,
+            "agent metadata.boundaries requires metadata to be a mapping",
+            pack=pack,
+            path=_diagnostic_path(root, agent_file),
+        )]
+
+    boundaries = metadata.get("boundaries")
+    if boundaries is None:
+        return []
+    if not isinstance(boundaries, list):
+        return [_diag(
+            DiagnosticCode.CAT_L012,
+            Severity.ERROR,
+            "agent metadata.boundaries must be a list",
+            pack=pack,
+            path=_diagnostic_path(root, agent_file),
+        )]
+
+    tools = _agent_tools(parsed.get("tools"))
+    diags: list[Diagnostic] = []
+    for boundary in boundaries:
+        if not isinstance(boundary, str) or boundary not in _AGENT_BOUNDARY_TOOLS:
+            diags.append(_diag(
+                DiagnosticCode.CAT_L012,
+                Severity.ERROR,
+                f"agent metadata.boundaries contains unknown value: {boundary!r}",
+                pack=pack,
+                path=_diagnostic_path(root, agent_file),
+            ))
+            continue
+        if not tools.intersection(_AGENT_BOUNDARY_TOOLS[boundary]):
+            message = (
+                f"agent metadata.boundaries value {boundary!r} requires declared tools"
+                if not tools
+                else (
+                    f"agent metadata.boundaries value {boundary!r} exceeds declared tools"
+                )
+            )
+            diags.append(_diag(
+                DiagnosticCode.CAT_L012,
+                Severity.ERROR,
+                message,
+                pack=pack,
+                path=_diagnostic_path(root, agent_file),
+            ))
+    return diags
 
 
 # ---------------------------------------------------------------------------
@@ -1649,6 +1757,14 @@ class _PackRules:
                         path=_diagnostic_path(self._root, agent_file),
                         remediation=f"Add {key!r} to the agent frontmatter.",
                     ))
+            match = _FM_RE.match(text)
+            if match is not None:
+                diags.extend(_agent_boundary_diagnostics(
+                    match.group(1),
+                    agent_file,
+                    pack=self._name,
+                    root=self._root,
+                ))
         return diags
 
     def _check_seeds(self) -> list[Diagnostic]:

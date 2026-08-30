@@ -65,7 +65,7 @@ confirmation and pending receipt.
 | `bug-fix` | Diagnose and fix a specific bug |
 | `intake-intent` | Create or admit a repository intent |
 | `author-delivery-brief create\|continue` | Create a coordination brief or continue one into confirmed spec slices |
-| `new-spec` | Author a spec directly, without the brief layer |
+| `new-spec` | Author a spec directly, without the brief layer; it can use shaping review before construction |
 | `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
 | `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
 

@@ -52,6 +52,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29
+
+### Highlights
+
+- **Authors can independently check an intent, delivery brief, or draft spec before construction starts.** Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review.
+
+### Added
+
+- Core now ships the internal `shaping-reviewer` primitive. Core callers use it
+  directly, while Product Engineering's `frame-intent` integration remains
+  optional and reports an honest fresh-context or independent-human fallback.
+
+### Changed
+
+- AgentBundle validates the reviewer declaration and preserves its
+  least-privilege posture in supported adapter projections.
+- Core and Product Engineering guidance now distinguish contract shaping review
+  from later code-review lenses.
+
+## [agentbundle][0.40.3] — 2026-08-29
+
+### Highlights
+
+- **A read-only agent's declared boundaries are now checked where they are
+  written, and never shipped into a projection that cannot use them.** Adopters
+  get the least-privilege posture their source declares on every supported
+  adapter.
+
+### Added
+
+- Source-agent `metadata.boundaries` is validated in the catalogue lint pass, so
+  a declaration broader than the agent's tools fails before it ships.
+
+### Changed
+
+- The Claude Code agent projection omits source-only `metadata`, which is not a
+  recognised Claude Code subagent frontmatter key.
+
+### Fixed
+
+- The portable projection branch — the one Windows adopters run — can create a
+  target that does not exist yet, instead of failing when no descriptor-anchored
+  write is available.
+
 ## [core][2.15.5] — 2026-08-29
 
 ### Highlights

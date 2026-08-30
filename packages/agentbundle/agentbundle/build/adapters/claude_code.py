@@ -192,6 +192,7 @@ def _project_single(
                 output_root,
                 rule["target-path"],
                 preserve_existing_metadata=preserve_existing_metadata,
+                strip_agent_metadata=primitive_name == "agent",
             )
         elif mode == "merge-json":
             project_merge_json(source_dir, output_root, rule)
@@ -232,12 +233,26 @@ def _project_direct_file(
     target_prefix: str,
     *,
     preserve_existing_metadata: bool,
+    strip_agent_metadata: bool,
 ) -> None:
+    """Project direct files, omitting source-only metadata from agents only."""
     target_dir = output_root / target_prefix.rstrip("/")
     ensure_directory_no_follow(output_root, target_dir.relative_to(output_root))
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
             destination = target_dir / entry.name
+            if strip_agent_metadata:
+                copy_projected_file(
+                    entry,
+                    destination,
+                    base=output_root,
+                    metadata="stat",
+                    preserve_existing_metadata=preserve_existing_metadata,
+                    transform=lambda content: _strip_agent_metadata(
+                        content.decode("utf-8")
+                    ).encode("utf-8"),
+                )
+                continue
             copy_projected_file(
                 entry,
                 destination,
@@ -245,3 +260,33 @@ def _project_direct_file(
                 metadata="stat",
                 preserve_existing_metadata=preserve_existing_metadata,
             )
+
+
+def _strip_agent_metadata(text: str) -> str:
+    """Remove the source-only top-level ``metadata`` mapping from frontmatter."""
+    if not text.startswith("---\n"):
+        return text
+    lines = text.splitlines(keepends=True)
+    result = [lines[0]]
+    skipping_metadata = False
+    in_frontmatter = True
+    for line in lines[1:]:
+        content = line.rstrip("\r\n")
+        if in_frontmatter and content == "---":
+            in_frontmatter = False
+            skipping_metadata = False
+            result.append(line)
+            continue
+        if not in_frontmatter:
+            result.append(line)
+            continue
+        indent = len(content) - len(content.lstrip())
+        if skipping_metadata:
+            if not content or indent > 0:
+                continue
+            skipping_metadata = False
+        if indent == 0 and content.partition(":")[0] == "metadata":
+            skipping_metadata = True
+            continue
+        result.append(line)
+    return "".join(result)
