@@ -46,11 +46,14 @@ declares either**, and T2 carries no mutation proof for them. A third class,
 `single-ecosystem-contract`, is added under owner authority recorded in the
 spec's Assumptions.
 
-Clauses marked **verified** were checked against the live published
-documentation on 2026-08-30. Clauses marked **to verify** are named here and
-confirmed the same way before T3 cites them; an earlier draft asserted five
-clauses from recollection and all five were refuted, so nothing is cited on
-recollection again.
+Every clause below was checked against the live published documentation on
+2026-08-30. Two verification passes ran: the first refuted all five clauses an
+earlier draft had asserted from recollection, and the second refuted all three
+drafted to fill the gaps that first pass opened. Eight of eight asserted clauses
+failed, so nothing here is cited on recollection — each clause is the narrowed
+form its sources were observed to state, and the groups whose clauses could not
+be evidenced were dropped rather than reworded into something the sources do not
+say.
 
 ### Single-ecosystem groups
 
@@ -61,29 +64,37 @@ limited to, and the construction or behavior fixture that exercises it. A group
 in this class is never generalized into the portable floor, and the topic body
 states its ecosystem-and-version-range limit.
 
-| Topic | Group | Clause | Ecosystem sources | Fixture |
+| Topic | Clause | Ecosystem sources | Version range | Fixture |
 | --- | --- | --- | --- | --- |
-| `python-and-pytest` | discovery | **verified** — Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `https://docs.pytest.org/en/stable/explanation/pythonpath.html` (none exposed); CPython `unittest`, `https://docs.python.org/3/library/unittest.html` (3.14.7) | T8 pytest-suite |
-| `python-and-pytest` | fixtures and temporary paths | **to verify** — fixture scope and temporary-path lifetime are runner-managed and per-test by default. | pytest fixtures; CPython `tempfile` | T8 pytest-suite |
-| `typescript-node-…` | runner parallelism | **verified** — Each runner provides runner-specific controls for limiting test parallelism. | Node.js test runner, `https://nodejs.org/api/test.html` (v26.8.1); Playwright, `https://playwright.dev/docs/test-parallel` (none exposed) | T8 Node/browser suite |
-| `typescript-node-…` | packages and clean installs | **to verify** — module resolution and reproducible installs are governed by the package manifest and lockfile. | Node.js packages; `npm ci` | T8 Node/browser suite |
+| `python-and-pytest` | Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `https://docs.pytest.org/en/stable/explanation/pythonpath.html`; CPython `unittest`, `https://docs.python.org/3/library/unittest.html` | pytest 9.1.1; CPython 3.14.7 | T8 pytest-suite |
+| `typescript-node-…` | Each runner provides runner-specific controls for limiting test parallelism. | Node.js test runner, `https://nodejs.org/api/test.html`; Playwright, `https://playwright.dev/docs/test-parallel` | Node.js 26.8.1; Playwright 1.62 | T8 Node/browser suite |
 
-Playwright's documented default of 50% of logical cores is body material for the
-browser-worker-economics subject; it refuted an earlier clause and is retained as
-content rather than discarded.
+Each topic carries **one** such group. A second group was drafted for each and
+both were dropped when verification refuted them: `tempfile` documents context
+and object lifetime, not runner-managed per-test lifetime, so pytest's
+end-of-test cleanup has no second source; and Node's manifest-interpretation
+statement and npm's lockfile-validated install are two different statements
+rather than one clause both make.
+
+The remaining RFC-assigned subjects are covered descriptively in the body from
+sources recorded in the group, not as further doctrinal claims — coverage is what
+the criterion requires, and a subject with no shared contract behind it must not
+be dressed as one. Playwright's documented default of 50% of logical cores and
+npm's frozen-install behaviour are body material of exactly this kind.
+
+Version ranges are evidence-backed, not conventional: pytest's changelog states
+Semantic Versioning at 9.1.1 (2026-06-19), Playwright's release notes give 1.62
+and use explicit "vX and later" wording, and the Node and CPython documentation
+each identify their own patch version.
 
 ### Two-vendor groups
 
 `two-runtime-public-contract` — one clause stated by two independently governed
 projects in different ecosystems.
 
-| Topic | Group | Clause | Source A | Source B |
-| --- | --- | --- | --- | --- |
-| `pack-and-ci-critical-paths` | dependencies and cache keys | **verified** — Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived keys. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching` (none exposed) | GitLab CI, `https://docs.gitlab.com/ci/yaml/` (none exposed) |
-| `pack-and-ci-critical-paths` | critical path | **to verify** — a pipeline's end-to-end duration is bounded by its longest dependency chain, which explicit job dependencies expose. | GitHub Actions `needs` | GitLab CI `needs` / DAG |
-
-The second group exists because the first clause makes no critical-path claim,
-while the topic is named for one and the spec requires critical-path guidance.
+| Topic | Clause | Source A | Source B |
+| --- | --- | --- | --- |
+| `pack-and-ci-critical-paths` | Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived keys. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching` | GitLab CI, `https://docs.gitlab.com/ci/yaml/needs/` |
 
 ### Repeated-failure groups
 
@@ -96,11 +107,21 @@ cite no external source and keep their evidence in the non-projected fixture.
 | Topic | Shared mechanism | The two independent failures |
 | --- | --- | --- |
 | `process-and-filesystem-cost` | Per-item process spawning was treated as free. | A lint path spawning roughly 37,000 shell processes (2026-08-06); 337 repeated single-item subprocess queries later batched into one (2026-08-17). Distinct subsystems, eleven days apart. |
+| `pack-and-ci-critical-paths` | Per-job fixed overhead is paid once per job, so job count trades against it. | A CI job split that cut the measured critical path from 430–450s to 185s and stopped when coordination dominated (2026-08-17); one Node setup and cache step made to cover two projects instead of two separate setups (2026-08-21). Distinct subsystems, four days apart. |
 | `worktrees-state-locks-and-shared-host-admission` | A guarantee at one layer was mistaken for a stronger guarantee at another. | An atomic final write that did not protect a read/decide/write transition (2026-08-08 to 08-10); directory-separated worktrees that still shared temp, cache, port, and state ownership (2026-08-19 to 08-21). Distinct subsystems, nine days apart. |
 
 Each mechanism is stated as the conjunct **both** its failures evidence. An
 earlier wording carried a causal tail that only one row supported, which the
 admission predicate would have forced the other failure to assert.
+
+`pack-and-ci-critical-paths` is the one topic carrying two classes, and it does so
+because its verified public clause covers declared dependencies and cache keys but
+makes no critical-path claim, while the topic is named for one. Verification found
+no vendor page stating a longest-chain duration bound — that is a scheduling model
+neither GitHub nor GitLab asserts — so the critical-path claim rests on paired
+internal failures instead of being attributed to a contract no one published. This
+is also why the converse parity limb is scoped to the group rather than the topic:
+the repeated-failure group here must not borrow its sibling's citations.
 
 A group whose evidence does not hold at T3 is surfaced with that finding and
 routed through an approved spec amendment — never withdrawn in flight, because
@@ -200,8 +221,9 @@ bound behavior fixture; `pack-and-ci-critical-paths` carries
 `two-runtime-public-contract` groups confirmed against both vendors; and the two
 execution topics carry `repeated-observed-failures` groups whose mechanism and
 paired independent failures are confirmed against the archaeology rows, citing
-no source. Confirm every clause marked *to verify* against its sources before
-citing it. Remove the five leaves from the
+no source. Re-confirm each clause against its recorded sources at authoring
+time; treat a clause that no longer reads as stated as a finding to surface, not
+a wording to adjust. Remove the five leaves from the
 declared-unpopulated register in the same change. The TypeScript/Node topic
 covers its seven RFC-assigned subjects and states its maturity limit in portable
 terms; the note recording that limit may not itself be cited in shipped content.
