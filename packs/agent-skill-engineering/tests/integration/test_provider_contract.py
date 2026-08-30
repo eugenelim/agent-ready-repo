@@ -490,3 +490,34 @@ def test_language_extension_families_are_distinct_and_unpopulated() -> None:
     ).read_text(encoding="utf-8")
     assert "Neither has a language-specific topic body" in seam
     assert "foundation topics" in seam
+
+
+def test_provider_pattern_failure_surfaces_conform_as_declared() -> None:
+    """Each declared failure surface refuses in a class the contract admits.
+
+    The mode is instructions rather than code, so there is no runtime guard to
+    make fail. What is checkable is that every outcome declared for the four
+    surfaces satisfies the same response validator an untrusted provider is held
+    to -- a declared refusal that the contract would reject is a defect in the
+    pattern, not in the caller.
+    """
+    fixture = json.loads(
+        (FIXTURES / "provider-pattern-cases.json").read_text(encoding="utf-8")
+    )
+    assert fixture["schema_version"] == 1
+    assert fixture["contract_version"] == CONTRACT_VERSION
+
+    cases = fixture["cases"]
+    assert len(cases) == 4
+    assert len({case["id"] for case in cases}) == 4
+    # Each surface refuses in its own class; a shared class would let one
+    # declaration stand in for four distinct failures.
+    assert len({case["refusal_class"] for case in cases}) == 4
+
+    selected = {"provider_id": fixture["provider_id"]}
+    for case in cases:
+        response = case["declared_response"]
+        assert case["surface"]
+        assert response["status"] != "ok", case["id"]
+        assert _bounded_safe_text(response["diagnostic"]), case["id"]
+        assert _response_is_valid(response, selected=selected, maximum=3), case["id"]

@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "contract_version": "agent-skill-engineering-reference/v1",
+  "provider_id": "agent-skill-engineering-reference",
+  "cases": [
+    {
+      "id": "corpus-has-no-governed-source",
+      "surface": "The provider is asked to answer from a corpus whose bodies have no governed authoring source behind them.",
+      "refusal_class": "ungoverned-corpus",
+      "declared_response": {
+        "contract_version": "agent-skill-engineering-reference/v1",
+        "status": "unavailable",
+        "topic_ids": [],
+        "guidance": {},
+        "provenance": {
+          "provider_id": "agent-skill-engineering-reference",
+          "contract_version": "agent-skill-engineering-reference/v1",
+          "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "ownership_manifest_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "profile_provenance": [],
+        "warnings": [],
+        "diagnostic": "No governed source backs this corpus; answering would ship ungoverned guidance."
+      }
+    },
+    {
+      "id": "router-selection-is-ambiguous",
+      "surface": "The request selects no bounded topic set: several topics claim it and no rule in the corpus decides between them.",
+      "refusal_class": "ambiguous-selection",
+      "declared_response": {
+        "contract_version": "agent-skill-engineering-reference/v1",
+        "status": "out-of-scope",
+        "topic_ids": [],
+        "guidance": {},
+        "provenance": {
+          "provider_id": "agent-skill-engineering-reference",
+          "contract_version": "agent-skill-engineering-reference/v1",
+          "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "ownership_manifest_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "profile_provenance": [],
+        "warnings": [],
+        "diagnostic": "Request selects no bounded topic set; the corpus states no rule that decides between claimants."
+      }
+    },
+    {
+      "id": "evaluation-declares-no-negatives",
+      "surface": "The retrieval evaluation backing this corpus declares only positive cases, so precision is unfalsifiable.",
+      "refusal_class": "unfalsifiable-evaluation",
+      "declared_response": {
+        "contract_version": "agent-skill-engineering-reference/v1",
+        "status": "unavailable",
+        "topic_ids": [],
+        "guidance": {},
+        "provenance": {
+          "provider_id": "agent-skill-engineering-reference",
+          "contract_version": "agent-skill-engineering-reference/v1",
+          "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "ownership_manifest_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "profile_provenance": [],
+        "warnings": [],
+        "diagnostic": "Retrieval evidence declares no negative cases, so its precision claim cannot be falsified."
+      }
+    },
+    {
+      "id": "handoff-grants-mutation-authority",
+      "surface": "The calling handoff offers the generated half authority to mutate the caller's tree.",
+      "refusal_class": "authority-not-accepted",
+      "declared_response": {
+        "contract_version": "agent-skill-engineering-reference/v1",
+        "status": "out-of-scope",
+        "topic_ids": [],
+        "guidance": {},
+        "provenance": {
+          "provider_id": "agent-skill-engineering-reference",
+          "contract_version": "agent-skill-engineering-reference/v1",
+          "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "ownership_manifest_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "profile_provenance": [],
+        "warnings": [],
+        "diagnostic": "This provider is read-only; it does not accept mutation authority offered by a caller."
+      }
+    }
+  ]
+}
