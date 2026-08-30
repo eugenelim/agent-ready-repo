@@ -11,7 +11,7 @@ import math
 import re
 import tomllib
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NoReturn
 
 JSON_SAFE_INTEGER_MIN = -9007199254740991
 JSON_SAFE_INTEGER_MAX = 9007199254740991
@@ -341,5 +341,8 @@ def _depth(value: Any) -> int:
     return 1
 
 
-def _fail(diagnostic: str) -> None:
+def _fail(diagnostic: str) -> NoReturn:
+    # `NoReturn`, not `None`: every caller relies on this to narrow a value
+    # after a refusal, and typed as `None` the checker keeps the pre-refusal
+    # union alive past the call.
     raise BoundedMetadataError(diagnostic.replace("\n", " "))

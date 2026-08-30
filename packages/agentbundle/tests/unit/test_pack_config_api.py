@@ -20,11 +20,152 @@ from pathlib import Path
 import pytest
 
 
-def test_direct_manifest_rejects_manifestless_sentinel():
-    # STUB: AC10
-    import agentbundle.direct_source as direct_source
+def test_direct_manifest_rejects_manifestless_sentinel() -> None:
+    from agentbundle.direct_source import (
+        MANIFESTLESS_VERSION_SENTINEL,
+        DirectManifestError,
+        validate_direct_manifest,
+    )
 
-    assert callable(direct_source.validate_direct_manifest)
+    manifest = _direct_manifest(version=MANIFESTLESS_VERSION_SENTINEL)
+
+    with pytest.raises(DirectManifestError, match="must not be"):
+        validate_direct_manifest(manifest)
+
+
+def test_direct_manifest_requires_schema_1() -> None:
+    from agentbundle.direct_source import DirectManifestError, validate_direct_manifest
+
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema=None))
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema=2))
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema="1"))
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema=True))
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema=1.0))
+
+
+def test_direct_manifest_refuses_unsupported_major_before_shared_schema() -> None:
+    import copy
+
+    from agentbundle.direct_source import (
+        DirectManifestError,
+        _load_pack_schema,
+        validate_direct_manifest,
+    )
+
+    schema = copy.deepcopy(_load_pack_schema())
+    schema["properties"]["schema"] = {"enum": [1, 2]}
+
+    with pytest.raises(DirectManifestError, match="declare schema = 1"):
+        validate_direct_manifest(_direct_manifest(schema=2), schema=schema)
+
+
+def test_direct_manifest_accepts_schema_1_and_supported_scope_fields() -> None:
+    from agentbundle.direct_source import validate_direct_manifest
+
+    manifest = _direct_manifest()
+    manifest["pack"]["install"] = {
+        "default-scope": "repo",
+        "allowed-scopes": ["repo", "local"],
+    }
+
+    assert validate_direct_manifest(manifest) is manifest
+
+
+def test_direct_manifest_preserves_local_scope_opt_in() -> None:
+    from agentbundle.direct_source import DirectManifestError, validate_direct_manifest
+
+    manifest = _direct_manifest()
+    manifest["pack"]["install"] = {
+        "default-scope": "user",
+        "allowed-scopes": ["user", "local"],
+    }
+
+    with pytest.raises(DirectManifestError, match="local allowed-scope requires repo"):
+        validate_direct_manifest(manifest)
+
+
+def test_catalogue_manifest_keeps_implicit_schema_1() -> None:
+    from agentbundle.build.validate import validate
+    from agentbundle.direct_source import _load_pack_schema
+
+    assert not validate(_direct_manifest(schema=None), _load_pack_schema())
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("recipes", []),
+        ("runtime-dependencies", []),
+        ("adaptation", {}),
+        ("seeds", []),
+    ],
+)
+def test_direct_manifest_refuses_catalogue_only_fields(field: str, value: object) -> None:
+    from agentbundle.direct_source import DirectManifestError, validate_direct_manifest
+
+    manifest = _direct_manifest()
+    manifest["pack"][field] = value
+
+    with pytest.raises(DirectManifestError, match="unsupported direct field"):
+        validate_direct_manifest(manifest)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("recipes", []),
+        ("runtime-dependencies", []),
+        ("adaptation", {}),
+        ("seeds", []),
+    ],
+)
+def test_shared_schema_alone_admits_catalogue_only_fields(
+    field: str, value: object
+) -> None:
+    from agentbundle.build.validate import validate
+    from agentbundle.direct_source import _load_pack_schema
+
+    manifest = _direct_manifest()
+    manifest["pack"][field] = value
+
+    assert not validate(manifest, _load_pack_schema())
+
+
+def test_direct_manifest_refuses_unknown_and_non_skill_declarations() -> None:
+    from agentbundle.direct_source import DirectManifestError, validate_direct_manifest
+
+    manifest = _direct_manifest()
+    manifest["unexpected"] = True
+    with pytest.raises(DirectManifestError, match="unsupported direct field"):
+        validate_direct_manifest(manifest)
+
+    manifest = _direct_manifest()
+    manifest["pack"]["dependencies"] = {}
+    with pytest.raises(DirectManifestError, match="unsupported direct field"):
+        validate_direct_manifest(manifest)
+
+    manifest = _direct_manifest()
+    manifest["pack"]["install"] = {"allowed-adapters": ["codex"]}
+    with pytest.raises(DirectManifestError, match="unsupported direct field"):
+        validate_direct_manifest(manifest)
+
+
+def _direct_manifest(
+    *, schema: object = 1, version: str = "1.2.3"
+) -> dict[str, object]:
+    """Return one minimal direct-pack manifest fixture."""
+
+    manifest: dict[str, object] = {
+        "pack": {"name": "example-pack", "version": version},
+    }
+    if schema is not None:
+        manifest["schema"] = schema
+    return manifest
 
 # ---------------------------------------------------------------------------
 # make_pack_dir
