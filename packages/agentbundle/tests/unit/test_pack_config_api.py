@@ -19,6 +19,13 @@ from pathlib import Path
 
 import pytest
 
+
+def test_direct_manifest_rejects_manifestless_sentinel():
+    # STUB: AC10
+    import agentbundle.direct_source as direct_source
+
+    assert callable(direct_source.validate_direct_manifest)
+
 # ---------------------------------------------------------------------------
 # make_pack_dir
 # ---------------------------------------------------------------------------
