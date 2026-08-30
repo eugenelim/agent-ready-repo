@@ -142,9 +142,13 @@ the work rather than an incidental fix.
   doctrine claim group, the group's shipped fields appear in the topic's
   provenance-and-lifecycle section and equal the admission record field-for-field
   — source identities *and* dates, including each source's exposed version or
-  last-updated date, or its explicit `none exposed`. Every doctrine group cites
-  at least one source meeting the inherited attributability shape, so the
-  externality requirement cannot be satisfied vacuously by citing nothing.
+  last-updated date, or its explicit `none exposed`. A group whose promotion
+  class rests on public documentation cites at least one source meeting the
+  inherited attributability shape, so that externality claim cannot be satisfied
+  vacuously by citing nothing; a group whose class rests on internal repeated
+  evidence carries that evidence in the non-projected admission fixture and
+  cites no external source, because shipped content may not cite this
+  repository's own records.
   A projected source identity takes a checkable form: a non-empty title followed
   by an absolute URL, never a bare hash, a repository path, or a relative
   reference. Parity holds in both directions — no external reference appears in

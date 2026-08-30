@@ -20,9 +20,9 @@
    trips a ratchet that is already at its ceiling.
 2. Close the doctrine-side parity gap the corpus slice left as a deliberate loud
    failure, before any doctrine group exists to trip it.
-3. Assemble doctrine evidence from public documented contracts and author the
-   topic bodies and admission record together, so no body ships a claim its
-   record does not carry.
+3. Assemble doctrine evidence — public documented contracts for three leaves,
+   paired internal failures for two — and author the topic bodies and admission
+   record together, so no body ships a claim its record does not carry.
 4. Reconcile every shipped statement about language-family availability and
    topic count.
 5. Regenerate the governed projections through the owning compiler.
@@ -34,27 +34,56 @@
 
 ## Promotion class and evidence, per leaf
 
-Every group uses `two-runtime-public-contract`. `controlled-measurement` is
-unreachable here: it requires at least two repetitions and every row of the
-archaeology note is a single dated decision. The class needs one clause stated by
-**two distinct projects** — not two documents from one project, and not two pages
-from one vendor. The archaeology note's external-validation links are a starting
-set, not an allowlist; where they supply only one project, the second is named
-here and confirmed in T3 against the source before it is cited.
+`controlled-measurement` is unreachable here: it requires at least two
+repetitions and every row of the archaeology note is a single dated decision.
+The two classes that are reachable are used, each where its evidence actually
+lies.
 
-| Leaf | Clause the two sources must both state | Project A | Project B |
+Every clause below was verified against the live published documentation on
+**2026-08-30**. An earlier draft of this table asserted five clauses from
+recollection and **all five were refuted** — one of them, "runner parallelism is
+not implied by host CPU count", is contradicted by Playwright's documented
+default of 50% of logical cores. The clauses here are the narrowed forms both
+sources independently support.
+
+### Public-contract groups
+
+`two-runtime-public-contract`, one clause stated by two independently governed
+projects, cited externally so parity projects a resolvable reference.
+
+| Leaf | Clause both sources state | Source A | Source B |
 | --- | --- | --- | --- |
-| `python-and-pytest` | Test collection identity follows import mode and directory layout; the runner does not infer it. | pytest | CPython `unittest` discovery |
-| `typescript-node-and-javascript-test-runners` | Runner parallelism is configured per runner and is not implied by host CPU count. | Node.js core test runner | Playwright |
-| `process-and-filesystem-cost` | Process startup and filesystem work are costs distinct from algorithmic work and are measured separately. | CPython `subprocess` | Node.js `child_process` |
-| `pack-and-ci-critical-paths` | Parallel jobs require explicitly declared dependencies and explicit cache-key inputs; neither is inferred. | GitHub Actions | GitLab CI |
-| `worktrees-state-locks-and-shared-host-admission` | Mutual exclusion over durable state is distinct from cooperative capacity allocation over scarce host resources. | The Open Group POSIX | GNU Make job slots |
+| `python-and-pytest` | Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `docs.pytest.org` (no version exposed) | CPython `unittest` discovery, `docs.python.org` (3.14.7) |
+| `typescript-node-and-javascript-test-runners` | Each runner provides runner-specific controls for limiting test parallelism. | Node.js core test runner, `nodejs.org` (v26.8.1) | Playwright, `playwright.dev` (no version exposed) |
+| `pack-and-ci-critical-paths` | Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived cache keys. | GitHub Actions, `docs.github.com` (no version exposed) | GitLab CI, `docs.gitlab.com` (no version exposed) |
 
-These pairings are asserted, not yet verified. T3 confirms each clause against
-both sources before citing either, and a leaf whose clause cannot be evidenced
-from two distinct projects is surfaced with that finding and routed through an
-approved spec amendment — never withdrawn in flight, because the ship transition
-requires every criterion checked.
+Each pair is two distinct projects under separate governance, and neither member
+requires the other to run. Where a source exposes no version, the record carries
+`none exposed` with the retrieval date, which is the shape the inherited
+attributability rule specifies.
+
+### Repeated-failure groups
+
+`repeated-observed-failures`, at least two observed failures sharing one
+mechanism. This class needs no external source, so these groups cite none and
+keep their evidence in the non-projected admission fixture — shipped content may
+not cite this repository's own records. Both were sourced from the archaeology
+note's chronology rather than from documentation, which is why the two leaves
+whose clauses could not be evidenced externally are admissible at all.
+
+| Leaf | Shared mechanism | The two failures |
+| --- | --- | --- |
+| `process-and-filesystem-cost` | Per-item process spawning was treated as free, so cost was tuned before it was counted. | A lint path spawning roughly 37,000 shell processes; 337 repeated single-item subprocess queries later batched into one. |
+| `worktrees-state-locks-and-shared-host-admission` | Separation at one layer was mistaken for isolation at another. | An atomic final write that did not protect a read/decide/write transition; directory-separated worktrees that still shared temp, cache, port, and state ownership. |
+
+T3 confirms each group against its evidence before authoring the body, and a
+group whose evidence does not hold is surfaced with that finding and routed
+through an approved spec amendment — never withdrawn in flight, because the ship
+transition requires every criterion checked.
+
+Note for T3 authoring: Playwright's CPU-derived default is itself material for
+the TypeScript/Node topic's browser-worker-economics subject, so the refuted
+clause becomes body content rather than being discarded.
 
 ## Tasks
 
@@ -85,10 +114,16 @@ describes: for a doctrine group, the group's shipped fields appear in the
 topic's provenance-and-lifecycle section and equal the record field-for-field —
 source identities and dates, including each source's exposed version or its
 explicit `none exposed`. Add the three limbs the criterion needs and the tests
-alone would not give: a floor of at least one attributable source per doctrine
-group, so externality cannot be satisfied by citing nothing; a checkable
-identity form; and the converse direction, so a body cannot carry an external
-reference its record never cited.
+alone would not give: a floor of at least one attributable source for a group
+whose class rests on public documentation, so that externality claim cannot be
+satisfied by citing nothing; a checkable identity form; and the converse
+direction, so a body cannot carry an external reference its record never cited.
+
+The floor is scoped by class deliberately. A `repeated-observed-failures` group
+carries internal evidence and must cite no external source — requiring one would
+push this repository's own records into shipped content, which the pack rules
+forbid. So the check reads the promotion class first and applies the source floor
+only to the class that makes an externality claim.
 
 The repository-internal scan runs over **both** concept roots — the authored
 `okf/.../concepts/` tree and the compiled `.apm/` tree — since the existing
@@ -103,7 +138,8 @@ exercise is not also its first shipment.
 **Tests:**
 - `test_doctrine_group_source_parity_holds_in_both_projections` (AC6) — stub: true
 - `test_doctrine_parity_rejects_a_source_missing_from_one_projection` (AC6) — stub: true
-- `test_doctrine_group_cites_at_least_one_attributable_source` (AC6) — stub: true
+- `test_public_contract_group_cites_at_least_one_attributable_source` (AC6) — stub: true
+- `test_repeated_failure_group_cites_no_external_source` (AC6) — stub: true
 - `test_body_carries_no_external_reference_the_record_does_not_cite` (AC6) — stub: true
 - `test_doctrine_parity_rejects_a_repository_internal_source_identity`, over both
   concept roots (AC6) — stub: true
