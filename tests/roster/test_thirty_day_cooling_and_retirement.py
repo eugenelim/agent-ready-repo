@@ -1269,7 +1269,7 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True
 
 
-MERGE_BASE_CORE_VERSION = "2.15.5"  # packs/core/pack.toml at merge base 221bcb3f4
+MERGE_BASE_CORE_VERSION = "2.16.0"  # packs/core/pack.toml at merge base 7b6c5dd8e
 
 
 def _counting_zoneinfo(calls: list[object]):
