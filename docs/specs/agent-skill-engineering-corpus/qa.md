@@ -1,7 +1,14 @@
 # QA record — agent-skill-engineering corpus (INI-009 slice 2a)
 
-Base for every measurement below: `f4f29a4b1`, taken against `origin/main` at
-`e0a53883e`. Every figure here was produced by the invocation named beside it.
+Base for every measurement below: `53db459fa`, taken against `origin/main` at
+`eb060008c`. Every figure here was produced by the invocation named beside it.
+
+The blind retrieval and behaviour measurements were taken on `f4f29a4b1`
+against `origin/main` at `e0a53883e`. They are carried forward rather than
+re-taken because they are bound by content digest, not by base commit, and the
+rebase onto `eb060008c` left every file under `packs/agent-skill-engineering/`
+and this spec directory byte-identical — a `git diff` across the two bases over
+those trees is empty. The suite-level figures below were re-run on this base.
 
 The earlier figures in the failure-attribution table were first observed on
 `706808287` against `origin/main` at `221bcb3f4`, and were re-run on this base
