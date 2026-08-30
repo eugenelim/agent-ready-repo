@@ -53,9 +53,18 @@ REVIEW_EVAL_FILES = (
 # not and should not exist.
 REVIEW_READABILITY_FILES = ("evals/files/cognitive-load/ordinary-prose.md",)
 UNGRADED_EVAL_IDS = frozenset({"cognitive-load-output-quality"})
-# (eval_id, zero-based assertion index) pairs measured false by an independent
-# adjudicating context and recorded as measured rather than reworded.
-KNOWN_REVIEW_MISSES = {("detect-script-contract-failure", 5)}
+# (eval_id, assertion text) pairs measured false by an independent adjudicating
+# context and recorded as measured rather than reworded. Keyed by text, not
+# index: an index migrates silently when an assertion is inserted above it --
+# the length pin still passes, a real miss becomes exempt, and the true miss
+# reads as a phantom pass. Reword or delete the assertion and this reddens.
+KNOWN_REVIEW_MISSES = {
+    (
+        "detect-script-contract-failure",
+        "Names the deterministic replay, exit, and cleanup contract "
+        "ASE-DET-01 requires before optimization",
+    ),
+}
 # Derived from the checklist the skill actually ships rather than restated, so
 # retiring or adding a check cannot leave this bound describing a vocabulary
 # the skill no longer has.
@@ -305,13 +314,26 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # equality here made the record stricter than the check it records and
         # turned a review finding a real defect beyond the seeded set into a
         # failure. An independent blind run sustained five findings against
-        # four declared, and eight against six.
+        # four declared, and nine against six.
         declared_findings = {value for value in declared if value.startswith("ASE-")}
         assert declared_findings <= set(result["actual_findings"])
         # The floor cannot be padded into meaninglessness: every extra has to
         # be a checklist identifier the skill actually defines, so a result
         # cannot inflate its count with invented ids.
         assert set(result["actual_findings"]) <= CHECKLIST_IDS
+        declared_assertions = case["assertions"]
+        known_missing = {
+            text
+            for eval_id, text in KNOWN_REVIEW_MISSES
+            if eval_id == result["eval_id"]
+        }
+        # The exemption must still describe a live assertion; otherwise a
+        # reworded case would carry an exemption that matches nothing and
+        # silently stops exempting anything.
+        assert known_missing <= set(declared_assertions), (
+            result["eval_id"],
+            sorted(known_missing - set(declared_assertions)),
+        )
         # One recorded miss, named rather than absorbed, in the same shape the
         # authoring side uses. Assertion 6 asks the review to name the replay,
         # exit and cleanup contract `ASE-DET-01` requires. The run named the
@@ -320,26 +342,19 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # nor disposing of it as vacuous. Naming the exact (case, index) means a
         # *different* miss still reddens while the known one does not read as a
         # pass.
-        for index, verdict in enumerate(result["assertions"]):
-            assert verdict or (result["eval_id"], index) in KNOWN_REVIEW_MISSES, (
-                result["eval_id"],
-                index,
-            )
-        assert {
-            (result["eval_id"], index)
+        failing = {
+            declared_assertions[index]
             for index, verdict in enumerate(result["assertions"])
             if not verdict
-        } <= KNOWN_REVIEW_MISSES
+        }
+        assert failing <= known_missing, (result["eval_id"], sorted(failing))
         # AC14: the values the graded runner emits, so a failure can be
         # attributed. Without these a re-record could drop them silently, and
         # `Mode: review` would again be attested by nothing the fixture holds.
         # A case carrying a known miss must record `assertions_ok` and `passed`
         # as False. Exempting them instead would let a re-record claim a clean
         # pass for a run that missed, which is the failure this pins shut.
-        holds = not any(
-            (result["eval_id"], index) in KNOWN_REVIEW_MISSES
-            for index, _ in enumerate(result["assertions"])
-        )
+        holds = all(result["assertions"])
         for value in ("produces_ok", "output_ok"):
             assert result[value] is True, (result["eval_id"], value)
         for value in ("assertions_ok", "passed"):
