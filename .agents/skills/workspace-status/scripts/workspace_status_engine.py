@@ -119,6 +119,12 @@ _FINDING_NEXT_ACTIONS = {
     "source_authority_migration_required": (
         "Add the reviewed source-authority block before using refresh."
     ),
+    "invalid_lifecycle_record": (
+        "Repair or remove that record; other records still cool."
+    ),
+    "cooling_state_unavailable": (
+        "Install close-work or repair docs/lifecycle/; no artifact is excluded this run."
+    ),
 }
 
 
@@ -1857,6 +1863,131 @@ def _load_source_authority_parser() -> Any:
     if not callable(parser):
         raise RuntimeError("source authority parser unavailable")
     return parser
+
+
+def _cooling_module_path() -> Path | None:
+    """Return a confined filesystem cooling module when one is available."""
+    engine_path = Path(__file__).resolve()
+    skill_root = engine_path.parents[2]
+    candidates = (
+        (skill_root / "close-work" / "scripts" / "cooling.py", skill_root),
+        (engine_path.parent / "cooling.py", engine_path.parent),
+    )
+    for candidate, declared_root in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(declared_root.resolve(strict=True))
+        except (OSError, ValueError, RuntimeError):
+            continue
+        if resolved.is_file():
+            return resolved
+    if (
+        os.environ.get("AGENTBUNDLE_ALLOW_DEV_SOURCE_AUTHORITY") == "1"
+        and len(engine_path.parents) > 4
+    ):
+        checkout_root = engine_path.parents[4]
+        candidate = (
+            checkout_root / "packs" / "core" / ".apm" / "skills"
+            / "close-work" / "scripts" / "cooling.py"
+        )
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(checkout_root.resolve(strict=True))
+        except (OSError, ValueError, RuntimeError):
+            pass
+        else:
+            if resolved.is_file():
+                return resolved
+    return None
+
+
+def _load_cooling_module() -> Any:
+    """Load the cooling module through a confined filesystem or package route."""
+    module_path = _cooling_module_path()
+    if module_path is None:
+        try:
+            module = importlib.import_module("agentbundle._data.cooling")
+        except ImportError as exc:
+            raise RuntimeError("cooling module unavailable") from exc
+    else:
+        module_name = "_workspace_status_cooling_" + hashlib.sha256(
+            str(module_path).encode("utf-8")
+        ).hexdigest()
+        module = sys.modules.get(module_name)
+        if module is None:
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None or spec.loader is None:
+                raise RuntimeError("cooling module unavailable")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            try:
+                spec.loader.exec_module(module)
+            except Exception as exc:
+                sys.modules.pop(module_name, None)
+                raise RuntimeError("cooling module unavailable") from exc
+    if not callable(getattr(module, "load_record", None)):
+        raise RuntimeError("cooling module unavailable")
+    return module
+
+
+_COOLING_PAIRS = frozenset(
+    {
+        ("cool-30-days", "Cooling"),
+        ("cool-30-days", "Retired"),
+        ("retain-exception", "Retired"),
+    }
+)
+
+
+def _cooled_locators(
+    root: Path, module: Any
+) -> tuple[frozenset[Path], tuple[RoutingFinding, ...]]:
+    """Read accepted lifecycle records and return their resolved artifact paths."""
+    lifecycle_dir = root / "docs" / "lifecycle"
+    if not lifecycle_dir.exists() and not lifecycle_dir.is_symlink():
+        return frozenset(), ()
+    try:
+        resolved_root = root.resolve()
+        resolved_lifecycle = lifecycle_dir.resolve()
+        resolved_lifecycle.relative_to(resolved_root)
+        if not lifecycle_dir.is_dir():
+            raise ValueError("lifecycle is not a directory")
+        records = sorted(lifecycle_dir.glob("*.json"))
+    except (OSError, ValueError, RuntimeError):
+        return frozenset(), (_finding("cooling_state_unavailable"),)
+    cooled: set[Path] = set()
+    findings: list[RoutingFinding] = []
+    for record_path in records:
+        relative_path = record_path.relative_to(root).as_posix()
+        if record_path.is_symlink() or not record_path.is_file():
+            findings.append(_finding("invalid_lifecycle_record", relative_path))
+            continue
+        result = module.load_record(root, record_path)
+        record = getattr(result, "record", None)
+        if getattr(result, "code", None) is not None or record is None:
+            findings.append(_finding("invalid_lifecycle_record", relative_path))
+            continue
+        if (record.disposition, record.post_closeout_result) not in _COOLING_PAIRS:
+            continue
+        for locator in (record.locator, *record.aliases):
+            try:
+                member = (root / locator).resolve()
+            except (OSError, RuntimeError):
+                continue
+            if member.exists():
+                cooled.add(member)
+    return frozenset(cooled), tuple(findings)
+
+
+def _resolve_cooled_state(
+    root: Path,
+) -> tuple[frozenset[Path], tuple[RoutingFinding, ...]]:
+    """Resolve cooling support once, then load the repository's cooled set."""
+    try:
+        module = _load_cooling_module()
+    except RuntimeError:
+        return frozenset(), (_finding("cooling_state_unavailable"),)
+    return _cooled_locators(root, module)
 
 
 def _parse_source_authority_status(

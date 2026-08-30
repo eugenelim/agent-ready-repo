@@ -103,6 +103,14 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
             root / "packages" / "agentbundle" / "agentbundle" / "_data"
             / "work_intake_refresh.py",
         ),
+        *tuple(
+            (
+                root / "packs" / "core" / ".apm" / "skills" / "close-work"
+                / "scripts" / name,
+                root / "packages" / "agentbundle" / "agentbundle" / "_data" / name,
+            )
+            for name in ("cooling.py", "close_work.py", "file_safety.py")
+        ),
     )
 
 
