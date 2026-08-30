@@ -62,10 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unusable destination candidate each return a published refusal, so no host
   file path or error number reaches the caller.
 - `close-work` no longer accepts a number where the record format requires text.
-  A delivery id, fingerprint, evidence reference, authority status, or owner
-  role given as a number is now refused rather than silently converted. A record
-  written with a converted value could never be updated afterwards, because the
-  stored text no longer matched its source.
+  A delivery id given as a whole number, and an authority status or owner role
+  given as a number too large to represent, were converted to text and accepted;
+  both are now refused. A converted value was stored in a form that no longer
+  equalled what the record supplied — a delivery id of `123` became the text
+  `"123"`, and that text became the file name on disk.
 
 ## [core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29
 
