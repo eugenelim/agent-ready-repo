@@ -1,6 +1,7 @@
 """RFC-0096 Wave 5 — cooling engine construction tests."""
 
 import ast
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -1377,13 +1378,24 @@ def test_the_zone_catch_set_is_exactly_the_three_named_classes() -> None:
         )
         assert seam is not None, name
         for handler in (n for n in ast.walk(seam) if isinstance(n, ast.ExceptHandler)):
-            caught_names = (
-                [handler.type.id] if isinstance(handler.type, ast.Name)
-                else [e.id for e in getattr(handler.type, "elts", []) if isinstance(e, ast.Name)]
+            # A bare `except:` gives type None and a dotted `except
+            # builtins.Exception` gives an Attribute; both used to yield an
+            # empty name list and slip through.
+            assert handler.type is not None, f"{name} has a bare except:"
+            caught = (
+                handler.type.elts if isinstance(handler.type, ast.Tuple)
+                else [handler.type]
             )
-            assert not ({"Exception", "BaseException"} & set(caught_names)), (
-                f"{name} catches {caught_names}, which would swallow a TypeError"
-            )
+            broad = {"Exception", "BaseException"}
+            for node in caught:
+                named = (
+                    node.id if isinstance(node, ast.Name)
+                    else node.attr if isinstance(node, ast.Attribute)
+                    else None
+                )
+                assert named not in broad, (
+                    f"{name} catches {named}, which would swallow a TypeError"
+                )
 
 
 # STUB: AC7 (spec/cooling-untrusted-input-refusals)
@@ -1692,6 +1704,93 @@ def test_a_non_string_delivery_id_refuses(value: object) -> None:
     assert cooling.parse_record_bytes(
         json.dumps(_payload(delivery_id=value)).encode()
     ).code == "record-invalid"
+
+
+# STUB: AC28 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [10**5000, 1e999], ids=["huge-int", "inf-float"])
+@pytest.mark.parametrize(
+    "field", ["fingerprint", "confirmation_proof", "completion_evidence_ref"]
+)
+def test_untrusted_text_is_matched_never_coerced(field: str, value: object) -> None:
+    """`str()` on untrusted input is itself a failure mode, twice over.
+
+    Past CPython's digit limit `str(10**5000)` raises `ValueError`, and
+    `str(1e999)` is `"inf"` — which `_STATUS_RE` and `_ROLE_RE` both accept, so a
+    coerced value could validate and then persist in a form unequal to its
+    source. Only reachable through `validate_payload`: `parse_record_bytes` is
+    covered because `json.loads` refuses both first.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(**{field: value})).code == "record-invalid"
+
+
+# STUB: AC28 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [10**5000, 1e999], ids=["huge-int", "inf-float"])
+def test_untrusted_authority_and_envelope_text_is_not_coerced(value: object) -> None:
+    cooling = _load()
+
+    authority = {
+        "source": {"status": value},
+        "write": {"status": "delegated"},
+        "delete": {"status": "none"},
+    }
+    assert cooling.validate_payload(_payload(authority=authority)).code == "record-invalid"
+
+    envelope = {"reason": "legal-obligation", "owner_role": value, "review_on": "2026-12-01"}
+    assert cooling.validate_payload(
+        _payload(
+            disposition="retain-exception",
+            post_closeout_result="Retained",
+            exception=envelope,
+        )
+    ).code == "record-invalid"
+
+
+@dataclasses.dataclass(frozen=True)
+class _Candidate:
+    """A candidate whose `confirmations` is whatever the case supplies."""
+
+    confirmations: object
+
+
+# STUB: AC29 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "candidates",
+    [
+        [object()],
+        ["x"],
+        [{"kind": "destination-selection"}],
+        [_Candidate(3)],
+        [_Candidate([object()])],
+    ],
+    ids=["object", "str", "dict", "non-iterable-confirmations", "bad-confirmation-item"],
+)
+def test_a_malformed_candidate_refuses_instead_of_raising(
+    tmp_path, candidates: object
+) -> None:
+    """The container was type-checked; its elements were not.
+
+    Reaching into `.confirmations`, `.kind`, or `.status` on the wrong shape
+    raised out of `enrol`, `review`, and `review_exception` with a traceback
+    carrying absolute host paths.
+    """
+    cooling = _load()
+
+    assert cooling.enrol(
+        **_enrol_kwargs(tmp_path) | {"candidates": candidates}
+    ).code == "destination-unconfirmed"
+
+    checks = dict.fromkeys(_all_approve(), "approve")
+    assert cooling.review(
+        _record(cooling),
+        checks,
+        _attestation(checks),
+        datetime(2026, 9, 1, tzinfo=ZoneInfo(SG)),
+        root=tmp_path,
+        candidates=candidates,
+        authority_binding=None,
+    ).code == "destination-unconfirmed"
 
 
 # STUB: AC26 (spec/cooling-untrusted-input-refusals)
