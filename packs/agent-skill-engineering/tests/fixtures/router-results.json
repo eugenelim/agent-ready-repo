@@ -1,9 +1,9 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
   "evaluated_at": "2026-08-29",
-  "source_digest": "sha256:ca7ffb9fb3839a84bdb3329d4339add53f41aee0dca9913301133ab198f1dea7",
-  "router_digest": "sha256:461f447eabf0294af5e1710c7bb30b3a7e05ee738139a02c84a127d258446d27",
-  "generated_tree_digest": "sha256:af9c7fcae44a6cb926715040443d2d4c9c6bbb8c8d3bf43199f2bc99616733b9",
+  "source_digest": "sha256:f7e946c97ddab5775b6100917c98ae44074f02a97bb2652a2383c5e6e2eb750b",
+  "router_digest": "sha256:f5d0bea4a3785ca3748a393b8ab1ae2b0ffc4d41f78fcf8248267ba5ba788845",
+  "generated_tree_digest": "sha256:b1fd333d4201a1a6c5b0f053f5491dca39f223ae6d014873b867531b0b2d405a",
   "results": [
     {
       "id": "new-skill-purpose",
@@ -185,6 +185,44 @@
     },
     {
       "id": "provenance-trusted-configuration",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
+    },
+    {
+      "id": "fallback-unpopulated-leaf",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "near-miss-library-release-notes",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-cli-modes",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-build-progress-bar",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-credential-rotation",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-feature-flag-branch",
+      "actual_topics": []
+    },
+    {
+      "id": "progressive-results-partial-dependency",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "provenance-user-authored-config",
       "actual_topics": [
         "trust-boundaries-and-instruction-provenance"
       ]

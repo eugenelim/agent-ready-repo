@@ -153,7 +153,7 @@ def test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses
             encoding="utf-8"
         )
     )
-    assert len(cases) >= 20
+    assert len(cases) >= 40
     assert len({case["id"] for case in cases}) == len(cases)
     assert all(set(case["expected_topics"]) <= EXPECTED_TOPICS for case in cases)
     assert all(len(case["expected_topics"]) <= 3 for case in cases)
@@ -345,3 +345,58 @@ def test_staged_router_remains_complete_without_authored_okf(
     staged_root = staged.resolve(strict=True)
     assert reads
     assert all(path.is_relative_to(staged_root) for path in reads)
+
+
+def test_generic_negative_set_is_fixed_at_forty_and_pinned_on_both_sides() -> None:
+    """The falsifier's denominator cannot shrink.
+
+    Equality between the two fixtures alone would prove the results complete
+    against whatever was authored, leaving the set free to lose prompts. Both
+    sides are pinned at 40, and the result set must equal the prompt set.
+    """
+    prompts = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives.json").read_text(encoding="utf-8")
+    )
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )
+    assert prompts["schema_version"] == 1
+    assert prompts["set_size"] == 40
+    assert len(prompts["prompts"]) == 40
+    assert len({item["id"] for item in prompts["prompts"]}) == 40
+    assert len({item["prompt"] for item in prompts["prompts"]}) == 40
+
+    assert len(results["results"]) == 40
+    assert {item["id"] for item in results["results"]} == {
+        item["id"] for item in prompts["prompts"]
+    }
+
+
+def test_generic_negative_record_is_attributable_to_the_tree_it_measured() -> None:
+    """The negatives record carries the same digest triple as the retrieval record.
+
+    Without this a stale negatives record satisfies its other assertions
+    forever, and the 5% falsifier reads pass against a tree it never measured.
+    """
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )
+    metadata = _frontmatter(ROUTER_ROOT / "SKILL.md")["metadata"]
+
+    assert results["evaluation_mode"] == "independent-read-only-subcontext"
+    assert results["source_digest"] == metadata["source-digest"]
+    assert results["router_digest"] == (
+        "sha256:" + hashlib.sha256((ROUTER_ROOT / "SKILL.md").read_bytes()).hexdigest()
+    )
+    assert results["generated_tree_digest"] == _generated_tree_digest(ROUTER_ROOT)
+
+
+def test_corpus_does_not_answer_generic_engineering_requests() -> None:
+    """At most 5% of the fixed 40-prompt negative set returns a topic body."""
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )["results"]
+    answered = [item for item in results if item["actual_topics"]]
+
+    assert len(results) == 40
+    assert len(answered) <= 2, [item["id"] for item in answered]

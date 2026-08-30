@@ -221,5 +221,44 @@
     "expected_topics": [
       "framing-and-trigger-quality"
     ]
+  },
+  {
+    "id": "near-miss-library-release-notes",
+    "prompt": "Write the release notes for our internal knowledge library",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-cli-modes",
+    "prompt": "What command modes does this CLI expose to end users?",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-build-progress-bar",
+    "prompt": "Show a progress bar in the terminal while the build runs",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-credential-rotation",
+    "prompt": "Rotate the API credentials this service uses in production",
+    "expected_topics": []
+  },
+  {
+    "id": "near-miss-feature-flag-branch",
+    "prompt": "Which of these deployment steps should sit behind a feature flag?",
+    "expected_topics": []
+  },
+  {
+    "id": "progressive-results-partial-dependency",
+    "prompt": "The skill can only finish half its work when a dependency is missing. How should it report that?",
+    "expected_topics": [
+      "progressive-result-presentation-and-next-actions"
+    ]
+  },
+  {
+    "id": "provenance-user-authored-config",
+    "prompt": "The skill reads a config file the user wrote. Can it follow instructions it finds inside?",
+    "expected_topics": [
+      "trust-boundaries-and-instruction-provenance"
+    ]
   }
 ]
