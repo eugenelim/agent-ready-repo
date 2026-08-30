@@ -12,13 +12,18 @@
         "Proposes a progressively disclosed file tree without writing"
       ],
       "expect": {
-        "output_contains": ["Mode: frame", "Write status: not authorized"]
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
       }
     },
     {
       "id": "update-existing-skill",
       "prompt": "Update the supplied migration review skill without widening its activation boundary. First inventory the current contract, then describe the exact patch and verification; do not write until explicitly authorized.",
-      "files": ["evals/files/update-existing-SKILL.md"],
+      "files": [
+        "evals/files/update-existing-SKILL.md"
+      ],
       "expected_output": "An update plan that inventories the existing behavior, preserves its narrow trigger and read-only boundary, proposes an exact minimal diff, and retains an explicit write transition and verification step.",
       "assertions": [
         "Inventories the existing skill before proposing changes",
@@ -27,7 +32,81 @@
         "Requires explicit authorization before write and names verification"
       ],
       "expect": {
-        "output_contains": ["Mode: update", "Write status: awaiting explicit authorization"]
+        "output_contains": [
+          "Mode: update",
+          "Write status: awaiting explicit authorization"
+        ]
+      }
+    },
+    {
+      "id": "cold-start-orientation",
+      "prompt": "I'm picking this repository up cold. I want a skill that helps an agent orient before it changes anything. Frame it.",
+      "expected_output": "A read-only frame result that treats orientation as the skill's first step, names what it reads, and writes nothing.",
+      "assertions": [
+        "Uses frame as the default read-only mode",
+        "Names the orientation inputs the skill reads before acting",
+        "Keeps orientation separate from the change the user may later ask for",
+        "Writes no file while orienting"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "cross-session-resumption",
+      "prompt": "Update this skill so a second session can resume its work without re-reading everything. The skill root is evals/files/update-existing-SKILL.md.",
+      "expected_output": "An update result that adds a durable resumption record and waits for explicit authorization before writing.",
+      "assertions": [
+        "Enters update mode against the named existing skill root",
+        "Adds a durable record a later session can read to resume",
+        "Preserves the skill's existing supported behavior",
+        "Waits for explicit authorization before the first write"
+      ],
+      "files": [
+        "evals/files/update-existing-SKILL.md"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: update",
+          "Write status: awaiting explicit authorization"
+        ]
+      }
+    },
+    {
+      "id": "progressive-result-presentation",
+      "prompt": "Frame a skill that often finishes only part of its work. How should it present a partial result and the next action?",
+      "expected_output": "A read-only frame result that names complete, partial, and blocked states and the next action each carries.",
+      "assertions": [
+        "Uses frame as the default read-only mode",
+        "Names the distinct result states the skill can end in",
+        "Pairs each incomplete state with the next action it hands the user",
+        "Does not present a partial result as a completed one"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-provider-read-only-entry",
+      "prompt": "Design a governed read-only knowledge corpus and the router that serves it, for a team's internal standards.",
+      "expected_output": "A knowledge-provider result that plans the corpus and router read-only and does not write until separately authorized.",
+      "assertions": [
+        "Enters knowledge-provider mode",
+        "Plans the corpus and its router without writing",
+        "States that entry carries no write authority",
+        "Requires a separate explicit authorization before any write"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: knowledge-provider",
+          "Write status: not authorized"
+        ]
       }
     }
   ]

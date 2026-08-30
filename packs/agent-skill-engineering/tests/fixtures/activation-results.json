@@ -2,11 +2,11 @@
   "evaluation_mode": "headless-observed",
   "adapter": "claude-code",
   "runs": 1,
-  "iteration": 1,
+  "iteration": 3,
   "evaluated_at": "2026-08-30",
   "skills": {
     "author-or-update-agent-skill": {
-      "skill_digest": "sha256:3873c6c6b6a206fbec873d45e2f22ad2553e8623b86c71d06cad0a5abb804bdf",
+      "skill_digest": "sha256:2d3b98253df83fc8d9df3975e1a6ba602ae1bcdf9599857a7648d357766702a2",
       "query_fixture_digest": "sha256:d2a622163876f164817cafbc625a02504addf44d40a07065e4e30973da3d19bb",
       "cases": [
         {

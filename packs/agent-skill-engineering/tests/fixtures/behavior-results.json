@@ -1,6 +1,6 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-27",
+  "evaluated_at": "2026-08-30",
   "candidate_execution": false,
   "results": [
     {
@@ -16,7 +16,7 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45"
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
       }
     },
     {
@@ -32,8 +32,73 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45",
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
+      }
+    },
+    {
+      "eval_id": "cold-start-orientation",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+      }
+    },
+    {
+      "eval_id": "cross-session-resumption",
+      "actual_markers": [
+        "Mode: update",
+        "Write status: awaiting explicit authorization"
+      ],
+      "assertions": [
+        true,
+        false,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
+      }
+    },
+    {
+      "eval_id": "progressive-result-presentation",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+      }
+    },
+    {
+      "eval_id": "knowledge-provider-read-only-entry",
+      "actual_markers": [
+        "Mode: knowledge-provider",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
       }
     },
     {

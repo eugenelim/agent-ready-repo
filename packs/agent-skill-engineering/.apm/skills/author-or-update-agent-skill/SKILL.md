@@ -12,8 +12,11 @@ requested task. Preserve the user's intent, existing behavior, and authority.
 
 ## Modes
 
-`frame` is the default and is read-only. Move to `create` or `update` only
-after an explicit mode transition and immediately before the first write.
+`frame` is the default and is read-only. Enter `create` or `update` when the
+request's outcome is a new or changed skill file, including while the work is
+still read-only planning; the mode names the work, and the receipt's write
+status carries whether a write is yet authorized. The write itself still waits
+for an explicit mode transition immediately before it.
 `knowledge-provider` is entered read-only and never carries write authority on
 entry; move from `knowledge-provider` to a write only after the user authorizes
 that write in its own explicit transition.
@@ -84,7 +87,17 @@ topics instead of inventing language-specific instruction.
 
 ## Completion receipt
 
-Report the selected mode, exact files changed (or `none`), checks run, retained
-behavior for updates, unavailable capabilities encountered, and any cleanup
-that could not be completed. An interrupted write or cleanup denial is a
-visible incomplete result, never permission to broaden deletion.
+Open the receipt with these two lines exactly, then report exact files changed
+(or `none`), checks run, retained behavior for updates, unavailable
+capabilities encountered, and any cleanup that could not be completed.
+
+```text
+Mode: <the mode you acted in>
+Write status: not authorized | awaiting explicit authorization | authorized by the user
+```
+
+`not authorized` covers a read-only mode and a read-only phase of any mode;
+`awaiting explicit authorization` means a write is planned and the user has not
+yet granted it; `authorized by the user` means they have. An interrupted write
+or cleanup denial is a visible incomplete result, never permission to broaden
+deletion.
