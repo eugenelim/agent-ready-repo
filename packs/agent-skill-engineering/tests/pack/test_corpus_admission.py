@@ -1,8 +1,8 @@
 """Corpus admission and recorded retrieval assertions."""
 
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 
 PACK = Path(__file__).resolve().parents[2]
 FIXTURES = PACK / "tests" / "fixtures"
@@ -157,6 +157,7 @@ def _collapse(text: str) -> str:
     """Return *text* with every whitespace run reduced to one space."""
     return " ".join(text.split())
 
+
 def test_shipped_body_matches_the_admission_record() -> None:
     """Observed-practice limits remain portable and equal in both projections."""
 
@@ -219,7 +220,6 @@ def test_admitted_topics_are_measurably_distinguishable() -> None:
     for topic in sorted(admitted):
         exclusive = [r for r in results if r["actual_topics"] == [topic]]
         assert len(exclusive) >= 2, (topic, len(exclusive))
-
 
 
 def test_every_leaf_is_in_exactly_one_set() -> None:
