@@ -18,17 +18,21 @@ A maintainer hands the cooling engine a lifecycle record that came from outside
 the process. Where the hand-written validator is weaker than the published
 contract, it now refuses with a named code instead of raising.
 
-Two fields are repaired. An unresolvable `timezone` — malformed, non-string,
-absent from the platform database, or longer than the contract permits — returns
-a named refusal from every seam that resolves one. An `exception` envelope
-missing a required key returns a named refusal from every seam that reads one,
-including the two caller-facing review seams.
+The repair covers every untrusted record field, not one: an unresolvable
+`timezone`, an `exception` envelope missing a required key, a container where a
+scalar belongs, a number where the format requires text, a `delivery_id` that is
+not a string, a locator carrying a control character, and a completion date with
+no expressible review date. The two caller-facing review seams are included.
+
+It also changes the published contract. The `locator` pattern now excludes a `.`
+path segment, matching three code surfaces that already rejected one, and
+`x-spec` names this spec alongside Wave 5.
 
 No malformed record raises, so no host filesystem path or `errno` reaches the
 caller from any of these seams. That is a claim about record *input*, not about
-the module as a whole. Dependency faults and non-record arguments still escape;
-the largest is an unresolvable `close-work` seam on five reaches. Each is
-recorded under Follow-ons rather than repaired here. The three numeric bounds this spec names can no longer drift from the
+the module as a whole. Dependency faults still escape — the largest is an
+unresolvable `close-work` seam, on six public seams — and that one is recorded
+under Follow-ons rather than repaired. The three numeric bounds this spec names can no longer drift from the
 published contract unnoticed.
 
 ## Durable Outputs
@@ -36,7 +40,7 @@ published contract unnoticed.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | `interface-contract` | Applicable and **changed**: the contract already declared the timezone bound this spec makes the validator honour, and now also excludes a `.` path segment, which three code surfaces already rejected. The owner authorised the tightening on 2026-08-30 after confirming no adopter emits one. | [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | Co-owned: `x-spec` names Wave 5 and this spec | AC11, AC13, AC15, AC15a, AC26 | The pattern and the validator agree, and `x-spec` names both specs. |
-| `decision-record` | Applicable: the schema-versus-code decision, the three adjudicated Wave 5 findings, and the measured corpus are the durable reasoning this delivery produces; all spec-local, so no new ADR. | [`notes/schema-decision.md`](notes/schema-decision.md), [`notes/adjudication.md`](notes/adjudication.md), [`notes/corpus-measurement.md`](notes/corpus-measurement.md) | This spec | The three notes exist and the Changelog cites them | Each note resolves and states its evidence. |
+| `decision-record` | Applicable: the schema-versus-code decision, the three adjudicated Wave 5 findings, and the measured corpus are the durable reasoning this delivery produces; all spec-local, so no new ADR. | [`notes/schema-decision.md`](notes/schema-decision.md), [`notes/adjudication.md`](notes/adjudication.md), [`notes/corpus-measurement.md`](notes/corpus-measurement.md), [`notes/residual-de-risk.md`](notes/residual-de-risk.md) | This spec | All four notes exist and the spec links each | Each note resolves, states its evidence, and carries a superseding banner where later work overtook it. |
 | `release-history` | Applicable: a shipped `packs/core` runtime script changes, so the pack version advances one patch step. | [`docs/product/changelog.md`](../../product/changelog.md) | Release surface | AC16 | A dated `[core]` heading names the version `packs/core/pack.toml` carries. |
 | `current-architecture` | Not applicable: `docs/architecture/work-intake-and-artifact-routing.md` §10 pins a verified Core version, but this change alters nothing §10 describes — intake precedence, routing, and phase boundaries are untouched. Advancing its number would assert a whole-surface re-verification this delivery does not perform, and the `2.15.1` release set the same precedent by leaving it. | — | — | — | — |
 | `user-documentation` | Not applicable: no published refusal code, guide table, or maintainer task changes. `record-invalid`, `unknown-timezone`, and `exception-envelope-invalid` keep their existing meanings and are already documented. | — | — | — | — |
@@ -50,6 +54,11 @@ published contract unnoticed.
 - Keep every seam that resolves a zone behind the same guard, and every seam
   that reads an exception envelope behind the same predicate.
 - Keep the code's numeric bounds equal to the published contract's.
+- Enforcing a relationship the contract does not express is allowed and
+  pre-dates this spec: Wave 5 already refuses a contract-valid record whose
+  `review_on` is not `completed_on` plus thirty days, because the schema states
+  no cross-field date rule. AC31 is that same strictness — a completion date
+  with no expressible review date can satisfy no record — not a new divergence.
 - Bound and type-check input before handing it to a platform lookup that
   touches the filesystem.
 - Regenerate the self-hosted projections of any `.apm/` file this change edits.
@@ -79,7 +88,10 @@ Unit tests in `tests/roster/test_thirty_day_cooling_and_retirement.py`, the
 suite that already owns this module. Every criterion drives the shipped public
 functions — `validate_payload`, `parse_record_bytes`, `compute_review_on`,
 `is_due`, and for AC21, AC25, and AC29 the caller-facing seams `enrol`,
-`review`, and `review_exception` — with a literal payload, never a mock seam.
+`review`, and `review_exception`. Most drive a literal payload. The exceptions
+are named: AC5, AC6, AC11a, AC14, and AC26 substitute `ZoneInfo` or patch a
+bound constant, AC6a reads the module's AST, and the parity and release criteria
+read files.
 
 That file already carries 43 `# STUB: AC<n>` markers belonging to the frozen
 Wave 5 spec, so every marker this spec adds is disambiguated as
@@ -107,9 +119,10 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Coverage — all 35 criteria are materialised and none is deferred.
+Coverage — all 36 criteria are materialised and none is deferred.
 
-Twenty-five were written at PLAN, before any implementation existed. Twenty of
+Twenty-five were written at PLAN, before any implementation existed; eleven
+were added later (AC15a and AC23 to AC32). Twenty of
 those were red then; the rest are non-regression or consistency invariants that
 held already, and each carries a mutation proof in `plan.md`, because a
 criterion that cannot fail proves nothing.
@@ -130,9 +143,9 @@ AC30 is the one criterion that is not an enumeration. Every other criterion name
 the fields someone thought to list, which is how five classes reached review; it
 derives its paths from the payload's own structure and asserts the property the
 Objective claims. It kills mutants at sites no criterion enumerates. Each of the
-nine was red against the code as it stood when written.
+eleven was red against the code as it stood when written.
 
-Measured now: **231 cases pass, none fail, identically with `tzdata` importable
+Measured now: **242 cases pass, none fail, identically with `tzdata` importable
 and with it blocked.** Running both matters, because the `OSError` this repairs
 only arises when the optional `tzdata` wheel is importable, and this repository
 declares it nowhere. A single-environment green run would prove nothing about
@@ -231,8 +244,9 @@ and hold either way.
 - [x] **AC28 — Untrusted text is matched, never coerced.** For `fingerprint`,
   `confirmation_proof`, `completion_evidence_ref`, `authority.source.status`,
   and `exception.owner_role`, a value of `10**5000` or `1e999` returns
-  `record-invalid` from `validate_payload` and raises nothing. Only that seam is
-  exposed: `parse_record_bytes` refuses both in `json.loads` first.
+  `record-invalid` from `validate_payload` and raises nothing. `10**5000` is refused by `json.loads`'s
+  integer-string digit limit before it reaches the validator; `1e999` parses to
+  `inf` and is refused by the validator itself, so both seams carry it.
 - [x] **AC29 — A malformed candidate refuses instead of raising.** For each of
   five element shapes — a bare object, a string, a dict, one whose
   `confirmations` is not iterable, and one whose confirmation item lacks `kind`
@@ -244,11 +258,16 @@ and hold either way.
   pattern with or without the type guard, so only a scalar that survives `str()`
   discriminates.
 - [x] **AC30 — No leaf substitution makes a seam raise.** For every leaf path in
-  a payload carrying all optional fields, and for each of fourteen hostile
-  values, `validate_payload` and `parse_record_bytes` return `None` or a member
-  of `REFUSAL_CODES`, and neither raises. The paths are derived from the
-  payload's own structure, so a field added later is covered without a new
-  criterion.
+  a seed payload carrying every optional field, and for a hostile-value set
+  covering each JSON type (`null`, boolean, integer, float, string, array,
+  object) plus the values that break coercion and length assumptions — an
+  unbounded integer, an overflowing float, `NaN`, an empty string, a control
+  character, and an over-long string — `validate_payload` and
+  `parse_record_bytes` return `None` or a member of `REFUSAL_CODES`, and neither
+  raises. Paths come from the seed's own structure, so a field added to the
+  contract is covered only once the seed carries it. That is the criterion's
+  limit, not a durability guarantee: the sweep first missed
+  `authority.<fact>.evidence_ref` because the seed lacked that leaf.
 - [x] **AC31 — A completion date with no review date refuses.**
   `completed_on = 9999-12-02` returns `record-invalid` from `validate_payload`,
   `parse_record_bytes`, and `compute_review_on`; `9999-12-01`, the last date
@@ -281,9 +300,12 @@ and hold either way.
   `cooling.MAX_LOCATOR_LENGTH` patched to `8` on a freshly loaded module, a
   9-character `locator` returns `record-invalid` and an 8-character one returns
   no code.
-- [x] **AC15 — The contract and the validator agree on the locator.** For each
-  of the twenty-one enumerated locator values, `$defs/locator`'s pattern and
-  bounds and `cooling._is_locator` return the same verdict. This replaces an
+- [x] **AC15 — The contract and the validator agree on the locator.** For a corpus that
+  covers each shape the pattern discriminates — a plain path, a filename
+  containing dots, a `.` segment leading, medial, and trailing, a `..` segment,
+  a leading separator, an empty segment, a backslash, a control character, and
+  both length bounds — `$defs/locator`'s pattern and bounds and
+  `cooling._is_locator` return the same verdict. This replaces an
   earlier byte-unchanged digest pin, which stopped being the right assertion once
   the owner authorised tightening the pattern.
 - [x] **AC15a — The contract names both owning specs.** `x-spec` equals
@@ -317,10 +339,13 @@ and hold either way.
 ## Follow-ons
 
 The register opened with four entries. Putting each through reversibility triage
-and the cut-before-adding ladder closed three and built the fourth; the reasoning
+and the cut-before-adding ladder closed three and built the fourth. The reasoning
 and measurements are in
-[`notes/residual-de-risk.md`](notes/residual-de-risk.md) so a later reader does
-not re-derive them.
+[`notes/residual-de-risk.md`](notes/residual-de-risk.md), which records the
+de-risking as it ran; **this register carries the final dispositions and wins
+where the two differ**, and that note's banner says which three it supersedes.
+Two of the three closures rest on desk evidence rather than the probe each had
+predeclared, which the note names.
 
 - **The `locator` divergence — built, not deferred.** Both halves are closed.
   `_is_locator` now rejects the control range the contract and both blessed
@@ -377,7 +402,7 @@ not re-derive them.
   and 400 bytes and resolves to `ZoneInfoNotFoundError` on APFS; `"é" * 300`
   raises `OSError`)
 - `zoneinfo` is stdlib on the `>=3.11` floor both packages declare, so no
-  manifest changes. (checked: AC19)
+  manifest changes. (checked: `requires-python` in `pyproject.toml` and `packages/*/pyproject.toml`)
 - Wave 5's spec is frozen, so its AC5 defect is repaired by this spec's criteria
   rather than by amending it. Wave 5's tests are not frozen and are extended
   here. (`docs/CONVENTIONS.md` § "A spec directory freezes as a unit")

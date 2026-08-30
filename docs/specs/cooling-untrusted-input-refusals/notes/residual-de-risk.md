@@ -1,3 +1,24 @@
+> **Superseded by the register, 2026-08-30.** This file records the de-risking
+> as it ran; the spec's `## Follow-ons` carries the final dispositions and wins
+> where the two differ. Three entries were closed after this was written:
+>
+> - **R1** — both halves built. The `.`-segment half was the owner call and was
+>   authorised on 2026-08-30 after confirming no adopter emits one; the verdict
+>   below still calls it open.
+> - **R2** — closed as not planned. The verdict below says "shrunk, not killed"
+>   and leaves the retention half untested. It was closed on desk evidence — a
+>   per-invocation process, one caller, ~1.2 KiB — and the predeclared probe
+>   ("instrument one real session") was **not run**.
+> - **R4** — closed as deliberate. The verdict below says "likely inverted,
+>   needs an owner call". The call was made: `close-work` ships as a whole skill,
+>   so an unresolvable seam means a broken install. The predeclared probe
+>   ("enumerate install states") was **not run** in full; the closure rests on
+>   the packaging evidence.
+>
+> Desk evidence closing a bet whose probe was predeclared is worth naming rather
+> than glossing: it is weaker than running the probe, and either could be
+> reopened on the reopen conditions the register states.
+
 # De-risked residuals
 
 Each `## Follow-ons` entry, put through reversibility triage, riskiest

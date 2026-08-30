@@ -322,9 +322,10 @@ asserting the guard follows, so a dead constant fails.
 
 The parity test reads the contract with `json.load` and compares
 `properties.timezone.maxLength` to `MAX_TIMEZONE_LENGTH` and
-`$defs.locator.maxLength` to `MAX_LOCATOR_LENGTH`. AC15 pins the contract's
-SHA-256 to its value at the merge base, so parity cannot be satisfied by editing
-the contract instead of the code. The digest literal lives in the test only.
+`$defs.locator.maxLength` to `MAX_LOCATOR_LENGTH`. AC15 asserted a byte-unchanged digest at the time this task was written. It was
+replaced on 2026-08-30, when the owner authorised tightening the pattern: a
+digest cannot express the invariant that both sides give the same verdict, so
+AC15 now asserts contract/validator parity across a corpus.
 
 **Mutation proofs.**
 
@@ -333,7 +334,7 @@ the contract instead of the code. The digest literal lives in the test only.
 | M6 | The locator constant governs the guard | leave the literal `1000` in `_is_locator` while adding the constant | AC14 fails — the patched constant does not move the boundary |
 | M7 | Parity is read from the contract | `MAX_LOCATOR_LENGTH = 1000` → `= 999` | AC13 fails |
 | M7a | The timezone constant governs the guard | leave a bare literal `255` inside `_zone` while adding `MAX_TIMEZONE_LENGTH` | AC11a fails at all three seams — the patched constant does not move the boundary. Without AC11a, a dead constant beside a bare literal passes AC1–AC5, AC11, and M5 |
-| M8 | The contract pin is live | change any byte of the schema file | AC15 fails |
+| M8 | Parity is live | change the contract's locator pattern | AC15 fails — superseded by M29, which mutates the shipped pattern rather than any byte |
 | M8a | The `ValueError` arm is live | drop `ValueError` from `_zone`'s `except` tuple | AC12 fails, and five corpus rows fail with it — `""`, `"."`, `"/etc/passwd"`, `"../../etc/passwd"`, and `"a\x00b"` are all `ValueError` shapes. The Approach has no emptiness path to drop, so this is the mutation that actually reaches the empty key |
 | M8b | The happy path is still asserted | make `_zone` return `None` unconditionally | AC5, AC10, AC11a, and AC14 fail. AC1–AC4, AC6, AC8, and AC9 all still pass, because refusing everything satisfies every criterion that only asserts a refusal — which is why the non-regression criteria exist |
 
