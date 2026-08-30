@@ -68,7 +68,12 @@ execute it until the required artifact and approvals exist.
 
 For intent-only capture, `intake-intent` records the outcome, boundary, owner,
 unresolved questions, projection, and source. Product altitude, opportunity,
-assumptions, scale, and JTBD context are optional. If an intent already exists,
+assumptions, scale, and JTBD context are optional. Before it can become
+`Accepted`, the owner sends the intent and one attributed evidence packet to an
+independent cold shaping review. Findings return to the owner for revision; a
+revision-bound `Clean` still needs explicit human confirmation. If no isolated
+subagent, fresh context, or independent human is available, the owner emits
+`BLOCKED` and leaves the intent Draft. If an intent already exists,
 the skill updates that repository path instead of creating a renamed copy.
 Chat-only or personal/vault input also needs a confirmed repository destination
 and explicit authority transfer; its minimized source locator remains

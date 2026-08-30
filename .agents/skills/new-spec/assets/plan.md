@@ -172,6 +172,19 @@ with separate commits when the change is non-trivial.
 or `none`. Don't omit the field; "obvious from order" is the failure mode
 that hides serial-by-default thinking. `none` is a valid and common answer.
 
+Planning is sufficient when the plan supplies an observable contract, owner,
+boundaries, ordering, discovery predicates where a seam is not grounded,
+required outcomes, and verification modes adequate to begin safely. It need
+not settle a helper name, symbol, fixture-internal detail, or complete edge-case
+matrix before implementation. Such questions are build-time guidance unless
+their absence makes the plan unable to start or verify the contract.
+
+Keep observable behavior in `spec.md`. Use an exact path or symbol here only
+when repository evidence grounds it. For an implementation-discovered callable
+seam, record `no stub (implementation-discovered)` and its discovery predicate,
+constraint, required outcome, and verification mode; do not invent a helper,
+fixture, module, path, or symbol.
+
 **`Depends on:` grammar** (so the supervisor-mode scheduler —
 `loop-cohort schedule` — can read it). The field is a comma-separated list of:
 local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
@@ -207,6 +220,9 @@ could pick it up and complete it without follow-up questions:
 - <test 1 — behaviour, edge case, or property; reference the Acceptance
   Criterion from spec.md this step verifies, if any>
 - <test 2>
+<!-- For an already-grounded callable seam or coherent TDD task family, include
+     one compilable red contract-surface assertion (`stub: true`). It need not
+     encode the finished edge-case matrix. -->
 
 **Approach:**
 - <step 1>

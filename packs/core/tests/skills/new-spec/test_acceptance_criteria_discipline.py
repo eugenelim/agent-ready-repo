@@ -61,7 +61,7 @@ RULES = (
     (
         "step-four-pointers",
         "skill",
-        "See step 8 for citation discipline and step 5 for the corpus obligation.",
+        "See step 9 for citation discipline and step 5 for the corpus obligation.",
     ),
     (
         "deletion-pass",
@@ -191,10 +191,14 @@ def test_step_pointers_name_headings_that_still_exist() -> None:
 
     The pointer text is pinned above, but text alone cannot notice that step 8
     became step 9. Anchor both ordinals to the headings they name.
+
+    Inserting the shaping-review gate as step 6 pushed every later step down
+    one, so citation discipline is now step 9. This test caught that; the
+    pointer and this anchor moved together.
     """
     body = SKILL.read_text(encoding="utf-8")
     assert "5. Fill in the plan second" in body
-    assert "8. **Keep the spec the single source of truth" in body
+    assert "9. **Keep the spec the single source of truth" in body
 
 
 def test_corpus_absence_rule_precedes_the_sign_off_gate() -> None:

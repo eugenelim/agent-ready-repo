@@ -102,6 +102,26 @@
         "Resolves the two-limit firing order or declares one limit non-binding",
         "Cites the owning document and identifier rather than restating its rule"
       ]
+    },
+    {
+      "id": "spec-shaping-review-findings-revise-before-approval",
+      "prompt": "The independent shaping reviewer returns Findings on a Draft spec because one acceptance criterion combines two obligations. What does new-spec do?",
+      "expected_output": "new-spec returns the findings to its Draft authoring loop, revises the contract, and obtains a fresh review for the revised contract before approval. Findings do not authorize an approval or lifecycle transition.",
+      "assertions": [
+        "Routes Findings back to the owning authoring loop",
+        "Revises the contract before a fresh review",
+        "Blocks approval while findings remain unresolved"
+      ]
+    },
+    {
+      "id": "spec-nonmaterial-correction-retains-bound-result",
+      "prompt": "A reviewed Draft spec needs a wording-only correction that changes no outcome, scope, acceptance criterion, or evidence. How does new-spec handle it?",
+      "expected_output": "new-spec records the correction as nonmaterial against the existing revision-bound result and retains that result. Any correction that changes the contract is material and requires fresh review instead.",
+      "assertions": [
+        "Distinguishes a nonmaterial correction from a contract edit",
+        "Records the correction against the existing result",
+        "Requires fresh review for a material change"
+      ]
     }
   ]
 }

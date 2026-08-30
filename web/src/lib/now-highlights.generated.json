@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.16.0"
+        },
+        {
+          "name": "product-engineering",
+          "version": "0.13.8"
+        },
+        {
+          "name": "agentbundle",
+          "version": "0.40.3"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[core][2.16.0] / [product-engineering][0.13.8] / [agentbundle][0.40.3] — 2026-08-29",
+      "changelogAnchor": "core2160--product-engineering0138--agentbundle0403--2026-08-29",
+      "highlights": [
+        {
+          "source": "**Authors can independently check an intent, delivery brief, or draft spec before construction starts.** Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Authors can independently check an intent, delivery brief, or draft spec before construction starts."
+            },
+            {
+              "type": "text",
+              "value": " Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.15.5"
         }
       ],

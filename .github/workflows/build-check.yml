@@ -495,6 +495,15 @@ jobs:
       - name: pytest core work-loop activation hook (roster-owned)
         run: python -m pytest tests/roster/test_core_work_loop_hook.py
 
+      # shaping-review-contracts: source-agent boundary metadata and the closed
+      # shaping-review documentation set are repository-owned contracts. CI does
+      # not auto-discover roster tests, so keep both acceptance suites explicit.
+      - name: pytest shaping-review contracts (roster-owned)
+        run: >-
+          python -m pytest
+          tests/roster/test_agent_boundary_metadata_contract.py
+          tests/roster/test_shaping_review_documentation_contract.py
+
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +
       # the install→upgrade offer, and the dropped --scope flags. The CLI

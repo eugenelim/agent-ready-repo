@@ -38,7 +38,7 @@ def _assert_show_schema(response: dict[str, object]) -> None:
 
 def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     """Public show JSON changes must move repository release surfaces together."""
-    expected = "0.40.2"
+    expected = "0.40.3"
     pyproject = tomllib.loads(
         (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )

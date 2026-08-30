@@ -8,6 +8,8 @@ Living design reference for the core pack. Records the philosophy, architecture,
 
 `work-loop` is a supervised coding loop that replaces agent self-assessment with verifiable termination criteria. It runs in a fixed shape — plan → execute → gates → review → decide — and cannot exit without two human approvals: plan sign-off before a line is written, and PR merge after adversarial review is clean. Risk (not file count) determines mode; the adversarial reviewer always runs cold with no build memory; parallel writes are gated by default; spec drift is resolved in the PR, not after it.
 
+`shaping-reviewer` is a separate pre-construction contract check owned by the caller. It does not join the later code-review lenses: adversarial review checks delivery drift, security review checks threats, and quality review checks maintainability.
+
 ---
 
 ## Non-Goals

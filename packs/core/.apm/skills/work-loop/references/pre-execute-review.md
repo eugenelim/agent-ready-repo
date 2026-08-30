@@ -143,6 +143,14 @@ exhausted cap or missing control stops before execution.
 Both triggers route to the same reviewer mode and the same spec-stage checklist;
 what differs is the standard the reviewer measures against.
 
+`Clean` measures planning-level viability, not implementation completeness. A
+plan is sufficient when its observable contract, owner, boundaries, ordering,
+discovery predicates, required outcomes, and verification modes make safe start
+possible. Sustain a mechanism or test-shape finding only when its absence makes
+the plan unable to start or verify the contract. Helper names, symbols,
+fixture-internal detail, and a finished edge-case matrix remain build-time
+guidance and cannot prevent `Clean`.
+
 When the **structural-change** trigger fires, the reviewer checks the plan
 against the spec's **Boundaries** section (defined by the `new-spec` skill's
 bundled `spec.md` template) — primarily `Never do` for hard structural rules and

@@ -27,6 +27,16 @@ Generation is **single-pass with one bounded syntax-correction pass** — never 
 iterate-to-coverage retry loop. A gap goes back to the spec author as a sharper
 PLAN, not into a regenerate loop.
 
+## Legal PLAN dispositions
+
+There are exactly two dispositions for a TDD task. For an already-grounded
+callable seam or coherent TDD task family, write one compilable red
+contract-surface assertion (`stub: true`); it need not encode the finished
+edge-case matrix. When the callable seam can only be discovered during
+implementation, record `no stub (implementation-discovered)` plus the discovery
+predicate, constraint, required outcome, and verification mode. Do not invent a
+helper, fixture, module, or symbol to manufacture a stub.
+
 ## What a stub is — the stub-fullness rule
 
 > A stub is **as much of the real failing test as the AC and contract honestly

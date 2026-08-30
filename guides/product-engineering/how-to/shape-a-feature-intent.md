@@ -56,6 +56,19 @@ area, run `identify-opportunities` after framing.
 
 `frame-intent` is **knowledge-surface aware**: when an internal knowledge surface is reachable (an enterprise-knowledge MCP tool, an internal CLI, an in-repo doc set), it consults the business-domain and meaning areas so the outcome and opportunity use your org's real terms and rules instead of generic ones, and it states which surface it used — or "none", with the confidence lowered to match.
 
+### Optional independent shaping review
+
+If the Core pack and its `shaping-reviewer` are installed, `frame-intent` can
+send one attributed evidence packet to an isolated reviewer in `intent` mode.
+It is an optional augmentation: a genuinely fresh context or an independent
+human reviewing the same packet can stand in, while warm self-review is only
+advisory. The reviewer returns `Clean` or `Findings`; `frame-intent` retains
+the decision and status, and unresolved findings block a reviewed handoff.
+
+Without Core or another independent route, the intent remains authorable.
+`frame-intent` reports that the optional Core intent shaping review is
+unavailable and does not claim `Clean`.
+
 ## 2. De-risk the riskiest assumption
 
 Invoke **`de-risk-intent`**. It triages reversibility (one-way vs two-way door), picks the riskiest assumption, and — crucially — **predeclares a kill condition** in the test's own currency (a number if you have traffic, a qualitative bar if you don't) *before* running anything. It then runs under a **prototype-approach**:

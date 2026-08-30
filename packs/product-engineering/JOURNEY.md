@@ -26,7 +26,7 @@ skills:
     description: "The discovery supervisor. Diverges across candidate product shapes, drives the lens roster to convergence, and emits a connected hypothesis with validation hooks."
     humanTouches: 4
   - name: frame-intent
-    description: "Establishes product framing — problem, user, outcome — before the loop begins."
+    description: "Establishes product framing — problem, user, outcome — before the loop begins; optionally requests Core's independent shaping review when available."
     humanTouches: 1
   - name: frame-domain
     description: "Grounds the product in the real-world activity it serves and bounds the MVP — produces Domain Framing and Scope Boundary artifacts before the convergent design loop."

@@ -180,6 +180,14 @@ mere design detail:
     predicate and one remedy. Shows that separate failure modes alone do not
     split when the predicate survives substitution.
 
+- A universal claim enumerates its closed set or names the mechanism that makes
+  coverage exhaustive: without one, a reviewer cannot tell which members the
+  claim covers or whether an omitted member is a defect.
+
+- A new claim becomes a new checklist item, never a lettered or semicolon
+  graft: a graft hides a separately reviewable outcome inside an existing
+  criterion and makes its completion ambiguous.
+
 - For every numeric limit a criterion states, record the input that makes the
   limit fire first and the enforcement mechanism that makes that ordering true;
   a limit missing **either** fact is not yet a criterion. Where one quantity has

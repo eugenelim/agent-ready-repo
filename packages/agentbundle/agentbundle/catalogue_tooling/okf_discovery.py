@@ -465,7 +465,7 @@ def _parse_frontmatter(
         _fail(f"{label}: frontmatter exceeds size limit")
     if _contains_forbidden_yaml_syntax(raw):
         _fail(f"{label}: YAML tags and aliases are not allowed")
-    parsed = _parse_subset(raw, label, limits)
+    parsed = parse_frontmatter_subset(raw, label, limits)
     if _depth(parsed) > limits.max_frontmatter_depth:
         _fail(f"{label}: frontmatter exceeds depth limit")
     if validate_bounds:
@@ -473,11 +473,12 @@ def _parse_frontmatter(
     return parsed
 
 
-def _parse_subset(
+def parse_frontmatter_subset(
     raw: str,
     label: str,
     limits: DiscoveryLimits,
 ) -> dict[str, Any]:
+    """Parse the constrained YAML frontmatter subset shared with linting."""
     result: dict[str, Any] = {}
     current: str | None = None
     nested: str | None = None

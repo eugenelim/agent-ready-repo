@@ -58,12 +58,13 @@ to the visual and interaction design principles used by the tech-site pack.
 
 ## The parts
 
-The core pack ships six tightly-coupled artifacts plus the documents they all read:
+The core pack ships seven tightly-coupled artifacts plus the documents they all read:
 
 - **`AGENTS.md`** — the project's agent context, loaded first by every skill, every subagent, every reviewer. It carries the non-negotiables ("touch only what you're asked to touch"), the source-of-truth table, the check-before-acting rules. If a subagent skips it, the review is wrong.
 - **`docs/CONVENTIONS.md`** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (TDD / goal-based / visual-manual), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
 - **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates a Boundaries section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
 - **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Tracks state in `state.json` (gitignored, session-scratch), enforces an iteration cap, detects stasis (same findings twice = stop and surface), and gates EXECUTE on plan-approval after a pre-EXECUTE adversarial review.
+- **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses: adversarial checks delivery drift, security checks threats, and quality checks maintainability.
 - **The reviewer subagents** —
   - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + `CONVENTIONS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits). Cannot be skipped.
   - **`security-reviewer`** (Opus): OWASP + STRIDE lens. Conditional — runs when the diff crosses a security boundary.
@@ -73,7 +74,7 @@ The core pack ships six tightly-coupled artifacts plus the documents they all re
 The reviewers are diff-source-agnostic — the work loop points them at your own working tree, but you can point them at any diff, including a teammate's branch or open PR. See [Review a branch or PR you didn't write](../how-to/review-someone-elses-pr.md).
 - **The `session-start.py` + `pre-pr.py` hooks** — wire the loop into the editor lifecycle. `session-start.py` reads the install-marker and nudges into `adapt-to-project` on first session.
 
-Plus a sibling skill that runs alongside the six: **`bug-fix`** ships in `core` too and runs a parallel discipline (reproduce → red test → root vs. symptom → minimum fix → regression test stays) without entering the spec / loop pipeline. It composes with `work-loop` when the fix grows past one file. See [how to fix a bug](../how-to/bug-fix.md).
+Plus a sibling skill that runs alongside the seven: **`bug-fix`** ships in `core` too and runs a parallel discipline (reproduce → red test → root vs. symptom → minimum fix → regression test stays) without entering the spec / loop pipeline. It composes with `work-loop` when the fix grows past one file. See [how to fix a bug](../how-to/bug-fix.md).
 
 Another sibling handles reusable repository lessons: **`project-knowledge`** is the explicit capture, distillation, and enquiry surface. Workflows keep scratch locally until a semantic gate decides whether one lesson is worth preserving. Capture writes a strict pending observation journal event; distillation reconciles pending observations into reviewed topic proposals or bounded terminal dispositions; enquiry reads active topics from one committed Git snapshot and returns a bounded evidence envelope with a receipt.
 
@@ -87,7 +88,7 @@ A feature lifecycle, end to end, with the parts named:
 
 1. **User asks for X.** "Add webhook retries with exponential backoff."
 2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`.
-3. **`adversarial-reviewer`** reads the spec + plan in spec-mode. Findings come back; the spec hardens. Two passes is normal; three means structural problem and the agent surfaces.
+3. **`shaping-reviewer`** reads the draft contract cold before plan approval; then `adversarial-reviewer` reads the complete spec + plan for construction risk. Findings come back; the spec hardens. Two passes is normal; three means structural problem and the agent surfaces.
 4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
 5. **EXECUTE.** The agent implements task by task. For TDD tasks: red, green, refactor. For goal-based: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.

@@ -102,13 +102,13 @@ _FIXTURE_PATHS = {
 }
 _CHANGED_SKILLS = {
     "work-intake": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
-    "intake-intent": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
+    "intake-intent": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
     "capture-work": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
-    "author-delivery-brief": ("Read Write Edit", {"filesystem_write", "filesystem_read_untrusted"}),
+    "author-delivery-brief": ("Read Write Edit Agent", {"filesystem_write", "filesystem_read_untrusted"}),
     "author-brief": ("Read", set()),
     "receive-brief": ("Read", set()),
     "new-spec": (
-        "Read Write Edit Bash WebFetch WebSearch",
+        "Read Write Edit Bash WebFetch WebSearch Agent",
         {"filesystem_write", "filesystem_read_untrusted", "network_fetch"},
     ),
     "workspace-status": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),

@@ -67,6 +67,33 @@ def test_adversarial_review_traces_triggered_non_local_impact() -> None:
     assert "optional evidence source" in text
 
 
+def test_adversarial_spec_review_retains_construction_checks_without_product_verdict() -> None:
+    """The ownership split preserves plan review and removes only contract shape."""
+    raw = _text(ADVERSARIAL)
+    start = raw.index("### Spec-stage checks")
+    end = raw.index("### Implementation-stage checks")
+    checks = raw[start:end]
+
+    for requirement in (
+        "Plan / spec mismatch",
+        "Duplicate values across spec and plan",
+        "Contract vs construction confusion",
+        "Missing `Depends on:` per task",
+        "Derived-fixture scope",
+        "Verification-mode declaration",
+        "Do not ratify the contract's product meaning.",
+    ):
+        assert requirement in checks
+    for moved_check in (
+        "Vague Objective",
+        "Boundaries underspecified",
+        "Missing Acceptance Criteria",
+        "No `Constrained by:` cited",
+        "Implementation detail in the spec",
+    ):
+        assert moved_check not in checks
+
+
 def test_stateful_migration_routes_to_quality_depth_without_a_new_reviewer() -> None:
     router = _flat(OPERATIONAL_SAFETY / "SKILL.md")
     quality = _flat(QUALITY)

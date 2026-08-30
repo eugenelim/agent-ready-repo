@@ -84,22 +84,7 @@ checklists; verification-mode awareness applies to every review.
 
 ### Spec-stage checks (when a spec or plan changed in this PR)
 
-1. **Vague Objective.** Each user-visible outcome in the Objective should
-   be testable. Flag any that aren't ("it should be fast", "users should
-   find it intuitive"). Demand numbers, types, or observable
-   post-conditions.
-2. **Boundaries underspecified.** Specs with empty `Always do` / `Ask
-   first` / `Never do` subsections get scope-crept. Require at least one
-   entry per subsection, with at least one *structural* entry under
-   `Never do` (no new top-level dependency, no new module boundary, etc.).
-3. **Missing Acceptance Criteria.** "Done" must be a checklist, not an
-   opinion.
-4. **No `Constrained by:` cited.** If the spec inherits from an ADR or
-   RFC, the header should say so. If not, confirm there's no such
-   constraint.
-5. **Implementation detail in the spec.** Specs are contracts. *How*
-   belongs in the plan.
-6. **Plan / spec mismatch.** Each plan task should map to an Acceptance
+1. **Plan / spec mismatch.** Each plan task should map to an Acceptance
    Criterion in the spec (and must not violate any Boundary — Boundaries
    are rails, not work items). Flag tasks that map to no criterion, and
    criteria with no implementing task.
@@ -109,25 +94,24 @@ checklists; verification-mode awareness applies to every review.
    independently. Flag more than one canonical statement of the same
    fact; the spec and plan should each hold one canonical location and
    reference the other, not duplicate it.
-7. **Contract vs construction confusion.** The spec carries the contract
-   (Acceptance Criteria as observable outcomes, with the verification
-   mode named in Testing Strategy); the plan carries per-task units,
-   edge cases, properties. A test that pins a user-visible outcome
-   buried inside a per-task internal test, or a per-task unit assertion
-   elevated to the spec, means tests get revised when they should be
-   durable.
-8. **Missing `Depends on:` per task.** Every plan task should declare
+2. **Contract vs construction confusion.** Against the shaping-reviewed
+   contract, check task and test placement: the plan carries per-task units,
+   edge cases, and properties. Do not ratify the contract's product meaning.
+   A test that pins a user-visible outcome buried inside a per-task internal
+   test, or a per-task unit assertion elevated to the spec, means tests get
+   revised when they should be durable.
+3. **Missing `Depends on:` per task.** Every plan task should declare
    `Depends on:` explicitly — prior task IDs or `none`. Flag tasks that
    omit the field or use hand-wavy values ("the previous ones", "see
    above"). `none` is a valid answer; silence is not.
-9. **Derived-fixture scope.** When a spec or task derives fixtures,
+4. **Derived-fixture scope.** When a spec or task derives fixtures,
    test cases, or sub-specs from a parent spec's scope definition (e.g.,
    from a deferred AC that defines a type constraint), quote the parent
    spec's exact scope language and verify each derived artifact's type
    against it. A fixture whose primitive type conflicts with the parent
    scope imports the wrong contract — and the mismatch is invisible until
    the derived work is reviewed against the parent.
-10. **Verification-mode declaration.** Each plan task should state its
+5. **Verification-mode declaration.** Each plan task should state its
    mode — TDD, goal-based check, or visual / manual QA — with the
    verification artifact named. The verification's level of
    abstraction should match the behavior's boundary: UI behaviors

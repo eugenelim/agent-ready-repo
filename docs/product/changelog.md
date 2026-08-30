@@ -52,6 +52,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.0] / [product-engineering][0.13.8] / [agentbundle][0.40.3] — 2026-08-29
+
+### Highlights
+
+- **Authors can independently check an intent, delivery brief, or draft spec before construction starts.** Core's shaping reviewer tests whether the contract is bounded and observable without replacing later adversarial, security, or quality code review.
+
+### Added
+
+- Core now ships the internal `shaping-reviewer` primitive. Core callers use it
+  directly, while Product Engineering's `frame-intent` integration remains
+  optional and reports an honest fresh-context or independent-human fallback.
+
+### Changed
+
+- AgentBundle validates the reviewer declaration and preserves its
+  least-privilege posture in supported adapter projections.
+- Core and Product Engineering guidance now distinguish contract shaping review
+  from later code-review lenses.
+
 ## [core][2.15.5] — 2026-08-29
 
 ### Highlights

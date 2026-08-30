@@ -271,6 +271,106 @@ def test_clean_catalogue(tmp_path, monkeypatch):
     assert errors == []
 
 
+def test_agent_metadata_without_boundaries_is_valid(tmp_path):
+    """Agent metadata may carry source annotations other than boundaries."""
+    diagnostics = _lint_module._agent_boundary_diagnostics(
+        "metadata:\n  type: agent\n",
+        tmp_path / "probe.md",
+        pack="pack-a",
+        root=tmp_path,
+    )
+    assert diagnostics == []
+
+
+@pytest.mark.parametrize("frontmatter", [
+    "description: >\n  Folded agent description.\n",
+    "# A valid frontmatter comment\ndescription: Agent description.\n",
+])
+def test_agent_without_metadata_ignores_frontmatter_outside_boundary_contract(
+    tmp_path, frontmatter
+):
+    """Boundary parsing only applies when an agent declares top-level metadata."""
+    diagnostics = _lint_module._agent_boundary_diagnostics(
+        frontmatter,
+        tmp_path / "probe.md",
+        pack="pack-a",
+        root=tmp_path,
+    )
+    assert diagnostics == []
+
+
+def test_agent_malformed_metadata_still_reports_boundary_diagnostic(tmp_path):
+    """A declared metadata block remains subject to boundary validation.
+
+    The early return added for agents that declare no `metadata` must not also
+    excuse an agent that declares a broken one. `metadata: [` reaches the
+    shape check rather than the parse-failure branch, so the diagnostic names
+    the specific defect instead of a generic parse error.
+    """
+    diagnostics = _lint_module._agent_boundary_diagnostics(
+        "metadata: [\n",
+        tmp_path / "probe.md",
+        pack="pack-a",
+        root=tmp_path,
+    )
+    assert len(diagnostics) == 1
+    assert diagnostics[0].code == "CAT-L012"
+    assert "metadata to be a mapping" in diagnostics[0].message
+
+
+@pytest.mark.parametrize(
+    ("frontmatter", "parse_failure"),
+    [
+        (
+            "metadata: # source only\n  boundaries: [filesystem_read_untrusted]\n",
+            "unsupported frontmatter shape",
+        ),
+        (
+            "description: >\n  Folded agent description.\nmetadata:\n"
+            "  boundaries: [filesystem_read_untrusted]\n",
+            "unsupported frontmatter shape",
+        ),
+        (
+            "metadata:\n  boundaries: [filesystem_read_untrusted]\n# comment\n",
+            "malformed frontmatter",
+        ),
+    ],
+)
+def test_agent_unparseable_frontmatter_names_the_parse_failure(
+    tmp_path,
+    frontmatter,
+    parse_failure,
+):
+    """Malformed declared metadata reports the frontmatter parser's failure."""
+    diagnostics = _lint_module._agent_boundary_diagnostics(
+        frontmatter,
+        tmp_path / "probe.md",
+        pack="pack-a",
+        root=tmp_path,
+    )
+
+    assert len(diagnostics) == 1
+    diagnostic = diagnostics[0]
+    assert diagnostic.code == "CAT-L012"
+    assert "agent frontmatter cannot be parsed" in diagnostic.message
+    assert parse_failure in diagnostic.message
+    assert diagnostic.remediation is not None
+    assert "supported frontmatter subset" in diagnostic.remediation
+
+
+def test_agent_boundary_without_tools_requires_a_declared_tool(tmp_path):
+    """A boundary cannot be justified when the agent omits ``tools``."""
+    diagnostics = _lint_module._agent_boundary_diagnostics(
+        "metadata:\n  boundaries: [filesystem_read_untrusted]\n",
+        tmp_path / "probe.md",
+        pack="pack-a",
+        root=tmp_path,
+    )
+
+    assert len(diagnostics) == 1
+    assert "requires declared tools" in diagnostics[0].message
+
+
 # ---------------------------------------------------------------------------
 # 3. test_pack_filter
 # ---------------------------------------------------------------------------

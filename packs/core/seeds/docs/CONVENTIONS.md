@@ -993,6 +993,11 @@ tests) plus an adversarial review pass replace "feel" with verifiable
 termination. The loop keeps going until both kinds of check are satisfied —
 or it pauses for human replanning.
 
+Before construction, a caller may use `shaping-reviewer` to test a contract's
+scope and observability. That is distinct from the later code-review lenses:
+adversarial review checks delivery drift, security review checks threats, and
+quality review checks maintainability.
+
 **Why think before acting.** The cost of a wrong start is higher than the
 cost of thinking. For high-stakes changes (architectural choices, multi-file
 refactors, anything touching shared infrastructure), use your agent's

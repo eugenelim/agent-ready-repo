@@ -14,6 +14,8 @@ Install this first. All other packs assume it is present at repo scope.
 
 **Subagents:** `adversarial-reviewer` (spec/plan/implementation drift finder), `finding-adjudicator` (independently sustains or refutes reviewer findings before repair, accepts validated evidence from bounded predeclared gates, distinguishes wrong from over-broad remedy proposals, and stops for your decision when evidence is still insufficient), `quality-engineer` (testability, observability, maintainability lens), `security-reviewer` (OWASP multi-framework threat model), `implementer` (single-task executor for supervisor mode).
 
+Before construction, callers may use the internal `shaping-reviewer` to test a contract's scope and observability; it is not one of the three code-review lenses above (adversarial delivery drift, security threats, and quality maintainability).
+
 **Hooks:** `pre-pr` (pre-commit gate runner), `session-start` (orient on wakeup), `work-loop-check` (iteration-cap enforcement).
 
 **Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `CONVENTIONS.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/` (including the minimal-intent template), `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
