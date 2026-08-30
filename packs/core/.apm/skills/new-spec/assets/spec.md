@@ -149,6 +149,62 @@ mere design detail:
   in the dependency scan". An NFR with no bar ("should be fast") is not a
   criterion; give it a number or move it to the plan.
 
+- A criterion that needs "and" to join two **different predicates** is two
+  criteria: a conjunction is where a coverage check silently passes while half
+  the criterion is unimplemented. A criterion is more than one when its parts
+  have separate failure modes with separate remedies. Where the parts read as one
+  constraint over a set, rewrite the criterion as a single predicate with a
+  member substituted in; it stays one criterion only if that predicate is
+  checkable as written at every member rather than expanding into a different
+  check per member. The worked examples below fix where this boundary falls;
+  where the cue and an example conflict, the examples govern.
+
+  - **E1 — splits.** "`writer.py` emits `manifest.json` with keys in byte-sorted
+    order, and `--dry-run` prints that manifest without writing a file." Two
+    different predicates; no single sentence covers both. The base case where the
+    conjunction cue and the split test agree.
+  - **E2 — stays one.** "no sensitive data reaches stdout, stderr, logs, or skill
+    output surfaced to the agent." One predicate substituted at each member of an
+    enumerated set, checkable as written at every member.
+  - **E3 — stays one.** "the digest preimage is the u64be path length, the path
+    bytes, the execute byte, the u64be content length, then the content bytes."
+    One comparison value expressed in parts — the split test never engages,
+    because there is one failure and one remedy.
+  - **E4 — splits.** "the same constraint, correctness, holds across stdout and
+    the exit code." "X is correct" is not checkable as written: it expands into a
+    different check per member. This is the anti-licence against reframing a
+    bundle as one constraint over a domain, and without it E2's shape is available
+    to any author.
+  - **E5 — stays one.** "session cookies are set `Secure` and `HttpOnly`."
+    Different failure modes (interception, script access) but one substitutable
+    predicate and one remedy. Shows that separate failure modes alone do not
+    split when the predicate survives substitution.
+
+- For every numeric limit a criterion states, record the input that makes the
+  limit fire first and the enforcement mechanism that makes that ordering true;
+  a limit missing **either** fact is not yet a criterion. Where one quantity has
+  two limits, either order them so each is reachable for some input, or declare
+  one non-binding on that route and name the limit that fires instead.
+
+- A criterion stating a limit names the reference point it is measured from.
+  Choose an origin that gives the same input the same measurement however the
+  subject is organised; an unstated origin is not yet a criterion. A criterion
+  requiring a limit states its value and never asks an implementer to supply one:
+  a value invented to satisfy an unspecified requirement is worse than an absent
+  limit, because it reads as a decision that was made.
+
+- Make every claim earn its place by making a wrong implementation detectable.
+  Delete rationale, history, reassurance, restated context, and a figure that
+  merely explains where a threshold came from when it does not help establish the
+  outcome. Keep any claim that is the only written form of a comparison value,
+  such as a byte layout, exact key order, literal token, collection floor, or
+  stated bar. Ask: "could a wrong implementation now pass this?"
+
+- A criterion names an observable outcome. Naming a function's parameters, a
+  helper, or a call sequence is the give-away that the content belongs in the
+  plan. See the Objective guidance and `SKILL.md`'s design-doc anti-pattern for
+  the document-level distinction.
+
 - [ ] <observable outcome>
 - [ ] <observable outcome>
 - [ ] <observable outcome>

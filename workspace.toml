@@ -1864,6 +1864,11 @@ open = [
   # Unblocks when: knowledge-enquiry-scope-reachability ships, since its matcher
   # decides which topics land in which tier.
   {path = "docs/product/intents/knowledge-topic-scope-granularity.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Curate topic scopes so a specificity tier fits the bounded enquiry envelope", needs = []},
+  {path = "docs/product/intents/contract-amendment-pre-wave-window.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Make contract-amendment reachable when the plan baseline is sealed and no wave has run", needs = []},
+  {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Name measurement-over-review-rounds, finding origin, gate scope, and finding reachability in new-spec review guidance", needs = []},
+  {path = "docs/product/intents/tdd-stub-replaces-prose.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "A TDD stub replaces its prose test bullet; an unstubbable obligation records no stub (mode) with a reason", needs = []},
+  {path = "docs/product/intents/core-seed-placeholder-shapes.md", kind = "intent", source = {mode = "repo-origin", ref = "packs/core/seeds", revision = "local-2026-08-29"}, summary = "Declare a placeholder shape for every core seed file so catalogue verify CAT-V-002 passes", needs = []},
+  {path = "docs/product/intents/credbroker-socket-budget-float-tolerance.md", kind = "intent", source = {mode = "repo-origin", ref = "packages/credbroker/tests/unit/test_sso_derivation.py", revision = "local-2026-08-29"}, summary = "Give the credbroker socket-budget assertion a float tolerance so Windows timer precision cannot red the suite", needs = []},
 
 ]
 
