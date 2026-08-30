@@ -206,3 +206,59 @@ class AgentBoundaryMetadataProjectionTests(unittest.TestCase):
                     )
                     self.assertEqual(rendered["tools"], ["read", "grep", "glob"])
                     self.assertNotIn("resources", rendered)
+
+
+class PortableBranchTransformTests(unittest.TestCase):
+    """The no-`dir_fd` branch ships to Windows adopters and must create files.
+
+    CI caught this on Windows and nothing local did: routing agents through the
+    transform path made `_overwrite_existing_no_follow` the first call for a
+    target that does not exist yet, which only self-host had reached before —
+    and self-host always has an existing target. `_secure_dir_fd_available` is a
+    named function precisely so a POSIX host can exercise the portable branch.
+    """
+
+    def _portable(self):
+        from agentbundle.build import projection_io
+
+        original = projection_io._secure_dir_fd_available
+        projection_io._secure_dir_fd_available = lambda: False
+        self.addCleanup(setattr, projection_io, "_secure_dir_fd_available", original)
+        return projection_io
+
+    def test_transform_creates_an_absent_target_without_dir_fd(self) -> None:
+        projection_io = self._portable()
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = base / "source.md"
+            source.write_text(_AGENT, encoding="utf-8")
+            target = base / "out" / "agents" / "probe.md"
+
+            projection_io.copy_projected_file(
+                source,
+                target,
+                base=base,
+                metadata="stat",
+                transform=lambda raw: raw.replace(b"Read-only", b"transformed"),
+            )
+
+            self.assertTrue(target.is_file())
+            self.assertIn("transformed", target.read_text(encoding="utf-8"))
+
+    def test_portable_branch_still_refuses_a_linked_ancestor(self) -> None:
+        projection_io = self._portable()
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            source = base / "source.md"
+            source.write_text(_AGENT, encoding="utf-8")
+            (base / "real").mkdir()
+            (base / "linked").symlink_to(base / "real")
+
+            with self.assertRaises(projection_io.ProjectionTypeError):
+                projection_io.copy_projected_file(
+                    source,
+                    base / "linked" / "probe.md",
+                    base=base,
+                    metadata="stat",
+                    transform=lambda raw: raw,
+                )

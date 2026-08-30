@@ -290,7 +290,14 @@ def _overwrite_existing_no_follow(
     _validate_relative(relative)
     with open_directory_no_follow(base, relative.parent) as parent_fd:
         if parent_fd is None:
-            _validate_fallback_path(base, relative, allow_missing_leaf=False)
+            # `allow_missing_leaf=True` because reporting an absent target is
+            # this function's contract, not an error: the caller falls through
+            # to `_create_new_no_follow`. Ancestors are still walked and
+            # link/reparse-checked in order, so only the leaf that does not
+            # exist goes unvalidated. With `False` here the portable branch
+            # raised before reaching the `FileNotFoundError` handler below,
+            # which only self-host reached — it always has an existing target.
+            _validate_fallback_path(base, relative, allow_missing_leaf=True)
             try:
                 target_stat = target.lstat()
             except FileNotFoundError:
