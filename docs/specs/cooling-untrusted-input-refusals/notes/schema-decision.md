@@ -1,3 +1,12 @@
+> **Superseded in part, 2026-08-30.** The timezone half of this decision stands:
+> the contract already published `maxLength: 255` and the repair was code-side
+> conformance. The *byte-unchanged* conclusion no longer holds. After the owner
+> confirmed no adopter emits a `.` path segment, the locator pattern was
+> tightened to exclude one, and this spec took `x-spec` co-ownership. AC15 now
+> asserts contract/validator parity across an enumerated corpus instead of
+> pinning a digest — a digest cannot express the invariant that both sides give
+> the same verdict, which is what actually matters.
+
 # Decision: the timezone bound is code-side only
 
 **Question.** Does the timezone bound belong in

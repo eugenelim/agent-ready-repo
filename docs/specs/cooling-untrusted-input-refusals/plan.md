@@ -47,8 +47,10 @@ is introduced; the razor run is recorded under [Declined](#declined).
 - `surface_resolver.py` and `file_safety.py` stay byte-unchanged. Their pinned
   digests in `tests/roster/test_close_work_extraction_and_immediate_disposition.py`
   (`:214`, `:216`) must pass with that file unedited.
-- `contracts/jsonschema/delivery-lifecycle-record.schema.json` stays
-  byte-unchanged (AC15) — see [`notes/schema-decision.md`](notes/schema-decision.md).
+- `contracts/jsonschema/delivery-lifecycle-record.schema.json` is **changed**:
+  the locator pattern excludes a `.` segment and `x-spec` names both specs, on an
+  owner decision of 2026-08-30. AC15 asserts contract/validator parity rather
+  than a digest — see [`notes/schema-decision.md`](notes/schema-decision.md).
 - No new dependency, module, store, resolver, fingerprint helper, scheduler, or
   deletion path.
 - `cooling.py` must still contain no clock call (Wave 5 AC6) and no removal call
@@ -95,11 +97,12 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC30 | `test_no_leaf_substitution_makes_a_seam_raise` | TDD | added post-review; a sweep, not an enumeration |
 | AC31 | `test_a_completion_date_with_no_review_date_refuses`, `test_the_last_completion_date_that_fits_is_accepted` | TDD | added post-review |
 | AC32 | `test_a_locator_with_a_control_character_refuses`, `test_the_locator_rule_matches_the_published_pattern_on_this_range` | TDD | added post-review |
+| AC15a | `test_the_contract_names_both_owning_specs` | TDD | added post-review |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-35 of 35 criteria carry a materialised stub or a named goal-based check. None
+36 of 36 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -468,6 +471,7 @@ cannot yield a vacuous pass.
 | M26 | drop the `completed_on` bound, keep the `OverflowError` arm | AC31 | killed |
 | M27 | drop the `OverflowError` arm, keep the bound | AC31 | killed |
 | M28 | remove `_is_locator`'s control-character rule | AC32 | killed |
+| M29 | revert the contract's `.`-segment lookahead | AC15 | killed |
 
 M17 is the reason AC27 exists. The repair had no criterion until this table was
 built: AC23's containers fail the `delivery_id` pattern with or without the type
