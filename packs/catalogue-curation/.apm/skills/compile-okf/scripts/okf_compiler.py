@@ -378,16 +378,12 @@ def render_okf_bundle(
         bundle_id,
         provider_capability,
     )
-    output_rendering = (ASSET_ROOT / "output-rendering.md").read_text(
-        encoding="utf-8"
-    ).rstrip()
     files["SKILL.md"] = router_template.format(
         router_skill=router_skill,
         bundle_id=bundle_id,
         source_digest=source_digest,
         router_description=router_description,
         provider_metadata=provider_metadata,
-        output_rendering=output_rendering,
     ).encode("utf-8")
 
     for concept_path, reviewed_digest in sorted(projected_concepts.items()):
