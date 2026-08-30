@@ -249,7 +249,7 @@ print-sast-config:
 # substitute for the registry rulesets — hence keeping the exclusion narrow.
 #
 # The last two entries are excluded for a different reason than the four above:
-# not a false positive, a per-rule TIMEOUT. ADR-0101 admits this vehicle and
+# not a false positive, a per-rule TIMEOUT. ADR-0102 admits this vehicle and
 # fixes its required shape — a stated residual and a retirement trigger, both
 # below. Two interprocedural env→subprocess
 # taint rules exceed the default 5s/rule/file budget on one large,

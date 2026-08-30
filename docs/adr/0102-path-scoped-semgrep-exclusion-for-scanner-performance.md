@@ -1,4 +1,4 @@
-# ADR-0101: A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger
+# ADR-0102: A Semgrep exclusion may be path-scoped for scanner performance, if it states its residual and carries a retirement trigger
 
 - **Status:** Accepted
 - **Date:** 2026-08-29
