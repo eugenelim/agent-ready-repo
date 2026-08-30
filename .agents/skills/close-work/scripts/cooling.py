@@ -22,6 +22,12 @@ MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_TIMEZONE_LENGTH = 255
 MAX_LOCATOR_LENGTH = 1000
 MAX_ALIAS_COUNT = 16
+COOLING_PERIOD_DAYS = 30
+# `date.max` minus the cooling period. The contract's calendarDate pattern has
+# no year ceiling, so a conforming record can carry a date whose review date
+# does not exist; `date + timedelta` then raises OverflowError, which
+# subclasses ArithmeticError and so matches no handler in this module.
+MAX_COMPLETED_ON = date.max - timedelta(days=COOLING_PERIOD_DAYS)
 REFUSAL_CODES = frozenset(
     {
         "not-delivered", "not-closed", "no-persistent-record",
@@ -321,6 +327,7 @@ def validate_payload(payload: object) -> CoolingResult:
         return CoolingResult(code="record-invalid")
     if (
         not _is_date(payload["completed_on"])
+        or date.fromisoformat(str(payload["completed_on"])) > MAX_COMPLETED_ON
         or not _is_date(payload["review_on"])
         or not _authority_is_valid(payload["authority"])
     ):
@@ -368,11 +375,17 @@ def canonical_bytes(record: CoolingRecord | dict[str, object]) -> bytes:
     return rendered.encode("ascii") + b"\n"
 
 
-def compute_review_on(completed_on: date, timezone: str) -> date | CoolingResult:
+def compute_review_on(completed_on: date, timezone: object) -> date | CoolingResult:
     """Return the calendar date thirty days after a completion date."""
     if _zone(timezone) is None:
         return CoolingResult(code="unknown-timezone")
-    return completed_on + timedelta(days=30)
+    try:
+        return completed_on + timedelta(days=COOLING_PERIOD_DAYS)
+    except OverflowError:
+        # The bound above `validate_payload` normally prevents this. The arm is
+        # the half that holds when this function is called directly, which is a
+        # published seam.
+        return CoolingResult(code="record-invalid")
 
 
 def is_due(record: CoolingRecord, moment: datetime) -> CoolingResult:
@@ -409,7 +422,7 @@ def record_rename(record: CoolingRecord, new_locator: str) -> CoolingRecord:
     """Return a renamed record while retaining its immediately prior locator."""
     payload = record.as_payload()
     payload["locator"] = new_locator
-    payload["aliases"] = [*record.aliases, record.locator][-16:]
+    payload["aliases"] = [*record.aliases, record.locator][-MAX_ALIAS_COUNT:]
     return CoolingRecord.from_payload(payload)
 
 
@@ -638,10 +651,13 @@ def _resolve_destination(root: Path, candidates: object) -> Path | str:
             for candidate in candidates
         )
     except (AttributeError, TypeError):
-        # The container was type-checked above; its elements were not. A caller
-        # can pass any object, and reaching into `.confirmations`, `.kind`, or
-        # `.status` on the wrong shape raised out of `enrol`, `review`, and
+        # The container was type-checked above; its elements were not. A
+        # candidate of the wrong shape — reaching into `.confirmations`,
+        # `.kind`, or `.status` on it — raised out of `enrol`, `review`, and
         # `review_exception` with a traceback carrying absolute host paths.
+        # Bounded deliberately: a candidate whose property raises something
+        # else still escapes, and candidates come from the same in-process
+        # caller that supplies `root` and the authority binding.
         return "destination-unconfirmed"
     if not confirmed:
         return "destination-unconfirmed"
@@ -759,13 +775,10 @@ def _review_is_complete(checks: object, attestation: object) -> bool:
     return (
         isinstance(answers, dict)
         and answers == checks
-        and isinstance(proposer, str)
-        and _ROLE_RE.fullmatch(proposer) is not None
-        and isinstance(approver, str)
-        and _ROLE_RE.fullmatch(approver) is not None
+        and _matches(_ROLE_RE, proposer)
+        and _matches(_ROLE_RE, approver)
         and approver != proposer
-        and isinstance(evidence_ref, str)
-        and _EVIDENCE_RE.fullmatch(evidence_ref) is not None
+        and _matches(_EVIDENCE_RE, evidence_ref)
     )
 
 
@@ -807,9 +820,7 @@ def review(
     if not due.due:
         return CoolingResult(code="not-due", record=record)
     assert isinstance(checks, dict)
-    # Safe as a bare membership test only because `_review_is_complete` above
-    # already ran `_is_one_of` over these same values, so each is a str.
-    if any(answer in {"refuse", "uncertain"} for answer in checks.values()):
+    if any(_is_one_of(answer, {"refuse", "uncertain"}) for answer in checks.values()):
         if not _exception_is_valid(exception):
             return CoolingResult(code="exception-envelope-invalid")
         proposed = _proposed_record(
