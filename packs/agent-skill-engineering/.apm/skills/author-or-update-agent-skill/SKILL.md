@@ -14,6 +14,9 @@ requested task. Preserve the user's intent, existing behavior, and authority.
 
 `frame` is the default and is read-only. Move to `create` or `update` only
 after an explicit mode transition and immediately before the first write.
+`knowledge-provider` is entered read-only and never carries write authority on
+entry; move from `knowledge-provider` to a write only after the user authorizes
+that write in its own explicit transition.
 
 - **frame** — clarify the activation boundary, observable outcome, non-goals,
   authority, portability floor, and evidence. Read
@@ -24,13 +27,20 @@ after an explicit mode transition and immediately before the first write.
 - **update** — after the user authorizes mutation and confirms the existing
   skill root, preserve its supported behavior while making the requested
   change. Read [references/update.md](references/update.md).
+- **knowledge-provider** — design a governed, read-only knowledge corpus and the
+  router that serves it. Entry is read-only: the mode reads and plans, and any
+  write waits for its own authorization. Read
+  [references/knowledge-provider-pattern.md](references/knowledge-provider-pattern.md),
+  [references/provenance.md](references/provenance.md),
+  [references/retrieval-evaluation.md](references/retrieval-evaluation.md), and
+  [references/security-boundaries.md](references/security-boundaries.md).
 
 If the mode or target is missing or ambiguous, remain in `frame` and ask for the
 exact target here; resolving an ambiguous target is this workflow's first step,
 not a reason to decline it. Requests to
-author a `knowledge-provider`, `runtime-package`, `runtime-profile`, `plugin`,
-`hook`, or `subagent` use the stable unavailable result below; none is an activation mode
-for this foundation.
+author a `runtime-package`, `runtime-profile`, `plugin`, `hook`, or `subagent`
+use the stable unavailable result below; none is an activation mode for this
+foundation.
 
 ```text
 contract_version: agent-skill-engineering-foundation/v1

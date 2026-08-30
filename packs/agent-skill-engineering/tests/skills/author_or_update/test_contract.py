@@ -17,10 +17,14 @@ AUTHOR_ROOT = PACK_ROOT / ".apm" / "skills" / "author-or-update-agent-skill"
 AUTHOR_ROUTES = (
     "references/create.md",
     "references/frame.md",
+    "references/knowledge-provider-pattern.md",
     "references/knowledge-surfaces.md",
     "references/language-extension-seams.md",
+    "references/provenance.md",
     "references/provider-contract.md",
+    "references/retrieval-evaluation.md",
     "references/safety-and-authority.md",
+    "references/security-boundaries.md",
     "references/update.md",
 )
 AUTHORING_EVAL_IDS = frozenset({"frame-new-skill", "update-existing-skill"})
@@ -65,14 +69,16 @@ def test_authoring_skill_exposes_only_the_progressive_foundation_modes() -> None
     assert "`frame` is the default and is read-only" in text
     assert "explicit mode transition" in text
     for unavailable in (
-        "`knowledge-provider`",
         "`runtime-package`",
         "`runtime-profile`",
         "`plugin`",
         "`hook`",
         "`subagent`",
     ):
-        assert unavailable in text
+        assert unavailable in _unavailable_modes(text), unavailable
+    # Advertised, so it must not appear in the unavailable region at all -- a
+    # backticked match anywhere in the file would be satisfied by either.
+    assert "`knowledge-provider`" not in _unavailable_modes(text)
     assert "contract_version: agent-skill-engineering-foundation/v1" in text
     assert "status: unavailable" in text
 
@@ -87,7 +93,6 @@ def test_every_unsupported_mode_has_the_exact_versioned_unavailable_result() -> 
     modes = {case["mode"] for case in fixture["cases"]}
 
     assert modes == {
-        "knowledge-provider",
         "runtime-package",
         "runtime-profile",
         "plugin",
@@ -238,3 +243,90 @@ def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:
         ".codex/skills",
     ):
         assert forbidden not in content
+
+
+MODES_SECTION = re.compile(r"^## Modes$(.*?)^## ", re.MULTILINE | re.DOTALL)
+MODE_BULLET = re.compile(r"^- \*\*(?P<name>[a-z][a-z-]*)\*\* — ", re.MULTILINE)
+UNAVAILABLE_SENTENCE = re.compile(
+    r"Requests to\s+author (.*?)\s+use the stable unavailable result", re.DOTALL
+)
+
+
+def _modes_section(text: str) -> str:
+    """Return the Modes section only, never the whole file."""
+    match = MODES_SECTION.search(text)
+    assert match, "SKILL.md has no Modes section"
+    return match.group(1)
+
+
+def _mode_bullet_names(text: str) -> set[str]:
+    """Return the modes the Modes list advertises, from its bullets alone."""
+    return set(MODE_BULLET.findall(_modes_section(text)))
+
+
+def _unavailable_modes(text: str) -> str:
+    """Return the unavailable-result sentence, so a match elsewhere cannot pass for it."""
+    match = UNAVAILABLE_SENTENCE.search(text)
+    assert match, "SKILL.md has no unavailable-result sentence"
+    return match.group(1)
+
+
+def _mode_bullet(text: str, mode: str) -> str:
+    """Return one mode's own bullet.
+
+    Never the section opener: "`frame` is the default and is read-only" would
+    otherwise satisfy a read-only assertion for every mode.
+    """
+    section = _modes_section(text)
+    starts = [(m.group("name"), m.start()) for m in MODE_BULLET.finditer(section)]
+    for index, (name, start) in enumerate(starts):
+        if name == mode:
+            end = starts[index + 1][1] if index + 1 < len(starts) else len(section)
+            return section[start:end]
+    raise AssertionError(f"no bullet for mode {mode!r}")
+
+
+def _transition_sentence(text: str) -> str:
+    """Return the sentence authorizing a write out of knowledge-provider.
+
+    Scoped to that sentence. The shipped "Move to `create` or `update` only
+    after an explicit mode transition and immediately before the first write"
+    gates a single moment and cannot express read-only entry plus a later,
+    separate authorization, so naming the mode there would satisfy the
+    assertion while contradicting read-only entry.
+    """
+    for sentence in _modes_section(text).replace("\n", " ").split("."):
+        if "authorizes that write" in sentence:
+            return sentence
+    raise AssertionError("no separate write-authorizing transition sentence")
+
+
+def _modules_for(mode: str) -> set[str]:
+    """Return the reference modules a mode's own bullet links."""
+    bullet = _mode_bullet((AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8"), mode)
+    return set(re.findall(r"\(references/([a-z0-9-]+\.md)\)", bullet))
+
+
+def test_mode_is_advertised_and_not_declared_unavailable() -> None:
+    text = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    assert _mode_bullet_names(text) == {"frame", "create", "update", "knowledge-provider"}
+    assert "knowledge-provider" not in _unavailable_modes(text)
+
+
+def test_mode_entry_is_read_only_and_write_is_gated() -> None:
+    text = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    entry = _mode_bullet(text, "knowledge-provider")
+    assert "read-only" in entry
+    assert "knowledge-provider" in _transition_sentence(text)
+
+
+def test_mode_specific_modules_are_exactly_four() -> None:
+    assert _modules_for("knowledge-provider") == {
+        "knowledge-provider-pattern.md",
+        "provenance.md",
+        "retrieval-evaluation.md",
+        "security-boundaries.md",
+    }
+    # The common contract's safety module still governs every mode, so it is
+    # not a knowledge-provider-specific module.
+    assert "safety-and-authority.md" not in _modules_for("knowledge-provider")

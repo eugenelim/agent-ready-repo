@@ -8,6 +8,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
@@ -119,9 +120,10 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
     activation surface is what would route an unavailable request into a
     workflow. Modes come from the fixture that already defines the closed
     vocabulary. The count assert below is an anti-vacuity floor pinned to
-    AC4's closed six-mode enumeration: a seventh mode reddens it deliberately,
-    so extending coverage is an AC4-synced decision rather than something that
-    happens silently.
+    the closed enumeration: a mode appearing or disappearing reddens it
+    deliberately, so changing coverage is a synced decision rather than
+    something that happens silently. It is five now that knowledge-provider is
+    advertised.
     """
 
     modes = {
@@ -132,7 +134,7 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
             ).read_text(encoding="utf-8")
         )["cases"]
     }
-    assert len(modes) == 6
+    assert len(modes) == 5
 
     for name, root in WORKFLOW_ROOTS.items():
         text = (root / "SKILL.md").read_text(encoding="utf-8")
@@ -198,3 +200,42 @@ def test_independent_activation_results_bind_all_queries_and_descriptions() -> N
             # call — but nothing may fire on a negative query.
             allowed = {ROUTER_SKILL} if query["should_trigger"] else set()
             assert set(case["exclusivity_violations"]) <= allowed
+
+
+# A durable positive control for the mode matcher. Without it a matcher that
+# silently stopped detecting anything would leave the guard above green while
+# proving nothing -- the guard only ever asserts that a form is *absent*.
+DETECTED_FORMS = [
+    ("runtime-package", "use for runtime-package work"),
+    ("runtime-package", "use for knowledge providers and runtime packages"),
+    ("subagent", "handles sub-agents too"),
+    ("plugin", "use for plugins, hooks, and subagents"),
+    ("hook", "use for plugins, hooks, and subagents"),
+    ("runtime-profile", "covers runtime profiles as well"),
+]
+
+
+@pytest.mark.parametrize("mode,description", DETECTED_FORMS)
+def test_matcher_detects_forbidden_surface_forms(mode: str, description: str) -> None:
+    """Plural, space-separated, and hyphen-split spellings all count."""
+    assert _names_mode(description, mode), (mode, description)
+
+
+def test_matcher_does_not_fire_on_neutral_prose() -> None:
+    """A reworded opening naming no mode is not a match."""
+    assert not _names_mode("Use when a user asks for help with a skill", "plugin")
+    assert not _names_mode("Use when a user asks for help with a skill", "subagent")
+
+
+def test_knowledge_provider_is_no_longer_in_the_unsupported_enumeration() -> None:
+    """The advertised mode left the closed unavailable set."""
+    modes = {
+        case["mode"]
+        for case in json.loads(
+            (
+                PACK_ROOT / "tests" / "fixtures" / "unsupported-mode-cases.json"
+            ).read_text(encoding="utf-8")
+        )["cases"]
+    }
+    assert "knowledge-provider" not in modes
+    assert modes == {"runtime-package", "runtime-profile", "plugin", "hook", "subagent"}

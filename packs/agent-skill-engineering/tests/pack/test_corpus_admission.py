@@ -161,11 +161,22 @@ def test_shipped_body_matches_the_admission_record() -> None:
     """Observed-practice limits remain portable and equal in both projections."""
 
     record = json.loads(ADMISSION.read_text(encoding="utf-8"))
+    # Resolve by globbing each root and indexing by stem rather than joining a
+    # fixture-supplied name onto a path. The join is in-pack either way, but a
+    # variable operand cannot be shown to be, and the boundary linter is right
+    # that the form does not prove it.
+    authored_by_stem = {
+        path.stem: path for path in CONCEPTS.glob("*.md") if path.is_file()
+    }
+    compiled_by_stem = {
+        path.stem: path for path in COMPILED_CONCEPTS.glob("*.md") if path.is_file()
+    }
     for topic in record["topics"]:
-        authored = (CONCEPTS / f"{topic['topic']}.md").read_text(encoding="utf-8")
-        compiled = (COMPILED_CONCEPTS / f"{topic['topic']}.md").read_text(
-            encoding="utf-8"
-        )
+        name = topic["topic"]
+        assert name in authored_by_stem, name
+        assert name in compiled_by_stem, name
+        authored = authored_by_stem[name].read_text(encoding="utf-8")
+        compiled = compiled_by_stem[name].read_text(encoding="utf-8")
         assert not ROLE_OR_PLACEHOLDER.search(authored)
         assert not ROLE_OR_PLACEHOLDER.search(compiled)
         for group in topic["claim_groups"]:
