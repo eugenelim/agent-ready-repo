@@ -163,6 +163,15 @@ repository, and a warranted RFC still completes the existing Draft flow.
 - Goal-based construction tests pin RFC mode/context/checks, exact tools and
   boundary metadata, findings-only output, and preservation of existing modes
   (AC2, AC5, AC6).
+- Goal-based: a content test pins all ten untrusted-draft prohibitions
+  (repository instructions, identity, tool permissions, review scope, reviewer
+  routing, rubric or checklist coverage, severity, verdict, clean status,
+  normative authority) plus the no-suppression clause, asserting the vector set
+  matches the repository's existing `<knowledge-evidence>` wording (AC2).
+- Visual/manual QA: one hostile-draft run whose embedded text claims its own
+  authority, demands a clean verdict, and tries to route the reviewer out of
+  RFC mode; the recorded outcome shows the reviewer still reporting findings
+  (AC2).
 - Goal-based: reviewer fixtures remove unnecessary claims without requesting
   supporting prose and flag only unsupported claims necessary to the RFC
   decision (AC2).
@@ -194,14 +203,19 @@ repository, and a warranted RFC still completes the existing Draft flow.
 - Goal-based/eval: author/reviewer fixtures minimize architecture claim surface,
   perform one bounded check for a necessary named-target assertion, and use an
   assumption/discovery predicate when it remains ungrounded (AC3–AC4).
-- Goal-based: the architecture skills carry the written confinement contract
-  for saves within the resolved configured output root, pinned by a static
-  content test. No code in this slice performs those saves (AC1, AC3).
+- Goal-based: `architect-design` — and only `architect-design` — carries the
+  written confinement contract for saves within the resolved configured output
+  root, pinned by a static content test. `architect-review` is excluded: it is
+  inline and no-file-write by contract and directs no output-root save. No code
+  in this slice performs those saves (AC3).
 - Goal-based/manual QA: direct architecture requests reach `architect-design`
   without creating a synthetic intent or dispatching shaping review (AC5).
-- Goal-based: both changed skills declare the minimum tools and
-  `metadata.boundaries`, and every adapter projection preserves the existing
-  effective authority (AC6).
+- Goal-based: both changed skills declare exactly the tools and
+  `metadata.boundaries` AC6 enumerates — asserted as equality, so a superset
+  fails — including `architect-review`'s newly added
+  `allowed-tools: Read Grep Glob Write` and
+  `boundaries: [filesystem_read_untrusted, filesystem_write]`. Every adapter
+  projection preserves the existing effective authority (AC6).
 
 **Approach:**
 - Extend the existing author gate and design-doc rubric; change the template
@@ -275,3 +289,16 @@ Existing RFCs, designs, and adapter contracts require no migration.
   negative; AC6 gains a per-surface authority baseline; AC2 gains an
   untrusted-draft criterion, since the agent's only untrusted-data framing today
   covers the optional knowledge-evidence envelope.
+- 2026-08-30: round-2 pre-EXECUTE review. All three findings were introduced by
+  the round-1 amendment itself. AC6 left `architect-review`'s post-change
+  authority as "the minimum set it actually needs", which no test can pin; it
+  now enumerates exact values asserted as equality. AC1 still carried the
+  architecture-save clause after being rescoped to `new-rfc`, which does not
+  write those; the clause moved to AC3, scoped to `architect-design`, since
+  `architect-review` is inline and no-file-write. AC2's prohibition list had
+  seven vectors against the repository's canonical eleven; it now adopts that
+  set verbatim, adding reviewer routing, clean status and normative authority,
+  and T2 gains the matching content test and hostile-draft run. AC1's forward
+  pointer to `write_files_no_follow` was corrected: that helper provides link
+  refusal only and performs no root confinement, so any future seam must prove
+  the output directory is confined first.

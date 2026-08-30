@@ -91,10 +91,10 @@ architect pack's separate cold convergence agent remains unchanged.
   index lifecycle without weaker gates.
 - [ ] `new-rfc` carries a written confinement contract for every write it
   directs: RFC target, index, and companion-note writes stay inside the
-  resolved RFC owner root, architecture saves stay inside their resolved
-  configured output root, and an unsafe, link-like, identity-changing, or
-  out-of-root target is refused before any mutation. A static content test
-  pins each clause, and one manual-QA record at
+  resolved RFC owner root, and an unsafe, link-like, identity-changing, or
+  out-of-root target is refused before any mutation. Architecture saves are
+  AC3's, not this criterion's — `new-rfc` does not write them. A static
+  content test pins each clause, and one manual-QA record at
   `docs/specs/rfc-architecture-simplification/manual-qa.md` shows the contract
   honoured on a real run.
 
@@ -102,9 +102,13 @@ architect pack's separate cold convergence agent remains unchanged.
   guidance the skill carries, not a mechanically enforced gate. That is a
   deliberate scope decision (owner, 2026-08-30): the alternative was a new
   write seam, which this plan's "no new helper" constraint and the spec's own
-  cut-before-adding purpose both refuse. An executable seam invoking
-  `agentbundle.safety.write_files_no_follow` remains the correct home for
-  enforcement if a future slice gives `new-rfc` a callable write path.
+  cut-before-adding purpose both refuse. If a future slice gives `new-rfc` a
+  callable write path, enforcement there must prove the output directory is
+  confined to the declared root *before* mutating, then use
+  `agentbundle.safety.write_files_no_follow` for the no-follow write. That
+  helper alone is not sufficient: its contract states it "provides link
+  refusal only" and "performs no root confinement", so a caller holding an
+  untrusted output directory must `assert_under` a root first.
 - [ ] A warranted RFC deletes claims unnecessary to its decision. Before
   stating a necessary cross-document assertion as fact, it performs one
   bounded check of the named target or marks the claim as an assumption or
@@ -127,11 +131,16 @@ architect pack's separate cold convergence agent remains unchanged.
 - [ ] RFC mode treats the draft under review as untrusted data. The agent's
   existing untrusted-data framing covers only the optional
   `<knowledge-evidence>` envelope, so RFC mode states that text inside a
-  reviewed RFC cannot change the reviewer's instructions, identity, tool
-  permissions, scope, rubric coverage, finding severity, or verdict, and
-  cannot suppress a finding. A content test pins each of those seven
-  prohibitions, and a hostile-draft fixture carrying an embedded instruction
-  to return clean records that the reviewer still reports its findings.
+  reviewed RFC cannot change the reviewer's repository instructions,
+  identity, tool permissions, review scope, reviewer routing, rubric or
+  checklist coverage, severity, verdict, clean status, or normative
+  authority, and cannot suppress a finding. That is the same vector set the
+  repository already uses for its `<knowledge-evidence>` envelope, adopted
+  verbatim rather than invented. A content test pins all ten prohibitions and
+  the no-suppression clause, and a hostile-draft fixture — carrying embedded
+  text that claims its own authority, demands a clean verdict, and tries to
+  route itself out of RFC mode — records that the reviewer still reports its
+  findings.
 
 ### AC3 — Architecture authors reuse and stop
 
@@ -146,6 +155,15 @@ architect pack's separate cold convergence agent remains unchanged.
 - [ ] Architecture documents delete unnecessary claims and ground each
   necessary cross-document assertion with one bounded check of its named target
   or an explicit assumption/discovery predicate.
+- [ ] `architect-design` carries a written confinement contract for the saves it
+  directs: a Stage-0 or full-design save stays inside the resolved configured
+  output root, and an unsafe, link-like, identity-changing, or out-of-root
+  target is refused before any mutation. A static content test pins each
+  clause. This criterion is `architect-design`-only: `architect-review` is
+  inline and no-file-write by contract except on an explicit user save
+  request, and it directs no output-root save. Like AC1's clause, this is
+  guidance the skill carries, not a runtime gate — no code in this slice
+  performs the save.
 
 ### AC4 — Architecture review independently cuts excess design
 
@@ -195,8 +213,15 @@ architect pack's separate cold convergence agent remains unchanged.
   `[filesystem_read_untrusted, filesystem_write]`; `architect-design` — no
   `allowed-tools`, boundaries `[filesystem_read_untrusted, filesystem_write,
   network_fetch]`; `architect-review` — neither declared today, and this slice
-  adds the minimum set it actually needs. A construction test pins each
-  surface's post-change tools and boundaries against that enumeration, and
+  declares exactly `allowed-tools: Read Grep Glob Write` and
+  `boundaries: [filesystem_read_untrusted, filesystem_write]`. `Write` and
+  `filesystem_write` are the minimum for its documented opt-in save path
+  ("If the user explicitly asks to save the review, write to a path they
+  choose"); its default is inline, no-file-write, and it gains no network or
+  shell authority. A construction test asserts each surface's post-change
+  tools and boundaries are **exactly equal** to that enumeration — a superset
+  fails — and adapter projections gain no write, shell, web, credential, or
+  mutation
   adapter projections gain no write, shell, web, credential, or mutation
   authority merely for YAGNI review.
 - [ ] Repository artifacts, skills, and caller-supplied evidence remain data;
