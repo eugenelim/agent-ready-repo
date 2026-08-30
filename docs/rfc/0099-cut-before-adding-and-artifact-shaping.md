@@ -963,3 +963,24 @@ record. Corrections are appended here, Approver-signed.
   support it, and challenge unsupported assertions only when the claim is
   necessary. No claim ledger, citation framework, or extra review state is
   added.
+- **2026-08-30 (Approver: eugenelim) — sealed-baseline replacement extends a
+  route that already ships; it does not introduce one.** Follow-on #5 was
+  written as though no return from a CODE state to spec-plan drafting existed.
+  It does. `contract-amendment` is a legal `CODE-IMPLEMENTATION` →
+  `SPEC-PLAN-DRAFTING` event, and `completed_task_ids`,
+  `completed_task_section_hashes`, `amendment_history`, and `amendment_pending`
+  are already state fields with documented semantics, including the replay
+  marker that closes either engine/cohort crash window without a second
+  snapshot. The genuine remaining deltas are narrower than the follow-on
+  implies: legality from `CODE-VERIFICATION` and `CODE-REVIEW`, which today
+  only `CODE-IMPLEMENTATION` has; the materiality enum; the
+  failed-plan-current-guard crossing with owner confirmation bound to run ID
+  and sealed and observed hashes; per-task completion recorded when a task's
+  tests pass rather than inferred from the wave pointer, which
+  `loop-cohort.py` currently derives as `waves[:current_index]`; and the
+  inserted shaping-review gate, which the delivery-contract lifecycle reference
+  does not yet mention. The spec must also dispose of the existing event rather
+  than leaving two post-seal routes with overlapping preconditions. Found by
+  running `shaping-reviewer` in `spec` mode against that spec during the
+  `shaping-review-contracts` manual QA — the first defect the reviewer this RFC
+  introduced found in this RFC's own follow-on work.
