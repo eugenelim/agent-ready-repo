@@ -72,7 +72,7 @@ def _tree(tmp_path, *, records=(), specs=("alpha",), lifecycle=True):
 def test_only_finished_work_cools(tmp_path, engine, pair) -> None:
     root = _tree(tmp_path, records=[_record(disposition=pair[0], result=pair[1])])
     cooled, findings = engine._resolve_cooled_state(root)
-    assert cooled == { (root / "docs/specs/alpha/spec.md").resolve() }
+    assert cooled == {(root / "docs/specs/alpha/spec.md").resolve()}
     assert findings == ()
 
 

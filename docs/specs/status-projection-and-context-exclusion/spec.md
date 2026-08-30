@@ -148,10 +148,12 @@ mechanical boundary as well as a scope one. See [Follow-ons](#follow-ons).
 
 ## Follow-ons
 
-Separately scoped work this delivery does not perform, recorded in
-`workspace.toml [backlog].open` rather than as an inline deferral token —
-`docs/CONVENTIONS.md:479-486` reserves that token for pre-existing frozen specs
-and directs new separable work here.
+Separately scoped work this delivery does not perform. Recorded here rather than
+as an inline `(deferred:)` token: `docs/CONVENTIONS.md:479-486` reserves that
+token for pre-existing frozen specs and directs new separable work to this
+section. Both items are owned by RFC-0096 Wave 7, whose §9 entry already scopes
+them, so the RFC is their register — a `[backlog].open` slug entry would be
+legacy-shaped and the repository ratchets against adding one.
 
 | Slug | Outcome | Owner |
 | --- | --- | --- |
@@ -415,10 +417,10 @@ absent in whitespace-normalized text.
   `packs/core/.apm/skills/workspace-status/SKILL.md` does not contain `remains
   visible because ordinary-context exclusion is not part of this wave` and does
   contain `Cooling context is excluded from ordinary orientation`.
-- [ ] **AC51 — Both follow-ons are registered.** `workspace.toml`'s
-  `[backlog].open` contains an entry whose `slug` is
-  `cooling-repair-migration-scope` and one whose `slug` is
-  `wave6-dependency-scoped-completion-receipts`.
+- [ ] **AC51 — Both follow-ons carry a durable pointer.** `spec.md`'s
+  `## Follow-ons` table names `cooling-repair-migration-scope` and
+  `wave6-dependency-scoped-completion-receipts`, each with an owner, and the
+  spec contains no `(deferred:` token.
 - [ ] **AC52 — Wave 4's frozen spec is untouched.**
   `docs/specs/close-work-extraction-and-immediate-disposition/spec.md` has
   SHA-256 `4f1b98e7fdb53a4726a65432ef2993a7f0db1f65987c46bd00763a999915de8a`.

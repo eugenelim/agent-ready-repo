@@ -337,6 +337,8 @@ finding identifier as a path only after confirming it is one.
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
+| `invalid_lifecycle_record` | A `docs/lifecycle/` record failed to load, was a symlink, or was not a regular file. | Repair or remove that record; other records still cool. |
+| `cooling_state_unavailable` | The cooled set could not be established at all: `docs/lifecycle/` is unusable or escapes the root, or no cooling module resolved. | Install `close-work` or repair `docs/lifecycle/`; no artifact is excluded this run. |
 | `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
 | `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
 | `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
