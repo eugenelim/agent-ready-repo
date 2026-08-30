@@ -1676,6 +1676,24 @@ def test_the_caller_supplied_enums_refuse_a_container(tmp_path) -> None:
     assert reviewed.code == "review-incomplete"
 
 
+# STUB: AC27 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [123, 0, 1.5, True])
+def test_a_non_string_delivery_id_refuses(value: object) -> None:
+    """A container cannot catch this; only a scalar that survives str() can.
+
+    The shipped code matched `_DELIVERY_ID_RE.fullmatch(str(payload[...]))`, so
+    `123` became `"123"` — pattern-valid, then the on-disk filename and the
+    authority `resource`. AC23's containers do not discriminate, because
+    `str(["x"])` fails the pattern either way.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(delivery_id=value)).code == "record-invalid"
+    assert cooling.parse_record_bytes(
+        json.dumps(_payload(delivery_id=value)).encode()
+    ).code == "record-invalid"
+
+
 # STUB: AC26 (spec/cooling-untrusted-input-refusals)
 def test_the_alias_bound_equals_the_published_one() -> None:
     cooling = _load()

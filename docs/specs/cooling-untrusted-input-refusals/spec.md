@@ -103,7 +103,7 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Coverage — all 29 criteria are materialised and none is deferred.
+Coverage — all 30 criteria are materialised and none is deferred.
 
 Twenty-five were written at PLAN, before any implementation existed. Twenty of
 those were red then; the other five are non-regression or consistency
@@ -204,6 +204,11 @@ that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
   `completion_event = ["merge"]` returns `completion-event-required`, and
   `review` with a check answer of `["refuse"]` returns `review-incomplete`.
   Neither raises.
+- [x] **AC27 — A non-string `delivery_id` refuses.** For each of `123`, `0`,
+  `1.5`, and `true`, `validate_payload` and `parse_record_bytes` return
+  `record-invalid`. AC23's containers cannot cover this: `str(["x"])` fails the
+  pattern with or without the type guard, so only a scalar that survives `str()`
+  discriminates.
 - [x] **AC26 — The alias bound equals the published one.**
   `cooling.MAX_ALIAS_COUNT` equals `properties.aliases.maxItems`, and with the
   constant patched to `2` a three-element `aliases` returns `record-invalid`
