@@ -90,7 +90,11 @@ def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
 
     assert spec_gate < plan_gate
     spec_section = text[spec_gate:plan_gate]
-    plan_section = text[plan_gate:]
+    # Bound the plan slice at the next top-level heading rather than running to
+    # end-of-file: an unbounded slice would keep passing if the `plan-locked`
+    # gate lost a phrase that a later section happened to carry.
+    next_heading = text.find("\n## ", plan_gate)
+    plan_section = text[plan_gate:] if next_heading == -1 else text[plan_gate:next_heading]
     assert "capture only" in spec_section
     assert "must not transfer" in spec_section
     assert "workflow-receipts" in plan_section
