@@ -1933,6 +1933,36 @@ def test_the_last_completion_date_that_fits_is_accepted() -> None:
     assert cooling.compute_review_on(date(9999, 12, 1), SG) == date(9999, 12, 31)
 
 
+# STUB: AC32 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "locator",
+    ["docs/a\x01b.md", "docs/a\x7fb.md", "docs/a\x00b.md", "docs/a\nb.md"],
+    ids=["c0-x01", "del-x7f", "nul-x00", "newline"],
+)
+def test_a_locator_with_a_control_character_refuses(locator: str) -> None:
+    """The contract's `$defs/locator` pattern excludes this range; the validator did not.
+
+    `surface_resolver._has_control` and `close_work._bounded_text` both already
+    apply the rule, so `_is_locator` was the one surface of four that did not.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(locator=locator)).code == "record-invalid"
+    assert cooling.validate_payload(
+        _payload(aliases=[locator])
+    ).code == "record-invalid"
+
+
+def test_the_locator_rule_matches_the_published_pattern_on_this_range() -> None:
+    """Both sides agree on the control range after the repair."""
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        pattern = re.compile(json.load(schema_file)["$defs"]["locator"]["pattern"])
+
+    for value in ("docs/a\x01b.md", "docs/a\x7fb.md", "docs/ok.md"):
+        assert (pattern.fullmatch(value) is not None) == cooling._is_locator(value), value
+
+
 # STUB: AC26 (spec/cooling-untrusted-input-refusals)
 def test_the_alias_bound_equals_the_published_one() -> None:
     cooling = _load()

@@ -107,14 +107,14 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Coverage — all 34 criteria are materialised and none is deferred.
+Coverage — all 35 criteria are materialised and none is deferred.
 
 Twenty-five were written at PLAN, before any implementation existed. Twenty of
 those were red then; the rest are non-regression or consistency invariants that
 held already, and each carries a mutation proof in `plan.md`, because a
 criterion that cannot fail proves nothing.
 
-Nine more were added as review found further instances of this module's one
+Ten more were added as review found further instances of this module's one
 systemic defect — trusting the shape of untrusted input. Five distinct escape
 classes surfaced across five rounds, each by asking the same question. AC23 to AC26 cover
 containers where a scalar belongs and the third published bound. AC27 exists
@@ -254,6 +254,11 @@ and hold either way.
   `parse_record_bytes`, and `compute_review_on`; `9999-12-01`, the last date
   that leaves thirty days, still yields `9999-12-31`.
 
+- [x] **AC32 — A locator carrying a control character refuses.** For each of
+  `\x01`, `\x7f`, `\x00`, and `\n` inside a locator, `validate_payload` returns
+  `record-invalid`, both in `locator` and in an `aliases` entry; and for that
+  range `_is_locator` agrees with the contract's `$defs/locator` pattern.
+
 ### Bounds that match the published contract
 
 - [x] **AC11 — The timezone bound equals the published one.**
@@ -319,50 +324,65 @@ coercions this spec once wrongly called inert (AC28). That last claim was true o
 the *match outcome* and false of the *call*: `str()` on an unbounded int raises
 before any pattern is consulted.
 
-- **The `locator` pattern diverges from the published contract.**
-  `_is_locator` admits the C0 control range and `U+007F`, which the contract's
-  `$defs/locator` pattern excludes; `_is_locator` rejects a `.` segment, which
-  the pattern admits. AC13 and AC14 pin only the numeric bound. The write path
-  is unaffected — it binds on `delivery_id`, which is regex-bounded — so the
-  reach is the deletion path via `close_work._bounded_text`'s control-character
-  refusal, and `verify_identity` usually refuses first with
-  `locator-unresolved`. Reconciling the pattern changes behaviour and needs a
-  spec that decides which side is right. Evidence in
-  [`notes/schema-decision.md`](notes/schema-decision.md).
+- **A conforming locator with a `.` segment is still refused.** The remaining
+  half of the locator divergence, and the only one that needs a decision. The
+  contract's `$defs/locator` pattern admits `docs/./a.md`; `_is_locator` rejects
+  it, and so do `surface_resolver` and `file_safety`, all three with the
+  identical `part in {"", ".", ".."}` predicate. Three code surfaces agree, so
+  the published pattern is the outlier, and there is a substantive reason to
+  keep it that way: `docs/a.md` and `docs/./a.md` resolve to the same file, so
+  admitting both would let two spellings of one file occupy two `aliases` slots
+  and both verify.
+
+  Reconciling therefore means **tightening the published pattern**, which is a
+  contract change — it alters what a conforming producer may emit and would need
+  `x-spec` co-ownership. That is the owner call, and it is narrow: does any
+  adopter emit a `.` segment today? Locally the answer is no — `docs/lifecycle/`
+  holds only a `README.md`.
+
+  The other half of this divergence is built, not deferred: `_is_locator` now
+  rejects the control range under AC32, which needed no decision because the
+  contract and both blessed helpers already applied that rule.
+
 - **The write grant is never consumed, and its registry is never evicted.**
   Adjudicated and refuted as an authorization defect — no shipped authority
   requires single use, and issue digests are deterministic over the grant
-  payload, so popping cannot stop replay by a grant holder. The unrecorded
-  residual is retention: `_ISSUED_COORDINATION_AUTHORITIES` is never evicted on
-  the write path, and `_binding_is_issued` scans it linearly on every write, so
-  N resolved grants make each subsequent write O(N). Full trace in
-  [`notes/adjudication.md`](notes/adjudication.md).
+  payload, so popping cannot stop replay by a grant holder. What remains is
+  hygiene: `_ISSUED_COORDINATION_AUTHORITIES` is never evicted on the write
+  path, so it grows for the process lifetime.
+
+  The scan cost this once carried is **desk-refuted**. A full scan measures
+  15.8 us at one grant and 55.8 ms at four thousand, linear — but shipped pack
+  code has exactly one caller of `resolve_mutation_authority`, on the deletion
+  path, resolving one grant per confirmed effect, so realistic N is single
+  digits and the scan costs well under a millisecond. An in-registry binding
+  also short-circuits on first match, making the measured figure worst-case.
+  Reopen only if a real session is shown to exceed roughly fifty grants. Trace
+  in [`notes/adjudication.md`](notes/adjudication.md).
+
 - **An unreadable timezone database refuses every record as malformed.**
-  `_zone`'s `OSError` arm is deliberately broad, so host degradation — an
-  unreadable tz database, `EMFILE`, `EIO` — collapses into the same refusal as
-  bad input. That is fail-closed and this module logs nothing by design, so an
-  operator sees `record-invalid` rather than the cause. Narrowing by errno would
-  leave AC6a green while re-raising, which is why it is recorded rather than
-  changed. A distinct code is the candidate repair.
-- **A `_close_work()` failure escapes five reaches uncaught.** The seam is
-  resolved lazily, and not every caller wraps it. `load_record` does. `enrol`
-  does **not**: it calls `_resolve_destination` before its own `try` opens, and
-  `_resolve_destination` resolves `_close_work()` inside itself, so an
-  `ImportError` there escapes `enrol` exactly as it escapes `update_record` —
-  which wraps nothing — and therefore escapes `review` and `review_exception`
-  too. `verify_identity` resolves it outside its own `try`, and
-  `deletion_allowed` calls `verify_identity` bare. `_binding_is_issued` resolves
-  it from `_write_record` before that function's `try` opens.
+  Measured: `EACCES`, `EMFILE`, and `EIO` are indistinguishable from a genuinely
+  bad zone, and the module logs nothing. **Not planned.** A host that cannot read
+  its timezone database fails louder elsewhere, so cooling's refusal is not the
+  signal an operator is missing; the behaviour is fail-closed and no one has
+  reported it. Reopen only with a case where cooling is the first or only signal.
 
-  The outcome is fail-closed — no permission is granted — but the observable is
-  a traceback carrying the absolute paths of both `cooling.py` and
-  `close_work.py`, from the permission-granting seam. `resolve_surface` sits on
-  the same unwrapped reach.
+- **An unresolvable `close-work` seam escapes six public seams — and wrapping it
+  may be the wrong repair.** Measured with a genuinely confirmed candidate:
+  `enrol`, `update_record`, `verify_identity`, `deletion_allowed`, `review`, and
+  `review_exception` all raise `ImportError`; only `load_record` refuses
+  cleanly. An earlier revision of this entry said "five reaches", counting call
+  sites rather than the entry points a caller sees.
 
-  This is a dependency fault rather than record input, which is why it is
-  recorded rather than repaired here: moving the call inside `enrol`'s `try`
-  changes which refusal code an existing input shape produces, and this spec's
-  Boundaries put that behind *Ask first*.
+  Before anyone repairs it: `close_work.py` sits beside `cooling.py` in all
+  three shipped copies and is projected by the same self-host step, so an
+  unresolvable seam means a broken installation, not a runtime condition. For a
+  broken install an `ImportError` naming the missing module is **more**
+  actionable than `lifecycle-state-unwritable`, so wrapping it would destroy
+  diagnostic information and make an install fault read as a data fault. The
+  owner call is whether any scenario produces an unresolvable seam in an intact
+  installation; if none does, correct this entry to record the escape as
+  deliberate rather than carrying it as work.
 
 ## Assumptions
 

@@ -94,11 +94,12 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC29 | `test_a_malformed_candidate_refuses_instead_of_raising` | TDD | added post-GATES |
 | AC30 | `test_no_leaf_substitution_makes_a_seam_raise` | TDD | added post-review; a sweep, not an enumeration |
 | AC31 | `test_a_completion_date_with_no_review_date_refuses`, `test_the_last_completion_date_that_fits_is_accepted` | TDD | added post-review |
+| AC32 | `test_a_locator_with_a_control_character_refuses`, `test_the_locator_rule_matches_the_published_pattern_on_this_range` | TDD | added post-review |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-34 of 34 criteria carry a materialised stub or a named goal-based check. None
+35 of 35 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -378,10 +379,15 @@ Wave 5 spec is not touched.
 
 Regenerate the two projections with `make build-self` — never hand-edit them.
 `build-self` refuses a dirty tree, so it runs after the source change is
-committed, and its output is committed separately. The `close-work` eval harness
-is unchanged and the reason is recorded: this repair alters no instruction,
-prompt, or agent-visible behaviour, only a refusal code path already covered by
-the roster suite.
+committed, and its output is committed separately.
+
+The `close-work` eval harness is unchanged. `packs/AGENTS.md` requires a
+non-cosmetic pack update to touch that pack's evals, so this is a guidance
+conflict rather than an omission, and the root `AGENTS.md` forbids resolving one
+silently. It was surfaced to the owner and **waived on 2026-08-30**: the repair
+alters no instruction, prompt, or agent-visible behaviour — only refusal-code
+paths already covered by the roster suite. Recorded here so the next release does
+not re-litigate it.
 
 Register the spec through `work-intake` in the room matching its final status,
 and add its `docs/specs/README.md` row beside the Wave 5 row.
@@ -405,7 +411,7 @@ in that order.
 
 ### T5: Close the remaining untrusted-shape escapes
 
-- **ACs:** AC23, AC24, AC25, AC26, AC27, AC28, AC29, AC30, AC31
+- **ACs:** AC23, AC24, AC25, AC26, AC27, AC28, AC29, AC30, AC31, AC32
 - **Verification mode:** TDD
 - **Depends on:** T1, T2
 - **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
@@ -461,6 +467,7 @@ cannot yield a vacuous pass.
 | M25 | revert `exception.evidence_ref` to `str()` coercion | AC28, AC30 | killed |
 | M26 | drop the `completed_on` bound, keep the `OverflowError` arm | AC31 | killed |
 | M27 | drop the `OverflowError` arm, keep the bound | AC31 | killed |
+| M28 | remove `_is_locator`'s control-character rule | AC32 | killed |
 
 M17 is the reason AC27 exists. The repair had no criterion until this table was
 built: AC23's containers fail the `delivery_id` pattern with or without the type
