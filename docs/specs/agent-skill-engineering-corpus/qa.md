@@ -1,14 +1,16 @@
 # QA record — agent-skill-engineering corpus (INI-009 slice 2a)
 
-Base for every measurement below: `53db459fa`, taken against `origin/main` at
-`eb060008c`. Every figure here was produced by the invocation named beside it.
+Base for every measurement below: `9d9b5904c`, taken against `origin/main` at
+`9d9b5904c`. Every figure here was produced by the invocation named beside it.
 
-The blind retrieval and behaviour measurements were taken on `f4f29a4b1`
-against `origin/main` at `e0a53883e`. They are carried forward rather than
-re-taken because they are bound by content digest, not by base commit, and the
-rebase onto `eb060008c` left every file under `packs/agent-skill-engineering/`
-and this spec directory byte-identical — a `git diff` across the two bases over
-those trees is empty. The suite-level figures below were re-run on this base.
+The blind retrieval and behaviour measurements were taken on `f4f29a4b1`.
+They are carried forward across every rebase since, rather than re-taken,
+because they are bound by content digest and not by base commit: a `git diff`
+over `packs/agent-skill-engineering/` across each pair of bases is empty, so the
+artefacts they measured are byte-identical. The activation measurement is not
+carried forward — restoring the `create`/`update` sentence moved the `SKILL.md`
+digest it pins, so it was re-taken at iteration 7. The suite-level figures below
+were re-run on this base.
 
 The earlier figures in the failure-attribution table were first observed on
 `706808287` against `origin/main` at `221bcb3f4`, and were re-run on this base
