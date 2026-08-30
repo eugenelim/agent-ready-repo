@@ -1,11 +1,15 @@
 """RFC-0096 Wave 5 — cooling engine construction tests."""
 
 import ast
+import copy
+import dataclasses
 import hashlib
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
+import tomllib
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -162,7 +166,12 @@ def test_cooling_module_calls_no_clock() -> None:
 def test_schema_requires_the_rfc_field_set_and_closes_every_level() -> None:
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     assert schema["contract_version"] == "delivery-lifecycle-record.v1"
-    assert schema["x-spec"] == ["docs/specs/thirty-day-cooling-and-retirement/"]
+    # Wave 5's AC7 requires the contract to carry `x-spec`, and its Durable
+    # Outputs require closeout to verify it carries one — not that it names
+    # Wave 5 alone. `cooling-untrusted-input-refusals` later tightened the
+    # locator pattern and took co-ownership, so this asserts Wave 5's entry is
+    # intact; that spec's AC15a asserts the exact co-owned list.
+    assert "docs/specs/thirty-day-cooling-and-retirement/" in schema["x-spec"]
     assert set(schema["required"]) == set(REQUIRED)
 
     def walk(node: object) -> None:
@@ -1258,3 +1267,836 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
     assert cooling._exceeds_depth(nest(cooling.MAX_RECORD_DEPTH), cooling.MAX_RECORD_DEPTH) is True
     # And it terminates on input that would overflow a recursive implementation.
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True
+
+
+MERGE_BASE_CORE_VERSION = "2.16.0"  # packs/core/pack.toml at merge base 7b6c5dd8e
+
+
+def _counting_zoneinfo(calls: list[object]):
+    """Return a ZoneInfo replacement that records each lookup key."""
+    def counting_zoneinfo(key: object) -> ZoneInfo:
+        calls.append(key)
+        return ZoneInfo(key)
+
+    return counting_zoneinfo
+
+
+# STUB: AC1 (spec/cooling-untrusted-input-refusals)
+# STUB: AC2 (spec/cooling-untrusted-input-refusals)
+def test_an_over_long_timezone_refuses_through_both_seams() -> None:
+    cooling = _load()
+    payload = _payload(timezone="a" * 256)
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+
+
+# STUB: AC3 (spec/cooling-untrusted-input-refusals)
+# STUB: AC4 (spec/cooling-untrusted-input-refusals)
+def test_the_temporal_helpers_name_the_timezone_refusal() -> None:
+    cooling = _load()
+    timezone = "a" * 256
+
+    assert cooling.compute_review_on(date(2026, 8, 1), timezone).code == "unknown-timezone"
+    assert cooling.is_due(
+        _record(cooling, timezone=timezone),
+        datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+    ).code == "unknown-timezone"
+
+
+# STUB: AC5 (spec/cooling-untrusted-input-refusals)
+def test_the_timezone_bound_precedes_the_lookup_at_every_seam() -> None:
+    cooling = _load()
+    calls: list[object] = []
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
+    seams = (
+        lambda timezone: cooling.validate_payload(_payload(timezone=timezone)),
+        lambda timezone: cooling.compute_review_on(date(2026, 8, 1), timezone),
+        lambda timezone: cooling.is_due(
+            _record(cooling, timezone=timezone), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+        ),
+    )
+    for seam in seams:
+        calls.clear()
+        seam("a" * 256)
+        assert calls == []
+
+        # Assert the key that reached the lookup, not just how many did. The
+        # key must also VARY under the transforms this is meant to catch: a
+        # count, or an identity assertion on a key that is a fixed point of
+        # `.strip()` and `.replace("..", ".")`, detects neither.
+        calls.clear()
+        seam("a" * 255)
+        assert calls == ["a" * 255]
+
+        calls.clear()
+        strippable = " " + "a" * 251 + ".." + " "
+        assert len(strippable) == 255
+        seam(strippable)
+        assert calls == [strippable]
+
+
+# STUB: AC6 (spec/cooling-untrusted-input-refusals)
+def test_an_oserror_from_the_zone_lookup_escapes_no_seam() -> None:
+    cooling = _load()
+
+    def zoneinfo_raising_oserror(key: object) -> ZoneInfo:
+        if key == "UTC":
+            raise OSError(63, "File name too long")
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = zoneinfo_raising_oserror
+
+    assert cooling.validate_payload(_payload(timezone="UTC")).code == "record-invalid"
+    assert cooling.compute_review_on(date(2026, 8, 1), "UTC").code == "unknown-timezone"
+    assert cooling.is_due(
+        _record(cooling, timezone="UTC"), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+    ).code == "unknown-timezone"
+
+
+# STUB: AC6a (spec/cooling-untrusted-input-refusals)
+def test_the_zone_catch_set_is_exactly_the_three_named_classes() -> None:
+    """A bare `except Exception` passes every other criterion and hides bugs.
+
+    Widening the tuple would turn a future `TypeError` or `AttributeError` raised
+    inside the lookup into `record-invalid`, which is why the members are pinned
+    structurally rather than trusted.
+    """
+    tree = ast.parse(COOLING_PATH.read_text(encoding="utf-8"))
+    zone = next(
+        (n for n in ast.walk(tree)
+         if isinstance(n, ast.FunctionDef) and n.name == "_zone"),
+        None,
+    )
+    assert zone is not None, "_zone is not defined in cooling.py"
+    handlers = [n for n in ast.walk(zone) if isinstance(n, ast.ExceptHandler)]
+    assert len(handlers) == 1, f"expected one except handler, found {len(handlers)}"
+    caught = handlers[0].type
+    assert isinstance(caught, ast.Tuple), "the handler must name an explicit tuple"
+    # Filtering to ast.Name would silently discard a fourth element such as
+    # `builtins.Exception`, so the tuple's length and every element's kind are
+    # asserted before the names are compared.
+    assert len(caught.elts) == 3, ast.dump(caught)
+    assert all(isinstance(e, ast.Name) for e in caught.elts), ast.dump(caught)
+    names = sorted(element.id for element in caught.elts)
+    assert names == ["OSError", "ValueError", "ZoneInfoNotFoundError"], names
+
+    # Pinning _zone alone is not enough: wrapping a call site in
+    # `except Exception` does exactly what this criterion exists to prevent
+    # while leaving _zone's tuple intact. Reject the broad catch on every
+    # function that resolves a zone.
+    for name in ("validate_payload", "compute_review_on", "is_due"):
+        seam = next(
+            (n for n in ast.walk(tree)
+             if isinstance(n, ast.FunctionDef) and n.name == name),
+            None,
+        )
+        assert seam is not None, name
+        for handler in (n for n in ast.walk(seam) if isinstance(n, ast.ExceptHandler)):
+            # A bare `except:` gives type None and a dotted `except
+            # builtins.Exception` gives an Attribute; both used to yield an
+            # empty name list and slip through.
+            assert handler.type is not None, f"{name} has a bare except:"
+            caught = (
+                handler.type.elts if isinstance(handler.type, ast.Tuple)
+                else [handler.type]
+            )
+            broad = {"Exception", "BaseException"}
+            for node in caught:
+                named = (
+                    node.id if isinstance(node, ast.Name)
+                    else node.attr if isinstance(node, ast.Attribute)
+                    else None
+                )
+                assert named not in broad, (
+                    f"{name} catches {named}, which would swallow a TypeError"
+                )
+
+
+# STUB: AC7 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("timezone", [123, True, None, ["UTC"], {"a": 1}])
+def test_a_non_string_timezone_refuses_without_a_lookup(timezone: object) -> None:
+    cooling = _load()
+    calls: list[object] = []
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
+    payload = _payload(timezone=timezone)
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert calls == []
+
+    calls.clear()
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+    assert calls == []
+
+    calls.clear()
+    assert cooling.compute_review_on(date(2026, 8, 1), timezone).code == "unknown-timezone"
+    assert calls == []
+
+    # `is_due` is deliberately not asserted here. `CoolingRecord.from_payload`
+    # coerces with `str(payload["timezone"])`, so by the time a record exists its
+    # timezone is always a string — "123", "True", "['UTC']" — and that seam
+    # cannot observe the original type. Asserting zero lookups there would be
+    # asserting something no implementation can deliver. AC5 and AC11a cover the
+    # ordering at that seam with keys that really are strings.
+
+
+# STUB: AC8 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "timezone",
+    [
+        "a" * 256,
+        "é" * 300,
+        "é" * 200,
+        "a" * 255,
+        "",
+        " ",
+        ".",
+        "/etc/passwd",
+        "../../etc/passwd",
+        "Not/A/Zone",
+        "a\x00b",
+    ],
+)
+def test_the_timezone_corpus_never_raises(timezone: str) -> None:
+    cooling = _load()
+    payload = _payload(timezone=timezone)
+
+    assert cooling.validate_payload(payload).code in cooling.REFUSAL_CODES, timezone
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code in cooling.REFUSAL_CODES, timezone
+
+
+# STUB: AC9 (spec/cooling-untrusted-input-refusals)
+def test_a_timezone_refusal_carries_a_code_and_no_mutation() -> None:
+    cooling = _load()
+    timezone = "a" * 256
+    results = [
+        (cooling.validate_payload(_payload(timezone=timezone)), "record-invalid"),
+        (cooling.parse_record_bytes(json.dumps(_payload(timezone=timezone)).encode()), "record-invalid"),
+        (cooling.compute_review_on(date(2026, 8, 1), timezone), "unknown-timezone"),
+        (
+            cooling.is_due(
+                _record(cooling, timezone=timezone),
+                datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+            ),
+            "unknown-timezone",
+        ),
+    ]
+
+    def zoneinfo_raising_oserror(key: object) -> ZoneInfo:
+        if key == "UTC":
+            raise OSError(63, "File name too long")
+        return ZoneInfo(key)
+
+    cooling.ZoneInfo = zoneinfo_raising_oserror
+    results.extend(
+        [
+            (cooling.validate_payload(_payload(timezone="UTC")), "record-invalid"),
+            (cooling.compute_review_on(date(2026, 8, 1), "UTC"), "unknown-timezone"),
+            (
+                cooling.is_due(
+                    _record(cooling, timezone="UTC"),
+                    datetime(2026, 8, 31, tzinfo=ZoneInfo(SG)),
+                ),
+                "unknown-timezone",
+            ),
+        ]
+    )
+
+    for result, code in results:
+        assert result.as_dict() == {
+            "due": False,
+            "permission_granted": False,
+            "mutated": (),
+            "code": code,
+        }
+
+
+# STUB: AC10 (spec/cooling-untrusted-input-refusals)
+def test_a_resolvable_timezone_is_unaffected() -> None:
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(timezone=SG)).code is None
+
+
+# STUB: AC11 (spec/cooling-untrusted-input-refusals)
+# STUB: AC13 (spec/cooling-untrusted-input-refusals)
+def test_the_code_bounds_equal_the_published_bounds() -> None:
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        schema = json.load(schema_file)
+
+    assert schema["properties"]["timezone"]["maxLength"] == cooling.MAX_TIMEZONE_LENGTH
+    assert schema["$defs"]["locator"]["maxLength"] == cooling.MAX_LOCATOR_LENGTH
+
+
+# STUB: AC12 (spec/cooling-untrusted-input-refusals)
+def test_an_empty_timezone_refuses() -> None:
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(timezone="")).code == "record-invalid"
+
+
+# STUB: AC11a (spec/cooling-untrusted-input-refusals)
+def test_the_timezone_constant_governs_the_guard() -> None:
+    cooling = _load()
+    cooling.MAX_TIMEZONE_LENGTH = 8
+    calls: list[object] = []
+    cooling.ZoneInfo = _counting_zoneinfo(calls)
+    seams = (
+        (lambda timezone: cooling.validate_payload(_payload(timezone=timezone)), "record-invalid"),
+        (lambda timezone: cooling.compute_review_on(date(2026, 8, 1), timezone), "unknown-timezone"),
+        (lambda timezone: cooling.is_due(
+            _record(cooling, timezone=timezone), datetime(2026, 8, 31, tzinfo=ZoneInfo(SG))
+        ), "unknown-timezone"),
+    )
+
+    for seam, code in seams:
+        calls.clear()
+        assert seam("a" * 9).code == code
+        assert calls == []
+
+        calls.clear()
+        seam("a" * 8)
+        assert calls == ["a" * 8]
+
+        # The bound counts CODE POINTS, matching the schema's maxLength and
+        # Python's len(). Eight multi-byte characters are 16 UTF-8 bytes, so a
+        # guard rewritten as len(timezone.encode("utf-8")) would refuse this and
+        # silently break parity with the published contract.
+        calls.clear()
+        seam("é" * 8)
+        assert calls == ["é" * 8]
+
+
+# STUB: AC14 (spec/cooling-untrusted-input-refusals)
+def test_the_locator_constant_governs_the_guard() -> None:
+    cooling = _load()
+    cooling.MAX_LOCATOR_LENGTH = 8
+
+    assert cooling.validate_payload(_payload(locator="a" * 9)).code == "record-invalid"
+    assert cooling.validate_payload(_payload(locator="a" * 8)).code is None
+
+
+# STUB: AC15 (spec/cooling-untrusted-input-refusals)
+_LOCATOR_CORPUS = (
+    "docs/specs/a/spec.md", "a.md", "a/b/c.md", "docs/a..b.md", "docs/...",
+    "docs/./a.md", "./a.md", "docs/a/.", ".", "docs/.",
+    "docs/../a.md", "..", "/abs.md", "docs//a.md", "docs\\a.md",
+    "docs/a\x01b.md", "docs/a\x7fb.md", "docs/a\x00b.md",
+    "a" * 1000, "a" * 1001, "",
+)
+
+
+def test_the_contract_and_the_validator_agree_on_the_locator() -> None:
+    """Replaces a byte-unchanged digest pin.
+
+    The pin existed to stop parity being satisfied by editing the contract
+    instead of the code. Once the owner authorised tightening the pattern, the
+    pin stopped being the right assertion: what matters is that both sides give
+    the same verdict, which a digest cannot express.
+    """
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        locator = json.load(schema_file)["$defs"]["locator"]
+    pattern = re.compile(locator["pattern"])
+
+    def contract_admits(value: str) -> bool:
+        return (
+            locator["minLength"] <= len(value) <= locator["maxLength"]
+            and pattern.fullmatch(value) is not None
+        )
+
+    for value in _LOCATOR_CORPUS:
+        assert contract_admits(value) == cooling._is_locator(value), repr(value)
+
+
+# STUB: AC15a (spec/cooling-untrusted-input-refusals)
+def test_the_contract_names_both_owning_specs() -> None:
+    """This spec defines part of the contract now, not only reads it."""
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        assert json.load(schema_file)["x-spec"] == [
+            "docs/specs/thirty-day-cooling-and-retirement/",
+            "docs/specs/cooling-untrusted-input-refusals/",
+        ]
+
+
+# STUB: AC16 (spec/cooling-untrusted-input-refusals)
+def test_the_release_surfaces_agree_and_advance() -> None:
+    """The two manifests, the topmost changelog heading, and the step all agree.
+
+    The merge-base version is a literal so this holds in a shallow clone and in
+    CI, where `origin/main` may not be a local ref. A self-consistent but stale
+    version set fails the strict-greater comparison.
+    """
+    pack = tomllib.loads((ROOT / "packs/core/pack.toml").read_text(encoding="utf-8"))
+    plugin = json.loads(
+        (ROOT / "packs/core/.claude-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    version = pack["pack"]["version"]
+    assert plugin["version"] == version
+
+    changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    # The repository writes these headings with an em dash, not a hyphen; the
+    # shipped Wave 4 release test pins the same shape.
+    headings = re.findall(
+        # The topmost heading may cover several artifacts:
+        # `## [core][2.15.2] / [governance-extras][0.10.2] / ... — <date>`.
+        # Anchoring the em dash straight after the core segment skipped it
+        # entirely and returned the *previous* release as "topmost".
+        r"^## \[core\]\[([0-9.]+)\][^\n]* — \d{4}-\d{2}-\d{2}$", changelog, re.M
+    )
+    assert headings, "no dated core changelog heading"
+    assert headings[0] == version, (
+        f"topmost core heading is {headings[0]!r}, manifests say {version!r}"
+    )
+    step = tuple(int(part) for part in version.split("."))
+    merge_base = tuple(int(part) for part in MERGE_BASE_CORE_VERSION.split("."))
+    assert step > merge_base, f"{version} does not advance past {MERGE_BASE_CORE_VERSION}"
+
+
+# STUB: AC17 (spec/cooling-untrusted-input-refusals)
+def test_the_cooling_projections_match_their_source() -> None:
+    source = COOLING_PATH.read_bytes()
+
+    assert (ROOT / ".claude/skills/close-work/scripts/cooling.py").read_bytes() == source
+    assert (ROOT / ".agents/skills/close-work/scripts/cooling.py").read_bytes() == source
+
+
+# STUB: AC23 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("container", [["x"], {"a": 1}], ids=["list", "dict"])
+@pytest.mark.parametrize(
+    "field",
+    # `aliases` publishes `"type": "array"`, so a list there is valid input, not
+    # a container standing in for a scalar. Its own shape is asserted below.
+    [name for name in REQUIRED if name != "aliases"],
+)
+def test_a_container_where_a_scalar_belongs_refuses(field: str, container: object) -> None:
+    """JSON admits list and dict; both are unhashable, so `x in {...}` raises.
+
+    That is the same escape class as the OSError and KeyError this spec repairs,
+    and the 32-case corpus missed it by sampling only scalars for the enum
+    fields. Enumerated over every required field rather than sampled.
+    """
+    cooling = _load()
+    payload = _payload(**{field: container})
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(
+        json.dumps(payload).encode()
+    ).code == "record-invalid"
+
+
+# STUB: AC23 (spec/cooling-untrusted-input-refusals)
+def test_aliases_refuses_a_non_array() -> None:
+    """`aliases` is the one required field whose published type is an array."""
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(aliases={"a": 1})).code == "record-invalid"
+    assert cooling.validate_payload(_payload(aliases="notalist")).code == "record-invalid"
+    assert cooling.validate_payload(_payload(aliases=[{"a": 1}])).code == "record-invalid"
+
+
+# STUB: AC24 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("container", [["x"], {"a": 1}], ids=["list", "dict"])
+@pytest.mark.parametrize("field", ["reason", "owner_role", "review_on", "evidence_ref"])
+def test_a_container_in_the_exception_envelope_refuses(
+    field: str, container: object
+) -> None:
+    cooling = _load()
+    envelope = dict(_exception())
+    envelope[field] = container
+    payload = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=envelope,
+    )
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(
+        json.dumps(payload).encode()
+    ).code == "record-invalid"
+
+
+# STUB: AC25 (spec/cooling-untrusted-input-refusals)
+def test_the_caller_supplied_enums_refuse_a_container(tmp_path) -> None:
+    """`enrol` and `review` take enum values straight from the caller."""
+    cooling = _load()
+
+    enrolled = cooling.enrol(**_enrol_kwargs(tmp_path) | {"completion_event": ["merge"]})
+    assert enrolled.code == "completion-event-required"
+
+    checks = dict.fromkeys(_all_approve(), "approve")
+    checks["identity"] = ["refuse"]
+    reviewed = cooling.review(
+        _record(cooling),
+        checks,
+        _attestation(checks),
+        datetime(2026, 9, 1, tzinfo=ZoneInfo(SG)),
+        root=tmp_path,
+        candidates=(),
+        authority_binding=None,
+    )
+    assert reviewed.code == "review-incomplete"
+
+
+# STUB: AC27 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [123, 0, 1.5, True, "spec-example\n"])
+def test_a_non_string_delivery_id_refuses(value: object) -> None:
+    """A container cannot catch this; only a scalar that survives str() can.
+
+    The shipped code matched `_DELIVERY_ID_RE.fullmatch(str(payload[...]))`, so
+    `123` became `"123"` — pattern-valid, then the on-disk filename and the
+    authority `resource`. AC23's containers do not discriminate, because
+    `str(["x"])` fails the pattern either way.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(delivery_id=value)).code == "record-invalid"
+    assert cooling.parse_record_bytes(
+        json.dumps(_payload(delivery_id=value)).encode()
+    ).code == "record-invalid"
+
+
+# STUB: AC28 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [10**5000, 1e999], ids=["huge-int", "inf-float"])
+@pytest.mark.parametrize(
+    "field", ["fingerprint", "confirmation_proof", "completion_evidence_ref"]
+)
+def test_untrusted_text_is_matched_never_coerced(field: str, value: object) -> None:
+    """`str()` on untrusted input is itself a failure mode, twice over.
+
+    Past CPython's digit limit `str(10**5000)` raises `ValueError`, and
+    `str(1e999)` is `"inf"` — which `_STATUS_RE` and `_ROLE_RE` both accept, so a
+    coerced value could validate and then persist in a form unequal to its
+    source. Only reachable through `validate_payload`: `parse_record_bytes` is
+    covered because `json.loads` refuses both first.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(**{field: value})).code == "record-invalid"
+
+
+# STUB: AC28 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("value", [10**5000, 1e999], ids=["huge-int", "inf-float"])
+def test_untrusted_authority_and_envelope_text_is_not_coerced(value: object) -> None:
+    """All eight `_matches` sites, not the five an earlier revision drove.
+
+    The two `evidence_ref` paths had no discriminating case: reverting either to
+    `_EVIDENCE_RE.fullmatch(str(...))` left the whole suite green while
+    `10**5000` raised ValueError out of validate_payload. AC24's containers do
+    not discriminate, because `str(["x"])` fails the pattern either way.
+    """
+    cooling = _load()
+
+    for fact_field in ("status", "evidence_ref"):
+        fact = {"status": "repository-owned"}
+        fact[fact_field] = value
+        authority = {
+            "source": fact,
+            "write": {"status": "delegated"},
+            "delete": {"status": "none"},
+        }
+        assert cooling.validate_payload(
+            _payload(authority=authority)
+        ).code == "record-invalid", fact_field
+
+    for envelope_field in ("owner_role", "evidence_ref"):
+        envelope = {
+            "reason": "legal-obligation",
+            "owner_role": "ab",
+            "review_on": "2026-12-01",
+        }
+        envelope[envelope_field] = value
+        assert cooling.validate_payload(
+            _payload(
+                disposition="retain-exception",
+                post_closeout_result="Retained",
+                exception=envelope,
+            )
+        ).code == "record-invalid", envelope_field
+
+
+@dataclasses.dataclass(frozen=True)
+class _Candidate:
+    """A candidate whose `confirmations` is whatever the case supplies."""
+
+    confirmations: object
+
+
+# STUB: AC29 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "candidates",
+    [
+        [object()],
+        ["x"],
+        [{"kind": "destination-selection"}],
+        [_Candidate(3)],
+        [_Candidate([object()])],
+    ],
+    ids=["object", "str", "dict", "non-iterable-confirmations", "bad-confirmation-item"],
+)
+def test_a_malformed_candidate_refuses_instead_of_raising(
+    tmp_path, candidates: object
+) -> None:
+    """The container was type-checked; its elements were not.
+
+    Reaching into `.confirmations`, `.kind`, or `.status` on the wrong shape
+    raised out of `enrol`, `review`, and `review_exception` with a traceback
+    carrying absolute host paths.
+    """
+    cooling = _load()
+
+    assert cooling.enrol(
+        **_enrol_kwargs(tmp_path) | {"candidates": candidates}
+    ).code == "destination-unconfirmed"
+
+    checks = dict.fromkeys(_all_approve(), "approve")
+    assert cooling.review(
+        _record(cooling),
+        checks,
+        _attestation(checks),
+        datetime(2026, 9, 1, tzinfo=ZoneInfo(SG)),
+        root=tmp_path,
+        candidates=candidates,
+        authority_binding=None,
+    ).code == "destination-unconfirmed"
+    assert cooling.review_exception(
+        _record(cooling),
+        "renew",
+        {"exception": _exception()},
+        datetime(2026, 9, 1, tzinfo=ZoneInfo(SG)),
+        root=tmp_path,
+        candidates=candidates,
+        authority_binding=None,
+    ).code == "destination-unconfirmed"
+
+
+_HOSTILE_VALUES = (
+    None, True, 0, 123, 1.5, 10**5000, 1e999, float("nan"),
+    ["x"], {"a": 1}, "", "\n", "x" * 300, "\x00",
+)
+
+
+def _leaf_paths(node: object, prefix: tuple = ()) -> list:
+    """Every leaf path in a payload, so a field added later is covered."""
+    if isinstance(node, dict):
+        return [p for k, v in node.items() for p in _leaf_paths(v, prefix + (k,))]
+    if isinstance(node, list) and node:
+        return [p for i, v in enumerate(node) for p in _leaf_paths(v, prefix + (i,))]
+    return [prefix]
+
+
+def _substitute(payload: dict, path: tuple, value: object) -> dict:
+    out = copy.deepcopy(payload)
+    node = out
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = value
+    return out
+
+
+# STUB: AC30 (spec/cooling-untrusted-input-refusals)
+def test_no_leaf_substitution_makes_a_seam_raise() -> None:
+    """The invariant, not another enumeration of it.
+
+    Every criterion before this one names the fields someone thought to list,
+    which is how five escape classes reached review across five rounds. This
+    derives its paths from the payload's own structure, so a field added later is
+    covered without a new criterion, and asserts the property the Objective
+    claims: refuses or accepts, never raises.
+    """
+    cooling = _load()
+    # The seed carries every optional field too, because the sweep can only
+    # reach a leaf the seed contains: an authority fact without `evidence_ref`
+    # leaves that site uncovered, which is how one of the eight `_matches` sites
+    # stayed unguarded through five review rounds.
+    seed = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=_exception(evidence_ref="pr:1"),
+        aliases=["docs/specs/example/old.md"],
+        authority={
+            "source": {"status": "repository-owned", "evidence_ref": "pr:1"},
+            "write": {"status": "delegated", "evidence_ref": "pr:2"},
+            "delete": {"status": "none", "evidence_ref": "pr:3"},
+        },
+    )
+    paths = _leaf_paths(seed)
+    assert len(paths) >= 20, f"seed lost coverage: only {len(paths)} leaves"
+
+    failures = []
+    for path in paths:
+        for value in _HOSTILE_VALUES:
+            payload = _substitute(seed, path, value)
+            label = ".".join(str(p) for p in path)
+            try:
+                code = cooling.validate_payload(payload).code
+                if not (code is None or code in cooling.REFUSAL_CODES):
+                    failures.append(f"{label}={value!r}: unpublished code {code!r}")
+            except BaseException as exc:
+                failures.append(f"{label}={value!r}: validate_payload raised {type(exc).__name__}")
+            try:
+                raw = json.dumps(payload).encode()
+            except (TypeError, ValueError):
+                continue  # not JSON-encodable, so it cannot reach the bytes seam
+            try:
+                code = cooling.parse_record_bytes(raw).code
+                if not (code is None or code in cooling.REFUSAL_CODES):
+                    failures.append(f"{label}={value!r}: bytes seam gave {code!r}")
+            except BaseException as exc:
+                failures.append(f"{label}={value!r}: parse_record_bytes raised {type(exc).__name__}")
+    assert not failures, "\n".join(failures[:20])
+
+
+# STUB: AC31 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize("completed_on", ["9999-12-02", "9999-12-31"])
+def test_a_completion_date_with_no_review_date_refuses(completed_on: str) -> None:
+    """Schema-valid input: the contract's date pattern has no year ceiling.
+
+    `completed_on + timedelta(days=30)` then raises OverflowError, which
+    subclasses ArithmeticError and so matched no handler in the module.
+    """
+    cooling = _load()
+    payload = _payload(completed_on=completed_on, review_on="9999-12-31")
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+    assert cooling.compute_review_on(
+        date.fromisoformat(completed_on), SG
+    ).code == "record-invalid"
+
+
+def test_the_last_completion_date_that_fits_is_accepted() -> None:
+    """The bound discriminates: 9999-12-01 leaves exactly 30 days."""
+    cooling = _load()
+
+    assert cooling.compute_review_on(date(9999, 12, 1), SG) == date(9999, 12, 31)
+
+
+# STUB: AC32 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "locator",
+    ["docs/a\x01b.md", "docs/a\x7fb.md", "docs/a\x00b.md", "docs/a\nb.md"],
+    ids=["c0-x01", "del-x7f", "nul-x00", "newline"],
+)
+def test_a_locator_with_a_control_character_refuses(locator: str) -> None:
+    """The contract's `$defs/locator` pattern excludes this range; the validator did not.
+
+    `surface_resolver._has_control` and `close_work._bounded_text` both already
+    apply the rule, so `_is_locator` was the one surface of four that did not.
+    """
+    cooling = _load()
+
+    assert cooling.validate_payload(_payload(locator=locator)).code == "record-invalid"
+    assert cooling.validate_payload(
+        _payload(aliases=[locator])
+    ).code == "record-invalid"
+
+
+def test_the_locator_rule_matches_the_published_pattern_on_this_range() -> None:
+    """Both sides agree on the control range after the repair."""
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        pattern = re.compile(json.load(schema_file)["$defs"]["locator"]["pattern"])
+
+    for value in ("docs/a\x01b.md", "docs/a\x7fb.md", "docs/ok.md"):
+        assert (pattern.fullmatch(value) is not None) == cooling._is_locator(value), value
+
+
+# STUB: AC26 (spec/cooling-untrusted-input-refusals)
+def test_the_alias_bound_equals_the_published_one() -> None:
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        schema = json.load(schema_file)
+
+    assert schema["properties"]["aliases"]["maxItems"] == cooling.MAX_ALIAS_COUNT
+
+    cooling.MAX_ALIAS_COUNT = 2
+    assert cooling.validate_payload(_payload(aliases=["a", "b", "c"])).code == "record-invalid"
+    assert cooling.validate_payload(_payload(aliases=["a", "b"])).code is None
+
+
+# STUB: AC20 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "exception",
+    [
+        # All SEVEN shapes that carry the permitted `evidence_ref` and omit a
+        # required key. The old proper-subset gate fell through for every shape
+        # carrying `evidence_ref`; of the eight, seven are missing a required
+        # key. An earlier revision of this criterion enumerated only four.
+        {"reason": "legal-obligation", "owner_role": "ab", "evidence_ref": "pr:1"},
+        {"reason": "legal-obligation", "review_on": "2026-12-01", "evidence_ref": "pr:1"},
+        {"owner_role": "ab", "review_on": "2026-12-01", "evidence_ref": "pr:1"},
+        {"reason": "legal-obligation", "evidence_ref": "pr:1"},
+        {"owner_role": "ab", "evidence_ref": "pr:1"},
+        {"review_on": "2026-12-01", "evidence_ref": "pr:1"},
+        {"evidence_ref": "pr:1"},
+    ],
+)
+def test_an_evidence_bearing_incomplete_envelope_refuses(exception: dict[str, str]) -> None:
+    cooling = _load()
+    payload = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=exception,
+    )
+
+    assert cooling.validate_payload(payload).code == "record-invalid"
+    assert cooling.parse_record_bytes(json.dumps(payload).encode()).code == "record-invalid"
+
+
+# STUB: AC21 (spec/cooling-untrusted-input-refusals)
+def test_the_review_seams_refuse_an_incomplete_envelope(tmp_path) -> None:
+    cooling = _load()
+    bad_envelope = {
+        "reason": "legal-obligation",
+        "owner_role": "ab",
+        "evidence_ref": "pr:1",
+    }
+    checks = dict.fromkeys(_all_approve(), "refuse")
+    now = datetime(2026, 9, 1, tzinfo=ZoneInfo(SG))
+    record = _record(cooling)
+
+    assert cooling.review(
+        record,
+        checks,
+        _attestation(checks),
+        now,
+        bad_envelope,
+        root=tmp_path,
+        candidates=(),
+        authority_binding=None,
+    ).code == "exception-envelope-invalid"
+    assert cooling.review_exception(
+        record,
+        "renew",
+        {"exception": bad_envelope},
+        now,
+        root=tmp_path,
+        candidates=(),
+        authority_binding=None,
+    ).code == "exception-envelope-invalid"
+
+
+# STUB: AC22 (spec/cooling-untrusted-input-refusals)
+@pytest.mark.parametrize(
+    "exception",
+    [
+        {"reason": "legal-obligation", "owner_role": "ab", "review_on": "2026-12-01"},
+        {
+            "reason": "legal-obligation",
+            "owner_role": "ab",
+            "review_on": "2026-12-01",
+            "evidence_ref": "pr:1",
+        },
+    ],
+)
+def test_a_complete_exception_envelope_is_accepted(exception: dict[str, str]) -> None:
+    cooling = _load()
+    payload = _payload(
+        disposition="retain-exception",
+        post_closeout_result="Retained",
+        exception=exception,
+    )
+
+    assert cooling.validate_payload(payload).code is None

@@ -52,6 +52,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.1] — 2026-08-30
+
+### Fixed
+
+- `close-work` now refuses malformed lifecycle-record input with a named code
+  instead of raising. An unresolvable time zone, an exception envelope missing a
+  required field, a list or object where a single value belongs, and an
+  unusable destination candidate each return a published refusal, so no host
+  file path or error number reaches the caller.
+- `close-work` no longer accepts a number where the record format requires text.
+  A delivery id given as a whole number, and an authority status or owner role
+  given as a number too large to represent, were converted to text and accepted;
+  both are now refused. A converted value was stored in a form that no longer
+  equalled what the record supplied — a delivery id of `123` became the text
+  `"123"`, and that text became the file name on disk.
+
 ## [core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29
 
 ### Highlights

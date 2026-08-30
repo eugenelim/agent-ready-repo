@@ -16,6 +16,18 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 MAX_RECORD_BYTES = 64 * 1024
 MAX_RECORD_DEPTH = 8
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
+# These three mirror bounds published in
+# contracts/jsonschema/delivery-lifecycle-record.schema.json. A construction
+# test compares each against that file, so they cannot drift from it silently.
+MAX_TIMEZONE_LENGTH = 255
+MAX_LOCATOR_LENGTH = 1000
+MAX_ALIAS_COUNT = 16
+COOLING_PERIOD_DAYS = 30
+# `date.max` minus the cooling period. The contract's calendarDate pattern has
+# no year ceiling, so a conforming record can carry a date whose review date
+# does not exist; `date + timedelta` then raises OverflowError, which
+# subclasses ArithmeticError and so matches no handler in this module.
+MAX_COMPLETED_ON = date.max - timedelta(days=COOLING_PERIOD_DAYS)
 REFUSAL_CODES = frozenset(
     {
         "not-delivered", "not-closed", "no-persistent-record",
@@ -159,11 +171,43 @@ class CoolingResult:
 
 
 def _is_locator(value: object) -> bool:
-    if not isinstance(value, str) or not value or len(value) > 1000:
+    """Accept a confined repository-relative path, matching the blessed helpers.
+
+    The control-character rule is the one `surface_resolver._has_control` and
+    `close_work._bounded_text` already apply, restated rather than imported: a
+    cross-module import for a character test would make this pure predicate
+    depend on the lazily-loaded seam, which is its own failure mode. The
+    published contract's `$defs/locator` pattern excludes the same range, so
+    admitting it here left the validator weaker than the contract.
+    """
+    if not isinstance(value, str) or not value or len(value) > MAX_LOCATOR_LENGTH:
+        return False
+    if any(ord(character) < 32 or ord(character) == 127 for character in value):
         return False
     if value.startswith("/") or "\\" in value or "//" in value:
         return False
     return all(part not in {"", ".", ".."} for part in value.split("/"))
+
+
+def _matches(pattern: re.Pattern[str], value: object) -> bool:
+    """Match untrusted text without coercing it.
+
+    `str()` on an unbounded int raises `ValueError` past CPython's digit limit,
+    and `str(1e999)` is `"inf"`, which `_STATUS_RE` and `_ROLE_RE` both accept —
+    so a coerced value could validate and then be persisted in a form that no
+    longer equals its source.
+    """
+    return isinstance(value, str) and pattern.fullmatch(value) is not None
+
+
+def _is_one_of(value: object, options: set[str] | frozenset[str]) -> bool:
+    """Report membership without assuming the value is hashable.
+
+    A persisted payload can carry a list or a dict where an enum string belongs,
+    and both are unhashable, so a bare `value in options` raises `TypeError` --
+    a class none of this module's refusal paths catch.
+    """
+    return isinstance(value, str) and value in options
 
 
 def _is_date(value: object) -> bool:
@@ -174,6 +218,26 @@ def _is_date(value: object) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _zone(timezone: object) -> ZoneInfo | None:
+    """Resolve a bounded IANA key, or None when it does not resolve.
+
+    OSError is neither a ValueError nor the KeyError that
+    ZoneInfoNotFoundError extends, so an over-long key escaped every refusal
+    path carrying an absolute host path and an errno.
+
+    The OSError arm is deliberately broad, which collapses host degradation --
+    an unreadable tz database, EMFILE, EIO -- into the same refusal as bad
+    input. That is fail-closed and this module logs nothing by design, so an
+    operator sees `record-invalid` rather than the cause.
+    """
+    if not isinstance(timezone, str) or len(timezone) > MAX_TIMEZONE_LENGTH:
+        return None
+    try:
+        return ZoneInfo(timezone)
+    except (ZoneInfoNotFoundError, OSError, ValueError):
+        return None
 
 
 def _exceeds_depth(value: object, limit: int) -> bool:
@@ -204,9 +268,9 @@ def _authority_is_valid(value: object) -> bool:
     for fact in value.values():
         if not isinstance(fact, dict) or set(fact) - {"status", "evidence_ref"}:
             return False
-        if "status" not in fact or not _STATUS_RE.fullmatch(str(fact["status"])):
+        if "status" not in fact or not _matches(_STATUS_RE, fact["status"]):
             return False
-        if "evidence_ref" in fact and not _EVIDENCE_RE.fullmatch(str(fact["evidence_ref"])):
+        if "evidence_ref" in fact and not _matches(_EVIDENCE_RE, fact["evidence_ref"]):
             return False
     return True
 
@@ -215,19 +279,19 @@ def _exception_is_valid(value: object) -> bool:
     permitted = {"reason", "owner_role", "review_on", "evidence_ref"}
     if not isinstance(value, dict) or set(value) - permitted:
         return False
-    if set(value) < {"reason", "owner_role", "review_on"}:
+    if not set(value) >= {"reason", "owner_role", "review_on"}:
         return False
     reasons = {
         "audit-obligation", "dependency-obligation", "legal-obligation",
         "operational-obligation", "retention-obligation",
     }
     return (
-        value["reason"] in reasons
-        and _ROLE_RE.fullmatch(str(value["owner_role"])) is not None
+        _is_one_of(value["reason"], reasons)
+        and _matches(_ROLE_RE, value["owner_role"])
         and _is_date(value["review_on"])
         and (
             "evidence_ref" not in value
-            or _EVIDENCE_RE.fullmatch(str(value["evidence_ref"])) is not None
+            or _matches(_EVIDENCE_RE, value["evidence_ref"])
         )
     )
 
@@ -243,42 +307,43 @@ def validate_payload(payload: object) -> CoolingResult:
     if payload["schema"] != "delivery-lifecycle-record.v1":
         return CoolingResult(code="record-invalid")
     if (
-        not _DELIVERY_ID_RE.fullmatch(str(payload["delivery_id"]))
+        not _matches(_DELIVERY_ID_RE, payload["delivery_id"])
         or not _is_locator(payload["locator"])
     ):
         return CoolingResult(code="record-invalid")
     aliases = payload["aliases"]
     if (
         not isinstance(aliases, list)
-        or len(aliases) > 16
+        or len(aliases) > MAX_ALIAS_COUNT
         or not all(_is_locator(alias) for alias in aliases)
     ):
         return CoolingResult(code="record-invalid")
     if (
-        not _DIGEST_RE.fullmatch(str(payload["fingerprint"]))
-        or not _DIGEST_RE.fullmatch(str(payload["confirmation_proof"]))
+        not _matches(_DIGEST_RE, payload["fingerprint"])
+        or not _matches(_DIGEST_RE, payload["confirmation_proof"])
     ):
         return CoolingResult(code="record-invalid")
     if (
-        payload["disposition"] not in {"cool-30-days", "retain-exception"}
-        or payload["post_closeout_result"]
-        not in {"Cooling", "Retained", "Retired", "ExternalAdvisory"}
+        not _is_one_of(payload["disposition"], {"cool-30-days", "retain-exception"})
+        or not _is_one_of(
+            payload["post_closeout_result"],
+            {"Cooling", "Retained", "Retired", "ExternalAdvisory"},
+        )
     ):
         return CoolingResult(code="record-invalid")
     if (
-        payload["completion_event"] not in {"merge", "release", "acceptance"}
-        or not _EVIDENCE_RE.fullmatch(str(payload["completion_evidence_ref"]))
+        not _is_one_of(payload["completion_event"], {"merge", "release", "acceptance"})
+        or not _matches(_EVIDENCE_RE, payload["completion_evidence_ref"])
     ):
         return CoolingResult(code="record-invalid")
     if (
         not _is_date(payload["completed_on"])
+        or date.fromisoformat(str(payload["completed_on"])) > MAX_COMPLETED_ON
         or not _is_date(payload["review_on"])
         or not _authority_is_valid(payload["authority"])
     ):
         return CoolingResult(code="record-invalid")
-    try:
-        ZoneInfo(str(payload["timezone"]))
-    except (ZoneInfoNotFoundError, ValueError):
+    if _zone(payload["timezone"]) is None:
         return CoolingResult(code="record-invalid")
     has_exception = "exception" in payload
     if (payload["disposition"] == "retain-exception") != has_exception:
@@ -321,22 +386,25 @@ def canonical_bytes(record: CoolingRecord | dict[str, object]) -> bytes:
     return rendered.encode("ascii") + b"\n"
 
 
-def compute_review_on(completed_on: date, timezone: str) -> date | CoolingResult:
+def compute_review_on(completed_on: date, timezone: object) -> date | CoolingResult:
     """Return the calendar date thirty days after a completion date."""
-    try:
-        ZoneInfo(timezone)
-    except (ZoneInfoNotFoundError, ValueError):
+    if _zone(timezone) is None:
         return CoolingResult(code="unknown-timezone")
-    return completed_on + timedelta(days=30)
+    try:
+        return completed_on + timedelta(days=COOLING_PERIOD_DAYS)
+    except OverflowError:
+        # The bound above `validate_payload` normally prevents this. The arm is
+        # the half that holds when this function is called directly, which is a
+        # published seam.
+        return CoolingResult(code="record-invalid")
 
 
 def is_due(record: CoolingRecord, moment: datetime) -> CoolingResult:
     """Compare an injected aware instant with the record's local review date."""
     if moment.tzinfo is None or moment.utcoffset() is None:
         return CoolingResult(code="naive-clock")
-    try:
-        zone = ZoneInfo(record.timezone)
-    except (ZoneInfoNotFoundError, ValueError):
+    zone = _zone(record.timezone)
+    if zone is None:
         return CoolingResult(code="unknown-timezone")
     return CoolingResult(record=record, due=moment.astimezone(zone).date() >= record.review_on)
 
@@ -365,7 +433,7 @@ def record_rename(record: CoolingRecord, new_locator: str) -> CoolingRecord:
     """Return a renamed record while retaining its immediately prior locator."""
     payload = record.as_payload()
     payload["locator"] = new_locator
-    payload["aliases"] = [*record.aliases, record.locator][-16:]
+    payload["aliases"] = [*record.aliases, record.locator][-MAX_ALIAS_COUNT:]
     return CoolingRecord.from_payload(payload)
 
 
@@ -585,13 +653,24 @@ def _resolve_destination(root: Path, candidates: object) -> Path | str:
     """
     if not isinstance(candidates, (list, tuple)) or not candidates:
         return "destination-unconfirmed"
-    if not all(
-        any(
-            item.kind == "destination-selection" and item.status == "confirmed"
-            for item in candidate.confirmations
+    try:
+        confirmed = all(
+            any(
+                item.kind == "destination-selection" and item.status == "confirmed"
+                for item in candidate.confirmations
+            )
+            for candidate in candidates
         )
-        for candidate in candidates
-    ):
+    except (AttributeError, TypeError):
+        # The container was type-checked above; its elements were not. A
+        # candidate of the wrong shape — reaching into `.confirmations`,
+        # `.kind`, or `.status` on it — raised out of `enrol`, `review`, and
+        # `review_exception` with a traceback carrying absolute host paths.
+        # Bounded deliberately: a candidate whose property raises something
+        # else still escapes, and candidates come from the same in-process
+        # caller that supplies `root` and the authority binding.
+        return "destination-unconfirmed"
+    if not confirmed:
         return "destination-unconfirmed"
     close_work = _close_work()
     result = close_work.surface_resolver().resolve_surface(
@@ -635,7 +714,7 @@ def enrol(
         return CoolingResult(code="not-closed")
     if not persisted:
         return CoolingResult(code="no-persistent-record")
-    if completion_event not in {"merge", "release", "acceptance"}:
+    if not _is_one_of(completion_event, {"merge", "release", "acceptance"}):
         return CoolingResult(code="completion-event-required")
     destination = _resolve_destination(root, candidates)
     if isinstance(destination, str):
@@ -696,7 +775,7 @@ def _review_is_complete(checks: object, attestation: object) -> bool:
     """Require a second party's exact, complete day-30 review response."""
     if not isinstance(checks, dict) or set(checks) != _REVIEW_FIELDS:
         return False
-    if any(answer not in _REVIEW_ANSWERS for answer in checks.values()):
+    if any(not _is_one_of(answer, _REVIEW_ANSWERS) for answer in checks.values()):
         return False
     if not isinstance(attestation, dict):
         return False
@@ -707,13 +786,10 @@ def _review_is_complete(checks: object, attestation: object) -> bool:
     return (
         isinstance(answers, dict)
         and answers == checks
-        and isinstance(proposer, str)
-        and _ROLE_RE.fullmatch(proposer) is not None
-        and isinstance(approver, str)
-        and _ROLE_RE.fullmatch(approver) is not None
+        and _matches(_ROLE_RE, proposer)
+        and _matches(_ROLE_RE, approver)
         and approver != proposer
-        and isinstance(evidence_ref, str)
-        and _EVIDENCE_RE.fullmatch(evidence_ref) is not None
+        and _matches(_EVIDENCE_RE, evidence_ref)
     )
 
 
@@ -755,7 +831,7 @@ def review(
     if not due.due:
         return CoolingResult(code="not-due", record=record)
     assert isinstance(checks, dict)
-    if any(answer in {"refuse", "uncertain"} for answer in checks.values()):
+    if any(_is_one_of(answer, {"refuse", "uncertain"}) for answer in checks.values()):
         if not _exception_is_valid(exception):
             return CoolingResult(code="exception-envelope-invalid")
         proposed = _proposed_record(

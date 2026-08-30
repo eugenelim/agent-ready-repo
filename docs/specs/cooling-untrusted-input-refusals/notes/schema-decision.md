@@ -1,0 +1,88 @@
+> **Superseded in part, 2026-08-30.** The timezone half of this decision stands:
+> the contract already published `maxLength: 255` and the repair was code-side
+> conformance. The *byte-unchanged* conclusion no longer holds. After the owner
+> confirmed no adopter emits a `.` path segment, the locator pattern was
+> tightened to exclude one, and this spec took `x-spec` co-ownership. AC15 now
+> asserts contract/validator parity across an enumerated corpus instead of
+> pinning a digest — a digest cannot express the invariant that both sides give
+> the same verdict, which is what actually matters.
+
+# Decision: the timezone bound is code-side only
+
+**Question.** Does the timezone bound belong in
+`contracts/jsonschema/delivery-lifecycle-record.schema.json` as well as in
+`cooling.py`?
+
+**Decision.** No. The bound is added to the code only. The published contract is
+not touched, and its `x-spec` continues to name only
+`docs/specs/thirty-day-cooling-and-retirement/`.
+
+## Why the code-side bound is sufficient
+
+The contract already declares the bound. At `97a0b6ad` the schema reads:
+
+```json
+"timezone": {"type": "string", "minLength": 1, "maxLength": 255}
+```
+
+So this is not a proposal to add a published constraint. It is the discovery
+that the validator never enforced a constraint the contract has published since
+Wave 5 shipped. `cooling.py` runs no JSON Schema validator — `validate_payload`
+is a hand-written closed-shape check — so a declared bound only exists at
+runtime if the hand-written check reproduces it. For `timezone` it did not.
+
+Adding `maxLength: 255` to a schema that already says `maxLength: 255` is a
+no-op. Changing it to any other number would be a published-contract change: it
+would alter what a conforming producer may emit, and would require the `x-spec`
+co-ownership the brief describes. Nothing here needs that. The correct repair is
+to make the validator honour the number the contract already publishes.
+
+This keeps the delivery off the published-contract path entirely. AC15 makes
+that mechanical: the schema file's SHA-256 must still equal its value at the
+merge base. The digest literal lives in exactly one place, the
+`test_the_published_contract_is_unchanged` construction test, so a legitimate
+future contract change updates one value rather than three.
+
+## Why the bound alone is not the whole fix
+
+A bound of 255 removes the `ENAMETOOLONG` shape on platforms whose `NAME_MAX` is
+255, because every component of a key inside the bound is inside `NAME_MAX`. It
+does not remove `OSError` as a class. The adjudicator made this point directly:
+enforcing the bound "would have to be duplicated at three call sites and still
+leaves other `OSError` shapes from the same call uncaught."
+
+So the repair is both halves, and each is proven independently:
+
+- The bound, proven by AC5, which counts calls to `ZoneInfo` and requires zero
+  for a 256-character key — a bound that ran *after* the lookup would fail it.
+- The `OSError` arm, proven by AC6, which forces `ZoneInfo` to raise
+  `OSError(63, ...)` for a three-character key. AC6 cannot be satisfied by the
+  bound, so the bound cannot make the arm vacuous.
+
+## Keeping the two from drifting again
+
+Wave 5's review found the schema and the validator diverging on both `locator`
+and `timezone`, and nothing checked that they matched. AC11 and AC13 close that
+for the numeric bounds by reading them out of the schema file and comparing them
+to the module's constants, and AC11a and AC14 prove each constant actually
+governs its guard — parity alone is satisfied by a dead constant beside a bare
+literal. So a future edit to either side that is not mirrored fails a test
+rather than shipping.
+
+Two limits worth stating plainly:
+
+- The parity check covers the numeric bounds only. The `locator` *pattern*
+  divergence is real and is recorded as a follow-on: the contract's pattern
+  rejects the C0 control range and `U+007F` which `_is_locator` admits, and
+  `_is_locator` rejects a `.` segment which the pattern admits. Reconciling
+  those changes behaviour, and the change needs a spec that decides which side
+  is right.
+- Parity is not conformance. Nothing here starts running a real JSON Schema
+  validator against the payload. That is **not** declined as a new dependency —
+  `jsonschema>=4.0` is already declared at `tools/requirements.txt:5` and eleven
+  `tests/roster/` modules import it, one of which validates another
+  `contracts/jsonschema/` file with `Draft202012Validator`. It is declined
+  because `cooling.py` is a `packs/core/.apm/` runtime script that must stay
+  stdlib-only, and because a test-side differential validator would surface every
+  divergence including the deferred `locator` pattern, exceeding the sustained
+  finding's scope.
