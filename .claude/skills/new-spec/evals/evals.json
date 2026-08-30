@@ -91,6 +91,17 @@
         "Runs and cites one throwaway side-effect-free disconfirming check before review without committing it",
         "Reduces the plan rather than extending it when review keeps finding plan under-specification"
       ]
+    },
+    {
+      "id": "acceptance-criteria-discipline",
+      "prompt": "While drafting a spec, I wrote one acceptance criterion that bundles two contracts: the exporter writes byte-sorted JSON and dry-run prints it without writing a file. The criterion also says payloads over 1 MB are rejected and payloads over 2 MB are truncated, but gives no stated firing order for its two limits. Finally, I copied a rule already owned by another document into this criterion. What should I do?",
+      "expected_output": "Split the bundled contracts into separate criteria. For each numeric limit, require the input that makes the limit fire first and the enforcement mechanism that makes that ordering true; where two limits share a quantity, order them so each is reachable or declare one non-binding and name the limit that fires. Remove the copied rule and cite the owning document and identifier rather than restating it.",
+      "assertions": [
+        "Splits the bundled criterion into separate contracts",
+        "Demands both the input that makes the limit fire first and the enforcement mechanism",
+        "Resolves the two-limit firing order or declares one limit non-binding",
+        "Cites the owning document and identifier rather than restating its rule"
+      ]
     }
   ]
 }

@@ -204,8 +204,8 @@ could pick it up and complete it without follow-up questions:
 **Depends on:** <none | T0, ...>
 
 **Tests:**
-- <the mechanism, not the criterion — suite and path, fixture key, property
-  or boundary case, or the shipped assertion that moves (AC<n>, if any)>
+- <test 1 — behaviour, edge case, or property; reference the Acceptance
+  Criterion from spec.md this step verifies, if any>
 - <test 2>
 
 **Approach:**

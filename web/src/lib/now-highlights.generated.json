@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.15.4"
+        }
+      ],
+      "date": "2026-08-29",
+      "heading": "[core][2.15.4] — 2026-08-29",
+      "changelogAnchor": "core2154--2026-08-29",
+      "highlights": [
+        {
+          "source": "**An acceptance criterion that hides two contracts is now caught while it is being written, not three review rounds later.** `new-spec` names the test — parts with separate failure modes and separate remedies are separate criteria — and fixes its boundary with five worked examples rather than an adjective an author can self-certify past.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "An acceptance criterion that hides two contracts is now caught while it is being written, not three review rounds later."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "new-spec"
+            },
+            {
+              "type": "text",
+              "value": " names the test — parts with separate failure modes and separate remedies are separate criteria — and fixes its boundary with five worked examples rather than an adjective an author can self-certify past."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.15.3"
         }
       ],

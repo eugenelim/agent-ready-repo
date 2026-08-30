@@ -158,6 +158,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    the three categories (Technical / Product / Process), not the two
    subsections.
 
+   When no corpus of real inputs is reachable for a refusal contract over
+   third-party, untrusted, or otherwise externally authored input, record that
+   absence as an Unverified assumption. See step 5 for the corpus obligation.
+
    **Surface the Unverified list and wait** for human confirmation or
    correction before writing into `Objective`, `Boundaries`,
    `Testing Strategy`, or `Acceptance Criteria`. If Unverified is
@@ -262,9 +266,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      dependency, no new module boundary) so the diff can't sprawl into
      hypothetical futures.
    - **No Acceptance Criteria.** Without a checklist, "done" is opinion.
-   - **An acceptance criterion carries more than one obligation.** If it needs
-     "and" to join two checkable properties, split it. A conjunction lets a
-     coverage check pass while half the criterion remains unimplemented.
+     `assets/spec.md`'s `## Acceptance Criteria` guidance owns the
+     criterion-shape rules, including the independence boundary, worked examples, limits,
+     claim minimality, and the mechanism give-away; apply that section here.
+     See step 8 for citation discipline and step 5 for the corpus obligation.
    - **Body narrates history or the future.** Write the spec in the
      present tense, as if the feature already exists and always worked
      this way — the *retcon* discipline. No "will be implemented", no
@@ -408,6 +413,19 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      than its spec, or a task whose `Tests:` lines outnumber its `Approach:`
      lines, is specifying rather than strategising. Around 2×, stop and reduce
      duplicated detail before review.
+   - Carry mechanism, never a restatement of a criterion. A `Tests:` bullet
+     names what the implementer cannot infer — which suite proves a property and
+     where it lives, which fixture carries which join key, which shipped assertion
+     this change moves — because the criteria are the checklist and a repeat
+     creates a second home with nothing keeping the two in sync. Paste-test the
+     whole plan except `## Constraints` and the durable-output map: if a passage
+     could move into the spec without looking out of place, it is either already
+     there or belongs there, and either way it does not belong in the plan.
+   - When the spec's subject is third-party, untrusted, or otherwise externally
+     authored input and a criterion specifies a refusal, draft into the plan's
+     first tasks a corpus task that runs the specified rules against recorded real
+     inputs and records the resulting accept and reject counts before finalising
+     that criterion.
 
    Push back hard on these plan-stage failure modes (mirror of step 4):
    - **Task too big.** "Implement the feature" is not a task; "add the
@@ -472,6 +490,15 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    (`adversarial-reviewer: no matching subagent installed; review skipped`),
    not a blocker.
 
+   After review rounds converge and before requesting human approval, run one
+   deletion pass over every criterion and task added during review. For each,
+   ask whether the accepted contract requires it or a reviewer's remedy invented
+   it, whether it contradicts a stated non-goal, and whether it traces to a
+   criterion at all. Take the cuts to the human with conformance fixes separated
+   from scope calls. When a reviewer keeps finding under-specification in the
+   plan rather than defects in the spec, the plan is over-specified: reduce it
+   rather than extending it before the existing three-pass escalation.
+
 7. Update `docs/specs/README.md` to add the feature to the active list.
 
 8. **Keep the spec the single source of truth — drift is a bug.** When
@@ -485,6 +512,11 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    from living in two places that can drift apart, and the **present-tense
    retcon body** (the failure mode in step 4) stops a single document from
    contradicting itself across tenses. Remind the user of both.
+
+   When a criterion depends on a rule owned elsewhere, cite its document and
+   identifier rather than restating it. When one rule is found stated in two
+   places, record which statement is the owner and reduce the other to a
+   cross-reference.
 
 ## Project-knowledge non-gate
 

@@ -52,6 +52,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.15.4] — 2026-08-29
+
+### Highlights
+
+- **An acceptance criterion that hides two contracts is now caught while it is
+  being written, not three review rounds later.** `new-spec` names the test —
+  parts with separate failure modes and separate remedies are separate criteria
+  — and fixes its boundary with five worked examples rather than an adjective an
+  author can self-certify past.
+
+### Changed
+
+- `new-spec` states twelve authoring rules it previously left to judgement: one
+  criterion is one contract; a numeric limit carries the input that makes it fire
+  first, the mechanism enforcing that order, and the origin it is measured from;
+  a limit's value is never delegated to whoever implements it; a refusal contract
+  over third-party input opens with a corpus check against real inputs; a rule a
+  criterion depends on is cited by document and identifier rather than restated;
+  a claim earns its place by making a wrong implementation detectable; and the
+  plan carries mechanism rather than a second copy of the criteria.
+- `new-spec`'s review guidance schedules one deletion pass after the rounds
+  converge, and treats persistent under-specification findings in the plan as a
+  signal to reduce the plan rather than extend it.
+
 ## [core][2.15.3] — 2026-08-29
 
 ### Highlights
