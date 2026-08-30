@@ -9,11 +9,10 @@
 - **Contract:** none — the foundation semantic provider request/response contract remains unchanged.
 - **Shape:** mixed
 
-> **Hard dependency, satisfied.** This slice depends on the Agent Skill
-> Engineering Corpus slice's census, admission rule, taxonomy partition, and
-> retrieval baseline. That slice shipped in `ea3a0f625`; its spec reads
-> `Shipped` and the workspace engine reports the dependency edge cleared.
-> Implementation is authorized.
+> **Hard dependency.** This slice depends on the Agent Skill Engineering Corpus
+> slice's census, admission rule, taxonomy partition, and retrieval baseline.
+> That dependency is recorded as satisfied in the Assumptions below. The `Status`
+> field above, not this banner, carries the authorization to implement.
 
 ## Objective
 
@@ -25,12 +24,23 @@ agent-skill scripts, evaluations, packs, and their execution environments;
 they do not become general language or CI handbooks.
 
 These five leaves are admitted on the **doctrine** basis, not observed practice.
-Their evidence is documented external contracts plus recorded controlled
-measurement, which is what RFC-0097's own evidence notes assembled for them.
-The corpus slice implemented doctrine's field validation but deliberately left
+No leaf clears the inherited observed-practice rule, and the doctrine evidence
+that does support them is documented public contracts, cited externally. The
+corpus slice implemented doctrine's field validation but deliberately left
 doctrine-side body parity unimplemented as a loud failure, naming the successor
 slice as its owner. This slice is that successor, so closing that gap is part of
 the work rather than an incidental fix.
+
+## Durable Outputs
+
+| Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
+| --- | --- | --- | --- | --- | --- |
+| Current product truth | The pack gains five topics, so its own description of what it offers goes stale. | `packs/agent-skill-engineering/README.md` | This spec | README's topic count and language-availability paragraph match the admitted set; `catalogue lint --deep` clean | No README sentence asserts an absence the corpus no longer has |
+| Current architecture | RFC-0097 requires each delivery spec to update the planned architecture with its slice's implemented names, paths, and verification evidence. | `docs/architecture/agent-skill-engineering.md` | This spec | Topology counts name 12 admitted and 24 unpopulated leaves; the slice's verification date is recorded | Architecture claims no later-slice surface |
+| Release history | The pack's version bump is a released-artifact change. | `docs/product/changelog.md` — a `## [agent-skill-engineering][<version>] — <date>` entry | This spec | Entry present in the same change that bumps the manifests | Entry names the admitted topic set and the language-availability change |
+| Interface compatibility | The pack's published surface is consumed externally. | `packs/agent-skill-engineering/pack.toml`, `.claude-plugin/plugin.json`, and the aggregated marketplace manifest — regenerated, never hand-edited | This spec | Matching version bump per `packs/AGENTS.md`; publication and roster gates green | Both manifests carry the same bumped version |
+| Spec index | The index row states this spec's shape and counts. | `docs/specs/README.md` | This spec | Row's criterion and task counts equal this document's | Row matches the shipped spec |
+| Reusable learning | Work-loop's `spec-approved` and `plan-locked` gates capture authoring residue. | `project-knowledge` public seam | work-loop | Capture receipts, or the named skip `project-knowledge unavailable` | Receipts distilled at `plan-locked`, or the skip recorded |
 
 ## Boundaries
 
@@ -57,27 +67,33 @@ the work rather than an incidental fix.
 - Adding a promotion class to the inherited doctrine vocabulary. Implementing
   the parity check the corpus slice left unimplemented is not such a change:
   it enforces an existing requirement rather than widening the rule.
+- Adding a known-miss exemption to a graded behavior case after seeing its
+  verdict.
 
 ### Never do
 
 - Turn a language topic into a general programming-language handbook.
-- Claim a runtime profile, `runtime-package`, plugin, or subagent capability;
-  those are owned by later slices.
+- Claim a runtime profile, `runtime-package`, plugin, hook, or subagent
+  capability; those are owned by later slices.
 - Re-record the corpus slice's foundation retrieval pins as part of this work.
-  The 24 inherited per-case pins are a non-regression gate: a measurement that
-  moves one is a defect to surface, never a pin to rewrite.
+  Those pins are a non-regression gate: a measurement that moves one is a defect
+  to surface, never a pin to rewrite. Their count is asserted in the owning
+  fixture test, not restated here.
 - Claim maturity for a topic whose governing evidence note withholds it.
 - Reword an acceptance criterion, assertion, or retrieval case after seeing its
   measured result.
+- Commit personal or host-identifying data in any recorded evidence field.
 
 ## Testing Strategy
 
 - Use TDD for topic admission, doctrine-side parity, topology accounting, and
   per-case retrieval non-regression.
-- Use goal-based checks for measured retrieval precision, deterministic builds,
-  staged-tree confinement, and CI execution-economics evidence.
+- Use goal-based checks for deterministic builds, staged-tree confinement, and
+  portability.
+- Use measured retrieval for topic distinctness and foundation non-regression.
 - Use observed behavior fixtures for the pytest-suite and Node/browser-suite
-  cases before claiming their behavior coverage.
+  cases, and a fresh headless observation for activation, before claiming either
+  kind of coverage.
 - Prove every new or changed guard by mutation: state the invariant, the test
   that must catch its removal, the exact mutation, and the observed failure.
   The doctrine arm has never executed against any input, so its first exercise
@@ -85,20 +101,29 @@ the work rather than an incidental fix.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Five topology leaves are delivered.** The language and execution
-  leaves from RFC-0097 D3 are accounted for by admitted topics or declared
-  unpopulated records under the corpus admission contract, with every leaf in
-  exactly one set and neither set naming a leaf the taxonomy does not have.
-- [ ] **AC2 — Language depth remains specific.** Python/pytest and
-  TypeScript/Node guidance each covers the language-specific execution and
-  test-isolation concerns RFC-0097 assigns to it, without collapsing them into
-  one lowest-common-denominator topic. The TypeScript/Node topic states the
-  maturity limit its governing evidence note records rather than implying a
-  maturity that note withholds.
-- [ ] **AC3 — Execution economics is bounded and measured.** Process,
-  filesystem, pack/CI critical-path, worktree, lock, shared-host, and
-  machine-load guidance is limited to the corpus domain and supported by
-  measured retrieval and execution evidence.
+- [ ] **AC1 — The five named leaves are admitted.** `python-and-pytest`,
+  `typescript-node-and-javascript-test-runners`, `process-and-filesystem-cost`,
+  `pack-and-ci-critical-paths`, and
+  `worktrees-state-locks-and-shared-host-admission` are admitted topics carrying
+  the `doctrine` basis, and none of them remains in the declared-unpopulated
+  register. Every taxonomy leaf stays in exactly one set, and neither set names
+  a leaf the taxonomy does not have.
+- [ ] **AC2 — Language depth remains specific and complete.** The
+  TypeScript/Node topic separately covers each of the seven subjects RFC-0097
+  assigns it: package and module contracts, lockfile-respecting clean installs,
+  child-process behavior, test-runner worker models, browser-worker economics,
+  cache keys, and JavaScript/TypeScript security scanning. The Python/pytest
+  topic covers the collection, fixture, process-boundary, and temporary-path
+  concerns RFC-0097 permits it, without collapsing into the TypeScript/Node
+  topic or into a lowest-common-denominator topic. The TypeScript/Node topic
+  states, in portable terms, the maturity limit its governing evidence note
+  records.
+- [ ] **AC3 — Execution economics is bounded.** Process, filesystem, pack/CI
+  critical-path, worktree, lock, shared-host, and machine-load guidance stays
+  limited to skill scripts, evaluations, packs, and their execution
+  environments, and is supported by measured retrieval evidence. No recorded
+  evidence field carries an absolute home path, username, hostname, or worktree
+  name.
 - [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
   pinned foundation result. Both the retrieval record and the generic-negative
@@ -108,15 +133,63 @@ the work rather than an incidental fix.
   behavior fixtures are declared and recorded through the established observed
   evaluation process, and every graded result whose pinned source digest this
   slice moves is re-measured rather than re-stamped.
-- [ ] **AC6 — Doctrine-side source parity is enforced, not deferred.** Each
-  cited source's identity and retrieval date appears in both the authored and
-  the compiled projection of the topic that cites it. The check replaces the
-  corpus slice's unconditional failure, and each predicate limb the doctrine
-  arm newly exercises carries a recorded mutation proof.
+- [ ] **AC6 — Doctrine-side source parity is enforced, not deferred.** For every
+  doctrine claim group, the group's shipped fields appear in the topic's
+  provenance-and-lifecycle section and equal the admission record field-for-field
+  — source identities *and* dates, including each source's exposed version or
+  last-updated date, or its explicit `none exposed`. Every projected source
+  identity resolves outside this repository: a title plus a stable URL. No
+  repository-internal evidence — commit hash, internal note filename, or
+  repository path — reaches either projection; it stays in the non-projected
+  admission fixture. The check replaces the corpus slice's unconditional
+  failure, and each predicate limb the doctrine arm newly exercises carries a
+  recorded mutation proof.
 - [ ] **AC7 — Shipped language-availability statements match what shipped.**
-  Every shipped statement about language-extension family availability agrees
-  with the admitted topic set, so no adopter-facing text promises an absence
-  the corpus no longer has.
+  Each of the four shipped statements that today asserts these language families
+  are unpopulated or future — the two workflow `SKILL.md` bodies, the
+  language-extension seam reference, and the pack README — agrees with the
+  admitted topic set. Because two of them are digest-pinned, activation is
+  re-observed rather than reconciled by editing.
+- [ ] **AC8 — Records and published surfaces are current.** The initiative's
+  milestone string names the slice actually in flight; this spec is registered
+  as active work while in flight and moved to shipped work at close, in the same
+  commit that sets its status; the brief's derived Spec map and both workspace
+  registrations that pin its digest agree; the pack version bump, its changelog
+  entry, and the architecture and index records land with the change; and the
+  `unsatisfied_dependency` ceiling matches the edges that actually exist.
+
+## Assumptions
+
+- The hard dependency on the corpus slice is satisfied. (source:
+  `workspace_status.py explain --item spec/agent-skill-engineering-languages-and-execution`
+  reports `dependencies: []` with the only finding `unapproved_spec`; the corpus
+  spec is in `["ini-009".work].shipped` and reads `Status: Shipped`.)
+- No one of the five leaves clears the inherited observed-practice rule, which
+  requires two observations in two distinct packs. (source: evidence census over
+  `packs/*/.apm/skills/`; the strongest candidate, state locking, has both
+  implementations inside `packs/core`.)
+- The doctrine basis is reachable for these leaves only through
+  `two-runtime-public-contract`, sourced from public documentation. It is not
+  reachable through `controlled-measurement`, because every row of the governing
+  archaeology note is a single dated decision with no repetition count, and that
+  class requires at least two repetitions. (source:
+  `test_corpus_admission.py` `DOCTRINE_CLASSES` and its repetition assertion;
+  `docs/rfc/0097-notes/execution-economics-archaeology.md` chronology table.)
+- The brief's sha256 is pinned as `source.revision` in exactly two workspace
+  registrations, so each status roll re-pins both. (source: `grep -c` over
+  `workspace.toml` returns 2, and the digest appears in no other tracked file.)
+- Admitting a topic moves the router source, router body, generated-tree, and
+  case-fixture digests, so the retrieval record, the generic-negative record,
+  and every graded behavior result pinned to a moved file are re-measured.
+  (source: the digest assertions in `test_foundation_corpus.py` and
+  `test_pack_boundary.py`.)
+- Declined alternatives, recorded because the choice was contested: admitting
+  four leaves and leaving TypeScript/Node unpopulated, and admitting none and
+  re-declaring all five absent. The owner chose all five on doctrine, having
+  been shown that the governing evidence note withholds maturity from the
+  TypeScript/Node topic. The accepted risk is that this topic carries the
+  weakest distinctness evidence and is the likeliest to fail measurement; the
+  agreed response is to report and withdraw it, never to reword its cases.
 
 ## Follow-ons
 
