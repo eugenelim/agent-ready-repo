@@ -1,5 +1,6 @@
 """RFC-0096 Wave 6 — cooling module loading and cooled locator resolution."""
 
+import ast
 import importlib.util
 import json
 import sys
@@ -134,13 +135,27 @@ def test_lifecycle_directory_is_confined(tmp_path, engine) -> None:
 
 
 # STUB: AC10
-def test_symlinked_record_is_refused(tmp_path, engine) -> None:
+def test_symlinked_record_is_refused(tmp_path, engine, monkeypatch) -> None:
     root = _tree(tmp_path, records=[_record()])
-    target = root / "docs/lifecycle/alpha.json"
     link = root / "docs/lifecycle/spec-link.json"
-    link.symlink_to(target)
+    link.symlink_to(root / "docs/lifecycle/alpha.json")
+
+    # The refusal alone cannot distinguish the engine's guard from file_safety's
+    # own O_NOFOLLOW, which would reject the same link one layer down and emit
+    # the same code. What the guard uniquely does is refuse *before* handing the
+    # path to the reader, so that is what this pins.
+    real = engine._load_cooling_module()
+    seen: list[str] = []
+
+    class _Probe:
+        def load_record(self, root_arg, path):
+            seen.append(Path(path).name)
+            return real.load_record(root_arg, path)
+
+    monkeypatch.setattr(engine, "_load_cooling_module", lambda: _Probe())
     _, findings = engine._resolve_cooled_state(root)
     assert ("invalid_lifecycle_record", "docs/lifecycle/spec-link.json") in {(f.code, f.path) for f in findings}
+    assert "spec-link.json" not in seen, "symlinked record reached the reader"
 
 
 # STUB: AC11
@@ -152,16 +167,32 @@ def test_oversized_record_refuses_without_raising(tmp_path, engine) -> None:
 
 # STUB: AC12
 def test_membership_is_decided_on_the_real_file(tmp_path, engine) -> None:
-    root = _tree(tmp_path, records=[_record()])
+    # The record names the artifact through an in-root alias symlink, so the
+    # stored member differs from the literal locator unless it is resolved.
+    root = _tree(tmp_path, records=[_record(locator="docs/specs/alias-alpha/spec.md")])
     (root / "docs/specs/alias-alpha").symlink_to(root / "docs/specs/alpha", target_is_directory=True)
     cooled, _ = engine._resolve_cooled_state(root)
-    assert (root / "docs/specs/alias-alpha/spec.md").resolve() in cooled
+    assert cooled == {(root / "docs/specs/alpha/spec.md").resolve()}
+    assert (root / "docs/specs/alias-alpha/spec.md") not in cooled
 
 
 # STUB: AC37
 def test_packaged_runtime_carries_the_whole_closure() -> None:
     for name in PACKAGED_CLOSURE:
         assert (PACKAGED_DATA / name).read_bytes() == (CLOSE_WORK_SCRIPTS / name).read_bytes()
+
+    # Byte equality alone only proves the files are on disk right now; it does
+    # not prove the build declares them, so a shrunk projection list would keep
+    # this green until the next clean checkout silently lost the closure.
+    source = ast.parse((ROOT / "packages/agentbundle/agentbundle/build/self_host.py").read_text(encoding="utf-8"))
+    declared = {
+        node.value
+        for fn in ast.walk(source)
+        if isinstance(fn, ast.FunctionDef) and fn.name == "_runtime_projections"
+        for node in ast.walk(fn)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    }
+    assert set(PACKAGED_CLOSURE) <= declared, f"_runtime_projections omits {set(PACKAGED_CLOSURE) - declared}"
 
 
 # STUB: AC38
