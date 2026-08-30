@@ -4,7 +4,7 @@
 - **Status:** Done
 - **Repository anchors:** `docs/rfc/0096-portable-delivery-artifact-lifecycle.md`
   §6 owns cooling policy; `packs/core/.apm/skills/close-work/scripts/cooling.py`
-  is the module under change and its own `_exceeds_depth` docstring (`:179-198`)
+  is the module under change and its own `_exceeds_depth` docstring
   is the analogous precedent — the same escape class (`RecursionError` outside
   the refusal tuple, surfacing an absolute path) was found and closed in Wave 5;
   `tests/roster/test_thirty_day_cooling_and_retirement.py` is the owning suite
@@ -104,8 +104,8 @@ Strategy, not asserted uniformly here.
 
 ### Design decisions
 
-**One resolver, three call sites.** `validate_payload` (`:279-282`),
-`compute_review_on` (`:326-329`), and `is_due` (`:337-340`) each do the same two
+**One resolver, three call sites.** `validate_payload` (`:282`),
+`compute_review_on` (`:371`), and `is_due` (`:378`) each do the same two
 things — bound-check nothing, then resolve — and each needs its own refusal
 code. Duplicating a bound-and-type guard three times is more code than one
 private helper returning `ZoneInfo | None` that lets each site name its own
@@ -166,7 +166,7 @@ filesystem and the presence of `tzdata` change the answer.
 | 8 | `"../../etc/passwd"` | `record-invalid` | unchanged |
 | 9 | `"Not/A/Zone"` | `record-invalid` | unchanged |
 | 10 | `"a\x00b"` | `record-invalid` | unchanged |
-| 11 | `"é" * 200` (third in the stub's parametrize list; the table groups by kind, not by order) | `ZoneInfoNotFoundError` on APFS; **raises `OSError`** on a byte-limited filesystem | `record-invalid` |
+| 11 | `"é" * 200` (third in the stub's parametrize list; the table groups by kind, not by order) | `ZoneInfoNotFoundError` on APFS (measured). **Inferred, not measured:** on a byte-limited filesystem such as ext4 its 400 bytes exceed `NAME_MAX`, which would raise `OSError` — and only where `tzdata` is importable, exactly as rows 1 and 2 | `record-invalid` |
 
 Two of eleven are red on darwin/APFS. Row 11 is the one inside the code-point
 bound: it is the only corpus value that can reach the `OSError` arm through a
@@ -205,8 +205,10 @@ bound. It is red on ext4, which is what CI runs.
 - **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
   `tests/roster/test_thirty_day_cooling_and_retirement.py`
 
-**Tests:** the ten rows of the Construction tests table covering AC1–AC10.
-`stub: true` — all ten materialised red at PLAN.
+**Tests:** the nine rows of the Construction tests table covering AC1-AC10,
+eight of them red at PLAN. `stub: true`. AC10 is the exception: a resolvable
+timezone is accepted today and must keep being accepted, so its proof is M8b
+rather than a red start.
 
 **Approach.** Add one module constant beside the existing bounds:
 
@@ -230,9 +232,9 @@ carrying an absolute host path and an errno.
 
 Replace the three call sites, each keeping its own code:
 
-- `validate_payload` (`:279-282`) → `record-invalid`
-- `compute_review_on` (`:326-329`) → `unknown-timezone`
-- `is_due` (`:337-340`) → `unknown-timezone`, binding the returned zone
+- `validate_payload` → `record-invalid`
+- `compute_review_on` → `unknown-timezone`
+- `is_due` → `unknown-timezone`, binding the returned zone
 
 **Mutation proofs.** Each proof asserts its anchor text was found before
 mutating, so a mutation that fails to apply cannot yield a vacuous pass.
@@ -255,7 +257,7 @@ mutating, so a mutation that fails to apply cannot yield a vacuous pass.
 
 **Tests:** the three rows covering AC20-AC22. `stub: true`.
 
-**Approach.** `_exception_is_valid` (`cooling.py:214-232`) filters permitted keys,
+**Approach.** `_exception_is_valid` (`cooling.py:261`) filters permitted keys,
 then gates on
 
 ```python
@@ -276,7 +278,7 @@ if not set(value) >= {"reason", "owner_role", "review_on"}:
 ```
 
 That is the form the neighbouring `validate_payload` already uses at
-`cooling.py:240` (`not set(payload) >= _REQUIRED`). Proved by enumeration before
+`cooling.py:287` (`not set(payload) >= _REQUIRED`). Proved by enumeration before
 writing it — of the sixteen envelope shapes, eight carry `evidence_ref` and so
 fall through the old gate, and seven of those omit a required key: the superset test rejects exactly the seven dangerous shapes and
 still admits both valid ones, `{reason, owner_role, review_on}` with and without
@@ -304,7 +306,7 @@ are already correct once they cannot be reached with a missing key.
 **Tests:** the four rows covering AC11–AC15. `stub: true`.
 
 **Approach.** Add `MAX_LOCATOR_LENGTH = 1000` and use it in `_is_locator`
-(`:162`) in place of the bare literal. The extraction is behaviour-free; AC14
+(`:167-172`) in place of the bare literal. The extraction is behaviour-free; AC14
 makes it load-bearing by patching the constant on a freshly loaded module and
 asserting the guard follows, so a dead constant fails.
 
@@ -480,7 +482,7 @@ The razor run, recorded once. Each was considered and cut.
 
 | Tempted to add | Why declined |
 | --- | --- |
-| A path-sanitising helper for finding 1 | Finding 1 was refuted; and `resource` at `:517` is already the relativized value, so even a repair needed no helper. |
+| A path-sanitising helper for finding 1 | Finding 1 was refuted; and `resource` at `:561` is already the relativized value, so even a repair needed no helper. |
 | A lease or token store for finding 2 | Finding 2 was refuted; and issue digests are deterministic over the grant payload, so a store would not stop replay by a grant holder. |
 | A timezone-validation module | One module-private function in the owning module covers three call sites. A module is a new boundary for eleven lines. |
 | Rewriting `_exception_is_valid` rather than changing its comparison | The four checks below the gate are already correct once an incomplete envelope cannot reach them. One operator is the whole repair; enumeration over all eight envelope shapes proved it before it was written. |

@@ -24,9 +24,12 @@ a named refusal from every seam that resolves one. An `exception` envelope
 missing a required key returns a named refusal from every seam that reads one,
 including the two caller-facing review seams.
 
-Nothing raises, so no host filesystem path or `errno` reaches the caller. The three
-numeric bounds this spec names can no longer drift from the published contract
-unnoticed.
+No malformed record raises, so no host filesystem path or `errno` reaches the
+caller from any of these seams. That is a claim about record *input*, not about
+the module as a whole: a dependency fault — an unresolvable `close-work` seam —
+still escapes on five reaches, recorded under Follow-ons rather than repaired
+here. The three numeric bounds this spec names can no longer drift from the
+published contract unnoticed.
 
 ## Durable Outputs
 
@@ -164,7 +167,7 @@ that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
   the first two, `unknown-timezone` from the third — with the counting spy
   recording zero calls, and none raises. `is_due` is excluded by construction:
   `CoolingRecord.from_payload` coerces `timezone` with `str()` at
-  `cooling.py:106`, so a record's `timezone` is always a string and that seam
+  `CoolingRecord.from_payload`, so a record's `timezone` is always a string and that seam
   cannot observe the original type.
 - [x] **AC8 — The enumerated timezone corpus never raises.** For each of the
   eleven `timezone` values in the plan's corpus table, `validate_payload` and
@@ -295,37 +298,25 @@ coercions this spec once wrongly called inert (AC28). That last claim was true o
 the *match outcome* and false of the *call*: `str()` on an unbounded int raises
 before any pattern is consulted.
 
-- **A `_close_work()` failure escapes four functions uncaught.** `enrol`
-  (`:679`) and `load_record` (`:692`) wrap the dependency; `verify_identity`
-  resolves it outside its own `try` (`:378`), `deletion_allowed` calls
-  `verify_identity` bare (`:424`), `_binding_is_issued` resolves it (`:496`)
-  from `_write_record` before that function's `try` opens (`:554`), and
-  `update_record` (`:723`) wraps nothing — so the failure propagates out of
-  `review()` and `review_exception()`. The outcome is fail-closed, but the
-  observable is a traceback carrying the absolute paths of both `cooling.py` and
-  `close_work.py` from the permission-granting seam.
-- **Wave 5 finding 1 — refuted, not repaired.** The success payload's absolute
-  `mutated` path. Evidence in [`notes/adjudication.md`](notes/adjudication.md).
-  Residual observation: `CoolingResult.as_dict`'s "diagnostic-free" docstring
-  claims more than the success path delivers.
-- **Wave 5 finding 2 — refuted, not repaired.** The unpopped write grant in
-  `_binding_is_issued`. Evidence in [`notes/adjudication.md`](notes/adjudication.md).
-  Single-use write grants remain a defensible hardening with Wave 4 precedent as
-  a blast-radius reduction for a leaked binding object. The unrecorded residual
-  is different and larger: `_ISSUED_COORDINATION_AUTHORITIES` is never evicted on
-  the write path, and `_binding_is_issued` linearly scans it on every write, so
-  N resolved grants make each subsequent write O(N) and the dict grows unbounded
-  for the process lifetime. Bounded retention — eviction and a cap — is what the
-  per-write scan makes load-bearing.
-- **Locator pattern divergence.** `_is_locator` (`cooling.py:167-172`) admits the
-  C0 control range and `U+007F`, which the contract's `$defs/locator` pattern
-  excludes; `_is_locator` rejects a `.` segment, which the pattern admits. AC13
-  and AC14 pin only the numeric bound. The write path is unaffected — it binds
-  on `delivery_id`, which is regex-bounded — so the reach is limited to the
-  deletion path via `close_work._bounded_text`'s control-character refusal, and
-  `verify_identity` usually refuses first with `locator-unresolved`.
-  Reconciling the pattern changes behaviour and belongs to a spec that can decide
-  which side is right.
+- **A `_close_work()` failure escapes five reaches uncaught.** The seam is
+  resolved lazily, and not every caller wraps it. `load_record` does. `enrol`
+  does **not**: it calls `_resolve_destination` before its own `try` opens, and
+  `_resolve_destination` resolves `_close_work()` inside itself, so an
+  `ImportError` there escapes `enrol` exactly as it escapes `update_record` —
+  which wraps nothing — and therefore escapes `review` and `review_exception`
+  too. `verify_identity` resolves it outside its own `try`, and
+  `deletion_allowed` calls `verify_identity` bare. `_binding_is_issued` resolves
+  it from `_write_record` before that function's `try` opens.
+
+  The outcome is fail-closed — no permission is granted — but the observable is
+  a traceback carrying the absolute paths of both `cooling.py` and
+  `close_work.py`, from the permission-granting seam. `resolve_surface` sits on
+  the same unwrapped reach.
+
+  This is a dependency fault rather than record input, which is why it is
+  recorded rather than repaired here: moving the call inside `enrol`'s `try`
+  changes which refusal code an existing input shape produces, and this spec's
+  Boundaries put that behind *Ask first*.
 
 ## Assumptions
 

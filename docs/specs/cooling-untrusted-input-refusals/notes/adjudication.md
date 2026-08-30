@@ -141,3 +141,55 @@ sufficient — it would need duplicating at three call sites and would still lea
 other `OSError` shapes from the same call uncaught. The `OSError` arm is
 required; the bound is the defence-in-depth half that also closes the
 schema/validator divergence.
+
+---
+
+# Post-GATES disposition audit
+
+Three reviewers over two rounds returned 39 findings against the implementation.
+The orchestrator dispositioned each, then an independent adjudicator audited the
+**dispositions** rather than the findings — the useful question once every repair
+is already in the tree.
+
+**Result: 30 dispositions correct, 5 sustained against, 4 indeterminate. All five
+sustained were documentation; no code disposition was wrong.**
+
+## The five that were sustained, and what they were
+
+1. and 3. The spec's Follow-ons register still cited pre-change line numbers.
+   Three of seven anchors named a different function than the prose did.
+2. `plan.md` cited eight `cooling.py` lines that had all drifted.
+4. The `_close_work()` follow-on asserted that `enrol` wraps the dependency. It
+   does not: `_resolve_destination` is called at `:692` and `enrol`'s `try` opens
+   at `:695`. **A false statement about shipped code in a shipped document** —
+   the adjudicator's reason for ordering this first.
+5. `_resolve_destination`'s own `_close_work()` reach is a fifth uncaught path,
+   and the register denied it while enumerating four.
+
+All five are fixed. The citation pass ran last so no later edit re-staled it, and
+most anchors are now symbol names rather than line numbers, because this is the
+third time in one spec that line citations went stale under an insertion.
+
+## Dispositions the audit confirmed
+
+- **Declining `REFUSAL_CODES` enforcement in `CoolingResult.__post_init__`** is
+  correct: `enrolled`, `accepted`, `identity-verified`, and `deletion-permitted`
+  are all returned as `code` from the same dataclass and none is in the
+  frozenset, so the check would reject four live success paths.
+- **Deferring the `OSError` narrowing** is correct: an errno allow-list would
+  leave AC6a green while re-raising, and a multi-byte key inside the code-point
+  bound can still reach `OSError` on a byte-limited filesystem.
+- **The changelog does not over-claim.** The disputed clause is governed by its
+  own four-item enumeration and scoped to "malformed lifecycle-record input", and
+  all four classes do return a code. The unqualified claim that did survive was
+  the *spec's* Objective, which the audit caught and which is now narrowed to
+  record input, naming the dependency-fault escape it does not cover.
+
+## Where the audit was inconclusive
+
+Four findings could not be settled read-only: two needed a git revision query for
+the merge base, one named "four facts" without identifying them, and one had no
+disposition recorded at all. That last one — the stale coverage figures — was in
+fact applied; the omission was the orchestrator's bookkeeping, not a gap in the
+work.
+

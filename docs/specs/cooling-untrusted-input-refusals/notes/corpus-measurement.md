@@ -108,7 +108,9 @@ Measured on darwin/APFS:
 
 APFS bounds the component at 255 **code points**, so the 400-byte / 200-character
 key is inside the limit and resolves normally to "not found". ext4 bounds it at
-255 **bytes**, so the same key is over the limit there. JSON Schema `maxLength`
+255 **bytes**, so the same key is over the limit there — inferred from
+`NAME_MAX` semantics, not measured on ext4, and contingent on `tzdata` being
+importable exactly as the ASCII rows are. JSON Schema `maxLength`
 and Python `len()` both count code points.
 
 Consequence for the design: `MAX_TIMEZONE_LENGTH = 255` eliminates
