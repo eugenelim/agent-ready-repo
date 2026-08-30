@@ -166,7 +166,12 @@ def test_cooling_module_calls_no_clock() -> None:
 def test_schema_requires_the_rfc_field_set_and_closes_every_level() -> None:
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     assert schema["contract_version"] == "delivery-lifecycle-record.v1"
-    assert schema["x-spec"] == ["docs/specs/thirty-day-cooling-and-retirement/"]
+    # Wave 5's AC7 requires the contract to carry `x-spec`, and its Durable
+    # Outputs require closeout to verify it carries one — not that it names
+    # Wave 5 alone. `cooling-untrusted-input-refusals` later tightened the
+    # locator pattern and took co-ownership, so this asserts Wave 5's entry is
+    # intact; that spec's AC15a asserts the exact co-owned list.
+    assert "docs/specs/thirty-day-cooling-and-retirement/" in schema["x-spec"]
     assert set(schema["required"]) == set(REQUIRED)
 
     def walk(node: object) -> None:
@@ -1573,11 +1578,46 @@ def test_the_locator_constant_governs_the_guard() -> None:
 
 
 # STUB: AC15 (spec/cooling-untrusted-input-refusals)
-def test_the_published_contract_is_unchanged() -> None:
-    """Pin the schema file's SHA-256 at merge base 221bcb3f4 (unchanged since 97a0b6ad)."""
-    assert hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest() == (
-        "8bb85ebde713c3b9f6bdd4aeca8b50dfb8291608c731607a426517e7f474a6f3"
-    )
+_LOCATOR_CORPUS = (
+    "docs/specs/a/spec.md", "a.md", "a/b/c.md", "docs/a..b.md", "docs/...",
+    "docs/./a.md", "./a.md", "docs/a/.", ".", "docs/.",
+    "docs/../a.md", "..", "/abs.md", "docs//a.md", "docs\\a.md",
+    "docs/a\x01b.md", "docs/a\x7fb.md", "docs/a\x00b.md",
+    "a" * 1000, "a" * 1001, "",
+)
+
+
+def test_the_contract_and_the_validator_agree_on_the_locator() -> None:
+    """Replaces a byte-unchanged digest pin.
+
+    The pin existed to stop parity being satisfied by editing the contract
+    instead of the code. Once the owner authorised tightening the pattern, the
+    pin stopped being the right assertion: what matters is that both sides give
+    the same verdict, which a digest cannot express.
+    """
+    cooling = _load()
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        locator = json.load(schema_file)["$defs"]["locator"]
+    pattern = re.compile(locator["pattern"])
+
+    def contract_admits(value: str) -> bool:
+        return (
+            locator["minLength"] <= len(value) <= locator["maxLength"]
+            and pattern.fullmatch(value) is not None
+        )
+
+    for value in _LOCATOR_CORPUS:
+        assert contract_admits(value) == cooling._is_locator(value), repr(value)
+
+
+# STUB: AC15a (spec/cooling-untrusted-input-refusals)
+def test_the_contract_names_both_owning_specs() -> None:
+    """This spec defines part of the contract now, not only reads it."""
+    with SCHEMA_PATH.open(encoding="utf-8") as schema_file:
+        assert json.load(schema_file)["x-spec"] == [
+            "docs/specs/thirty-day-cooling-and-retirement/",
+            "docs/specs/cooling-untrusted-input-refusals/",
+        ]
 
 
 # STUB: AC16 (spec/cooling-untrusted-input-refusals)

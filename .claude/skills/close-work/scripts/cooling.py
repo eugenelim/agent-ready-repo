@@ -171,7 +171,18 @@ class CoolingResult:
 
 
 def _is_locator(value: object) -> bool:
+    """Accept a confined repository-relative path, matching the blessed helpers.
+
+    The control-character rule is the one `surface_resolver._has_control` and
+    `close_work._bounded_text` already apply, restated rather than imported: a
+    cross-module import for a character test would make this pure predicate
+    depend on the lazily-loaded seam, which is its own failure mode. The
+    published contract's `$defs/locator` pattern excludes the same range, so
+    admitting it here left the validator weaker than the contract.
+    """
     if not isinstance(value, str) or not value or len(value) > MAX_LOCATOR_LENGTH:
+        return False
+    if any(ord(character) < 32 or ord(character) == 127 for character in value):
         return False
     if value.startswith("/") or "\\" in value or "//" in value:
         return False

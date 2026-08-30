@@ -5,7 +5,7 @@
   "description": "Portable persistent state for a delivered artifact in cooling or retention.",
   "type": "object",
   "contract_version": "delivery-lifecycle-record.v1",
-  "x-spec": ["docs/specs/thirty-day-cooling-and-retirement/"],
+  "x-spec": ["docs/specs/thirty-day-cooling-and-retirement/", "docs/specs/cooling-untrusted-input-refusals/"],
   "additionalProperties": false,
   "required": ["schema", "delivery_id", "locator", "aliases", "fingerprint", "disposition", "post_closeout_result", "completion_event", "completion_evidence_ref", "completed_on", "timezone", "review_on", "authority", "confirmation_proof"],
   "properties": {
@@ -33,7 +33,7 @@
     }
   ],
   "$defs": {
-    "locator": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*//)[^\\u0000-\\u001f\\u007f\\\\]+$"},
+    "locator": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:^|/)\\.(?:/|$))(?!.*//)[^\\u0000-\\u001f\\u007f\\\\]+$"},
     "evidenceRef": {"type": "string", "pattern": "^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$"},
     "calendarDate": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
     "authorityFact": {

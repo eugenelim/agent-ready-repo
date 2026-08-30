@@ -6,7 +6,7 @@
 - **Constrained by:** RFC-0096 §6; `thirty-day-cooling-and-retirement` (Shipped and frozen — this spec repairs its AC5 without editing that file at all)
 - **Brief:** none
 - **Discovery:** none
-- **Contract:** none
+- **Contract:** [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -35,7 +35,7 @@ published contract unnoticed.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| `interface-contract` | Applicable, read-only: the contract already declares the bound this spec makes the validator honour. No field, bound, or shape changes, so the `Contract:` header stays `none`. | [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | `thirty-day-cooling-and-retirement` retains sole `x-spec` ownership | AC11, AC13, AC15, AC26 | The file's bytes are unchanged and `x-spec` still names only Wave 5. |
+| `interface-contract` | Applicable and **changed**: the contract already declared the timezone bound this spec makes the validator honour, and now also excludes a `.` path segment, which three code surfaces already rejected. The owner authorised the tightening on 2026-08-30 after confirming no adopter emits one. | [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | Co-owned: `x-spec` names Wave 5 and this spec | AC11, AC13, AC15, AC15a, AC26 | The pattern and the validator agree, and `x-spec` names both specs. |
 | `decision-record` | Applicable: the schema-versus-code decision, the three adjudicated Wave 5 findings, and the measured corpus are the durable reasoning this delivery produces; all spec-local, so no new ADR. | [`notes/schema-decision.md`](notes/schema-decision.md), [`notes/adjudication.md`](notes/adjudication.md), [`notes/corpus-measurement.md`](notes/corpus-measurement.md) | This spec | The three notes exist and the Changelog cites them | Each note resolves and states its evidence. |
 | `release-history` | Applicable: a shipped `packs/core` runtime script changes, so the pack version advances one patch step. | [`docs/product/changelog.md`](../../product/changelog.md) | Release surface | AC16 | A dated `[core]` heading names the version `packs/core/pack.toml` carries. |
 | `current-architecture` | Not applicable: `docs/architecture/work-intake-and-artifact-routing.md` §10 pins a verified Core version, but this change alters nothing §10 describes — intake precedence, routing, and phase boundaries are untouched. Advancing its number would assert a whole-surface re-verification this delivery does not perform, and the `2.15.1` release set the same precedent by leaving it. | — | — | — | — |
@@ -281,8 +281,14 @@ and hold either way.
   `cooling.MAX_LOCATOR_LENGTH` patched to `8` on a freshly loaded module, a
   9-character `locator` returns `record-invalid` and an 8-character one returns
   no code.
-- [x] **AC15 — The published contract is unchanged.** The schema file's SHA-256
-  equals its value at this branch's merge base.
+- [x] **AC15 — The contract and the validator agree on the locator.** For each
+  of the twenty-one enumerated locator values, `$defs/locator`'s pattern and
+  bounds and `cooling._is_locator` return the same verdict. This replaces an
+  earlier byte-unchanged digest pin, which stopped being the right assertion once
+  the owner authorised tightening the pattern.
+- [x] **AC15a — The contract names both owning specs.** `x-spec` equals
+  `["docs/specs/thirty-day-cooling-and-retirement/", "docs/specs/cooling-untrusted-input-refusals/"]`,
+  because this spec now defines part of the contract rather than only reading it.
 
 ### Surfaces
 
@@ -310,79 +316,39 @@ and hold either way.
 
 ## Follow-ons
 
-Each is outside this spec's criteria. Measurements and control-flow traces live
-in the notes so the next spec does not re-derive them. Every entry is owned by
-`eugenelim` as the `close-work` surface owner, and none has a work-intake
-artifact yet — the work-loop's DECIDE step forbids creating one by default for
-work this loop did not include, so the owner registers them through
-`work-intake` if and when they are picked up.
+The register opened with four entries. Putting each through reversibility triage
+and the cut-before-adding ladder closed three and built the fourth; the reasoning
+and measurements are in
+[`notes/residual-de-risk.md`](notes/residual-de-risk.md) so a later reader does
+not re-derive them.
 
-Three entries that used to sit here are gone because they are built, not
-deferred: the `_exception_is_valid` proper-subset gate (AC20 to AC22, on an owner
-scope widening), `delivery_id`'s `str()` coercion (AC27), and the sibling text
-coercions this spec once wrongly called inert (AC28). That last claim was true of
-the *match outcome* and false of the *call*: `str()` on an unbounded int raises
-before any pattern is consulted.
-
-- **A conforming locator with a `.` segment is still refused.** The remaining
-  half of the locator divergence, and the only one that needs a decision. The
-  contract's `$defs/locator` pattern admits `docs/./a.md`; `_is_locator` rejects
-  it, and so do `surface_resolver` and `file_safety`, all three with the
-  identical `part in {"", ".", ".."}` predicate. Three code surfaces agree, so
-  the published pattern is the outlier, and there is a substantive reason to
-  keep it that way: `docs/a.md` and `docs/./a.md` resolve to the same file, so
-  admitting both would let two spellings of one file occupy two `aliases` slots
-  and both verify.
-
-  Reconciling therefore means **tightening the published pattern**, which is a
-  contract change — it alters what a conforming producer may emit and would need
-  `x-spec` co-ownership. That is the owner call, and it is narrow: does any
-  adopter emit a `.` segment today? Locally the answer is no — `docs/lifecycle/`
-  holds only a `README.md`.
-
-  The other half of this divergence is built, not deferred: `_is_locator` now
-  rejects the control range under AC32, which needed no decision because the
-  contract and both blessed helpers already applied that rule.
-
+- **The `locator` divergence — built, not deferred.** Both halves are closed.
+  `_is_locator` now rejects the control range the contract and both blessed
+  helpers already excluded (AC32), and the contract now excludes a `.` path
+  segment that three code surfaces already rejected (AC15). The owner authorised
+  the pattern tightening on 2026-08-30 after confirming no adopter emits one.
+  `docs/a.md` and `docs/./a.md` resolve to the same file, so admitting both would
+  have let two spellings occupy two `aliases` slots and both verify.
 - **The write grant is never consumed, and its registry is never evicted.**
-  Adjudicated and refuted as an authorization defect — no shipped authority
-  requires single use, and issue digests are deterministic over the grant
-  payload, so popping cannot stop replay by a grant holder. What remains is
-  hygiene: `_ISSUED_COORDINATION_AUTHORITIES` is never evicted on the write
-  path, so it grows for the process lifetime.
-
-  The scan cost this once carried is **desk-refuted**. A full scan measures
-  15.8 us at one grant and 55.8 ms at four thousand, linear — but shipped pack
-  code has exactly one caller of `resolve_mutation_authority`, on the deletion
-  path, resolving one grant per confirmed effect, so realistic N is single
-  digits and the scan costs well under a millisecond. An in-registry binding
-  also short-circuits on first match, making the measured figure worst-case.
-  Reopen only if a real session is shown to exceed roughly fifty grants. Trace
-  in [`notes/adjudication.md`](notes/adjudication.md).
-
+  **Not planned.** Refuted as an authorization defect during adjudication, and
+  the retention framing does not survive measurement either: `cooling.py` has no
+  entrypoint and is imported per skill invocation, one caller resolves one grant
+  per confirmed effect, and an entry costs about 153 bytes — roughly a kilobyte
+  for the life of one invocation. Reopen only if a long-lived host process is
+  introduced.
 - **An unreadable timezone database refuses every record as malformed.**
-  Measured: `EACCES`, `EMFILE`, and `EIO` are indistinguishable from a genuinely
-  bad zone, and the module logs nothing. **Not planned.** A host that cannot read
-  its timezone database fails louder elsewhere, so cooling's refusal is not the
-  signal an operator is missing; the behaviour is fail-closed and no one has
-  reported it. Reopen only with a case where cooling is the first or only signal.
-
-- **An unresolvable `close-work` seam escapes six public seams — and wrapping it
-  may be the wrong repair.** Measured with a genuinely confirmed candidate:
-  `enrol`, `update_record`, `verify_identity`, `deletion_allowed`, `review`, and
-  `review_exception` all raise `ImportError`; only `load_record` refuses
-  cleanly. An earlier revision of this entry said "five reaches", counting call
-  sites rather than the entry points a caller sees.
-
-  Before anyone repairs it: `close_work.py` sits beside `cooling.py` in all
-  three shipped copies and is projected by the same self-host step, so an
-  unresolvable seam means a broken installation, not a runtime condition. For a
-  broken install an `ImportError` naming the missing module is **more**
-  actionable than `lifecycle-state-unwritable`, so wrapping it would destroy
-  diagnostic information and make an install fault read as a data fault. The
-  owner call is whether any scenario produces an unresolvable seam in an intact
-  installation; if none does, correct this entry to record the escape as
-  deliberate rather than carrying it as work.
+  **Not planned.** A host that cannot read its timezone database fails louder
+  elsewhere, so cooling's refusal is not the signal an operator is missing, and
+  the behaviour is fail-closed. Reopen with a case where cooling is the first or
+  only signal.
+- **An unresolvable `close-work` seam escapes six public seams.**
+  **Deliberate, not a defect.** `close-work` is declared as a whole skill and the
+  built artifact ships `close_work.py`, `cooling.py`, and `file_safety.py`
+  together, so an unresolvable seam means a broken installation rather than a
+  runtime condition. For a broken install an `ImportError` naming the missing
+  module is more actionable than `lifecycle-state-unwritable`; wrapping it would
+  destroy diagnostic information and make an install fault read as a data
+  fault.
 
 ## Assumptions
 
