@@ -1,6 +1,6 @@
 # Spec: RFC and architecture simplification
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099
