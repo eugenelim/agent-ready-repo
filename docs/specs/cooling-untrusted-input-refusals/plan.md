@@ -33,8 +33,9 @@ T1 and T2 are independent and repair the same class: a hand-written validator
 weaker than the published contract, failing by exception rather than by refusal
 code.
 
-The whole change to production code is one new module-private function, two new
-module constants, five call-site edits, and one comparison operator. Nothing new
+The whole change to production code is three new module-private functions
+(`_zone`, `_is_one_of`, `_matches`), three new module constants, one comparison
+operator, and the call-site edits that route through them. Nothing new
 is introduced; the razor run is recorded under [Declined](#declined).
 
 ## Constraints
@@ -69,7 +70,7 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC3, AC4 | `test_the_temporal_helpers_name_the_timezone_refusal` | TDD | `stub: true` |
 | AC5 | `test_the_timezone_bound_precedes_the_lookup_at_every_seam` | TDD | `stub: true` |
 | AC6 | `test_an_oserror_from_the_zone_lookup_escapes_no_seam` | TDD | `stub: true` |
-| AC6a | asserted inside `test_an_oserror_from_the_zone_lookup_escapes_no_seam` over `cooling.py`'s AST | TDD | `stub: true` |
+| AC6a | `test_the_zone_catch_set_is_exactly_the_three_named_classes` | TDD | `stub: true` |
 | AC7 | `test_a_non_string_timezone_refuses_without_a_lookup` | TDD | `stub: true` |
 | AC8 | `test_the_timezone_corpus_never_raises` | TDD | `stub: true` |
 | AC9 | `test_a_timezone_refusal_carries_a_code_and_no_mutation` | TDD | `stub: true` |
@@ -88,11 +89,14 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC24 | `test_a_container_in_the_exception_envelope_refuses` | TDD | added post-GATES |
 | AC25 | `test_the_caller_supplied_enums_refuse_a_container` | TDD | added post-GATES |
 | AC26 | `test_the_alias_bound_equals_the_published_one` | TDD | added post-GATES |
+| AC27 | `test_a_non_string_delivery_id_refuses` | TDD | added post-GATES |
+| AC28 | `test_untrusted_text_is_matched_never_coerced`, `test_untrusted_authority_and_envelope_text_is_not_coerced` | TDD | added post-GATES |
+| AC29 | `test_a_malformed_candidate_refuses_instead_of_raising` | TDD | added post-GATES |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-29 of 29 criteria carry a materialised stub or a named goal-based check. None
+32 of 32 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -129,8 +133,9 @@ tuples — a regression introduced by the hardening itself. AC7 pins the guard.
 
 ### Data & schema
 
-No persisted shape changes. `MAX_TIMEZONE_LENGTH = 255` and
-`MAX_LOCATOR_LENGTH = 1000` mirror the contract's declared bounds; AC11 and AC13
+No persisted shape changes. `MAX_TIMEZONE_LENGTH = 255`,
+`MAX_LOCATOR_LENGTH = 1000`, and `MAX_ALIAS_COUNT = 16` mirror the contract's
+three declared bounds; AC11 and AC13
 compare them to the contract file at test time so the mirror cannot drift, and
 AC14 patches the locator constant to prove the guard reads it rather than a
 literal.
@@ -325,7 +330,9 @@ the contract instead of the code. The digest literal lives in the test only.
 - **ACs:** AC16, AC17, AC18, AC18a, AC19
 - **Verification mode:** mixed — AC16 and AC17 are TDD construction tests; AC18
   and AC19 are goal-based checks
-- **Depends on:** T1, T2, T3 — the release ships all three repairs
+- **Depends on:** T1, T2, T3, T5 — the release ships every repair. T5 landed
+  after T4's first pass; the version already covered it, so only the
+  projections were regenerated and re-verified rather than re-versioned.
 - **Files:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
   `docs/product/changelog.md`, `docs/specs/README.md`, `workspace.toml`,
   `tests/roster/test_thirty_day_cooling_and_retirement.py`
@@ -387,6 +394,42 @@ proof it can fail at all.
 are green, and the emitted-changelog test is preceded by
 `python3 tools/build-site.py && npm run build --prefix web && npm run build --prefix docs-site`
 in that order.
+
+### T5: Close the remaining untrusted-shape escapes
+
+- **ACs:** AC23, AC24, AC25, AC26, AC27, AC28, AC29
+- **Verification mode:** TDD
+- **Depends on:** T1, T2
+- **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
+  `tests/roster/test_thirty_day_cooling_and_retirement.py`
+
+**Tests:** the seven rows covering AC23-AC29, all added post-GATES.
+
+**Approach.** Post-GATES review found three further instances of one systemic
+defect — trusting the shape of untrusted input — each reached by asking the same
+question the first two answered.
+
+`_is_one_of(value, options)` guards six membership tests. JSON admits lists and
+dicts, both unhashable, so `value in {...}` raised `TypeError`.
+
+`_matches(pattern, value)` replaces eight `str()` coercions. `str()` on
+untrusted input fails twice over: past CPython's digit limit `str(10**5000)`
+raises `ValueError`, and `str(1e999)` is `"inf"`, which `_STATUS_RE` and
+`_ROLE_RE` both accept — so a coerced value could validate and then persist in a
+form unequal to its source.
+
+`_resolve_destination` type-checked the candidate container and then reached
+into `.confirmations`, `.kind`, and `.status` on its elements unguarded. It also
+front-ran `surface_resolver`'s own validation, which already refuses these
+shapes through a caught refusal, so the local pre-check was strictly weaker than
+the helper it preceded.
+
+`MAX_ALIAS_COUNT` extracts the third published bound, the only one still a bare
+literal.
+
+**Mutation proofs.** M16 to M20, executed and recorded under
+[Post-GATES mutation proofs](#post-gates-mutation-proofs). M17 is why AC27
+exists: the `delivery_id` repair had no criterion until that table was built.
 
 ## Post-GATES mutation proofs
 

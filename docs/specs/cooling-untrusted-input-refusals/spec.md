@@ -24,7 +24,7 @@ a named refusal from every seam that resolves one. An `exception` envelope
 missing a required key returns a named refusal from every seam that reads one,
 including the two caller-facing review seams.
 
-Nothing raises, so no host filesystem path or `errno` reaches the caller. The two
+Nothing raises, so no host filesystem path or `errno` reaches the caller. The three
 numeric bounds this spec names can no longer drift from the published contract
 unnoticed.
 
@@ -32,7 +32,7 @@ unnoticed.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| `interface-contract` | Applicable, read-only: the contract already declares the bound this spec makes the validator honour. No field, bound, or shape changes, so the `Contract:` header stays `none`. | [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | `thirty-day-cooling-and-retirement` retains sole `x-spec` ownership | AC11, AC13, AC15 | The file's bytes are unchanged and `x-spec` still names only Wave 5. |
+| `interface-contract` | Applicable, read-only: the contract already declares the bound this spec makes the validator honour. No field, bound, or shape changes, so the `Contract:` header stays `none`. | [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | `thirty-day-cooling-and-retirement` retains sole `x-spec` ownership | AC11, AC13, AC15, AC26 | The file's bytes are unchanged and `x-spec` still names only Wave 5. |
 | `decision-record` | Applicable: the schema-versus-code decision, the three adjudicated Wave 5 findings, and the measured corpus are the durable reasoning this delivery produces; all spec-local, so no new ADR. | [`notes/schema-decision.md`](notes/schema-decision.md), [`notes/adjudication.md`](notes/adjudication.md), [`notes/corpus-measurement.md`](notes/corpus-measurement.md) | This spec | The three notes exist and the Changelog cites them | Each note resolves and states its evidence. |
 | `release-history` | Applicable: a shipped `packs/core` runtime script changes, so the pack version advances one patch step. | [`docs/product/changelog.md`](../../product/changelog.md) | Release surface | AC16 | A dated `[core]` heading names the version `packs/core/pack.toml` carries. |
 | `current-architecture` | Not applicable: `docs/architecture/work-intake-and-artifact-routing.md` §10 pins a verified Core version, but this change alters nothing §10 describes — intake precedence, routing, and phase boundaries are untouched. Advancing its number would assert a whole-surface re-verification this delivery does not perform, and the `2.15.1` release set the same precedent by leaving it. | — | — | — | — |
@@ -75,8 +75,8 @@ unnoticed.
 Unit tests in `tests/roster/test_thirty_day_cooling_and_retirement.py`, the
 suite that already owns this module. Every criterion drives the shipped public
 functions — `validate_payload`, `parse_record_bytes`, `compute_review_on`,
-`is_due`, and for AC21 the two caller-facing seams `review` and
-`review_exception` — with a literal payload, never a mock seam.
+`is_due`, and for AC21, AC25, and AC29 the caller-facing seams `enrol`,
+`review`, and `review_exception` — with a literal payload, never a mock seam.
 
 That file already carries 43 `# STUB: AC<n>` markers belonging to the frozen
 Wave 5 spec, so every marker this spec adds is disambiguated as
@@ -103,20 +103,23 @@ AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Coverage — all 30 criteria are materialised and none is deferred.
+Coverage — all 32 criteria are materialised and none is deferred.
 
 Twenty-five were written at PLAN, before any implementation existed. Twenty of
-those were red then; the other five are non-regression or consistency
-invariants that held already and each carries a mutation proof in `plan.md`,
-because a criterion that cannot fail proves nothing.
+those were red then; the rest are non-regression or consistency invariants that
+held already, and each carries a mutation proof in `plan.md`, because a
+criterion that cannot fail proves nothing.
 
-Four more — AC23 to AC26 — were added after post-GATES review found a second
-escape class the PLAN-time corpus had missed: a membership test against an
-untrusted value. JSON admits lists and dicts, both unhashable, so
-`value in {...}` raised `TypeError`. Each of the four was red against the code
-as it then stood.
+Seven more were added as review found further instances of this module's one
+systemic defect — trusting the shape of untrusted input. AC23 to AC26 cover
+containers where a scalar belongs and the third published bound. AC27 exists
+because a mutation survived: reverting `delivery_id`'s repair left the suite
+green, since AC23's containers fail its pattern either way and only a scalar
+that survives `str()` discriminates. AC28 and AC29 cover the text coercions and
+the duck-typed candidate elements. Each was red against the code as it stood
+when written.
 
-Measured now: **214 cases pass, none fail, identically with `tzdata` importable
+Measured now: **231 cases pass, none fail, identically with `tzdata` importable
 and with it blocked.** Running both matters, because the `OSError` this repairs
 only arises when the optional `tzdata` wheel is importable, and this repository
 declares it nowhere. A single-environment green run would prove nothing about
@@ -147,9 +150,12 @@ that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
   replaced by one raising `OSError(63, "File name too long")` for `"UTC"`, and
   `timezone = "UTC"`: `validate_payload` returns `record-invalid`, and
   `compute_review_on` and `is_due` each return `unknown-timezone`.
-- [x] **AC6a — The catch set is exactly the three named classes.** The `except`
-  handler guarding the zone lookup names `ZoneInfoNotFoundError`, `OSError`, and
-  `ValueError` and nothing else, asserted over `cooling.py`'s AST. A bare
+- [x] **AC6a — The catch set is exactly the three named classes, and no seam
+  widens it.** The `except` handler guarding the zone lookup names
+  `ZoneInfoNotFoundError`, `OSError`, and `ValueError` and nothing else, and
+  neither `validate_payload`, `compute_review_on`, nor `is_due` contains a bare
+  `except:` or catches `Exception` or `BaseException` under any spelling — all
+  asserted over `cooling.py`'s AST. A bare
   `except Exception` would satisfy every other criterion while turning a future
   `TypeError` or `AttributeError` inside the lookup into `record-invalid`.
 - [x] **AC7 — A non-string `timezone` refuses without reaching the lookup.** For
@@ -204,26 +210,37 @@ that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
   `completion_event = ["merge"]` returns `completion-event-required`, and
   `review` with a check answer of `["refuse"]` returns `review-incomplete`.
   Neither raises.
-- [x] **AC27 — A non-string `delivery_id` refuses.** For each of `123`, `0`,
-  `1.5`, and `true`, `validate_payload` and `parse_record_bytes` return
-  `record-invalid`. AC23's containers cannot cover this: `str(["x"])` fails the
-  pattern with or without the type guard, so only a scalar that survives `str()`
-  discriminates.
 - [x] **AC26 — The alias bound equals the published one.**
   `cooling.MAX_ALIAS_COUNT` equals `properties.aliases.maxItems`, and with the
   constant patched to `2` a three-element `aliases` returns `record-invalid`
   while a two-element one returns no code.
 
+- [x] **AC28 — Untrusted text is matched, never coerced.** For `fingerprint`,
+  `confirmation_proof`, `completion_evidence_ref`, `authority.source.status`,
+  and `exception.owner_role`, a value of `10**5000` or `1e999` returns
+  `record-invalid` from `validate_payload` and raises nothing. Only that seam is
+  exposed: `parse_record_bytes` refuses both in `json.loads` first.
+- [x] **AC29 — A malformed candidate refuses instead of raising.** For each of
+  five element shapes — a bare object, a string, a dict, one whose
+  `confirmations` is not iterable, and one whose confirmation item lacks `kind`
+  — `enrol` and `review` return `destination-unconfirmed` and neither raises.
+
 ### Bounds that match the published contract
 
+- [x] **AC27 — A non-string `delivery_id` refuses.** For each of `123`, `0`,
+  `1.5`, and `true`, `validate_payload` and `parse_record_bytes` return
+  `record-invalid`. AC23's containers cannot cover this: `str(["x"])` fails the
+  pattern with or without the type guard, so only a scalar that survives `str()`
+  discriminates.
 - [x] **AC11 — The timezone bound equals the published one.**
   `cooling.MAX_TIMEZONE_LENGTH` equals `properties.timezone.maxLength` in
   `contracts/jsonschema/delivery-lifecycle-record.schema.json`.
 - [x] **AC11a — The timezone constant governs the guard.** With
   `cooling.MAX_TIMEZONE_LENGTH` patched to `8` on a freshly loaded module, a
   9-character `timezone` is refused without a lookup at each of
-  `validate_payload`, `compute_review_on`, and `is_due`, and an 8-character one
-  reaches the lookup once at each. Numbered `11a` because it pairs with AC11;
+  `validate_payload`, `compute_review_on`, and `is_due`; an 8-character one
+  reaches the lookup once at each; and so does an 8-character multi-byte key,
+  which pins the bound to code points rather than bytes. Numbered `11a` because it pairs with AC11;
   renumbering the list would invalidate references the notes already carry.
 - [x] **AC12 — The published lower bound needs no mirrored constant.**
   `validate_payload` on a payload with `timezone = ""` returns `record-invalid`,
@@ -271,20 +288,13 @@ artifact yet — the work-loop's DECIDE step forbids creating one by default for
 work this loop did not include, so the owner registers them through
 `work-intake` if and when they are picked up.
 
-The `_exception_is_valid` defect that used to head this list is no longer here:
-the owner widened the scope on 2026-08-29 and it is built, under AC20 to AC22.
+Three entries that used to sit here are gone because they are built, not
+deferred: the `_exception_is_valid` proper-subset gate (AC20 to AC22, on an owner
+scope widening), `delivery_id`'s `str()` coercion (AC27), and the sibling text
+coercions this spec once wrongly called inert (AC28). That last claim was true of
+the *match outcome* and false of the *call*: `str()` on an unbounded int raises
+before any pattern is consulted.
 
-- **`delivery_id` accepts a non-string the contract forbids.** `cooling.py:246`
-  matches `_DELIVERY_ID_RE.fullmatch(str(payload["delivery_id"]))`, coercing
-  before matching, so `{"delivery_id": 123}` validates clean and becomes
-  `"123"` — which is then the on-disk filename (`:477`) and the authority
-  binding's `resource` (`:551`). The contract declares
-  `{"type": "string", ...}`. Not exploitable today, since `str()` of a
-  non-negative integer is filename-safe and the binding compares the coerced
-  value on both sides, but it is the same class on the field with the widest
-  downstream reach. The sibling coercions at `:207`, `:209`, `:226`, `:230`,
-  `:258-259`, and `:270` are inert: their regexes are anchored on literals no
-  numeric coercion can produce.
 - **A `_close_work()` failure escapes four functions uncaught.** `enrol`
   (`:679`) and `load_record` (`:692`) wrap the dependency; `verify_identity`
   resolves it outside its own `try` (`:378`), `deletion_allowed` calls

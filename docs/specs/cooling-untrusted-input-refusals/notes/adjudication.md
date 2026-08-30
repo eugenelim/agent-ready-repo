@@ -28,7 +28,7 @@ any file in this repo", and `:1550-1552` enumerates its reach as "all git
 artifacts — code, comments, docs, specs, commit messages, PR titles, PR bodies,
 and PR comments". A runtime return value is none of those. The path is never
 persisted: `as_payload` (`:114-134`) emits only the repo-relative `locator` the
-schema's `$defs/locator` pins. AC20 (`spec.md:214-216`) scopes its no-absolute-path
+schema's `$defs/locator` pins. AC20 (`thirty-day-cooling-and-retirement/spec.md:214-216`) scopes its no-absolute-path
 rule to "every refusal returned by the write seam", which the finding itself
 concedes. `close_work.py:1797` is precedent, not a rule.
 
@@ -52,12 +52,12 @@ drives two writes from one issued binding — `_binding`
 `resolve_mutation_authority`, re-registering the fact, for every
 `_enrol_kwargs` / `_update_kwargs` construction.
 
-Contrary evidence: AC19 (`spec.md:207-213`) states the contract as a binding
+Contrary evidence: AC19 (`thirty-day-cooling-and-retirement/spec.md:207-213`) states the contract as a binding
 "the shipped `_mutation_binding` returned for an issued authority fact" with a
 matching `resource` — which `cooling.py:466-481` and `close_work.py:497-500`
 satisfy exactly. It imposes no single-use rule. The more specific authority
 scopes freshness elsewhere: RFC-0096 `:153-156` requires fresh confirmation
-bound to locator and fingerprint for *every deletion*, and `spec.md:75-77`
+bound to locator and fingerprint for *every deletion*, and `thirty-day-cooling-and-retirement/spec.md:75-77`
 forbids a prior review substituting for fresh confirmation — a rule `review`
 honours by demanding a complete two-party attestation per call (`:750`).
 
@@ -127,7 +127,7 @@ Reachable through the public untrusted-input seam: `parse_record_bytes` calls
 (`:802`), and through `update_record`'s unguarded `_write_record` (`:689`).
 Only `load_record` is covered, because its `except` at `:658` lists `OSError`.
 
-Breaks AC5 (`spec.md:138-141`): a `timezone` `ZoneInfo` cannot resolve must
+Breaks AC5 (`thirty-day-cooling-and-retirement/spec.md:138-141`): a `timezone` `ZoneInfo` cannot resolve must
 return `unknown-timezone`. The sole shipped AC5 input is `"Not/AZone"`
 (`tests/...:141`), which produces the already-handled shape.
 

@@ -76,7 +76,10 @@ spec follow-ons.
 A later pass found one more class the corpus missed: a **container** where a
 scalar belongs. Every case below used a scalar for the enum fields, so none
 tripped `value in {set of strings}`, which raises `TypeError` for an unhashable
-list or dict. AC23 to AC26 now enumerate that space instead of sampling it.
+list or dict. AC23 to AC29 now enumerate that space instead of sampling it, across three
+further classes review found by asking the same question: containers where a
+scalar belongs, `str()` coercion of unbounded numbers, and duck-typed candidate
+elements.
 
 These all return a published refusal code from both sampled seams:
 
