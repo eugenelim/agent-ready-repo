@@ -75,8 +75,15 @@ def test_foundation_pins_hold_the_shipped_cases() -> None:
     assert isinstance(measured, list)
     assert len(recorded) == 24
     assert all("measured_topics" in pin for pin in recorded)
+
+    # The corpus grows, so the result set is a superset of the pinned
+    # foundation cases. Every pinned case must still be measured, and must
+    # still return exactly what it returned before -- a case that quietly
+    # disappeared from the fixture would otherwise satisfy a subset check.
+    actual = {result["id"]: result["actual_topics"] for result in measured}
+    assert {pin["id"] for pin in recorded} <= set(actual)
     assert {pin["id"]: pin["measured_topics"] for pin in recorded} == {
-        result["id"]: result["actual_topics"] for result in measured
+        pin["id"]: actual[pin["id"]] for pin in recorded
     }
 
 

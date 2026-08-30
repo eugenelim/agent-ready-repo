@@ -37,9 +37,13 @@ TOPIC_FILES = (
     "resources-scripts-and-exit-contracts.md",
 )
 EXPECTED_TOPICS = {
+    "activation-discoverability-and-mode-wayfinding",
+    "depth-libraries-and-okf-knowledge-providers",
     "framing-and-trigger-quality",
     "instruction-density-and-progressive-disclosure",
+    "progressive-result-presentation-and-next-actions",
     "resources-scripts-and-exit-contracts",
+    "trust-boundaries-and-instruction-provenance",
 }
 
 
@@ -85,7 +89,7 @@ def _read_staged_confined(root: Path, relative_path: str, reads: list[Path]) -> 
     return target.read_text(encoding="utf-8")
 
 
-def test_foundation_corpus_is_exactly_three_inert_governed_topics() -> None:
+def test_foundation_corpus_is_exactly_the_admitted_inert_governed_topics() -> None:
     paths = sorted(CONCEPT_ROOT.glob("*.md"))
     assert {path.stem for path in paths} == EXPECTED_TOPICS
     for path in paths:
@@ -228,7 +232,9 @@ def test_generated_manifest_owns_only_router_outputs() -> None:
     manifest = json.loads((PACK_ROOT / ".okf-generated.json").read_text(encoding="utf-8"))
     managed = manifest["managed"]
     assert len([item for item in managed if item["kind"] == "okf-router"]) == 1
-    assert len([item for item in managed if item["kind"] == "okf-reference"]) == 3
+    assert len([item for item in managed if item["kind"] == "okf-reference"]) == len(
+        EXPECTED_TOPICS
+    )
     assert all(
         item["output_path"].startswith(
             ".apm/skills/ase-okf-reference/"

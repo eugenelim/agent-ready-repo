@@ -51,8 +51,10 @@ permissions.
 
 ## Related topics
 
-For activation decisions, consult `framing-and-trigger-quality`. For scripts,
-assets, and failure contracts, consult `resources-scripts-and-exit-contracts`.
+For activation decisions, consult `framing-and-trigger-quality`. Once a piece
+of content's kind is settled, what a script, asset, or failure contract must
+do belongs to `resources-scripts-and-exit-contracts`; deciding which kind it
+is stays here.
 
 ## Provenance and lifecycle
 

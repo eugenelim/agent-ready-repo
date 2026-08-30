@@ -1,9 +1,9 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-27",
-  "source_digest": "sha256:da0ca5f3b9b02afa022b65358d3fe563a94b88781af711142f18b4b3b733946b",
-  "router_digest": "sha256:4d5e51713b14e5aae77c2889696e1df6de96889be69bf634dc0fa5729c981204",
-  "generated_tree_digest": "sha256:b169e077148eafa9eb24fb37f45db666159cba33055eb8538d55a553780a0f67",
+  "evaluated_at": "2026-08-29",
+  "source_digest": "sha256:ca7ffb9fb3839a84bdb3329d4339add53f41aee0dca9913301133ab198f1dea7",
+  "router_digest": "sha256:461f447eabf0294af5e1710c7bb30b3a7e05ee738139a02c84a127d258446d27",
+  "generated_tree_digest": "sha256:af9c7fcae44a6cb926715040443d2d4c9c6bbb8c8d3bf43199f2bc99616733b9",
   "results": [
     {
       "id": "new-skill-purpose",
@@ -32,8 +32,7 @@
     {
       "id": "authorization-at-trigger",
       "actual_topics": [
-        "framing-and-trigger-quality",
-        "resources-scripts-and-exit-contracts"
+        "framing-and-trigger-quality"
       ]
     },
     {
@@ -63,8 +62,7 @@
     {
       "id": "asset-or-reference",
       "actual_topics": [
-        "instruction-density-and-progressive-disclosure",
-        "resources-scripts-and-exit-contracts"
+        "instruction-density-and-progressive-disclosure"
       ]
     },
     {
@@ -142,6 +140,54 @@
     {
       "id": "integration-agent-reference",
       "actual_topics": []
+    },
+    {
+      "id": "depth-library-inert-knowledge",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers"
+      ]
+    },
+    {
+      "id": "depth-library-root-index",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers"
+      ]
+    },
+    {
+      "id": "mode-wayfinding-safe-default",
+      "actual_topics": [
+        "activation-discoverability-and-mode-wayfinding"
+      ]
+    },
+    {
+      "id": "mode-wayfinding-activation",
+      "actual_topics": [
+        "activation-discoverability-and-mode-wayfinding"
+      ]
+    },
+    {
+      "id": "progressive-results-blocked-state",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "progressive-results-quiet-progress",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "provenance-untrusted-instructions",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
+    },
+    {
+      "id": "provenance-trusted-configuration",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
     }
   ]
 }

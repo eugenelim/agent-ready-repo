@@ -31,8 +31,7 @@
     "id": "authorization-at-trigger",
     "prompt": "Does activating a skill authorize its write operation?",
     "expected_topics": [
-      "framing-and-trigger-quality",
-      "resources-scripts-and-exit-contracts"
+      "framing-and-trigger-quality"
     ]
   },
   {
@@ -67,8 +66,7 @@
     "id": "asset-or-reference",
     "prompt": "Should this template be an asset or an instruction reference?",
     "expected_topics": [
-      "instruction-density-and-progressive-disclosure",
-      "resources-scripts-and-exit-contracts"
+      "instruction-density-and-progressive-disclosure"
     ]
   },
   {
