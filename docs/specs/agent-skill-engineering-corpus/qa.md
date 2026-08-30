@@ -1,7 +1,12 @@
 # QA record — agent-skill-engineering corpus (INI-009 slice 2a)
 
-Base for every measurement below: `706808287`, taken against `origin/main` at
-`221bcb3f4`. Every figure here was produced by the invocation named beside it.
+Base for every measurement below: `f4f29a4b1`, taken against `origin/main` at
+`e0a53883e`. Every figure here was produced by the invocation named beside it.
+
+The earlier figures in the failure-attribution table were first observed on
+`706808287` against `origin/main` at `221bcb3f4`, and were re-run on this base
+rather than carried forward, because a base that has moved cannot support a
+same-source claim. Where a re-run changed a result the table says so.
 
 ## Failure attribution
 
