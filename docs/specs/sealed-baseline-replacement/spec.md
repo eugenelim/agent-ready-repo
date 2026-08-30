@@ -1,6 +1,6 @@
 # Spec: Sealed-baseline replacement
 
-- **Status:** Approved
+- **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0099; RFC-0096; RFC-0094; ADR-0099; ADR-0061; ADR-0074
@@ -11,6 +11,17 @@
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
+
+> **Archived 2026-08-30 (Owner: eugenelim). Nothing here is owed.** The
+> amendment below cut this contract to two deltas, and neither justified a spec.
+> RFC-0099 follow-on #5 is discharged as delivered: `contract-amendment` ships
+> the post-seal route. The **drift crossing is retired** — RFC-0099's 2026-08-27
+> drift clause is withdrawn, a destructive reset remains the remedy for an
+> already-drifted pinned artifact, and this reopens only with a recorded
+> instance. The **shaping gate on re-drafting is re-homed, not dropped**: it is
+> still owed and belongs to the next change touching the work-loop re-drafting
+> path. Read the rest of this document as the record of how that conclusion was
+> reached, not as work to do. See the RFC-0099 Errata entries of this date.
 
 > **Amended 2026-08-30 (Owner: eugenelim).** The original contract was written
 > as though no post-seal route existed. `contract-amendment` ships one: a
