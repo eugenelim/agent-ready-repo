@@ -1,0 +1,145 @@
+# QA record — agent-skill-engineering corpus (INI-009 slice 2a)
+
+Base for every measurement below: `706808287`, taken against `origin/main` at
+`221bcb3f4`. Every figure here was produced by the invocation named beside it.
+
+## Failure attribution
+
+The *Always do* Boundary requires every failure this slice's gate chain observed
+to carry the invocation that reproduces it, the base it was seen on, an
+attribution, and who attributed it. Nothing observed is dropped.
+
+| Failure | Reproducing invocation | Attribution | Attributor |
+| --- | --- | --- | --- |
+| `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications` and `::test_ledger_matches_converted_asides_and_unchanged_quotations` | `python3 -m pytest tools/test_guide_typed_asides.py -q` → 2 failed, 2 passed | `owned-elsewhere`. Reproduces on the base independently of this slice. The file is named in no `Makefile` line and in no workflow, so no gate this slice runs invokes it. | Claude, this session |
+| `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact` | `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact -q` → 1 passed | `inherited`, **now cleared**. Arrived red from an earlier base at 78 nodes against a pin of 73; its owner re-pinned it upstream and it passes on this base. | Claude, this session |
+| Four `packs/agent-skill-engineering/tests` failures — `test_independent_router_results_meet_precision_and_recall_gate`, `test_independent_activation_results_bind_all_queries_and_descriptions`, and `test_contract.py`'s two authoring-behaviour tests | `python3 -m pytest packs/agent-skill-engineering/tests -q` → 106 passed | `inherited`, **now cleared**. Caused upstream by `c7ed3f910`, which added an eval case without moving its assertions and rewrote three `SKILL.md` files, invalidating recorded digests. Main resolved it; a rebase brought the fix. | Claude, this session |
+| `gate-main`, `Caps enforcer self-test`, and `make build-check` (CI) | `python3 tools/lint-pack-test-boundary.py` → `ok [pack-tests-stay-in-pack]` | `caused-here`, **fixed**. `test_corpus_admission.py` joined a fixture-supplied name onto a path, which the boundary linter cannot prove stays in-pack. Resolved by globbing each root and indexing by stem. `make build-check` aggregates `gate-main`; one defect, three red checks. | Claude, this session |
+| Three ruff errors in this slice's test modules | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Extraneous blank lines. Found by CI, not locally: the pack suite and both boundary linters were run after every edit, `make lint-ruff` was not, though it is in the documented command set. | Claude, this session |
+
+Routing: the two guides ledger failures are routed against the existing
+`[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`
+(`workspace.toml:278`), whose subject is the same ungated ledger. Extending an
+existing entry's summary adds no legacy-shaped entry, so the ceiling is not
+reached and no raise is proposed.
+
+## Behaviour and review evidence
+
+Graded by `python3 -m agentbundle pack evals run --pack agent-skill-engineering
+--mode in-harness --check behavior --reports <driver payload>`; tier B-lite,
+fidelity `observed+attested`, provenance `operator-attested`. Author cases at
+iteration 2, review cases at iteration 4.
+
+Eight durable results: six authoring, two review. **Twenty-three of twenty-four
+authoring assertions and all ten review assertions hold.**
+
+Execution and attestation were held apart from authoring. One context read only
+each skill's `SKILL.md` and the prompts — markers, assertions, expected output,
+the pack README, and every test file withheld — and wrote each response to its
+eval workspace. A separate context judged the assertions against those
+responses, briefed that a clean sheet would make the judgement suspect and that
+a borderline case must be recorded false.
+
+### One recorded miss, named rather than absorbed
+
+`cross-session-resumption` assertion 2 measured **false**. The response declined
+to commit to a durable resumption record, because persisting one would widen the
+skill past `filesystem_read_untrusted` and contradict its own promise not to
+modify files; it surfaced both options and put the choice to the user. That is
+defensible behaviour and arguably a defective case — the attesting context
+independently found assertions 2 and 4 contradictory, since a response that
+waits for authorization cannot have *added* anything.
+
+It is recorded as measured rather than reworded. Rewriting an assertion after
+seeing its verdict is tuning. `test_contract.py` names the exact `(case, index)`
+pair, so a different miss still reddens while this one does not read as a pass.
+
+### Two circular derivations found and closed
+
+Both workflow skills declared an output marker in `expect.output_contains` that
+the skill itself instructed nowhere:
+
+- **Authoring — `Write status:`.** Present only in `evals.json`,
+  `behavior-results.json`, and a README example. An independent execution
+  produced `Mode:` every time and `Write status:` never, so the shipped
+  foundation result for `frame-new-skill`, which records that marker as
+  observed, was not reproducible from the skill.
+- **Review — `Mode: review`.** The skill said only "Finish with the mode,
+  target, applicable checks…", an unlabelled comma list fixing no spelling. Both
+  review responses produced every check identifier and missed only that marker.
+
+The predecessor's QA record documents finding and fixing this same circularity
+once, on the review side's `actual_findings`. Two further instances survived
+because nothing re-derived the markers from a blind run. Both receipts now
+instruct their graded lines, and after the fix every declared marker appears in
+real captured output. `output_ok` is therefore recorded from measurement rather
+than carried forward as a disclosure — the gap the predecessor could only
+declare is now closed with evidence.
+
+**Known weakness in that fix.** Both instructions are written as templates with
+alternatives on one line (`Mode: review | optimize`; three write-status values).
+The executing context noted that a fenced template admits three readings — emit
+the alternation literally, emit the resolved value, or reproduce the fence — and
+that "a grader keying on an exact first line would reject two of the three."
+Both runs landed on the reading the grader needs, but that is the executor's
+judgement rather than a property of the wording. Recorded rather than treated as
+settled by two successful runs.
+
+### Case-wording defects, recorded separately from the verdicts
+
+Named by the attesting contexts, none of which changed a verdict:
+
+1. `cross-session-resumption` #2 and #4 are mutually contradictory as written.
+2. `cross-session-resumption` #1 is unfalsifiable: the prompt names a path that
+   does not resolve, so both compliance and a correct refusal satisfy it.
+3. `progressive-result-presentation` #2 and its `expected_output` disagree on
+   the state set.
+4. "Uses frame as the **default** read-only mode" (three cases) cannot test
+   "default" from output text; only the read-only half is observable.
+5. `detect-script-contract-failure` #5 bundles four claims and files one of them
+   under the wrong check identifier; its "needed before optimization" clause is
+   unfalsifiable as written.
+6. `detect-activation-failure` #4 and #5 are compound, with no stated mapping
+   from identifier to harm.
+
+### What this record does not attest
+
+The `Mode: review` and `Write status:` markers are enforced at run time by
+`output_ok`, and that value is now recorded per case. What remains unverifiable
+from the committed artifact alone is the semantic assertion half: those verdicts
+are attested by a named context, not re-derivable from the fixture. That is the
+seam the RFC-0097 erratum establishes — form checked mechanically, soundness by
+a named judge — and it is stated here rather than implied.
+
+## Skill-contract ambiguities observed during execution
+
+Surfaced by the executing contexts, unresolved and not blocking:
+
+- Authoring: `not authorized` versus `awaiting explicit authorization` for a
+  design request that implies an eventual write.
+- Authoring: `update` mode's entry condition requires an unambiguous root, while
+  the description promises that resolving an unresolved target is the workflow's
+  first step; the two pull opposite ways.
+- Authoring: a "skill root" that is a bare `*-SKILL.md` file rather than a
+  directory has no stated disposition.
+- Review: no severity vocabulary is defined anywhere in the skill.
+- Review: every check identifier ends `-01`, so two distinct defects under one
+  check share an identifier with no defined way to disambiguate.
+- Review: "verification" is undefined for a read-only mode.
+- Review: provider-capability detection names no inspection surface for a
+  filesystem-only session, and a reader who treated the repository's own
+  reference skill as that surface would violate the same document's ban on
+  inferring a provider from a familiar filename.
+
+## Gates
+
+| Gate | Invocation | Outcome |
+| --- | --- | --- |
+| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 106 passed |
+| Shared OKF compiler | `python3 -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q` | 150 passed |
+| Pack-test boundary | `python3 tools/lint-pack-test-boundary.py` | ok, 210 files |
+| Boundary structural self-test | `python3 tools/test-lint-boundary-structural.py` | 117 cases |
+| Caps enforcer self-test | `python3 tools/test-lint-pack-test-boundary.py` | 154 cases |
+| Style | `make lint-ruff` | All checks passed |
+| Spec metadata | `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .` | clean |
+| Activation | `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` | iteration 5: 18/18, zero errors, zero exclusivity violations |

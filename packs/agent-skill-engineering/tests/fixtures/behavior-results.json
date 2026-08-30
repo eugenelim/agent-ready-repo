@@ -119,7 +119,12 @@
       "source_files": {
         "evals/evals.json": "sha256:03623d2f5e45c42a0bde928b778fb554f15192e9776f18b5e901f8a7af550a35",
         "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
-      }
+      },
+      "produces_ok": true,
+      "output_ok": true,
+      "assertions_ok": true,
+      "errored": false,
+      "passed": true
     },
     {
       "eval_id": "detect-script-contract-failure",
@@ -142,7 +147,20 @@
         "evals/evals.json": "sha256:03623d2f5e45c42a0bde928b778fb554f15192e9776f18b5e901f8a7af550a35",
         "evals/files/nondeterministic-SKILL.md": "sha256:912a4799cb0c775c89d637daf17e8a29ba04d3006ce6697813eaed6aa808a27b",
         "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85"
-      }
+      },
+      "produces_ok": true,
+      "output_ok": true,
+      "assertions_ok": true,
+      "errored": false,
+      "passed": true
     }
-  ]
+  ],
+  "graded_run": {
+    "command": "python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode in-harness --check behavior --reports <driver payload>",
+    "tier": "B-lite",
+    "fidelity": "observed+attested",
+    "provenance": "operator-attested",
+    "author_iteration": 2,
+    "review_iteration": 4
+  }
 }
