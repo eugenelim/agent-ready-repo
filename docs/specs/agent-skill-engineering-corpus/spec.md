@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Corpus
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md); [`ADR-0093`](../../adr/0093-okf-reference-corpora-remain-governed-build-time-sources.md); [`ADR-0097`](../../adr/0097-knowledge-access-capability-detected-provider-mediated.md)
@@ -162,7 +162,7 @@ edit a completed task section.
 
 ### Census and admission
 
-- [ ] **AC1 — Skill census proves coverage.** A versioned census fixture in the
+- [x] **AC1 — Skill census proves coverage.** A versioned census fixture in the
   pack's non-projected `tests/fixtures/` tree maps every authored skill under
   `packs/*/.apm/skills/` to at least one pattern family or to a reviewed
   exception carrying a role-or-placeholder owner and a rationale, and records
@@ -172,7 +172,7 @@ edit a completed task section.
   resolve. Its failure message names the owning surface and the command that
   re-takes the census. The census establishes coverage; it does not by itself
   admit any topic.
-- [ ] **AC2 — Every claim group declares its basis and carries that basis's
+- [x] **AC2 — Every claim group declares its basis and carries that basis's
   evidence.** Under RFC-0097's 2026-08-28 erratum each compiled topic declares,
   per claim group, exactly one basis, and records it in the non-projected
   admission fixture.
@@ -199,7 +199,7 @@ edit a completed task section.
   and that the declared basis's fields are present and well-formed; it does not
   assert that the evidence supports the claim, which the erratum assigns to that
   named reviewer.
-- [ ] **AC3 — The shipped body and the admission record agree, per claim
+- [x] **AC3 — The shipped body and the admission record agree, per claim
   group.** For every claim group a topic declares, that group's shipped fields
   appear in the topic's provenance-and-lifecycle section and equal the
   admission record field-for-field — source identities and dates for a
@@ -213,11 +213,11 @@ edit a completed task section.
   body and never sees the fixture. Neither can be dropped, so the parity check
   is what keeps them one fact — unlike the unpopulated record, whose single
   home the compiler can produce.
-- [ ] **AC4 — Admission requires measured distinguishability.** Every admitted
+- [x] **AC4 — Admission requires measured distinguishability.** Every admitted
   topic is selected by at least two retrieval cases whose *measured* result is
   that topic and no other, read from the recorded run rather than from declared
   expectations. A topic whose exclusivity is only declared fails.
-- [ ] **AC5 — Declared unpopulated topics.** The 36 topology leaves RFC-0097 D3
+- [x] **AC5 — Declared unpopulated topics.** The 36 topology leaves RFC-0097 D3
   enumerates are transcribed into a fixture carrying names, a source reference,
   and an asserted count of 36 — and nothing else, so the leaf's state lives in
   one place. Each leaf is in exactly one of the compiled topic set or the
@@ -239,7 +239,7 @@ edit a completed task section.
 
 ### Retrieval
 
-- [ ] **AC6 — Expanded retrieval precision.** The retrieval fixture reaches at
+- [x] **AC6 — Expanded retrieval precision.** The retrieval fixture reaches at
   least 40 cases, covers every admitted topic with at least two exact-set
   cases, and adds near misses for the vocabulary the new topics introduce. At
   least 90% of cases select their exact or pre-approved set, precision and
@@ -255,7 +255,7 @@ edit a completed task section.
   criterion and its own fixtures, and contributes to no denominator here. Every new case's expected set is
   authored and committed before the run that measures it, so an expectation
   cannot be tuned to what was observed.
-- [ ] **AC7 — The corpus does not become an encyclopedia.** A fixed 40-prompt
+- [x] **AC7 — The corpus does not become an encyclopedia.** A fixed 40-prompt
   generic-engineering negative set returns a topic body for no more than 5% of
   its prompts — the falsifier RFC-0097 names for the risk this slice creates.
   The set is synthetic and authored, not transcribed from any session. Its
@@ -271,16 +271,22 @@ edit a completed task section.
   criterion's 5% and must not be weakened to accommodate it, and folding 40
   near-certain passes into the retrieval population would dilute the rates
   AC6 computes.
-- [ ] **AC8 — No foundation regression.** The 24 retrieval cases that shipped
+- [x] **AC8 — No foundation regression.** The 24 retrieval cases that shipped
   with the foundation are pinned as `(id, measured_topics)` pairs — named for
   what they hold, since `expected_topics` is the author-declared field and
   these are measurements — derived from
-  the recorded run as it stands **before** any corpus change and written into a
-  fixture no later re-recording step writes. Every one has a measured result
-  equal to its pinned pair, asserted at each point the corpus is re-measured
-  rather than only at the end. This is a per-case gate, not a rate: no new case
-  can compensate for a foundation case that moves.
-- [ ] **AC9 — Determinism, confinement, and portability hold.** Two clean
+  the recorded run as it stands **before** any corpus change. Every one has a
+  measured result equal to its pinned pair, asserted at each point the corpus is
+  re-measured rather than only at the end. This is a per-case gate, not a rate:
+  no new case can compensate for a foundation case that moves.
+
+  A pin may be re-taken only on explicit scope-owner authority, and only when
+  the QA record carries, for that pin, the corpus change that moved it, the
+  evidence the new value rests on, and why the original value is judged wrong
+  rather than the measurement. A re-pin whose basis lives only in a commit
+  message does not satisfy this: the record is the control, and without it the
+  fixture stops being able to detect the regression it exists for.
+- [x] **AC9 — Determinism, confinement, and portability hold.** Two clean
   compiles are byte-identical; the staged built tree contains no
   authoring-source bytes and no checkout-relative path into that source; every
   retrieval case runs with the checkout unavailable and attempts no read
@@ -296,7 +302,7 @@ edit a completed task section.
 
 ### Authoring mode
 
-- [ ] **AC10 — `knowledge-provider` available.** The authoring workflow advertises
+- [x] **AC10 — `knowledge-provider` available.** The authoring workflow advertises
   `frame`, `create`, `update`, and `knowledge-provider`. Entering
   `knowledge-provider` loads the knowledge-provider pattern, provenance,
   retrieval-evaluation, and security-boundary modules and no other
@@ -305,7 +311,7 @@ edit a completed task section.
   explicit user transition before any write. This is the milestone advance
   RFC-0097 licenses once the provider-pattern fixtures of AC12 pass, not a
   supersession of the foundation's availability criterion.
-- [ ] **AC11 — Remaining modes stay unavailable.** `runtime-package`,
+- [x] **AC11 — Remaining modes stay unavailable.** `runtime-package`,
   runtime-profile, plugin, hook, and subagent authoring receive a stable,
   versioned unavailable response and are absent from both activation
   descriptions. The absence guard derives its vocabulary from the mode fixture
@@ -313,7 +319,7 @@ edit a completed task section.
   table-driven positive control asserts the matcher still detects every
   forbidden surface form, so weakening the matcher reddens a test rather than
   silently satisfying every absence assertion.
-- [ ] **AC12 — Provider-pattern fixtures pass first.** Versioned fixtures cover
+- [x] **AC12 — Provider-pattern fixtures pass first.** Versioned fixtures cover
   the knowledge-provider pattern's failure surface: a corpus with no governed
   source, an ambiguous router selection, a retrieval evaluation that declares
   no negative cases, and a procedure-to-reference handoff that would give the
@@ -326,14 +332,15 @@ edit a completed task section.
 
 ### Evaluation evidence
 
-- [ ] **AC13 — Expanded behavior fixtures.** Versioned behavior fixtures cover
+- [x] **AC13 — Expanded behavior fixtures.** Versioned behavior fixtures cover
   the foundation's four cases plus cold-start workspace orientation,
-  cross-session resumption, and progressive result presentation — seven of the
-  eleven the governing gate requires across M2. Each declares its required
+  cross-session resumption, progressive result presentation, and a
+  knowledge-provider read-only entry — eight of the eleven the governing gate
+  requires across M2. Each declares its required
   output markers, applicable checklist items, and seeded defects before
   execution; recorded assertion counts equal declared counts; and each result's
   `source_files` is an exact set.
-- [ ] **AC14 — Review-case grading is observed.** The durable behavior record
+- [x] **AC14 — Review-case grading is observed.** The durable behavior record
   carries all five values the runner emits for the review cases — `produces_ok`,
   `output_ok`, `assertions_ok`, `errored`, and `passed` — transcribed from one
   graded run driven in the runner's in-harness mode with a supplied report, and
@@ -345,7 +352,7 @@ edit a completed task section.
 
 ### Records
 
-- [ ] **AC15 — Workspace, brief, and index records are current.** The
+- [x] **AC15 — Workspace, brief, and index records are current.** The
   initiative's milestone string names the slice actually in flight; this spec
   is registered as active work; the successor slice has an authored spec and
   plan pair and is registered as queued work canonically with its dependency on
@@ -353,12 +360,12 @@ edit a completed task section.
   specs; and every row this change touches in `docs/specs/README.md` carries
   that spec's real `Status`, including the foundation row that currently reads
   `Implementing` against a `Shipped` spec.
-- [ ] **AC16 — Delivery-cut variance is recorded.** The 2a/2b split and the
+- [x] **AC16 — Delivery-cut variance is recorded.** The 2a/2b split and the
   `runtime-package` deferral are recorded in a distinct `Delivery-cut
   variances` section of INI-009 with their authority — not appended to the
   backlog-disposition section, whose scope is RFC-0097 D7 — and the brief's
   slice table reflects both.
-- [ ] **AC18 — Published surfaces stay joined.** The pack satisfies the
+- [x] **AC18 — Published surfaces stay joined.** The pack satisfies the
   conformance metadata contract, and its membership of the two agent-plugin
   roster enumerations, the catalogue navigation outcome map, and the
   publication roster is verified by running each owning gate. Every test this
@@ -372,6 +379,21 @@ edit a completed task section.
 
 ## Follow-ons
 
+- **Process deviation, recorded rather than hidden.** AC8 was amended at the
+  ship gate, not through the engine's `contract-amendment` transition. That
+  transition is legal only from `CODE-IMPLEMENTATION` and returns the run to
+  `SPEC-PLAN-DRAFTING`, re-running both human approval gates, the pre-EXECUTE
+  reviews, `approve-plan`, `schedule`, and `plan-locked` for an already
+  delivered contract. The scope owner chose the finish-time adjustment with the
+  authority and evidence recorded in `qa.md`. The amendment weakened AC8's
+  predicate — it now admits an owner-authorised pin re-take — so it is named
+  here rather than absorbed into the criterion it changed.
+- **Repository owner: the specs index `Status` column is unguarded.** Nothing
+  asserts `docs/specs/README.md` against each spec's own `**Status:**`. This
+  slice's row silently read `Approved` while the spec read `Implementing`, and
+  no gate caught it; an acceptance-criteria pass at the ship gate did. Every
+  spec in the repository shares the exposure, so the fix belongs to the index's
+  owner and not to this pack.
 - Workspace-engine owner: deletion of the `brief_queue.executing` clause in
   `workspace_status_engine.py`, with its core-pack publication tail — measured
   at 0 true positives and 2 false positives, and split out of this slice on
@@ -480,7 +502,7 @@ edit a completed task section.
 - Technical: registering this spec as active work clears ini-009's
   `impossible_transition` under the existing predicate, and at ship the corpus
   returns to the two instances the existing ceiling already tolerates, so this
-  slice requires no engine change and raises no ratchet (source:
+  slice requires no engine change (source:
   `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py:2471-2474`,
   `tests/roster/test_workspace_status_projection.py:1032`)
 - Technical: the inherited failure set moves with the base and is therefore

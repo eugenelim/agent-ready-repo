@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Corpus
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` (D3 topology
   at 207-254, D8 promotion classes at 496-506 and security rules at 507-519,
   Gate 1/2 measures at 577-591, the encyclopedia falsifier at 536) and
@@ -72,8 +72,11 @@ pairs in a fixture no re-recording step writes.
   harness and ship to users originates in the bundle root.
 - `agent-skill-engineering` is not in the self-host include list, so its
   `.apm/` edits produce no `.claude/` or `.agents/` drift.
-- This slice touches no `packs/core` surface, no workspace-status engine code,
-  and no ratchet. The executing-clause deletion is a separate change.
+- This slice touches no `packs/core` surface and no workspace-status engine
+  code. It raises one ratchet — `unsatisfied_dependency` 8 to 9, on explicit
+  owner authority recorded in `qa.md` — for the transient 2b-to-2a dependency
+  edge, which clears when 2a ships. The executing-clause deletion is a separate
+  change.
 - `[backlog].open`'s legacy-shape ceiling is at its maximum and forbids being
   raised; only `path`-bearing canonical entries are exempt.
 - The router skill's name and activation description are pinned by a recorded
@@ -353,7 +356,7 @@ None added.
 
 **Depends on:** T1
 
-**Touches:** workspace.toml, docs/product/briefs/agent-skill-engineering.md, docs/product/initiatives/ini-009-agent-skill-engineering.md, docs/specs/README.md
+**Touches:** workspace.toml, docs/product/briefs/agent-skill-engineering.md, docs/product/initiatives/ini-009-agent-skill-engineering.md, docs/specs/README.md, tests/roster/test_workspace_status_projection.py
 
 **Tests:**
 - Reconciliation resolves this spec as active and 2b as queued, both
@@ -1083,7 +1086,7 @@ the record with its invocation, base, attribution, and attributor.
 
 **Depends on:** T9, T11, T13
 
-**Touches:** packs/agent-skill-engineering/pack.toml, packs/agent-skill-engineering/.claude-plugin/plugin.json, packs/agent-skill-engineering/README.md, packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, docs/product/changelog.md, docs/architecture/agent-skill-engineering.md, .claude-plugin/marketplace.json, web/src/lib/now-highlights.generated.json
+**Touches:** packs/agent-skill-engineering/pack.toml, packs/agent-skill-engineering/.claude-plugin/plugin.json, packs/agent-skill-engineering/README.md, packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/evals/, packs/agent-skill-engineering/.apm/skills/review-or-optimize-agent-skill/evals/, docs/product/changelog.md, docs/architecture/agent-skill-engineering.md, .claude-plugin/marketplace.json, web/src/lib/now-highlights.generated.json, .github/workflows/catalogue-tooling-ci-gates.yml
 
 **Tests:**
 - Conformance metadata contract passes; both agent-plugin roster enumerations,

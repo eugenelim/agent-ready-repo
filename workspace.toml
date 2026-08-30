@@ -2071,11 +2071,11 @@ backlog = []
 
 ["ini-009".work]
 active  = [
-  { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:9601d81a99d44425fadfa6901d2e2719078ce417efa930eac0116be222f59ab0", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
 ]
 queue   = [
-  { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:9601d81a99d44425fadfa6901d2e2719078ce417efa930eac0116be222f59ab0", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
+  { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:5a8ec20c5024b7912c5cfede830e4f6116f2b6906f0d7209caf155b3ad0d8799", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-corpus/spec.md" }] },
 ]
 shipped = [
+  { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:5a8ec20c5024b7912c5cfede830e4f6116f2b6906f0d7209caf155b3ad0d8799", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
   { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
 ]

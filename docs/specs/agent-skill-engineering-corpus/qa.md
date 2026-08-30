@@ -54,15 +54,55 @@ than only in a code comment.
 
 The spec's Assumption that this slice "raises no ratchet" and the plan's
 constraint that it touches "no ratchet" were both true when written and are
-superseded by this approval. Neither is corrected in place: both are frozen
-approved artifacts, and the correction is recorded here.
+superseded by this approval. Both were frozen while the waves ran, so this
+record carried the correction; both are now corrected in place at ship, and
+this row remains the evidence for the approval itself.
+
+## Foundation pin re-take — the record AC8 now requires
+
+Two of the 24 foundation retrieval pins were re-taken during this slice. AC8
+originally forbade the pins fixture being written by any later re-recording
+step; the commit that recorded the post-corpus measurement wrote both that
+measurement and the pins, which defeated the control. The authority existed but
+lived only in a commit message, so nothing committed could show a reader why
+the pins moved. AC8 now admits a re-take on explicit owner authority *and*
+requires this record; it is written here so the fixture can still detect the
+regression it exists for.
+
+| Field | Value |
+| --- | --- |
+| Authorised by | the repository owner, in session |
+| Pins re-taken | 2 of 24 |
+| Detected by | an independent acceptance-criteria verification pass at the ship gate, not by a gate |
+
+**`authorization-at-trigger`** — was `[framing-and-trigger-quality,
+resources-scripts-and-exit-contracts]`, now `[framing-and-trigger-quality]`.
+The corpus change is `resources-scripts-and-exit-contracts` gaining a scope
+line that explicitly redirects activation and authorization timing to
+`framing-and-trigger-quality`. The original pin therefore named a topic the
+corpus now tells readers not to route there. Four independent judges measured
+framing alone, one of them against a cleanly compiled pre-T7 corpus, which is
+what distinguishes a wrong original value from a moved measurement.
+
+**`asset-or-reference`** — was `[instruction-density-and-progressive-disclosure,
+resources-scripts-and-exit-contracts]`, now
+`[instruction-density-and-progressive-disclosure]`. The asset-versus-reference
+axis was unarbitrated when the pin was taken, so both topics matched and the
+pin recorded the ambiguity rather than a routing. A reciprocal redirect now
+assigns kind-decisions to `instruction-density-and-progressive-disclosure` and
+kind-behaviour to `resources-scripts-and-exit-contracts`; it was verified
+symmetric from both entry points with no loop, and three script-behaviour
+controls held.
+
+The remaining 22 pins are unchanged and hold against the current measurement.
 
 ## Behaviour and review evidence
 
 Graded by `python3 -m agentbundle pack evals run --pack agent-skill-engineering
 --mode in-harness --check behavior --reports <driver payload>`; tier B-lite,
 fidelity `observed+attested`, provenance `operator-attested`. Author cases at
-iteration 2, review cases at iteration 4.
+iteration 2, review cases at iteration 5 — the fixture's
+`graded_run.review_iteration` is the authority for that number.
 
 Eight durable results: six authoring, two review. **Twenty-three of twenty-four
 authoring assertions and ten of eleven review assertions hold.** Author cases
