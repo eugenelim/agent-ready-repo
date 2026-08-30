@@ -246,8 +246,6 @@ open = [
   # Unblocks when: someone takes the directory-FD redesign as its own spec.
   {slug = "loop-spec-dir-confinement-toctou", source = "spec-dir confinement security review (2026-08-29)", summary = "loop-cohort and loop-engine check a resolved --spec-dir is inside the repo but nothing binds the later file operations to the checked object, so a concurrent symlink swap is followed; closing it needs an openat/O_NOFOLLOW directory-FD design, not a path-level mitigation"},
 
-  # Unblocks when: the RFC-0098 contract is approved through the normal spec-and-plan lifecycle.
-  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Draft RFC-0098 contract for bounded direct-skill repository admission and lifecycle", needs = []},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
@@ -2021,6 +2019,7 @@ shipped = [
   {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 ]
 queue   = [
+  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
   # User-confirmed initiative fit; retained legacy route pending human-authored migration selection and spec materialization.
   {path = "spec/catalogue-search-verb", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
   {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
