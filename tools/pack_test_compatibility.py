@@ -54,7 +54,7 @@ CLASSES: tuple[CompatibilityClass, ...] = (
             "not, so prepend mode already gives them distinct dotted module "
             "names — no import-mode flag needed. Every import across all four "
             "suites is stdlib or installed; no conftest, no sys.path mutation, "
-            "no skill-local subject. 78 node IDs, identical isolated and "
+            "no skill-local subject. 116 node IDs, identical isolated and "
             "grouped."
         ),
     ),

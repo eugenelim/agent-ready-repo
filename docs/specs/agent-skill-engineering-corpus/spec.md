@@ -357,7 +357,9 @@ edit a completed task section.
 
 - [x] **AC15 — Workspace, brief, and index records are current.** The
   initiative's milestone string names the slice actually in flight; this spec
-  is registered as active work; the successor slice has an authored spec and
+  is registered as active work while in flight and moved to shipped work at
+  close, in the same commit that sets its status; the successor slice has an
+  authored spec and
   plan pair and is registered as queued work canonically with its dependency on
   this spec stated; the brief's Spec-map rows and slice table mirror the linked
   specs; and every row this change touches in `docs/specs/README.md` carries

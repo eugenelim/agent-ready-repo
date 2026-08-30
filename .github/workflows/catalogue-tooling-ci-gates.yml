@@ -140,7 +140,7 @@ jobs:
       # skipping, which the SKIPPED grep below would not catch. Verified, not
       # inferred.
       - name: Install agentbundle (editable) + pytest + pyyaml
-        run: python -m pip install -e packages/agentbundle pytest pyyaml
+        run: python -m pip install -e packages/agentbundle pytest 'pyyaml>=6.0'
       - name: Run repo/pack hook suites (Linux)
         # Pack tests live outside the runtime payload, and a skill directory gets
         # its own pytest process unless it is named in a compatibility class
