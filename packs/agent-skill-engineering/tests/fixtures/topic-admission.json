@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "topics": [
+    {
+      "topic": "framing-and-trigger-quality",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "framing-and-trigger-quality guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/core/.apm/skills/work-loop/SKILL.md",
+            "packs/architect/.apm/skills/architect-design/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "instruction-density-and-progressive-disclosure",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "instruction-density-and-progressive-disclosure guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/core/.apm/skills/work-loop/SKILL.md",
+            "packs/catalogue-curation/.apm/skills/compile-okf/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "resources-scripts-and-exit-contracts",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "resources-scripts-and-exit-contracts guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/catalogue-curation/.apm/skills/compile-okf/SKILL.md",
+            "packs/converters/.apm/skills/markdown-to-html/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "depth-libraries-and-okf-knowledge-providers",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "depth-libraries-and-okf-knowledge-providers guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/agent-skill-engineering/.apm/skills/ase-okf-reference/SKILL.md",
+            "packs/architect/.apm/skills/architecture-lenses-reference/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "activation-discoverability-and-mode-wayfinding",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "activation-discoverability-and-mode-wayfinding guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md",
+            "packs/core/.apm/skills/work-loop/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "progressive-result-presentation-and-next-actions",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "progressive-result-presentation-and-next-actions guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/core/.apm/skills/work-loop/SKILL.md",
+            "packs/experience-design/.apm/skills/design-review/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "trust-boundaries-and-instruction-provenance",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-29",
+      "claim_groups": [
+        {
+          "name": "trust-boundaries-and-instruction-provenance guidance",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/atlassian/.apm/skills/confluence-publisher/SKILL.md",
+            "packs/github/.apm/skills/github-refresh/SKILL.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 137 authored agent skills in the catalogue that developed this pack, censused on 2026-08-28. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the authored-skill census changes or a claim is promoted to doctrine."
+        }
+      ]
+    }
+  ]
+}

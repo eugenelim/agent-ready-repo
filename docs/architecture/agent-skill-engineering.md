@@ -62,7 +62,11 @@ it informs authoring without forcing rewrites.
 
 ## 3. Knowledge topology
 
-The corpus is organized by task and capability rather than by source file:
+The corpus is organized by task and capability rather than by source file. Of
+the 36 leaves the taxonomy names, **7 are admitted and 29 are declared absent**
+as of slice 2a; a leaf is in exactly one of those sets, never both and never
+neither. Admission is evidence-limited, so the admitted count is expected to
+stay well below the leaves enumerated below:
 
 - foundations: framing, triggers, instruction density, progressive disclosure,
   resource placement, scripts, and exit contracts;
@@ -82,6 +86,17 @@ The corpus is organized by task and capability rather than by source file:
   authentication/secret context isolation, side effects, and evidence privacy;
 - maintenance: evidence promotion, applicability, measurement, regression, and
   retirement.
+
+Admitted as of slice 2a: framing and trigger quality, instruction density and
+progressive disclosure, resources/scripts/exit contracts, depth libraries and
+OKF knowledge providers, activation discoverability and mode wayfinding,
+progressive result presentation and next actions, and trust boundaries and
+instruction provenance. Every other leaf above is recorded in the compiled
+declared-absent register with why it is absent and what would admit it —
+including `compatibility-and-runtime-package-patterns`, which cannot be written
+without advertising a mode this slice bars, and
+`inline-and-progressive-reference-skills`, which was authored and then withdrawn
+because measured retrieval could not separate it from instruction density.
 
 Open Knowledge Format (OKF) is an authoring representation. The owning pack
 compiles it at build time into ordinary references and generated indexes. No
@@ -232,4 +247,11 @@ history.
 
 ## 11. Last verified
 
-Planned architecture drafted 2026-08-26. No implementing commit exists yet.
+Planned architecture drafted 2026-08-26. Slice 2a (corpus) verified 2026-08-30
+against pack version 0.2.0: 7 topics admitted of 36 leaves, retrieval measured
+at 40/40 exact-set agreement over 40 declared cases, and a fixed 40-prompt
+generic-engineering negative set returning a topic body for 0 of 40 against a
+bar of at most five percent. Activation observed headless at 18/18 with zero
+exclusivity violations. This document stays **PLANNED**: runtime profiles,
+language and execution topics, and the composition floors described above are
+not implemented, and slice 2a claims no surface belonging to them.

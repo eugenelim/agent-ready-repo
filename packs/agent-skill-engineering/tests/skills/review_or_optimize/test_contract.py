@@ -43,6 +43,38 @@ REVIEW_EVAL_FILES = (
     "evals/files/catchall-SKILL.md",
     "evals/files/nondeterministic-SKILL.md",
     "evals/files/nondeterministic-helper.py",
+    "evals/files/nondeterministic-reference.md",
+)
+# Deliberately not part of `REVIEW_EVAL_FILES`. That tuple is the set whose
+# digests a graded behaviour result must carry, and every member of it is
+# parametrized into the digest test below. The readability corpus seeds no
+# defect and is graded by the repository's readability gate rather than by a
+# behaviour run, so listing it there would demand a recorded result that does
+# not and should not exist.
+REVIEW_READABILITY_FILES = ("evals/files/cognitive-load/ordinary-prose.md",)
+UNGRADED_EVAL_IDS = frozenset({"cognitive-load-output-quality"})
+# (eval_id, assertion text) pairs measured false by an independent adjudicating
+# context and recorded as measured rather than reworded. Keyed by text, not
+# index: an index migrates silently when an assertion is inserted above it --
+# the length pin still passes, a real miss becomes exempt, and the true miss
+# reads as a phantom pass. Reword or delete the assertion and this reddens.
+KNOWN_REVIEW_MISSES = {
+    (
+        "detect-script-contract-failure",
+        "Names the deterministic replay, exit, and cleanup contract "
+        "ASE-DET-01 requires before optimization",
+    ),
+}
+# Derived from the checklist the skill actually ships rather than restated, so
+# retiring or adding a check cannot leave this bound describing a vocabulary
+# the skill no longer has.
+CHECKLIST_IDS = frozenset(
+    re.findall(
+        r"ASE-[A-Z]+-\d+",
+        (REVIEW_ROOT / "references" / "review-checklist.md").read_text(
+            encoding="utf-8"
+        ),
+    )
 )
 
 
@@ -219,16 +251,20 @@ def test_review_behavior_evals_seed_activation_and_script_failures() -> None:
     )
     cases = {case["id"]: case for case in payload["evals"]}
 
-    assert set(cases) == {
-        "detect-activation-failure",
-        "detect-script-contract-failure",
-    }
+    assert set(cases) == REVIEW_EVAL_IDS | UNGRADED_EVAL_IDS
     seeded = {path for case in cases.values() for path in case["files"]}
-    assert seeded <= set(REVIEW_EVAL_FILES)
+    assert seeded <= set(REVIEW_EVAL_FILES) | set(REVIEW_READABILITY_FILES)
     assert "evals/files/catchall-SKILL.md" in seeded
     assert "evals/files/nondeterministic-helper.py" in seeded
     assert all(case["assertions"] for case in cases.values())
-    assert all(case["expect"]["output_contains"] for case in cases.values())
+    # Scoped to the graded ids. An `expect.output_contains` is a marker a
+    # recorded result has to attest; demanding one from the ungraded
+    # readability case would declare a marker nothing measures, which is the
+    # circular derivation this pack already had to remove twice.
+    assert all(
+        cases[eval_id]["expect"]["output_contains"] for eval_id in REVIEW_EVAL_IDS
+    )
+    assert not any("expect" in cases[eval_id] for eval_id in UNGRADED_EVAL_IDS)
 
 
 def test_independent_behavior_results_report_every_seeded_defect() -> None:
@@ -262,7 +298,10 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         for result in review_results
         for finding in result["actual_findings"]
     }
-    assert actual == seeded
+    # Same containment reasoning as the per-result assertion below: every
+    # seeded defect must be reported, and a sustained finding beyond the seeded
+    # set is correct behaviour rather than a regression.
+    assert seeded <= actual
     for result in review_results:
         case = behavior[result["eval_id"]]
         declared = set(case["expect"]["output_contains"])
@@ -270,10 +309,57 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # `actual_findings`, the mode marker in `actual_markers`. Bind the
         # union, so no declared element can go unattested by living in
         # whichever field the check does not read.
-        assert set(result["actual_findings"]) == {
-            value for value in declared if value.startswith("ASE-")
+        # Containment, not equality. `expect.output_contains` is graded by the
+        # runner as a substring check, so it declares a floor; asserting
+        # equality here made the record stricter than the check it records and
+        # turned a review finding a real defect beyond the seeded set into a
+        # failure. An independent blind run sustained five findings against
+        # four declared, and nine against six.
+        declared_findings = {value for value in declared if value.startswith("ASE-")}
+        assert declared_findings <= set(result["actual_findings"])
+        # The floor cannot be padded into meaninglessness: every extra has to
+        # be a checklist identifier the skill actually defines, so a result
+        # cannot inflate its count with invented ids.
+        assert set(result["actual_findings"]) <= CHECKLIST_IDS
+        declared_assertions = case["assertions"]
+        known_missing = {
+            text
+            for eval_id, text in KNOWN_REVIEW_MISSES
+            if eval_id == result["eval_id"]
         }
-        assert all(result["assertions"])
+        # The exemption must still describe a live assertion; otherwise a
+        # reworded case would carry an exemption that matches nothing and
+        # silently stops exempting anything.
+        assert known_missing <= set(declared_assertions), (
+            result["eval_id"],
+            sorted(known_missing - set(declared_assertions)),
+        )
+        # One recorded miss, named rather than absorbed, in the same shape the
+        # authoring side uses. Assertion 6 asks the review to name the replay,
+        # exit and cleanup contract `ASE-DET-01` requires. The run named the
+        # first two -- prescribing injected-input determinism and distinct exit
+        # classes -- and never returned to cleanup, neither prescribing a path
+        # nor disposing of it as vacuous. Naming the exact (case, index) means a
+        # *different* miss still reddens while the known one does not read as a
+        # pass.
+        failing = {
+            declared_assertions[index]
+            for index, verdict in enumerate(result["assertions"])
+            if not verdict
+        }
+        assert failing <= known_missing, (result["eval_id"], sorted(failing))
+        # AC14: the values the graded runner emits, so a failure can be
+        # attributed. Without these a re-record could drop them silently, and
+        # `Mode: review` would again be attested by nothing the fixture holds.
+        # A case carrying a known miss must record `assertions_ok` and `passed`
+        # as False. Exempting them instead would let a re-record claim a clean
+        # pass for a run that missed, which is the failure this pins shut.
+        holds = all(result["assertions"])
+        for value in ("produces_ok", "output_ok"):
+            assert result[value] is True, (result["eval_id"], value)
+        for value in ("assertions_ok", "passed"):
+            assert result[value] is holds, (result["eval_id"], value)
+        assert result["errored"] is False, result["eval_id"]
         # `all([])` is True, so truthiness alone accepts a record claiming that
         # none of the declared checklist assertions were confirmed. Pin the
         # count to the declaration, as the authoring side does.

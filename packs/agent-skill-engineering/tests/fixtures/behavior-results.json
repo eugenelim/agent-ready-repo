@@ -1,6 +1,6 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-27",
+  "evaluated_at": "2026-08-30",
   "candidate_execution": false,
   "results": [
     {
@@ -16,7 +16,7 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45"
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
       }
     },
     {
@@ -32,8 +32,73 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:a31759646b1d257c591f733354cf8869e26e3531e47db20089c37ce4dbd00d45",
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
+      }
+    },
+    {
+      "eval_id": "cold-start-orientation",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+      }
+    },
+    {
+      "eval_id": "cross-session-resumption",
+      "actual_markers": [
+        "Mode: update",
+        "Write status: awaiting explicit authorization"
+      ],
+      "assertions": [
+        true,
+        false,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
+      }
+    },
+    {
+      "eval_id": "progressive-result-presentation",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+      }
+    },
+    {
+      "eval_id": "knowledge-provider-read-only-entry",
+      "actual_markers": [
+        "Mode: knowledge-provider",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
       }
     },
     {
@@ -42,28 +107,8 @@
         "ASE-ACT-01",
         "ASE-PORT-01",
         "ASE-AUTH-01",
-        "ASE-SEC-01"
-      ],
-      "assertions": [
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "source_files": {
-        "evals/evals.json": "sha256:03623d2f5e45c42a0bde928b778fb554f15192e9776f18b5e901f8a7af550a35",
-        "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
-      }
-    },
-    {
-      "eval_id": "detect-script-contract-failure",
-      "actual_findings": [
-        "ASE-PROG-01",
-        "ASE-DET-01",
-        "ASE-CTX-01",
+        "ASE-SEC-01",
         "ASE-WRITE-01",
-        "ASE-CONC-01",
         "ASE-FAIL-01"
       ],
       "assertions": [
@@ -74,10 +119,55 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:03623d2f5e45c42a0bde928b778fb554f15192e9776f18b5e901f8a7af550a35",
-        "evals/files/nondeterministic-SKILL.md": "sha256:912a4799cb0c775c89d637daf17e8a29ba04d3006ce6697813eaed6aa808a27b",
-        "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85"
-      }
+        "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
+        "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
+      },
+      "produces_ok": true,
+      "output_ok": true,
+      "assertions_ok": true,
+      "errored": false,
+      "passed": true
+    },
+    {
+      "eval_id": "detect-script-contract-failure",
+      "actual_findings": [
+        "ASE-PROG-01",
+        "ASE-PORT-01",
+        "ASE-DET-01",
+        "ASE-AUTH-01",
+        "ASE-SEC-01",
+        "ASE-CTX-01",
+        "ASE-WRITE-01",
+        "ASE-CONC-01",
+        "ASE-FAIL-01"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
+        "evals/files/nondeterministic-SKILL.md": "sha256:16b5a3da8f542f58474a351b3620d0270c272712dfb290091990dd8eb6800f1e",
+        "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85",
+        "evals/files/nondeterministic-reference.md": "sha256:021a93029f213608200f94fff6482e3e8d640b582147c569c112ba05c77795f3"
+      },
+      "produces_ok": true,
+      "output_ok": true,
+      "assertions_ok": false,
+      "errored": false,
+      "passed": false
     }
-  ]
+  ],
+  "graded_run": {
+    "command": "python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode in-harness --check behavior --reports <driver payload>",
+    "tier": "B-lite",
+    "fidelity": "observed+attested",
+    "provenance": "operator-attested",
+    "author_iteration": 2,
+    "review_iteration": 5
+  }
 }

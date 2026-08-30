@@ -5,7 +5,7 @@ metadata:
   boundaries: [filesystem_read_untrusted]
   generated-by: compile-okf agentbundle-okf/v1
   source-path: okf/agent-skill-engineering-foundation
-  source-digest: sha256:da0ca5f3b9b02afa022b65358d3fe563a94b88781af711142f18b4b3b733946b
+  source-digest: sha256:b912fd91bb23bcda0679f7dcb1161ec77930500cfcb26c427dadcfca1dca90f8
   knowledge-provider:
     contract-version: "agent-skill-engineering-reference/v1"
     domain: "agent skill engineering"

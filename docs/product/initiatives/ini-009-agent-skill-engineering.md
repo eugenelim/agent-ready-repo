@@ -120,6 +120,23 @@ variances:
   architect's review before treating architect as the integration pilot, and
   that review is the only step still outstanding on this item.
 
+## Delivery-cut variances
+
+- **2026-08-29 — Slice 2 is delivered as 2a and 2b.** The original brief's
+  single Slice 2 combined corpus, language, pattern, and execution-economics
+  work. It is now split into the active
+  [`agent-skill-engineering-corpus`](../../specs/agent-skill-engineering-corpus/spec.md)
+  (2a) and queued
+  [`agent-skill-engineering-languages-and-execution`](../../specs/agent-skill-engineering-languages-and-execution/spec.md)
+  (2b), with 2b depending on 2a. **Authority:** the 2a spec's `Durable Outputs`
+  table, `Delivery-cut variance` row, which identifies this split as a departure
+  from RFC-0097's single corpus follow-on and requires this record.
+- **2026-08-29 — `runtime-package` is deferred from 2a and 2b.** The capability
+  is not shipped by either slice. **Authority:** RFC-0097 D1's mode-availability
+  rule: `runtime-package` remains unavailable until M2 package-lifecycle claims
+  and runtime-profile gates pass; the 2b spec's `Never do` boundary therefore
+  excludes it from that successor slice.
+
 ## Links
 
 - `workspace.toml` initiative section: `["ini-009"]`

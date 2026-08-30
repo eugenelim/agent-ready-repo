@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "agent-skill-engineering",
+          "version": "0.2.0"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[agent-skill-engineering][0.2.0] — 2026-08-30",
+      "changelogAnchor": "agent-skill-engineering020--2026-08-30",
+      "highlights": [
+        {
+          "source": "**The authoring workflow now offers a `knowledge-provider` mode, and the corpus behind it will not answer a question it has no evidence for.** Four topics were admitted out of seventeen candidates, because admission requires two observations at distinct skill paths in distinct packs and measured retrieval that selects the topic alone. The other thirteen are recorded as absent with the reason and what would admit them, so a reader can tell an unevidenced subject from an overlooked one.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The authoring workflow now offers a `knowledge-provider` mode, and the corpus behind it will not answer a question it has no evidence for."
+            },
+            {
+              "type": "text",
+              "value": " Four topics were admitted out of seventeen candidates, because admission requires two observations at distinct skill paths in distinct packs and measured retrieval that selects the topic alone. The other thirteen are recorded as absent with the reason and what would admit them, so a reader can tell an unevidenced subject from an overlooked one."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.16.0"
         },

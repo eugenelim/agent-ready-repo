@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "set_size": 40,
+  "provenance": "synthetic; authored for this falsifier, not transcribed from any session",
+  "bar": "no more than 5% of prompts return a topic body",
+  "prompts": [
+    {
+      "id": "generic-01",
+      "prompt": "Add pagination to the orders list endpoint"
+    },
+    {
+      "id": "generic-02",
+      "prompt": "Why does this SQL query do a full table scan?"
+    },
+    {
+      "id": "generic-03",
+      "prompt": "Convert this callback chain to async/await"
+    },
+    {
+      "id": "generic-04",
+      "prompt": "Set up a GitHub Actions job that runs the unit tests"
+    },
+    {
+      "id": "generic-05",
+      "prompt": "The container exits immediately on start; find out why"
+    },
+    {
+      "id": "generic-06",
+      "prompt": "Write a migration that backfills the nullable email column"
+    },
+    {
+      "id": "generic-07",
+      "prompt": "Reduce the p99 latency on the checkout path"
+    },
+    {
+      "id": "generic-08",
+      "prompt": "Extract this 300-line function into smaller units"
+    },
+    {
+      "id": "generic-09",
+      "prompt": "Configure CORS so the browser client can call the API"
+    },
+    {
+      "id": "generic-10",
+      "prompt": "Our nightly job silently stopped running last week"
+    },
+    {
+      "id": "generic-11",
+      "prompt": "Add retry with exponential backoff to this HTTP client"
+    },
+    {
+      "id": "generic-12",
+      "prompt": "Rename the customer_id column without downtime"
+    },
+    {
+      "id": "generic-13",
+      "prompt": "Write unit tests for the discount calculator"
+    },
+    {
+      "id": "generic-14",
+      "prompt": "The staging deploy is stuck waiting on a health check"
+    },
+    {
+      "id": "generic-15",
+      "prompt": "Cache these lookups without serving stale prices"
+    },
+    {
+      "id": "generic-16",
+      "prompt": "Draft an incident postmortem for yesterday's outage"
+    },
+    {
+      "id": "generic-17",
+      "prompt": "Move secrets out of the compose file into the vault"
+    },
+    {
+      "id": "generic-18",
+      "prompt": "Which index would speed up this join?"
+    },
+    {
+      "id": "generic-19",
+      "prompt": "Split the monolith's billing module into its own service"
+    },
+    {
+      "id": "generic-20",
+      "prompt": "Upgrade to the new major version of the ORM"
+    },
+    {
+      "id": "generic-21",
+      "prompt": "Add structured logging with a request correlation id"
+    },
+    {
+      "id": "generic-22",
+      "prompt": "The flaky integration test fails once in twenty runs"
+    },
+    {
+      "id": "generic-23",
+      "prompt": "Model a many-to-many between projects and tags"
+    },
+    {
+      "id": "generic-24",
+      "prompt": "Set a memory limit that will not OOM under peak load"
+    },
+    {
+      "id": "generic-25",
+      "prompt": "Write a script that reconciles two export files"
+    },
+    {
+      "id": "generic-26",
+      "prompt": "Add a feature flag around the new pricing engine"
+    },
+    {
+      "id": "generic-27",
+      "prompt": "Our bundle grew by 400KB after the last merge"
+    },
+    {
+      "id": "generic-28",
+      "prompt": "Design the retry semantics for this message consumer"
+    },
+    {
+      "id": "generic-29",
+      "prompt": "Document the public REST endpoints for external partners"
+    },
+    {
+      "id": "generic-30",
+      "prompt": "The websocket drops connections after exactly sixty seconds"
+    },
+    {
+      "id": "generic-31",
+      "prompt": "Add rate limiting per API key"
+    },
+    {
+      "id": "generic-32",
+      "prompt": "Parallelise this batch job across worker processes"
+    },
+    {
+      "id": "generic-33",
+      "prompt": "Find the memory leak in the long-running daemon"
+    },
+    {
+      "id": "generic-34",
+      "prompt": "Write a rollback plan for the schema change"
+    },
+    {
+      "id": "generic-35",
+      "prompt": "Normalise these inconsistent timezone values"
+    },
+    {
+      "id": "generic-36",
+      "prompt": "Add a health endpoint the load balancer can poll"
+    },
+    {
+      "id": "generic-37",
+      "prompt": "Deduplicate the events this consumer receives twice"
+    },
+    {
+      "id": "generic-38",
+      "prompt": "Tune the connection pool for the read replica"
+    },
+    {
+      "id": "generic-39",
+      "prompt": "Replace the cron scheduler with a durable queue"
+    },
+    {
+      "id": "generic-40",
+      "prompt": "Audit which dependencies have known vulnerabilities"
+    }
+  ]
+}

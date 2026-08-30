@@ -626,3 +626,71 @@ If this RFC is accepted, delivery proceeds through the following post-acceptance
 Tracking already exists under [INI-009](../product/initiatives/ini-009-agent-skill-engineering.md). Add canonical spec entries to `workspace.toml` only after each spec exists and is approved.
 
 The [planned architecture document](../architecture/agent-skill-engineering.md) is the cross-spec target view. Each delivery spec must update it with implemented names, paths, dependency edges, and verification evidence for its slice. It remains `PLANNED` until every section it describes is implemented and verified; only then does it become `CURRENT`. This RFC remains the decision record rather than the living operational reference.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, Approver-signed.
+
+- **2026-08-28 (Approver: eugenelim) — § *D8* is clarified. The promotion
+  classes gate a compiled topic's *doctrine claims*, not the existence of the
+  topic. A topic may instead carry observed practice under an explicit
+  applicability limit, and must declare which basis it stands on.**
+
+  The decision this RFC records — that reusable practice should be owned once,
+  compiled at build time, and retrieved through a bounded provider — stands
+  unchanged. What was ambiguous is the admission bar for a compiled topic.
+
+  Two clauses of this RFC pull in different directions, and the first delivery
+  slice exposed it. § *D3* charters a maintained census that classifies every
+  authored skill under `packs/*/.apm/skills/` against a pattern family, and
+  supplies a family table whose evidence column is this repository's own
+  exemplars. § *D8* requires that promotion into durable doctrine rest on one
+  of four classes — a public contract supported by at least two relevant
+  runtimes, repeated independent observed failures sharing one mechanism, one
+  severe reproducible safety failure, or a controlled measurement — and bars
+  promoting a single local preference as portable doctrine. Read as a gate on
+  every compiled topic, D8 makes D3's census unable to produce one, because a
+  census observes patterns and never observes a failure, a contract, or a
+  measurement.
+
+  The foundation slice settled the question in practice without recording it.
+  `agent-skill-engineering` shipped three compiled topics —
+  `framing-and-trigger-quality`,
+  `instruction-density-and-progressive-disclosure`, and
+  `resources-scripts-and-exit-contracts` — carrying no external source citation
+  of any kind, and passed every gate this RFC names. Either that slice violated
+  D8, or D8 was never a per-topic admission gate. This erratum records the
+  second reading as the intended one, and makes the distinction explicit rather
+  than leaving each later slice to re-derive it.
+
+  **The clarified rule.** Every compiled topic declares, per claim group,
+  exactly one basis:
+
+  - `doctrine` — a claim asserted as generally true beyond the population that
+    produced it. It requires one of D8's four promotion classes together with
+    that class's own evidence, and it carries the § *D8* provenance set: source
+    identity, a per-source `retrieved_at`, any exposed source version or
+    last-updated date, and the concept's last verification date.
+  - `observed-practice` — a claim scoped to a named population. It requires the
+    census observations that support it, an explicit applicability limit
+    naming that population and stating the claim is not established beyond it,
+    and a revalidation trigger. It carries no promotion class and must not be
+    written as universal guidance.
+
+  A topic mixing both declares each claim group's basis separately. D8:505's
+  bar is unchanged and now has a precise target: a local preference may ship as
+  `observed-practice` with its limit stated, and may never ship as `doctrine`.
+
+  **What this does not license.** It does not lower the bar for a doctrine
+  claim, admit a topic with no evidence of either kind, permit an
+  observed-practice claim to omit its applicability limit, or make soundness a
+  mechanical property. A build gate can assert that a topic declares a basis and
+  carries that basis's required fields; whether the evidence actually supports
+  the claim remains a review judgment, and each delivery slice names the
+  reviewer who made it.
+
+  **Retroactive effect.** The three foundation topics are `observed-practice`
+  and are missing their applicability limits. Adding them is a correction to
+  shipped content owned by the next corpus slice, not a re-opening of the
+  foundation spec, which remains `Shipped`.

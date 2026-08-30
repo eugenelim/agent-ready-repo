@@ -54,11 +54,17 @@ network access, writes, or persistence.
 ## Related topics
 
 For activation and authorization timing, consult
-`framing-and-trigger-quality`. For deciding whether detail belongs in a script
-or a reference, consult `instruction-density-and-progressive-disclosure`.
+`framing-and-trigger-quality`. This topic covers what a script, reference, or
+asset must do once its kind is settled; deciding which kind a given piece of
+content is — script or reference, reference or asset — is a placement question
+and belongs to `instruction-density-and-progressive-disclosure`, which holds
+the rule that assets carry only content copied into user output.
 
 ## Provenance and lifecycle
 
 Foundation reference for the portable agent-skill-engineering pack. Maintain as
 governed OKF source; generated router copies are not authoring surfaces.
 
+**Applicability limit:** This guidance is an observed practice from the 137
+authored agent skills in the catalogue that developed this pack, censused on
+2026-08-28. It is not established beyond that population.

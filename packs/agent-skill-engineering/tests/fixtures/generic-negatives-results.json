@@ -1,0 +1,170 @@
+{
+  "evaluation_mode": "independent-read-only-subcontext",
+  "evaluated_at": "2026-08-30",
+  "source_digest": "sha256:b912fd91bb23bcda0679f7dcb1161ec77930500cfcb26c427dadcfca1dca90f8",
+  "router_digest": "sha256:6bcdca15ce928cb78710897bf8a0498e3ce65aeff1dbf968461cedc811a5333d",
+  "generated_tree_digest": "sha256:c5275cf51edc00675c2ff7501641d4ed1c01c52c3d955db7d79372a421f398c6",
+  "case_fixture_digest": "sha256:9e42e9d42419fcd798d29a7971c87dc2283c8c08f40ed015b08efac9ee6bdd49",
+  "results": [
+    {
+      "id": "generic-01",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-02",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-03",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-04",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-05",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-06",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-07",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-08",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-09",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-10",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-11",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-12",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-13",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-14",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-15",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-16",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-17",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-18",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-19",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-20",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-21",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-22",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-23",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-24",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-25",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-26",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-27",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-28",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-29",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-30",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-31",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-32",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-33",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-34",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-35",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-36",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-37",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-38",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-39",
+      "actual_topics": []
+    },
+    {
+      "id": "generic-40",
+      "actual_topics": []
+    }
+  ]
+}

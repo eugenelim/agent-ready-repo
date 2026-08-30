@@ -1,9 +1,10 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-27",
-  "source_digest": "sha256:da0ca5f3b9b02afa022b65358d3fe563a94b88781af711142f18b4b3b733946b",
-  "router_digest": "sha256:4d5e51713b14e5aae77c2889696e1df6de96889be69bf634dc0fa5729c981204",
-  "generated_tree_digest": "sha256:b169e077148eafa9eb24fb37f45db666159cba33055eb8538d55a553780a0f67",
+  "evaluated_at": "2026-08-30",
+  "source_digest": "sha256:b912fd91bb23bcda0679f7dcb1161ec77930500cfcb26c427dadcfca1dca90f8",
+  "router_digest": "sha256:6bcdca15ce928cb78710897bf8a0498e3ce65aeff1dbf968461cedc811a5333d",
+  "generated_tree_digest": "sha256:c5275cf51edc00675c2ff7501641d4ed1c01c52c3d955db7d79372a421f398c6",
+  "case_fixture_digest": "sha256:e83fbd0ef7470f8fb842f607a799cad1842bf73e6f646b9d32d9d564660b812e",
   "results": [
     {
       "id": "new-skill-purpose",
@@ -32,8 +33,7 @@
     {
       "id": "authorization-at-trigger",
       "actual_topics": [
-        "framing-and-trigger-quality",
-        "resources-scripts-and-exit-contracts"
+        "framing-and-trigger-quality"
       ]
     },
     {
@@ -63,8 +63,7 @@
     {
       "id": "asset-or-reference",
       "actual_topics": [
-        "instruction-density-and-progressive-disclosure",
-        "resources-scripts-and-exit-contracts"
+        "instruction-density-and-progressive-disclosure"
       ]
     },
     {
@@ -142,6 +141,92 @@
     {
       "id": "integration-agent-reference",
       "actual_topics": []
+    },
+    {
+      "id": "depth-library-inert-knowledge",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers"
+      ]
+    },
+    {
+      "id": "depth-library-root-index",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers"
+      ]
+    },
+    {
+      "id": "mode-wayfinding-safe-default",
+      "actual_topics": [
+        "activation-discoverability-and-mode-wayfinding"
+      ]
+    },
+    {
+      "id": "mode-wayfinding-activation",
+      "actual_topics": [
+        "activation-discoverability-and-mode-wayfinding"
+      ]
+    },
+    {
+      "id": "progressive-results-blocked-state",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "progressive-results-quiet-progress",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "provenance-untrusted-instructions",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
+    },
+    {
+      "id": "provenance-trusted-configuration",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
+    },
+    {
+      "id": "fallback-unpopulated-leaf",
+      "actual_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "near-miss-library-release-notes",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-cli-modes",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-build-progress-bar",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-credential-rotation",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-feature-flag-branch",
+      "actual_topics": []
+    },
+    {
+      "id": "progressive-results-partial-dependency",
+      "actual_topics": [
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "provenance-user-authored-config",
+      "actual_topics": [
+        "trust-boundaries-and-instruction-provenance"
+      ]
     }
   ]
 }

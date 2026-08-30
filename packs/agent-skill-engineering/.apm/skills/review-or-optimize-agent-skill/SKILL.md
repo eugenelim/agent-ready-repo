@@ -54,8 +54,13 @@ verification fails, or cleanup is denied, stop the affected operation and
 report a bounded incomplete result. Do not retry external effects, broaden
 deletion, weaken the baseline, inspect credentials, or claim success.
 
-Finish with the mode, target, applicable checks, findings or measured changes,
-files changed (or `none`), verification, and unavailable evidence.
+Open the result with this line exactly, then finish with the target, applicable
+checks, findings or measured changes, files changed (or `none`), verification,
+and unavailable evidence.
+
+```text
+Mode: review | optimize
+```
 
 Python/pytest and TypeScript/Node are recognized but unpopulated extension
 families. Apply

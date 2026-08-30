@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "source_ref": "tests/fixtures/router-results.json:results.actual_topics",
+  "pins": [
+    {
+      "id": "new-skill-purpose",
+      "measured_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "activation-positive-negative",
+      "measured_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "description-catchall",
+      "measured_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "skill-or-normal-capability",
+      "measured_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "authorization-at-trigger",
+      "measured_topics": [
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "split-large-skill",
+      "measured_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "orphan-reference",
+      "measured_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "duplicate-rule",
+      "measured_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "mode-loading",
+      "measured_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "asset-or-reference",
+      "measured_topics": [
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "script-exit",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "script-determinism",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "interrupted-write",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "cleanup-denied",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "python-extension",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "node-extension",
+      "measured_topics": [
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "full-new-skill",
+      "measured_topics": [
+        "framing-and-trigger-quality",
+        "instruction-density-and-progressive-disclosure",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "review-existing-skill",
+      "measured_topics": [
+        "framing-and-trigger-quality",
+        "instruction-density-and-progressive-disclosure",
+        "resources-scripts-and-exit-contracts"
+      ]
+    },
+    {
+      "id": "near-miss-generic-code",
+      "measured_topics": []
+    },
+    {
+      "id": "near-miss-architecture",
+      "measured_topics": []
+    },
+    {
+      "id": "near-miss-prose",
+      "measured_topics": []
+    },
+    {
+      "id": "integration-org-standards",
+      "measured_topics": []
+    },
+    {
+      "id": "integration-framework-library",
+      "measured_topics": []
+    },
+    {
+      "id": "integration-agent-reference",
+      "measured_topics": []
+    }
+  ]
+}

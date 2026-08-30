@@ -8,6 +8,7 @@ import re
 import tomllib
 from pathlib import Path
 
+import pytest
 import yaml
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
@@ -78,7 +79,8 @@ def test_portable_tree_contains_no_adapter_or_publication_implementation() -> No
 def _names_mode(description: str, mode: str) -> bool:
     """Does `description` name `mode`, in any ordinary surface form?
 
-    AC4's obligation is mode-level, so matching one spelling is not enough.
+    The foundation spec's AC4 obligation is mode-level, so matching one
+    spelling is not enough.
     Three earlier versions were each defeated by the next form a reviewer
     tried: `\\b<mode>\\b` missed the plural ("plugins"), `\\b<mode>s?\\b`
     missed the space-separated spelling of the hyphenated modes ("knowledge
@@ -110,7 +112,8 @@ def _names_mode(description: str, mode: str) -> bool:
 
 
 def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> None:
-    """AC4's absence clause, over every mode and both workflow descriptions.
+    """The foundation spec's AC4 absence clause, over every mode and both
+    workflow descriptions.
 
     The per-workflow suites check the SKILL.md *bodies*, where these names are
     required to appear in the unavailable-response contract. The absence
@@ -119,9 +122,10 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
     activation surface is what would route an unavailable request into a
     workflow. Modes come from the fixture that already defines the closed
     vocabulary. The count assert below is an anti-vacuity floor pinned to
-    AC4's closed six-mode enumeration: a seventh mode reddens it deliberately,
-    so extending coverage is an AC4-synced decision rather than something that
-    happens silently.
+    the closed enumeration: a mode appearing or disappearing reddens it
+    deliberately, so changing coverage is a synced decision rather than
+    something that happens silently. It is five now that knowledge-provider is
+    advertised.
     """
 
     modes = {
@@ -132,7 +136,7 @@ def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> 
             ).read_text(encoding="utf-8")
         )["cases"]
     }
-    assert len(modes) == 6
+    assert len(modes) == 5
 
     for name, root in WORKFLOW_ROOTS.items():
         text = (root / "SKILL.md").read_text(encoding="utf-8")
@@ -198,3 +202,105 @@ def test_independent_activation_results_bind_all_queries_and_descriptions() -> N
             # call — but nothing may fire on a negative query.
             allowed = {ROUTER_SKILL} if query["should_trigger"] else set()
             assert set(case["exclusivity_violations"]) <= allowed
+
+
+# A durable positive control for the mode matcher. Without it a matcher that
+# silently stopped detecting anything would leave the guard above green while
+# proving nothing -- the guard only ever asserts that a form is *absent*.
+DETECTED_FORMS = [
+    ("runtime-package", "use for runtime-package work"),
+    ("runtime-package", "use for knowledge providers and runtime packages"),
+    ("subagent", "handles sub-agents too"),
+    ("plugin", "use for plugins, hooks, and subagents"),
+    ("hook", "use for plugins, hooks, and subagents"),
+    ("runtime-profile", "covers runtime profiles as well"),
+]
+
+
+@pytest.mark.parametrize("mode,description", DETECTED_FORMS)
+def test_matcher_detects_forbidden_surface_forms(mode: str, description: str) -> None:
+    """Plural, space-separated, and hyphen-split spellings all count."""
+    assert _names_mode(description, mode), (mode, description)
+
+
+def test_matcher_does_not_fire_on_neutral_prose() -> None:
+    """A reworded opening naming no mode is not a match."""
+    assert not _names_mode("Use when a user asks for help with a skill", "plugin")
+    assert not _names_mode("Use when a user asks for help with a skill", "subagent")
+
+
+def test_knowledge_provider_is_no_longer_in_the_unsupported_enumeration() -> None:
+    """The advertised mode left the closed unavailable set."""
+    modes = {
+        case["mode"]
+        for case in json.loads(
+            (
+                PACK_ROOT / "tests" / "fixtures" / "unsupported-mode-cases.json"
+            ).read_text(encoding="utf-8")
+        )["cases"]
+    }
+    assert "knowledge-provider" not in modes
+    assert modes == {"runtime-package", "runtime-profile", "plugin", "hook", "subagent"}
+
+
+# AC9's portability clause: nothing the pack ships may name a repository-only
+# path, an acceptance criterion, or an internal governance record. These bodies
+# ship to other repositories, where none of those resolve.
+REPOSITORY_ONLY_PATTERNS = (
+    re.compile(r"\bdocs/(specs|rfc|adr)/"),
+    re.compile(r"\bAC\d+\b"),
+    re.compile(r"\bworkspace\.toml\b"),
+)
+PORTABLE_SUFFIXES = {".md", ".json", ".toml", ".py"}
+# The pack ships 37 such files today. The floor exists because a wrong root, an
+# unlisted suffix, or an empty walk is otherwise indistinguishable from
+# compliance -- a green result proving only that nothing was read.
+PORTABLE_FILE_FLOOR = 37
+
+
+def _portable_files() -> list[Path]:
+    return sorted(
+        path
+        for path in (PACK_ROOT / ".apm").rglob("*")
+        if path.is_file() and path.suffix in PORTABLE_SUFFIXES
+    )
+
+
+def test_shipped_content_names_no_repository_only_reference() -> None:
+    """AC9: the shipped tree carries no reference only this repository resolves."""
+
+    visited = _portable_files()
+    assert len(visited) >= PORTABLE_FILE_FLOOR, len(visited)
+    for path in visited:
+        text = path.read_text(encoding="utf-8")
+        for pattern in REPOSITORY_ONLY_PATTERNS:
+            assert not pattern.search(text), f"{path.name}: {pattern.pattern}"
+
+
+@pytest.mark.parametrize(
+    "seeded",
+    (
+        "see docs/specs/agent-skill-engineering-corpus/spec.md",
+        "this discharges AC12",
+        "registered in workspace.toml",
+    ),
+)
+def test_repository_only_matcher_detects_each_forbidden_form(seeded: str) -> None:
+    """Positive control: the walk above passes because the tree is clean.
+
+    Without this, the same green result would follow from a pattern that
+    matches nothing at all.
+    """
+
+    assert any(pattern.search(seeded) for pattern in REPOSITORY_ONLY_PATTERNS)
+
+
+def test_repository_only_matcher_does_not_fire_on_portable_prose() -> None:
+    """The identifiers the corpus legitimately ships must stay clean."""
+
+    for allowed in (
+        "read references/frame.md for the activation boundary",
+        "report ASE-ACT-01 with its evidence",
+        "the pack.toml manifest declares the adapter contract",
+    ):
+        assert not any(p.search(allowed) for p in REPOSITORY_ONLY_PATTERNS), allowed

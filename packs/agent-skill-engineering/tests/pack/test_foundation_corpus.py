@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import json
 import re
@@ -16,7 +17,7 @@ PACK_ROOT = Path(__file__).resolve().parents[2]
 BUNDLE_ROOT = PACK_ROOT / "okf" / "agent-skill-engineering-foundation"
 CONCEPT_ROOT = BUNDLE_ROOT / "concepts"
 ROUTER_ROOT = PACK_ROOT / ".apm" / "skills" / "ase-okf-reference"
-# AC7 requires each topic to carry applicability cues, required practice,
+# the foundation spec's AC7 requires each topic to carry applicability cues, required practice,
 # counterexamples, evaluation hooks, and links to shared or extension concepts.
 # These headings are how the authored corpus expresses them, and the router's
 # selection signal lives in the first one.
@@ -32,14 +33,25 @@ REQUIRED_SECTIONS = (
 )
 # Literal filenames so the join below is statically confined to this pack.
 TOPIC_FILES = (
+    "activation-discoverability-and-mode-wayfinding.md",
+    "depth-libraries-and-okf-knowledge-providers.md",
     "framing-and-trigger-quality.md",
     "instruction-density-and-progressive-disclosure.md",
+    "progressive-result-presentation-and-next-actions.md",
     "resources-scripts-and-exit-contracts.md",
+    "trust-boundaries-and-instruction-provenance.md",
+)
+UNPOPULATED_RECORD = (
+    CONCEPT_ROOT / "declared-absent" / "unpopulated-leaves.md"
 )
 EXPECTED_TOPICS = {
+    "activation-discoverability-and-mode-wayfinding",
+    "depth-libraries-and-okf-knowledge-providers",
     "framing-and-trigger-quality",
     "instruction-density-and-progressive-disclosure",
+    "progressive-result-presentation-and-next-actions",
     "resources-scripts-and-exit-contracts",
+    "trust-boundaries-and-instruction-provenance",
 }
 
 
@@ -78,14 +90,32 @@ def _generated_tree_digest(root: Path) -> str:
 def _read_staged_confined(root: Path, relative_path: str, reads: list[Path]) -> str:
     """Read one regular staged file after resolving it beneath the staged root."""
 
-    target = (root / relative_path).resolve(strict=True)
+    # Probe the symlink on the UNRESOLVED path. `.resolve(strict=True)` below
+    # collapses every link, so `not resolved.is_symlink()` is always true --
+    # a control that cannot fail, which is how an in-tree symlink was silently
+    # followed while this read claimed to reject one.
+    candidate = root / relative_path
+    assert not candidate.is_symlink()
+    target = candidate.resolve(strict=True)
+    # This is the confinement control: it is what stops a read escaping the
+    # staged root. The read stays on `Path.read_text` deliberately -- the
+    # checkout-unavailable guard monkeypatches exactly that, so routing through
+    # the blessed `read_confined_regular_file` would bypass and silently defeat
+    # the guard this call site exists to exercise.
     target.relative_to(root.resolve(strict=True))
-    assert target.is_file() and not target.is_symlink()
+    assert target.is_file()
     reads.append(target)
     return target.read_text(encoding="utf-8")
 
 
-def test_foundation_corpus_is_exactly_three_inert_governed_topics() -> None:
+def test_foundation_corpus_is_exactly_the_admitted_inert_governed_topics() -> None:
+    """Topic identity and frontmatter shape, over the concept root only.
+
+    Deliberately non-recursive. The declared-absent register lives in a
+    subdirectory and carries its own `type`, so a recursive equality pinned to
+    `type: Reference` would redden on its first run. Its inertness is covered
+    by the recursive refusal below, so nothing agent-read escapes a control.
+    """
     paths = sorted(CONCEPT_ROOT.glob("*.md"))
     assert {path.stem for path in paths} == EXPECTED_TOPICS
     for path in paths:
@@ -97,9 +127,33 @@ def test_foundation_corpus_is_exactly_three_inert_governed_topics() -> None:
             "status": "Active",
             "license": "Apache-2.0 OR MIT",
         }
+
+
+def test_every_agent_read_concept_is_inert() -> None:
+    """No agent-read body may name an executor, attester, remote, or tools.
+
+    Recursive, so the declared-absent register is covered too: it is the one
+    body outside the topic set that a reader can be routed to.
+    """
+    paths = sorted(CONCEPT_ROOT.rglob("*.md"))
+    assert len(paths) > len(EXPECTED_TOPICS), "the walk must reach beyond the concept root"
+    for path in paths:
         text = path.read_text(encoding="utf-8")
         for forbidden in ("executor:", "attester:", "remote:", "tools:"):
-            assert forbidden not in text
+            assert forbidden not in text, (path.name, forbidden)
+
+
+def test_declared_absent_register_is_shaped_and_is_not_a_topic() -> None:
+    """The register carries its own kind and never enters the topic set."""
+    metadata = _frontmatter(UNPOPULATED_RECORD)
+    assert metadata == {
+        "id": UNPOPULATED_RECORD.stem,
+        "title": metadata["title"],
+        "type": "Register",
+        "status": "Active",
+        "license": "Apache-2.0 OR MIT",
+    }
+    assert UNPOPULATED_RECORD.stem not in EXPECTED_TOPICS
 
 
 @pytest.mark.parametrize("topic_file", TOPIC_FILES)
@@ -115,12 +169,29 @@ def test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses
             encoding="utf-8"
         )
     )
-    assert len(cases) >= 20
+    assert len(cases) >= 40
     assert len({case["id"] for case in cases}) == len(cases)
     assert all(set(case["expected_topics"]) <= EXPECTED_TOPICS for case in cases)
     assert all(len(case["expected_topics"]) <= 3 for case in cases)
     assert sum(not case["expected_topics"] for case in cases) >= 5
     assert any(len(case["expected_topics"]) == 3 for case in cases)
+
+    # AC6's topic-bearing floor: the case count cannot be reached with near
+    # misses and no-topic cases that dilute the exact-set rate rather than
+    # exercise the corpus.
+    topic_bearing = sum(bool(case["expected_topics"]) for case in cases)
+    assert topic_bearing * 2 >= len(cases), (topic_bearing, len(cases))
+
+    # AC6's per-topic coverage, over the *declared* sets. The measured
+    # exclusivity check elsewhere reads results, which is a different
+    # population and discharges AC4, not this.
+    declared_solo = collections.Counter(
+        case["expected_topics"][0]
+        for case in cases
+        if len(case["expected_topics"]) == 1
+    )
+    for topic in sorted(EXPECTED_TOPICS):
+        assert declared_solo[topic] >= 2, (topic, declared_solo[topic])
 
 
 def test_independent_router_results_meet_precision_and_recall_gate() -> None:
@@ -146,6 +217,13 @@ def test_independent_router_results_meet_precision_and_recall_gate() -> None:
         "sha256:" + hashlib.sha256((ROUTER_ROOT / "SKILL.md").read_bytes()).hexdigest()
     )
     assert evidence["generated_tree_digest"] == _generated_tree_digest(ROUTER_ROOT)
+    # The three digests above bind the record to the router tree it was measured
+    # against. This one binds it to the prompts. Without it a case or an
+    # expectation can be reworded after the run and every assertion here stays
+    # green against answers nobody gave to the current questions.
+    assert evidence["case_fixture_digest"] == (
+        "sha256:" + hashlib.sha256((fixture_root / "router-cases.json").read_bytes()).hexdigest()
+    )
     assert set(results) == set(cases)
     assert all(actual <= EXPECTED_TOPICS and len(actual) <= 3 for actual in results.values())
 
@@ -179,7 +257,7 @@ def test_generated_router_is_inert_bounded_and_source_independent() -> None:
     assert "Read `references/okf/index.md` first" in router
     assert "do not load the full bundle up front" in router
     assert "filesystem_write" not in router
-    # AC8: no checkout-relative path into the authoring source. `source-path`
+    # the foundation spec's AC8: no checkout-relative path into the authoring source. `source-path`
     # provenance is pack-relative and permitted; a `../` form would reach out of
     # the staged tree, and the body must route only into compiled references.
     frontmatter, body = router.split("---\n", 2)[1], router.split("---\n", 2)[2]
@@ -228,7 +306,10 @@ def test_generated_manifest_owns_only_router_outputs() -> None:
     manifest = json.loads((PACK_ROOT / ".okf-generated.json").read_text(encoding="utf-8"))
     managed = manifest["managed"]
     assert len([item for item in managed if item["kind"] == "okf-router"]) == 1
-    assert len([item for item in managed if item["kind"] == "okf-reference"]) == 3
+    # One per admitted topic, plus the declared-absent register.
+    assert len([item for item in managed if item["kind"] == "okf-reference"]) == len(
+        EXPECTED_TOPICS
+    ) + 1
     assert all(
         item["output_path"].startswith(
             ".apm/skills/ase-okf-reference/"
@@ -304,3 +385,64 @@ def test_staged_router_remains_complete_without_authored_okf(
     staged_root = staged.resolve(strict=True)
     assert reads
     assert all(path.is_relative_to(staged_root) for path in reads)
+
+
+def test_generic_negative_set_is_fixed_at_forty_and_pinned_on_both_sides() -> None:
+    """The falsifier's denominator cannot shrink.
+
+    Equality between the two fixtures alone would prove the results complete
+    against whatever was authored, leaving the set free to lose prompts. Both
+    sides are pinned at 40, and the result set must equal the prompt set.
+    """
+    prompts = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives.json").read_text(encoding="utf-8")
+    )
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )
+    assert prompts["schema_version"] == 1
+    assert prompts["set_size"] == 40
+    assert len(prompts["prompts"]) == 40
+    assert len({item["id"] for item in prompts["prompts"]}) == 40
+    assert len({item["prompt"] for item in prompts["prompts"]}) == 40
+
+    assert len(results["results"]) == 40
+    assert {item["id"] for item in results["results"]} == {
+        item["id"] for item in prompts["prompts"]
+    }
+
+
+def test_generic_negative_record_is_attributable_to_the_tree_it_measured() -> None:
+    """The negatives record carries the same digest triple as the retrieval record.
+
+    Without this a stale negatives record satisfies its other assertions
+    forever, and the 5% falsifier reads pass against a tree it never measured.
+    """
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )
+    metadata = _frontmatter(ROUTER_ROOT / "SKILL.md")["metadata"]
+
+    assert results["evaluation_mode"] == "independent-read-only-subcontext"
+    assert results["source_digest"] == metadata["source-digest"]
+    assert results["router_digest"] == (
+        "sha256:" + hashlib.sha256((ROUTER_ROOT / "SKILL.md").read_bytes()).hexdigest()
+    )
+    assert results["generated_tree_digest"] == _generated_tree_digest(ROUTER_ROOT)
+    assert results["case_fixture_digest"] == (
+        "sha256:"
+        + hashlib.sha256(
+            (PACK_ROOT / "tests" / "fixtures" / "generic-negatives.json").read_bytes()
+        ).hexdigest()
+    )
+
+
+def test_corpus_does_not_answer_generic_engineering_requests() -> None:
+    """At most 5% of the fixed 40-prompt negative set returns a topic body."""
+    results = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "generic-negatives-results.json").read_text(encoding="utf-8")
+    )["results"]
+    answered = [item for item in results if item["actual_topics"]]
+
+    assert len(results) == 40
+    assert len(answered) <= 2, [item["id"] for item in answered]
