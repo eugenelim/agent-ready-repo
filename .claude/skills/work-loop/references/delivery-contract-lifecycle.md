@@ -45,8 +45,9 @@ The event pins the prior approved spec/plan and every completed task section,
 preserves completed evidence bound to task IDs, review counters, and run identity,
 clears only the remaining approval/schedule baseline, and returns to
 `SPEC-PLAN-DRAFTING`. Repeat `--completed-evidence-ref Tn=<stable-ref>` so every
-completed task has at least one evidence binding. Evidence from earlier amendments
-remains bound unless the current transition adds another reference for that task.
+completed task has at least one evidence binding; no evidence flags are needed when
+no tasks have completed. Evidence from earlier amendments remains bound unless the
+current transition adds another reference for that task.
 
 An interrupted call is recovered by reissuing the exact same command. Changed
 authority, reason, or evidence facts refuse instead of creating another amendment.

@@ -3,6 +3,47 @@
 - **Status:** Draft
 - **Level:** feature
 
+## Disposition — shipped 2026-08-29 as a bug fix
+
+The outcome below was achieved. The evidence binding is now conditional on completed
+work existing; `begin_contract_amendment`'s `missing_evidence` check
+(`loop-cohort.py:768`) remains the sole enforcer. Owner authority, reason reference,
+run identity, and the approved-hash pins stay unconditional. Shipped in core 2.15.5.
+
+**The governing authority is RFC-0099 § 7, which this intent did not cite.** That
+section (Accepted 2026-08-27) defines the post-seal correction route as "legal from
+implementation, verification, or review" and lists only preservation effects, with no
+completed-work precondition. The guard landed 2026-08-26 in `be51a9847` — one day
+*before* RFC-0099 closed — and nobody re-checked the shipped code when the governing
+decision landed. So this was non-conformance with an accepted RFC, not merely a
+contract weaker than its implementation.
+
+**Three claims below are wrong. Corrected here rather than in place, so the original
+reasoning stays legible:**
+
+1. **"three independent guards" — there are four.** The intent misses
+   `parse_completed_task_evidence_entries` (`loop-cohort.py:621` pre-fix), which
+   rejected an empty entry tuple independently. Changing only the three named guards
+   would not have made the route reachable.
+2. **"No existing test asserts the empty-completed refusal is correct, so the change
+   turns no passing test red as a false regression" — false.** Two deliberately
+   written cases asserted it, in
+   `packs/core/tests/skills/work-loop/test_contract_amendment_wave4.py`: `:205`
+   (`completed_task_evidence: {}`) and `:207` (`current_wave_index: 0`). Both had to
+   be removed. Verifying this assumption before starting would have changed the
+   estimate materially.
+3. **Line citations had drifted.** Correct pre-fix locations were
+   `loop-cohort.py:621`, `:650` (`_normalize_completed_task_evidence_map`), `:669`
+   (`begin_contract_amendment`), `:746-747` (the empty-completed refusal), and `:772`
+   (`missing_evidence`) — not `:618`, `:714`, and `:740`.
+
+**On the "Before starting this" section below:** `docs/specs/sealed-baseline-replacement`
+does **not** exist in this branch, and no spec owns this route. The only specs
+mentioning `contract-amendment` are `close-work-extraction-and-immediate-disposition`
+(Shipped — the implementation corrected here, left untouched as a frozen artifact) and
+`credential-broker-contract` (an unrelated sense of the phrase). The concern was sound
+to raise; it did not materialise.
+
 ## Outcome
 
 `contract-amendment` succeeds when the plan baseline is sealed and no wave has
