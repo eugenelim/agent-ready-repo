@@ -984,3 +984,52 @@ record. Corrections are appended here, Approver-signed.
   running `shaping-reviewer` in `spec` mode against that spec during the
   `shaping-review-contracts` manual QA — the first defect the reviewer this RFC
   introduced found in this RFC's own follow-on work.
+- **2026-08-30 (Approver: eugenelim) — the same-day entry above overstates the
+  remaining sealed-baseline work; three of its five deltas were then cut.**
+  That entry was written before the cut-before-adding ladder was applied to the
+  contract itself, and was not reconciled afterwards. Of the deltas it names,
+  only two survive: the failed-plan-current-guard crossing with owner
+  confirmation, and the inserted shaping-review gate. **Legality from
+  `CODE-VERIFICATION` and `CODE-REVIEW` is cut** — both states already reach
+  `CODE-IMPLEMENTATION` in one existing transition, `gates-failed` and
+  `findings-remain` respectively, and both events are true when the contract
+  itself is the defect, so the amendment is reachable from all three states
+  without a new transition. **The materiality enum is cut** — nothing branches
+  on it and the shipped `reason_ref` already carries a bounded pointer to why
+  the amendment happened. **Per-task completion recording is cut** —
+  `validate_completed_task_sections` re-derives task-section hashes from the
+  plan text, so caller-supplied evidence is verified rather than trusted, and
+  wave-pointer inference is bounded to waves strictly before
+  `current_wave_index`, so it under-counts and redoes completed work rather
+  than skipping unfinished work. It is an efficiency feature, recorded in the
+  spec as an open question pending measurement of how much work an amendment
+  actually redoes. The delivery-state bullet under
+  `## Experiment / validation` → `### Contract fixtures` is stale for the same
+  reason and by the same authority: the event is named
+  `contract-amendment`, not `baseline-replacement-required`, and its fixtures
+  enter from `CODE-IMPLEMENTATION` — reached directly or through those two
+  existing transitions — not from three separately legal source states. The
+  crash-recovery, stale-hash, and completed-history obligations in that bullet
+  are unchanged and still required.
+- **2026-08-30 (Approver: eugenelim) — follow-on #5 is discharged; the drift
+  crossing is retired and the shaping gate is re-homed.** After the entries
+  above reduced follow-on #5 to two deltas, neither justified a spec of its
+  own. `sealed-baseline-replacement` is Archived and follow-on #5 is discharged
+  as delivered, on this disposition. **The drift crossing is retired.** The
+  2026-08-27 entry above made a failed plan-current guard crossable under owner
+  confirmation; that clause is withdrawn and no implementation is owed. An
+  already-drifted pinned artifact remains recoverable only through a
+  destructive reset, which is expensive — it discards completed-task evidence,
+  attempts, and review history — but it is a remedy, and the frequency that
+  would justify building a cheaper one has never been observed. Retiring it
+  keeps `contract-amendment` the single post-seal route with no second entry
+  condition. Reopen this only with a recorded instance. **The shaping gate is
+  re-homed, not dropped.** Section 7 puts `shaping-reviewer` at step 2 of the
+  drafting sequence, and a post-seal correction re-enters that sequence, so
+  re-drafting after an amendment owes a shaping pass. The work-loop's in-loop
+  re-drafting does not run one and
+  `references/delivery-contract-lifecycle.md` does not mention shaping. That
+  gap is real and remains owed; it carries no state, schema, or transition
+  change, so it belongs to the next change that touches the work-loop
+  re-drafting path rather than to a spec of its own. Until it lands, an
+  amendment reseals without the cold contract review this RFC requires.

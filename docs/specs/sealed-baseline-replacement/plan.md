@@ -1,7 +1,7 @@
 # Plan: Sealed-baseline replacement
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Archived <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Repository anchors:** `docs/architecture/loop-infrastructure.md`,
   `packs/core/.apm/skills/work-loop/scripts/{loop-engine,loop-cohort,_loop_guards}.py`,
   `packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md`,
@@ -11,6 +11,11 @@
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; the approved baseline is immutable after sealing.
+
+> **Archived 2026-08-30 (Owner: eugenelim). No task here is scheduled.** T1's
+> drift crossing is retired and T2's shaping gate is re-homed to the next change
+> touching the work-loop re-drafting path. See the spec header and the RFC-0099
+> Errata entries of this date.
 
 > **Rewritten 2026-08-30 with the spec amendment.** Five tasks became two. T1's
 > completion ledger, T2's two extra source states and materiality enum, T3's
