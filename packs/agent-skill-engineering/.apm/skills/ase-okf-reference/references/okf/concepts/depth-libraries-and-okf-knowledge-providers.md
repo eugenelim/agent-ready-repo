@@ -9,9 +9,12 @@ license: Apache-2.0 OR MIT
 
 ## Scope and routing signals
 
-Use for a read-only knowledge collection that another workflow consults for a
-specific decision. Do not use it for a workflow that performs work, chooses a
-user's objective, or grants access to external systems.
+Use when **authoring or reviewing** a read-only knowledge collection that
+another workflow consults for a specific decision. Do not use it for a workflow
+that performs work, chooses a user's objective, or grants access to external
+systems. This topic covers building such a collection, never using one: a
+request to consult, query, invoke, or fetch from a provider — this corpus's own
+or any other — is not a design question and selects no topic here.
 
 ## Decisions and minimum evidence
 
@@ -46,7 +49,9 @@ does not authorize file access, network access, identity use, or side effects.
 ## Related topics
 
 For conditional reference loading within a skill, consult
-`inline-and-progressive-reference-skills`.
+`instruction-density-and-progressive-disclosure`. A skill's own references,
+navigable from its own index, are that topic's; this topic begins where a
+collection is consulted by a workflow other than the one that ships it.
 
 ## Provenance and lifecycle
 
