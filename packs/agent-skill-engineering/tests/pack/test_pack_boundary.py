@@ -241,3 +241,66 @@ def test_knowledge_provider_is_no_longer_in_the_unsupported_enumeration() -> Non
     }
     assert "knowledge-provider" not in modes
     assert modes == {"runtime-package", "runtime-profile", "plugin", "hook", "subagent"}
+
+
+# AC9's portability clause: nothing the pack ships may name a repository-only
+# path, an acceptance criterion, or an internal governance record. These bodies
+# ship to other repositories, where none of those resolve.
+REPOSITORY_ONLY_PATTERNS = (
+    re.compile(r"\bdocs/(specs|rfc|adr)/"),
+    re.compile(r"\bAC\d+\b"),
+    re.compile(r"\bworkspace\.toml\b"),
+)
+PORTABLE_SUFFIXES = {".md", ".json", ".toml", ".py"}
+# The pack ships 37 such files today. The floor exists because a wrong root, an
+# unlisted suffix, or an empty walk is otherwise indistinguishable from
+# compliance -- a green result proving only that nothing was read.
+PORTABLE_FILE_FLOOR = 37
+
+
+def _portable_files() -> list[Path]:
+    return sorted(
+        path
+        for path in (PACK_ROOT / ".apm").rglob("*")
+        if path.is_file() and path.suffix in PORTABLE_SUFFIXES
+    )
+
+
+def test_shipped_content_names_no_repository_only_reference() -> None:
+    """AC9: the shipped tree carries no reference only this repository resolves."""
+
+    visited = _portable_files()
+    assert len(visited) >= PORTABLE_FILE_FLOOR, len(visited)
+    for path in visited:
+        text = path.read_text(encoding="utf-8")
+        for pattern in REPOSITORY_ONLY_PATTERNS:
+            assert not pattern.search(text), f"{path.name}: {pattern.pattern}"
+
+
+@pytest.mark.parametrize(
+    "seeded",
+    (
+        "see docs/specs/agent-skill-engineering-corpus/spec.md",
+        "this discharges AC12",
+        "registered in workspace.toml",
+    ),
+)
+def test_repository_only_matcher_detects_each_forbidden_form(seeded: str) -> None:
+    """Positive control: the walk above passes because the tree is clean.
+
+    Without this, the same green result would follow from a pattern that
+    matches nothing at all.
+    """
+
+    assert any(pattern.search(seeded) for pattern in REPOSITORY_ONLY_PATTERNS)
+
+
+def test_repository_only_matcher_does_not_fire_on_portable_prose() -> None:
+    """The identifiers the corpus legitimately ships must stay clean."""
+
+    for allowed in (
+        "read references/frame.md for the activation boundary",
+        "report ASE-ACT-01 with its evidence",
+        "the pack.toml manifest declares the adapter contract",
+    ):
+        assert not any(p.search(allowed) for p in REPOSITORY_ONLY_PATTERNS), allowed

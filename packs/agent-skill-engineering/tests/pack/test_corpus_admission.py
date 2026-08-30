@@ -194,7 +194,15 @@ def test_shipped_body_matches_the_admission_record() -> None:
         assert topic["reviewer"] not in compiled, name
         for group in topic["claim_groups"]:
             if group["basis"] != "observed-practice":
-                continue
+                # The doctrine-side source parity AC3 requires is not
+                # implemented. A bare `continue` would hand a doctrine group
+                # zero parity checking the day one is admitted, silently. Fail
+                # instead, so the gap announces itself at admission.
+                raise AssertionError(
+                    f"{name}: doctrine-side source parity is unimplemented; "
+                    "AC3 requires each cited source's identity and retrieved_at "
+                    "to appear in both projections before a doctrine group ships"
+                )
             limit = group["applicability_limit"]
             assert SCOPE_BOUND_STATEMENT in limit
             # Both projections wrap prose; the claim is about the text, not its

@@ -188,7 +188,10 @@ jobs:
             packs/desk-research/tests/skills/desk-research-project-status/ \
             packs/desk-research/tests/skills/desk-research-project-synthesize/ \
             packs/desk-research/tests/skills/devils-advocate/ \
-            packs/agent-skill-engineering/tests/; do
+            packs/agent-skill-engineering/tests/pack/ \
+            packs/agent-skill-engineering/tests/integration/ \
+            packs/agent-skill-engineering/tests/skills/author_or_update/ \
+            packs/agent-skill-engineering/tests/skills/review_or_optimize/; do
             python -m pytest "$d" -q -rs 2>&1 | tee -a "$RUNNER_TEMP/packs-out.txt"
           done
           ! grep -Eiq "SKIPPED.*(not installed|no module named|could not import)" "$RUNNER_TEMP/packs-out.txt"

@@ -25,11 +25,12 @@ attribution, and who attributed it. Nothing observed is dropped.
 | --- | --- | --- | --- |
 | `test_guide_typed_asides.py::test_ledger_has_complete_terminal_classifications` and `::test_ledger_matches_converted_asides_and_unchanged_quotations` | `python3 -m pytest tools/test_guide_typed_asides.py -q` → 2 failed, 2 passed | `owned-elsewhere`. Reproduces on the base independently of this slice. The file is named in no `Makefile` line and in no workflow, so no gate this slice runs invokes it. | Claude, this session |
 | `test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact` | `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py::test_core_pytest_semantic_node_contracts_are_exact -q` → 1 passed | `inherited`, **now cleared**. Arrived red from an earlier base at 78 nodes against a pin of 73; its owner re-pinned it upstream and it passes on this base. | Claude, this session |
-| Four `packs/agent-skill-engineering/tests` failures — `test_independent_router_results_meet_precision_and_recall_gate`, `test_independent_activation_results_bind_all_queries_and_descriptions`, and `test_contract.py`'s two authoring-behaviour tests | `python3 -m pytest packs/agent-skill-engineering/tests -q` → 106 passed | `inherited`, **now cleared**. Caused upstream by `c7ed3f910`, which added an eval case without moving its assertions and rewrote three `SKILL.md` files, invalidating recorded digests. Main resolved it; a rebase brought the fix. | Claude, this session |
+| Four `packs/agent-skill-engineering/tests` failures — `test_independent_router_results_meet_precision_and_recall_gate`, `test_independent_activation_results_bind_all_queries_and_descriptions`, and `test_contract.py`'s two authoring-behaviour tests | `python3 -m pytest packs/agent-skill-engineering/tests -q` → 111 passed | `inherited`, **now cleared**. Caused upstream by `c7ed3f910`, which added an eval case without moving its assertions and rewrote three `SKILL.md` files, invalidating recorded digests. Main resolved it; a rebase brought the fix. | Claude, this session |
 | `gate-main`, `Caps enforcer self-test`, and `make build-check` (CI) | `python3 tools/lint-pack-test-boundary.py` → `ok [pack-tests-stay-in-pack]` | `caused-here`, **fixed**. `test_corpus_admission.py` joined a fixture-supplied name onto a path, which the boundary linter cannot prove stays in-pack. Resolved by globbing each root and indexing by stem. `make build-check` aggregates `gate-main`; one defect, three red checks. | Claude, this session |
 | Three ruff errors in this slice's test modules | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Extraneous blank lines. Found by CI, not locally: the pack suite and both boundary linters were run after every edit, `make lint-ruff` was not, though it is in the documented command set. | Claude, this session |
 | `lint-brief-coverage` in `gate-main`, and `make build-check` which aggregates it | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .` → 3 briefs checked, exit 0 | `caused-here`, **fixed**. Moving the spec's Status from `Approved` to `Implementing` left the brief's auto-derived Spec map stale, and the rollup is fail-closed. Fixed by rolling the row up and re-pinning the brief digest in both workspace registrations, since the brief's sha256 is their `source.revision`. Seen on CI at `f2281d6be`, not locally: the build chain stops at this lint before reaching the pack suites. | Claude, this session |
 | `tools/test_check_output_readability.py::test_each_publishable_pack_has_a_passing_readability_fixture` | `python3 -m pytest tools/test_check_output_readability.py -q` → 37 passed | `caused-here`, **fixed**. Every publishable pack must ship a `cognitive-load-*` eval scenario and this pack shipped none; the same test's pack ledger also read 21 against 22 packs. Fixed by seeding the review skill's readability corpus and correcting the count. | Claude, this session |
+| `review-or-optimize-agent-skill` q03 recorded MISS at activation iteration 6 | `PYTHONPATH=packages/agentbundle python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` → iteration 7: 18/18 | `environmental`, **not carried**. The harness reported `1 harness error(s) — trigger rates unreliable` and attributed the MISS to an errored run rather than a non-trigger. A run the harness declares unreliable is not a measurement, so iteration 6 was discarded and re-taken rather than recorded with a caveat. Iteration 7 is clean on the same tree. | Claude, this session |
 
 Routing: the two guides ledger failures are routed against the existing
 `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`
@@ -252,6 +253,67 @@ exhibit. Closing it needs an assertion of the form "reports no identifier the
 candidate does not exhibit", which is a new declaration and therefore a new
 measurement. Recorded, not taken here.
 
+## The ship-gate review round
+
+Three reviewers ran against the complete diff and every report was adjudicated.
+Nine blocking claims went to adjudication: **seven sustained, two refuted, two
+indeterminate**. Both refutations matter as much as the sustains, because both
+would otherwise have been fixed on a wrong premise.
+
+**Refuted — a padded-record scenario that cannot occur.** A reviewer held that
+`seeded <= actual` survives only because the graded runs over-report, and would
+redden once the over-reported `ASE-WRITE-01` is dropped. `ASE-WRITE-01` is
+reported by *both* graded results, so dropping the over-reported instance leaves
+the union at all ten and the assertion holds. The structural half — that a
+maximally padded pair would satisfy both the floor and the `CHECKLIST_IDS`
+ceiling — is accurate, and is the gap this record already declares below rather
+than a new defect.
+
+**Refuted — a path join that is not the one that broke CI.** A reviewer found
+the variable-operand form recurring in `test_foundation_corpus.py`. Its base is
+a `tmp_path` staging directory, not a pack path, so the pack-test boundary rule
+does not govern it and the linter's silence is correct rather than a blind spot.
+The earlier fix was tied to a join rooted at a real pack path; it did not
+establish a repository-wide ban on variable operands.
+
+**Sustained, and the reviewer's own fix was wrong.** The symlink clause in the
+staged-read helper could never fail: `.resolve(strict=True)` collapses every
+link before `not target.is_symlink()` runs. The proposed remedy was to adopt the
+blessed `read_confined_regular_file`. That would have been a regression — it
+reads through `_open_confined_regular_file` rather than `Path.read_text`, and
+the checkout-unavailable guard works by monkeypatching exactly `Path.read_text`,
+so the blessed helper would have silently defeated the guard this call site
+exists to exercise. The probe moved ahead of resolution instead, and the read
+stays where the guard can see it.
+
+### What the round changed
+
+| Finding | Disposition |
+| --- | --- |
+| AC9's portability clause had no verifying artifact | Guard landed as the plan specified, with a 37-file non-vacuity floor and a three-form positive control; all three confirmed by mutation |
+| The plan still asserted the control AC8's amendment deleted | Both restatements corrected to the amended control |
+| The CI entry was ancestor-shaped, falsifying a lint exemption's premise | Replaced with the four compatibility-class members the Makefile names |
+| *Never do* forbade the ratchet raise *Ask first* permits | Scoped to engine code and `packs/core`; the false "within the existing ceiling" claim corrected; the amendment recorded in Follow-ons |
+| A shipped mode sentence was rewritten against an explicit plan prohibition | Restored, at the cost of re-measuring activation |
+| A doctrine group would have received zero parity checking, silently | The skip now fails with the reason, so the gap announces itself at admission |
+| The gate table recorded 106 where the tree collects 111 | Corrected |
+
+### A branch this suite still cannot exercise
+
+Every admitted topic declares `observed-practice`, so the `doctrine` arm of the
+admission predicate — its promotion classes, the two-runtime clause equality,
+the shared-mechanism check, the repetition floor, and source attributability —
+has never executed against any input. Deleting it would leave the suite green.
+The plan records seven mutation proofs for it, but that method leaves no
+committed trace by design, so nothing in the tree preserves them.
+
+This is recorded rather than repaired. The absence of any doctrine group is a
+deliberate, evidence-limited outcome, not an oversight, and manufacturing a
+synthetic one to exercise the branch would put a claim group in the admission
+record that no evidence supports. The honest state is that the first slice to
+admit doctrine inherits an unexercised predicate, and now also inherits a parity
+check that fails loudly instead of skipping.
+
 ## Where the readability corpus was placed, and what it cost
 
 Every publishable pack must ship a `cognitive-load-*` eval scenario whose
@@ -357,14 +419,14 @@ Surfaced by the executing contexts, unresolved and not blocking:
 
 | Gate | Invocation | Outcome |
 | --- | --- | --- |
-| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 106 passed |
+| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 116 passed |
 | Shared OKF compiler | `python3 -m pytest packs/catalogue-curation/tests/skills/compile-okf/ -q` | 150 passed |
 | Pack-test boundary | `python3 tools/lint-pack-test-boundary.py` | ok, 210 files |
 | Boundary structural self-test | `python3 tools/test-lint-boundary-structural.py` | 117 cases |
 | Caps enforcer self-test | `python3 tools/test-lint-pack-test-boundary.py` | 154 cases |
 | Style | `make lint-ruff` | All checks passed |
 | Spec metadata | `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .` | clean |
-| Activation | `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` | iteration 5: 18/18, zero errors, zero exclusivity violations |
+| Activation | `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` | iteration 7: 18/18, zero errors, zero exclusivity violations |
 | Catalogue verify | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue verify --root .` | ok |
 | Catalogue deep lint | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue lint --root . --deep` | ok, 70 informational findings |
 | Brief coverage | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .` | 3 briefs checked, exit 0 |

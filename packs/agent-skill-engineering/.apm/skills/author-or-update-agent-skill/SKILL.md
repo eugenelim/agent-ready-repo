@@ -12,11 +12,8 @@ requested task. Preserve the user's intent, existing behavior, and authority.
 
 ## Modes
 
-`frame` is the default and is read-only. Enter `create` or `update` when the
-request's outcome is a new or changed skill file, including while the work is
-still read-only planning; the mode names the work, and the receipt's write
-status carries whether a write is yet authorized. The write itself still waits
-for an explicit mode transition immediately before it.
+`frame` is the default and is read-only. Move to `create` or `update` only
+after an explicit mode transition and immediately before the first write.
 `knowledge-provider` is entered read-only and never carries write authority on
 entry; move from `knowledge-provider` to a write only after the user authorizes
 that write in its own explicit transition.

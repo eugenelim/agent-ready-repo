@@ -56,7 +56,10 @@ owned here.
 The riskiest part is retrieval regression. Adding topics to a router that
 scored 24 of 24 can only move that number one way, and a rate over a larger
 suite hides it, so the foundation cases are pinned as `(id, measured_topics)`
-pairs in a fixture no re-recording step writes.
+pairs, gated per case. A pin may be re-taken only on scope-owner authority and
+only where the QA record carries, for that pin, the corpus change that moved it,
+the evidence the new value rests on, and why the original is judged wrong rather
+than the measurement.
 
 ## Constraints
 
@@ -1148,7 +1151,7 @@ layer writes durable state outside the repository, and no migration runs.
 | Too few leaves can evidence a basis | The admitted set is very small | Accepted: the spec gates on the rule, not a topic count, and T8 records the remainder honestly rather than lowering the bar |
 | A shipped topic fits neither basis | T5 cannot state an applicability limit or a governing clause for one of the three | Stop and surface under *Ask first*; do not admit it anyway or weaken the rule |
 | The named reviewer becomes a rubber stamp | Every topic records the same reviewer with no recorded reasoning | Accepted and disclosed: the erratum makes soundness a judgment, and the QA record names who made it per topic rather than implying a test proved it |
-| Retrieval regresses as the corpus grows | A pinned foundation pair's measured set moves | Per-case gate against a fixture no re-record writes |
+| Retrieval regresses as the corpus grows | A pinned foundation pair's measured set moves | Per-case gate, with any re-take requiring scope-owner authority and a per-pin basis in the QA record |
 | The admission harness is satisfied by construction | It stays green under a topic added without evidence | Seven independent mutation proofs, one per conjunct, including a `doctrine` group missing `retrieved_at` and a body copying the unpopulated record's shape |
 | The corpus becomes an encyclopedia | The generic-engineering negative set returns bodies | The RFC's own 5%-of-40 falsifier is a gate |
 | The census records boilerplate as evidence | A family's count is dominated by inherited sections | The census is taken under review, not by pattern match |

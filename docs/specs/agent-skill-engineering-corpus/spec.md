@@ -92,8 +92,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   governance record anywhere the pack ships.
 - Author a language-specific or execution-economics topic body; those belong to
   the successor slice registered by AC15.
-- Change the workspace-status engine, its ratchets, or any `packs/core`
-  surface; the executing-clause deletion is a separately routed change.
+- Change the workspace-status engine's code or any `packs/core` surface; the
+  executing-clause deletion is a separately routed change. This does not reach
+  the engine's tolerated-finding ceilings, which *Ask first* above routes to
+  scope-owner sign-off; a ceiling raised without that sign-off is still
+  forbidden here.
 - Introduce a new module boundary, top-level directory, or dependency to carry
   the corpus; it compiles through the existing governed OKF compiler.
 - Derive, infer, or back-fill an evaluation result that was not observed, or
@@ -388,6 +391,13 @@ edit a completed task section.
   authority and evidence recorded in `qa.md`. The amendment weakened AC8's
   predicate — it now admits an owner-authorised pin re-take — so it is named
   here rather than absorbed into the criterion it changed.
+- **Second process deviation, recorded beside the first.** The *Never do*
+  above was also amended at the ship gate, by the same finish-time route and for
+  the same reason: it hard-forbade changing "its ratchets" while *Ask first*
+  routed a tolerated-finding ceiling raise to sign-off, so one Boundaries
+  section governed the same action two ways. The raise was taken under the
+  *Ask first* reading with recorded approval; the amendment reconciles the text
+  to that, and narrows nothing else.
 - **Repository owner: the specs index `Status` column is unguarded.** Nothing
   asserts `docs/specs/README.md` against each spec's own `**Status:**`. This
   slice's row silently read `Approved` while the spec read `Implementing`, and
@@ -398,7 +408,9 @@ edit a completed task section.
   `workspace_status_engine.py`, with its core-pack publication tail — measured
   at 0 true positives and 2 false positives, and split out of this slice on
   2026-08-28 because its collateral surface is entirely unrelated to the corpus.
-  This slice makes no engine change and ships within the existing ceiling.
+  This slice makes no engine change. It does raise one tolerated-finding
+  ceiling — `unsatisfied_dependency` 8 to 9, on the scope-owner sign-off
+  recorded in `qa.md` — for the transient 2b-to-2a dependency edge.
 - Slice-2b owner: `docs/specs/agent-skill-engineering-languages-and-execution/`
   — Python/pytest and TypeScript/Node depth and the execution-economics topics
   (5 of the 36 topology leaves), their retrieval prompts, and two of the four

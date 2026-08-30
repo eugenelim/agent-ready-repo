@@ -90,9 +90,20 @@ def _generated_tree_digest(root: Path) -> str:
 def _read_staged_confined(root: Path, relative_path: str, reads: list[Path]) -> str:
     """Read one regular staged file after resolving it beneath the staged root."""
 
-    target = (root / relative_path).resolve(strict=True)
+    # Probe the symlink on the UNRESOLVED path. `.resolve(strict=True)` below
+    # collapses every link, so `not resolved.is_symlink()` is always true --
+    # a control that cannot fail, which is how an in-tree symlink was silently
+    # followed while this read claimed to reject one.
+    candidate = root / relative_path
+    assert not candidate.is_symlink()
+    target = candidate.resolve(strict=True)
+    # This is the confinement control: it is what stops a read escaping the
+    # staged root. The read stays on `Path.read_text` deliberately -- the
+    # checkout-unavailable guard monkeypatches exactly that, so routing through
+    # the blessed `read_confined_regular_file` would bypass and silently defeat
+    # the guard this call site exists to exercise.
     target.relative_to(root.resolve(strict=True))
-    assert target.is_file() and not target.is_symlink()
+    assert target.is_file()
     reads.append(target)
     return target.read_text(encoding="utf-8")
 
