@@ -247,12 +247,74 @@ print-sast-config:
 # `*/tests/*`) plus tools/test-semgrep-argv-boundary.py, which asserts the exact
 # finding count. That self-test runs ONLY the custom rule, so it is not a
 # substitute for the registry rulesets — hence keeping the exclusion narrow.
+#
+# The last two entries are excluded for a different reason than the four above:
+# not a false positive, a per-rule TIMEOUT. ADR-0101 admits this vehicle and
+# fixes its required shape — a stated residual and a retirement trigger, both
+# below. Two interprocedural env→subprocess
+# taint rules exceed the default 5s/rule/file budget on one large,
+# subprocess-dense dev-CLI test file each — `dangerous-system-call-tainted-env-args`
+# on tools/test_workspace_status.py (3,422 lines) and
+# `dangerous-subprocess-use-tainted-env-args` on tools/test_workspace_status_cli.py
+# (3,817 lines). Those two timeouts are the only reason the scan exits non-zero
+# under --strict on this tree. Every figure in this block was measured on semgrep
+# 1.175.0 — the floor tools/requirements-sast.txt pins and CI installs, not
+# whatever a laptop happens to carry; see the version preflight in sast-unleased.
+#
+# Scoped by PATH, not by rule id, and that choice is the whole point. The
+# obvious spelling is `--exclude-rule <id>`, which takes a rule id only —
+# semgrep has no rule+path scoping in one flag — so it would drop both rules
+# repo-wide. Measured what that costs: a canary
+# `subprocess.run([os.environ["TOOL"], "--version"])` planted under packs/ is
+# reported by `dangerous-subprocess-use-tainted-env-args` with the rules on and
+# reported by NOTHING with them off — not by bandit at this gate's floor
+# (run-bandit-gate.py pins --severity-level medium, and B603/B606/B607 are LOW),
+# and not blockingly by CodeQL, which is not a required check on main. (codeql.yml
+# now declares `threat-models: environment` so CodeQL can at least see the source
+# kind; that makes it a better advisory lens, not a blocking one.) Excluding the
+# two rules would therefore have left packages/credbroker/ and
+# packs/core/.apm/hooks/session-start.py — the surface
+# tools/semgrep/env-path-taint.yml calls the one place the threat is real — with
+# no blocking detector for env-tainted subprocess argv at all.
+#
+# Excluding the two FILES instead keeps both rules live everywhere else. What it
+# gives up is the whole 227-rule set on two dev-CLI test harnesses, which
+# codeql.yml's `**/test_*.py` already ignores. Bandit still scans them, but not
+# for the class dropped here: its subprocess tail is LOW and this gate's floor is
+# medium. Measured at the time of writing, the full config at --timeout 60 finds
+# 0 findings and 0 errors on both files, so nothing detected is being hidden.
+#
+# The patterns carry a slash, so semgrep anchors them at the git root and they
+# match exactly the two files named — verified by diffing the scanned set with
+# and without: it drops by exactly two, and those two are the named files. In a
+# non-git tree semgrep would anchor per scan root instead, and `tools/...` would
+# be read against each of SAST_DIRS; no such path exists today.
+#
+# This costs nothing measurable. Keeping both rules live on the other ~1,565
+# files runs the same wall time as excluding them repo-wide (35s either way on
+# 1.175.0), so the blocking coverage above is retained for free rather than
+# bought.
+#
+# Nothing detects a stale entry — semgrep accepts an `--exclude` naming a file
+# that no longer exists, silently and with exit 0. Tracked as
+# `sast-semgrep-exclude-has-no-staleness-detector`.
+#
+# `--timeout 60` also clears the timeouts (measured: exit 0) and is deliberately
+# NOT used: it masks a pathological rule/file interaction rather than fixing it.
+# It costs little wall time — the cap is per rule per file, so only the two
+# pathological pairs reach it — but a masked interaction is not a fixed one.
+#
+# Retire once semgrep's taint engine stops timing out on these pairs, or once
+# either file is split below the per-rule budget. Still timing out as of 1.175.0,
+# nine releases after the behaviour was first seen, so this is not a transient.
 SEMGREP_EXCLUDE := \
 	--exclude "tools/semgrep/fixtures/*/positive.py" \
 	--exclude-rule python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 \
 	--exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
 	--exclude-rule python.lang.security.use-defused-xml.use-defused-xml \
-	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions
+	--exclude-rule python.lang.security.audit.insecure-file-permissions.insecure-file-permissions \
+	--exclude "tools/test_workspace_status.py" \
+	--exclude "tools/test_workspace_status_cli.py"
 
 sast:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) sast-unleased
@@ -261,6 +323,18 @@ sast-unleased:
 	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	# Presence is not enough for semgrep, unlike the tools around it. Its per-rule
+	# timeouts and its --strict diagnostics are engine behaviour that moves between
+	# releases, and SEMGREP_EXCLUDE's justification is a set of measurements taken
+	# at a specific version. A below-floor local semgrep produces evidence that
+	# does not describe what CI runs — which is how this block's figures were once
+	# taken eight releases early. The floor is read from the manifest so the two
+	# cannot drift.
+	@$(PYTHON) -c "import re,sys,pathlib;t=pathlib.Path('tools/requirements-sast.txt').read_text();m=re.search(r'^semgrep>=([0-9.]+)',t,re.M);sys.exit(0) if m else sys.exit('make sast: no semgrep floor in tools/requirements-sast.txt')" || exit 1
+	@floor=$$($(PYTHON) -c "import re,pathlib;print(re.search(r'^semgrep>=([0-9.]+)',pathlib.Path('tools/requirements-sast.txt').read_text(),re.M).group(1))"); \
+	have=$$(semgrep --version 2>/dev/null | tail -1); \
+	$(PYTHON) -c "import sys;f=tuple(int(x) for x in sys.argv[1].split('.'));h=tuple(int(x) for x in sys.argv[2].split('.'));sys.exit(0 if h>=f else 1)" "$$floor" "$$have" \
+	  || { echo "make sast: semgrep $$have is below the $$floor floor in tools/requirements-sast.txt — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v npm       >/dev/null 2>&1 || { echo "make sast: npm not found — install Node.js (>=24, per docs-site/package.json engines) for the npm SCA leg" >&2; exit 1; }
 	# Bandit's stderr is a gate signal, not chatter (ADR-0084): under -q it
 	# carries only diagnostics about the scan's own integrity — a `# nosec` it
@@ -324,7 +398,27 @@ sast-unleased:
 	# silent both when the gate works and when it has been broken into a no-op.
 	python3 tools/test-audit-npm.py
 	python3 tools/audit-npm.py --root .
-	semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet --metrics off $(SEMGREP_EXCLUDE) $(SAST_DIRS)
+	# Prove the wrapper below still speaks before trusting its silence — same
+	# order and same reason as the two SCA self-tests above.
+	python3 tools/test-semgrep-strict-gate.py
+	# --strict turns semgrep's own diagnostics into a gate signal. It buys exactly
+	# one thing: a PARTIAL parse failure (an unbalanced bracket, a nonsense token)
+	# now fails the build instead of being ignored. It does NOT close the
+	# whole-file case — `def broken(:` still yields empty errors and exit 0 even
+	# under --strict — so `sast-semgrep-unparseable-target-reads-clean` in
+	# workspace.toml stays open; tools/test-semgrep-argv-boundary.py's `scan_all`
+	# docstring holds the measured behaviour.
+	#
+	# It runs behind run-semgrep-gate.py, not on a bare recipe line, because
+	# --strict and --quiet together exit non-zero with zero bytes on both streams
+	# (measured, 1.166.0). ADR-0084 wrapped Bandit for this exact reason — a
+	# control this quiet needs a script and a test, not a flag.
+	#
+	# Revisit if: p/python and p/security-audit are fetched unpinned, so a future
+	# registry rule that times out on any file in SAST_DIRS reds the gate on an
+	# unrelated diff. ADR-0017 already accepts registry churn and names pin-or-
+	# vendor as the mitigation. Reach for that before widening SEMGREP_EXCLUDE.
+	python3 tools/run-semgrep-gate.py --config p/python --config p/security-audit --config tools/semgrep/ --strict --error --quiet --metrics off $(SEMGREP_EXCLUDE) $(SAST_DIRS)
 	# Prove the custom rules still fire. The scan above is silent both when the
 	# rules work and when they have been broken into no-ops, so it cannot tell
 	# the two apart — this self-test asserts the exact finding count on a

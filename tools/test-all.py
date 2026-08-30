@@ -146,6 +146,7 @@ TESTS: list[tuple[str, list[str]]] = [
     ("root-validation", [sys.executable, "-m", "pytest", "-q",
                          "tests/roster/test_work_loop_root_validation.py"]),
     ("semgrep-argv-boundary", [sys.executable, "tools/test-semgrep-argv-boundary.py"]),
+    ("semgrep-strict-gate", [sys.executable, "tools/test-semgrep-strict-gate.py"]),
     ("session-start", ["bash", "packs/core/tests/hooks/test_session_start_projection.sh"]),
     ("session-start-source", ["bash", "packs/core/tests/hooks/test_session_start_bash.sh"]),
 ]
