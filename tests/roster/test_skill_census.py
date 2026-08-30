@@ -29,8 +29,14 @@ def test_census_resolves_every_authored_skill() -> None:
     recorded = {f"{entry['pack']}/{entry['skill']}" for entry in entries}
 
     assert recorded == discovered, (
-        "skill census out of date; re-take the reviewed census and update "
-        "population_size with `pytest tests/roster/test_skill_census.py`"
+        "skill census out of date. Owning surface: "
+        "packs/agent-skill-engineering/tests/fixtures/skill-census.json. "
+        "The census is taken under review, not by a command: read each "
+        "packs/*/.apm/skills/*/SKILL.md the set below names, classify it into "
+        "families or record an exception with an owner, then update "
+        "population_size. "
+        f"Missing from the census: {sorted(discovered - recorded)}. "
+        f"No longer in the tree: {sorted(recorded - discovered)}."
     )
     assert census["population_size"] == len(discovered)
     assert len(entries) == len(recorded)

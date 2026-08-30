@@ -1,9 +1,10 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-29",
-  "source_digest": "sha256:f7e946c97ddab5775b6100917c98ae44074f02a97bb2652a2383c5e6e2eb750b",
-  "router_digest": "sha256:f5d0bea4a3785ca3748a393b8ab1ae2b0ffc4d41f78fcf8248267ba5ba788845",
-  "generated_tree_digest": "sha256:b1fd333d4201a1a6c5b0f053f5491dca39f223ae6d014873b867531b0b2d405a",
+  "evaluated_at": "2026-08-30",
+  "source_digest": "sha256:b912fd91bb23bcda0679f7dcb1161ec77930500cfcb26c427dadcfca1dca90f8",
+  "router_digest": "sha256:6bcdca15ce928cb78710897bf8a0498e3ce65aeff1dbf968461cedc811a5333d",
+  "generated_tree_digest": "sha256:c5275cf51edc00675c2ff7501641d4ed1c01c52c3d955db7d79372a421f398c6",
+  "case_fixture_digest": "sha256:9e42e9d42419fcd798d29a7971c87dc2283c8c08f40ed015b08efac9ee6bdd49",
   "results": [
     {
       "id": "generic-01",

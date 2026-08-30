@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import hashlib
 import json
 import re
@@ -16,7 +17,7 @@ PACK_ROOT = Path(__file__).resolve().parents[2]
 BUNDLE_ROOT = PACK_ROOT / "okf" / "agent-skill-engineering-foundation"
 CONCEPT_ROOT = BUNDLE_ROOT / "concepts"
 ROUTER_ROOT = PACK_ROOT / ".apm" / "skills" / "ase-okf-reference"
-# AC7 requires each topic to carry applicability cues, required practice,
+# the foundation spec's AC7 requires each topic to carry applicability cues, required practice,
 # counterexamples, evaluation hooks, and links to shared or extension concepts.
 # These headings are how the authored corpus expresses them, and the router's
 # selection signal lives in the first one.
@@ -32,9 +33,13 @@ REQUIRED_SECTIONS = (
 )
 # Literal filenames so the join below is statically confined to this pack.
 TOPIC_FILES = (
+    "activation-discoverability-and-mode-wayfinding.md",
+    "depth-libraries-and-okf-knowledge-providers.md",
     "framing-and-trigger-quality.md",
     "instruction-density-and-progressive-disclosure.md",
+    "progressive-result-presentation-and-next-actions.md",
     "resources-scripts-and-exit-contracts.md",
+    "trust-boundaries-and-instruction-provenance.md",
 )
 UNPOPULATED_RECORD = (
     CONCEPT_ROOT / "declared-absent" / "unpopulated-leaves.md"
@@ -160,6 +165,23 @@ def test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses
     assert sum(not case["expected_topics"] for case in cases) >= 5
     assert any(len(case["expected_topics"]) == 3 for case in cases)
 
+    # AC6's topic-bearing floor: the case count cannot be reached with near
+    # misses and no-topic cases that dilute the exact-set rate rather than
+    # exercise the corpus.
+    topic_bearing = sum(bool(case["expected_topics"]) for case in cases)
+    assert topic_bearing * 2 >= len(cases), (topic_bearing, len(cases))
+
+    # AC6's per-topic coverage, over the *declared* sets. The measured
+    # exclusivity check elsewhere reads results, which is a different
+    # population and discharges AC4, not this.
+    declared_solo = collections.Counter(
+        case["expected_topics"][0]
+        for case in cases
+        if len(case["expected_topics"]) == 1
+    )
+    for topic in sorted(EXPECTED_TOPICS):
+        assert declared_solo[topic] >= 2, (topic, declared_solo[topic])
+
 
 def test_independent_router_results_meet_precision_and_recall_gate() -> None:
     fixture_root = PACK_ROOT / "tests" / "fixtures"
@@ -184,6 +206,13 @@ def test_independent_router_results_meet_precision_and_recall_gate() -> None:
         "sha256:" + hashlib.sha256((ROUTER_ROOT / "SKILL.md").read_bytes()).hexdigest()
     )
     assert evidence["generated_tree_digest"] == _generated_tree_digest(ROUTER_ROOT)
+    # The three digests above bind the record to the router tree it was measured
+    # against. This one binds it to the prompts. Without it a case or an
+    # expectation can be reworded after the run and every assertion here stays
+    # green against answers nobody gave to the current questions.
+    assert evidence["case_fixture_digest"] == (
+        "sha256:" + hashlib.sha256((fixture_root / "router-cases.json").read_bytes()).hexdigest()
+    )
     assert set(results) == set(cases)
     assert all(actual <= EXPECTED_TOPICS and len(actual) <= 3 for actual in results.values())
 
@@ -217,7 +246,7 @@ def test_generated_router_is_inert_bounded_and_source_independent() -> None:
     assert "Read `references/okf/index.md` first" in router
     assert "do not load the full bundle up front" in router
     assert "filesystem_write" not in router
-    # AC8: no checkout-relative path into the authoring source. `source-path`
+    # the foundation spec's AC8: no checkout-relative path into the authoring source. `source-path`
     # provenance is pack-relative and permitted; a `../` form would reach out of
     # the staged tree, and the body must route only into compiled references.
     frontmatter, body = router.split("---\n", 2)[1], router.split("---\n", 2)[2]
@@ -389,6 +418,12 @@ def test_generic_negative_record_is_attributable_to_the_tree_it_measured() -> No
         "sha256:" + hashlib.sha256((ROUTER_ROOT / "SKILL.md").read_bytes()).hexdigest()
     )
     assert results["generated_tree_digest"] == _generated_tree_digest(ROUTER_ROOT)
+    assert results["case_fixture_digest"] == (
+        "sha256:"
+        + hashlib.sha256(
+            (PACK_ROOT / "tests" / "fixtures" / "generic-negatives.json").read_bytes()
+        ).hexdigest()
+    )
 
 
 def test_corpus_does_not_answer_generic_engineering_requests() -> None:

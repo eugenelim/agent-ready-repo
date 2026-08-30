@@ -78,6 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with why it is absent and what would admit it.
 - A fixed forty-prompt generic-engineering negative set, measured against the
   corpus so precision can be falsified rather than assumed.
+- The knowledge-provider topic is scoped to *designing* a corpus. A request to
+  consult, query, or invoke a provider is not a design question and selects no
+  topic, so adding the topic did not make the corpus start answering them.
 
 ### Changed
 
@@ -89,11 +92,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gate; the receipt's write status carries whether a write is authorized. Under
   the previous wording, read-only planning for an update had no mode to report.
 
-### Fixed
-
-- Retrieval no longer returns a topic body for a request to consult, query, or
-  invoke a knowledge provider. Those are not design questions, and answering
-  them is how a governed corpus becomes an encyclopedia.
 ## [core][2.16.1] — 2026-08-30
 
 ### Fixed

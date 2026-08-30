@@ -11,8 +11,15 @@ CONCEPTS = PACK / "okf" / "agent-skill-engineering-foundation" / "concepts"
 COMPILED_CONCEPTS = (
     PACK / ".apm" / "skills" / "ase-okf-reference" / "references" / "okf" / "concepts"
 )
+# Line-scoped, and matched per line rather than against the whole file. An
+# unanchored `.search()` over the full text with `^...$` and no MULTILINE can
+# only match a file whose entire content is one token, so a reviewer name
+# embedded in a shipped body passed unnoticed.
 ROLE_OR_PLACEHOLDER = re.compile(
     r"^(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:reviewer|maintainer)|<[^<>]+>)$"
+)
+ROLE_OR_PLACEHOLDER_ANYWHERE = re.compile(
+    r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)*-(?:reviewer|maintainer)\b|<[^<>\n]+>"
 )
 SCOPE_BOUND_STATEMENT = "It is not established beyond that population."
 DOCTRINE_CLASSES = {
@@ -178,8 +185,13 @@ def test_shipped_body_matches_the_admission_record() -> None:
         assert name in compiled_by_stem, name
         authored = authored_by_stem[name].read_text(encoding="utf-8")
         compiled = compiled_by_stem[name].read_text(encoding="utf-8")
-        assert not ROLE_OR_PLACEHOLDER.search(authored)
-        assert not ROLE_OR_PLACEHOLDER.search(compiled)
+        # The reviewer identity stays in the non-projected fixture; neither
+        # projection may carry it, nor an unfilled placeholder.
+        for body, label in ((authored, "authored"), (compiled, "compiled")):
+            hit = ROLE_OR_PLACEHOLDER_ANYWHERE.search(body)
+            assert hit is None, (name, label, hit.group(0))
+        assert topic["reviewer"] not in authored, name
+        assert topic["reviewer"] not in compiled, name
         for group in topic["claim_groups"]:
             if group["basis"] != "observed-practice":
                 continue

@@ -11,6 +11,7 @@ skill change without handing repository content authority over your tools.
 | --- | --- |
 | “Frame a skill for reviewing database migrations. Don't write files yet.” | A read-only frame — activation boundary, outcome, authority, file surface, evaluations, non-goals — through `author-or-update-agent-skill` |
 | “Create that skill.” / “Update this SKILL.md.” | The smallest portable change to a confined target, after you authorize the write |
+| “Design a governed knowledge corpus my other skills can consult.” | A read-only `knowledge-provider` plan — corpus shape, per-claim provenance, retrieval evaluation, and security boundaries — through `author-or-update-agent-skill` |
 | “Review this skill for trigger precision and portability.” | A findings report by stable check id, read-only, through `review-or-optimize-agent-skill` |
 | “Optimize it against the false-positive rate I measured.” | A measured before/after change — only with an observed failure or baseline, and a separate authorization |
 
@@ -52,6 +53,9 @@ and a separate, explicit write transition. The result includes before-and-after
 verification.
 
 After framing, your next decision is whether to authorize `create` or `update`.
+`knowledge-provider` is the fourth authoring mode: it is entered read-only to
+design a corpus and its router, and a write waits for its own explicit
+authorization.
 After review, decide whether a measured defect warrants `optimize` or should
 remain a reported finding.
 

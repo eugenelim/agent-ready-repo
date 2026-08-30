@@ -24,21 +24,23 @@ topic's routing signals, selected alone by at least two measured prompts.
 
 ## multimode-artifact-and-script-backed-skills
 
-**Why absent.** No two observations at distinct skill paths in distinct packs
-establish it, and no promotion class is evidenced. The census shows artifact
-skills and script-backed skills separately, not the combined pattern.
+**Why absent.** The census does record skills that are both artifact-producing
+and script-backed, in more than one pack — but none of them also declares
+multiple user-visible modes, so the three-way pattern this leaf names is
+observed nowhere and no promotion class is evidenced.
 
-**What would admit it.** Two packs shipping the combined pattern, not one of
-its halves.
+**What would admit it.** Two packs whose skills are artifact-producing,
+script-backed, and multi-mode at once — the dimension the observed pairs lack.
 
 ## routers-composed-workflows-and-lifecycle-skills
 
-**Why absent.** No two observations at distinct skill paths in distinct packs
-establish it, and no promotion class is evidenced. The census shows separate
-pattern families rather than one repeated composed practice.
+**Why absent.** The census does record composed workflows that also carry a
+state or lifecycle model, across several packs — but none of them routes or
+dispatches, so the router dimension this leaf names is observed nowhere and no
+promotion class is evidenced.
 
-**What would admit it.** A repeated composed-workflow practice observable at
-two distinct packs.
+**What would admit it.** Two packs whose composed workflows also dispatch to
+sub-workflows — the routing dimension the observed pairs lack.
 
 ## compatibility-and-runtime-package-patterns
 

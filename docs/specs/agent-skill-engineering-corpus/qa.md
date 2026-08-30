@@ -23,6 +23,26 @@ Routing: the two guides ledger failures are routed against the existing
 existing entry's summary adds no legacy-shaped entry, so the ceiling is not
 reached and no raise is proposed.
 
+## Ratchet raise — recorded, not implied
+
+`unsatisfied_dependency`'s tolerated ceiling was raised 8 to 9 in
+`tests/roster/test_workspace_status_projection.py`. This is an *Ask first*
+action under the spec's Boundaries, and the approval is recorded here rather
+than only in a code comment.
+
+| Field | Value |
+| --- | --- |
+| Raised | 8 to 9, `unsatisfied_dependency` |
+| Approved by | the repository owner, in session, 2026-08-29 |
+| Evidence shown at approval | 8 pre-existing edges — 6 product intents, 2 from portfolio-first-run-pilot — and 1 new: `docs/specs/agent-skill-engineering-corpus/spec.md`, the 2b→2a dependency |
+| Reason | the edge is real and transient: it clears when 2a ships. Dropping it would make a queued slice look startable while it is blocked; raising the ceiling was chosen over falsifying the edge |
+| Verified after repair | the engine's reported cause is now `dependency not terminal`, matching the recorded rationale. Before the provenance and status repairs above it read `dependency has findings`, because 2a was structurally blocked by its own registration defects |
+
+The spec's Assumption that this slice "raises no ratchet" and the plan's
+constraint that it touches "no ratchet" were both true when written and are
+superseded by this approval. Neither is corrected in place: both are frozen
+approved artifacts, and the correction is recorded here.
+
 ## Behaviour and review evidence
 
 Graded by `python3 -m agentbundle pack evals run --pack agent-skill-engineering
@@ -72,9 +92,14 @@ The predecessor's QA record documents finding and fixing this same circularity
 once, on the review side's `actual_findings`. Two further instances survived
 because nothing re-derived the markers from a blind run. Both receipts now
 instruct their graded lines, and after the fix every declared marker appears in
-real captured output. `output_ok` is therefore recorded from measurement rather
-than carried forward as a disclosure — the gap the predecessor could only
-declare is now closed with evidence.
+real captured output.
+
+The two halves are recorded differently, and the distinction matters. The **two
+review results** carry the five runner values, so `Mode: review` is attested by
+a measured `output_ok`; the gap the predecessor could only declare is closed
+with evidence there. The **six authoring results** carry `actual_markers` and no
+runner values, so `Write status:` is attested by the transcribed marker list
+rather than by a runner verdict.
 
 **Known weakness in that fix.** Both instructions are written as templates with
 alternatives on one line (`Mode: review | optimize`; three write-status values).
@@ -104,12 +129,17 @@ Named by the attesting contexts, none of which changed a verdict:
 
 ### What this record does not attest
 
-The `Mode: review` and `Write status:` markers are enforced at run time by
-`output_ok`, and that value is now recorded per case. What remains unverifiable
-from the committed artifact alone is the semantic assertion half: those verdicts
-are attested by a named context, not re-derivable from the fixture. That is the
-seam the RFC-0097 erratum establishes — form checked mechanically, soundness by
-a named judge — and it is stated here rather than implied.
+Both markers are enforced at run time by the grader's `output_ok`, and **the
+marker check is not re-checkable from the committed artifact**. For the two
+review results that verdict is recorded, so it can be read back; for the six
+authoring results it is not, and their `actual_markers` list is a transcription
+of what the run produced rather than a re-derivable check. Re-running the
+graded command is the only way to re-establish either.
+
+The semantic assertion half is likewise not re-derivable: those verdicts are
+attested by a named context, not computable from the fixture. That is the seam
+the RFC-0097 erratum establishes — form checked mechanically, soundness by a
+named judge — and it is stated here rather than implied.
 
 ## Skill-contract ambiguities observed during execution
 
@@ -143,3 +173,21 @@ Surfaced by the executing contexts, unresolved and not blocking:
 | Style | `make lint-ruff` | All checks passed |
 | Spec metadata | `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .` | clean |
 | Activation | `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` | iteration 5: 18/18, zero errors, zero exclusivity violations |
+| Catalogue verify | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue verify --root .` | ok |
+| Catalogue deep lint | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue lint --root . --deep` | ok, 70 informational findings |
+| Brief coverage | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py` | 3 briefs checked, exit 0 |
+| Workspace reconciliation | `run_canonical_reconciliation` over `workspace.toml` | `provenance_mismatch` 0, `impossible_transition` 1 (the pre-existing ini-002 brief), `unsatisfied_dependency` 9 at its approved ceiling |
+| Projection parity | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --check` | ok |
+
+The `PYTHONPATH` prefix is load-bearing. A bare `python3 -m agentbundle`
+resolves through whatever install is on PATH; run that way, `catalogue verify`
+reported two `CAT-V-002` errors against `packs/core/seeds/`, a pack this slice
+never touches. `pack_evals.py` is byte-identical between the installed and
+worktree trees, so the behaviour and activation evidence above was graded by the
+same code; the differing files are `lint.py`, `file_safety.py`,
+`workspace_status_engine.py` and scaffold data, which is what produced the
+phantom findings.
+
+The reconciliation row is the gate that was missing when this record was first
+written, and its absence is why two non-canonical registrations and a spec
+status defect reached code review.

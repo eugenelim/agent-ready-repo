@@ -274,6 +274,12 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
             value for value in declared if value.startswith("ASE-")
         }
         assert all(result["assertions"])
+        # AC14: the five values the graded runner emits, so a failure can be
+        # attributed. Without these a re-record could drop them silently, and
+        # `Mode: review` would again be attested by nothing the fixture holds.
+        for value in ("produces_ok", "output_ok", "assertions_ok", "passed"):
+            assert result[value] is True, (result["eval_id"], value)
+        assert result["errored"] is False, result["eval_id"]
         # `all([])` is True, so truthiness alone accepts a record claiming that
         # none of the declared checklist assertions were confirmed. Pin the
         # count to the declaration, as the authoring side does.

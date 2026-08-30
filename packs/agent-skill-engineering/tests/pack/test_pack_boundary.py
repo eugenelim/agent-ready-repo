@@ -79,7 +79,8 @@ def test_portable_tree_contains_no_adapter_or_publication_implementation() -> No
 def _names_mode(description: str, mode: str) -> bool:
     """Does `description` name `mode`, in any ordinary surface form?
 
-    AC4's obligation is mode-level, so matching one spelling is not enough.
+    The foundation spec's AC4 obligation is mode-level, so matching one
+    spelling is not enough.
     Three earlier versions were each defeated by the next form a reviewer
     tried: `\\b<mode>\\b` missed the plural ("plugins"), `\\b<mode>s?\\b`
     missed the space-separated spelling of the hyphenated modes ("knowledge
@@ -111,7 +112,8 @@ def _names_mode(description: str, mode: str) -> bool:
 
 
 def test_no_unsupported_mode_name_leaks_into_either_activation_description() -> None:
-    """AC4's absence clause, over every mode and both workflow descriptions.
+    """The foundation spec's AC4 absence clause, over every mode and both
+    workflow descriptions.
 
     The per-workflow suites check the SKILL.md *bodies*, where these names are
     required to appear in the unavailable-response contract. The absence
