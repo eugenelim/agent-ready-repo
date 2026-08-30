@@ -16,15 +16,42 @@ def _skill_text() -> str:
     return WORK_LOOP_SKILL.read_text(encoding="utf-8")
 
 
-def _heading_anchors(text: str) -> set[str]:
-    """GitHub-style slugs for every ATX heading in *text*."""
-    anchors = set()
+def _outside_fences(text: str) -> list[str]:
+    """Lines outside fenced code blocks.
+
+    SKILL.md embeds shell blocks whose `# comment` lines would otherwise read as
+    ATX headings — nine of them today. Counting those as anchors would let a
+    dangling link resolve against a bash comment, so the control would stop
+    being able to fail.
+    """
+    lines, in_fence = [], False
     for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            lines.append(line)
+    return lines
+
+
+def _heading_anchors(text: str) -> set[str]:
+    """GitHub-style slugs for the ATX headings in *text*, duplicates included.
+
+    GitHub disambiguates repeated headings by appending `-1`, `-2`, … so a link
+    to the second occurrence is legitimate and must not be reported dangling.
+    """
+    anchors: set[str] = set()
+    seen: dict[str, int] = {}
+    for line in _outside_fences(text):
         if not line.startswith("#"):
             continue
         title = line.lstrip("#").strip()
-        slug = re.sub(r"[^a-z0-9\s-]", "", title.lower())
-        anchors.add(re.sub(r"\s+", "-", slug.strip()))
+        slug = re.sub(r"\s+", "-", re.sub(r"[^a-z0-9\s-]", "", title.lower()).strip())
+        if not slug:
+            continue
+        count = seen.get(slug, 0)
+        anchors.add(slug if count == 0 else f"{slug}-{count}")
+        seen[slug] = count + 1
     return anchors
 
 
@@ -37,8 +64,9 @@ def test_same_document_anchors_resolve_inside_skill_md() -> None:
     """
     skill = _skill_text()
     anchors = _heading_anchors(skill)
+    prose = "\n".join(_outside_fences(skill))
     dangling = sorted(
-        target for target in _SAME_DOC_ANCHOR.findall(skill) if target not in anchors
+        target for target in _SAME_DOC_ANCHOR.findall(prose) if target not in anchors
     )
     assert not dangling, (
         f"SKILL.md links to same-document anchors with no matching heading: "
@@ -58,8 +86,9 @@ def test_reference_anchors_resolve_in_their_target_file() -> None:
         path.name: _heading_anchors(path.read_text(encoding="utf-8"))
         for path in sorted(REFERENCES.glob("*.md"))
     }
+    prose = "\n".join(_outside_fences(_skill_text()))
     dangling = []
-    for relative, anchor in _REFERENCE_ANCHOR.findall(_skill_text()):
+    for relative, anchor in _REFERENCE_ANCHOR.findall(prose):
         name = relative.rsplit("/", 1)[-1]
         if name not in index:
             dangling.append(f"{relative} (no such reference file)")

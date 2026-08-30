@@ -10,4 +10,3 @@ in-session loop at least once on something similar.
 Wrong tool when "done" is fuzzy, task needs human judgment mid-flight, or touches a
 sensitive surface (auth, secrets, data deletion). Set hard caps (iteration, spend)
 before starting; review every commit after.
-

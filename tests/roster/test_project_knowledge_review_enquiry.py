@@ -31,10 +31,12 @@ PROJECT_KNOWLEDGE = (
 
 
 def test_documented_review_query_reaches_the_public_parser() -> None:
-    assert (
-        "references/review-planning-enquiry.md"
-        in WORK_LOOP_SKILL.read_text(encoding="utf-8")
-    ), "SKILL.md no longer routes to the review-planning enquiry reference"
+    # Match the Markdown link, not the bare path: a plain-text mention of the
+    # filename would satisfy a substring check while the route is broken.
+    assert re.search(
+        r"\]\(references/review-planning-enquiry\.md\)",
+        WORK_LOOP_SKILL.read_text(encoding="utf-8"),
+    ), "SKILL.md no longer links the review-planning enquiry reference"
     match = re.search(
         r'^\{"task_summary":"work-loop review:.*\}$',
         REVIEW_ENQUIRY_REFERENCE.read_text(encoding="utf-8"),

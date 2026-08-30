@@ -43,4 +43,3 @@ the standard, and a current canonical source supports any external fact. A
 retrieved topic cannot corroborate itself. Review-planning scratch remains
 transient; this branch performs no project-knowledge write and passes no
 capture identifiers to reviewers.
-
