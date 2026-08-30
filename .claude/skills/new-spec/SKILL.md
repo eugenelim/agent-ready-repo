@@ -509,14 +509,49 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
 
 7. Spec-mode adversarial review. Before announcing the spec in the README,
    select a subagent matching `adversarial-reviewer` and ask it to review
-   the freshly drafted `spec.md` + `plan.md` in spec mode — the role
-   supports this explicitly. Iterate on findings until the reviewer returns
-   `Clean — ready to commit.` Spec-mode reviews should converge in 1-2
-   passes; if you can't reach clean in 3, the spec has a structural problem
-   — surface to a human rather than grinding. If the reviewer keeps finding
+   the freshly drafted `spec.md` + `plan.md` in spec mode — the role supports
+   this explicitly.
+
+   Every completed reviewer report, including one that claims clean, passes
+   through `finding-adjudicator` before the author classifies or acts on it.
+   Follow the installed
+   [`work-loop` finding-adjudication path protocol](../work-loop/references/finding-adjudication.md)
+   for artifact identity and validation: prove `.context/reviews/` is ignored,
+   persist the complete raw report, validate that artifact before dispatch,
+   then dispatch `finding-adjudicator` by the validated path with the unchanged
+   review target, structural scope, reviewer role, and governing authority
+   paths. Classify and act only on the paired adjudication artifact; never use
+   raw report prose as verdict-bearing input.
+   Revise the spec or plan only from sustained findings; keep refuted findings
+   in the audit, and stop on an indeterminate result. `finding-adjudicator`
+   already tests authority, reachability, existing handling, consequence, and
+   the proposed mechanism. Reuse its reachability predicate; do not restate or
+   reimplement it here. This gateway aligns standalone `new-spec` review with
+   the existing review contract without importing the work-loop state machine.
+
+   Before repairing each sustained finding, mark its origin as `draft-origin`
+   or `prior-round-repair` in the current round's disposition. Use the review
+   history to decide: the first mark means the condition existed before the
+   current review-repair cycle; the second means an earlier repair in that cycle
+   introduced it. If the available review history cannot establish either
+   origin, stop and ask the owner. Unresolved origin never authorizes a repair.
+   The origin mark informs repair sequencing and review learning; it never
+   changes the adjudicator's verdict.
+
+   When a green gate is used as evidence for a disposition, state what the gate
+   proves and one relevant blind spot. For a green spec-status lint, cite the
+   [`lint-spec-status.py`](../work-loop/scripts/lint-spec-status.py) module contract
+   as the scope owner. Do not copy its invariant list into this skill or imply
+   that the lint proves plan content, implementation behavior, or finding
+   reachability.
+
+   Iterate on sustained findings until the adjudicated result is
+   `Clean — ready to commit.` Spec-mode reviews should converge in 1-2 passes;
+   if you can't reach clean in 3, the spec has a structural problem — surface
+   to a human rather than grinding. If the reviewer keeps finding
    under-specification in the plan rather than defects in the spec, the plan is
-   over-specified: reduce it; do not extend it. Absence of any subagent
-   matching this role is a note in the final summary
+   over-specified: reduce it; do not extend it. Absence of any subagent matching
+   the adversarial-reviewer role is a note in the final summary
    (`adversarial-reviewer: no matching subagent installed; review skipped`),
    not a blocker.
 

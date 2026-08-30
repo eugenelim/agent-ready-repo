@@ -67,6 +67,10 @@ The core pack ships seven tightly-coupled artifacts plus the documents they all 
 - **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses: adversarial checks delivery drift, security checks threats, and quality checks maintainability.
 - **The reviewer subagents** —
   - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + `CONVENTIONS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits). Cannot be skipped.
+  - **`finding-adjudicator`** (Opus): independently tests each completed
+    reviewer report against current evidence and governing authority before a
+    finding can trigger repair or a clean claim can close review. It owns
+    reachability and preserves refuted or indeterminate results for audit.
   - **`security-reviewer`** (Opus): OWASP + STRIDE lens. Conditional — runs when the diff crosses a security boundary.
   - **`quality-engineer`** (Opus): testability, observability, reliability, maintainability. Conditional. Different lens from adversarial; not a duplicate.
   - **`implementer`** (Sonnet): single-task executor for supervisor mode. Not a reviewer.
@@ -88,11 +92,22 @@ A feature lifecycle, end to end, with the parts named:
 
 1. **User asks for X.** "Add webhook retries with exponential backoff."
 2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`.
-3. **`shaping-reviewer`** reads the draft contract cold before plan approval; then `adversarial-reviewer` reads the complete spec + plan for construction risk. Findings come back; the spec hardens. Two passes is normal; three means structural problem and the agent surfaces.
+3. **`shaping-reviewer`** reads the draft contract cold before plan approval;
+   then `adversarial-reviewer` reads the complete spec + plan for construction
+   risk. Every completed spec-review report, including a clean claim, passes
+   through `finding-adjudicator` before it can change the spec or plan. Only
+   sustained findings drive repair; each is marked as originating in the draft
+   or a prior review repair, and any green gate used as evidence is bounded by
+   what it proves and a relevant blind spot. Two passes is normal; three means a
+   structural problem and the agent surfaces.
 4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
 5. **EXECUTE.** The agent implements task by task. For TDD tasks: red, green, refactor. For goal-based: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
-7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `CONVENTIONS.md` + `spec.md`. Findings come back; `loop-cohort review record` fingerprints them; the loop iterates.
+7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
+   `CONVENTIONS.md` + `spec.md`. `finding-adjudicator` independently sustains,
+   refutes, or stops on each reported finding before the loop acts;
+   `loop-cohort review record` fingerprints the sustained set, and the loop
+   iterates.
 8. **Specialist reviewers** (if warranted). `security-reviewer` if the diff touched auth/secrets/I-O; `quality-engineer` for the maintenance lens.
 9. **Stasis detection.** If the next iteration's findings fingerprint the same as the previous round's, the loop stops and surfaces. No silent third pass.
 10. **Capture learnings.** A loop that finished without writing *something* to a skill, ADR, or pattern note wasted what it learned. The work-loop names where each kind of learning belongs.

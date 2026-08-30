@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.16.2"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[core][2.16.2] — 2026-08-30",
+      "changelogAnchor": "core2162--2026-08-30",
+      "highlights": [
+        {
+          "source": "**Spec review now separates original defects from faults introduced by a prior repair before another edit begins.** Every completed report is independently adjudicated, and a green gate is used only for the behavior it actually proves.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Spec review now separates original defects from faults introduced by a prior repair before another edit begins."
+            },
+            {
+              "type": "text",
+              "value": " Every completed report is independently adjudicated, and a green gate is used only for the behavior it actually proves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agent-skill-engineering",
           "version": "0.2.0"
         }

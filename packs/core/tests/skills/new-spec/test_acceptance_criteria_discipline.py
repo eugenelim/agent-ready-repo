@@ -6,10 +6,13 @@ from pathlib import Path
 import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = PACK_ROOT.parents[1]
 SKILL = PACK_ROOT / ".apm/skills/new-spec/SKILL.md"
 SPEC = PACK_ROOT / ".apm/skills/new-spec/assets/spec.md"
 PLAN = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 EVALS = PACK_ROOT / ".apm/skills/new-spec/evals/evals.json"
+PLANNING_GUIDE = REPO_ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+CORE_EXPLANATION = REPO_ROOT / "guides/core/explanation/core-pack.md"
 
 SOURCES = {"skill": SKILL, "spec": SPEC, "plan": PLAN}
 RULES = (
@@ -217,3 +220,95 @@ def test_corpus_absence_rule_precedes_the_sign_off_gate() -> None:
         "the corpus-absence rule must precede the sign-off gate, "
         "or the assumption it records cannot enter the list being signed off"
     )
+
+
+def test_spec_review_adjudicates_every_report_before_action() -> None:
+    """A raw finding or clean claim must never drive the authoring loop."""
+    body = flattened(SKILL)
+    report = "Every completed reviewer report, including one that claims clean"
+    gateway = "passes through `finding-adjudicator` before the author classifies or acts on it"
+    repair = "Before repairing each sustained finding"
+    assert report in body
+    assert gateway in body
+    assert repair in body
+    assert body.index(report) < body.index(gateway) < body.index(repair)
+    assert "Revise the spec or plan only from sustained findings" in body
+    assert "Reuse its reachability predicate; do not restate or reimplement it here" in body
+
+
+def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
+    """The gateway must supply the adjudicator's validated path inputs."""
+    body = flattened(SKILL)
+    ignored = "prove `.context/reviews/` is ignored"
+    persist = "persist the complete raw report"
+    validate = "validate that artifact before dispatch"
+    dispatch = "dispatch `finding-adjudicator` by the validated path"
+    context = (
+        "unchanged review target, structural scope, reviewer role, and governing "
+        "authority paths"
+    )
+    consume = "Classify and act only on the paired adjudication artifact"
+    for phrase in (ignored, persist, validate, dispatch, context, consume):
+        assert phrase in body
+    assert body.index(ignored) < body.index(persist) < body.index(validate)
+    assert body.index(validate) < body.index(dispatch) < body.index(consume)
+
+
+def test_spec_review_origin_is_binary_and_unresolved_history_stops() -> None:
+    body = flattened(SKILL)
+    assert "mark its origin as `draft-origin` or `prior-round-repair`" in body
+    assert "If the available review history cannot establish either origin, stop and ask the owner" in body
+    assert "Unresolved origin never authorizes a repair" in body
+
+
+def test_green_gate_claim_is_bounded_by_scope_and_blind_spot() -> None:
+    body = flattened(SKILL)
+    assert "state what the gate proves and one relevant blind spot" in body
+    assert "[`lint-spec-status.py`](../work-loop/scripts/lint-spec-status.py) module contract" in body
+    assert "Do not copy its invariant list into this skill" in body
+
+
+def test_spec_review_triage_eval_has_required_shape_and_behaviour() -> None:
+    data = json.loads(EVALS.read_text(encoding="utf-8"))
+    matches = [
+        entry for entry in data["evals"] if entry["id"] == "spec-review-triage-before-repair"
+    ]
+    assert len(matches) == 1
+    entry = matches[0]
+    assert set(entry) == {"id", "prompt", "expected_output", "assertions"}
+    assert len({candidate["id"] for candidate in data["evals"]}) == len(data["evals"])
+    assert "previous repair" in entry["prompt"]
+    assert "unreachable route" in entry["prompt"]
+    assert "green spec-status lint" in entry["prompt"]
+    expected = entry["expected_output"]
+    assert "adjudicator" in expected
+    assert "sustained" in expected
+    assert "draft-origin" in expected
+    assert "prior-round-repair" in expected
+    assert "blind spot" in expected
+    assert "persist" in expected
+    assert "validated path" in expected
+    assert "paired adjudication artifact" in expected
+    assert any("clean" in assertion.lower() for assertion in entry["assertions"])
+    assert any("origin" in assertion.lower() for assertion in entry["assertions"])
+    assert any("blind spot" in assertion.lower() for assertion in entry["assertions"])
+    assert any("validated path" in assertion.lower() for assertion in entry["assertions"])
+
+
+def test_planning_guide_explains_spec_review_triage() -> None:
+    body = flattened(PLANNING_GUIDE)
+    assert "Every completed report, including a clean claim, goes through `finding-adjudicator`" in body
+    assert "Only sustained findings can change the spec or plan" in body
+    assert "`draft-origin` or `prior-round-repair`" in body
+    assert "unresolved origin stops for your direction" in body
+    assert "what that gate proves and one relevant blind spot" in body
+
+
+def test_core_explanation_places_adjudication_before_repair() -> None:
+    body = flattened(CORE_EXPLANATION)
+    assert "**`finding-adjudicator`**" in body
+    report = "Every completed spec-review report, including a clean claim"
+    gateway = "passes through `finding-adjudicator` before it can change the spec or plan"
+    assert report in body
+    assert gateway in body
+    assert body.index(report) < body.index(gateway)

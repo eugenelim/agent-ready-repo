@@ -77,8 +77,23 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 3. You read the Unverified list and confirm or revise. If the Unverified list is empty, the skill surfaces the Verified list with the highest-stakes item called out and asks you to confirm *that one specifically* — a vague "looks good" doesn't count.
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.
-6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses. Iterate to clean — usually one to two passes; if you can't reach clean in three, the skill stops and asks for human direction.
-7. The skill updates `docs/specs/README.md` and reminds you that spec drift is a bug — update the spec in the same PR when implementation diverges.
+6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses.
+7. Every completed report, including a clean claim, goes through
+   `finding-adjudicator` before the author classifies it or edits either
+   artifact. Only sustained findings can change the spec or plan; refuted
+   findings stay in the audit, and an indeterminate result stops for your
+   direction.
+8. Before each repair, the author marks the finding `draft-origin` or
+   `prior-round-repair`. If the review history cannot establish either one,
+   unresolved origin stops for your direction. When a green gate supports a
+   disposition, the author also states what that gate proves and one relevant
+   blind spot; the spec-status lint's own module contract remains the source for
+   its scope.
+9. Review iterates to adjudicated clean — usually one to two passes. If it
+   cannot reach clean in three, the skill stops and asks for human direction;
+   the spec likely has a structural problem, not a wording one.
+10. The skill updates `docs/specs/README.md` and reminds you that spec drift is a
+    bug — update the spec in the same PR when implementation diverges.
 
 If you want to stop here (pure planning, no build yet), this is the natural exit point. The spec and plan are durable; come back to `work-loop` whenever you're ready.
 
