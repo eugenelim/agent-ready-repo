@@ -388,6 +388,39 @@ are green, and the emitted-changelog test is preceded by
 `python3 tools/build-site.py && npm run build --prefix web && npm run build --prefix docs-site`
 in that order.
 
+## Post-GATES mutation proofs
+
+Added after review found a second escape class. Each was applied to the shipped
+source, run against the full suite, and restored by editing — never by
+`git checkout`, which cannot tell whose uncommitted work it would destroy. Each
+asserts its anchor text was found first, so a mutation that fails to apply
+cannot yield a vacuous pass.
+
+| # | Mutation | Killed by | Result |
+| --- | --- | --- | --- |
+| M16 | drop the `isinstance` guard in `_is_one_of` | AC23, AC24, AC25 | killed |
+| M17 | restore `delivery_id`'s `str()` coercion | AC27 | killed |
+| M18 | revert the alias bound to a bare literal | AC26 | killed |
+| M19 | restore the proper-subset envelope gate | AC20, AC21 | killed |
+| M20 | wrap a `_zone` call site in `except Exception` | AC6a | killed |
+
+M17 is the reason AC27 exists. The repair had no criterion until this table was
+built: AC23's containers fail the `delivery_id` pattern with or without the type
+guard, so only a scalar that survives `str()` discriminates, and the mutation
+survived until AC27 was written.
+
+M20 is the reason AC6a walks the call sites rather than `_zone` alone. Pinning
+the `except` tuple inside the helper left a caller free to wrap it in a broad
+catch and do exactly what the criterion exists to prevent.
+
+AC17 also fires on every one of these, because mutating the source makes it
+differ from its projections. That is incidental — it is a canary for any source
+edit, not the criterion that discriminates the mutation.
+
+The pre-EXECUTE proofs M1, M2, M4, M6, M7a, M8a, M8b, M13, and M14 were executed
+independently by the quality reviewer against the same suite and each was killed
+by the criteria this plan predicts.
+
 ## Declined
 
 The razor run, recorded once. Each was considered and cut.
