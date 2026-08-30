@@ -24,8 +24,11 @@ agent-skill scripts, evaluations, packs, and their execution environments;
 they do not become general language or CI handbooks.
 
 These five leaves are admitted on the **doctrine** basis, not observed practice.
-No leaf clears the inherited observed-practice rule, and the doctrine evidence
-that does support them is documented public contracts, cited externally. The
+No leaf clears the inherited observed-practice rule. The doctrine evidence is
+mixed: three leaves rest on documented public contracts cited externally, and
+two rest on repeated independent internal failures carried only in the
+non-projected admission fixture, because shipped content may not cite this
+repository's own records. The
 corpus slice implemented doctrine's field validation but deliberately left
 doctrine-side body parity unimplemented as a loud failure, naming the successor
 slice as its owner. This slice is that successor, so closing that gap is part of
@@ -52,9 +55,10 @@ the work rather than an incidental fix.
   shared language contracts RFC-0097 defines.
 - Keep execution guidance limited to skill scripts, evaluations, pack tests,
   CI, worktrees, locks, shared hosts, and measured machine-load decisions.
-- Give every doctrine claim group a promotion class the inherited predicate
-  already admits, and cite sources that name themselves, when they were read,
-  and their version state.
+- Give every doctrine claim group a promotion class its evidence actually
+  satisfies, and, for every source a group cites, record that source's identity,
+  when it was read, and its version state. A group whose class carries internal
+  evidence cites no source and records that evidence in the fixture instead.
 - Re-measure any recorded evidence whose covered content changed. A digest that
   moved is re-measured, never re-stamped onto the earlier observation.
 
@@ -64,9 +68,11 @@ the work rather than an incidental fix.
   slice's admission and retrieval thresholds.
 - Adding a dependency, runtime-specific claim, or delivery mechanism not
   licensed by the governing RFC.
-- Adding a promotion class to the inherited doctrine vocabulary. Implementing
-  the parity check the corpus slice left unimplemented is not such a change:
-  it enforces an existing requirement rather than widening the rule.
+- Adding a promotion class to the inherited doctrine vocabulary. One such
+  addition is authorized for this slice and recorded in the Assumptions below;
+  any further one asks again. Implementing the parity check the corpus slice
+  left unimplemented is not such a change: it enforces an existing requirement
+  rather than widening the rule.
 - Adding a known-miss exemption to a graded behavior case after seeing its
   verdict.
 
@@ -142,17 +148,22 @@ the work rather than an incidental fix.
   doctrine claim group, the group's shipped fields appear in the topic's
   provenance-and-lifecycle section and equal the admission record field-for-field
   — source identities *and* dates, including each source's exposed version or
-  last-updated date, or its explicit `none exposed`. A group whose promotion
-  class rests on public documentation cites at least one source meeting the
-  inherited attributability shape, so that externality claim cannot be satisfied
-  vacuously by citing nothing; a group whose class rests on internal repeated
-  evidence carries that evidence in the non-projected admission fixture and
-  cites no external source, because shipped content may not cite this
-  repository's own records.
+  last-updated date, or its explicit `none exposed`. The source floor is stated
+  by promotion class, not by prose: `two-runtime-public-contract` and
+  `single-ecosystem-contract` each cite at least one source meeting the
+  inherited attributability shape, so an externality claim cannot be satisfied
+  vacuously by citing nothing; `repeated-observed-failures` cites none and
+  carries its evidence in the non-projected admission fixture, because shipped
+  content may not cite this repository's own records; and no group in this slice
+  declares `severe-safety-failure` or `controlled-measurement`.
   A projected source identity takes a checkable form: a non-empty title followed
   by an absolute URL, never a bare hash, a repository path, or a relative
-  reference. Parity holds in both directions — no external reference appears in
-  either projection that the citing topic's admission record does not carry —
+  reference. Every doctrine group's shipped provenance-and-lifecycle section
+  carries the concept's last-verification date and that group's revalidation
+  trigger, equal to the record, so a group citing no source still projects a
+  checkable basis rather than nothing. Parity holds in both directions — no
+  external reference appears in either projection that the **citing group's**
+  record entry does not carry —
   and repository-internal evidence reaches neither the authored nor the compiled
   concept root, staying in the non-projected admission fixture. The check
   replaces the corpus slice's unconditional failure, and each predicate limb the
@@ -182,13 +193,31 @@ the work rather than an incidental fix.
   requires two observations in two distinct packs. (source: evidence census over
   `packs/*/.apm/skills/`; the strongest candidate, state locking, has both
   implementations inside `packs/core`.)
-- The doctrine basis is reachable for these leaves only through
-  `two-runtime-public-contract`, sourced from public documentation. It is not
-  reachable through `controlled-measurement`, because every row of the governing
-  archaeology note is a single dated decision with no repetition count, and that
-  class requires at least two repetitions. (source:
-  `test_corpus_admission.py` `DOCTRINE_CLASSES` and its repetition assertion;
+- Of the four inherited promotion classes, two are unreachable for these leaves
+  and two are used. `controlled-measurement` is unreachable because every row of
+  the governing archaeology note is a single dated decision with no repetition
+  count, and the class requires at least two repetitions. `severe-safety-failure`
+  is unused because no leaf rests on a safety failure with a reproduction.
+  `pack-and-ci-critical-paths` uses `two-runtime-public-contract` on two
+  independent vendors; `process-and-filesystem-cost` and
+  `worktrees-state-locks-and-shared-host-admission` use
+  `repeated-observed-failures` on paired internal failures. (source:
+  `test_corpus_admission.py` `DOCTRINE_CLASSES` and its per-class assertions;
   `docs/rfc/0097-notes/execution-economics-archaeology.md` chronology table.)
+- The two language leaves rest on single-ecosystem evidence, which the governing
+  RFC admits for a language-specific topic under a scoped exception rather than
+  under the two-runtime rule: it must come from that ecosystem's authoritative
+  documentation, be explicitly limited to that ecosystem and version range, carry
+  a construction or behavior fixture, and never be generalized into the portable
+  floor. The inherited vocabulary carries no class for that shape, so this slice
+  adds `single-ecosystem-contract` with those conditions as its required fields.
+  This is an *Ask first* widening of a predicate other slices inherit, and the
+  repository owner authorized it in session on 2026-08-30 after being shown that
+  pytest pairs only with CPython and that Node's core test runner pairs only with
+  Playwright inside one ecosystem. The two behavior fixtures this slice already
+  produces satisfy the exception's fixture condition. (source:
+  `docs/rfc/0097-agent-skill-engineering.md` D8's single-ecosystem paragraph;
+  `test_corpus_admission.py` `DOCTRINE_CLASSES`.)
 - The brief's sha256 is pinned as `source.revision` in exactly two workspace
   registrations, so each status roll re-pins both. (source: `grep -c` over
   `workspace.toml` returns 2, and the digest appears in no other tracked file.)

@@ -32,58 +32,79 @@
 7. Reconcile the records and published surfaces, and close the status and
    registration rolls that T1 opened.
 
-## Promotion class and evidence, per leaf
+## Promotion class and evidence, per claim group
 
-`controlled-measurement` is unreachable here: it requires at least two
-repetitions and every row of the archaeology note is a single dated decision.
-The two classes that are reachable are used, each where its evidence actually
-lies.
+Evidence is recorded per **claim group**, not per leaf. A group's clause governs
+that group's claims, so one clause cannot stand behind a whole multi-subject
+topic — the inherited schema takes `claim_groups` as a list precisely for this.
+Where a topic makes two distinct doctrinal claims, it carries two groups.
 
-Every clause below was verified against the live published documentation on
-**2026-08-30**. An earlier draft of this table asserted five clauses from
-recollection and **all five were refuted** — one of them, "runner parallelism is
-not implied by host CPU count", is contradicted by Playwright's documented
-default of 50% of logical cores. The clauses here are the narrowed forms both
-sources independently support.
+Two of the four inherited classes are used. `controlled-measurement` is
+unreachable (it needs two repetitions; every archaeology row is one dated
+decision) and `severe-safety-failure` is unused, so **no group in this slice
+declares either**, and T2 carries no mutation proof for them. A third class,
+`single-ecosystem-contract`, is added under owner authority recorded in the
+spec's Assumptions.
 
-### Public-contract groups
+Clauses marked **verified** were checked against the live published
+documentation on 2026-08-30. Clauses marked **to verify** are named here and
+confirmed the same way before T3 cites them; an earlier draft asserted five
+clauses from recollection and all five were refuted, so nothing is cited on
+recollection again.
 
-`two-runtime-public-contract`, one clause stated by two independently governed
-projects, cited externally so parity projects a resolvable reference.
+### Single-ecosystem groups
 
-| Leaf | Clause both sources state | Source A | Source B |
-| --- | --- | --- | --- |
-| `python-and-pytest` | Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `docs.pytest.org` (no version exposed) | CPython `unittest` discovery, `docs.python.org` (3.14.7) |
-| `typescript-node-and-javascript-test-runners` | Each runner provides runner-specific controls for limiting test parallelism. | Node.js core test runner, `nodejs.org` (v26.8.1) | Playwright, `playwright.dev` (no version exposed) |
-| `pack-and-ci-critical-paths` | Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived cache keys. | GitHub Actions, `docs.github.com` (no version exposed) | GitLab CI, `docs.gitlab.com` (no version exposed) |
+`single-ecosystem-contract` — the governing RFC's scoped exception for a
+language-specific topic. Required fields: the ecosystem, the authoritative
+documentation the clause comes from, the explicit version range the claim is
+limited to, and the construction or behavior fixture that exercises it. A group
+in this class is never generalized into the portable floor, and the topic body
+states its ecosystem-and-version-range limit.
 
-Each pair is two distinct projects under separate governance, and neither member
-requires the other to run. Where a source exposes no version, the record carries
-`none exposed` with the retrieval date, which is the shape the inherited
-attributability rule specifies.
+| Topic | Group | Clause | Ecosystem sources | Fixture |
+| --- | --- | --- | --- | --- |
+| `python-and-pytest` | discovery | **verified** — Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `https://docs.pytest.org/en/stable/explanation/pythonpath.html` (none exposed); CPython `unittest`, `https://docs.python.org/3/library/unittest.html` (3.14.7) | T8 pytest-suite |
+| `python-and-pytest` | fixtures and temporary paths | **to verify** — fixture scope and temporary-path lifetime are runner-managed and per-test by default. | pytest fixtures; CPython `tempfile` | T8 pytest-suite |
+| `typescript-node-…` | runner parallelism | **verified** — Each runner provides runner-specific controls for limiting test parallelism. | Node.js test runner, `https://nodejs.org/api/test.html` (v26.8.1); Playwright, `https://playwright.dev/docs/test-parallel` (none exposed) | T8 Node/browser suite |
+| `typescript-node-…` | packages and clean installs | **to verify** — module resolution and reproducible installs are governed by the package manifest and lockfile. | Node.js packages; `npm ci` | T8 Node/browser suite |
+
+Playwright's documented default of 50% of logical cores is body material for the
+browser-worker-economics subject; it refuted an earlier clause and is retained as
+content rather than discarded.
+
+### Two-vendor groups
+
+`two-runtime-public-contract` — one clause stated by two independently governed
+projects in different ecosystems.
+
+| Topic | Group | Clause | Source A | Source B |
+| --- | --- | --- | --- | --- |
+| `pack-and-ci-critical-paths` | dependencies and cache keys | **verified** — Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived keys. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching` (none exposed) | GitLab CI, `https://docs.gitlab.com/ci/yaml/` (none exposed) |
+| `pack-and-ci-critical-paths` | critical path | **to verify** — a pipeline's end-to-end duration is bounded by its longest dependency chain, which explicit job dependencies expose. | GitHub Actions `needs` | GitLab CI `needs` / DAG |
+
+The second group exists because the first clause makes no critical-path claim,
+while the topic is named for one and the spec requires critical-path guidance.
 
 ### Repeated-failure groups
 
-`repeated-observed-failures`, at least two observed failures sharing one
-mechanism. This class needs no external source, so these groups cite none and
-keep their evidence in the non-projected admission fixture — shipped content may
-not cite this repository's own records. Both were sourced from the archaeology
-note's chronology rather than from documentation, which is why the two leaves
-whose clauses could not be evidenced externally are admissible at all.
+`repeated-observed-failures` — at least two **independent** observed failures
+sharing one mechanism. Independence is a reviewer judgment no harness can check;
+it is recorded per group as distinct subsystems and distinct dates, and never as
+an author, which the spec forbids in any recorded evidence field. These groups
+cite no external source and keep their evidence in the non-projected fixture.
 
-| Leaf | Shared mechanism | The two failures |
+| Topic | Shared mechanism | The two independent failures |
 | --- | --- | --- |
-| `process-and-filesystem-cost` | Per-item process spawning was treated as free, so cost was tuned before it was counted. | A lint path spawning roughly 37,000 shell processes; 337 repeated single-item subprocess queries later batched into one. |
-| `worktrees-state-locks-and-shared-host-admission` | Separation at one layer was mistaken for isolation at another. | An atomic final write that did not protect a read/decide/write transition; directory-separated worktrees that still shared temp, cache, port, and state ownership. |
+| `process-and-filesystem-cost` | Per-item process spawning was treated as free. | A lint path spawning roughly 37,000 shell processes (2026-08-06); 337 repeated single-item subprocess queries later batched into one (2026-08-17). Distinct subsystems, eleven days apart. |
+| `worktrees-state-locks-and-shared-host-admission` | A guarantee at one layer was mistaken for a stronger guarantee at another. | An atomic final write that did not protect a read/decide/write transition (2026-08-08 to 08-10); directory-separated worktrees that still shared temp, cache, port, and state ownership (2026-08-19 to 08-21). Distinct subsystems, nine days apart. |
 
-T3 confirms each group against its evidence before authoring the body, and a
-group whose evidence does not hold is surfaced with that finding and routed
-through an approved spec amendment — never withdrawn in flight, because the ship
-transition requires every criterion checked.
+Each mechanism is stated as the conjunct **both** its failures evidence. An
+earlier wording carried a causal tail that only one row supported, which the
+admission predicate would have forced the other failure to assert.
 
-Note for T3 authoring: Playwright's CPU-derived default is itself material for
-the TypeScript/Node topic's browser-worker-economics subject, so the refuted
-clause becomes body content rather than being discarded.
+A group whose evidence does not hold at T3 is surfaced with that finding and
+routed through an approved spec amendment — never withdrawn in flight, because
+the ship transition requires every criterion checked.
 
 ## Tasks
 
@@ -127,9 +148,15 @@ only to the class that makes an externality claim.
 
 The repository-internal scan runs over **both** concept roots — the authored
 `okf/.../concepts/` tree and the compiled `.apm/` tree — since the existing
-portable-file walk reaches only the second. Extend its patterns with a
-bare-commit-SHA form and with the `\b(?:ADR|RFC)-\d{2,4}\b` governance-token
-form the guides linter already treats as repository-only.
+portable-file walk reaches only the second. Extend the repository-only pattern
+set with a bare-commit-SHA form and with the `\b(?:ADR|RFC)-\d{2,4}\b`
+governance-token form the guides linter already treats as repository-only, and
+make that widened set the **single shared definition** used by both the
+doctrine-parity scan and the export-boundary content scan, so the two cannot
+diverge. Confirm the already-shipped tree passes under the widened set before
+adopting it. The two repeated-failure leaves take their whole basis from records
+whose native identifiers are commit hashes and governance tokens, so this is the
+form most likely to leak.
 
 Drive the predicate from constructed inputs as well as the shipped record, so the
 doctrine arm is exercised before a real doctrine group exists and its first
@@ -140,13 +167,20 @@ exercise is not also its first shipment.
 - `test_doctrine_parity_rejects_a_source_missing_from_one_projection` (AC6) — stub: true
 - `test_public_contract_group_cites_at_least_one_attributable_source` (AC6) — stub: true
 - `test_repeated_failure_group_cites_no_external_source` (AC6) — stub: true
-- `test_body_carries_no_external_reference_the_record_does_not_cite` (AC6) — stub: true
+- `test_body_carries_no_external_reference_the_group_record_does_not_cite` (AC6)
+  — group-scoped, not topic-scoped: a topic carrying both a citing and a
+  non-citing group must not let the second borrow the first's URLs — stub: true
+- `test_every_doctrine_group_projects_its_verification_date_and_trigger` (AC6)
+  — the positive limb for a group that cites no source, using record fields
+  that already exist — stub: true
 - `test_doctrine_parity_rejects_a_repository_internal_source_identity`, over both
   concept roots (AC6) — stub: true
-- Mutation proof per newly reached limb of the `doctrine` arm: promotion-class
-  membership, `two-runtime-public-contract` clause equality, the
-  `repeated-observed-failures` shared-mechanism check, the
-  `controlled-measurement` repetition floor, and source attributability.
+- Mutation proof per limb the doctrine arm actually reaches in this slice:
+  promotion-class membership, `two-runtime-public-contract` clause equality,
+  `single-ecosystem-contract`'s ecosystem/version-range/fixture fields, the
+  `repeated-observed-failures` shared-mechanism check, and source
+  attributability. No proof is carried for `controlled-measurement` or
+  `severe-safety-failure`, which no group in this slice may declare.
 - Mutation proof for the two reviewer-identity assertions this same function
   already carries, which the rewrite must not narrow to one basis: the
   role-or-placeholder scan over both projections, and the recorded `reviewer`
@@ -160,8 +194,14 @@ tree is restored by editing rather than by checkout.
 **Depends on:** T2
 
 Author the five topic bodies and their admission-record entries together, each
-with a `two-runtime-public-contract` group whose clause is confirmed against both
-cited sources from the table above. Remove the five leaves from the
+group against the class its evidence satisfies: the two language topics carry
+`single-ecosystem-contract` groups with their ecosystem, version range, and
+bound behavior fixture; `pack-and-ci-critical-paths` carries
+`two-runtime-public-contract` groups confirmed against both vendors; and the two
+execution topics carry `repeated-observed-failures` groups whose mechanism and
+paired independent failures are confirmed against the archaeology rows, citing
+no source. Confirm every clause marked *to verify* against its sources before
+citing it. Remove the five leaves from the
 declared-unpopulated register in the same change. The TypeScript/Node topic
 covers its seven RFC-assigned subjects and states its maturity limit in portable
 terms; the note recording that limit may not itself be cited in shipped content.
@@ -185,6 +225,9 @@ update the in-file comment that explains why the literal existed.
 - `test_typescript_node_topic_covers_its_seven_assigned_subjects` (AC2) — stub: true
 - `test_typescript_node_maturity_limit_appears_in_both_projections` (AC2) — stub: true
 - `test_related_topics_references_resolve_to_admitted_topics` (AC1) — stub: true
+- `test_each_newly_admitted_topic_declares_a_doctrine_group` (AC1) — the only
+  falsifier for AC1's basis conjunct; the inherited basis test accepts either
+  basis — stub: true
 - `test_recorded_evidence_fields_carry_no_host_identifying_data`, over the
   admission record (AC3) — stub: true
 
