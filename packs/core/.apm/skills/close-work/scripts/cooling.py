@@ -16,8 +16,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 MAX_RECORD_BYTES = 64 * 1024
 MAX_RECORD_DEPTH = 8
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024
+# These three mirror bounds published in
+# contracts/jsonschema/delivery-lifecycle-record.schema.json. A construction
+# test compares each against that file, so they cannot drift from it silently.
 MAX_TIMEZONE_LENGTH = 255
 MAX_LOCATOR_LENGTH = 1000
+MAX_ALIAS_COUNT = 16
 REFUSAL_CODES = frozenset(
     {
         "not-delivered", "not-closed", "no-persistent-record",
@@ -168,6 +172,16 @@ def _is_locator(value: object) -> bool:
     return all(part not in {"", ".", ".."} for part in value.split("/"))
 
 
+def _is_one_of(value: object, options: "set[str] | frozenset[str]") -> bool:
+    """Report membership without assuming the value is hashable.
+
+    A persisted payload can carry a list or a dict where an enum string belongs,
+    and both are unhashable, so a bare `value in options` raises `TypeError` --
+    a class none of this module's refusal paths catch.
+    """
+    return isinstance(value, str) and value in options
+
+
 def _is_date(value: object) -> bool:
     if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         return False
@@ -184,6 +198,11 @@ def _zone(timezone: object) -> ZoneInfo | None:
     OSError is neither a ValueError nor the KeyError that
     ZoneInfoNotFoundError extends, so an over-long key escaped every refusal
     path carrying an absolute host path and an errno.
+
+    The OSError arm is deliberately broad, which collapses host degradation --
+    an unreadable tz database, EMFILE, EIO -- into the same refusal as bad
+    input. That is fail-closed and this module logs nothing by design, so an
+    operator sees `record-invalid` rather than the cause.
     """
     if not isinstance(timezone, str) or len(timezone) > MAX_TIMEZONE_LENGTH:
         return None
@@ -239,7 +258,7 @@ def _exception_is_valid(value: object) -> bool:
         "operational-obligation", "retention-obligation",
     }
     return (
-        value["reason"] in reasons
+        _is_one_of(value["reason"], reasons)
         and _ROLE_RE.fullmatch(str(value["owner_role"])) is not None
         and _is_date(value["review_on"])
         and (
@@ -260,14 +279,15 @@ def validate_payload(payload: object) -> CoolingResult:
     if payload["schema"] != "delivery-lifecycle-record.v1":
         return CoolingResult(code="record-invalid")
     if (
-        not _DELIVERY_ID_RE.fullmatch(str(payload["delivery_id"]))
+        not isinstance(payload["delivery_id"], str)
+        or not _DELIVERY_ID_RE.fullmatch(payload["delivery_id"])
         or not _is_locator(payload["locator"])
     ):
         return CoolingResult(code="record-invalid")
     aliases = payload["aliases"]
     if (
         not isinstance(aliases, list)
-        or len(aliases) > 16
+        or len(aliases) > MAX_ALIAS_COUNT
         or not all(_is_locator(alias) for alias in aliases)
     ):
         return CoolingResult(code="record-invalid")
@@ -277,13 +297,15 @@ def validate_payload(payload: object) -> CoolingResult:
     ):
         return CoolingResult(code="record-invalid")
     if (
-        payload["disposition"] not in {"cool-30-days", "retain-exception"}
-        or payload["post_closeout_result"]
-        not in {"Cooling", "Retained", "Retired", "ExternalAdvisory"}
+        not _is_one_of(payload["disposition"], {"cool-30-days", "retain-exception"})
+        or not _is_one_of(
+            payload["post_closeout_result"],
+            {"Cooling", "Retained", "Retired", "ExternalAdvisory"},
+        )
     ):
         return CoolingResult(code="record-invalid")
     if (
-        payload["completion_event"] not in {"merge", "release", "acceptance"}
+        not _is_one_of(payload["completion_event"], {"merge", "release", "acceptance"})
         or not _EVIDENCE_RE.fullmatch(str(payload["completion_evidence_ref"]))
     ):
         return CoolingResult(code="record-invalid")
@@ -647,7 +669,7 @@ def enrol(
         return CoolingResult(code="not-closed")
     if not persisted:
         return CoolingResult(code="no-persistent-record")
-    if completion_event not in {"merge", "release", "acceptance"}:
+    if not _is_one_of(completion_event, {"merge", "release", "acceptance"}):
         return CoolingResult(code="completion-event-required")
     destination = _resolve_destination(root, candidates)
     if isinstance(destination, str):
@@ -708,7 +730,7 @@ def _review_is_complete(checks: object, attestation: object) -> bool:
     """Require a second party's exact, complete day-30 review response."""
     if not isinstance(checks, dict) or set(checks) != _REVIEW_FIELDS:
         return False
-    if any(answer not in _REVIEW_ANSWERS for answer in checks.values()):
+    if any(not _is_one_of(answer, _REVIEW_ANSWERS) for answer in checks.values()):
         return False
     if not isinstance(attestation, dict):
         return False
