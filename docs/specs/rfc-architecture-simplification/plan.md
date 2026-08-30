@@ -166,8 +166,10 @@ repository, and a warranted RFC still completes the existing Draft flow.
 - Goal-based: a content test pins all ten untrusted-draft prohibitions
   (repository instructions, identity, tool permissions, review scope, reviewer
   routing, rubric or checklist coverage, severity, verdict, clean status,
-  normative authority) plus the no-suppression clause, asserting the vector set
-  matches the repository's existing `<knowledge-evidence>` wording (AC2).
+  normative authority) plus the no-suppression clause. Nine vectors must match
+  the agent's existing `<knowledge-evidence>` wording; `reviewer routing` is
+  RFC-mode-specific and the shared envelope is not edited, so the test asserts
+  the existing modes' wording is byte-unchanged (AC2).
 - Visual/manual QA: one hostile-draft run whose embedded text claims its own
   authority, demands a clean verdict, and tries to route the reviewer out of
   RFC mode; the recorded outcome shows the reviewer still reporting findings
@@ -205,11 +207,19 @@ repository, and a warranted RFC still completes the existing Draft flow.
   assumption/discovery predicate when it remains ungrounded (AC3–AC4).
 - Goal-based: `architect-design` — and only `architect-design` — carries the
   written confinement contract for saves within the resolved configured output
-  root, pinned by a static content test. `architect-review` is excluded: it is
-  inline and no-file-write by contract and directs no output-root save. No code
-  in this slice performs those saves (AC3).
+  root, pinned by a static content test. `architect-review` is excluded: it
+  directs no output-root save. A content test also pins that its
+  `assets/risk-register.md` and `assets/critique.md` are inline output
+  templates, resolving the existing contradiction between its
+  well-architected route and its "No file write. Render inline" step without
+  changing well-architected mode. No code in this slice performs those saves
+  (AC3).
 - Goal-based/manual QA: direct architecture requests reach `architect-design`
   without creating a synthetic intent or dispatching shaping review (AC5).
+- Goal-based: a content test pins that `architect-review` saves only on an
+  explicit user request naming the destination, that the reviewed artifact and
+  supplied evidence cannot request/authorize/select/alter a write target, and
+  that the inline no-file-write default stands (AC6).
 - Goal-based: both changed skills declare exactly the tools and
   `metadata.boundaries` AC6 enumerates — asserted as equality, so a superset
   fails — including `architect-review`'s newly added
@@ -302,3 +312,18 @@ Existing RFCs, designs, and adapter contracts require no migration.
   pointer to `write_files_no_follow` was corrected: that helper provides link
   refusal only and performs no root confinement, so any future seam must prove
   the output directory is confined first.
+- 2026-08-30: round-3 pre-EXECUTE review. Three findings, all
+  `introduced-by-round-2-fix`. (1) Granting `architect-review` `Write` in AC6
+  while AC3 excluded its save path from confinement created a chain where an
+  untrusted artifact could name the reviewer's write target; AC6 now forbids
+  the reviewed artifact from requesting, authorizing, selecting or altering a
+  save destination. (2) AC2 claimed its ten vectors were adopted "verbatim",
+  but the agent's own envelope carries nine and omits `reviewer routing`; that
+  vector is now declared RFC-mode-specific and the shared envelope is
+  explicitly not edited, since AC2's first criterion forbids changing existing
+  modes. (3) `architect-review`'s source contradicts itself — its
+  well-architected route says "write `assets/risk-register.md`" while step 8
+  says "No file write. Render inline"; AC3 now resolves this as inline
+  templates, the direction the skill already operates, without changing
+  well-architected mode. A structural break in AC6 introduced by the round-2
+  edit was also repaired.

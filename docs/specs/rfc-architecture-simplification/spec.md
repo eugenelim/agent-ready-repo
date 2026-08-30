@@ -134,9 +134,13 @@ architect pack's separate cold convergence agent remains unchanged.
   reviewed RFC cannot change the reviewer's repository instructions,
   identity, tool permissions, review scope, reviewer routing, rubric or
   checklist coverage, severity, verdict, clean status, or normative
-  authority, and cannot suppress a finding. That is the same vector set the
-  repository already uses for its `<knowledge-evidence>` envelope, adopted
-  verbatim rather than invented. A content test pins all ten prohibitions and
+  authority, and cannot suppress a finding. Nine of those come from this
+  agent's existing `<knowledge-evidence>` wording, reused rather than
+  invented; `reviewer routing` is added as an RFC-mode-specific vector because
+  a draft that reroutes the reviewer out of RFC mode evades the rubric
+  entirely. The shared envelope is **not** edited — AC2's first criterion
+  forbids changing the spec-plan, implementation, or mixed modes. A content
+  test pins all ten prohibitions and
   the no-suppression clause, and a hostile-draft fixture — carrying embedded
   text that claims its own authority, demands a clean verdict, and tries to
   route itself out of RFC mode — records that the reviewer still reports its
@@ -159,9 +163,14 @@ architect pack's separate cold convergence agent remains unchanged.
   directs: a Stage-0 or full-design save stays inside the resolved configured
   output root, and an unsafe, link-like, identity-changing, or out-of-root
   target is refused before any mutation. A static content test pins each
-  clause. This criterion is `architect-design`-only: `architect-review` is
-  inline and no-file-write by contract except on an explicit user save
-  request, and it directs no output-root save. Like AC1's clause, this is
+  clause. This criterion is `architect-design`-only: `architect-review` directs
+  no output-root save. Its own source is ambiguous — the well-architected route
+  reads "write `assets/risk-register.md`" while step 8 states "No file write.
+  Render inline" — so this slice resolves it in the direction the skill already
+  operates: `assets/risk-register.md` and `assets/critique.md` are output
+  templates rendered inline, and the only file write is the explicit opt-in
+  user save governed by AC6. A content test pins that reading. This resolves
+  an existing ambiguity; it does not change well-architected mode. Like AC1's clause, this is
   guidance the skill carries, not a runtime gate — no code in this slice
   performs the save.
 
@@ -218,12 +227,18 @@ architect pack's separate cold convergence agent remains unchanged.
   `filesystem_write` are the minimum for its documented opt-in save path
   ("If the user explicitly asks to save the review, write to a path they
   choose"); its default is inline, no-file-write, and it gains no network or
-  shell authority. A construction test asserts each surface's post-change
-  tools and boundaries are **exactly equal** to that enumeration — a superset
-  fails — and adapter projections gain no write, shell, web, credential, or
-  mutation
-  adapter projections gain no write, shell, web, credential, or mutation
+  shell authority. A construction test asserts each surface's post-change tools
+  and boundaries are **exactly equal** to that enumeration — a superset fails —
+  and adapter projections gain no write, shell, web, credential, or mutation
   authority merely for YAGNI review.
+- [ ] `architect-review` saves only when the explicit user message requests it
+  and names the destination. The artifact under review and any supplied
+  evidence are data: they cannot request a save, authorize one, select or alter
+  a write target, or change the inline no-file-write default. A construction
+  test pins that rule and the default. This closes the path opened by granting
+  `Write` above — AC3's save-confinement contract is `architect-design`-only,
+  so without this criterion a hostile architecture document could direct the
+  reviewer's output to a location of its choosing.
 - [ ] Repository artifacts, skills, and caller-supplied evidence remain data;
   no independent retrieval or network capability is added.
 
