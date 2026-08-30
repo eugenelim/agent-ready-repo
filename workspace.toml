@@ -248,14 +248,6 @@ open = [
   # Unblocks when: someone takes the directory-FD redesign as its own spec.
   {slug = "loop-spec-dir-confinement-toctou", source = "spec-dir confinement security review (2026-08-29)", summary = "loop-cohort and loop-engine check a resolved --spec-dir is inside the repo but nothing binds the later file operations to the checked object, so a concurrent symlink swap is followed; closing it needs an openat/O_NOFOLLOW directory-FD design, not a path-level mitigation"},
 
-  # Four tests in packs/agent-skill-engineering/ fail on a clean checkout of
-  # the merge base with no local changes: the router precision/recall gate, the
-  # activation-binding boundary test, and two author_or_update contract tests
-  # (eval coverage and the evals.json source digest). Confirmed pre-existing by
-  # running them in a detached worktree at 034641aa5 -- 4 failed, 74 passed,
-  # identical to the failure set on this branch. Not caused by, and unrelated
-  # to, the cooling validator work; that pack is absent from its diff.
-  {slug = "pre-existing-agent-skill-engineering-eval-and-router-gates", source = "pre-flight/2026-08-29", summary = "Four packs/agent-skill-engineering tests fail at merge base 034641aa5 on a clean checkout: router precision/recall, activation binding, and two author_or_update contract tests"},
   {slug = "pre-existing-skill-spec-lint-warnings", source = "pre-flight/2026-08-24", summary = "Clear the 65 pre-existing non-blocking CAT-S003/CAT-S004 skill-spec warnings across all warned paths, including work-loop/SKILL.md's own body-length warning, so the catalogue lint baseline is warning-free"},
   {slug = "pre-existing-managed-filesystem-mutation-denial", source = "pre-flight/2026-08-23", summary = "Managed runtime denies bounded directory cleanup and atomic directory rename, blocking two unchanged cleanup tests, agentbundle projection/verify cleanup, and the Astro/Vite build cache rename"},
   {slug = "pre-existing-duplicate-pack-test-basenames", source = "pre-flight/2026-08-30", summary = "Four packs ship a test_project_knowledge_handoff.py and none of those directories is a package, so any directory-wide pytest over packs/core/tests/skills/ aborts on import file mismatch before running a single test. make test survives only because the Makefile invokes each skill directory as its own pytest process, which the runner comment above the test target records as a correctness requirement. Rename each to a unique basename, or make the directories packages, so directory-wide collection stops being a trap for anyone who runs it by hand"},
