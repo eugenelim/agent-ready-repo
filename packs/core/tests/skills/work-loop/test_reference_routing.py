@@ -48,13 +48,22 @@ def test_same_document_anchors_resolve_inside_skill_md() -> None:
 
 
 def test_reference_anchors_resolve_in_their_target_file() -> None:
-    """A cross-file `](references/x.md#anchor)` must name a heading that exists."""
+    """A cross-file `](references/x.md#anchor)` must name a heading that exists.
+
+    The anchor index is built by globbing this skill's own `references/`, so the
+    check never joins a path out of link text — pack tests must stay anchored
+    inside their owning pack.
+    """
+    index = {
+        path.name: _heading_anchors(path.read_text(encoding="utf-8"))
+        for path in sorted(REFERENCES.glob("*.md"))
+    }
     dangling = []
     for relative, anchor in _REFERENCE_ANCHOR.findall(_skill_text()):
-        target = WORK_LOOP_SKILL.parent / relative
-        if not target.is_file():
-            dangling.append(f"{relative} (missing file)")
-        elif anchor not in _heading_anchors(target.read_text(encoding="utf-8")):
+        name = relative.rsplit("/", 1)[-1]
+        if name not in index:
+            dangling.append(f"{relative} (no such reference file)")
+        elif anchor not in index[name]:
             dangling.append(f"{relative}#{anchor}")
     assert not dangling, f"unresolvable reference anchors from SKILL.md: {dangling}"
 
