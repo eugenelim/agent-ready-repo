@@ -57,7 +57,7 @@ showed four. Full enumeration later showed **seven**: of the sixteen envelope
 shapes, eight carry `evidence_ref` and so fall through the old gate, and seven of
 those omit a required key. The corpus under-counted because it sampled shapes
 rather than enumerating them — the same mistake, one level down, that made it
-miss the membership-test class entirely. The published contract rejects all four
+miss the membership-test class entirely. The published contract rejects all seven
 cleanly (`$defs/exception` `required: ["reason", "owner_role", "review_on"]`).
 
 The correct predicate is a superset test — reject when the required set is not

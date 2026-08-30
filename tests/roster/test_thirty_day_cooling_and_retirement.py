@@ -1264,7 +1264,7 @@ def test_the_depth_bound_discriminates_at_its_limit(tmp_path) -> None:
     assert cooling._exceeds_depth(nest(50_000), cooling.MAX_RECORD_DEPTH) is True
 
 
-MERGE_BASE_CORE_VERSION = "2.15.4"  # packs/core/pack.toml at merge base 27e7430e9
+MERGE_BASE_CORE_VERSION = "2.15.5"  # packs/core/pack.toml at merge base 221bcb3f4
 
 
 def _counting_zoneinfo(calls: list[object]):
@@ -1574,7 +1574,7 @@ def test_the_locator_constant_governs_the_guard() -> None:
 
 # STUB: AC15 (spec/cooling-untrusted-input-refusals)
 def test_the_published_contract_is_unchanged() -> None:
-    """Pin the schema file's SHA-256 at merge base 27e7430e9 (unchanged since 97a0b6ad)."""
+    """Pin the schema file's SHA-256 at merge base 221bcb3f4 (unchanged since 97a0b6ad)."""
     assert hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest() == (
         "8bb85ebde713c3b9f6bdd4aeca8b50dfb8291608c731607a426517e7f474a6f3"
     )

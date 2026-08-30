@@ -85,18 +85,20 @@ All in `tests/roster/test_thirty_day_cooling_and_retirement.py`.
 | AC20 | `test_an_evidence_bearing_incomplete_envelope_refuses` | TDD | `stub: true` |
 | AC21 | `test_the_review_seams_refuse_an_incomplete_envelope` | TDD | `stub: true` |
 | AC22 | `test_a_complete_exception_envelope_is_accepted` | TDD | `stub: true` |
-| AC23 | `test_a_container_where_a_scalar_belongs_refuses` | TDD | added post-GATES |
+| AC23 | `test_a_container_where_a_scalar_belongs_refuses`, `test_aliases_refuses_a_non_array` | TDD | added post-GATES |
 | AC24 | `test_a_container_in_the_exception_envelope_refuses` | TDD | added post-GATES |
 | AC25 | `test_the_caller_supplied_enums_refuse_a_container` | TDD | added post-GATES |
 | AC26 | `test_the_alias_bound_equals_the_published_one` | TDD | added post-GATES |
 | AC27 | `test_a_non_string_delivery_id_refuses` | TDD | added post-GATES |
 | AC28 | `test_untrusted_text_is_matched_never_coerced`, `test_untrusted_authority_and_envelope_text_is_not_coerced` | TDD | added post-GATES |
 | AC29 | `test_a_malformed_candidate_refuses_instead_of_raising` | TDD | added post-GATES |
+| AC30 | `test_no_leaf_substitution_makes_a_seam_raise` | TDD | added post-review; a sweep, not an enumeration |
+| AC31 | `test_a_completion_date_with_no_review_date_refuses`, `test_the_last_completion_date_that_fits_is_accepted` | TDD | added post-review |
 | AC18 | existing `tests/roster/test_close_work_extraction_and_immediate_disposition.py:214,216` | goal-based | passes unedited |
 | AC18a | `Done when:` the `docs/specs/README.md` row link resolves and `workspace-status` lists the spec in the room matching its Status | goal-based | n/a |
 | AC19 | `Done when:` `git diff --stat "$(git merge-base origin/main HEAD)" -- pyproject.toml 'packages/*/pyproject.toml' tools/requirements.txt` is empty | goal-based | n/a |
 
-32 of 32 criteria carry a materialised stub or a named goal-based check. None
+34 of 34 criteria carry a materialised stub or a named goal-based check. None
 is deferred to EXECUTE. The measured red/green split is in the spec's Testing
 Strategy, not asserted uniformly here.
 
@@ -142,7 +144,11 @@ literal.
 
 ### Interfaces & contracts
 
-No public function signature changes. `validate_payload`, `parse_record_bytes`,
+`CoolingRecord.from_payload` is a public classmethod but not a validating
+constructor: it assumes a payload `validate_payload` has already accepted, and
+its `str()` calls are safe only under that precondition. `compute_review_on`'s
+`timezone` parameter is annotated `object`, matching AC7's asserted domain.
+Otherwise no public function signature changes. `validate_payload`, `parse_record_bytes`,
 `compute_review_on`, and `is_due` keep their return types and their refusal
 codes. No code is added to or removed from `REFUSAL_CODES`.
 
@@ -399,7 +405,7 @@ in that order.
 
 ### T5: Close the remaining untrusted-shape escapes
 
-- **ACs:** AC23, AC24, AC25, AC26, AC27, AC28, AC29
+- **ACs:** AC23, AC24, AC25, AC26, AC27, AC28, AC29, AC30, AC31
 - **Verification mode:** TDD
 - **Depends on:** T1, T2
 - **Files:** `packs/core/.apm/skills/close-work/scripts/cooling.py`,
@@ -451,6 +457,10 @@ cannot yield a vacuous pass.
 | M21 | make `_matches` coerce again — `pattern.fullmatch(str(value))` | AC27, AC28 | killed |
 | M22 | restore `_resolve_destination`'s unguarded element access, verbatim | AC29 | killed |
 | M23 | make `_matches` return `True` unconditionally | AC10 (Wave 5's pattern test), AC23, AC24, AC27, AC28 | killed |
+| M24 | revert `authority.<fact>.evidence_ref` to `str()` coercion | AC28, and AC30 alone once its seed carried the field | killed |
+| M25 | revert `exception.evidence_ref` to `str()` coercion | AC28, AC30 | killed |
+| M26 | drop the `completed_on` bound, keep the `OverflowError` arm | AC31 | killed |
+| M27 | drop the `OverflowError` arm, keep the bound | AC31 | killed |
 
 M17 is the reason AC27 exists. The repair had no criterion until this table was
 built: AC23's containers fail the `delivery_id` pattern with or without the type
@@ -464,6 +474,11 @@ catch and do exactly what the criterion exists to prevent.
 AC17 also fires on every one of these, because mutating the source makes it
 differ from its projections. That is incidental — it is a canary for any source
 edit, not the criterion that discriminates the mutation.
+
+M24 is why AC30's seed carries every optional field. The sweep first missed
+`authority.<fact>.evidence_ref` because the seed's authority facts had no
+`evidence_ref` leaf — a sweep only reaches a path its seed contains, which is the
+same blind spot, one level up, that let that site survive five review rounds.
 
 M22 first appeared to survive, and did not. The initial attempt replaced `try:`
 with `if False:`, which orphaned the `except` clause: the module stopped parsing,

@@ -26,9 +26,9 @@ including the two caller-facing review seams.
 
 No malformed record raises, so no host filesystem path or `errno` reaches the
 caller from any of these seams. That is a claim about record *input*, not about
-the module as a whole: a dependency fault — an unresolvable `close-work` seam —
-still escapes on five reaches, recorded under Follow-ons rather than repaired
-here. The three numeric bounds this spec names can no longer drift from the
+the module as a whole. Dependency faults and non-record arguments still escape;
+the largest is an unresolvable `close-work` seam on five reaches. Each is
+recorded under Follow-ons rather than repaired here. The three numeric bounds this spec names can no longer drift from the
 published contract unnoticed.
 
 ## Durable Outputs
@@ -100,34 +100,44 @@ catches. This repository declares `tzdata` nowhere, so a criterion that relies o
 the platform producing `ENAMETOOLONG` proves nothing in CI. Detection therefore
 rests on AC5 and AC6, which substitute `ZoneInfo` and hold in either
 environment — never on AC1–AC4, which assert the contract rather than detect the
-defect.
+defect. AC6a complements them structurally, over the AST, rather than by
+substitution.
 
 AC20 to AC22 cover the `exception` envelope. Unlike the timezone defect they are
 red in every environment, because the escape is plain dict access rather than a
 platform lookup.
 
-Coverage — all 32 criteria are materialised and none is deferred.
+Coverage — all 34 criteria are materialised and none is deferred.
 
 Twenty-five were written at PLAN, before any implementation existed. Twenty of
 those were red then; the rest are non-regression or consistency invariants that
 held already, and each carries a mutation proof in `plan.md`, because a
 criterion that cannot fail proves nothing.
 
-Seven more were added as review found further instances of this module's one
-systemic defect — trusting the shape of untrusted input. AC23 to AC26 cover
+Nine more were added as review found further instances of this module's one
+systemic defect — trusting the shape of untrusted input. Five distinct escape
+classes surfaced across five rounds, each by asking the same question. AC23 to AC26 cover
 containers where a scalar belongs and the third published bound. AC27 exists
 because a mutation survived: reverting `delivery_id`'s repair left the suite
 green, since AC23's containers fail its pattern either way and only a scalar
 that survives `str()` discriminates. AC28 and AC29 cover the text coercions and
-the duck-typed candidate elements. Each was red against the code as it stood
-when written.
+the duck-typed candidate elements. AC31 covers the fifth class, which was the
+first that is schema-*valid* rather than malformed: the contract's date pattern
+has no year ceiling, so a conforming record can carry a completion date whose
+review date does not exist.
+
+AC30 is the one criterion that is not an enumeration. Every other criterion names
+the fields someone thought to list, which is how five classes reached review; it
+derives its paths from the payload's own structure and asserts the property the
+Objective claims. It kills mutants at sites no criterion enumerates. Each of the
+nine was red against the code as it stood when written.
 
 Measured now: **231 cases pass, none fail, identically with `tzdata` importable
 and with it blocked.** Running both matters, because the `OSError` this repairs
 only arises when the optional `tzdata` wheel is importable, and this repository
 declares it nowhere. A single-environment green run would prove nothing about
-that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
-`ZoneInfo` and hold either way.
+that half of the fix; detection rests on AC5 and AC6, which substitute `ZoneInfo`
+and hold either way.
 
 ## Acceptance Criteria
 
@@ -228,13 +238,24 @@ that half of the fix; detection rests on AC5, AC6, and AC6a, which substitute
   `confirmations` is not iterable, and one whose confirmation item lacks `kind`
   — `enrol` and `review` return `destination-unconfirmed` and neither raises.
 
-### Bounds that match the published contract
-
 - [x] **AC27 — A non-string `delivery_id` refuses.** For each of `123`, `0`,
   `1.5`, and `true`, `validate_payload` and `parse_record_bytes` return
   `record-invalid`. AC23's containers cannot cover this: `str(["x"])` fails the
   pattern with or without the type guard, so only a scalar that survives `str()`
   discriminates.
+- [x] **AC30 — No leaf substitution makes a seam raise.** For every leaf path in
+  a payload carrying all optional fields, and for each of fourteen hostile
+  values, `validate_payload` and `parse_record_bytes` return `None` or a member
+  of `REFUSAL_CODES`, and neither raises. The paths are derived from the
+  payload's own structure, so a field added later is covered without a new
+  criterion.
+- [x] **AC31 — A completion date with no review date refuses.**
+  `completed_on = 9999-12-02` returns `record-invalid` from `validate_payload`,
+  `parse_record_bytes`, and `compute_review_on`; `9999-12-01`, the last date
+  that leaves thirty days, still yields `9999-12-31`.
+
+### Bounds that match the published contract
+
 - [x] **AC11 — The timezone bound equals the published one.**
   `cooling.MAX_TIMEZONE_LENGTH` equals `properties.timezone.maxLength` in
   `contracts/jsonschema/delivery-lifecycle-record.schema.json`.
@@ -298,6 +319,31 @@ coercions this spec once wrongly called inert (AC28). That last claim was true o
 the *match outcome* and false of the *call*: `str()` on an unbounded int raises
 before any pattern is consulted.
 
+- **The `locator` pattern diverges from the published contract.**
+  `_is_locator` admits the C0 control range and `U+007F`, which the contract's
+  `$defs/locator` pattern excludes; `_is_locator` rejects a `.` segment, which
+  the pattern admits. AC13 and AC14 pin only the numeric bound. The write path
+  is unaffected — it binds on `delivery_id`, which is regex-bounded — so the
+  reach is the deletion path via `close_work._bounded_text`'s control-character
+  refusal, and `verify_identity` usually refuses first with
+  `locator-unresolved`. Reconciling the pattern changes behaviour and needs a
+  spec that decides which side is right. Evidence in
+  [`notes/schema-decision.md`](notes/schema-decision.md).
+- **The write grant is never consumed, and its registry is never evicted.**
+  Adjudicated and refuted as an authorization defect — no shipped authority
+  requires single use, and issue digests are deterministic over the grant
+  payload, so popping cannot stop replay by a grant holder. The unrecorded
+  residual is retention: `_ISSUED_COORDINATION_AUTHORITIES` is never evicted on
+  the write path, and `_binding_is_issued` scans it linearly on every write, so
+  N resolved grants make each subsequent write O(N). Full trace in
+  [`notes/adjudication.md`](notes/adjudication.md).
+- **An unreadable timezone database refuses every record as malformed.**
+  `_zone`'s `OSError` arm is deliberately broad, so host degradation — an
+  unreadable tz database, `EMFILE`, `EIO` — collapses into the same refusal as
+  bad input. That is fail-closed and this module logs nothing by design, so an
+  operator sees `record-invalid` rather than the cause. Narrowing by errno would
+  leave AC6a green while re-raising, which is why it is recorded rather than
+  changed. A distinct code is the candidate repair.
 - **A `_close_work()` failure escapes five reaches uncaught.** The seam is
   resolved lazily, and not every caller wraps it. `load_record` does. `enrol`
   does **not**: it calls `_resolve_destination` before its own `try` opens, and
