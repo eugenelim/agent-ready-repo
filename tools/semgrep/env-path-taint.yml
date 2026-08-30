@@ -51,9 +51,13 @@ rules:
     # rather than leaning on that default — it is a deliberate narrowing in
     # pattern semantics with no coverage change on the gate as run today.
     #
-    # Unlike its sibling in argv-path-boundary.yml, this rule has no fixture and
-    # no self-test, so a mis-anchored pattern here would match nothing and read
-    # as green. Tracked as `sast-env-path-taint-has-no-fires-assertion`.
+    # KNOWN GAP: unlike its sibling in argv-path-boundary.yml, this rule has no
+    # fixture and no self-test, so a mis-anchored pattern here would match
+    # nothing and read as green — `make sast` cannot tell "no findings" from "no
+    # targets". Closing it means a positive fixture plus a finding-count
+    # assertion, the shape tools/test-semgrep-argv-boundary.py already uses.
+    # Verified by hand at the time of this respell: the anchored form still
+    # scans 130 files under packs/ and still fires on a planted canary.
     paths:
       include:
         - "/packs/**"

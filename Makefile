@@ -271,8 +271,9 @@ print-sast-config:
 # (run-bandit-gate.py pins --severity-level medium, and B603/B606/B607 are LOW),
 # and not by CodeQL, which is not a required check on main AND cannot see the
 # source kind at all: its default `remote` threat model treats os.environ as
-# trusted, and the pinned codeql-action accepts no `threat-models` setting to
-# change that (tracked as `codeql-cannot-see-environment-sources`). Excluding the
+# trusted, and the pinned codeql-action (v3.37.7) accepts no `threat-models`
+# setting to change that — verified against its config schema and its declared
+# inputs, so there is no in-repo fix today. Excluding the
 # two rules would therefore have left packages/credbroker/ and
 # packs/core/.apm/hooks/session-start.py — the surface
 # tools/semgrep/env-path-taint.yml calls the one place the threat is real — with
@@ -297,9 +298,11 @@ print-sast-config:
 # 1.175.0), so the blocking coverage above is retained for free rather than
 # bought.
 #
-# Nothing detects a stale entry — semgrep accepts an `--exclude` naming a file
-# that no longer exists, silently and with exit 0. Tracked as
-# `sast-semgrep-exclude-has-no-staleness-detector`.
+# KNOWN GAP: nothing detects a stale entry — semgrep accepts an `--exclude`
+# naming a file that no longer exists, silently and with exit 0 — so the
+# retirement condition above is an obligation on the next author, not an
+# enforced one. See ADR-0102 § Confirmation for the required detector shape and
+# why it belongs in scheduled CI rather than here.
 #
 # `--timeout 60` also clears the timeouts (measured: exit 0) and is deliberately
 # NOT used: it masks a pathological rule/file interaction rather than fixing it.

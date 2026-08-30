@@ -64,9 +64,8 @@ one.
 State the condition under which the entry is removed. A trigger with no detector
 is aspirational: semgrep accepts an `--exclude` naming a path that no longer
 exists, silently and with exit 0, so a stale entry outlives its cause with
-nothing to notice. Building that detector is tracked as
-`sast-semgrep-exclude-has-no-staleness-detector`; until it exists, the trigger is
-a documented obligation on the next author, not an enforced one.
+nothing to notice. Until that detector exists (see Confirmation for its shape),
+the trigger is a documented obligation on the next author, not an enforced one.
 
 ### 4. ADR-0017's exclusion-list clause is superseded only in scope
 
@@ -104,7 +103,10 @@ and an exclusion is found to have outlived its cause.
 - **Residual:** whether a trigger has *fired* is not mechanically checked, and
   semgrep accepts an `--exclude` naming a path that no longer exists, silently
   and with exit 0. So a stale entry outlives its cause with nothing to notice.
-  Tracked as `sast-semgrep-exclude-has-no-staleness-detector`; the detector
-  belongs in scheduled CI for the reason in Consequences above. Recorded as a
-  visible `none` rather than omitted, because a reader would reasonably expect
-  the retirement trigger to be enforced and it is not.
+  The detector would re-scan each excluded path with the full config at a raised
+  `--timeout` and assert zero findings, which both re-proves the exclusion is
+  clean and reds when a pattern goes stale. It belongs in scheduled CI, not in
+  `make sast`: running it per developer scan reintroduces exactly the cost the
+  exclusion exists to avoid. Recorded as a visible `none` rather than omitted,
+  because a reader would reasonably expect the retirement trigger to be enforced
+  and it is not.
