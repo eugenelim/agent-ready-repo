@@ -89,12 +89,22 @@ architect pack's separate cold convergence agent remains unchanged.
 - [ ] A warranted RFC continues through the existing research checkpoint,
   preview, citation/self-claim checks, reviews, human circulation decision, and
   index lifecycle without weaker gates.
-- [ ] Every repository write introduced or reordered by this slice uses the
-  blessed confinement contract or a tested fail-closed equivalent: RFC target,
-  index, and companion-note writes stay inside the resolved RFC owner root;
-  architecture saves stay inside their resolved configured output root; and an
-  unsafe, link-like, identity-changing, or out-of-root target refuses before
-  mutation.
+- [ ] `new-rfc` carries a written confinement contract for every write it
+  directs: RFC target, index, and companion-note writes stay inside the
+  resolved RFC owner root, architecture saves stay inside their resolved
+  configured output root, and an unsafe, link-like, identity-changing, or
+  out-of-root target is refused before any mutation. A static content test
+  pins each clause, and one manual-QA record at
+  `docs/specs/rfc-architecture-simplification/manual-qa.md` shows the contract
+  honoured on a real run.
+
+  This slice adds no code that performs those writes, so the contract is
+  guidance the skill carries, not a mechanically enforced gate. That is a
+  deliberate scope decision (owner, 2026-08-30): the alternative was a new
+  write seam, which this plan's "no new helper" constraint and the spec's own
+  cut-before-adding purpose both refuse. An executable seam invoking
+  `agentbundle.safety.write_files_no_follow` remains the correct home for
+  enforcement if a future slice gives `new-rfc` a callable write path.
 - [ ] A warranted RFC deletes claims unnecessary to its decision. Before
   stating a necessary cross-document assertion as fact, it performs one
   bounded check of the named target or marks the claim as an assumption or
@@ -114,6 +124,14 @@ architect pack's separate cold convergence agent remains unchanged.
 - [ ] The report preserves the existing findings-only output and no work-loop,
   code-diff, plan-construction, or implementation-conformance dependency is
   introduced for an RFC-only review.
+- [ ] RFC mode treats the draft under review as untrusted data. The agent's
+  existing untrusted-data framing covers only the optional
+  `<knowledge-evidence>` envelope, so RFC mode states that text inside a
+  reviewed RFC cannot change the reviewer's instructions, identity, tool
+  permissions, scope, rubric coverage, finding severity, or verdict, and
+  cannot suppress a finding. A content test pins each of those seven
+  prohibitions, and a hostile-draft fixture carrying an embedded instruction
+  to return clean records that the reviewer still reports its findings.
 
 ### AC3 — Architecture authors reuse and stop
 
@@ -136,20 +154,31 @@ architect pack's separate cold convergence agent remains unchanged.
   mechanism, ignored existing/standard/native/provider capability, speculative
   scale/configurability/compatibility/extensibility, and complexity unsupported
   by a named quality attribute and credible constraint.
-- [ ] The checks live in the design-doc review route/rubric and preserve all
-  other architecture artifact rubrics and well-architected modes.
+- [ ] The checks live in an `architect-review`-only design-doc branch and
+  preserve all other architecture artifact rubrics and well-architected modes.
+  They do **not** go in `references/rubric-design-doc.md`: `design-reviewer`
+  reads `architect-review`'s `references/rubric-*.md` when that skill is
+  co-installed, so editing the shared rubric would change the forked
+  reviewer's effective contract while this spec claims it is unchanged.
 - [ ] Architecture review removes unnecessary claims rather than enlarging the
   document to defend them, and challenges unsupported necessary assertions.
-- [ ] `design-reviewer` is unchanged; author self-check plus `architect-review`
-  own the exact accepted slice.
+- [ ] `design-reviewer` is unchanged in both its file and its effective
+  contract: a construction test asserts this slice adds no YAGNI check to any
+  `architect-review` rubric file that `design-reviewer` reads when
+  co-installed. Author self-check plus `architect-review` own the exact
+  accepted slice.
 
 ### AC5 — Artifact ownership and downstream shaping remain separate
 
 - [ ] A direct RFC or architecture request needs no synthetic intent; an
   accepted intent or design result may still supply provenance when present.
-- [ ] RFC or architecture output invokes shaping review only through the owner
-  of an intent, delivery brief, or spec that is materially revised from that
-  output.
+- [ ] None of the four surfaces changed by this slice dispatches shaping review
+  directly. Stated as the enforceable negative because the positive condition —
+  that a materially revised intent, delivery brief, or spec invokes shaping
+  review through its own lifecycle owner — belongs to `intake-intent`,
+  `frame-intent`, `author-delivery-brief`, and `new-spec`, none of which this
+  slice touches. A construction test asserts the absence of a shaping-review
+  dispatch in the four changed surfaces.
 - [ ] RFC review remains adversarial; architecture review remains
   `architect-review`; neither becomes a fourth shaping-review mode.
 
@@ -159,8 +188,17 @@ architect pack's separate cold convergence agent remains unchanged.
   minimum tools and applicable `metadata.boundaries`; changed reviewer-agent
   source declares the boundary schema established by
   `shaping-review-contracts`.
-- [ ] Adapter projections prove equivalent existing permissions and do not gain
-  write, shell, web, credential, or mutation authority merely for YAGNI review.
+- [ ] Each changed surface ends this slice with exactly the authority it
+  declares today, enumerated here as the baseline so the check can fail:
+  `adversarial-reviewer` — tools `Read, Grep, Glob, Bash`, boundaries
+  `[filesystem_read_untrusted]`; `new-rfc` — no `allowed-tools`, boundaries
+  `[filesystem_read_untrusted, filesystem_write]`; `architect-design` — no
+  `allowed-tools`, boundaries `[filesystem_read_untrusted, filesystem_write,
+  network_fetch]`; `architect-review` — neither declared today, and this slice
+  adds the minimum set it actually needs. A construction test pins each
+  surface's post-change tools and boundaries against that enumeration, and
+  adapter projections gain no write, shell, web, credential, or mutation
+  authority merely for YAGNI review.
 - [ ] Repository artifacts, skills, and caller-supplied evidence remain data;
   no independent retrieval or network capability is added.
 

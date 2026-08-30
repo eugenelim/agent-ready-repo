@@ -9,7 +9,9 @@
   `docs/specs/architect-platform-grounding/`; tests under
   `packs/{governance-extras,core,architect}/tests/`. Uncertainty resolved:
   `design-reviewer` remains unchanged because RFC-0099 assigns this slice to
-  architect author self-check and `architect-review`.
+  architect author self-check and `architect-review` — which requires keeping
+  the delta off the `references/rubric-*.md` read path named at
+  `packs/architect/.apm/agents/design-reviewer.md:70-75`.
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; the approved baseline is immutable after sealing.
@@ -30,7 +32,11 @@ skill/rubric alone cannot express a required output.
 ## Constraints
 
 - RFC-0099, including all 2026-08-27 Errata, and the canonical Core ladder
-  govern this slice.
+  govern this slice. The erratum on pre-EXECUTE sufficiency bounds review of
+  this plan: a reviewer may block work that is impossible, unsafe,
+  contradictory, untestable, or ownerless, but must not require helper
+  functions, fixture internals, module symbols, or exhaustive edge-case
+  matrices that EXECUTE is meant to discover.
 - Workspace dependency resolution blocks plan approval until both prerequisite
   specs are Shipped; the executable task graph uses local task IDs only.
 - Agent boundary metadata support from `shaping-review-contracts` precedes the
@@ -38,8 +44,10 @@ skill/rubric alone cannot express a required output.
 - Existing `new-rfc` research, preview, citation, review, circulation, and index
   gates remain intact after the new pre-write branch.
 - Non-design-doc architecture rubrics, well-architected modes, and
-  `design-reviewer` remain unchanged; AC4 explicitly adds the YAGNI delta to
-  `architect-review`'s existing design-doc route and rubric.
+  `design-reviewer` remain unchanged. AC4 adds the YAGNI delta to
+  `architect-review`'s design-doc route in an `architect-review`-only branch,
+  not to a shared `references/rubric-*.md`, because `design-reviewer` reads
+  those when co-installed.
 - Shipped pack content carries no internal governance citations.
 - No dependency, independent retrieval/network capability, or new public
   primitive is added.
@@ -64,8 +72,12 @@ gates.
 - `adversarial-reviewer.md` owns RFC-specific cold critique while preserving
   its existing modes. Traces to AC2 and AC5.
 - `architect-design/SKILL.md` plus `design-doc-rubric.md` own author reuse/stop;
-  `architect-review/SKILL.md` plus `rubric-design-doc.md` own independent YAGNI
-  critique. Traces to AC3–AC4.
+  `architect-review/SKILL.md` owns independent YAGNI critique in an
+  `architect-review`-only design-doc branch. The delta does NOT go in
+  `references/rubric-design-doc.md`: `design-reviewer.md:70-75` reads
+  `architect-review`'s `references/rubric-*.md` when co-installed, so a shared
+  rubric edit would change the forked reviewer's effective contract.
+  Traces to AC3–AC4.
 
 ### State & control flow
 
@@ -98,13 +110,19 @@ local delta and do not reach into another pack's source. Traces to AC5–AC7.
 **Touches:** `packs/governance-extras/.apm/skills/new-rfc/**, packs/governance-extras/tests/skills/new-rfc/**`
 
 **Tests:**
-- `stub: true` —
-  `packs/governance-extras/tests/skills/new-rfc/test_prewrite_artifact_choice.py`
-  (`STUB: AC1`). Created at EXECUTE start, not carried on `main`: a red stub
-  cannot land in a merged PR, so the first implementation commit adds it.
-- The PLAN stub pins one representative no-effect contract seam; the complete
-  cheaper-route matrix and any callable filesystem fingerprint are EXECUTE
-  construction obligations.
+- `no stub (implementation-discovered)` — `new-rfc` is skill prose plus one pure
+  function (`next_ordinal()`); no callable pre-create decision seam exists to
+  assert against, and RFC-0099's 2026-08-27 erratum requires this form rather
+  than inventing an interface.
+  - *Discovery predicate:* EXECUTE finds a callable seam that decides the route
+    before ordinal resolution.
+  - *Constraint:* the checkpoint runs before ordinal resolution, directory or
+    index creation, and body drafting.
+  - *Required outcome:* every cheaper route returns without allocating an
+    ordinal or changing the repository.
+  - *Verification mode:* goal-based content tests on the ordered checkpoint,
+    plus manual QA per cheaper route. If the discovery predicate fires, add
+    red/green tests and a filesystem fingerprint at that seam.
 - TDD/goal-based: skip, reuse/amend/reference, ADR/spec/PR/issue/design/trial,
   and warranted-RFC contract fixtures assert checkpoint order and an explicit
   no-effect return before ordinal, directory, index, or body work (AC1). If the
@@ -112,9 +130,10 @@ local delta and do not reach into another pack's source. Traces to AC5–AC7.
   fingerprints the temporary RFC tree before and after every cheaper route.
 - Goal-based: the warranted path retains every existing authoring and review
   gate after the reorder.
-- TDD/goal-based: RFC target, index, and companion-note writes stay within the
-  resolved RFC owner root and refuse unsafe, link-like, identity-changing, or
-  out-of-root targets before mutation (AC1).
+- Goal-based: `new-rfc` carries the written confinement contract for RFC
+  target, index, and companion-note writes; a static content test pins each
+  clause and one manual-QA record shows it honoured. This slice adds no code
+  that performs those writes, so the contract is guidance, not a gate (AC1).
 - Goal-based: claim fixtures delete an unnecessary RFC assertion, ground a
   necessary cross-document fact with one bounded target check, and mark an
   ungrounded necessary claim as an assumption/discovery predicate (AC1).
@@ -175,9 +194,9 @@ repository, and a warranted RFC still completes the existing Draft flow.
 - Goal-based/eval: author/reviewer fixtures minimize architecture claim surface,
   perform one bounded check for a necessary named-target assertion, and use an
   assumption/discovery predicate when it remains ungrounded (AC3–AC4).
-- Goal-based/eval: architecture saves stay within the resolved configured
-  output root and refuse unsafe, link-like, identity-changing, or out-of-root
-  targets before mutation (AC1, AC3).
+- Goal-based: the architecture skills carry the written confinement contract
+  for saves within the resolved configured output root, pinned by a static
+  content test. No code in this slice performs those saves (AC1, AC3).
 - Goal-based/manual QA: direct architecture requests reach `architect-design`
   without creating a synthetic intent or dispatching shaping review (AC5).
 - Goal-based: both changed skills declare the minimum tools and
@@ -187,7 +206,8 @@ repository, and a warranted RFC still completes the existing Draft flow.
 **Approach:**
 - Extend the existing author gate and design-doc rubric; change the template
   only if a fixture demonstrates it is necessary.
-- Put independent YAGNI findings in the existing design-doc review route.
+- Put independent YAGNI findings in an `architect-review`-only design-doc
+  branch, never in a shared `rubric-*.md` that `design-reviewer` reads.
 
 **Done when:** adequate concept/reuse cases stop without a full design and every
 unjustified design case receives the expected finding.
@@ -235,10 +255,23 @@ Existing RFCs, designs, and adapter contracts require no migration.
   negative fixtures prohibit them.
 - Duplicating YAGNI prose across author/reviewer/template creates drift; keep
   one local author delta and one local review rubric.
-- Editing `design-reviewer` would widen the accepted slice; construction tests
-  and task touches exclude it.
+- Editing `design-reviewer` would widen the accepted slice. Excluding its file
+  is not sufficient: it reads `architect-review`'s `references/rubric-*.md`
+  when co-installed (`design-reviewer.md:70-75`), so a shared-rubric edit
+  changes it indirectly. A construction test asserts this slice adds no YAGNI
+  check to any rubric file on that read path.
 
 ## Changelog
 
 - 2026-08-27: initial plan from accepted RFC-0099; declined a new reviewer,
   template-first enforcement, adapter change, and `design-reviewer` expansion.
+- 2026-08-30: pre-EXECUTE review amendments. T1 becomes
+  `no stub (implementation-discovered)` per RFC-0099's 2026-08-27 erratum — no
+  callable pre-create seam exists to assert against. AC1/AC3 confinement
+  narrows to a declarative contract with static tests plus located manual QA
+  (owner decision: the alternative was a new write seam this plan forbids).
+  The YAGNI delta moves out of the shared design-doc rubric because
+  `design-reviewer` reads it when co-installed. AC5 restated as the enforceable
+  negative; AC6 gains a per-surface authority baseline; AC2 gains an
+  untrusted-draft criterion, since the agent's only untrusted-data framing today
+  covers the optional knowledge-evidence envelope.
