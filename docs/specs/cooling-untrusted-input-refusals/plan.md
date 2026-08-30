@@ -446,6 +446,9 @@ cannot yield a vacuous pass.
 | M18 | revert the alias bound to a bare literal | AC26 | killed |
 | M19 | restore the proper-subset envelope gate | AC20, AC21 | killed |
 | M20 | wrap a `_zone` call site in `except Exception` | AC6a | killed |
+| M21 | make `_matches` coerce again — `pattern.fullmatch(str(value))` | AC27, AC28 | killed |
+| M22 | restore `_resolve_destination`'s unguarded element access, verbatim | AC29 | killed |
+| M23 | make `_matches` return `True` unconditionally | AC10 (Wave 5's pattern test), AC23, AC24, AC27, AC28 | killed |
 
 M17 is the reason AC27 exists. The repair had no criterion until this table was
 built: AC23's containers fail the `delivery_id` pattern with or without the type
@@ -459,6 +462,13 @@ catch and do exactly what the criterion exists to prevent.
 AC17 also fires on every one of these, because mutating the source makes it
 differ from its projections. That is incidental — it is a canary for any source
 edit, not the criterion that discriminates the mutation.
+
+M22 first appeared to survive, and did not. The initial attempt replaced `try:`
+with `if False:`, which orphaned the `except` clause: the module stopped parsing,
+pytest reported a collection error rather than failures, and a harness that reads
+only `FAILED` lines saw an empty kill set. A mutation that does not produce a
+loadable module proves nothing about the guard. The proof above uses the
+pre-repair form verbatim and asserts the mutant parses before running.
 
 The pre-EXECUTE proofs M1, M2, M4, M6, M7a, M8a, M8b, M13, and M14 were executed
 independently by the quality reviewer against the same suite and each was killed
