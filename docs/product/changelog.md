@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [core][2.16.0] / [product-engineering][0.13.8] / [agentbundle][0.40.3] — 2026-08-29
+## [core][2.16.0] / [product-engineering][0.13.8] — 2026-08-29
 
 ### Highlights
 
@@ -70,6 +70,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   least-privilege posture in supported adapter projections.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
+
+## [agentbundle][0.40.3] — 2026-08-29
+
+### Highlights
+
+- **A read-only agent's declared boundaries are now checked where they are
+  written, and never shipped into a projection that cannot use them.** Adopters
+  get the least-privilege posture their source declares on every supported
+  adapter.
+
+### Added
+
+- Source-agent `metadata.boundaries` is validated in the catalogue lint pass, so
+  a declaration broader than the agent's tools fails before it ships.
+
+### Changed
+
+- The Claude Code agent projection omits source-only `metadata`, which is not a
+  recognised Claude Code subagent frontmatter key.
+
+### Fixed
+
+- The portable projection branch — the one Windows adopters run — can create a
+  target that does not exist yet, instead of failing when no descriptor-anchored
+  write is available.
 
 ## [core][2.15.5] — 2026-08-29
 
