@@ -38,6 +38,32 @@ def _admitted_topics_from_compiled_tree() -> set[str]:
     }
 
 
+UNPOPULATED_RECORD = COMPILED_CONCEPTS / "declared-absent" / "unpopulated-leaves.md"
+
+
+def _unpopulated_leaves_from_compiled_record() -> set[str]:
+    """Return the leaves the register declares absent.
+
+    The register is identified by its exact compiled path -- one record, at one
+    known location -- never by a marker field, section shape, or name pattern a
+    topic body could reproduce. A body that copied its shape elsewhere would
+    therefore not be read as the register, and would still be iterated as a
+    concept by the walks that cover the tree.
+
+    The unpopulated side is derived from the leaf names the register records,
+    not from whatever the admitted-set walk happened to exclude, so a document
+    cannot both escape iteration and satisfy the partition.
+    """
+    text = UNPOPULATED_RECORD.read_text(encoding="utf-8")
+    leaves = {
+        line[3:].strip()
+        for line in text.split("\n")
+        if line.startswith("## ")
+    }
+    assert leaves, "the register declares no leaves"
+    return leaves
+
+
 def _assert_source_is_attributable(source: dict[str, object]) -> None:
     """Every cited source names itself, when it was read, and its version state."""
     assert source.get("identity"), source
@@ -182,3 +208,20 @@ def test_admitted_topics_are_measurably_distinguishable() -> None:
     for topic in sorted(admitted):
         exclusive = [r for r in results if r["actual_topics"] == [topic]]
         assert len(exclusive) >= 2, (topic, len(exclusive))
+
+
+
+def test_every_leaf_is_in_exactly_one_set() -> None:
+    """Each taxonomy leaf is admitted or declared absent -- never both, never neither."""
+    leaves = json.loads(
+        (FIXTURES / "topology-leaves.json").read_text(encoding="utf-8")
+    )["leaves"]
+    admitted = _admitted_topics_from_compiled_tree()
+    unpopulated = _unpopulated_leaves_from_compiled_record()
+
+    assert UNPOPULATED_RECORD.stem not in admitted
+    for leaf in leaves:
+        assert (leaf in admitted) ^ (leaf in unpopulated), leaf
+    # Neither set may carry a name the taxonomy does not have.
+    assert admitted <= set(leaves), sorted(admitted - set(leaves))
+    assert unpopulated <= set(leaves), sorted(unpopulated - set(leaves))

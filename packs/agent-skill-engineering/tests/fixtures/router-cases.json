@@ -214,5 +214,12 @@
     "expected_topics": [
       "trust-boundaries-and-instruction-provenance"
     ]
+  },
+  {
+    "id": "fallback-unpopulated-leaf",
+    "prompt": "How should I pick near-miss prompts for my skill's eval set?",
+    "expected_topics": [
+      "framing-and-trigger-quality"
+    ]
   }
 ]

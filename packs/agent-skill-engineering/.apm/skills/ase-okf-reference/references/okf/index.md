@@ -5,3 +5,4 @@ okf_version: "0.2"
 # OKF index: agent-skill-engineering-foundation
 
 - [concepts](concepts/index.md) - 7 concepts
+- [concepts/declared-absent](concepts/declared-absent/index.md) - 1 concepts

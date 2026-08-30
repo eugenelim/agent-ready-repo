@@ -36,6 +36,9 @@ TOPIC_FILES = (
     "instruction-density-and-progressive-disclosure.md",
     "resources-scripts-and-exit-contracts.md",
 )
+UNPOPULATED_RECORD = (
+    CONCEPT_ROOT / "declared-absent" / "unpopulated-leaves.md"
+)
 EXPECTED_TOPICS = {
     "activation-discoverability-and-mode-wayfinding",
     "depth-libraries-and-okf-knowledge-providers",
@@ -90,6 +93,13 @@ def _read_staged_confined(root: Path, relative_path: str, reads: list[Path]) -> 
 
 
 def test_foundation_corpus_is_exactly_the_admitted_inert_governed_topics() -> None:
+    """Topic identity and frontmatter shape, over the concept root only.
+
+    Deliberately non-recursive. The declared-absent register lives in a
+    subdirectory and carries its own `type`, so a recursive equality pinned to
+    `type: Reference` would redden on its first run. Its inertness is covered
+    by the recursive refusal below, so nothing agent-read escapes a control.
+    """
     paths = sorted(CONCEPT_ROOT.glob("*.md"))
     assert {path.stem for path in paths} == EXPECTED_TOPICS
     for path in paths:
@@ -101,9 +111,33 @@ def test_foundation_corpus_is_exactly_the_admitted_inert_governed_topics() -> No
             "status": "Active",
             "license": "Apache-2.0 OR MIT",
         }
+
+
+def test_every_agent_read_concept_is_inert() -> None:
+    """No agent-read body may name an executor, attester, remote, or tools.
+
+    Recursive, so the declared-absent register is covered too: it is the one
+    body outside the topic set that a reader can be routed to.
+    """
+    paths = sorted(CONCEPT_ROOT.rglob("*.md"))
+    assert len(paths) > len(EXPECTED_TOPICS), "the walk must reach beyond the concept root"
+    for path in paths:
         text = path.read_text(encoding="utf-8")
         for forbidden in ("executor:", "attester:", "remote:", "tools:"):
-            assert forbidden not in text
+            assert forbidden not in text, (path.name, forbidden)
+
+
+def test_declared_absent_register_is_shaped_and_is_not_a_topic() -> None:
+    """The register carries its own kind and never enters the topic set."""
+    metadata = _frontmatter(UNPOPULATED_RECORD)
+    assert metadata == {
+        "id": UNPOPULATED_RECORD.stem,
+        "title": metadata["title"],
+        "type": "Register",
+        "status": "Active",
+        "license": "Apache-2.0 OR MIT",
+    }
+    assert UNPOPULATED_RECORD.stem not in EXPECTED_TOPICS
 
 
 @pytest.mark.parametrize("topic_file", TOPIC_FILES)
@@ -232,9 +266,10 @@ def test_generated_manifest_owns_only_router_outputs() -> None:
     manifest = json.loads((PACK_ROOT / ".okf-generated.json").read_text(encoding="utf-8"))
     managed = manifest["managed"]
     assert len([item for item in managed if item["kind"] == "okf-router"]) == 1
+    # One per admitted topic, plus the declared-absent register.
     assert len([item for item in managed if item["kind"] == "okf-reference"]) == len(
         EXPECTED_TOPICS
-    )
+    ) + 1
     assert all(
         item["output_path"].startswith(
             ".apm/skills/ase-okf-reference/"
