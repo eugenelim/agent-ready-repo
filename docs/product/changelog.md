@@ -52,6 +52,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.18.1] — 2026-08-31
+
+### Changed
+
+- `close-work`'s bundled `file_safety.py` now raises `BoundExceeded` — a
+  subclass of `UnsafeContentError` — when a declared traversal or read bound is
+  exceeded, carrying the breached budget, its limit, and the observed value as
+  attributes. Callers that catch `UnsafeContentError` are unaffected; callers
+  that need to tell a budget breach from an integrity refusal (a link-like,
+  special, or uninspectable entry) can now do so from the exception itself
+  rather than by matching on its message text.
 ## [core][2.18.0] — 2026-08-31
 
 ### Highlights

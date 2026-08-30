@@ -14,6 +14,36 @@ class UnsafeContentError(ValueError):
     """A source entry is not a confined, single-link regular file."""
 
 
+class BoundExceeded(UnsafeContentError):
+    """A declared traversal or read bound was exceeded.
+
+    Carries the breached budget as data so a caller can attribute the refusal
+    without parsing the message.  That distinction is load-bearing: an
+    integrity refusal (link-like, special, non-regular, uninspectable) and a
+    budget breach both surface as ``UnsafeContentError``, and only the budget
+    breach is a bound.  Catching ``UnsafeContentError`` still catches this, so
+    existing callers are unaffected.
+
+    ``budget`` is a plain string from a small stable set — ``entries``,
+    ``depth``, ``files``, ``selected-skills``, ``per-file-bytes``,
+    ``total-bytes`` — deliberately not an enum, because this module is mirrored
+    byte-for-byte into trees where the diagnostic registry is unimportable.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        budget: str,
+        limit: int,
+        observed: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.budget = budget
+        self.limit = limit
+        self.observed = observed
+
+
 def _is_reparse_point(inspected: os.stat_result) -> bool:
     attribute = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
     return bool(getattr(inspected, "st_file_attributes", 0) & attribute)
@@ -105,15 +135,21 @@ def list_confined_regular_files(
                 for entry in iterator:
                     entries_seen += 1
                     if max_entries is not None and entries_seen > max_entries:
-                        raise UnsafeContentError(
-                            "source tree exceeds entry-count limit"
+                        raise BoundExceeded(
+                            "source tree exceeds entry-count limit",
+                            budget="entries",
+                            limit=max_entries,
+                            observed=entries_seen,
                         )
                     entry_path = Path(entry.path)
                     relative = entry_path.relative_to(root).as_posix()
                     source_relative = entry_path.relative_to(directory)
                     if max_depth is not None and len(source_relative.parts) > max_depth:
-                        raise UnsafeContentError(
-                            "source tree exceeds path-depth limit"
+                        raise BoundExceeded(
+                            "source tree exceeds path-depth limit",
+                            budget="depth",
+                            limit=max_depth,
+                            observed=len(source_relative.parts),
                         )
                     try:
                         inspected = entry.stat(follow_symlinks=False)
@@ -131,8 +167,11 @@ def list_confined_regular_files(
                         pending.append(entry_path)
                     elif stat.S_ISREG(inspected.st_mode):
                         if max_files is not None and len(files) >= max_files:
-                            raise UnsafeContentError(
-                                "source tree exceeds file-count limit"
+                            raise BoundExceeded(
+                                "source tree exceeds file-count limit",
+                                budget="files",
+                                limit=max_files,
+                                observed=len(files) + 1,
                             )
                         files.append(entry_path)
                     else:
@@ -313,7 +352,12 @@ def _open_confined_regular_file(
                     f"source file changed while opening: {relative}"
                 )
             if max_bytes is not None and after.st_size > max_bytes:
-                raise UnsafeContentError(f"source file exceeds byte limit: {relative}")
+                raise BoundExceeded(
+                    f"source file exceeds byte limit: {relative}",
+                    budget="per-file-bytes",
+                    limit=max_bytes,
+                    observed=after.st_size,
+                )
             with os.fdopen(descriptor, "rb") as handle:
                 descriptor = -1
                 yield handle
@@ -359,8 +403,11 @@ def read_confined_regular_file(
         data = handle.read() if max_bytes is None else handle.read(max_bytes + 1)
         if max_bytes is not None and len(data) > max_bytes:
             relative = path.relative_to(root).as_posix()
-            raise UnsafeContentError(
-                f"source file changed beyond byte limit: {relative}"
+            raise BoundExceeded(
+                f"source file changed beyond byte limit: {relative}",
+                budget="per-file-bytes",
+                limit=max_bytes,
+                observed=len(data),
             )
         if include_mode:
             try:

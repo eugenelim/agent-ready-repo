@@ -35,23 +35,29 @@ def test_direct_codes_registry_contract():
     assert DIRECT_CODES, "DIRECT_CODES must not be empty"
     assert all(isinstance(code, DiagnosticCode) for code in DIRECT_CODES)
 
-    # No member-count assertion. Two were tried during review — nine, then
-    # twelve — and both were stale, because a count ages every time a criterion
-    # adds a refusal. Assert the members the ACs pin BY NAME instead; that
-    # cannot go stale, and AC31's lint is what enforces exact coverage.
-    for pinned in (
-        "measured-path-integrity",       # AC27, AC34
-        "source-untraversable-or-changed",  # AC31
-        "invalid-direct-identity",       # AC31, AC11
-    ):
-        assert any(code.value.endswith(pinned) or pinned in code.name.lower().replace("_", "-")
-                   for code in DIRECT_CODES), f"DIRECT_CODES must register {pinned}"
+    # No member-count assertion: two were tried during review — nine, then
+    # twelve — and both went stale as later criteria added refusals. Assert
+    # structural properties that cannot age instead. AC31's lint owns exact
+    # coverage against the published table.
 
-    # One registered member per AC33 budget, each independently reachable.
-    for budget in sorted(BUDGET_NAMES):
-        assert any(budget in code.name.lower().replace("_", "-") for code in DIRECT_CODES), (
-            f"AC33 requires a registered DIRECT_CODES member for the {budget} budget"
-        )
+    # The direct namespace is disjoint from the catalogue lint namespace, so a
+    # catalogue code can never be emitted as a direct one and vice versa.
+    assert all(code.value.startswith("CAT-D") for code in DIRECT_CODES)
+    assert DiagnosticCode.CAT_L001 not in DIRECT_CODES
+
+    # AC33: one registered member per budget, all distinct, all direct. This is
+    # the checkable form of "each budget is independently reachable" — the
+    # module exposes the mapping BoundExceeded.budget resolves through, so the
+    # assertion binds to a real seam rather than to a member-naming convention.
+    from agentbundle.catalogue_tooling.diagnostics import BUDGET_CODES
+
+    assert set(BUDGET_CODES) == BUDGET_NAMES, (
+        "BUDGET_CODES must map exactly AC33's six budget names"
+    )
+    assert set(BUDGET_CODES.values()) <= DIRECT_CODES
+    assert len(set(BUDGET_CODES.values())) == len(BUDGET_NAMES), (
+        "each AC33 budget needs its own member, not a shared one"
+    )
 
     # Positive case first — a registered code is accepted and round-trips.
     # Without this the negative assertion below is satisfied by a function that

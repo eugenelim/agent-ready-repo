@@ -55,7 +55,7 @@ EXPECTED_SCHEMA_SHA256 = (
 # keyword (`_confined_target_set` in close_work.py), asserted structurally by
 # `test_materialising_walk_carries_both_preflight_bounds` in the pack suite.
 EXPECTED_FILE_SAFETY_SHA256 = (
-    "a607d1baaafd902990fcb56823cf004752a40e9f3697373a74990d59a0d947e9"
+    "5f20833cbe3047b17c6f447c2cbb5fc38d3ca5a0d9dc431e1ac1a21780ad06bc"
 )
 
 
