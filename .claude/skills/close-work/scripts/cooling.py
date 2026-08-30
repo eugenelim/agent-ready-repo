@@ -172,7 +172,18 @@ def _is_locator(value: object) -> bool:
     return all(part not in {"", ".", ".."} for part in value.split("/"))
 
 
-def _is_one_of(value: object, options: "set[str] | frozenset[str]") -> bool:
+def _matches(pattern: re.Pattern[str], value: object) -> bool:
+    """Match untrusted text without coercing it.
+
+    `str()` on an unbounded int raises `ValueError` past CPython's digit limit,
+    and `str(1e999)` is `"inf"`, which `_STATUS_RE` and `_ROLE_RE` both accept —
+    so a coerced value could validate and then be persisted in a form that no
+    longer equals its source.
+    """
+    return isinstance(value, str) and pattern.fullmatch(value) is not None
+
+
+def _is_one_of(value: object, options: set[str] | frozenset[str]) -> bool:
     """Report membership without assuming the value is hashable.
 
     A persisted payload can carry a list or a dict where an enum string belongs,
@@ -240,9 +251,9 @@ def _authority_is_valid(value: object) -> bool:
     for fact in value.values():
         if not isinstance(fact, dict) or set(fact) - {"status", "evidence_ref"}:
             return False
-        if "status" not in fact or not _STATUS_RE.fullmatch(str(fact["status"])):
+        if "status" not in fact or not _matches(_STATUS_RE, fact["status"]):
             return False
-        if "evidence_ref" in fact and not _EVIDENCE_RE.fullmatch(str(fact["evidence_ref"])):
+        if "evidence_ref" in fact and not _matches(_EVIDENCE_RE, fact["evidence_ref"]):
             return False
     return True
 
@@ -259,11 +270,11 @@ def _exception_is_valid(value: object) -> bool:
     }
     return (
         _is_one_of(value["reason"], reasons)
-        and _ROLE_RE.fullmatch(str(value["owner_role"])) is not None
+        and _matches(_ROLE_RE, value["owner_role"])
         and _is_date(value["review_on"])
         and (
             "evidence_ref" not in value
-            or _EVIDENCE_RE.fullmatch(str(value["evidence_ref"])) is not None
+            or _matches(_EVIDENCE_RE, value["evidence_ref"])
         )
     )
 
@@ -279,8 +290,7 @@ def validate_payload(payload: object) -> CoolingResult:
     if payload["schema"] != "delivery-lifecycle-record.v1":
         return CoolingResult(code="record-invalid")
     if (
-        not isinstance(payload["delivery_id"], str)
-        or not _DELIVERY_ID_RE.fullmatch(payload["delivery_id"])
+        not _matches(_DELIVERY_ID_RE, payload["delivery_id"])
         or not _is_locator(payload["locator"])
     ):
         return CoolingResult(code="record-invalid")
@@ -292,8 +302,8 @@ def validate_payload(payload: object) -> CoolingResult:
     ):
         return CoolingResult(code="record-invalid")
     if (
-        not _DIGEST_RE.fullmatch(str(payload["fingerprint"]))
-        or not _DIGEST_RE.fullmatch(str(payload["confirmation_proof"]))
+        not _matches(_DIGEST_RE, payload["fingerprint"])
+        or not _matches(_DIGEST_RE, payload["confirmation_proof"])
     ):
         return CoolingResult(code="record-invalid")
     if (
@@ -306,7 +316,7 @@ def validate_payload(payload: object) -> CoolingResult:
         return CoolingResult(code="record-invalid")
     if (
         not _is_one_of(payload["completion_event"], {"merge", "release", "acceptance"})
-        or not _EVIDENCE_RE.fullmatch(str(payload["completion_evidence_ref"]))
+        or not _matches(_EVIDENCE_RE, payload["completion_evidence_ref"])
     ):
         return CoolingResult(code="record-invalid")
     if (
@@ -619,13 +629,21 @@ def _resolve_destination(root: Path, candidates: object) -> Path | str:
     """
     if not isinstance(candidates, (list, tuple)) or not candidates:
         return "destination-unconfirmed"
-    if not all(
-        any(
-            item.kind == "destination-selection" and item.status == "confirmed"
-            for item in candidate.confirmations
+    try:
+        confirmed = all(
+            any(
+                item.kind == "destination-selection" and item.status == "confirmed"
+                for item in candidate.confirmations
+            )
+            for candidate in candidates
         )
-        for candidate in candidates
-    ):
+    except (AttributeError, TypeError):
+        # The container was type-checked above; its elements were not. A caller
+        # can pass any object, and reaching into `.confirmations`, `.kind`, or
+        # `.status` on the wrong shape raised out of `enrol`, `review`, and
+        # `review_exception` with a traceback carrying absolute host paths.
+        return "destination-unconfirmed"
+    if not confirmed:
         return "destination-unconfirmed"
     close_work = _close_work()
     result = close_work.surface_resolver().resolve_surface(
@@ -789,6 +807,8 @@ def review(
     if not due.due:
         return CoolingResult(code="not-due", record=record)
     assert isinstance(checks, dict)
+    # Safe as a bare membership test only because `_review_is_complete` above
+    # already ran `_is_one_of` over these same values, so each is a str.
     if any(answer in {"refuse", "uncertain"} for answer in checks.values()):
         if not _exception_is_valid(exception):
             return CoolingResult(code="exception-envelope-invalid")
