@@ -821,7 +821,11 @@ def _surface_metadata(item: dict[str, Any]) -> dict[str, Any]:
     return metadata
 
 
-def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any] | None:
+def _canonical_status_projection(
+    engine: Any,
+    repo_root: Path,
+    cooled: frozenset[Path] | None,
+) -> dict[str, Any] | None:
     workspace_path = repo_root / "workspace.toml"
     try:
         workspace_path.lstat()
@@ -829,7 +833,11 @@ def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any]
             resolved = workspace_path.resolve()
             resolved.relative_to(repo_root.resolve())
         workspace = engine.parse_workspace(workspace_path)
-        canonical = engine.run_canonical_reconciliation(workspace, repo_root)
+        canonical = (
+            engine.run_canonical_reconciliation(workspace, repo_root, cooled)
+            if cooled is not None
+            else engine.run_canonical_reconciliation(workspace, repo_root)
+        )
     except tomllib.TOMLDecodeError as exc:
         _log.warning("workspace_status: canonical parse failed: %s", type(exc).__name__)
         return _canonical_failure_projection("invalid_workspace")
@@ -917,11 +925,21 @@ class _WorkspaceStatusTool:
                 **fsm_state,
             }
 
+        result = None
+        try:
+            result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
+        except Exception as exc:
+            _log.warning("workspace_status: analyze_bounded failed: %s", type(exc).__name__)
+
         ready_items: list[dict] = []
         blocked_items: list[dict] = []
         shaping_items: list[dict] = []
         active_items: list[dict] = []
-        canonical_projection = _canonical_status_projection(engine, repo_root)
+        canonical_projection = _canonical_status_projection(
+            engine,
+            repo_root,
+            getattr(result, "cooled", None),
+        )
         legacy_analysis_allowed = bool(
             canonical_projection.pop("_legacy_analysis_allowed", False)
         )
@@ -930,6 +948,8 @@ class _WorkspaceStatusTool:
             for finding in canonical_projection.get("findings", [])
         ):
             legacy_analysis_allowed = False
+        if not legacy_analysis_allowed:
+            result = None
 
         # Work queue items (ready / blocked)
         manifest = _LIFECYCLE_MANIFEST.get("work", {})
@@ -999,13 +1019,6 @@ class _WorkspaceStatusTool:
                 "required_pack": manifest.get("required_pack"),
                 **_surface_metadata(candidate),
             })
-
-        result = None
-        if legacy_analysis_allowed:
-            try:
-                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
-            except Exception as exc:
-                _log.warning("workspace_status: analyze_bounded failed: %s", type(exc).__name__)
 
         # Shaping items (ready + blocked, excluding signals)
         for cls in result.blocked_shaping if result is not None else []:

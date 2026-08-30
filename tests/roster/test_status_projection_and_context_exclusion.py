@@ -10,6 +10,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
+STATUS_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
+MCP_PATH = ROOT / "packages/agentbundle/agentbundle/workspace_mcp.py"
 CLOSE_WORK_SCRIPTS = ROOT / "packs/core/.apm/skills/close-work/scripts"
 PACKAGED_DATA = ROOT / "packages/agentbundle/agentbundle/_data"
 PACKAGED_CLOSURE = ("cooling.py", "close_work.py", "file_safety.py")
@@ -65,6 +67,63 @@ def _tree(tmp_path, *, records=(), specs=("alpha",), lifecycle=True):
         for record in records:
             (directory / f"{record['delivery_id']}.json").write_text(json.dumps(record), encoding="utf-8")
     return tmp_path
+
+
+def _spec(root: Path, slug: str, *, status: str = "Approved", brief: str = "none") -> None:
+    """Write a canonical spec and its sibling plan for a workspace fixture."""
+    directory = root / "docs/specs" / slug
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "spec.md").write_text(
+        f"# Spec: {slug}\n\n- **Status:** {status}\n- **Brief:** {brief}\n",
+        encoding="utf-8",
+    )
+    (directory / "plan.md").write_text("# Plan\n", encoding="utf-8")
+
+
+def _workspace(root: Path, *, queue: str, active: str = "", shipped: str = "") -> None:
+    """Write one active initiative using already-rendered TOML work entries."""
+    (root / "workspace.toml").write_text(
+        "[\"ini-002\"]\n"
+        "name = \"Cooling fixture\"\n"
+        "status = \"active\"\n"
+        "milestone = \"M1\"\n\n"
+        "[\"ini-002\".work]\n"
+        f"queue = [{queue}]\n"
+        f"active = [{active}]\n"
+        f"shipped = [{shipped}]\n\n"
+        "[\"ini-002\".shaping_queue]\n"
+        "active = []\n"
+        "backlog = []\n",
+        encoding="utf-8",
+    )
+
+
+def _entry(slug: str, *, needs: str = "[]") -> str:
+    """Return a canonical spec work-entry literal for fixture TOML."""
+    return (
+        '{path = "docs/specs/' + slug + '/spec.md", kind = "spec", '
+        'source = {mode = "repo-origin"}, summary = "fixture", needs = ' + needs + "}"
+    )
+
+
+def _load_status_module():
+    """Load the source CLI module with its source engine binding."""
+    spec = importlib.util.spec_from_file_location("wave6_status", STATUS_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        assert module._bind_engine()
+    finally:
+        sys.modules.pop(spec.name, None)
+    return module
+
+
+def _reconcile_json(root: Path, engine) -> dict:
+    """Build the reconcile projection from the source CLI and source engine."""
+    status = _load_status_module()
+    return status._build_json(root, engine.analyze(root), "reconcile")
 
 
 # STUB: AC1
@@ -278,3 +337,269 @@ def test_packaged_closure_opens_nothing_outside_itself() -> None:
             module.surface_resolver()
     finally:
         sys.modules.pop(spec.name, None)
+
+
+def test_cooled_body_never_reaches_the_output(tmp_path, engine) -> None:
+    """AC13: canonical dependency probes do not read cooled artifacts."""
+    needs = '[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]'
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha", brief="COOLSENTINEL42")
+        _spec(root, "beta")
+        _workspace(root, queue=_entry("beta", needs=needs))
+
+    control_json = _reconcile_json(control, engine)
+    cooled_json = _reconcile_json(cooled, engine)
+
+    assert "COOLSENTINEL42" in json.dumps(control_json)
+    assert "COOLSENTINEL42" not in json.dumps(cooled_json)
+
+
+def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> None:
+    """AC14: a cooled local spec dependency counts as satisfied."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _spec(root, "beta")
+    _workspace(
+        root,
+        queue=_entry(
+            "beta",
+            needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
+        ),
+    )
+
+    ready = _reconcile_json(root, engine)["canonical"]["ready"]
+    assert [item["path"] for item in ready] == ["docs/specs/beta/spec.md"]
+
+
+def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
+    """AC15: the global scan omits cooled, untracked specs."""
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha")
+        _workspace(root, queue="")
+
+    control_findings = _reconcile_json(control, engine)["reconciliation"]["type1"]
+    cooled_findings = _reconcile_json(cooled, engine)["reconciliation"]["type1"]
+    assert [item["spec_path"] for item in control_findings] == ["spec/alpha"]
+    assert all(item["spec_path"] != "spec/alpha" for item in cooled_findings)
+
+
+def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:
+    """AC16: the cooled Type 1 item is skipped before its read counter increments."""
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha")
+        _spec(root, "gamma")
+        _workspace(root, queue="")
+
+    control_json = _reconcile_json(control, engine)
+    cooled_json = _reconcile_json(cooled, engine)
+    assert (
+        cooled_json["scan"]["global_scan_spec_files_read"]
+        == control_json["scan"]["global_scan_spec_files_read"] - 1
+    )
+    assert [item["spec_path"] for item in cooled_json["reconciliation"]["type1"]] == ["spec/gamma"]
+
+
+def test_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
+    """AC17: canonical evaluation drops cooled entries before metadata reads."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    canonical = _reconcile_json(root, engine)["canonical"]
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["ready"])
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["evaluations"])
+
+
+def test_alias_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
+    """Mutation guard: aliases participate in canonical cooling selection."""
+    root = _tree(
+        tmp_path,
+        records=[_record(locator="docs/specs/retired/spec.md", aliases=["docs/specs/alpha/spec.md"])],
+        specs=(),
+    )
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    canonical = _reconcile_json(root, engine)["canonical"]
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["evaluations"])
+
+
+def test_declared_spec_counter_moves_by_exactly_one(tmp_path, engine) -> None:
+    """AC18: declared scans omit one cooled entry while retaining beta."""
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha")
+        _spec(root, "beta")
+        _workspace(root, queue=", ".join((_entry("alpha"), _entry("beta"))))
+
+    control_json = _reconcile_json(control, engine)
+    cooled_json = _reconcile_json(cooled, engine)
+    assert (
+        cooled_json["scan"]["declared_spec_files_read"]
+        == control_json["scan"]["declared_spec_files_read"] - 1
+    )
+
+
+def test_uncooled_sibling_still_dispatches(tmp_path, engine) -> None:
+    """AC19: cooling alpha does not suppress the uncooled beta sibling."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _spec(root, "beta")
+    _workspace(root, queue=", ".join((_entry("alpha"), _entry("beta"))))
+
+    ready = _reconcile_json(root, engine)["canonical"]["ready"]
+    assert [item["path"] for item in ready] == ["docs/specs/beta/spec.md"]
+
+
+def test_legacy_entry_is_excluded_identically(tmp_path, engine) -> None:
+    """AC20: legacy entries resolve to cooled files before declared scans read them."""
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha")
+        _spec(root, "beta")
+        _workspace(root, queue='"spec/alpha", ' + _entry("beta"))
+
+    control_json = _reconcile_json(control, engine)
+    cooled_json = _reconcile_json(cooled, engine)
+    assert (
+        cooled_json["scan"]["declared_spec_files_read"]
+        == control_json["scan"]["declared_spec_files_read"] - 1
+    )
+    assert [item["path"] for item in cooled_json["canonical"]["ready"]] == ["docs/specs/beta/spec.md"]
+
+
+def test_bounded_mode_excludes_identically(tmp_path, engine) -> None:
+    """AC21: status's bounded analysis carries the cooled set to canonical evaluation."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    status = _load_status_module()
+    data = status._build_json(root, engine.analyze_bounded(root), "status")
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["canonical"]["ready"])
+
+
+def test_mcp_surface_inherits_the_exclusion(tmp_path, engine, monkeypatch) -> None:
+    """AC22: the MCP status tool uses bounded analysis with cooling exclusion."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+    spec = importlib.util.spec_from_file_location("wave6_mcp", MCP_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+        monkeypatch.setattr(module, "_load_workspace_status_engine", lambda _: engine)
+        bridge = type("Bridge", (), {"get_fsm_state": lambda self: {}, "has_anchored_engine_state": lambda self: False})()
+        data = module._WorkspaceStatusTool(root, bridge).call()
+    finally:
+        sys.modules.pop(spec.name, None)
+
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["ready"])
+
+
+def test_explain_mode_excludes_too(tmp_path, engine) -> None:
+    """AC36: explain's canonical projection receives bounded cooling state."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    status = _load_status_module()
+    data = status._build_explain_json(root, engine.analyze_bounded(root), "alpha", {})
+    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["canonical"]["evaluations"])
+
+
+def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
+    """AC55: a structural block beats local-spec cooling satisfaction."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    dependency = engine.Dependency(
+        type="local",
+        kind="spec",
+        path="docs/specs/alpha/spec.md",
+    )
+    satisfied, finding = engine._dependency_is_satisfied(
+        dependency,
+        {},
+        {},
+        {dependency.path},
+        root,
+        engine._resolve_cooled_state(root)[0],
+    )
+    assert not satisfied
+    assert finding is not None and finding.code == "unsatisfied_dependency"
+
+
+def test_cooling_satisfies_only_local_spec_dependencies(tmp_path, engine) -> None:
+    """AC56: a cooled defect still requires backlog.closed membership."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _spec(root, "beta")
+    dependency = '[{type = "local", kind = "defect", path = "docs/specs/alpha/spec.md"}]'
+    _workspace(root, queue=_entry("beta", needs=dependency))
+
+    ready = _reconcile_json(root, engine)["canonical"]["ready"]
+    assert all(item["path"] != "docs/specs/beta/spec.md" for item in ready)
+
+
+def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monkeypatch) -> None:
+    """Mutation guard: the defect probe avoids cooled artifact metadata reads."""
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    for root in (control, cooled):
+        _spec(root, "alpha")
+        _spec(root, "beta")
+        _workspace(
+            root,
+            queue=_entry(
+                "beta",
+                needs='[{type = "local", kind = "defect", path = "docs/specs/alpha/spec.md"}]',
+            ),
+        )
+    real = engine._metadata_from_root
+    seen: list[str] = []
+
+    def probe(root_arg, entry):
+        """Record the synthetic dependency target before its metadata is read."""
+        if entry.path == "docs/specs/alpha/spec.md":
+            seen.append(entry.path)
+        return real(root_arg, entry)
+
+    monkeypatch.setattr(engine, "_metadata_from_root", probe)
+    engine.run_canonical_reconciliation(
+        engine.parse_workspace(control / "workspace.toml"), control
+    )
+    assert seen == ["docs/specs/alpha/spec.md"]
+    seen.clear()
+    engine.run_canonical_reconciliation(
+        engine.parse_workspace(cooled / "workspace.toml"),
+        cooled,
+        engine._resolve_cooled_state(cooled)[0],
+    )
+    assert seen == []
+
+
+def test_alias_declared_dependency_does_not_read_its_body(tmp_path, engine) -> None:
+    """Mutation guard: dependency cooling compares resolved artifact paths."""
+    root = _tree(tmp_path, records=[_record(locator="docs/specs/alias-alpha/spec.md")], specs=())
+    _spec(root, "alpha", brief="COOLSENTINEL42")
+    (root / "docs/specs/alias-alpha").symlink_to(root / "docs/specs/alpha", target_is_directory=True)
+    _spec(root, "beta")
+    _workspace(
+        root,
+        queue=_entry(
+            "beta",
+            needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
+        ),
+    )
+
+    assert "COOLSENTINEL42" not in json.dumps(_reconcile_json(root, engine))

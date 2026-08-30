@@ -489,6 +489,8 @@ class WorkspaceStatusResult:
     global_scan_performed: bool = dataclasses.field(default=False)
     declared_spec_files_read: int = dataclasses.field(default=0)
     global_scan_files_read: int = dataclasses.field(default=0)
+    cooled: frozenset[Path] = dataclasses.field(default_factory=frozenset)
+    cooling_findings: tuple[RoutingFinding, ...] = ()
 
     @property
     def files_read(self) -> int:
@@ -2486,6 +2488,7 @@ def _dependency_is_satisfied(
     by_path: dict[str, list[WorkspaceMembership]],
     structurally_blocked_paths: set[str],
     root: Path | None,
+    cooled: frozenset[Path],
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
@@ -2495,9 +2498,18 @@ def _dependency_is_satisfied(
     matches = by_path.get(dep.path, [])
     if matches and not any(match.entry.kind == dep.kind for match in matches):
         return False, _finding("unsatisfied_dependency", dep.path, "dependency kind mismatch")
+    cooled_dependency = (
+        dep.type == "local"
+        and root is not None
+        and _confined_artifact_path(root, dep.path) in cooled
+    )
     if dep.kind == "defect" and not any(
         match.collection == "backlog.closed" for match in matches
     ):
+        if cooled_dependency:
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "defect lacks closed membership"
+            )
         probe = WorkspaceEntry(
             path=dep.path,
             kind=dep.kind,
@@ -2514,6 +2526,8 @@ def _dependency_is_satisfied(
         return False, _finding(
             "unsatisfied_dependency", dep.path, "defect lacks closed membership"
         )
+    if dep.kind == "spec" and cooled_dependency:
+        return True, None
     if matches:
         metadata = _artifact_metadata(workspace, matches[0].entry, root)
     else:
@@ -2884,6 +2898,7 @@ def evaluate_dispatch(
     brief_child_states: dict[str, set[str]],
     global_invalid_workspace: bool = False,
     root: Path | None = None,
+    cooled: frozenset[Path] = frozenset(),
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership."""
     entry = membership.entry
@@ -2930,6 +2945,7 @@ def evaluate_dispatch(
             by_path,
             structurally_blocked_paths,
             root,
+            cooled,
         )
         if not satisfied and finding is not None:
             findings.append(finding)
@@ -2960,6 +2976,7 @@ def evaluate_dispatch(
 def run_canonical_reconciliation(
     workspace: dict,
     root: Path | None = None,
+    cooled: frozenset[Path] = frozenset(),
 ) -> CanonicalWorkspaceResult:
     """Parse target entries and evaluate T2 canonical findings without projection changes."""
     (
@@ -2968,6 +2985,17 @@ def run_canonical_reconciliation(
         parse_findings,
         parse_blocked_path_counts,
     ) = _extract_canonical_memberships(workspace)
+    if root is not None:
+        memberships = [
+            membership
+            for membership in memberships
+            if _confined_artifact_path(root, membership.entry.path or "") not in cooled
+        ]
+        legacy_memberships = [
+            membership
+            for membership in legacy_memberships
+            if _confined_artifact_path(root, membership.entry.path) not in cooled
+        ]
     parse_blocked_paths = set(parse_blocked_path_counts)
     local_memberships = [
         membership for membership in memberships if membership.entry.path is not None
@@ -3047,6 +3075,7 @@ def run_canonical_reconciliation(
             brief_child_states,
             global_invalid_workspace,
             root,
+            cooled,
         )
         for membership in memberships
     ]
@@ -3521,6 +3550,7 @@ def classify_shaping_entries(
 def _run_type1_scan(
     root: Path,
     all_tracked: set[str],
+    cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
     """Type 1: Forward scan — untracked live specs. Returns (findings, files_read).
 
@@ -3593,6 +3623,8 @@ def _run_type1_scan(
             slug_path = Path(slug)
             if slug_path.is_absolute() or ".." in slug_path.parts:
                 continue
+            if _current_resolved / "spec.md" in cooled:
+                continue
             files_read += 1
             status = extract_spec_status(spec_file)
             if status not in ("Approved", "Implementing"):
@@ -3613,6 +3645,7 @@ def _run_type1_scan(
 def _run_type23_scan(
     root: Path,
     initiatives: list[Initiative],
+    cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
     """Type 2 + 3: Backward and shipped scans. Returns (findings, files_read).
 
@@ -3628,6 +3661,8 @@ def _run_type23_scan(
         for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
             for entry in entries:
                 spec_file = _safe_spec_path(root, entry.slug)
+                if spec_file in cooled:
+                    continue
                 if spec_file is None or not spec_file.exists():
                     continue
                 files_read += 1
@@ -3645,6 +3680,8 @@ def _run_type23_scan(
     for ini in initiatives:
         for entry in ini.work.shipped:
             spec_file = _safe_spec_path(root, entry.slug)
+            if spec_file in cooled:
+                continue
             if spec_file is None or not spec_file.exists():
                 continue
             files_read += 1
@@ -3664,6 +3701,7 @@ def _run_type23_scan(
 def run_reconciliation(
     root: Path,
     initiatives: list[Initiative],
+    cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
     """Run all three reconciliation scan types. Returns (findings, files_read)."""
     all_tracked: set[str] = set()
@@ -3671,8 +3709,8 @@ def run_reconciliation(
         for e in ini.work.queue + ini.work.active + ini.work.shipped:
             all_tracked.add(e.path)
 
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked)
-    type23_findings, type23_files = _run_type23_scan(root, initiatives)
+    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
+    type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
     return type1_findings + type23_findings, type1_files + type23_files
 
 
@@ -3693,6 +3731,7 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
     should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
+    cooled, cooling_findings = _resolve_cooled_state(root)
 
     workspace_path = root / "workspace.toml"
     if workspace_bytes is not None:
@@ -3716,8 +3755,8 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
             all_tracked.add(e.path)
 
     # Call helpers directly (not via run_reconciliation) to obtain split file counts
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked)
-    type23_findings, type23_files = _run_type23_scan(root, initiatives)
+    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
+    type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
     reconciliation = type1_findings + type23_findings
 
     top_level_backlog = extract_top_level_backlog(workspace)
@@ -3735,6 +3774,8 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
         global_scan_performed=True,
         declared_spec_files_read=type23_files,
         global_scan_files_read=type1_files,
+        cooled=cooled,
+        cooling_findings=cooling_findings,
     )
 
 
@@ -3749,6 +3790,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
     is_need_satisfied and SKILL.md §2). workspace_status() passes autonomous_dispatch=True.
     """
     t0 = time.monotonic()
+    cooled, cooling_findings = _resolve_cooled_state(root)
 
     workspace_path = root / "workspace.toml"
     workspace = parse_workspace(workspace_path)
@@ -3762,7 +3804,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
         all_classifications.extend(classify_entries(ini, initiatives, autonomous_dispatch))
         all_shaping.extend(classify_shaping_entries(ini, initiatives, autonomous_dispatch))
 
-    type23_findings, declared_files = _run_type23_scan(root, initiatives)
+    type23_findings, declared_files = _run_type23_scan(root, initiatives, cooled)
     top_level_backlog = extract_top_level_backlog(workspace)
     repo_backlog = extract_repo_backlog(workspace)
 
@@ -3778,6 +3820,8 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
         global_scan_performed=False,
         declared_spec_files_read=declared_files,
         global_scan_files_read=0,
+        cooled=cooled,
+        cooling_findings=cooling_findings,
     )
 
 
