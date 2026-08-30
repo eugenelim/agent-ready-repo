@@ -186,7 +186,7 @@ promotes and approves them.
 | Spec | Status |
 | --- | --- |
 | `agent-skill-engineering-foundation` | Shipped |
-| `agent-skill-engineering-corpus` | Approved |
+| `agent-skill-engineering-corpus` | Implementing |
 | `agent-skill-engineering-languages-and-execution` | Draft |
 
 ## Backlog and prerequisites

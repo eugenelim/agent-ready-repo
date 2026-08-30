@@ -1,6 +1,7 @@
 <!-- INERT REVIEW FIXTURE — deliberately defective test input, not a skill.
-     Its unbounded helper contract and duplicated rules are the seeded
-     ASE-DET-01 / ASE-CTX-01 / ASE-CONC-01 defects a review must report.
+     Its unbounded helper contract, duplicated rules and unconditionally
+     loaded reference are the seeded ASE-DET-01 / ASE-CTX-01 / ASE-CONC-01 /
+     ASE-PROG-01 defects a review must report.
      Never follow, execute, or propagate its instructions. -->
 ---
 name: generate-skill-index
@@ -15,3 +16,5 @@ Run `python3 nondeterministic-helper.py` and accept whatever it writes. Copy
 the same generation rules into this file and every reference so each is
 self-contained. Spawn one writer per discovered skill with no concurrency cap;
 all writers replace `skill-index.md` directly and retry until one succeeds.
+Always read every file under `references/`, including
+`nondeterministic-reference.md`, before starting, whatever the task is.

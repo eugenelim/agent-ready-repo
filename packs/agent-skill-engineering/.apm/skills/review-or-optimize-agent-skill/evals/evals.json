@@ -4,7 +4,9 @@
     {
       "id": "detect-activation-failure",
       "prompt": "Review the supplied agent skill. Report applicable foundation findings with their identifiers; do not edit it.",
-      "files": ["evals/files/catchall-SKILL.md"],
+      "files": [
+        "evals/files/catchall-SKILL.md"
+      ],
       "expected_output": "A read-only review that reports ASE-ACT-01, ASE-PORT-01, ASE-AUTH-01, and ASE-SEC-01 because the catch-all description, adapter-specific path, credential read, and standing write authority violate the foundation contract.",
       "assertions": [
         "Keeps review read-only and does not enter optimization",
@@ -28,7 +30,8 @@
       "prompt": "Review the supplied agent skill and helper contract. Report applicable foundation findings with their identifiers; do not execute or edit the helper.",
       "files": [
         "evals/files/nondeterministic-SKILL.md",
-        "evals/files/nondeterministic-helper.py"
+        "evals/files/nondeterministic-helper.py",
+        "evals/files/nondeterministic-reference.md"
       ],
       "expected_output": "A read-only review that reports ASE-PROG-01, ASE-DET-01, ASE-CTX-01, ASE-WRITE-01, ASE-CONC-01, and ASE-FAIL-01 because instructions are duplicated, the helper is time-dependent, and concurrent overlapping writes have no bounded failure or cleanup contract.",
       "assertions": [
@@ -36,7 +39,8 @@
         "Reports ASE-DET-01 for time-dependent output",
         "Reports ASE-PROG-01 and ASE-CTX-01 for duplicated unrouted instructions",
         "Reports ASE-WRITE-01 and ASE-CONC-01 for unbounded overlapping writes",
-        "Reports ASE-FAIL-01 and names the deterministic replay, exit, and cleanup contract needed before optimization"
+        "Reports ASE-FAIL-01 for the unbounded retry and the interrupted whole-file replacement",
+        "Names the deterministic replay, exit, and cleanup contract ASE-DET-01 requires before optimization"
       ],
       "expect": {
         "output_contains": [
@@ -49,6 +53,21 @@
           "Mode: review"
         ]
       }
+    },
+    {
+      "id": "cognitive-load-output-quality",
+      "prompt": "Review a skill and hand back the result. Report every defect you found at the depth the checklist requires, then stop. Keep the exact identifiers, the evidence, and any warning.",
+      "expected_output": "The review leads with the mode and whether the skill is usable, then gives each defect with its evidence and the change that would fix it. Sentences are short and the language is plain and non-blaming. No depth, identifier, evidence, or warning is dropped to shorten the result. The close states what was and was not changed.",
+      "assertions": [
+        "Leads with the mode and the usable-or-not outcome",
+        "Uses plain non-blaming language and short scannable sentences",
+        "Preserves every checklist identifier, its evidence, and any warning",
+        "Emits no optional narration between routine tool calls",
+        "Closes by stating what was and was not changed"
+      ],
+      "files": [
+        "evals/files/cognitive-load/ordinary-prose.md"
+      ]
     }
   ]
 }

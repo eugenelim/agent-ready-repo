@@ -16,6 +16,8 @@ attribution, and who attributed it. Nothing observed is dropped.
 | Four `packs/agent-skill-engineering/tests` failures — `test_independent_router_results_meet_precision_and_recall_gate`, `test_independent_activation_results_bind_all_queries_and_descriptions`, and `test_contract.py`'s two authoring-behaviour tests | `python3 -m pytest packs/agent-skill-engineering/tests -q` → 106 passed | `inherited`, **now cleared**. Caused upstream by `c7ed3f910`, which added an eval case without moving its assertions and rewrote three `SKILL.md` files, invalidating recorded digests. Main resolved it; a rebase brought the fix. | Claude, this session |
 | `gate-main`, `Caps enforcer self-test`, and `make build-check` (CI) | `python3 tools/lint-pack-test-boundary.py` → `ok [pack-tests-stay-in-pack]` | `caused-here`, **fixed**. `test_corpus_admission.py` joined a fixture-supplied name onto a path, which the boundary linter cannot prove stays in-pack. Resolved by globbing each root and indexing by stem. `make build-check` aggregates `gate-main`; one defect, three red checks. | Claude, this session |
 | Three ruff errors in this slice's test modules | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Extraneous blank lines. Found by CI, not locally: the pack suite and both boundary linters were run after every edit, `make lint-ruff` was not, though it is in the documented command set. | Claude, this session |
+| `lint-brief-coverage` in `gate-main`, and `make build-check` which aggregates it | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .` → 3 briefs checked, exit 0 | `caused-here`, **fixed**. Moving the spec's Status from `Approved` to `Implementing` left the brief's auto-derived Spec map stale, and the rollup is fail-closed. Fixed by rolling the row up and re-pinning the brief digest in both workspace registrations, since the brief's sha256 is their `source.revision`. Seen on CI at `f2281d6be`, not locally: the build chain stops at this lint before reaching the pack suites. | Claude, this session |
+| `tools/test_check_output_readability.py::test_each_publishable_pack_has_a_passing_readability_fixture` | `python3 -m pytest tools/test_check_output_readability.py -q` → 37 passed | `caused-here`, **fixed**. Every publishable pack must ship a `cognitive-load-*` eval scenario and this pack shipped none; the same test's pack ledger also read 21 against 22 packs. Fixed by seeding the review skill's readability corpus and correcting the count. | Claude, this session |
 
 Routing: the two guides ledger failures are routed against the existing
 `[backlog].open` entry `guide-blockquote-ledger-has-no-regenerator`
@@ -51,7 +53,8 @@ fidelity `observed+attested`, provenance `operator-attested`. Author cases at
 iteration 2, review cases at iteration 4.
 
 Eight durable results: six authoring, two review. **Twenty-three of twenty-four
-authoring assertions and all ten review assertions hold.**
+authoring assertions and ten of eleven review assertions hold.** Author cases
+sit at iteration 2, review cases at iteration 5.
 
 Execution and attestation were held apart from authoring. One context read only
 each skill's `SKILL.md` and the prompts — markers, assertions, expected output,
@@ -141,6 +144,143 @@ attested by a named context, not computable from the fixture. That is the seam
 the RFC-0097 erratum establishes — form checked mechanically, soundness by a
 named judge — and it is stated here rather than implied.
 
+### The re-measured review round, and its second recorded miss
+
+Both review cases were re-taken blind against the corrected case. Execution and
+adjudication were held in separate contexts, and the adjudicating one was told a
+clean sheet would make its judgement suspect.
+
+| Case | Reported | Sustained | Declared | Assertions |
+| --- | --- | --- | --- | --- |
+| `detect-activation-failure` | 6 | 5 | 4 | 5 of 5 |
+| `detect-script-contract-failure` | 9 | 9 | 6 | 5 of 6 |
+
+Containment holds in both directions that matter: every declared identifier was
+reported, and every reported one is a checklist identifier the skill defines.
+`ASE-PROG-01` is now sustained on its own evidence — the seeded reference is
+loaded "whatever the task is" and duplicates its caller's rules — which is what
+the seeding was for.
+
+**The one over-report.** `ASE-WRITE-01` on the activation candidate was ruled
+over-reported in both rounds for the same reason: the identifier's subject is
+*conflicting* writes, and that candidate has one writer, one pass, and no
+fan-out, so there is no overlap for a serialization or refusal rule to attach
+to. Its real gap — unbounded, unauthorized write scope — is the same clause
+already charged under `ASE-AUTH-01`. The adjudicator recorded this as the
+closest call on the sheet, since the checklist entry bundles "write sets are
+explicit" with "safe under overlap" under one title, and the candidate does
+violate the first. The ambiguity is in the checklist, not only in the output.
+
+**The recorded miss.** Assertion 6 measured **false**. It asks the review to
+name the replay, exit, and cleanup contract `ASE-DET-01` requires. Two of three
+limbs were met — the response prescribed injected-input determinism and distinct
+exit classes, as things that should hold rather than as absences — and cleanup
+was never returned to: neither prescribed nor disposed of as vacuous, which it
+arguably is, since the helper writes no file. It is recorded as measured rather
+than reworded, and `test_contract.py` names the exact `(case, index)` pair, so a
+different miss still reddens while this one does not read as a pass. A case
+carrying a known miss must also record `assertions_ok` and `passed` as False;
+exempting those instead would let a re-record claim a clean pass for a run that
+missed.
+
+**A premise that had to be withdrawn.** The adjudicator's first ruling on
+assertion 6 carried a second ground — that the review output contained no
+smallest-safe-response element at all, making it non-conformant to the skill's
+step 5. That was an artefact of how the outputs were summarised for grading, not
+a property of the output; every one of its nine findings carries the clause. Put
+to the adjudicator with the verbatim text, it struck that ground and re-ruled on
+the cleanup limb alone. The verdict survived the correction; the reason for it
+did not, and a verdict resting on a briefing error is not evidence.
+
+**A gap this sheet cannot close.** No assertion on the activation case touches
+`ASE-WRITE-01` or `ASE-FAIL-01`, and nothing anywhere penalises over-reporting,
+so a padded finding list can still score 5 of 5. The `CHECKLIST_IDS` bound stops
+padding with invented identifiers but not with real ones the candidate does not
+exhibit. Closing it needs an assertion of the form "reports no identifier the
+candidate does not exhibit", which is a new declaration and therefore a new
+measurement. Recorded, not taken here.
+
+## Where the readability corpus was placed, and what it cost
+
+Every publishable pack must ship a `cognitive-load-*` eval scenario whose
+markdown seeds the repository's readability gate. Three placements were
+possible and none was free:
+
+| Placement | Cost |
+| --- | --- |
+| `ase-okf-reference` | Free — no recorded result pins its `evals/evals.json`. Rejected: the skill declares it "answers no user request, performs no user task", so an output-quality scenario there contradicts its own contract |
+| `author-or-update-agent-skill` | Six graded results pin that file's digest; all six would need re-measuring |
+| `review-or-optimize-agent-skill` | Two graded results pin it. **Chosen** |
+
+The digest pin is whole-file, so appending a third, unrelated scenario moved it
+even though the two graded cases' prompts, assertions and candidate files are
+byte-identical. Re-stamping the new digest onto the old observations was
+available and was not taken: it is the same back-filling the retrieval
+re-measurement above refused. The evidence was re-taken instead.
+
+The new scenario is deliberately ungraded. It declares `assertions` but no
+`expect.output_contains`, because a declared marker that no recorded result
+attests is precisely the circular derivation this pack has already had to
+remove twice. It is listed in `REVIEW_READABILITY_FILES` rather than
+`REVIEW_EVAL_FILES` for the same reason: every member of the latter is
+parametrized into the digest test, which would demand a recorded result that
+should not exist.
+
+## What re-measuring the review cases exposed
+
+Re-taking the two graded review measurements did not reproduce the recorded
+result, and the discrepancies were defects in the eval rather than in the skill.
+Three were found and all three are fixed.
+
+**The eval declared a defect its candidate did not contain.** `ASE-PROG-01` was
+declared in `expect.output_contains` and in the seeded set, but the candidate
+shipped no references, so there was no reference-without-a-caller and no
+eagerly-loaded reference to observe. The fixture's own header agreed: it named
+`ASE-DET-01 / ASE-CTX-01 / ASE-CONC-01` and never claimed `ASE-PROG-01`. Closed
+by seeding the defect for real — the candidate now carries a reference that
+restates its caller's rules and is loaded unconditionally — rather than by
+deleting the declaration to match the observation.
+
+**One assertion rewarded padding.** `Reports ASE-PROG-01 and ASE-CTX-01 for
+duplicated unrouted instructions` demanded two identifiers off a single
+sentence, and the adjudicating context named it the direct cause of the run's
+one over-report: as written it could not distinguish a correct review from a
+padded one. It is now satisfiable honestly because the second identifier has
+its own evidence.
+
+**One assertion straddled two identifiers.** `Reports ASE-FAIL-01 and names the
+deterministic replay, exit, and cleanup contract needed before optimization` was
+four conjuncts scored as one boolean, three of which belong to `ASE-DET-01`
+rather than the `ASE-FAIL-01` it cites. Split along that seam, so a failure now
+says which half failed.
+
+### The recorded contract was stricter than the check it records
+
+The per-result assertion required `actual_findings` to *equal* the declared
+markers. But `expect.output_contains` is graded by the runner as a substring
+check, so it declares a floor, and the equality made a review that finds a real
+defect beyond the seeded set into a failure. It is now containment, bounded
+above by the identifiers the shipped checklist actually defines — derived from
+`review-checklist.md` at test time rather than restated, so retiring a check
+cannot leave the bound describing a vocabulary the skill no longer has. The
+floor therefore cannot be padded with invented identifiers.
+
+### An answer key inside the artifact under review
+
+Both candidates open with an `INERT REVIEW FIXTURE` comment that names the
+seeded identifiers. It earns its place — it is what stops an agent treating a
+deliberately defective fixture as instructions — but it also puts part of the
+expected answer inside the material being reviewed, and a review could score
+well by reading it rather than by applying the checklist. Two independent
+contexts reported handling it correctly: the executing one said it ran the full
+checklist first and neither removed findings to match the header nor added any
+because of it, and the adjudicating one confirmed neither output cited the
+comment as authority, noting that treating it as authority would itself be an
+`ASE-SEC-01` failure by the reviewer. Both runs returned more identifiers than
+the header names, which is the evidence that neither anchored on it. Recorded as
+a known weakness of the fixture design, not repaired here: removing the header
+would trade a measurement risk for a safety one.
+
 ## Skill-contract ambiguities observed during execution
 
 Surfaced by the executing contexts, unresolved and not blocking:
@@ -175,8 +315,9 @@ Surfaced by the executing contexts, unresolved and not blocking:
 | Activation | `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode headless --runs 1` | iteration 5: 18/18, zero errors, zero exclusivity violations |
 | Catalogue verify | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue verify --root .` | ok |
 | Catalogue deep lint | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue lint --root . --deep` | ok, 70 informational findings |
-| Brief coverage | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py` | 3 briefs checked, exit 0 |
-| Workspace reconciliation | `run_canonical_reconciliation` over `workspace.toml` | `provenance_mismatch` 0, `impossible_transition` 1 (the pre-existing ini-002 brief), `unsatisfied_dependency` 9 at its approved ceiling |
+| Brief coverage | `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .` | 3 briefs checked, exit 0 |
+| Output readability | `python3 -m pytest tools/test_check_output_readability.py -q` | 37 passed |
+| Workspace reconciliation | `python3 -m pytest tests/roster/test_workspace_status_projection.py -q` | 26 passed, 12 subtests passed |
 | Projection parity | `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --check` | ok |
 
 The `PYTHONPATH` prefix is load-bearing. A bare `python3 -m agentbundle`
@@ -191,3 +332,12 @@ phantom findings.
 The reconciliation row is the gate that was missing when this record was first
 written, and its absence is why two non-canonical registrations and a spec
 status defect reached code review.
+
+That row previously named `run_canonical_reconciliation` over `workspace.toml`
+and reported three counts. It is corrected here because the invocation does not
+reproduce: `agentbundle` exposes no `workspace-status` command, and calling the
+internal directly with a parsed table skips path resolution, which reports 28
+`missing_artifact` and 12 `provenance_mismatch` findings that do not exist. The
+projection test is the instrument that actually owns the ratchet, so it is what
+the row now names. The counts it replaced were not re-derivable from anything
+committed.
