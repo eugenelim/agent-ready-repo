@@ -112,8 +112,9 @@ not edit `state.json` or invoke `git worktree` directly.
    `{task_id, branch, path, status: "in-progress", report_path: null}`
    entry to `state.json.worktrees`, atomically.
 
-2. **Dispatch implementers in parallel** per the parallel-dispatch
-   discipline (see parent SKILL body). Each brief includes: the task
+2. **Dispatch implementers in parallel** per the
+   [parallel-dispatch discipline](#parallel-dispatch-discipline) below.
+   Each brief includes: the task
    ID, the plan-task body, the worktree path, paths to the spec +
    plan, and an explicit **bundled-fixes authorization line** —
    "Bundled fixes authorized per the carve-out in `work-loop/SKILL.md`

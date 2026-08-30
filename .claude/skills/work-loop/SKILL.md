@@ -593,7 +593,7 @@ python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave
 # Re-run GATES → fire gates-clean or gates-failed → re-enter REVIEW.
 ```
 
-**Dispatch multiple reviewers in parallel** per the [Parallel dispatch discipline](#parallel-dispatch-discipline), but adjudicate each completed report independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), but adjudicate each completed report independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
