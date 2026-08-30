@@ -52,6 +52,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [agent-skill-engineering][0.2.0] — 2026-08-30
+
+### Highlights
+
+- **The authoring workflow now offers a `knowledge-provider` mode, and the
+  corpus behind it will not answer a question it has no evidence for.** Four
+  topics were admitted out of seventeen candidates, because admission requires
+  two observations at distinct skill paths in distinct packs and measured
+  retrieval that selects the topic alone. The other thirteen are recorded as
+  absent with the reason and what would admit them, so a reader can tell an
+  unevidenced subject from an overlooked one.
+
+### Added
+
+- `knowledge-provider` joins `frame`, `create`, and `update` as an advertised
+  authoring mode. Entry is read-only and carries no write authority; a write
+  waits for its own explicit authorization. Four mode-specific modules ship with
+  it: the provider pattern, provenance, retrieval evaluation, and security
+  boundaries.
+- The reference corpus grows from three topics to seven, each declaring the
+  basis its claims rest on and, for observed practice, the population it was
+  drawn from and a statement that it is not established beyond it.
+- A register of the twenty-nine taxonomy leaves the corpus does not carry, each
+  with why it is absent and what would admit it.
+- A fixed forty-prompt generic-engineering negative set, measured against the
+  corpus so precision can be falsified rather than assumed.
+
+### Changed
+
+- Both workflow skills now specify the receipt lines they are graded on. The
+  mode and write status were previously required by the evaluation fixtures and
+  instructed nowhere in the skills, so the recorded evidence could not be
+  reproduced by an agent that did not already know the expected answer.
+- `update` mode names the work being done rather than doubling as the write
+  gate; the receipt's write status carries whether a write is authorized. Under
+  the previous wording, read-only planning for an update had no mode to report.
+
+### Fixed
+
+- Retrieval no longer returns a topic body for a request to consult, query, or
+  invoke a knowledge provider. Those are not design questions, and answering
+  them is how a governed corpus becomes an encyclopedia.
 ## [core][2.16.1] — 2026-08-30
 
 ### Fixed

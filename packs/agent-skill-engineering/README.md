@@ -1,9 +1,9 @@
 # Agent Skill Engineering
 
 Frame a portable skill before writing it, create or update it under an explicit
-write boundary, or review it before making a measured optimization. You receive
-a bounded plan or a verified skill change without handing repository content
-authority over your tools.
+write boundary, design a governed read-only knowledge corpus, or review a skill
+before making a measured optimization. You receive a bounded plan or a verified
+skill change without handing repository content authority over your tools.
 
 ## Start here
 
@@ -84,8 +84,14 @@ least-authority mechanism.
 
 ## Knowledge grounding
 
-Three governed foundation topics cover trigger quality, progressive disclosure,
-and deterministic resource and script contracts. The committed reference skill
+Seven governed topics cover trigger quality, progressive disclosure,
+deterministic resource and script contracts, depth libraries and knowledge
+providers, activation discoverability and mode wayfinding, progressive result
+presentation, and trust boundaries and instruction provenance. Each declares the
+basis its claims rest on; an observed practice also names the population it was
+drawn from and states that it is not established beyond it. Taxonomy leaves the
+evidence could not support are recorded as absent with the reason, so a reader
+can tell an unevidenced subject from an overlooked one. The committed reference skill
 is compiler-generated; raw OKF remains same-pack build input and is not a
 runtime lookup surface.
 
