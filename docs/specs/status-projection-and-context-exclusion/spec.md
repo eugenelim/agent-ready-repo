@@ -439,6 +439,19 @@ absent in whitespace-normalized text.
   declaring a dependency that is both named by a `Cooling` record and present in
   `structurally_blocked_paths` is absent from `canonical.ready`, and
   `canonical.findings` carries an `unsatisfied_dependency` entry for that path.
-- [ ] **AC56 — Cooling satisfies only local spec dependencies.** A queued spec
-  declaring a `defect`-kind dependency named by a `Cooling` record, with no
-  `backlog.closed` membership, is absent from `canonical.ready`.
+- [ ] **AC56 — Cooling never satisfies an unclosed defect dependency.** A queued
+  spec declaring a `defect`-kind dependency named by a `Cooling` record, with no
+  `backlog.closed` membership, is absent from `canonical.ready`. A cooled
+  dependency is otherwise satisfied from its lifecycle record whatever its kind,
+  so the defect gate is the closed membership and never the kind alone.
+- [ ] **AC57 — A cooled cross-repo dependency is refused without a read.** A
+  queued spec declaring a `cross-repo` dependency whose `containing_brief` is
+  named by a `Cooling` record is absent from `canonical.ready`, and
+  `canonical.findings` carries an `unsatisfied_dependency` entry for that path.
+  Without the record the same fixture reports `invalid_receipt`, a code only
+  `_cross_repo_receipt_satisfied` emits, and that function is not entered on the
+  cooled run. Absence of the brief from disk is not evidence here: an
+  unresolvable locator also leaves the cooled set. The lifecycle record
+  cannot satisfy this dependency: its evidence is the four-field receipt match
+  carried in the brief body, and projecting that receipt is deferred to Wave 7
+  by `wave6-dependency-scoped-completion-receipts`.

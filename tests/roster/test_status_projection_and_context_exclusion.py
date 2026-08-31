@@ -547,7 +547,7 @@ def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
     assert finding is not None and finding.code == "unsatisfied_dependency"
 
 
-def test_cooling_satisfies_only_local_spec_dependencies(tmp_path, engine) -> None:
+def test_cooling_never_satisfies_an_unclosed_defect_dependency(tmp_path, engine) -> None:
     """AC56: a cooled defect still requires backlog.closed membership."""
     root = _tree(tmp_path, records=[_record()], specs=())
     _spec(root, "alpha")
@@ -558,17 +558,90 @@ def test_cooling_satisfies_only_local_spec_dependencies(tmp_path, engine) -> Non
     ready = _reconcile_json(root, engine)["canonical"]["ready"]
     assert all(item["path"] != "docs/specs/beta/spec.md" for item in ready)
 
-    # Scope note, measured 2026-08-30. This criterion proves the defect half:
-    # deleting the defect branch's `cooled_dependency` refusal reddens
-    # test_cooled_defect_dependency_does_not_read_its_body. It cannot prove the
-    # `dep.kind == "spec"` restriction on the later line, because a defect is
-    # caught by its own branch first, and the four remaining
-    # WORKSPACE_ARTIFACT_KINDS are refused downstream by
-    # _dependency_metadata_safety_finding (invalid_artifact_path) whether cooled
-    # or not -- verified by running a cooled and an uncooled brief-kind
-    # dependency, both yielding ready == []. The restriction is therefore
-    # correct defence-in-depth with no observable removal, and a fixture
-    # contrived to kill it would pass for the wrong reason.
+    # The gate is the closed membership, not the kind. Deleting the defect
+    # branch's `cooled_dependency` refusal reddens this criterion and
+    # test_cooled_defect_dependency_does_not_read_its_body.
+
+
+def _cross_repo_fixture(root: Path, *, cooled: bool, brief_on_disk: bool = True) -> Path:
+    """Build a queued spec needing a cross-repo receipt carried by a brief."""
+    _spec(root, "beta")
+    brief = root / "docs/product/briefs/gamma.md"
+    brief.parent.mkdir(parents=True, exist_ok=True)
+    if brief_on_disk:
+        brief.write_text("# Gamma\n", encoding="utf-8")
+    if cooled:
+        directory = root / "docs/lifecycle"
+        directory.mkdir(parents=True, exist_ok=True)
+        record = _record(delivery_id="gamma", locator="docs/product/briefs/gamma.md")
+        (directory / "gamma.json").write_text(json.dumps(record), encoding="utf-8")
+    _workspace(
+        root,
+        queue=_entry(
+            "beta",
+            needs=(
+                '[{type = "cross-repo", kind = "brief", '
+                'path = "docs/product/briefs/gamma.md", '
+                'containing_brief = "docs/product/briefs/gamma.md", '
+                'receipt_id = "r1", accepted_revision = "rev1"}]'
+            ),
+        ),
+    )
+    return root
+
+
+def _cross_repo_codes(root: Path, engine) -> set[str]:
+    """Return the finding codes the reconcile projection emits for a fixture."""
+    canonical = _reconcile_json(root, engine)["canonical"]
+    assert all(item["path"] != "docs/specs/beta/spec.md" for item in canonical["ready"])
+    return {finding["code"] for finding in canonical["findings"]}
+
+
+def test_cooled_cross_repo_dependency_is_refused_without_a_read(tmp_path, engine) -> None:
+    """AC57: the cooled cross-repo path refuses before the brief body is opened."""
+    control = _cross_repo_fixture(_tree(tmp_path / "control", lifecycle=False, specs=()), cooled=False)
+    cooled = _cross_repo_fixture(_tree(tmp_path / "cooled", specs=()), cooled=True)
+
+    # `invalid_receipt` is emitted only inside `_cross_repo_receipt_satisfied`,
+    # so its presence is the signal that the read path was entered.
+    assert _cross_repo_codes(control, engine) == {"invalid_receipt"}
+    assert _cross_repo_codes(cooled, engine) == {"unsatisfied_dependency"}
+
+
+def test_cooled_cross_repo_refusal_never_enters_the_receipt_reader(
+    tmp_path, engine, monkeypatch
+) -> None:
+    """Mutation guard: the cooled branch returns before the brief is opened.
+
+    The read this criterion forbids is `brief_path.read_text` inside
+    `_cross_repo_receipt_satisfied`, which no other cooled check guards. Proving
+    the absence by deleting the brief would prove nothing: an absent locator
+    also drops out of the cooled set, so the run would fall through to the read
+    path for that reason instead. Recording entry to the reader is the only
+    observable that distinguishes the two.
+    """
+    control = _cross_repo_fixture(_tree(tmp_path / "control", lifecycle=False, specs=()), cooled=False)
+    cooled = _cross_repo_fixture(_tree(tmp_path / "cooled", specs=()), cooled=True)
+    real = engine._cross_repo_receipt_satisfied
+    seen: list[str] = []
+
+    def probe(dep, root_arg):
+        """Record the dependency whose brief body is about to be opened."""
+        seen.append(dep.path)
+        return real(dep, root_arg)
+
+    monkeypatch.setattr(engine, "_cross_repo_receipt_satisfied", probe)
+    engine.run_canonical_reconciliation(
+        engine.parse_workspace(control / "workspace.toml"), control
+    )
+    assert seen == ["docs/product/briefs/gamma.md"]
+    seen.clear()
+    engine.run_canonical_reconciliation(
+        engine.parse_workspace(cooled / "workspace.toml"),
+        cooled,
+        engine._resolve_cooled_state(cooled)[0],
+    )
+    assert seen == []
 
 
 def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monkeypatch) -> None:

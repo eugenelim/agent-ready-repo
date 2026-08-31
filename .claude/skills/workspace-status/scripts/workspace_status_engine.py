@@ -2499,17 +2499,30 @@ def _dependency_is_satisfied(
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
+    cooled_dependency = (
+        root is not None and _confined_artifact_path(root, dep.path) in cooled
+    )
     if dep.type == "cross-repo":
+        if cooled_dependency:
+            # RFC-0096 §7 with no exception. `_cross_repo_receipt_satisfied`
+            # opens the brief body unconditionally, and the evidence it needs
+            # is only there: the four-field receipt match asserted for this one
+            # dependency. A lifecycle record cannot stand in — it is completion
+            # evidence for the brief as a whole, and projecting the receipt
+            # from its coordination surface is deferred to Wave 7 by
+            # `wave6-dependency-scoped-completion-receipts`. Refusing surfaces
+            # a real inconsistency rather than concealing one: a brief with a
+            # live cross-repo dependant is retained as an exception, not cooled.
+            return False, _finding(
+                "unsatisfied_dependency",
+                dep.path,
+                "cooled dependency receipt is not readable",
+            )
         return _cross_repo_receipt_satisfied(dep, root)
 
     matches = by_path.get(dep.path, [])
     if matches and not any(match.entry.kind == dep.kind for match in matches):
         return False, _finding("unsatisfied_dependency", dep.path, "dependency kind mismatch")
-    cooled_dependency = (
-        dep.type == "local"
-        and root is not None
-        and _confined_artifact_path(root, dep.path) in cooled
-    )
     if dep.kind == "defect" and not any(
         match.collection == "backlog.closed" for match in matches
     ):
