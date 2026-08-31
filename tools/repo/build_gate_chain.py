@@ -453,6 +453,20 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-nosec-form",
             "tools", "lint-nosec-form.py",
         ),
+        # The Semgrep twin of the bandit form lint above, and separate from it
+        # because the two suppression grammars differ: Semgrep matches raw line
+        # text rather than parsed comments, and a second comment marker does not
+        # terminate its rule-id list the way bandit's does. It checks suppression
+        # *form* only — a stdlib-only gate cannot reach Semgrep's rule registry
+        # to confirm a named rule exists.
+        _script_step(
+            "test-lint-nosemgrep-form",
+            "tools", "test-lint-nosemgrep-form.py",
+        ),
+        _script_step(
+            "lint-nosemgrep-form",
+            "tools", "lint-nosemgrep-form.py",
+        ),
         # The standing check that the repo-lint steps above do not become stale
         # again: lint-ci-parity fails when build-check.yml gains a gate with no
         # local counterpart and no declared exemption.

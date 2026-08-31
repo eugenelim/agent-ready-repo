@@ -1586,7 +1586,15 @@ open = [
   # Unblocks when: a parse-success assertion per ratcheted target exists.
   # Measured behaviour: tools/test-semgrep-argv-boundary.py's `scan_all` docstring.
   {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure still reads as scanned-with-zero-findings under --strict; the partial-failure half now gates via run-semgrep-gate.py", source = "spec/semgrep-selftest-batching security review"},
-  {slug = "sast-nosemgrep-has-no-form-lint", summary = "No repository-wide nosemgrep form-lint requires a suppression rule id and reason", source = "spec/semgrep-selftest-batching security review"},
+  # Partially discharged: tools/lint-nosemgrep-form.py now gates suppression form
+  # repository-wide from build-check, pinned to Semgrep 1.175.0's core-binary
+  # patterns for the inline and previous-line forms across #, //, <!-- --> and /* */.
+  # Unblocks when: the ADR-shape decision docs/specs/semgrep-ratchet-integrity/plan.md
+  # names is made -- whether the canonical rule statement is an ADR-0084 addendum
+  # or a new ADR. That decision also owns pinning Semgrep's version, since
+  # tools/requirements-sast.txt allows >=1.174,<2 and the lint's self-test can only
+  # catch a local edit to the pinned patterns, never upstream drift.
+  {slug = "sast-nosemgrep-has-no-form-lint", summary = "The canonical statement of the repository-wide nosemgrep suppression form is unrecorded: the lint exists and gates, but whether its rule belongs in an ADR-0084 addendum or a new ADR is undecided", source = "spec/semgrep-selftest-batching security review"},
   # Deferred because it makes bandit a hard prerequisite of `make build-check`
   # for every contributor -- that is a real cost and deserves its own decision,
   # not a ride-along.
