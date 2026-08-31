@@ -56,12 +56,16 @@ def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
     p.write_text(body, encoding="utf-8")
 
 
-def run_lint(root: Path, base_ref: str | None = None) -> tuple[int, str, str]:
+def run_lint(
+    root: Path, base_ref: str | None = None, all_specs: bool = False
+) -> tuple[int, str, str]:
     """Run the CLI from the temporary repository that owns ``root``."""
     subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
     argv = [sys.executable, str(LINTER), "--root", str(root)]
     if base_ref is not None:
         argv += ["--base-ref", base_ref]
+    if all_specs:
+        argv.append("--all")
     proc = subprocess.run(argv, capture_output=True, text=True, cwd=str(root))
     return proc.returncode, proc.stdout, proc.stderr
 
@@ -198,7 +202,10 @@ def test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs(
 
         monkeypatch.setattr(module.subprocess, "run", run)
         monkeypatch.setattr(module, "base_ref_resolves", lambda _root, _ref: True)
-        hard, warn = module.check(root, "HEAD")
+        # all_specs=True: this case's subject IS unchanged specs, and the scoped
+        # default does not read them, so the `git show` base comparison it
+        # guards only happens in the exhaustive mode CI runs.
+        hard, warn = module.check(root, "HEAD", all_specs=True)
 
     assert hard == []
     assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S], warn
@@ -1134,7 +1141,10 @@ def test_near_miss_heading_is_warned_not_silently_accepted() -> None:
         root = Path(tmp)
         _write_spec_with_header(root, "legacy", "Draft", "- [x] AC1\n", _LOWER_AC_HEADER)
         git_init_commit(root)
-        rc, out, err = run_lint(root, base_ref="HEAD")
+        # --all because the subject is a spec IDENTICAL to base. The scoped
+        # default skips it by design, so this invariant's behaviour lives in the
+        # exhaustive mode -- which is the mode CI runs.
+        rc, out, err = run_lint(root, base_ref="HEAD", all_specs=True)
         assert rc == 0, f"a near miss must warn, not fail: {out}\n{err}"
         assert "`## Acceptance Criteria`" in err, err
 
@@ -1338,6 +1348,66 @@ def test_a_resolvable_base_ref_still_drives_the_diff_triggers() -> None:
     assert any("invariant (vi)" in v for v in hard), hard
 
 
+def test_default_scope_checks_changed_spec_but_not_unchanged_specs() -> None:
+    """Scoped mode must not degrade into an empty per-spec selection."""
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "changed", "Draft", "- [x] AC1\n")
+        write_spec(root, "unchanged", "Drafting", "- [x] legacy invalid status\n")
+        git_init_commit(root)
+
+        write_spec(root, "changed", "Drafting", "- [x] AC1\n")
+        rc, _out, err = run_lint(root, base_ref="HEAD")
+
+    assert rc == 1, "the changed spec's hard violation must be checked"
+    assert "docs/specs/changed/spec.md" in err, err
+    assert "docs/specs/unchanged/spec.md" not in err, err
+
+
+def test_all_scope_checks_unchanged_specs_too() -> None:
+    """The CI escape hatch retains full per-spec coverage."""
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "changed", "Draft", "- [x] AC1\n")
+        write_spec(root, "unchanged", "Drafting", "- [x] legacy invalid status\n")
+        git_init_commit(root)
+
+        write_spec(root, "changed", "Draft", "- [x] changed body\n")
+        rc, _out, err = run_lint(root, base_ref="HEAD", all_specs=True)
+
+    assert rc == 1, "--all must retain full per-spec coverage"
+    assert "docs/specs/unchanged/spec.md" in err, err
+
+
+def test_unresolvable_base_ref_falls_back_to_full_per_spec_checks() -> None:
+    """A bad base ref must not make a gate that checked nothing look clean."""
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "invalid", "Drafting", "- [x] AC1\n")
+        git_init_commit(root)
+
+        rc, _out, err = run_lint(root, base_ref="origin/definitely-not-a-ref")
+
+    assert rc == 1, "an unresolved base must full-sweep instead of selecting zero"
+    assert "docs/specs/invalid/spec.md" in err, err
+
+
+def test_scoped_run_keeps_dangling_reference_warnings_repo_wide() -> None:
+    """The warn-only cross-spec reference pass remains outside scoped selection."""
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "changed", "Draft", "- [x] AC1\n")
+        write_spec(root, "unchanged", "Draft", "See [missing](nope.md).\n")
+        git_init_commit(root)
+
+        write_spec(root, "changed", "Draft", "- [x] changed body\n")
+        rc, _out, err = run_lint(root, base_ref="HEAD")
+
+    assert rc == 0, err
+    assert "docs/specs/unchanged/spec.md" in err, err
+    assert "invariant (iii)" in err, err
+
+
 def test_opting_out_while_keeping_a_commented_draft_is_rejected() -> None:
     """Also rejected beside an opt-out marker -- but for the right reason.
 
@@ -1378,7 +1448,10 @@ def test_a_commented_heading_is_not_a_near_miss() -> None:
             "[backlog]\nopen = []\nclosed = []\n", encoding="utf-8"
         )
         git_init_commit(root)
-        hard, warn = lint.check(root, "HEAD")
+        # all_specs=True: the spec is committed and so identical to base, which
+        # the scoped default skips. The subject here is the spec's content, not
+        # the selection, so pin the content behaviour in the exhaustive mode.
+        hard, warn = lint.check(root, "HEAD", all_specs=True)
     assert any("is commented out" in v for v in hard), hard
     assert not any("should be exactly" in w for w in warn), warn
 

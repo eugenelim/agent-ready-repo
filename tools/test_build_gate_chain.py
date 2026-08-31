@@ -1258,8 +1258,16 @@ class BuildCheckChainTest(unittest.TestCase):
             ):
                 self.assertEqual(argv[2:], ["--skip-verify"])
             else:
-                # A plain script step: interpreter + one script path.
-                self.assertEqual(len(argv), 2)
+                # A plain script step: interpreter, one script path, and any
+                # number of literal flags. The length used to be pinned at 2 as
+                # a stand-in for shell-cleanliness; a step that legitimately
+                # carries a flag (`--all`) is still Windows-clean, so assert the
+                # property directly instead of the proxy. Each extra token must
+                # be a single literal word — no whitespace, no quoting, nothing
+                # a shell would have to split.
+                self.assertGreaterEqual(len(argv), 2)
+                for extra in argv[2:]:
+                    self.assertRegex(extra, r"^[A-Za-z0-9._=/-]+$", argv)
             for token in argv:
                 self.assertNotIn(token, ("bash", "sh", "-c"))
                 self.assertFalse(token.endswith(".sh"))
@@ -1325,6 +1333,11 @@ class BuildCheckChainTest(unittest.TestCase):
             if cwd is None
         ]
         self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)
+        lint_argv = next(
+            argv for argv, cwd in seen
+            if cwd is None and ".claude/skills/work-loop/scripts/lint-spec-status.py" in argv
+        )
+        self.assertEqual(lint_argv[-1], "--all")
 
 
 class ParserWiringTest(unittest.TestCase):

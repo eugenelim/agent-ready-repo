@@ -52,6 +52,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.3] — 2026-08-31
+
+### Highlights
+
+- **The spec-metadata check now looks at the specs you touched, so finishing a
+  work loop is about twelve times faster.** It used to re-read all 423 specs and
+  spawn one Git process each, taking around 44 seconds every run; the same check
+  over a session's own specs takes under four. Nothing is checked less: the
+  repository-wide reference scan still covers every spec, and `--all` restores
+  the exhaustive per-spec sweep, which is what CI runs.
+
+### Changed
+
+- `lint-spec-status.py` scopes its per-spec invariants to the specs changed
+  against the resolved base ref, and takes `--all` for the full sweep. The
+  changed set includes specs that are new and not yet committed, so a spec being
+  written is never skipped. The repo-wide dangling-reference pass (invariant iii)
+  is unscoped and reports identically in both modes — measured at 182 warnings
+  either way.
+- Both summary lines now name the coverage they achieved — `0 of 423 spec(s)
+  changed against origin/main` rather than a bare `spec metadata clean` — so a
+  run that selected nothing cannot be mistaken for a run that checked
+  everything.
+- An unresolvable base ref falls back to the full per-spec sweep instead of
+  selecting zero specs.
+
 ## [core][2.17.2] — 2026-08-31
 
 ### Highlights

@@ -253,6 +253,7 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "lint-spec-status",
             ".claude", "skills", "work-loop", "scripts", "lint-spec-status.py",
+            args=("--all",),
         ),
         _pytest_step(
             "test-lint-brief-coverage",
