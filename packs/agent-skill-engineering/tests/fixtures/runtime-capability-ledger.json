@@ -41,7 +41,8 @@
             "gesture": "Invoked a named skill in a live session and compared the roster available before invocation with the content available after it.",
             "outcome": "Before invocation the roster carried each skill's name and one-line description only. The full body arrived only on invocation.",
             "passed": true
-          }
+          },
+          "projects_as": "skill body loading"
         },
         {
           "capability": "isolated-subagent-context",
@@ -63,7 +64,8 @@
             "gesture": "Dispatched a subagent and required it to report facts that existed only in the parent conversation.",
             "outcome": "The subagent reported no access to parent conversation content and re-derived every fact from files it opened itself.",
             "passed": true
-          }
+          },
+          "projects_as": "subagent context isolation"
         },
         {
           "capability": "nesting-limits",
@@ -80,7 +82,8 @@
               "retrieved_at": "2026-08-31",
               "source_version": "2.1.251"
             }
-          ]
+          ],
+          "projects_as": "nesting limits"
         },
         {
           "capability": "worktree-isolation",
@@ -102,7 +105,8 @@
             "gesture": "Ran a full session inside a linked git worktree, inspecting status, rebasing onto the upstream branch, and committing.",
             "outcome": "The worktree carried its own HEAD, index and working tree while sharing the parent repository's object store; commits landed on the worktree's own branch only.",
             "passed": true
-          }
+          },
+          "projects_as": "worktree isolation"
         },
         {
           "capability": "component-scoped-hooks",
@@ -119,7 +123,8 @@
               "retrieved_at": "2026-08-31",
               "source_version": "none exposed"
             }
-          ]
+          ],
+          "projects_as": "component-scoped hooks"
         },
         {
           "capability": "managed-hook-policy",
@@ -136,7 +141,8 @@
               "retrieved_at": "2026-08-31",
               "source_version": "none exposed"
             }
-          ]
+          ],
+          "projects_as": "managed hook policy"
         },
         {
           "capability": "plugin-agent-restrictions",
@@ -153,10 +159,15 @@
               "retrieved_at": "2026-08-31",
               "source_version": "none exposed"
             }
-          ]
+          ],
+          "projects_as": "package-supplied agent precedence"
         }
       ],
-      "probe_fixture": "claude-code-capability-probes"
+      "probe_fixture": "claude-code-capability-probes",
+      "state_phrases": {
+        "verified": "currently probed",
+        "experimental": "sourced and unprobed"
+      }
     }
   ]
 }

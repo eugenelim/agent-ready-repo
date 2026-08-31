@@ -103,7 +103,10 @@ vacuous, so the rule is written down and its exceptions are visible:
    too narrow, the declaration is stale and was corrected — `mode-loading` and
    `asset-or-reference`.
 2. This slice's own new cases had no control and were corrected on the prompt
-   text where the span is genuine — six cases.
+   text where the span is genuine — four cases: `delegate-write-ownership`,
+   `delegate-partial-failure`, `hook-untrusted-config` and
+   `claude-code-parallel-sessions`. With rule 1's two, six declarations changed
+   in total.
 3. Everything else keeps its declaration, and the disagreement is the finding —
    seven cases left uncorrected, including both attributable pin moves.
 
@@ -184,6 +187,49 @@ had written down. The only fileable item is the reopening condition both
 documents name — a measurement of how much work an amendment actually redoes —
 which needs a recorded instance of costly rework to justify.
 
+## Implementation review, and four criteria that were ticked before they were met
+
+An implementation review after the gate run found four acceptance criteria
+marked met with no artifact that could fail without the work. All four were
+confirmed directly before repair, and all four are the same shape: the criterion
+was ticked against intent rather than against a failing route.
+
+| Criterion | What was missing | Now |
+| --- | --- | --- |
+| AC13 | No test compared the body's projected states against the computed ones; the body's prose named no ledger slug | Each row carries a `projects_as` token and the profile a `state_phrases` map; the body's grouping is asserted against the computed states, and moving a row between states reddens |
+| AC8 | One retrieval chain existed for five ledger sources | `source-retrieval-chains.json` records requested URL, redirect hops and final URL for all six sources; recording a pre-redirect identity reddens |
+| AC23 | No test read the marketing page and the forbidden-claim set was never extended; reverting the page to "Three governed foundation topics" was green | A repository-level scan walks `.apm/`, `okf/`, the README and the marketing page; both cited reversions now redden |
+| AC30 | The spec-index Status cell said `Implementing` | `Shipped` |
+
+**Three recorded mutation proofs were not proofs.** Each flipped a field on a
+deep copy and compared it against a recomputation that never reads that field —
+`resolve_state` ignores `state`, `resolve_rollup` ignores `roll_up`, and a
+19-element list can never equal a 20-element one — so each held by construction
+and could not redden while its sibling passed. The sibling equality tests were
+doing the work the whole time, so AC10 and AC15 stood; what did not stand was the
+claim that those three were evidence. All three now invoke the guard they claim
+to prove over the mutated copy and require it to raise.
+
+One further self-referential check: the floor subject counts were asserted
+fixture-field against fixture-field, so deleting a subject and decrementing the
+count together passed. The counts 8, 6 and 7 are now module literals transcribed
+from the authority, matching the idiom the sibling module already used.
+
+One finding was refuted and deliberately not applied: mirroring the README's
+topic enumeration onto the marketing page. The page's sentence is
+under-descriptive rather than false, and transcribing a class that grows every
+slice onto that surface would need its own control — the enumerate-then-control
+recursion this programme has recorded before.
+
+## Deferred, with reason
+
+The absence register carries a four-line blank gap where this slice removed four
+entries, and the compiled copy carries it byte-identically. It is cosmetic and no
+assertion reads it. Closing it means editing shipped content and re-running
+`compile-okf`, which moves the generated-tree digest that both measured records
+bind — reopening roughly 126 independent observations for whitespace. It is left
+for the next regeneration, which slice 3b performs anyway.
+
 ## Residual
 
 Five fixes landed after the last adversarial pass: the pack-test boundary
@@ -193,6 +239,16 @@ the gate that caught it, and the boundary repair was re-verified by exit code
 rather than by a pipeline's last line. None has had an independent reader. On
 this programme's own record that is not a small caveat, and it is the same
 residual slice 2b carried.
+
+One topic reaches AC19's measured-solo floor only through a case added after
+the main measurement. `depth-libraries-and-okf-knowledge-providers` is measured
+solo exactly twice, by `depth-library-inert-knowledge` and by
+`depth-library-compiled-source` — the second of three cases authored after the
+first measurement returned it solo only once. `plan.md` authorizes that route
+explicitly, and re-measuring was the alternative to re-stamping. But the "16 of
+16" figure in the evidence table depends on that addition, and a reader should
+know the floor was reached by adding cases rather than by the corpus routing
+better.
 
 The instrument control is one run. It establishes that three pin moves reproduce
 on a tree without this slice's topics, which is enough to attribute them; it does

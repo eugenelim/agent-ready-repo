@@ -23,6 +23,15 @@ FLOORS = (
     "plugin-package-common-floor",
 )
 SUBJECT_SOURCE_REF = "docs/rfc/0097-agent-skill-engineering.md:D3"
+# Transcribed from RFC-0097 D3: eight capability questions for the delegation
+# floor, six distinctions for hooks, seven concerns for plugin packages. Held as
+# module literals rather than read from the fixture, so deleting a subject and
+# decrementing the fixture's own count together cannot pass.
+SUBJECT_COUNTS = {
+    "skills-and-subagents-common-floor": 8,
+    "hooks-common-floor": 6,
+    "plugin-package-common-floor": 7,
+}
 
 # Identifier CLASSES, not a member list. The set of runtime identifiers is open
 # — every release adds more — so a literal list would be defeated by the next
@@ -76,7 +85,8 @@ def test_the_subject_transcription_names_the_authority_it_transcribes(subjects) 
     assert subjects["source_ref"] == SUBJECT_SOURCE_REF
     assert set(subjects["floors"]) == set(FLOORS)
     for slug, floor in subjects["floors"].items():
-        assert len(floor["subjects"]) == floor["expected_count"], slug
+        assert floor["expected_count"] == SUBJECT_COUNTS[slug], slug
+        assert len(floor["subjects"]) == SUBJECT_COUNTS[slug], slug
 
 
 @pytest.mark.parametrize("slug", FLOORS)
@@ -141,7 +151,7 @@ def test_the_compiled_floor_copy_is_also_portable(slug) -> None:
         ("runtime-settings-file", "declare the matcher in settings.json"),
         ("lifecycle-event-token", "register against the PreToolUse event"),
         ("runtime-environment-variable", "raise CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"),
-        ("runtime-home-path", "user scope lives at ~/.claude/settings.json"),
+        ("runtime-home-path", "user scope lives at ~/.somewhere/config"),
     ],
 )
 def test_each_forbidden_class_fires_on_its_own_specimen(name, specimen) -> None:
@@ -153,7 +163,7 @@ def test_each_forbidden_class_fires_on_its_own_specimen(name, specimen) -> None:
         for cls_name, pattern in FORBIDDEN_IDENTIFIER_CLASSES
         if pattern.search(specimen)
     ]
-    assert name in matched, (name, specimen, matched)
+    assert matched == [name], (name, specimen, matched)
 
 
 def test_the_forbidden_class_tuple_is_pinned() -> None:

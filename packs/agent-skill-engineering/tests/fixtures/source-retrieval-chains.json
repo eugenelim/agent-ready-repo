@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "retrieved_on": "2026-08-31",
+  "evidence_basis": "The retrieval tool reports a redirect explicitly, naming the status and the Location it was given, and returns content directly when there is none. A chain with no redirect entry therefore records that no redirect was reported and content was served from the requested URL; it does not record an observed 200, because the tool does not surface one.",
+  "chains": [
+    {
+      "requested_url": "https://docs.claude.com/en/docs/claude-code/sub-agents",
+      "redirects": [
+        {"status": 301, "to": "https://code.claude.com/docs/en/sub-agents"}
+      ],
+      "final_url": "https://code.claude.com/docs/en/sub-agents"
+    },
+    {
+      "requested_url": "https://docs.claude.com/en/docs/claude-code/skills",
+      "redirects": [
+        {"status": 301, "to": "https://code.claude.com/docs/en/skills"}
+      ],
+      "final_url": "https://code.claude.com/docs/en/skills"
+    },
+    {
+      "requested_url": "https://code.claude.com/docs/en/common-workflows",
+      "redirects": [],
+      "final_url": "https://code.claude.com/docs/en/common-workflows"
+    },
+    {
+      "requested_url": "https://code.claude.com/docs/en/hooks",
+      "redirects": [],
+      "final_url": "https://code.claude.com/docs/en/hooks"
+    },
+    {
+      "requested_url": "https://code.claude.com/docs/en/plugins",
+      "redirects": [],
+      "final_url": "https://code.claude.com/docs/en/plugins"
+    },
+    {
+      "requested_url": "https://kiro.dev/docs/hooks/",
+      "redirects": [],
+      "final_url": "https://kiro.dev/docs/hooks/"
+    }
+  ]
+}

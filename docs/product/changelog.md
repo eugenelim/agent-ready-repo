@@ -168,10 +168,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The pack README and the pack's page on the website stated a topic count that
-  had been wrong since the previous release. Both now state the count that
-  matches what ships, and a check that previously crashed on an unrecognised
-  count now reports which number it saw and which it expected.
+- The pack's page on the website stated a topic count that had been wrong since
+  the previous release; it now states the count that matches what ships. The
+  pack README's count moved with this release rather than having been wrong. A
+  check that previously crashed on an unrecognised count now reports which
+  number it saw and which it expected.
 
 ## [agent-skill-engineering][0.3.0] — 2026-08-31
 

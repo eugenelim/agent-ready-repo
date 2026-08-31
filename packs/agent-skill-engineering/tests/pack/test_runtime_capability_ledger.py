@@ -15,6 +15,8 @@ import pytest
 
 PACK = Path(__file__).resolve().parents[2]
 LEDGER = PACK / "tests" / "fixtures" / "runtime-capability-ledger.json"
+CHAINS = PACK / "tests" / "fixtures" / "source-retrieval-chains.json"
+CONCEPTS = PACK / "okf" / "agent-skill-engineering-foundation" / "concepts"
 
 # Transcribed from RFC-0097 D3's profile table. Held as module literals rather
 # than read from the fixture, so editing the fixture's own transcription cannot
@@ -45,7 +47,14 @@ def _parse_date(value: object, field: str) -> date:
 
 
 def validate_row(row: dict) -> None:
-    """Reject a row that cannot be honestly classified, naming the reason."""
+    """Reject a row that cannot be honestly classified, naming the reason.
+
+    AC7 lists `runtime` among the per-row provenance fields. It is not checked
+    here because it is not a row field: it lives on the enclosing profile, so
+    every row resolves one structurally and `resolve_rollup` fails on a profile
+    missing it. Duplicating it onto each row would need its own row-versus-
+    profile consistency control.
+    """
     sources = row.get("sources")
     if not isinstance(sources, list) or not sources:
         raise LedgerError("empty_sources", row.get("capability", "<unnamed>"))
@@ -109,6 +118,19 @@ def resolve_rollup(profile: dict, required: list, reference_date: date) -> str:
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────
+
+
+def CONCEPTS_BY_STEM() -> dict[str, str]:
+    """Topic bodies by slug, globbed rather than joined from a variable.
+
+    The pack-test boundary lint cannot statically resolve a path built from a
+    variable, so joining a slug reads as climbing above the pack.
+    """
+    return {path.stem: path.read_text(encoding="utf-8") for path in CONCEPTS.glob("*.md")}
+
+
+def _sentences(collapsed: str) -> list[str]:
+    return [part.strip() for part in collapsed.split(". ") if part.strip()]
 
 
 @pytest.fixture(name="ledger")
@@ -336,24 +358,30 @@ def test_every_shipped_rollup_equals_its_recomputed_rollup(ledger) -> None:
         assert profile["roll_up"] in ROLL_UPS
 
 
-def test_a_hand_edited_row_state_is_caught(ledger) -> None:
-    """Mutation proof for the row-level comparison: without it, a stored state
-    is a claim nothing verifies."""
-    evaluated_at = date.fromisoformat(ledger["evaluated_at"])
+def test_a_hand_edited_row_state_reddens_the_guard(ledger) -> None:
+    """Drive the guard itself over a mutated ledger and require it to fail.
+
+    An earlier version compared the flipped value against `resolve_state`, which
+    never reads `state` — so the inequality held by construction and the test
+    could not redden while its sibling passed. Invoking the guard is what makes
+    this a proof rather than a restatement.
+    """
     mutated = copy.deepcopy(ledger)
     row = mutated["profiles"][0]["capabilities"][0]
-    window = mutated["profiles"][0]["declared_window_days"]
     row["state"] = "verified" if row["state"] != "verified" else "experimental"
-    assert row["state"] != resolve_state(row, evaluated_at, window)
+    with pytest.raises(AssertionError):
+        test_every_shipped_row_state_equals_its_computed_state(mutated)
 
 
-def test_a_hand_edited_rollup_is_caught(ledger) -> None:
-    evaluated_at = date.fromisoformat(ledger["evaluated_at"])
+def test_a_hand_edited_rollup_reddens_the_guard(ledger) -> None:
+    """Same shape as the row-level proof, one level up."""
     mutated = copy.deepcopy(ledger)
     profile = mutated["profiles"][0]
-    required = mutated["required_capabilities"][profile["runtime"]]
-    profile["roll_up"] = "complete-current" if profile["roll_up"] != "complete-current" else "incomplete"
-    assert profile["roll_up"] != resolve_rollup(profile, required, evaluated_at)
+    profile["roll_up"] = (
+        "complete-current" if profile["roll_up"] != "complete-current" else "incomplete"
+    )
+    with pytest.raises(AssertionError):
+        test_every_shipped_rollup_equals_its_recomputed_rollup(mutated)
 
 
 def test_evaluated_at_is_no_earlier_than_the_latest_retrieval(ledger) -> None:
@@ -367,6 +395,103 @@ def test_evaluated_at_is_no_earlier_than_the_latest_retrieval(ledger) -> None:
         for source in row["sources"]
     )
     assert evaluated_at >= latest
+
+
+def test_every_shipped_row_projects_its_computed_state_into_the_body(ledger) -> None:
+    """AC13: the state the topic body projects equals the state computed at
+    `evaluated_at`.
+
+    Without this the ledger and the prose an adopter reads can disagree
+    silently: a state flip in the ledger, or a re-worded body, changes what is
+    published while every other assertion here still passes.
+    """
+    evaluated_at = date.fromisoformat(ledger["evaluated_at"])
+    checked = 0
+    for profile in ledger["profiles"]:
+        body = " ".join((CONCEPTS_BY_STEM()[profile["topic"]]).split())
+        window = profile["declared_window_days"]
+        by_state: dict[str, list[str]] = {}
+        for row in profile["capabilities"]:
+            token = row["projects_as"]
+            assert token in body, (profile["topic"], row["capability"], token)
+            by_state.setdefault(resolve_state(row, evaluated_at, window), []).append(token)
+            checked += 1
+        # Each state's own sentence must name every token in that state and no
+        # token belonging to another, so moving a row between states reddens.
+        phrases = profile["state_phrases"]
+        for state, tokens in by_state.items():
+            phrase = phrases[state]
+            sentence = next(
+                (s for s in _sentences(body) if phrase in s), None
+            )
+            assert sentence is not None, (profile["topic"], state, phrase)
+            for token in tokens:
+                assert token in sentence, (profile["topic"], state, token)
+            for other_state, others in by_state.items():
+                if other_state == state:
+                    continue
+                for token in others:
+                    assert token not in sentence, (profile["topic"], state, token)
+    assert checked, "no row was compared against a body"
+
+
+def test_a_row_moved_between_states_reddens_the_body_agreement(ledger) -> None:
+    """Killing mutation for the projection guard."""
+    mutated = copy.deepcopy(ledger)
+    for row in mutated["profiles"][0]["capabilities"]:
+        if row["state"] == "experimental":
+            row["probe"] = {"gesture": "g", "outcome": "o", "passed": True}
+            row["state"] = "verified"
+            break
+    with pytest.raises(AssertionError):
+        test_every_shipped_row_projects_its_computed_state_into_the_body(mutated)
+
+
+def test_every_ledger_source_has_a_recorded_retrieval_chain(ledger) -> None:
+    """AC8: a recorded conclusion without its chain does not satisfy the criterion.
+
+    A pre-redirect URL still resolves, so nothing fails when the recorded
+    identity stops naming the page that was actually read. The chain is what a
+    reviewer checks instead of the conclusion.
+    """
+    chains = json.loads(CHAINS.read_text(encoding="utf-8"))["chains"]
+    finals = {chain["final_url"] for chain in chains}
+    urls = {
+        source["url"]
+        for profile in ledger["profiles"]
+        for row in profile["capabilities"]
+        for source in row["sources"]
+    }
+    assert urls, "the ledger names no source, so this sweep would prove nothing"
+    missing = sorted(urls - finals)
+    assert not missing, missing
+
+
+def test_each_recorded_chain_is_well_formed() -> None:
+    chains = json.loads(CHAINS.read_text(encoding="utf-8"))["chains"]
+    assert chains
+    for chain in chains:
+        assert chain["requested_url"].startswith("https://")
+        assert chain["final_url"].startswith("https://")
+        hops = chain["redirects"]
+        assert isinstance(hops, list)
+        for hop in hops:
+            assert isinstance(hop["status"], int) and 300 <= hop["status"] < 400
+            assert hop["to"].startswith("https://")
+        # The last hop's destination is the final URL; with no hop, the
+        # requested URL served the content.
+        expected = hops[-1]["to"] if hops else chain["requested_url"]
+        assert chain["final_url"] == expected, chain["requested_url"]
+
+
+def test_a_pre_redirect_identity_is_caught(ledger) -> None:
+    """Killing mutation: record the URL that redirects, not the one that served."""
+    mutated = copy.deepcopy(ledger)
+    mutated["profiles"][0]["capabilities"][0]["sources"][0]["url"] = (
+        "https://docs.claude.com/en/docs/claude-code/skills"
+    )
+    with pytest.raises(AssertionError):
+        test_every_ledger_source_has_a_recorded_retrieval_chain(mutated)
 
 
 def test_declared_windows_are_within_the_permitted_maximum(ledger) -> None:
