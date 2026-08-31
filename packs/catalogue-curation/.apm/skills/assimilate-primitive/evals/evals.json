@@ -1,0 +1,18 @@
+{
+  "skill_name": "assimilate-primitive",
+  "evals": [
+    {
+      "id": "landed-primitive-closes-target-release-contract",
+      "prompt": "A prose skill has passed raw-body review, shaping, approval, and confined landing into a target catalogue. What must happen before and after projection?",
+      "expected_output": "Resolve the target catalogue's established pack versioning, human-maintained inventory or manifest, and release-history rules, then apply each update in the order those rules specify rather than a fixed order this skill chose. Ask when no target rule is discoverable rather than inventing one. Project the source, never edit generated output, and purge any fetched rejected working copy.",
+      "assertions": [
+        "Response resolves release duties from the target catalogue",
+        "Response covers versioning, human-maintained inventory or manifest text, and release history",
+        "Response sequences the updates by the target catalogue's own rules",
+        "Response does not assert a fixed release-history-before-projection order",
+        "Response asks instead of inventing absent target rules",
+        "Response projects source rather than editing generated output"
+      ]
+    }
+  ]
+}

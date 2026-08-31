@@ -128,10 +128,15 @@ Severity list — Lead each finding with a severity glyph — 🟥 blocker, 🟧
    verify-prefix → symlinks resolved first), so a traversing/absolute path or an
    in-source symlink cannot escape `packs/`. Never roll your own path handling.
    For hook/script primitives, the landing path differs from prose skills (flat
-   `.apm/hooks/`, no hook-wiring, version + inventory bumps before `build-self`):
+   `.apm/hooks/`, no hook-wiring):
    [`references/hook-landing.md`](references/hook-landing.md).
-10. **Prompt `make build-self`** so the projection tracks the new source, and
-    purge the fetched-but-rejected working copy.
+10. **Close the target catalogue's release contract, then project.** Resolve the
+    target catalogue's established rules for pack versioning, human-maintained
+    inventory or manifest text, and release history, and apply each update in
+    the order those rules specify — a catalogue whose release entry names the
+    regenerated manifest necessarily writes it after projection, not before.
+    Close every duty; when no rule is discoverable, ask rather than inventing
+    one. Then purge the fetched-but-rejected working copy.
 
 ## Never do
 

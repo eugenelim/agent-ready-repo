@@ -1,0 +1,26 @@
+[
+  {
+    "query": "Survey this repository and produce per-skill assimilation verdicts",
+    "should_trigger": true
+  },
+  {
+    "query": "Re-sync the catalogue we previously assimilated and route the RFC delta",
+    "should_trigger": true
+  },
+  {
+    "query": "Inventory this external skill repo and tell me what we should adopt",
+    "should_trigger": true
+  },
+  {
+    "query": "Assimilate this one known hook into the core pack",
+    "should_trigger": false
+  },
+  {
+    "query": "Should we create a new catalogue pack for Kubernetes?",
+    "should_trigger": false
+  },
+  {
+    "query": "Export this catalogue as a white-label repository",
+    "should_trigger": false
+  }
+]

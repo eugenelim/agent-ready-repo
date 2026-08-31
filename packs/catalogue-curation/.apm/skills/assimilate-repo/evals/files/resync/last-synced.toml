@@ -1,0 +1,12 @@
+source = "https://example.invalid/catalogue.git"
+
+[[sync]]
+date = "2026-08-01"
+
+[[candidate]]
+path = "skills/formatter/SKILL.md"
+content_hash = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+[[candidate]]
+path = "hooks/deploy.py"
+content_hash = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"

@@ -1,0 +1,26 @@
+[
+  {
+    "query": "Assimilate this local skill into the catalogue-curation pack",
+    "should_trigger": true
+  },
+  {
+    "query": "Bring this external hook into one of our packs safely",
+    "should_trigger": true
+  },
+  {
+    "query": "Adopt this agent primitive and reshape it to our catalogue conventions",
+    "should_trigger": true
+  },
+  {
+    "query": "Survey this entire repository for useful skills",
+    "should_trigger": false
+  },
+  {
+    "query": "Propose a new pack for database operations",
+    "should_trigger": false
+  },
+  {
+    "query": "Compile the OKF bundle for this pack",
+    "should_trigger": false
+  }
+]
