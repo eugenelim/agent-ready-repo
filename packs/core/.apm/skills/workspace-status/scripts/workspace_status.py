@@ -450,7 +450,25 @@ def _is_work_spec_item(item: dict) -> bool:
     return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
 
 
-def _canonical_projection(root: Path, result, cooled: frozenset[Path]) -> dict:
+def _cooling_selection(result, mode: str) -> tuple[frozenset[Path], tuple]:
+    """Return the cooled set and its resolution findings for one mode.
+
+    The two travel together because they are one decision. `repair-plan` and
+    `repair-apply` keep pre-Wave-6 behaviour, which means both an empty cooled
+    set and no cooling findings; returning them separately let a caller
+    suppress the exclusion while still emitting findings about it.
+    """
+    if mode not in {"status", "reconcile", "explain"}:
+        return frozenset(), ()
+    return result.cooled, tuple(result.cooling_findings)
+
+
+def _canonical_projection(
+    root: Path,
+    result,
+    cooled: frozenset[Path],
+    cooling_findings: tuple = (),
+) -> dict:
     """Build canonical dispatch data using the caller's cooling selection."""
     workspace_bytes = _migration_read_bytes(root, "workspace.toml")
     if workspace_bytes is None:
@@ -465,7 +483,13 @@ def _canonical_projection(root: Path, result, cooled: frozenset[Path]) -> dict:
         "performed": True,
         "bounded": not result.global_scan_performed,
         "input_identity": canonical_repository_identity(workspace, canonical, root),
-        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        # Cooling findings are raised while resolving the cooled set, before
+        # this reconciliation runs, so they have no other route to the emitted
+        # surface. Six criteria name `canonical.findings` as their observable.
+        "findings": [
+            _canonical_finding_dict(f)
+            for f in (*cooling_findings, *canonical.findings)
+        ],
         "evaluations": evaluations,
         "legacy_memberships": legacy_memberships,
         "ready": [
@@ -540,7 +564,7 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
         return public_selector, {"selector_status": "not_found"}
 
     canonical_path, legacy_path = targets
-    projection = _canonical_projection(root, result, result.cooled)
+    projection = _canonical_projection(root, result, *_cooling_selection(result, "explain"))
     candidates = [
         item
         for item in [
@@ -757,11 +781,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
 
     types_performed = [1, 2, 3] if result.global_scan_performed else [2, 3]
 
-    canonical = _canonical_projection(
-        root,
-        result,
-        result.cooled if mode in {"status", "reconcile"} else frozenset(),
-    )
+    canonical = _canonical_projection(root, result, *_cooling_selection(result, mode))
     canonical_failed = any(
         finding["code"] in {"invalid_workspace", "configuration_mismatch"}
         for finding in canonical["findings"]
@@ -830,7 +850,9 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
         "workspace_root": ".",
         "scan": _scan_dict(result),
         "selector": selector,
-        "canonical": _canonical_projection(root, result, result.cooled),
+        "canonical": _canonical_projection(
+            root, result, *_cooling_selection(result, "explain")
+        ),
         **explain_result,
     }
 

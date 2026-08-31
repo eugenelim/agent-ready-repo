@@ -162,25 +162,49 @@ def test_settled_exception_cools(tmp_path, engine) -> None:
     assert (root / "docs/specs/alpha/spec.md").resolve() in engine._resolve_cooled_state(root)[0]
 
 
+def _emitted_findings(root: Path, engine) -> list[dict]:
+    """Return `canonical.findings` from the emitted reconcile JSON.
+
+    Six criteria name this surface. Asserting `_resolve_cooled_state`'s internal
+    tuple instead let all six pass while the findings reached no output at all,
+    because the projection rebuilds findings from a second reconciliation that
+    never saw them.
+    """
+    if not (root / "workspace.toml").exists():
+        _workspace(root, queue="")
+    return _reconcile_json(root, engine)["canonical"]["findings"]
+
+
+def _emitted_codes(root: Path, engine) -> list[str]:
+    """Return the emitted `canonical.findings` codes for a fixture root."""
+    return [finding["code"] for finding in _emitted_findings(root, engine)]
+
+
 # STUB: AC5
 def test_invalid_record_cools_nothing_and_is_named(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=(), specs=())
     (root / "docs/lifecycle/spec-bad.json").write_text('{"schema":"delivery-lifecycle-record.v1"}', encoding="utf-8")
-    cooled, findings = engine._resolve_cooled_state(root)
-    assert not cooled and [(f.code, f.path) for f in findings] == [("invalid_lifecycle_record", "docs/lifecycle/spec-bad.json")]
+    assert not engine._resolve_cooled_state(root)[0]
+    assert [(f["code"], f["path"]) for f in _emitted_findings(root, engine)] == [
+        ("invalid_lifecycle_record", "docs/lifecycle/spec-bad.json")
+    ]
 
 
 # STUB: AC6
 def test_non_record_file_is_skipped_silently(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=(), specs=())
     (root / "docs/lifecycle/README.md").write_text("not a record", encoding="utf-8")
-    assert engine._resolve_cooled_state(root) == (frozenset(), ())
+    assert engine._resolve_cooled_state(root)[0] == frozenset()
+    assert "invalid_lifecycle_record" not in _emitted_codes(root, engine)
 
 
 # STUB: AC7
 def test_absent_directory_is_not_an_error(tmp_path, engine) -> None:
     root = _tree(tmp_path, lifecycle=False, specs=())
-    assert engine._resolve_cooled_state(root) == (frozenset(), ())
+    assert engine._resolve_cooled_state(root)[0] == frozenset()
+    assert not {"invalid_lifecycle_record", "cooling_state_unavailable"} & set(
+        _emitted_codes(root, engine)
+    )
 
 
 # STUB: AC8
@@ -188,7 +212,7 @@ def test_unusable_directory_is_named(tmp_path, engine) -> None:
     root = _tree(tmp_path, lifecycle=False, specs=())
     (root / "docs").mkdir(parents=True, exist_ok=True)
     (root / "docs/lifecycle").write_text("not a directory", encoding="utf-8")
-    assert [f.code for f in engine._resolve_cooled_state(root)[1]] == ["cooling_state_unavailable"]
+    assert _emitted_codes(root, engine) == ["cooling_state_unavailable"]
 
 
 # STUB: AC9
@@ -197,8 +221,8 @@ def test_lifecycle_directory_is_confined(tmp_path, engine) -> None:
     outside = _tree(tmp_path / "outside", records=[_record()], specs=("alpha",)) / "docs/lifecycle"
     (root / "docs").mkdir(parents=True, exist_ok=True)
     (root / "docs/lifecycle").symlink_to(outside, target_is_directory=True)
-    cooled, findings = engine._resolve_cooled_state(root)
-    assert not cooled and [f.code for f in findings] == ["cooling_state_unavailable"]
+    assert not engine._resolve_cooled_state(root)[0]
+    assert _emitted_codes(root, engine) == ["cooling_state_unavailable"]
 
 
 # STUB: AC10
@@ -215,13 +239,25 @@ def test_symlinked_record_is_refused(tmp_path, engine, monkeypatch) -> None:
     seen: list[str] = []
 
     class _Probe:
+        """Record every record path handed to the reader, delegating the rest.
+
+        Delegation is not convenience: the emitted projection also calls
+        `is_due` and reads record attributes, and a probe that enumerated only
+        the methods it knew about would break whenever the engine used one
+        more.
+        """
+
         def load_record(self, root_arg, path):
             seen.append(Path(path).name)
             return real.load_record(root_arg, path)
 
+        def __getattr__(self, name):
+            return getattr(real, name)
+
     monkeypatch.setattr(engine, "_load_cooling_module", lambda: _Probe())
-    _, findings = engine._resolve_cooled_state(root)
-    assert ("invalid_lifecycle_record", "docs/lifecycle/spec-link.json") in {(f.code, f.path) for f in findings}
+    assert ("invalid_lifecycle_record", "docs/lifecycle/spec-link.json") in {
+        (f["code"], f["path"]) for f in _emitted_findings(root, engine)
+    }
     assert "spec-link.json" not in seen, "symlinked record reached the reader"
 
 
@@ -229,7 +265,7 @@ def test_symlinked_record_is_refused(tmp_path, engine, monkeypatch) -> None:
 def test_oversized_record_refuses_without_raising(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=[])
     (root / "docs/lifecycle/alpha.json").write_bytes(b" " * (65 * 1024))
-    assert [f.code for f in engine._resolve_cooled_state(root)[1]] == ["invalid_lifecycle_record"]
+    assert _emitted_codes(root, engine) == ["invalid_lifecycle_record"]
 
 
 # STUB: AC12
@@ -266,7 +302,7 @@ def test_packaged_runtime_carries_the_whole_closure() -> None:
 def test_every_resolution_route_failing_is_named(tmp_path, engine, monkeypatch) -> None:
     monkeypatch.setattr(engine, "_cooling_module_path", lambda: None)
     monkeypatch.setattr(engine.importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError(name)))
-    assert [f.code for f in engine._resolve_cooled_state(_tree(tmp_path))[1]] == ["cooling_state_unavailable"]
+    assert _emitted_codes(_tree(tmp_path), engine) == ["cooling_state_unavailable"]
 
 
 # STUB: AC39
@@ -495,11 +531,8 @@ def test_bounded_mode_excludes_identically(tmp_path, engine) -> None:
     assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["canonical"]["ready"])
 
 
-def test_mcp_surface_inherits_the_exclusion(tmp_path, engine, monkeypatch) -> None:
-    """AC22: the MCP status tool uses bounded analysis with cooling exclusion."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
+def _mcp_call(root: Path, engine, monkeypatch) -> dict:
+    """Invoke the MCP status tool bound to the source engine."""
     spec = importlib.util.spec_from_file_location("wave6_mcp", MCP_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -508,11 +541,37 @@ def test_mcp_surface_inherits_the_exclusion(tmp_path, engine, monkeypatch) -> No
         spec.loader.exec_module(module)
         monkeypatch.setattr(module, "_load_workspace_status_engine", lambda _: engine)
         bridge = type("Bridge", (), {"get_fsm_state": lambda self: {}, "has_anchored_engine_state": lambda self: False})()
-        data = module._WorkspaceStatusTool(root, bridge).call()
+        return module._WorkspaceStatusTool(root, bridge).call()
     finally:
         sys.modules.pop(spec.name, None)
 
+
+def test_mcp_surface_inherits_the_exclusion(tmp_path, engine, monkeypatch) -> None:
+    """AC22: the MCP status tool uses bounded analysis with cooling exclusion."""
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    data = _mcp_call(root, engine, monkeypatch)
     assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["ready"])
+
+
+def test_mcp_surface_names_a_failed_cooling_resolution(tmp_path, engine, monkeypatch) -> None:
+    """AC22: the MCP surface carries cooling findings, not only the exclusion.
+
+    Inheriting the exclusion and reporting why it could not be performed are
+    separate obligations. Asserting only the first would stay green on a
+    surface that silently claimed an exclusion it never made.
+    """
+    root = _tree(tmp_path, lifecycle=False, specs=())
+    (root / "docs").mkdir(parents=True, exist_ok=True)
+    (root / "docs/lifecycle").write_text("not a directory", encoding="utf-8")
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+
+    data = _mcp_call(root, engine, monkeypatch)
+    codes = [f["code"] for f in data["canonical"]["findings"]]
+    assert codes == ["cooling_state_unavailable"]
 
 
 def test_explain_mode_excludes_too(tmp_path, engine) -> None:

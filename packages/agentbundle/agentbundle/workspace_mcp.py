@@ -825,6 +825,7 @@ def _canonical_status_projection(
     engine: Any,
     repo_root: Path,
     cooled: frozenset[Path] | None,
+    cooling_findings: tuple = (),
 ) -> dict[str, Any] | None:
     workspace_path = repo_root / "workspace.toml"
     try:
@@ -852,7 +853,12 @@ def _canonical_status_projection(
         "input_identity": engine.canonical_repository_identity(
             workspace, canonical, repo_root
         ),
-        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        # Cooling findings are raised while resolving the cooled set, ahead of
+        # this reconciliation, so this is their only route to the MCP surface.
+        "findings": [
+            _canonical_finding_dict(f)
+            for f in (*cooling_findings, *canonical.findings)
+        ],
         "evaluations": evaluations,
         "legacy_memberships": legacy_memberships,
         "ready": [
@@ -939,6 +945,7 @@ class _WorkspaceStatusTool:
             engine,
             repo_root,
             getattr(result, "cooled", None),
+            tuple(getattr(result, "cooling_findings", ()) or ()),
         )
         legacy_analysis_allowed = bool(
             canonical_projection.pop("_legacy_analysis_allowed", False)

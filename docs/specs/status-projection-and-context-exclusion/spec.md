@@ -290,9 +290,13 @@ absent in whitespace-normalized text.
 - [ ] **AC21 — Bounded mode excludes identically.** The AC17 fixture run through
   subcommand `status` yields `canonical.ready` containing no item whose `path`
   is `docs/specs/alpha/spec.md`.
-- [ ] **AC22 — The MCP surface inherits the exclusion.**
+- [ ] **AC22 — The MCP surface inherits the exclusion and its findings.**
   `_WorkspaceStatusTool.call()` over the AC17 fixture returns `ready` containing
-  no item whose `path` is `docs/specs/alpha/spec.md`.
+  no item whose `path` is `docs/specs/alpha/spec.md`. Over the AC8 fixture the
+  same call returns `canonical.findings` carrying exactly one entry whose `code`
+  is `cooling_state_unavailable`. Performing the exclusion and reporting why it
+  could not be performed are separate obligations, and a surface that met only
+  the first would claim an exclusion it never made.
 
 ### Projection
 
