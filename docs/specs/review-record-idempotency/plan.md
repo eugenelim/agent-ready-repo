@@ -1,7 +1,7 @@
 # Plan: review-record-idempotency
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - Ownership source: `docs/architecture/loop-infrastructure.md` §2-3 makes
     `loop-cohort.py` the sole writer of `state.json`. `packs/AGENTS.md`
@@ -305,7 +305,7 @@ properties.
   `references/finding-adjudication.md` (2), `references/pre-execute-review.md` (1)
   — plus the `review record` replay recipes in `references/session-resumption.md`.
 - Four statements are `&&`-chained after a transition, and the transition prints
-  its new sequence (`loop-engine.py:1508-1511`). Either resolve the sequence
+  its new sequence (`loop-engine.py:1510-1513`). Either resolve the sequence
   inside the chain, or split the statement and state the transition-succeeded
   precondition as the shipped `record-attempt` guidance does. Both satisfy AC13
   and AC14; the build picks one and uses it at all four.
