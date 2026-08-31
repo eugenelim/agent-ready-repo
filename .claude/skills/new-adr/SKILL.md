@@ -233,11 +233,13 @@ construct the strict published request, and invoke `project-knowledge --capture`
 Supply `contract_version`, `lesson`, `kind`, `project_scope`,
 `competency_facets`, `destination_hint`, `producer`, `semantic_gate`,
 `provenance`, `freshness_anchor`, `observed_at`, and `privacy_attestation`.
-Set `producer.workflow: new-adr`, use the shipped governance-extras pack
-version for `producer.workflow_version`, set `semantic_gate.name: adr-accepted`,
+Set `producer.workflow: new-adr`, use `new-adr-producer-profile.v1` — the
+producer contract this section defines, never the pack's shipped release — for
+`producer.workflow_version`, set `semantic_gate.name: adr-accepted`,
 and name the repository-relative ADR as the artifact. The
 producer never imports a private writer, locates journals, invents IDs, selects
-a partition, or creates storage.
+a partition, or creates storage. The identifier changes only when this
+contract's emitted shape changes.
 
 Before a provenance line or byte-digest read, discover the repository root
 with Git relocation variables removed, reject lexical dot-segment traversal,

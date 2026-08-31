@@ -52,6 +52,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [desk-research][1.1.7] — 2026-08-31
+
+### Changed
+
+- The `desk-research` capture gate records `producer.workflow_version` as
+  `desk-research-producer-profile.v1`, the identifier of the producer contract
+  that gate defines, rather than the pack's shipped release. The recorded value
+  now changes when that contract's emitted shape changes, so a pack release no
+  longer requires a matching edit to the skill.
+
+## [governance-extras][0.10.4] — 2026-08-31
+
+### Changed
+
+- The `new-adr` and `new-rfc` capture gates record `producer.workflow_version`
+  as `new-adr-producer-profile.v1` and `new-rfc-producer-profile.v1` — the
+  identifiers of the producer contracts those gates define — rather than the
+  pack's shipped release. Each value changes when its own contract's emitted
+  shape changes, so a pack release no longer requires a matching edit to the
+  skills.
+
 ## [agent-skill-engineering][0.3.0] — 2026-08-31
 
 ### Highlights

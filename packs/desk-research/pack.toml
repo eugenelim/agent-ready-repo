@@ -1,6 +1,6 @@
 [pack]
 name = "desk-research"
-version = "1.1.6"
+version = "1.1.7"
 description = "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over."
 readme = "README.md"
 display_name = "Desk Research"
