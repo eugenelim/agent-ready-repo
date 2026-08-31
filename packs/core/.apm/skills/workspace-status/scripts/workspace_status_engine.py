@@ -340,6 +340,13 @@ class CanonicalWorkspaceResult:
     findings: list[RoutingFinding]
     evaluations: list[DispatchEvaluation]
     dispatch_by_path: dict[str, DispatchEvaluation]
+    # `memberships` is deliberately unfiltered, so every consumer of it needs
+    # the cooled set to know which entries it may not open. Carrying the set
+    # here rather than threading a parameter is what makes that unmissable:
+    # `canonical_repository_identity` consumed `memberships` and fingerprinted
+    # each artifact by reading its body, which silently reopened every cooled
+    # spec.md and plan.md on all four ordinary-orientation surfaces.
+    cooled: frozenset[Path] = frozenset()
 
 
 @dataclasses.dataclass
@@ -1615,11 +1622,25 @@ def canonical_repository_identity(
             if profile is not None:
                 tracker_profiles.add((profile["id"], profile["version"]))
             continue
-        metadata = _metadata_from_root(root, entry)
         artifact = _confined_artifact_path(root, entry.path)
-        status_fingerprint: str | None = None
-        if entry.kind == "spec" and artifact is not None:
-            _status, status_fingerprint = extract_spec_status_with_fingerprint(artifact)
+        cooled_member = artifact is not None and artifact in result.cooled
+        if cooled_member:
+            # Identity for a cooled artifact is derived from its membership and
+            # a constant marker. Both branches below open the body — a
+            # `read_text` for the status fingerprint and an `open` for the
+            # sibling plan — and a fingerprint is still a read, however little
+            # of it reaches the output. That is what made this invisible: only
+            # the SHA-256 was emitted, so every criterion asserting an absent
+            # body value still passed.
+            metadata = _metadata_from_membership(membership) or ArtifactMetadata(
+                path=entry.path, kind=entry.kind, status=None, exists=True
+            )
+            status_fingerprint = _COOLED_IDENTITY_MARKER
+        else:
+            metadata = _metadata_from_root(root, entry)
+            status_fingerprint = None
+            if entry.kind == "spec" and artifact is not None:
+                _status, status_fingerprint = extract_spec_status_with_fingerprint(artifact)
         status_fingerprints[identity_key] = status_fingerprint or hashlib.sha256(
             json.dumps(metadata.status, ensure_ascii=True).encode("ascii")
         ).hexdigest()
@@ -1872,9 +1893,22 @@ def _cooling_module_path() -> Path | None:
     """Return a confined filesystem cooling module when one is available."""
     engine_path = Path(__file__).resolve()
     skill_root = engine_path.parents[2]
-    candidates = (
-        (skill_root / "close-work" / "scripts" / "cooling.py", skill_root),
-        (engine_path.parent / "cooling.py", engine_path.parent),
+    # Only reach a sibling skill from a real skills tree. Under the packaged
+    # `_data/` layout `parents[2]` is the directory holding the `agentbundle`
+    # package, so this candidate would resolve, confine and execute an
+    # unrelated `close-work/scripts/cooling.py` placed beside it in preference
+    # to the co-located module AC37 guarantees. Same predicate as
+    # `close_work._in_installed_skills_tree`.
+    sibling_reach_allowed = (
+        engine_path.parent.name == "scripts" and skill_root.name == "skills"
+    )
+    candidates = tuple(
+        candidate for candidate, allowed in (
+            ((skill_root / "close-work" / "scripts" / "cooling.py", skill_root),
+             sibling_reach_allowed),
+            ((engine_path.parent / "cooling.py", engine_path.parent), True),
+        )
+        if allowed
     )
     for candidate, declared_root in candidates:
         try:
@@ -1907,6 +1941,11 @@ def _cooling_module_path() -> Path | None:
 # The callables the projection and the cooled-set resolution reach for. The
 # record *attributes* they read are guarded per record by _COOLING_RECORD_FIELDS,
 # because a module can satisfy this contract while one record does not.
+# Stands in for a cooled artifact's status fingerprint. The identity must still
+# change when a workspace entry changes, and must not depend on a body this run
+# may not read.
+_COOLED_IDENTITY_MARKER = "cooled"
+
 _COOLING_MODULE_CALLABLES = ("load_record", "is_due")
 
 # Every attribute _cooling_projection reads off an accepted record. A record
@@ -1995,7 +2034,17 @@ def _cooled_locators(
         if record_path.is_symlink() or not record_path.is_file():
             findings.append(_finding("invalid_lifecycle_record", relative_path))
             continue
-        result = module.load_record(root, record_path)
+        try:
+            result = module.load_record(root, record_path)
+        except Exception:
+            # The module can be an older cooling.py resolved from an installed
+            # skills tree, so its behaviour is not this engine's to assume. The
+            # callable guard proves the name exists, not that it returns rather
+            # than raises. Unhandled, this left analyze() as
+            # `configuration_mismatch` and exit 2 — a record problem reported as
+            # a configuration one, with no finding naming the file.
+            findings.append(_finding("invalid_lifecycle_record", relative_path))
+            continue
         record = getattr(result, "record", None)
         if (
             getattr(result, "code", None) is not None
@@ -2024,6 +2073,15 @@ def _resolve_cooled_state(
     module_out: list[Any] | None = None,
 ) -> tuple[frozenset[Path], tuple[RoutingFinding, ...]]:
     """Resolve cooling support once, then load the repository's cooled set."""
+    # An absent lifecycle directory is not a cooling failure, so decide it
+    # before resolving the module. Resolving first meant an adopter with no
+    # lifecycle records at all got `cooling_state_unavailable` on every run
+    # whenever the closure was not installed — AC7 forbids that finding for
+    # this input, while AC38 requires it for the all-routes-failed input, and
+    # the two overlapped here.
+    lifecycle_dir = root / "docs" / "lifecycle"
+    if not lifecycle_dir.exists() and not lifecycle_dir.is_symlink():
+        return frozenset(), ()
     try:
         module = _load_cooling_module()
     except RuntimeError:
@@ -2530,9 +2588,21 @@ def _dependency_is_satisfied(
     structurally_blocked_paths: set[str],
     root: Path | None,
     cooled: frozenset[Path],
+    brief_scope_unevaluable: bool = False,
 ) -> tuple[bool, RoutingFinding | None]:
     if dep.path in structurally_blocked_paths:
         return False, _finding("unsatisfied_dependency", dep.path, "dependency has findings")
+    if dep.kind == "brief" and brief_scope_unevaluable:
+        # Owner decision, 2026-08-31: fail closed. A cooled child whose brief
+        # link lived only in its body cannot be attributed, so this brief's
+        # child scope is unknown and its terminal state is not evidence. The
+        # existing refusal arm carries it — no new finding code, so AC46's
+        # pinned pair holds. Without this, one lifecycle record erased
+        # `impossible_transition` on a shipped brief and made a structurally
+        # blocked dependant dispatchable.
+        return False, _finding(
+            "unsatisfied_dependency", dep.path, "brief child scope is unknown"
+        )
     cooled_dependency = (
         root is not None and _confined_artifact_path(root, dep.path) in cooled
     )
@@ -2706,15 +2776,27 @@ def _brief_child_spec_states(
     workspace: dict,
     root: Path | None,
     cooled: frozenset[Path] = frozenset(),
-) -> dict[str, set[str]]:
+) -> tuple[dict[str, set[str]], bool]:
+    """Map each brief to its children's states, and say whether any is missing.
+
+    A cooled child's *state* is knowable read-free from its collection, but its
+    *parent* is not when the brief link lives only in the body. Such a child
+    cannot be attributed to any brief, so no brief's child set is known to be
+    complete — the second return value says so. Dropping it silently let the
+    empty set read as compliance under one collection's predicate and as a
+    violation under another's: cooling one child erased `impossible_transition`
+    on a shipped parent and planted one on an executing parent.
+    """
     states: dict[str, set[str]] = {}
+    unattributable_cooled_child = False
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
             continue
+        member_cooled = _membership_is_cooled(membership, root, cooled)
         metadata = (
             _metadata_from_membership(membership)
-            if _membership_is_cooled(membership, root, cooled)
+            if member_cooled
             else _artifact_metadata(workspace, entry, root)
         )
         parent_paths = {
@@ -2725,6 +2807,8 @@ def _brief_child_spec_states(
             if path is not None
         }
         if not parent_paths:
+            if member_cooled:
+                unattributable_cooled_child = True
             continue
         status = metadata.status if metadata is not None else None
         if membership.collection == "work.active":
@@ -2739,7 +2823,7 @@ def _brief_child_spec_states(
             child_state = status
         for parent_path in parent_paths:
             states.setdefault(parent_path, set()).add(child_state)
-    return states
+    return states, unattributable_cooled_child
 
 
 def _append_impossible_transition(
@@ -2912,6 +2996,7 @@ def _structural_findings(
     global_invalid_workspace: bool = False,
     root: Path | None = None,
     cooled: bool = False,
+    brief_scope_unevaluable: bool = False,
 ) -> list[RoutingFinding]:
     entry = membership.entry
     findings: list[RoutingFinding] = []
@@ -2982,7 +3067,11 @@ def _structural_findings(
         findings.append(
             _finding("provenance_mismatch", entry.path, "source revision mismatch")
         )
-    if entry.kind == "brief" and membership.collection.startswith("brief_queue."):
+    if (
+        entry.kind == "brief"
+        and membership.collection.startswith("brief_queue.")
+        and not brief_scope_unevaluable
+    ):
         child_states = brief_child_states.get(entry.path, set())
         invalid_child_scope = (
             membership.collection == "brief_queue.ready"
@@ -3013,6 +3102,7 @@ def evaluate_dispatch(
     global_invalid_workspace: bool = False,
     root: Path | None = None,
     cooled: frozenset[Path] = frozenset(),
+    brief_scope_unevaluable: bool = False,
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership."""
     entry = membership.entry
@@ -3040,6 +3130,7 @@ def evaluate_dispatch(
         brief_child_states,
         global_invalid_workspace,
         root,
+        brief_scope_unevaluable=brief_scope_unevaluable,
     )
     if (
         entry.kind == "spec"
@@ -3060,6 +3151,7 @@ def evaluate_dispatch(
             structurally_blocked_paths,
             root,
             cooled,
+            brief_scope_unevaluable,
         )
         if not satisfied and finding is not None:
             findings.append(finding)
@@ -3149,7 +3241,7 @@ def run_canonical_reconciliation(
         )
     ]
     cycle_paths = _dependency_cycles(local_memberships)
-    brief_child_states = _brief_child_spec_states(
+    brief_child_states, brief_scope_unevaluable = _brief_child_spec_states(
         local_memberships, workspace, root, cooled
     )
     global_invalid_workspace = any(
@@ -3181,6 +3273,7 @@ def run_canonical_reconciliation(
             global_invalid_workspace,
             root,
             cooled=membership_cooled,
+            brief_scope_unevaluable=brief_scope_unevaluable,
         ):
             structurally_blocked_paths.add(membership.entry.path)
     evaluations = [
@@ -3195,6 +3288,7 @@ def run_canonical_reconciliation(
             global_invalid_workspace,
             root,
             cooled,
+            brief_scope_unevaluable,
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
@@ -3210,6 +3304,7 @@ def run_canonical_reconciliation(
         *(finding for evaluation in evaluations for finding in evaluation.findings),
     ]
     return CanonicalWorkspaceResult(
+        cooled=cooled,
         memberships=memberships,
         # Emission, not derivation: `legacy_alias_counts` above still counts a
         # cooled legacy entry, so cooling one half of a duplicate pair does not

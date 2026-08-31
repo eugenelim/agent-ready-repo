@@ -937,22 +937,18 @@ class _WorkspaceStatusTool:
                 **fsm_state,
             }
 
-        result = None
-        try:
-            result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
-        except Exception as exc:
-            _log.warning("workspace_status: analyze_bounded failed: %s", type(exc).__name__)
-
         ready_items: list[dict] = []
         blocked_items: list[dict] = []
         shaping_items: list[dict] = []
         active_items: list[dict] = []
-        canonical_projection = _canonical_status_projection(
-            engine,
-            repo_root,
-            getattr(result, "cooled", None),
-            tuple(getattr(result, "cooling_findings", ()) or ()),
-        )
+        # This must precede `analyze_bounded`. The only confinement on
+        # `workspace.toml` is the symlink check inside this projection, and
+        # `engine.parse_workspace` opens the path with no guard of its own, so
+        # calling `analyze_bounded` first read and parsed an escaping target
+        # before the check that exists to reject it. Passing `None` for the
+        # cooled set makes the projection resolve it itself, which is what
+        # removes the need to run the analysis first at all.
+        canonical_projection = _canonical_status_projection(engine, repo_root, None)
         legacy_analysis_allowed = bool(
             canonical_projection.pop("_legacy_analysis_allowed", False)
         )
@@ -961,8 +957,15 @@ class _WorkspaceStatusTool:
             for finding in canonical_projection.get("findings", [])
         ):
             legacy_analysis_allowed = False
-        if not legacy_analysis_allowed:
-            result = None
+
+        result = None
+        if legacy_analysis_allowed:
+            try:
+                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
+            except Exception as exc:
+                _log.warning(
+                    "workspace_status: analyze_bounded failed: %s", type(exc).__name__
+                )
 
         # Work queue items (ready / blocked)
         manifest = _LIFECYCLE_MANIFEST.get("work", {})

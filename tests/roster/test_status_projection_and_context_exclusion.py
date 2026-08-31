@@ -1029,19 +1029,63 @@ def test_retention_exceptions_and_retired_records_project_correctly(tmp_path, en
 
 
 def test_closeout_facts_are_projected(tmp_path, engine) -> None:
-    """AC29–AC32: closeout reflects pause, queue state, and reconciliation."""
-    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
-    _workspace(root, queue="")
-    closeout = _reconcile_json(root, engine)["closeout"]
+    """AC29–AC32: closeout reflects pause, queue state, and reconciliation.
+
+    One root per case. The earlier form rewrote a single `workspace.toml` three
+    times, so a failure in an earlier phase changed what the later ones saw. Its
+    AC32 phase also asserted `all_specs_shipped` against an initiative holding
+    nothing at all, which is vacuously true and stays green under
+    `not (queue or active or shipped)`.
+    """
+    # AC29 + AC32: every spec Shipped, not merely absent.
+    shipped = _tree(tmp_path / "shipped", records=[], specs=())
+    _spec(shipped, "alpha", status="Shipped")
+    _workspace(shipped, queue="", shipped=_entry("alpha"))
+    closeout = _reconcile_json(shipped, engine)["closeout"]
     assert set(closeout) == {
         "paused", "all_specs_shipped", "closeout_blockers", "initiative_eligible",
         "next_action", "cooling_context_visible",
     }
+    assert closeout["all_specs_shipped"] is True
     assert closeout["next_action"] == "invoke-close-work"
-    _workspace(root, queue="", status="paused")
-    assert _reconcile_json(root, engine)["closeout"]["next_action"] == "resume-or-keep-paused"
-    _workspace(root, queue=_entry("alpha"))
-    assert "unshipped-specs" in _reconcile_json(root, engine)["closeout"]["closeout_blockers"]
+
+    # AC30: a paused initiative.
+    paused = _tree(tmp_path / "paused", records=[], specs=())
+    _spec(paused, "alpha", status="Shipped")
+    _workspace(paused, queue="", shipped=_entry("alpha"), status="paused")
+    assert _reconcile_json(paused, engine)["closeout"]["next_action"] == "resume-or-keep-paused"
+
+    # AC31: an UNCOOLED queued spec blocks closeout. The earlier form queued the
+    # cooled `alpha`, so once closeout began honouring the cooled set this
+    # assertion was pinning the very disagreement the rail forbids.
+    queued = _tree(tmp_path / "queued", records=[], specs=())
+    _spec(queued, "beta")
+    _workspace(queued, queue=_entry("beta"))
+    assert "unshipped-specs" in _reconcile_json(queued, engine)["closeout"]["closeout_blockers"]
+
+
+def test_a_fully_cooled_initiative_can_reach_closeout(tmp_path, engine) -> None:
+    """Closeout agrees with every other surface about cooled queue entries.
+
+    A cooled queue entry is absent from `ready`, `evaluations` and the declared
+    scan, but `all_specs_shipped` counted it, so `unshipped-specs` was reported
+    forever and `invoke-close-work` was unreachable — two consumers of one run
+    disagreeing, which `spec.md`'s `Always do` rail forbids.
+    """
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    _spec(cooled, "alpha")
+    _workspace(cooled, queue=_entry("alpha"))
+    closeout = _reconcile_json(cooled, engine)["closeout"]
+    assert closeout["all_specs_shipped"] is True
+    assert "unshipped-specs" not in closeout["closeout_blockers"]
+
+    # Control: the same entry uncooled still blocks, so the assertion above is
+    # about the exclusion and not about the blocker having been removed.
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    _spec(control, "alpha")
+    _workspace(control, queue=_entry("alpha"))
+    control_closeout = _reconcile_json(control, engine)["closeout"]
+    assert "unshipped-specs" in control_closeout["closeout_blockers"]
 
 
 @pytest.mark.parametrize("mode", ("status", "reconcile"))

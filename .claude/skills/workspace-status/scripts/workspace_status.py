@@ -666,15 +666,20 @@ def _cooling_projection(result) -> dict:
     exceptions: list[dict] = []
     for record in result.cooling_records:
         # `cooling_module` is never None here: a record can only exist because
-        # the module that parsed it loaded, and `_load_cooling_module` now
-        # guards `is_due` alongside `load_record`.
-        due_now = (
-            record.post_closeout_result != "Retired"
-            and result.cooling_module.is_due(record, result.now).due
-        )
+        # the module that parsed it loaded. The guard proves `is_due` exists and
+        # is callable, not that it returns rather than raises — the module may
+        # be an older cooling.py from an installed skills tree. A raise here
+        # left the whole run as `configuration_mismatch` and exit 2.
+        try:
+            due_now = (
+                record.post_closeout_result != "Retired"
+                and result.cooling_module.is_due(record, result.now).due
+            )
+        except Exception:
+            due_now = False
         records.append({
             "delivery_id": record.delivery_id,
-            "locator": record.locator,
+            "locator": _public_canonical_path(record.locator),
             "disposition": record.disposition,
             "post_closeout_result": record.post_closeout_result,
             "completion_event": record.completion_event,
@@ -685,7 +690,7 @@ def _cooling_projection(result) -> dict:
         if due_now:
             due.append({
                 "delivery_id": record.delivery_id,
-                "locator": record.locator,
+                "locator": _public_canonical_path(record.locator),
                 "review_on": record.review_on.isoformat(),
             })
         # Gate on the post-closeout result, not on `exception is not None`.
@@ -700,7 +705,7 @@ def _cooling_projection(result) -> dict:
             exception = dict(record.exception)
             exceptions.append({
                 "delivery_id": record.delivery_id,
-                "locator": record.locator,
+                "locator": _public_canonical_path(record.locator),
                 "owner_role": exception["owner_role"],
                 "reason": exception["reason"],
                 "review_on": exception["review_on"],
@@ -713,7 +718,29 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _closeout_projection(result) -> dict | None:
+def _live_queue_entries(root: Path, result, initiative) -> list:
+    """Return the initiative's queue and active entries that are not cooled.
+
+    `closeout` is the one consumer that decided this from the raw workspace
+    lists. Every other surface in the same run had already excluded these
+    entries, so a fully cooled initiative reported `unshipped-specs` forever
+    and could never reach `invoke-close-work` — the disagreement the spec's
+    `Always do` rail forbids between two consumers of one run.
+    """
+    entries = [*initiative.work.queue, *initiative.work.active]
+    if not result.cooled:
+        return entries
+    # `_safe_spec_path` is the same key the Type 2/3 scans use to skip cooled
+    # entries, so closeout and the scans cannot disagree about which entry a
+    # record names.
+    return [
+        entry
+        for entry in entries
+        if _safe_spec_path(root, entry.slug) not in result.cooled
+    ]
+
+
+def _closeout_projection(root: Path, result) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
     Returns None when no initiative is active or paused. There is no closeout
@@ -734,9 +761,12 @@ def _closeout_projection(result) -> dict | None:
         return None
     initiative = active[0]
     paused = initiative.status == "paused"
-    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
+    all_specs_shipped = not _live_queue_entries(root, result, initiative)
+    # `spec_path` is `entry.path` straight from workspace.toml with no charset
+    # rule, and this string is rendered into agent context. Every sibling
+    # emitter bounds its path through this same filter.
     blockers = [
-        f"type{finding.finding_type}:{finding.spec_path}"
+        f"type{finding.finding_type}:{_public_canonical_path(finding.spec_path)}"
         for finding in result.reconciliation
         if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
@@ -853,7 +883,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
     }
     if mode in {"status", "reconcile"}:
         output["cooling"] = _cooling_projection(result)
-        closeout = _closeout_projection(result)
+        closeout = _closeout_projection(root, result)
         if closeout is not None:
             output["closeout"] = closeout
     return output
