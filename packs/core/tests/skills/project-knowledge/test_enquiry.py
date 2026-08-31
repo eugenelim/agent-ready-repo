@@ -105,6 +105,75 @@ def _query(**overrides: Any) -> dict[str, Any]:
     return query
 
 
+def test_deadline_refusal_is_retryable_without_waiting(store, monkeypatch) -> None:
+    monkeypatch.setattr(store, "_DEADLINE", 1.0)
+    monkeypatch.setattr(store.time, "monotonic", lambda: 1.0)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._remaining_timeout()
+
+    assert refused.value.diagnostic == {
+        "version": "knowledge-diagnostic.v1",
+        "reason_code": "deadline_exceeded",
+        "retryable": True,
+        "recovery_action": "retry",
+    }
+
+
+def test_git_read_timeout_is_retryable_deadline_breach(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "check_output", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._git_read(tmp_path, ["rev-parse", "HEAD"])
+
+    assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+    assert refused.value.diagnostic["retryable"] is True
+    assert refused.value.diagnostic["recovery_action"] == "retry"
+
+
+def test_git_read_bounded_keeps_capacity_and_map_refusals(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def over_budget(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        kwargs["stdout"].write(b"12")
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(store.subprocess, "run", over_budget)
+    with pytest.raises(store.KnowledgeStoreError) as capacity_refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+    assert capacity_refused.value.diagnostic["reason_code"] == "journal_capacity"
+
+    monkeypatch.setattr(
+        store.subprocess,
+        "run",
+        lambda *args, **_kwargs: subprocess.CompletedProcess(args, 1),
+    )
+    with pytest.raises(store.KnowledgeStoreError) as mismatch_refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+    assert mismatch_refused.value.diagnostic["reason_code"] == "map_mismatch"
+
+
+def test_git_read_bounded_timeout_is_retryable_deadline_breach(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "run", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+
+    assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+    assert refused.value.diagnostic["retryable"] is True
+    assert refused.value.diagnostic["recovery_action"] == "retry"
+
+
 def test_ac24_enquiry_reads_only_one_committed_snapshot(contracts_repo: Path, store) -> None:
     commit = _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
     working = _topic(
@@ -463,11 +532,19 @@ def test_ac19_committed_topic_listing_is_entry_bounded(
 def test_ac19_script_deadline_fails_closed(
     contracts_repo: Path, store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # AC19 governs byte and count budgets. A script deadline is neither, so the
+    # refusal must not borrow `journal_capacity` -- that told the caller its
+    # request needed fixing and was not retryable, both false of a deadline. The
+    # property this case exists for is unchanged: an elapsed deadline still
+    # fails closed rather than proceeding.
     _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
     monkeypatch.setattr(store, "_DEADLINE", time.monotonic() - 1)
     with pytest.raises(store.KnowledgeStoreError) as refused:
         store.enquire(contracts_repo, _query())
-    assert refused.value.diagnostic["reason_code"] == "journal_capacity"
+    diagnostic = refused.value.diagnostic
+    assert diagnostic["reason_code"] == "deadline_exceeded"
+    assert diagnostic["retryable"] is True
+    assert diagnostic["recovery_action"] != "fix_request"
 
 
 def test_ac26_every_registered_read_helper_is_implemented(
