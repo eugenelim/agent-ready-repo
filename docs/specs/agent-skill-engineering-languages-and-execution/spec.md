@@ -351,22 +351,23 @@ incidental fix.
   were authored alongside them.
   `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
   pins each clause in
-  `test_shipped_body_keeps_the_two_clauses_measurement_forced` by a recorded
-  sha256 over its whole paragraph with whitespace collapsed, so any deletion,
-  addition, reversal, or requoting inside the paragraph reddens while a
-  re-wrap does not. Seven defeating mutations each redden it and a legitimate
-  re-wrap does not, all eight restored by rewriting the file rather than by
-  checkout and the body verified byte-identical afterwards; the mutations and
-  the three review rounds that forced this design are recorded in `qa.md`.
+  `test_shipped_body_keeps_the_two_clauses_measurement_forced` on three
+  conjuncts: exactly one paragraph carries the clause's anchor, it sits under the
+  pinned heading, and its whitespace-collapsed text hashes to the recorded
+  sha256. Each conjunct closes one defeat class — the count closes duplication,
+  the heading closes relocation, the digest closes rewording — and re-wrapping
+  the same words changes none of them. Ten defeating mutations each redden it and
+  a legitimate re-wrap does not; all eleven probes were restored by rewriting the
+  file rather than by checkout, with the body verified byte-identical afterwards.
 
-  The predicate is a paragraph digest rather than a set of substring checks
-  because substring checks were defeated three times: positive containment is
-  monotone under insertion, so no finite set of them catches a paragraph that
-  keeps every pinned sentence and appends one reversing them. That is a property
-  of the predicate class, not a gap in the enumeration, so the category changed
-  rather than the pattern. It does not cover a contradicting sentence in a
-  different paragraph; the whole-file `SKILL.md` digest recorded on every graded
-  result covers any other body change. The graded authoring assertions are
+  A second guard asserts the two anchors resolve to different paragraphs, which
+  the three conjuncts do not reach: merging the paragraphs *and* refreshing both
+  recorded digests satisfies every conjunct, because both clauses share one
+  heading. The four review rounds that forced this design, each defeating the
+  previous predicate, are recorded in `qa.md` with the mutation that beat it.
+  What remains uncovered is a contradicting sentence in a different paragraph; no
+  guard over prose catches arbitrary contradiction, and the whole-file `SKILL.md`
+  digest recorded on every graded result covers any other body change. The graded authoring assertions are
   corroborating evidence only: they were written in the same change as the
   behavior they assert, so alone they would be a mirror rather than a
   contract.

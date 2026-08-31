@@ -429,8 +429,10 @@ Both the retrieval record and the generic-negative record are bound to the
 digest triple this slice moved, so both are re-measured. The inherited
 foundation pins are a non-regression gate: a moved pin is surfaced first, and
 re-taken only on the recorded owner authority the spec's Boundaries admit,
-naming the prior value, which topic the movement added, and why the new routing
-is more correct. Rewriting one without that record is a defect.
+which enumerate exactly what that record carries. Rewriting one without the
+record is a defect. The field list is not restated here: the *Never do* rules are
+its single authority, and a partial copy is how a task comes to record fewer
+fields than closeout demands.
 
 **Tests:**
 - `test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses`
@@ -537,7 +539,7 @@ ceiling.
 | Risk | Mitigation |
 | --- | --- |
 | A language claim becomes generic developer guidance | Limit every topic and retrieval case to skills, evaluations, packs, or their execution environments; the generic-negative gate is the falsifier. |
-| New topics move a foundation result | Surface the movement first, with the measurement that produced it. Execution showed this is the expected case, not the unlikely one: admitting a language topic moved the two pins whose cases are about that language. Re-take only on recorded owner authority, naming which topic the movement added and why the new routing is more correct. |
+| New topics move a foundation result | Surface the movement first, with the measurement that produced it. Execution showed this is the expected case, not the unlikely one: admitting a language topic moved the two pins whose cases are about that language. Re-take only on recorded owner authority, recorded with exactly the fields the spec's *Never do* rules enumerate — that rule is the single authority for the list, and the two partial copies that used to sit in this plan are why a record satisfied one copy and failed the others. |
 | A predeclared retrieval case is refuted by its own measurement | Expected at this scale: 61 predeclarations were authored before any measurement. Record the disagreement with prompt, declaration, and result, and correct the declaration only on recorded owner authority — never by adjusting it until it agrees. |
 | A group's evidence does not hold — a clause its sources do not state, or a mechanism only one of its failures supports | Two verification passes already refuted eight of eight asserted clauses, so treat this as the expected case rather than the unlikely one. Re-confirm at authoring time, drop the group rather than reword it, and if that leaves a leaf unadmissible surface the finding and route it through an approved spec amendment; do not withdraw a leaf in flight, because the ship transition requires every criterion checked. |
 | The TypeScript/Node topic fails retrieval distinctness | Its governing note already withholds maturity, and the corpus has withdrawn a leaf for this reason before. Report the measurement and route through the amendment path above rather than rewording cases after seeing results. |

@@ -306,20 +306,32 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
     assert recorded == {digest}
 
 
-# Each clause a graded run forced into the shipped body, pinned by the digest of
-# its whole paragraph with whitespace collapsed.
+# Each clause a graded run forced into the shipped body. Three conjuncts per
+# clause: exactly one paragraph carries the anchor, it sits under the pinned
+# heading, and its whitespace-collapsed text hashes to the recorded digest.
 #
-# This replaced a set of `substring in body` assertions after three review rounds
-# each found a different way past them. Positive containment is monotone under
-# insertion, so no finite set of such assertions can catch a paragraph that keeps
-# every pinned sentence and appends one reversing them; and the set of limbs to
-# enumerate is open, which is how a truncated anchor and then an unpinned
-# `Remain in `frame`` both survived. A region digest closes all three classes at
-# once: any deletion, addition, reversal, or requoting inside the paragraph moves
-# it, while re-wrapping the same words does not.
+# The predicate reached this shape after four review rounds each defeated the
+# previous one:
+#
+#   1. eval assertions only -- authored in the same change as the behavior they
+#      assert, so a mirror rather than a contract.
+#   2. `substring in body` checks -- one asserted a truncated prefix, and
+#      swapping the words just past it removed the disposition.
+#   3. more `substring in body` checks -- an unpinned limb, `Remain in `frame``,
+#      could be flipped to `Enter `update`` with every asserted substring intact.
+#      Positive containment is monotone under insertion, so that predicate class
+#      cannot catch an appended reversal however many sentences it enumerates.
+#   4. a bare paragraph digest -- answered "some paragraph somewhere collapses to
+#      this hash", not "this clause is in force". The normative paragraph could be
+#      replaced with an advisory sentence and the original re-appended verbatim
+#      under a `## Superseded guidance (not normative)` heading, or a flipped
+#      duplicate added below the original where first-match never reached it.
+#
+# The heading pin closes relocation; the match count closes duplication; the
+# digest closes rewording. Re-wrapping the same words changes none of the three.
 #
 # Re-pinning is meant to be deliberate. These clauses exist because a graded run
-# measured their absence, so changing one is a contract change that needs a fresh
+# measured their absence, so changing one is a contract change needing a fresh
 # measurement and an updated record -- not a digest refresh.
 MEASUREMENT_FORCED_CLAUSES = {
     # "Identifying which mode the work will need is not entering it ... Until
@@ -328,46 +340,78 @@ MEASUREMENT_FORCED_CLAUSES = {
     # framing."
     "mode-identity": (
         "Identifying which mode the work will need is not entering it.",
+        "## Modes",
         "747111bd13a24f2e6c55aa1ed5ff0bbf0aa6801993b3b823067d5268d8fa96fe",
     ),
     # "The same holds when the target is resolved but the *requested change* is
-    # not ... Remain in `frame`, name the candidate changes and the authority each
-    # would need ... Do not infer a change from the target's current shape."
-    # One paragraph, so it also pins the cost clause and the `Remain in `frame``
-    # directive that the substring guard left free.
+    # not ... Remain in `frame`, name the candidate changes and the authority
+    # each would need ... Do not infer a change from the target's current shape."
+    # One paragraph, so this also pins the authority-cost clause and the
+    # `Remain in `frame`` directive that the substring guards left free.
     "unspecified-change": (
         "The same holds when the target is resolved but the *requested change* "
         "is not",
+        "## Modes",
         "b08e6757ea5fddf3e9c581d5ed0f5f7020ff050a17a241e7fb6f21977a2dca09",
     ),
 }
 
 
-def _clause_region(body: str, anchor: str) -> str | None:
-    """The whole paragraph containing `anchor`, whitespace-collapsed.
+def _clause_paragraphs(body: str, anchor: str) -> list[tuple[str | None, str]]:
+    """Every (nearest preceding heading, collapsed paragraph) carrying `anchor`.
 
-    Collapsed before matching, not after: the source is hard-wrapped, so an
-    anchor spanning a line break finds nothing in the raw paragraph. That exact
-    mistake made a first version of this helper return `None` and report every
-    mutation as caught.
+    Returns all matches rather than the first: a duplicate paragraph with one
+    sentence reversed is invisible to a first-match lookup, and the count is what
+    makes it visible.
+
+    Whitespace is collapsed before matching, not after. The source is
+    hard-wrapped, so an anchor spanning a line break finds nothing in the raw
+    paragraph -- that exact mistake made an earlier version of this helper return
+    nothing and report every mutation as caught.
     """
-    for paragraph in re.split(r"\n\s*\n", body):
-        collapsed = " ".join(paragraph.split())
-        if anchor in collapsed:
-            return collapsed
-    return None
+    heading: str | None = None
+    buffer: list[str] = []
+    found: list[tuple[str | None, str]] = []
+
+    def flush() -> None:
+        if buffer:
+            collapsed = " ".join(" ".join(buffer).split())
+            if anchor in collapsed:
+                found.append((heading, collapsed))
+        buffer.clear()
+
+    for line in body.splitlines():
+        if re.match(r"#{1,6}\s+\S", line):
+            flush()
+            heading = line.strip()
+            continue
+        if not line.strip():
+            flush()
+            continue
+        buffer.append(line)
+    flush()
+    return found
 
 
 def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
-    """Both clauses a graded run forced are byte-identical to their record."""
+    """Each forced clause is unique, correctly placed, and byte-identical."""
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
 
-    for name, (anchor, expected) in MEASUREMENT_FORCED_CLAUSES.items():
-        region = _clause_region(body, anchor)
-        assert region is not None, (
-            f"{name}: the clause paragraph is gone -- no paragraph contains "
-            f"{anchor!r}. It was added because a graded authoring run measured "
-            f"its absence as a miss."
+    for name, (anchor, heading, expected) in MEASUREMENT_FORCED_CLAUSES.items():
+        matches = _clause_paragraphs(body, anchor)
+        assert len(matches) == 1, (
+            f"{name}: {len(matches)} paragraphs carry this clause's anchor, "
+            "expected exactly 1. None means the clause is gone; more than one "
+            "means a copy exists, and a copy is how a reversed duplicate hides "
+            "behind the original. Sections holding it: "
+            f"{[h for h, _ in matches]}"
+        )
+        found_heading, region = matches[0]
+        assert found_heading == heading, (
+            f"{name}: the clause moved out of {heading!r} into "
+            f"{found_heading!r}. Its text is unchanged, so the digest below "
+            "would still match -- but a clause quoted under a different heading "
+            "is not the same clause in force."
         )
         digest = hashlib.sha256(region.encode()).hexdigest()
         assert digest == expected, (
@@ -375,26 +419,37 @@ def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
             f"  recorded: {expected}\n"
             f"  found:    {digest}\n"
             f"  now reads: {region}\n"
-            "Re-wrapping the same words does not reach here, so some word "
-            "changed. This clause is in the body because a graded run measured "
-            "its absence; changing it needs a fresh measurement and a record "
-            "update in the slice qa.md, not a new digest."
+            "Re-wrapping the same words does not reach here, so some word or its "
+            "markup changed -- a blockquote prefix, a fence, or a conversion to "
+            "bullets all land here with no word altered. This clause is in the "
+            "body because a graded run measured its absence; changing it needs a "
+            "fresh measurement and a record update in the slice qa.md, not a new "
+            "digest."
         )
 
 
 def test_the_two_forced_clauses_are_distinct_paragraphs() -> None:
-    """Anti-vacuity: two names must not resolve to one paragraph.
+    """The two clauses are two paragraphs, not one.
 
-    Both digests would still match if one anchor drifted into the other's
-    paragraph, and the guard would silently cover half of what it claims.
+    This is not subsumed by the digest checks above, and the catching set is
+    narrow enough to be worth stating: merging the two paragraphs *and*
+    refreshing both recorded digests to the merged value satisfies every conjunct
+    above -- one match each, both under the same heading, both digests as
+    recorded -- because the two clauses genuinely share a heading. Only the
+    distinctness check notices that two names now resolve to one paragraph.
+
+    `assert all(...)` is likewise load-bearing rather than duplicated: one
+    missing region and one present region give a two-element set, which would
+    satisfy the length comparison vacuously.
     """
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    regions = [
-        _clause_region(body, anchor)
-        for anchor, _ in MEASUREMENT_FORCED_CLAUSES.values()
-    ]
-    assert all(regions)
-    assert len(set(regions)) == len(regions), "both anchors hit one paragraph"
+    regions = []
+    for anchor, _, _ in MEASUREMENT_FORCED_CLAUSES.values():
+        matches = _clause_paragraphs(body, anchor)
+        regions.append(matches[0][1] if matches else None)
+
+    assert all(regions), "a forced clause has no paragraph"
+    assert len(set(regions)) == len(regions), "both anchors resolve to one paragraph"
 
 
 def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:

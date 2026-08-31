@@ -126,10 +126,10 @@ it unchanged rather than omitting it:
 Assertion texts. The Boundary names "assertion" as well as "criterion" and
 "retrieval case", so these belong in this table and not in prose:
 
-| Case, index | Declared | Corrected to |
-| --- | --- | --- |
-| `update-existing-skill`, 2 | "Proposes an exact minimal diff rather than replacing the skill" | "Names the candidate changes and the authority each would need rather than inferring one, since the request leaves the change unspecified" |
-| `cross-session-resumption`, 0 | "Enters update mode against the named existing skill root" | "Names update as the mode the work will need, against the named existing skill root, without entering it before authorization" |
+| Case, index | Declared | Corrected to | Measured |
+| --- | --- | --- | --- |
+| `update-existing-skill`, 2 | "Proposes an exact minimal diff rather than replacing the skill" | "Names the candidate changes and the authority each would need rather than inferring one, since the request leaves the change unspecified" | `true` |
+| `cross-session-resumption`, 0 | "Enters update mode against the named existing skill root" | "Names update as the mode the work will need, against the named existing skill root, without entering it before authorization" | `true` |
 
 **The contract change all four follow from** is the clause Fix 1 *added*, at
 `SKILL.md` lines 18-24: "Identifying which mode the work will need is not
@@ -231,48 +231,71 @@ adversarial review sustained exactly that. A guard was added at the ship gate:
 matching on collapsed whitespace so a re-wrap of hard-wrapped prose does not read
 as a reverted clause.
 
-Three review rounds each defeated this guard a different way, so the fourth
-change was to the predicate's **category** rather than its pattern.
+Four review rounds each defeated this guard a different way, so the fifth change
+was to the predicate's **category** rather than its pattern.
 
 | Round | Guard | How it was defeated |
 | --- | --- | --- |
 | 1 | eval assertions only | authored in the same change as the behavior they assert — a mirror, not a contract |
-| 2 | five `substring in body` assertions | one asserted a truncated prefix, `"…resolved but the"`, stopping before `*requested change* is not`; swapping that subject removed the disposition and stayed green |
-| 3 | six `substring in body` assertions | `Remain in \`frame\`` was pinned by nothing; flipping it to `Enter \`update\`` inverted the contract and stayed green |
+| 2 | five `substring in body` checks | one asserted a truncated prefix, `"…resolved but the"`, stopping before `*requested change* is not`; swapping that subject removed the disposition and stayed green |
+| 3 | six `substring in body` checks | `Remain in \`frame\`` was pinned by nothing; flipping it to `Enter \`update\`` inverted the contract and stayed green |
+| 4 | one digest per clause paragraph | the digest answered "some paragraph somewhere collapses to this hash", not "this clause is in force" — so the normative paragraph could be replaced with an advisory sentence and the original re-appended verbatim under a `## Superseded guidance (not normative)` heading, or a reversed duplicate added below the original where first-match never reached it |
 
-Adding a seventh assertion would have closed round 3's instance and left the
-category open. The adjudication put the reason precisely: positive substring
-containment is **monotone under insertion**, so no finite set of `substring in
-body` checks can catch a paragraph that keeps every pinned sentence and appends
-one reversing them. And the set of limbs needing enumeration is open — a fourth
-unpinned clause, the authority-cost sentence, was still free after round 3.
+Rounds 2 and 3 were the same mistake twice. The adjudication named why adding a
+seventh assertion could not work: positive substring containment is **monotone
+under insertion**, so no finite set of `substring in body` checks catches a
+paragraph that keeps every pinned sentence and appends one reversing them. That
+is a property of the predicate class, not a gap in the enumeration.
 
-The guard now pins each clause's **whole paragraph by sha256 over its
-whitespace-collapsed text**. Any deletion, addition, reversal, or requoting
-inside the paragraph moves the digest; re-wrapping the same words does not. Eight
-probes, each restored by rewriting the file rather than by checkout, with the body
+Round 4 was a different mistake — the new predicate was too *local*. A digest
+identifies text; it says nothing about whether that text is the operative clause.
+
+The guard now asserts **three conjuncts per clause**: exactly one paragraph
+carries the anchor, it sits under the pinned heading, and its
+whitespace-collapsed text hashes to the recorded digest. Each conjunct closes one
+defeat class — the count closes duplication, the heading closes relocation, the
+digest closes rewording — and re-wrapping the same words changes none of them.
+
+Eleven probes, each restored by rewriting the file rather than by checkout, body
 verified byte-identical afterwards:
 
-| Probe | Guard | Note |
+| Probe | Guard | Closed by |
 | --- | --- | --- |
-| `Remain in \`frame\`` → `Enter \`update\`` | red | round 3's defeat |
-| advisory sentence appended after the prohibition | red | the class no positive assertion can catch |
-| Fix 1 demoted to "an earlier draft said this. It is withdrawn." | red | recontextualization |
-| `*requested change*` → `*platform*` | red | round 2's defeat |
-| `however far the plan has progressed` → `as appropriate` | red | |
-| `Do not infer a change` → `You may infer a change` | red | |
-| authority-cost clause reworded | red | was unpinned until the paragraph became the unit |
+| `Remain in \`frame\`` → `Enter \`update\`` | red | digest |
+| advisory sentence appended after the prohibition | red | digest |
+| Fix 1 demoted to "an earlier draft said this. It is withdrawn." | red | digest |
+| `*requested change*` → `*platform*` | red | digest |
+| `however far the plan has progressed` → `as appropriate` | red | digest |
+| `Do not infer a change` → `You may infer a change` | red | digest |
+| authority-cost clause reworded | red | digest — unpinned until the paragraph became the unit |
+| clause gutted in place, original re-appended under `## Superseded guidance (not normative)` | red | **heading** |
+| reversed duplicate added below the original | red | **match count** |
+| clause demoted to a blockquote | red | digest — markup counts |
 | the same words re-wrapped across lines | **green** | a legitimate reflow must not fire |
 
-A second test asserts the two anchors resolve to *different* paragraphs. Without
-it, one anchor drifting into the other's paragraph would leave both digests
-matching while the guard covered half of what it claims.
+A second test asserts the two anchors resolve to *different* paragraphs, and it
+owns a catching set none of the three conjuncts reach. An earlier version of this
+record justified it wrongly — claiming a merged paragraph would leave both digests
+matching, which is impossible, since one paragraph cannot hash to two different
+recorded values. The real case is a merge **combined with refreshing both recorded
+digests to the merged value**: then each anchor has exactly one match, both sit
+under the shared `## Modes` heading, and both digests are as recorded, so every
+conjunct passes and only distinctness notices that two names now resolve to one
+paragraph. Verified: conjuncts green, distinctness red. `assert all(...)` in that
+test is load-bearing for the same reason — one missing region and one present
+region give a two-element set that satisfies the length comparison vacuously.
+
+I had intended to delete that test as dominated. The adjudication refused the
+change and was right; the reviewer's proposed replacement would have deleted the
+catching set too. Both clauses sharing a heading is exactly what makes it
+non-redundant.
 
 **What this still does not cover, stated rather than implied.** It pins the two
-clauses' text, not the absence of a contradicting sentence in some other
-paragraph. No guard over a prose contract can catch arbitrary contradiction. The
-whole-file `SKILL.md` digest now recorded on every graded result is what catches
-any other body change, and it forces re-measurement rather than a digest refresh.
+clauses' text, placement, and uniqueness — not the absence of a contradicting
+sentence in some other paragraph under some other heading. No guard over a prose
+contract catches arbitrary contradiction. The whole-file `SKILL.md` digest now
+recorded on every graded result covers any other body change, and it forces
+re-measurement rather than a digest refresh.
 
 **Cost paid rather than avoided.** Two body edits moved the skill digest twice,
 so both the captured responses and the activation observation were discarded and
