@@ -113,6 +113,7 @@ No rule, gate, transition, refusal, or ordering constraint changed. Every line
 removed from the skill body is accounted for as moved, deduplicated, or
 reworded, and the tests that assert those rules now prove both that the skill
 routes to the reference and that the reference still carries the rule.
+
 ## [core][2.16.3] — 2026-08-30
 
 ### Highlights
