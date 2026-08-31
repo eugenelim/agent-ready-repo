@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Composition Floors
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/agent-skill-engineering.md` and
   `docs/CONVENTIONS.md` govern placement and spec/plan separation. Two analogous
   production implementations carry the shapes this slice reuses:

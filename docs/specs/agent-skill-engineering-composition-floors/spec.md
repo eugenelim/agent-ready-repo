@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Composition Floors
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
@@ -115,7 +115,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — The four named leaves are admitted, each on a named basis.**
+- [x] **AC1 — The four named leaves are admitted, each on a named basis.**
   `skills-and-subagents-common-floor` and `plugin-package-common-floor` are
   admitted on the `observed-practice` basis; `hooks-common-floor` and
   `claude-code-skills-subagents-hooks-and-plugins` are admitted on the `doctrine`
@@ -126,7 +126,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   closing version is what catches a contract change. Each topic carries every
   field its named basis requires.
 
-- [ ] **AC2 — The taxonomy is unchanged and the partition holds.** The taxonomy
+- [x] **AC2 — The taxonomy is unchanged and the partition holds.** The taxonomy
   declared at `docs/rfc/0097-agent-skill-engineering.md` D3 stays at 36 leaves.
   Every leaf appears in the admitted set or the absence register, never both and
   never neither. The admitted set holds 16 topics and the register holds 20, and
@@ -134,11 +134,11 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   fixture that transcribes the register, not in the register's own frontmatter,
   which stays a closed five-key set.
 
-- [ ] **AC3 — Every admitted topic carries the eight required sections.** Each of
+- [x] **AC3 — Every admitted topic carries the eight required sections.** Each of
   the four new topics carries the same ordered section set every shipped topic
   carries, and every `## Related topics` entry resolves to an admitted topic.
 
-- [ ] **AC4 — The composition floors carry no runtime-specific behavior.** No
+- [x] **AC4 — The composition floors carry no runtime-specific behavior.** No
   floor topic names an event name, matcher token, configuration scope, output
   protocol, or file path belonging to any runtime the corpus profiles. The
   forbidden subject set is fixed by a stated rule — the runtimes named in
@@ -146,7 +146,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   rather than by a list written into this criterion, because a runtime release
   adds identifiers and a written list would be defeated by the next one.
 
-- [ ] **AC5 — Each floor names the subjects its authority assigns it.** The
+- [x] **AC5 — Each floor names the subjects its authority assigns it.** The
   skills-and-subagents floor names each of the eight capability questions
   RFC-0097 D3 states and the conservative default it names. The hooks floor names
   each of the six distinctions D3 states. The plugin floor names each of the seven
@@ -156,14 +156,14 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   judgment recorded by the slice reviewer RFC-0097 D3's Errata requires, not a
   property this criterion asserts.
 
-- [ ] **AC6 — Every Claude Code capability row the authority requires exists.**
+- [x] **AC6 — Every Claude Code capability row the authority requires exists.**
   The ledger carries a row for each of the seven capabilities RFC-0097 D3's
   profile table assigns Claude Code. The required-capability set names the
   authority it transcribes and its expected count of 7, and that transcription is
   checked before completeness is evaluated, so deleting a capability from both the
   rows and the required set fails rather than passing.
 
-- [ ] **AC7 — Every capability row carries its provenance set.** Each row names at
+- [x] **AC7 — Every capability row carries its provenance set.** Each row names at
   least one source with a non-empty title and an absolute URL that is neither
   relative nor repository-internal; that source's `retrieved_at` date; the
   source's exposed version or last-updated date, or the literal `none exposed`;
@@ -172,13 +172,13 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   revalidation trigger. A row missing any of these is rejected rather than
   defaulted.
 
-- [ ] **AC8 — Each recorded source identity is the observed final location.** For
+- [x] **AC8 — Each recorded source identity is the observed final location.** For
   every source the ledger names, the retrieval record carries the URL requested,
   the status codes observed in order, and the URL that finally served the content,
   and the identity recorded on the row is that final URL. Recording a conclusion
   without the chain that produced it does not satisfy this criterion.
 
-- [ ] **AC9 — Each state is produced by a distinct named input.** `verified`,
+- [x] **AC9 — Each state is produced by a distinct named input.** `verified`,
   `experimental`, `stale`, and `unavailable` are each produced by an input the
   record names. A row inside its window whose probe record reports a failed
   outcome resolves `experimental`, not `verified`; past its window the elapsed
@@ -186,17 +186,17 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   capability whose window has also elapsed — the resolution order is stated, so
   the outcome is determined rather than left to evaluation order.
 
-- [ ] **AC10 — A recorded row state equals its computed state.** For every row in
+- [x] **AC10 — A recorded row state equals its computed state.** For every row in
   the ledger, the state recorded on the row equals the state computed from that
   row's own fields at the ledger's `evaluated_at` date. A row whose recorded state
   is edited away from its computed state fails.
 
-- [ ] **AC11 — Verified rows rest on a recorded probe.** At least three Claude
+- [x] **AC11 — Verified rows rest on a recorded probe.** At least three Claude
   Code rows carry a probe record naming the gesture performed, the outcome
   observed, and whether that outcome passed. No row anywhere in the ledger carries
   the `verified` state without such a record reporting a pass.
 
-- [ ] **AC12 — Window elapse is computed from the retrieval date.** A row's window
+- [x] **AC12 — Window elapse is computed from the retrieval date.** A row's window
   runs forward from the `retrieved_at` date of its most recently acquired source,
   which is what RFC-0097 D3 makes `verified` depend on; a row's last verification
   date cannot advance past that source's `retrieved_at` without a fresh retrieval.
@@ -210,55 +210,55 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   release landing, and a source changing without revalidation — are operator-driven
   through each row's revalidation trigger and are not computed.
 
-- [ ] **AC13 — The shipped projection is validated at a stated date.** The state
+- [x] **AC13 — The shipped projection is validated at a stated date.** The state
   each topic body projects is the state computed at the ledger's `evaluated_at`
   date. That date is no earlier than the latest `retrieved_at` the ledger records,
   and lies within the declared window measured forward from each row's governing
   retrieval date. A projected state disagreeing with the state computed at that
   date fails.
 
-- [ ] **AC14 — The roll-up maps required rows to a profile state.** A profile
+- [x] **AC14 — The roll-up maps required rows to a profile state.** A profile
   resolves `complete-current` when every required row is present and no required
   row is `stale`; `needs-revalidation` when a required row is `stale`; and
   `incomplete` when a required row is absent. A row recorded `unavailable` does
   not prevent `complete-current`.
 
-- [ ] **AC15 — The recorded roll-up equals the recomputed roll-up.** The roll-up
+- [x] **AC15 — The recorded roll-up equals the recomputed roll-up.** The roll-up
   stored on each profile equals the value recomputed from that profile's rows. A
   roll-up edited away from its recomputed value fails.
 
-- [ ] **AC16 — The unavailable authoring modes stay a closed set of five.**
+- [x] **AC16 — The unavailable authoring modes stay a closed set of five.**
   `runtime-package`, `runtime-profile`, `plugin`, `hook`, and `subagent` remain
   the five unavailable authoring modes, each returning the versioned unavailable
   result.
 
-- [ ] **AC17 — The recorded activation observation stays in force.** Both
+- [x] **AC17 — The recorded activation observation stays in force.** Both
   user-facing workflow `SKILL.md` files and both eval query fixtures are unchanged
   from their shipped bytes, so the digests the recorded activation observation
   pins still match the tree.
 
-- [ ] **AC18 — Every admitted topic has at least two declared solo cases.** The
+- [x] **AC18 — Every admitted topic has at least two declared solo cases.** The
   retrieval case set declares at least two cases whose expected topic set is
   exactly that topic, for each of the 16 admitted topics.
 
-- [ ] **AC19 — Every admitted topic is measured as selected alone at least
+- [x] **AC19 — Every admitted topic is measured as selected alone at least
   twice.** In the recorded independent measurement, each of the 16 admitted topics
   is the sole selected topic for at least two prompts. This is a different
   population from AC18: declaring a solo case does not make the measurement return
   it alone.
 
-- [ ] **AC20 — The measurement meets its thresholds.** On the re-measured record,
+- [x] **AC20 — The measurement meets its thresholds.** On the re-measured record,
   precision is at least 0.90, recall is at least 0.90, the exact-selection rate is
   at least 0.90, and every case declaring no topic returns none. The share of
   cases returning at most three topics is non-binding on this route: a per-result
   assertion already refuses any result carrying more than three topics before that
   share is computed, so that assertion is the limit that fires.
 
-- [ ] **AC21 — The generic-negative set is unchanged in size and answered no more
+- [x] **AC21 — The generic-negative set is unchanged in size and answered no more
   than twice.** The negative set holds exactly 40 prompts, and at most 2 of them
   return any topic.
 
-- [ ] **AC22 — Inherited foundation pins hold, and any re-take is accounted.**
+- [x] **AC22 — Inherited foundation pins hold, and any re-take is accounted.**
   Every pin recorded in
   `packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json`,
   whose content at this spec's approval is
@@ -267,7 +267,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   with its prior and current value, and the count of recorded re-takes equals the
   count of pins whose value differs.
 
-- [ ] **AC23 — Shipped statements agree with the admitted set.** No shipped
+- [x] **AC23 — Shipped statements agree with the admitted set.** No shipped
   surface states that the corpus lacks composition floors or a Claude Code
   profile, and every shipped statement of a topic count states 16. The surfaces
   bound by this criterion are the pack's `.apm/` tree, its `okf/` tree, its
@@ -275,33 +275,33 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
   `web/src/content/packs/agent-skill-engineering.md`, and the check reaches them by
   walking those named roots rather than consulting a hand-maintained file list.
 
-- [ ] **AC24 — The milestone string names this slice.** The initiative's milestone
+- [x] **AC24 — The milestone string names this slice.** The initiative's milestone
   string names the composition-floors slice.
 
-- [ ] **AC25 — The workspace records this spec's delivery state.** This spec is
+- [x] **AC25 — The workspace records this spec's delivery state.** This spec is
   registered under `ini-009` shipped work with `repo-origin` provenance naming the
   brief as its parent.
 
-- [ ] **AC26 — The brief carries a row per delivered slice.** The brief's
+- [x] **AC26 — The brief carries a row per delivered slice.** The brief's
   confirmed-slices table carries separate 3a and 3b rows, each with its own ships
   column and hard predecessor, and its spec map names this spec. The
   residuals this spec assigns to slice 3b name that row as their owner, so the row
   exists rather than being implied.
 
-- [ ] **AC27 — Both pack manifests carry the same new version.** `pack.toml` and
+- [x] **AC27 — Both pack manifests carry the same new version.** `pack.toml` and
   `.claude-plugin/plugin.json` both state `0.4.0`.
 
-- [ ] **AC28 — The changelog carries one entry for this pack.**
+- [x] **AC28 — The changelog carries one entry for this pack.**
   `docs/product/changelog.md` carries exactly one new entry for the
   `agent-skill-engineering` pack, and it is the topmost entry for that pack.
 
-- [ ] **AC29 — The architecture document states what exists.**
+- [x] **AC29 — The architecture document states what exists.**
   `docs/architecture/agent-skill-engineering.md` names the three shipped
   composition floors and the Claude Code profile as implemented, names the seven
   remaining profiles and the router's per-claim state reporting as not
   implemented, and remains `PLANNED`.
 
-- [ ] **AC30 — The spec index row matches this spec.** `docs/specs/README.md`
+- [x] **AC30 — The spec index row matches this spec.** `docs/specs/README.md`
   carries a row for this spec stating its shape and its final AC and task counts.
 
 ## Follow-ons

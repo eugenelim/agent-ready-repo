@@ -189,7 +189,7 @@ promotes and approves them.
 | `agent-skill-engineering-foundation` | Shipped |
 | `agent-skill-engineering-corpus` | Shipped |
 | `agent-skill-engineering-languages-and-execution` | Shipped |
-| `agent-skill-engineering-composition-floors` | Implementing |
+| `agent-skill-engineering-composition-floors` | Shipped |
 
 ## Backlog and prerequisites
 
