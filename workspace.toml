@@ -543,18 +543,18 @@ open = [
   # present — which would make the no-install state fully green and consistent with
   # ADR-0094 — or whether the local gate should provision per worktree.
   {slug = "pre-existing-marketplace-parity-needs-an-editable-agentbundle", source = "pre-flight/2026-08-28"},
+  # Added 2026-08-31 by the catalogue-tooling token-posture change, so the gap is
+  # registered rather than assumed covered: tools/check-zizmor-excessive-permissions.py
+  # filters on the `excessive-permissions` ident alone, so adding a workflow to its
+  # WORKFLOWS tuple makes that workflow's top-level `permissions:` block durable and
+  # asserts NOTHING about `persist-credentials:` on its checkouts. That is zizmor's
+  # separate `artipacked` ident, visible only to the broad gate, which runs at
+  # --min-severity high while artipacked is medium — so removing
+  # `persist-credentials: false` from any checkout in any workflow still lands green.
+  # To close: decide whether this guard grows a second ident (its name and docstring
+  # are scoped to one), whether a sibling guard owns artipacked, or whether the broad
+  # gate's floor drops for that ident alone.
   {slug = "workflow-posture-guard-coverage-gaps", source = "security+quality review of the posture assertion-proof change"},
-  # permissions: contents: read + persist-credentials: false for
-  # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
-  # block. Deliberately NOT bundled into spec/ci-gate-parallelization's Gate A
-  # split even though that change already has the file open: this is a seven-gate
-  # workflow whose Gates D and E upload and download an artifact, and nothing in
-  # that spec reviewed Gates B–G for token use. (The artifact actions use
-  # ACTIONS_RUNTIME_TOKEN rather than GITHUB_TOKEN, so contents: read is very
-  # likely safe — but "very likely safe" is a verification, not the mechanical
-  # ride-along the bundled-fixes carve-out admits.) To close: review all seven
-  # gates for token use, artifact movement and git writes, then apply.
-  {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12"},
   # DECISION, recorded so it is not re-proposed: a GitHub merge queue was evaluated
   # as the fix for branch protection's strict:true rebase-and-rerun thrash and was
   # REJECTED. Two reasons, in order. (1) It does not address the complaint that
@@ -1886,6 +1886,8 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12", summary = "Closed 2026-08-31 by PR #1184. catalogue-tooling-ci-gates.yml was the only workflow with no top-level permissions block; the entry's \"one of three\" was already stale. All eight jobs reviewed before applying: no step references GITHUB_TOKEN, github.token or any secret, none writes to git, and the artifact actions authenticate with ACTIONS_RUNTIME_TOKEN while download-artifact's optional github-token input is unset -- so the entry's \"very likely safe\" is now measured. Gate G keeps fetch-depth: 0 because check_release_impact.py shells out to git diff alone. zizmor --min-severity low on the file went from 17 medium findings (8 artipacked plus excessive-permissions) to none; the broad gate runs at high, so this was never a red gate and its threshold is unchanged. Security review then found the new posture unasserted, so the workflow joins check-zizmor-excessive-permissions.py's WORKFLOWS tuple -- mutation-proven, deleting the block exits 1. The persist-credentials half stays uncovered because artipacked is a separate ident below the broad gate's floor; that gap is recorded against workflow-posture-guard-coverage-gaps rather than left implied"},
+
   {slug = "tdd-stub-replaces-prose", source = "docs/product/intents/tdd-stub-replaces-prose.md", summary = "Closed 2026-08-30 as delivered in core 2.16.3. The accepted semantic rule stands: exact executable test code replaces behavior-restating prose. PLAN now owns bounded, no-network, timeout-limited, filesystem-confined validation from disposable scratch and writes no repository test; failed compile or intended-red proof blocks approval unless the closed implementation-discovered exception applies. Code-mode EXECUTE materializes the approved payload only after CODE-IMPLEMENTATION, using an explicit one-terminal-newline byte contract, then completes red-green-refactor. RFC-0028 errata, conventions, architecture, adopter guides, evals, projections, and regression tests carry the durable result"},
 
   {slug = "contract-amendment-pre-wave-window", source = "docs/product/intents/contract-amendment-pre-wave-window.md", summary = "Closed 2026-08-29 as a bug fix in core 2.15.5. contract-amendment refused until a task had completed, so the pre-wave window — baseline sealed, current_wave_index 0, review finding a defect before wave 1 — had no legal correction route. RFC-0099 section 7 (Accepted 2026-08-27) declares that route legal from implementation, verification, or review with no completed-work precondition; the guard landed 2026-08-26 in be51a9847, one day earlier, and was never re-checked when the decision landed. Four guards, not the three the intent named: the fourth was parse_completed_task_evidence_entries rejecting an empty tuple. missing_evidence remains the sole enforcer and is mutation-proven — neutering it fails exactly one test. Two deliberately written assertions had to be removed, contradicting the intent's assumption that no test asserted the refusal"},
