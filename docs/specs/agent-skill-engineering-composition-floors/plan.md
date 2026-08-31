@@ -68,7 +68,6 @@ The suites of record for this slice, and what each owns:
 | `packs/agent-skill-engineering/tests/pack/test_corpus_admission.py` | Admission records, basis fields, source parity in both projections, the admitted-versus-absent partition, and the content scans |
 | `packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py` | Topic identity and sections, router-case shape floors, the precision and recall gate, and the negative-set record |
 | new module under `tests/pack/` | The lifecycle-state function, window elapse, and the roll-up recomputation |
-| `packs/agent-skill-engineering/tests/integration/test_provider_contract.py` | Router response per lifecycle state, reaching `profile_provenance` and `stale-profile` |
 | `packs/agent-skill-engineering/tests/pack/test_pack_boundary.py` | The unchanged five-mode closed set and the repository-reference scan over `.apm/` |
 
 ## Durable-output map
@@ -78,7 +77,6 @@ The suites of record for this slice, and what each owns:
 | User-facing promise | T8 | Shipped-statement agreement scan |
 | Current product truth | T6, T7 | Partition test; re-measured records |
 | Current architecture | T8 | Architecture section naming shipped versus planned |
-| Interface compatibility | T5 | Named provider case ids whose removal reddens a named assertion |
 | Spec index | T8 | Row in `docs/specs/README.md` matching the shipped spec |
 | Release history | T8 | Lockstep manifest bump; topmost changelog entry |
 | Maintainer procedure | T9 | `qa.md` |
@@ -101,11 +99,21 @@ identifier matching the provider contract's `identifier_pattern`, the `topic`
 slug it projects into, `declared_window_days`, its stored `roll_up`, and a
 `capabilities` list. Each capability carries `capability`, `state`, `scope`,
 `surface`, `os`, `last_verified`, `revalidation_trigger`, a `sources` list, and
-an optional `probe` record carrying its gesture and observed outcome. The
+an optional `probe` record carrying its gesture, its observed outcome, and
+whether that outcome passed — a probe that ran and failed is neither absent nor
+passing, and without the recorded result it would take the probe-present branch
+and compute `verified`. The
 required-capability set per runtime is declared separately, and carries a
 `source_ref` naming RFC-0097 D3 plus an `expected_count`, so that "required row
 absent" is detectable and so that deleting a capability from both the rows and
 the required set fails.
+
+The absence register's expected count lives in a new
+`tests/fixtures/` transcription of the register, mirroring `topology-leaves.json`.
+It does not go in the register's own frontmatter, which is asserted equal to a
+closed five-key dict at
+`packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py:141-147`, and
+it does not go in shipped content.
 
 `state` is stored on the row *and* recomputed, for the same reason the roll-up
 is: storing makes the intended value reviewable in the diff, recomputing makes a
@@ -114,14 +122,16 @@ built on values nothing verifies.
 
 ### Interfaces & contracts
 
-No provider contract field and no status value is added. All three of `runtime`,
-`profile_provenance` and `stale-profile` are already reached by shipped cases;
-what they lack is a capability-lifecycle meaning. The oracle currently returns an
-eligible provider's declared status verbatim, so a case that declares
-`stale-profile` and expects it proves nothing. This slice adds the oracle branch
-that derives the status from the selected ledger row's computed state, which is
-what makes the new cases falsifiable, and a `diagnostic` that separates an
-elapsed capability window from the provider's own stale contract version.
+No provider seam changes. RFC-0097 D3 requires the router to return each selected
+claim's state and the profile roll-up, and the shipped response cannot carry
+either: it is a closed field set whose `profile_provenance` entries are validated
+against exactly `{profile, retrieved_at, verified_at}`, and a non-`ok` status is
+refused if it carries any payload at all. Two further facts make a 3a attempt
+worse than useless — the oracle returns an eligible provider's declared status
+verbatim, so a case asserting the status it declares proves nothing, and
+`ProviderResult` never surfaces `warnings` or `profile_provenance`, so those are
+assertable only against the fixture's own declaration. The contract change is
+therefore designed once in 3b against eight profiles.
 
 One shipped guard must widen: `single-ecosystem-contract` is today asserted to
 apply only to language-specific topics
@@ -156,7 +166,7 @@ standard library.
 
 **Depends on:** none
 
-**Verification mode:** goal-based check.
+**Verification mode:** goal-based check. Implements AC26.
 
 **Tests:**
 - `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py --root .`
@@ -190,9 +200,10 @@ coverage passes.
   stated resolution order, so evaluation order cannot decide it silently.
 - Advance only the reference date past the declared window: `verified` becomes
   `stale`. This is the killing mutation for window elapse.
-- Strip the probe record from a `verified` row: it becomes `experimental`. This
-  is the mutation AC11's own text implies and that an earlier draft of this plan
-  omitted.
+- Strip the probe record from a `verified` row: it becomes `experimental`.
+- Flip a probe record's result to failed: the row becomes `experimental`, not
+  `verified`. Without a recorded result this case is indistinguishable from a
+  pass, which is why the schema carries one.
 - Edit a row's stored `state` away from its computed value: fails.
 - Edit a profile's stored `roll_up` away from its recomputed value: fails. Drive
   both from a fixture copy, never by editing the shipped ledger.
@@ -235,7 +246,11 @@ coverage passes.
   because only `packs/core` ships hooks and the two-distinct-pack observation
   rule cannot be met honestly. Its two runtimes come from first-party hook
   documentation.
-- Move the three leaves out of the absence register.
+- Move the three leaves out of the absence register, and update the register
+  transcription fixture's expected count.
+- Regenerate the compiled bundle with `compile-okf`. The admitted set is read from
+  the compiled tree, not from `okf/`, so a body authored without regeneration is
+  invisible to every admission test.
 
 **Done when:** the three topics pass admission, section, subject-coverage and
 portability tests, and each forbidden-identifier control reddens alone.
@@ -266,40 +281,23 @@ Implements AC1 (profile), AC6, AC7, AC8, AC11, AC13.
 - Widen the class restriction at `test_corpus_admission.py:140-144` to admit
   runtime-profile topics, per `docs/rfc/0097-agent-skill-engineering.md:503`.
 - Move `claude-code-skills-subagents-hooks-and-plugins` out of the absence
-  register.
+  register, and update the register transcription fixture's expected count.
+- Set the promotion class's `fixture` field to the identifier of this slice's
+  probe record set. The two behavior fixtures the corpus slice assigns to slice 3
+  are deferred to 3b, so the probe record is the construction evidence that exists
+  here; the field is truthiness-checked only, so an unresolvable slug would ship
+  silently.
+- Regenerate the compiled bundle with `compile-okf`.
 
 **Done when:** the recomputed roll-up is `complete-current`, at least three rows
 carry a probe record, no row is `verified` without one, and the leaf is out of
 the register.
 
-### T5: The router derives per-claim state across the provider seam
-
-**Depends on:** T2, T4
-
-**Verification mode:** TDD, integration surface. Implements AC16, AC17, AC18, AC19.
-
-**Tests:**
-- One case per lifecycle state plus one mixed-state case, each with a stable id.
-- Each case's expected status is compared against a value the oracle *derives*
-  from the ledger row, so a case declaring its own answer cannot pass.
-- Removing the derivation branch reddens every one of those cases by id. This is
-  the anti-vacuity control, and it is necessary because the existing oracle
-  returns an eligible provider's declared status verbatim.
-
-**Approach:**
-- Add the oracle branch and runtime-bearing cases; add no contract field and no
-  status value.
-- Give the `stale-profile` response a `diagnostic` that separates an elapsed
-  capability window from a stale provider contract version.
-
-**Done when:** the four named case ids redden when the derivation branch is
-removed.
-
 ### T6: The counted guards move with the content
 
 **Depends on:** T3, T4
 
-**Verification mode:** goal-based check. Implements AC2; guards AC20 and AC21.
+**Verification mode:** goal-based check. Implements AC2; guards AC16 and AC17.
 
 **Tests:**
 - The admitted/absent XOR at
@@ -334,7 +332,7 @@ driven with an unmapped count.
 
 **Depends on:** T3, T4
 
-**Verification mode:** goal-based check. Implements AC22, AC23, AC24, AC25, AC26.
+**Verification mode:** goal-based check. Implements AC18, AC19, AC20, AC21, AC22.
 **Review shape: WIDE** — mechanically uniform record regeneration, carried with
 reproducibility proof rather than split.
 
@@ -354,7 +352,10 @@ reproducibility proof rather than split.
   both the hooks floor and the profile — so the declared count that clears the
   measured gate is discovered, not predicted.
 - Re-observe every case and every generic negative in independent read-only
-  subcontexts, each writing to a path unique per run.
+  subcontexts, each writing to a path unique per run. Run the measurement only
+  after T3 and T4's `compile-okf` regeneration: the record binds the router and
+  generated-tree digests, so measuring a pre-regeneration tree spends roughly 110
+  observations on a record that is stale on arrival.
 
 **Done when:** both records carry current digests and every gate above passes.
 
@@ -362,7 +363,7 @@ reproducibility proof rather than split.
 
 **Depends on:** T3, T4, T7
 
-**Verification mode:** goal-based check. Implements AC27, AC30, AC31, AC32, AC33.
+**Verification mode:** goal-based check. Implements AC23, AC27, AC28, AC29, AC30.
 
 **Tests:**
 - The shipped-statement agreement scan, walking the published pack tree and the
@@ -383,9 +384,9 @@ reproducibility proof rather than split.
 
 ### T9: The record is written and the slice closes
 
-**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8
+**Depends on:** T1, T2, T3, T4, T6, T7, T8
 
-**Verification mode:** goal-based check. Implements AC28, AC29.
+**Verification mode:** goal-based check. Implements AC24, AC25.
 
 **Tests:**
 - `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .` passes
@@ -433,11 +434,19 @@ Installers see the change through the version bump.
 - 2026-08-31 — Initial plan. Slice 3 cut into 3a and 3b, and the Claude Code
   profile added to 3a so the ledger schema has a consumer whose absence a test
   would notice.
-- 2026-08-31 — Revised against 36 sustained spec-stage review findings. Three
+- 2026-08-31 — Revised against 39 sustained spec-stage review findings (43 raised
+  across two reviewers, 4 refuted). Three
   changes are approach changes rather than corrections. The `hooks-common-floor`
   basis moved from `observed-practice` to `doctrine`, because only one pack ships
-  hooks and the two-pack observation rule cannot be met honestly. T5 gained an
-  oracle derivation branch, because the existing oracle echoes a case's declared
-  status and every provider case built on it would have proved nothing. Row-level
+  hooks and the two-pack observation rule cannot be met honestly. The router task
+  then in the plan gained an oracle derivation branch, because the existing oracle
+  echoes a case's declared status; that task was removed entirely in the next
+  round, for the reason recorded below. Row-level
   state recomputation was added beside the roll-up's, because without it the
   roll-up check rests on values nothing verifies.
+- 2026-08-31 — Round 2 raised 24 findings, 20 of them against round 1's own
+  repairs; 14 sustained, 7 refuted, 3 mooted by a scope decision. The scope
+  decision is the substantive change: the router's per-claim state reporting and
+  the provider contract change it requires move to slice 3b, because the shipped
+  response has no channel for a capability state and no wording of a criterion
+  could supply one. Four criteria and one task were removed rather than reworded.
