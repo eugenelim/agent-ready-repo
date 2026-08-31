@@ -80,9 +80,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Introduce a reader of `engine-state.json` inside `loop-cohort.py`; the caller
   supplies the id and the writer validates its form.
 - Make `--operation-id` required, or change behavior for a caller that omits it.
-- Break the `&&` chain that stops a recording from running after a refused
-  transition; the transition carries the retry-cap guard and the recording does
-  not.
+- Let a recording run after a refused transition. The transition carries the
+  retry-cap guard and the recording does not, so the conditionality must survive
+  however the statement is shaped.
 - Retire, weaken, or bypass the existing human-authorization obligation on a
   clean-round replay.
 - Edit the body of an accepted decision record or of a spec at `Status: Shipped`.
