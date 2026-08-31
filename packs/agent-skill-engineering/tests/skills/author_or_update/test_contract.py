@@ -435,17 +435,18 @@ def _clause_paragraphs(body: str, anchor: str) -> list[tuple[str | None, str]]:
     return found
 
 
-def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
-    """Each forced clause is unique, correctly placed, and byte-identical."""
-    # The subject set is pinned before anything iterates it. Both guards below
-    # loop over this dict, so without this an entry could be deleted -- or the
-    # dict emptied -- and both would pass: `all([])` is True and `len(set()) ==
-    # len([])`. The guard would then assert nothing while staying green, which is
-    # the cheaper version of the record-editing attack the distinctness test
-    # already treats as in scope.
-    #
-    # A clause legitimately added later reddens here exactly once, and is
-    # repaired in the same edit the re-pinning doctrine above already requires.
+def test_the_pinned_clause_set_is_exactly_the_two_measured_clauses() -> None:
+    """The subject set is pinned, independently of anything that iterates it.
+
+    Its own test rather than a line inside one of the consumers. Both guards
+    below loop over this dict, so an entry deleted -- or the dict emptied --
+    makes them pass while asserting nothing: `all([])` is True and
+    `len(set()) == len([])`. Putting the pin inside one consumer left the other
+    still vacuous, which is a smaller version of the same defect.
+
+    A clause legitimately added later reddens here exactly once, and is repaired
+    in the same edit the re-pinning doctrine above already requires.
+    """
     assert set(MEASUREMENT_FORCED_CLAUSES) == {
         "mode-identity",
         "unspecified-change",
@@ -455,7 +456,13 @@ def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
         "a fresh measurement and a record update in the slice qa.md, not a "
         "silent edit to this dict."
     )
+    # Anti-vacuity: an empty dict would satisfy the equality only if the expected
+    # set were also empty, so assert the floor the guard is sized for.
+    assert len(MEASUREMENT_FORCED_CLAUSES) == 2
 
+
+def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
+    """Each forced clause is unique, correctly placed, and byte-identical."""
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
 
     headings = [
