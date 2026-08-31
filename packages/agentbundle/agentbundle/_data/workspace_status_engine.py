@@ -2631,6 +2631,26 @@ def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
     return None
 
 
+def _legacy_membership_is_cooled(
+    membership: LegacyWorkspaceMembership,
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> bool:
+    """True when a legacy membership's canonical artifact is cooled.
+
+    A legacy entry stores `spec/alpha`, so the canonical alias has to be
+    recovered before the membership key applies. Resolving the stored form
+    directly yields `<root>/spec/alpha`, which cannot equal any cooled path
+    whatever the lifecycle record says, so the check silently never fires.
+    """
+    if root is None or not cooled:
+        return False
+    alias = _legacy_canonical_alias(membership.entry)
+    if alias is None:
+        return False
+    return _confined_artifact_path(root, alias) in cooled
+
+
 def _membership_is_cooled(
     membership: WorkspaceMembership,
     root: Path | None,
@@ -3046,12 +3066,13 @@ def run_canonical_reconciliation(
         parse_blocked_path_counts,
     ) = _extract_canonical_memberships(workspace)
     # Cooling is applied at evaluation and emission, never here. Every fact
-    # derived below — by_path, duplicate_paths, cycle_paths and the structural
-    # loop — must see a cooled artifact as *cooled*, not as *absent*, or a
-    # lifecycle record silently erases unrelated conclusions about it. What the
-    # cooled set governs is the artifact *body*: the structural loop and
-    # _brief_child_spec_states take the read-free membership metadata for a
-    # cooled entry instead of opening it.
+    # derived below — by_path, duplicate_paths, cycle_paths, legacy_alias_counts
+    # and the structural loop — must see a cooled artifact as *cooled*, not as
+    # *absent*, or a lifecycle record silently erases unrelated conclusions
+    # about it. What the cooled set governs is the artifact *body*: for a cooled
+    # membership the structural loop and _brief_child_spec_states skip the
+    # predicates that would have to open it, keeping the ones derived from the
+    # workspace entry alone.
     parse_blocked_paths = set(parse_blocked_path_counts)
     local_memberships = [
         membership for membership in memberships if membership.entry.path is not None
@@ -3156,7 +3177,14 @@ def run_canonical_reconciliation(
     ]
     return CanonicalWorkspaceResult(
         memberships=memberships,
-        legacy_memberships=legacy_memberships,
+        # Emission, not derivation: `legacy_alias_counts` above still counts a
+        # cooled legacy entry, so cooling one half of a duplicate pair does not
+        # erase the duplicate finding for the half that stays visible.
+        legacy_memberships=[
+            membership
+            for membership in legacy_memberships
+            if not _legacy_membership_is_cooled(membership, root, cooled)
+        ],
         findings=findings,
         evaluations=evaluations,
         dispatch_by_path=dispatch_by_path,

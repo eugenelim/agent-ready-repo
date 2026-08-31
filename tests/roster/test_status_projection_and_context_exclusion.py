@@ -519,6 +519,14 @@ def test_legacy_entry_is_excluded_identically(tmp_path, engine) -> None:
     )
     assert [item["path"] for item in cooled_json["canonical"]["ready"]] == ["docs/specs/beta/spec.md"]
 
+    # A legacy entry lands in `blocked` through legacy_memberships, not through
+    # evaluations, so the assertions above never observed it. The control pins
+    # that it is there to be excluded.
+    control_blocked = [item["path"] for item in control_json["canonical"]["blocked"]]
+    cooled_blocked = [item["path"] for item in cooled_json["canonical"]["blocked"]]
+    assert "spec/alpha" in control_blocked
+    assert "spec/alpha" not in cooled_blocked
+
 
 def test_bounded_mode_excludes_identically(tmp_path, engine) -> None:
     """AC21: status's bounded analysis carries the cooled set to canonical evaluation."""

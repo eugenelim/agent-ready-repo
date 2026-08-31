@@ -286,7 +286,10 @@ absent in whitespace-normalized text.
 - [ ] **AC20 — A legacy entry is excluded identically.** With the AC18 fixture's
   cooled entry written in the legacy `spec/alpha` form and uncooled `beta` left
   canonical, `scan.declared_spec_files_read` equals the control value minus one
-  and `canonical.ready` still holds `docs/specs/beta/spec.md`.
+  and `canonical.ready` still holds `docs/specs/beta/spec.md`. No item in
+  `canonical.blocked` has the path `spec/alpha`, which the control does carry:
+  a legacy entry reaches that list as a legacy membership rather than as an
+  evaluation, so the scan and ready assertions alone leave it presented.
 - [ ] **AC21 — Bounded mode excludes identically.** The AC17 fixture run through
   subcommand `status` yields `canonical.ready` containing no item whose `path`
   is `docs/specs/alpha/spec.md`.
