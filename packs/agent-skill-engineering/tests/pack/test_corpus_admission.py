@@ -719,7 +719,20 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "recorded fixtures": FIXTURES,
         "eval declarations and payloads": PACK / ".apm" / "skills",
     }
-    assert set(roots) == set(FLOORS) == set(PARENTS)
+    # The root *set* is pinned, not just each root's floor and parent. Three
+    # empty dicts satisfy a three-way set equality, and so do three consistently
+    # narrowed ones -- which would put back the exact defect this scan was
+    # widened to fix, a declared root reached by nothing.
+    SCANNED_ROOTS = frozenset(
+        {
+            "admission record",
+            "authored concepts",
+            "compiled concepts",
+            "recorded fixtures",
+            "eval declarations and payloads",
+        }
+    )
+    assert set(roots) == set(FLOORS) == set(PARENTS) == SCANNED_ROOTS
     for name, paths in roots.items():
         assert len(paths) >= FLOORS[name], (name, len(paths))
         for path in paths:
@@ -837,15 +850,40 @@ REPOSITORY_REFERENCE_CONTROLS = (
     (r"\b[0-9a-f]{7,40}\b", "introduced in 4f2c9ab"),
     (r"\b(?:ADR|RFC)-\d{2,4}\b", "governed by RFC-0097"),
 )
+# Isolation comes from the by-name lookup in each case body, not from seed
+# uniqueness. An earlier comment here claimed this seed was chosen so no other
+# member could match it, which is false -- `RE_ABS_PATH`'s `/var/` branch matches
+# it too. Resolving the compiled pattern by its own string makes shadowing
+# structurally impossible and seed uniqueness unnecessary; reverting to an
+# `any(...)` form on the belief that the seed is doing the work would silently
+# restore the shadowing defect.
 HOST_IDENTIFYING_CONTROLS = (
-    # Deliberately not under /var/, /Users/, /home/ and so on, so this case can
-    # only pass on the pattern it names.
     (r"/var/folders/[A-Za-z0-9_/-]+", "/var/folders/zz9foreign/T/scratch"),
     (r"@[A-Za-z0-9-]+|\b[A-Za-z0-9-]+\.local\b", "someone@example-host"),
     (r"\b\"?(?:username|user|login)\"?\s*[:=]\s*\"?[^\s,]+", "username: not-a-real-person"),
     (r"\b\"?(?:hostname|host)\"?\s*[:=]\s*\"?[^\s,]+", "hostname: not-a-real-box"),
     (r"\b\"?worktree(?:\s+name)?\"?\s*[:=]\s*\"?[^\s,]+", "worktree: some-other-tree"),
 )
+
+
+def test_every_scanned_pattern_has_an_isolating_control() -> None:
+    """One control per pattern member, pinned outside the parametrized cases.
+
+    The coverage equality inside those cases only runs if a case exists, so
+    dropping a control row removed a pattern's control silently, and emptying a
+    control tuple gave pytest an empty parameter set -- reported as skipped, exit
+    zero, the whole control gone from a green run. Third level of the same
+    defect: the guards were pinned, then their subject sets, and these are the
+    subject set of those pins.
+    """
+    assert {pattern for pattern, _ in REPOSITORY_REFERENCE_CONTROLS} == set(
+        REPOSITORY_REFERENCE_PATTERN_STRINGS
+    )
+    assert {pattern for pattern, _ in HOST_IDENTIFYING_CONTROLS} == set(
+        HOST_IDENTIFYING_PATTERN_STRINGS
+    ) - {RE_ABS_PATH.pattern}
+    assert len(REPOSITORY_REFERENCE_CONTROLS) == 5
+    assert len(HOST_IDENTIFYING_CONTROLS) == 5
 
 
 @pytest.mark.parametrize("pattern_string, seeded", REPOSITORY_REFERENCE_CONTROLS)
@@ -869,11 +907,16 @@ def test_each_repository_reference_pattern_matches_a_foreign_example(
 def test_each_host_identifying_pattern_matches_a_foreign_example(
     pattern_string: str, seeded: str
 ) -> None:
-    """Each host pattern fires on an example only it can match.
+    """Each host pattern fires on its own seeded example.
 
-    `RE_ABS_PATH` is excluded: its own seeded control lives with the boundary
-    scan that owns it, and a string reaching it here would shadow the pattern
-    this case is meant to isolate.
+    Not "an example only it can match" -- several seeds are matched by more than
+    one member. The case resolves its pattern by name below, so shadowing cannot
+    make it pass on the wrong member.
+
+    `RE_ABS_PATH` is excluded because its local control is the
+    `/opt/foreign-user/project` seed in the negative scan, the one string only it
+    matches, and its own positive control lives with the boundary scan that owns
+    the pattern.
     """
     assert pattern_string in HOST_IDENTIFYING_PATTERN_STRINGS, pattern_string
     compiled = {pattern.pattern: pattern for pattern in HOST_IDENTIFYING_PATTERNS}

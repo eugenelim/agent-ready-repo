@@ -1,15 +1,20 @@
 # QA record — agent-skill-engineering languages and execution (INI-009 slice 2b)
 
-Base for every measurement below: `74f9a4ac9`, taken against `origin/main` at
-`74f9a4ac9`. Every figure here was produced by the invocation named beside it.
+Base for every measurement below: `origin/main` at `9f11be473`. Every figure here
+was produced by the invocation named beside it.
 
-The blind retrieval measurement and the graded authoring run were taken before
-the final rebase. They are carried forward rather than re-taken, because they
-are bound by content digest and not by base commit: a `git diff` over
-`packs/agent-skill-engineering/` across that pair of bases is empty, so the
-artifacts they measured are byte-identical. The graded *review* results were not
-carried forward and were re-taken; the reason is recorded under **Review
-evidence re-taken** below.
+This branch has been rebased four times, and the base named above is the current
+one rather than the base a given measurement was first taken on. The measurements
+are carried forward rather than re-taken, and the premise is checkable rather
+than asserted: `git diff` over `packs/agent-skill-engineering/` between each
+consecutive pair of bases this record has had is empty, so upstream never touched
+the measured tree and the artifacts are byte-identical across every base change.
+Re-verified at this base, not assumed to have survived the rebase.
+
+The graded *review* results were not carried forward and were re-taken, for a
+reason unrelated to rebasing; it is recorded under **Review evidence re-taken**
+below. The activation record pins both shipped workflow-body digests, and both
+match the bodies in this tree.
 
 Two Boundaries in this slice's spec require a basis to be recorded, and both
 name this file. Where a row below says *authority*, that authority is the record
@@ -72,7 +77,7 @@ The prompt names both ecosystems and both topics carry a parallelism clause, so
 returning both is the defensible reading and the predeclaration was wrong.
 
 **This record is the only place the original declaration exists.** The case was
-authored and corrected inside one commit (`275d3a6f8`); it is absent at that
+authored and corrected inside one commit (`c25052d15`); it is absent at that
 commit's parent, where the fixture held 40 cases against 61 now. A reader
 checking whether the declaration was tuned cannot recover the prior value from
 history, which is precisely the failure mode the amended Boundary names when it
@@ -173,9 +178,12 @@ corrected contract now requires refusing it.
 The exemption was added in T8 *before* this authority was obtained, contrary to
 the spec's *Ask first* routing and the plan's explicit prohibition. That gap was
 found at the ship gate by re-reading the plan against what had been committed,
-and the authority above was then sought rather than assumed. The exemption names
-an exact `(case, index)`, so a different miss in the same case still reddens the
-suite.
+and the authority above was then sought rather than assumed. The exemption names an exact
+`(case, assertion text)`, so a different miss in the same case still reddens the
+suite, and the exemption is also asserted to be *used* — a repaired miss forces
+its removal rather than leaving it to excuse the next regression there. It was
+keyed by index first, which migrates onto a different assertion when one is
+inserted above it.
 
 ## The scope change, and what verifies it
 
@@ -359,7 +367,7 @@ useful part: the pattern is not specific to that one artifact.
 | Guard | Could not fail because | Now |
 | --- | --- | --- |
 | `PROJECTED_REFERENCE_PATTERNS`, the projected-root internal-reference scan | no assertion demanded a positive match from any member; an empty tuple reddened nothing, so a clean result proved only that nothing matched | five class-isolating controls, one per pattern |
-| `/var/folders/…` in the host-identifier set | fully shadowed by `RE_ABS_PATH`'s `/var/` branch, so its seeded control was satisfied by a different member and dropping it was silent | its control uses a string only it can match |
+| `/var/folders/…` in the host-identifier set | fully shadowed by `RE_ABS_PATH`'s `/var/` branch, so its seeded control was satisfied by a different member and dropping it was silent | its control resolves the pattern by name, so shadowing cannot satisfy it |
 | the `<placeholder>` branch of the reviewer matcher | both existing controls were absorbed by the sibling role-token branch | its own control |
 | AC2's seventh subject, JavaScript/TypeScript **security scanning** | guarded by `"javascript and typescript"` — the language pair, which the topic carries independently of any scanner content | asserts `"security scan"`; removing the subject reddens |
 | two of six shipped absence claims | they span a line break and the loop compared unnormalized text, so a forbidden claim reddened on one line and passed across two | whitespace collapsed before comparison |
@@ -582,6 +590,19 @@ Surfaced by executing contexts, unresolved and not blocking:
   resolve-before-read; a reader treating step 1's link as optional would skip
   it.
 
+## A note on the commit hashes below
+
+Every hash in this record names a commit on this branch, and the branch has been
+rebased four times. Two citations went stale that way — they named pre-rebase
+objects unreachable from HEAD, so the "reproducing invocation" this record
+requires for every observed failure reproduced only in one local clone. Both are
+re-pinned to `c25052d15`, and both claims were re-verified against it rather than
+assumed to have survived: the parent's `router-cases.json` holds 40 cases with no
+`nm-python-vs-node`, and the commit carries both status rollbacks.
+
+A hash in a record is a claim that needs re-checking after every rebase, the same
+as any other measured figure. It looks durable and is not.
+
 ## Failure attribution
 
 The *Always do* Boundary requires every failure this slice's gate chain observed
@@ -595,7 +616,7 @@ attribution, and who attributed it. Nothing observed is dropped.
 | Ruff `I001` on an unsorted import block in the T2 test module | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Caught locally this time; the identical defect reached CI in slice 2a because `make lint-ruff` was in the documented command set but not in the per-edit loop. | Claude, this session |
 | Two blind authoring executions wrote to one output directory concurrently; four files were overwritten mid-run and five were removed under a live writer | Both runs pointed at one `responses/` path; the second was dispatched while the first was working, and the supervisor then moved the first run's files aside while the second was writing | `caused-here`, **contained**. Not a worker defect. The supervisor reused one output path for a discarded run and its replacement, then mutated that directory under an active writer. The executing context detected the interference, restored its own text, re-verified, and reported the collision unprompted — the only reason the evidence survived. Later runs write to a path unique per run, so provenance is structural rather than inferred. | Claude, this session |
 | A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four of this slice's spec-amendment review rounds — a different sequence from the guard rounds above — appearing in evidence tooling rather than in prose. | Claude, this session |
-| Both status tokens rolled back inside a feature commit with no mention in its message | `git show 6e4551b7f -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
+| Both status tokens rolled back inside a feature commit with no mention in its message | `git show c25052d15 -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
 | Three subagents and one Codex worker returned no verdict | re-dispatched; each replacement completed | `environmental`, **not carried**. Three were killed by the host sleeping mid-response (`API Error: Your computer went to sleep`); one Codex run was load-shed with the 1-minute load average at 184.76. A run that reached no verdict is not a measurement, so each was discarded and re-taken rather than recorded as partial. Re-dispatch after a host kill is recovery, not an additional attempt. | Claude, this session |
 | Codex worker T3 first run produced zero changes | re-dispatched with the discharge stated at the top of the brief → task completed | `caused-here`, **fixed**. A briefing gap, not a worker defect: the worker's own workflow requires a base-freshness check, and the brief never said that check was already discharged or that its refusal is not a stop condition. | Claude, this session |
 
