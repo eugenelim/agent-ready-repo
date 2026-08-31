@@ -9,7 +9,6 @@ hand-maintained file list, so a new file under a bound root is covered the day
 it lands instead of the day someone remembers to add it.
 """
 
-import json
 import re
 from pathlib import Path
 
