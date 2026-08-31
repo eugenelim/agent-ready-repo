@@ -1,14 +1,10 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
-SKILL = (
-    Path(__file__).resolve().parents[3]
-    / ".apm"
-    / "skills"
-    / "new-adr"
-    / "SKILL.md"
-)
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL = PACK_ROOT / ".apm" / "skills" / "new-adr" / "SKILL.md"
 
 
 def _gate() -> str:
@@ -74,3 +70,23 @@ def test_adr_gate_preserves_decision_authority_and_public_seam() -> None:
     assert "selects" in section
     assert "a partition" in section
     assert "verification and review barrier" in section
+
+
+def test_instructed_producer_version_is_decoupled_from_the_pack_release() -> None:
+    """The gate must instruct a contract identifier, not the pack release.
+
+    Instructing the shipped release made every governance-extras bump a prose
+    edit here, and recorded a release number in a field whose job is to say
+    which producer contract emitted the observation — free text the schema
+    never parses and no consumer branches on. Asserting the literal, and that
+    the release string is absent, means re-introducing the mirror reddens this
+    test instead of shipping.
+    """
+    release = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))[
+        "pack"
+    ]["version"]
+    section = _gate()
+
+    assert "`new-adr-producer-profile.v1`" in section
+    assert release != "new-adr-producer-profile.v1"
+    assert release not in section

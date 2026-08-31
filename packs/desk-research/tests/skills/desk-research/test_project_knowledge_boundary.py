@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import tomllib
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
@@ -103,6 +104,26 @@ def test_terminal_survey_uses_typed_capture_and_only_same_gate_receipts() -> Non
     assert "must not select partitions" in section
     assert "must not mine transcripts" in section
     assert "must not copy a raw source corpus" in section
+
+
+def test_instructed_producer_version_is_decoupled_from_the_pack_release() -> None:
+    """The gate must instruct a contract identifier, not the pack release.
+
+    Instructing the shipped release made every desk-research bump a prose edit
+    here, and recorded a release number in a field whose job is to say which
+    producer contract emitted the observation — free text the schema never
+    parses and no consumer branches on. Asserting the literal, and that the
+    release string is absent, means re-introducing the mirror reddens this test
+    instead of shipping.
+    """
+    release = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))[
+        "pack"
+    ]["version"]
+    section = _knowledge_section()
+
+    assert "`desk-research-producer-profile.v1`" in section
+    assert release != "desk-research-producer-profile.v1"
+    assert release not in section
 
 
 def test_capture_artifact_and_freshness_mapping_is_exact_by_gate() -> None:

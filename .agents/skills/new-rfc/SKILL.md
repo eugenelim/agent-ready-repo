@@ -212,10 +212,12 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    `project_scope`, `competency_facets`, `destination_hint`, `producer`,
    `semantic_gate`, `provenance`, `freshness_anchor`, `observed_at`, and
    `privacy_attestation`. Set `producer.workflow: new-rfc`, use
-   the shipped governance-extras pack version for `producer.workflow_version`,
+   `new-rfc-producer-profile.v1` — the producer contract this section defines,
+   never the pack's shipped release — for `producer.workflow_version`,
    set `semantic_gate.name: rfc-handoff-ready`, and name the repository-relative
    RFC as the artifact. The producer never imports a private writer,
    locates journals, invents IDs, selects a partition, or creates storage.
+   The identifier changes only when this contract's emitted shape changes.
 
    Before a provenance line or `sha256-bytes-v1` read,
    discover the repository root with Git relocation variables removed,

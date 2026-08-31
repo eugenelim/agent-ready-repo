@@ -109,7 +109,7 @@ def test_rfc_gate_uses_public_typed_capture_and_same_gate_receipts() -> None:
         "drain another workflow",
         # what may be captured at all
         "reusable research-navigation",
-        "shipped governance-extras pack version",
+        "new-rfc-producer-profile.v1",
         # the verification barrier before the completion receipt
         "claim persistence or reconciliation",
         "no-diff outcome",
@@ -119,6 +119,27 @@ def test_rfc_gate_uses_public_typed_capture_and_same_gate_receipts() -> None:
         assert clause in section, f"gate section lost load-bearing clause: {clause!r}"
     assert "verification and review barrier" in section
     assert "Before step 9 emits the completion receipt" in section
+
+
+def test_instructed_producer_version_is_decoupled_from_the_pack_release() -> None:
+    """The gate must instruct a contract identifier, not the pack release.
+
+    Instructing the shipped release made every governance-extras bump a prose
+    edit here, and recorded a release number in a field whose job is to say
+    which producer contract emitted the observation — free text the schema
+    never parses and no consumer branches on. Asserting the literal, and that
+    the release string is absent, means re-introducing the mirror reddens this
+    test instead of shipping.
+    """
+    pack_root = Path(__file__).resolve().parents[3]
+    release = tomllib.loads((pack_root / "pack.toml").read_text(encoding="utf-8"))[
+        "pack"
+    ]["version"]
+    section = _gate()
+
+    assert "`new-rfc-producer-profile.v1`" in section
+    assert release != "new-rfc-producer-profile.v1"
+    assert release not in section
 
 
 def test_governance_handoff_metadata_is_descriptive_and_keeps_absence() -> None:
