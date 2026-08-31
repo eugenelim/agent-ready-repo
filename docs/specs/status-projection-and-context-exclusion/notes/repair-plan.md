@@ -119,6 +119,39 @@ repaired criterion is therefore verified at the level its own text states, and
 each mutation is re-derived against the emitted surface — not against the
 internal call that produced it.
 
+## Outcome, and where this plan was wrong
+
+All nine repairs landed, one commit each, rebased after each. Three places the
+plan as written did not survive contact:
+
+**R1's mechanism was incomplete, and R2's reproduction found it.** "Use the
+read-free metadata path for a cooled membership" still ran that metadata through
+predicates that read the artifact body. `_metadata_from_membership` returns
+`None` for every collection without an implied status, so a cooled member of
+`work.queue` or `backlog.closed` was reported `missing_artifact`, and a declared
+`source.parent` was reported `provenance_mismatch`. A cooled closed defect
+therefore blocked its own live dependants — the defect R1 was meant to fix. The
+correct rule is stronger than the plan's: a predicate that depends on the body
+is **not evaluated**, rather than evaluated against absent values.
+`_structural_findings` takes a `cooled` flag and returns after the
+membership-derived findings.
+
+**R3's outcome is a refusal, not satisfaction.** The plan said to move the
+cooled check above `_cross_repo_receipt_satisfied` and drop the `dep.type ==
+"local"` clause, which read as extending decision 1 to the cross-repo path. It
+cannot be: that path's evidence is a four-field receipt match carried in the
+brief body, the lifecycle record has no such field, and projecting the receipt
+is deferred to Wave 7 by `wave6-dependency-scoped-completion-receipts`. Refusing
+also surfaces a real inconsistency rather than concealing one, since `close-work`
+retains a brief with a live cross-repo dependant as an exception instead of
+cooling it. AC57 records this.
+
+**Q16 is closed as a deliberate non-change.** A `legacy_entry` finding still
+names a cooled path. It is a fact about the `workspace.toml` entry's shape, not
+about the artifact, and migrating that entry is owed whether or not the artifact
+cooled. AC20 states the boundary and pins it, so a later blanket filter has to
+change that line and say why.
+
 ## Engine route
 
 From `CODE-REVIEW`: fire `findings-remain`, record the sustained fingerprints,
