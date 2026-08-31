@@ -58,11 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The spec-metadata check now looks at the specs you touched, so finishing a
   work loop takes about two seconds instead of about thirty.** It used to re-read
-  all 423 specs and spawn a Git process for each one. Two invariants still cover
-  every spec regardless: the dangling-reference scan and the deferral-anchor
-  check, the second because closing a backlog entry can invalidate a marker in a
-  spec you never opened. The remaining per-spec checks cover what you changed,
-  and `--all` runs the full audit — wire that into a gate.
+  all 423 specs and start a Git process for each one. Two checks still cover every
+  spec regardless: the dangling-reference scan, and the one that resolves each
+  deferral marker — because retiring a tracked follow-up can invalidate a marker
+  in a spec you never opened. The remaining per-spec checks cover what you
+  changed, and `--all` runs the full audit — wire that into a gate.
 
 ### Changed
 

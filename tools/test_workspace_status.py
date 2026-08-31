@@ -1530,8 +1530,18 @@ _WORK_LOOP_CONTRACT_HASH = (
 # Ownership is unchanged throughout: work-loop still writes spec.md
 # `Status: Shipped` and workspace-status still owns workspace.toml
 # queue/active/shipped, so the engine needs no edit.
+# Moved 2026-08-31 for core 2.17.3, which scoped `lint-spec-status.py`'s
+# per-spec invariants to changed specs and added `--all`. The only edit inside
+# this window is the tail of the doc-drift checklist item, naming the scoped
+# default and the `--all` affordance — an invocation detail of the lint.
+# Reviewed as the pin requires, and the engine needs no edit: ownership is
+# unchanged (work-loop still writes spec.md `Status: Shipped`, workspace-status
+# still owns workspace.toml queue/active/shipped), the status vocabulary and the
+# deferral-anchor requirement are unchanged, and
+# `workspace_status_engine.py`'s only mention of this lint is a comment about
+# the canonical preamble boundary, which this change does not touch.
 _WORK_LOOP_FINISH_HASH = (
-    "5a9f3c09389c632728bd59b4e63dc006d66fd37880db39e0d094863fabd1e755"
+    "ffe0227c862b2563438662bda5c1dd7ccc6d06451458361a6b017e1491ba45e7"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
