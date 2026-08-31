@@ -25,7 +25,7 @@ they do not become general language or CI handbooks.
 
 These five leaves are admitted on the **doctrine** basis, not observed practice.
 No leaf clears the inherited observed-practice rule. The doctrine evidence is
-mixed, and it is recorded per claim group rather than per leaf. Three groups
+mixed, and it is recorded per claim group rather than per leaf. Four groups
 rest on documented public contracts cited externally; three rest on repeated
 independent internal failures carried only in the non-projected admission
 fixture, because shipped content may not cite this repository's own records. One
@@ -154,7 +154,10 @@ the work rather than an incidental fix.
   equal the admission record field-for-field: its clause, its source identities
   *and* dates including each source's exposed version or last-updated date or an
   explicit `none exposed`, and for a `single-ecosystem-contract` group also its
-  ecosystem, its version range, and its fixture. A topic carrying more than one
+  ecosystem and its version range. Its fixture stays a record-only field: the
+  governing RFC requires the exception to *have* a construction or behavior
+  fixture, not to project one, and the fixture's value is a repository eval
+  identifier that shipped content may not carry. A topic carrying more than one
   group carries one labelled block per group, reusing the bolded-label form the
   shipped bodies already use, so every check below has a decidable subject.
 
@@ -220,9 +223,10 @@ the work rather than an incidental fix.
   count, and the class requires at least two repetitions. `severe-safety-failure`
   is unused because no leaf rests on a safety failure with a reproduction.
   The two language topics use `single-ecosystem-contract`;
-  `pack-and-ci-critical-paths` carries both a `two-runtime-public-contract` group
-  on two independent vendors and a `repeated-observed-failures` group for the
-  critical-path claim no vendor states; `process-and-filesystem-cost` and
+  `pack-and-ci-critical-paths` carries two `two-runtime-public-contract` groups on
+  two independent vendors — job dependencies and cache keys, split because each
+  cited runtime must state the whole clause — and a `repeated-observed-failures`
+  group for the critical-path claim no vendor states; `process-and-filesystem-cost` and
   `worktrees-state-locks-and-shared-host-admission` use
   `repeated-observed-failures` alone. (source: for the four inherited classes and
   their required fields, `test_corpus_admission.py` `DOCTRINE_CLASSES` and its

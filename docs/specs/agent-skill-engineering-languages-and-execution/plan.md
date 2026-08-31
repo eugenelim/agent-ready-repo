@@ -132,8 +132,9 @@ earlier wording carried a causal tail that only one row supported, which the
 admission predicate would have forced the other failure to assert.
 
 `pack-and-ci-critical-paths` is the one topic carrying two classes, and it does so
-because its verified public clause covers declared dependencies and cache keys but
-makes no critical-path claim, while the topic is named for one. Verification found
+because its two verified public clauses cover declared dependencies and cache keys
+respectively, and neither makes a critical-path claim, while the topic is named
+for one. Verification found
 no vendor page stating a longest-chain duration bound — that is a scheduling model
 neither GitHub nor GitLab asserts — so the critical-path claim rests on paired
 internal failures instead of being attributed to a contract no one published. This
@@ -195,18 +196,28 @@ portable-file walk reaches only the second. Extend the repository-only pattern
 set with a bare-commit-SHA form and with the `\b(?:ADR|RFC)-\d{2,4}\b`
 governance-token form the guides linter already treats as repository-only, and
 add the host-identifying forms AC3 names — absolute home path, username,
-hostname, worktree name — and make that widened set the **single shared
-definition** used by the doctrine-parity scan, the export-boundary content scan,
-and the de-identification check, so the three cannot diverge. Confirm the already-shipped tree passes under the widened set before
+hostname, worktree name. One shared source of pattern strings serves all three
+consumers, but it is **partitioned by obligation**, not shared flat: the
+host-identifying forms bind every consumer, while the repository-only *reference*
+forms bind only the projected trees. Binding the reference forms to the
+de-identification check would fire it on the admission record, which is the
+sanctioned home for exactly the commit hashes and governance tokens those
+patterns match — a recorded fixture already carries a `docs/rfc/` reference the
+inherited pattern matches — and the cheapest in-flight repair would be to weaken
+the pattern set for all three consumers at once. Confirm before adopting that the
+widened set passes over both the already-shipped tree and the recorded fixtures. Confirm the already-shipped tree passes under the widened set before
 adopting it. The two repeated-failure leaves take their whole basis from records
 whose native identifiers are commit hashes and governance tokens, so this is the
 form most likely to leak.
 
 Add `single-ecosystem-contract` to the inherited `DOCTRINE_CLASSES` vocabulary in
-this task, with its required-field tuple and its per-class assertions: the clause
-it licenses, its ecosystem, a version range carrying an explicit lower and upper
-bound, its fixture reference, and the eligibility limit restricting it to a
-language-specific topic. No other task owns this, and T3 declares a group in the
+this task. Its required-field tuple is the field list defined under
+*Single-ecosystem groups* above, not a second list stated here. The per-class
+assertions this task adds are: the version range carries an explicit lower and
+upper bound; and the declaring topic is one the governing RFC classifies as
+language-specific. Eligibility is asserted **against the topic**, never recorded
+as a field — a group that declared its own eligibility would be attesting to its
+own admissibility, which is vacuous. No other task owns this, and T3 declares a group in the
 class, so without it T3's first doctrine-arm execution fails on an unknown class
 and the governing RFC's three conditions go unenforced.
 
@@ -219,6 +230,10 @@ exercise is not also its first shipment.
 - `test_doctrine_parity_rejects_a_source_missing_from_one_projection` (AC6) — stub: true
 - `test_public_contract_group_cites_at_least_one_attributable_source` (AC6) — stub: true
 - `test_repeated_failure_group_cites_no_external_source` (AC6) — stub: true
+- `test_each_doctrine_group_has_its_own_labelled_provenance_block` (AC6) — the
+  partition every group-scoped check below depends on; labels come from the
+  record's existing per-group `name`, in the bolded-label form the shipped bodies
+  already use, and the rejection case is two groups sharing one block — stub: true
 - `test_body_carries_no_external_reference_the_group_record_does_not_cite` (AC6)
   — group-scoped, not topic-scoped: a topic carrying both a citing and a
   non-citing group must not let the second borrow the first's URLs — stub: true
@@ -259,6 +274,12 @@ declared-unpopulated register in the same change. The TypeScript/Node topic
 covers its seven RFC-assigned subjects and states its maturity limit in portable
 terms; the note recording that limit may not itself be cited in shipped content.
 
+Author each topic's `## Provenance and lifecycle` section with one labelled block
+per declared claim group, labelled from that group's `name` in the bolded-label
+form the shipped bodies already use. Without that partition the group-scoped
+parity checks have no decidable subject, which is the whole reason they are
+group-scoped.
+
 Admission opens two hardcoded enumerations that are deliberate anti-vacuity
 floors, so both are widened knowingly: `EXPECTED_TOPICS` and `TOPIC_FILES` in
 `test_foundation_corpus.py`.
@@ -282,13 +303,25 @@ crosses two artifacts and can still fail.
 - `test_each_foundation_topic_carries_its_required_sections`, enumerated over the
   admitted set rather than a parallel literal (AC2) — stub: true
 - `test_typescript_node_topic_covers_its_seven_assigned_subjects` (AC2) — stub: true
+- `test_python_pytest_topic_covers_its_four_assigned_subjects` (AC2) — the
+  symmetric falsifier for AC2's Python conjunct: collection, fixtures,
+  process boundaries, and temporary paths — stub: true
 - `test_typescript_node_maturity_limit_appears_in_both_projections` (AC2) — stub: true
 - `test_related_topics_references_resolve_to_admitted_topics` (AC1) — stub: true
 - `test_each_newly_admitted_topic_declares_a_doctrine_group` (AC1) — the only
   falsifier for AC1's basis conjunct; the inherited basis test accepts either
   basis — stub: true
 - `test_recorded_evidence_fields_carry_no_host_identifying_data`, over the
-  admission record (AC3) — stub: true
+  admission record **and the authored concept root** this task writes (AC3)
+  — stub: true. This check is assembled across five tasks, so it carries its own
+  anti-vacuity anchor: its scanned set comes from one named constant asserted
+  equal to AC3's enumeration, in the closed-enumeration equality form this pack
+  already uses, so an artifact a later task adds and forgets to scan reddens
+  instead of being passed over silently. Only the eval fixture payloads are
+  walked rather than enumerated, since they are the one class that grows, and
+  they carry the suffix-and-floor shape AC5 already mandates. Each pattern class
+  carries one seeded positive control, so a check that matches nothing is
+  distinguishable from a tree that contains nothing.
 
 **Done when:** the pack suite is green with twelve admitted topics and
 twenty-four register entries, and each new test fails when its subject is removed.
@@ -319,9 +352,13 @@ sentences is reverted.
 Regenerate through the owning compiler; hand-edit no projection.
 
 **Tests:**
-- `test_generated_manifest_owns_only_router_outputs` (AC1) — no stub (goal-based)
+- `test_generated_manifest_owns_only_router_outputs` — regression guard for the
+  regenerated projection, not an AC1 falsifier — no stub (goal-based)
 - `test_generated_concept_index_routes_to_every_topic` (AC1)
-- `test_generated_router_is_inert_bounded_and_source_independent` (AC1)
+- `test_generated_router_is_inert_bounded_and_source_independent` — regression
+  guard for the regenerated projection, not an AC1 falsifier
+- `test_recorded_evidence_fields_carry_no_host_identifying_data`, re-run over the
+  compiled concept root this task regenerates (AC3)
 
 **Done when:** the compiler's `--check` mode reports `OKF000 check clean` on a
 second run, and projection parity is green.
@@ -408,10 +445,12 @@ every shipped payload falls inside the export-boundary scan.
 **Depends on:** T6, T7, T8
 
 Roll the pack version under the pack version-bump rule with its changelog entry,
-update the architecture record and the spec index, correct the INI-009 milestone
-descriptor, and restore the `unsatisfied_dependency` ceiling to 8 — removing the
-five-line rationale comment that explains the raise to 9, which becomes false
-with the value it describes.
+update the architecture record and the spec index, and restore the
+`unsatisfied_dependency` ceiling to 8 — removing the rationale comment that
+explains the raise to 9, which becomes false with the value it describes. The
+milestone descriptor is not touched here; T1 owns it, so that the string names
+this slice while the slice is in flight rather than at the moment it stops
+being.
 
 Then close the pair T1 opened: set the spec to `Shipped`, move its registration
 from `["ini-009".work].active` to `.shipped`, and re-pin the brief digest in both
