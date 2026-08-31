@@ -1033,3 +1033,28 @@ record. Corrections are appended here, Approver-signed.
   change, so it belongs to the next change that touches the work-loop
   re-drafting path rather than to a spec of its own. Until it lands, an
   amendment reseals without the cold contract review this RFC requires.
+- **2026-08-31 (Approver: eugenelim) — follow-on ledger: five of six discharged;
+  the status field stays `Accepted`.** This RFC's declared vocabulary is
+  `Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn |
+  Experimental`. There is no implemented or shipped status, so `Accepted`
+  remains terminal and the header does not move; delivery is recorded here
+  instead. **#1 Charter and decision records — discharged.** The reviewer-ceiling
+  amendment is live in the charter, ADR-0098 and ADR-0099 exist, and the
+  RFC-0083 and RFC-0096 Errata entries are in place. **#2 Core guidance and
+  artifact routing — Shipped.** **#3 Shaping review and author integrations —
+  Shipped.** **#4 RFC and architecture simplification — Shipped.** **#5
+  Sealed-baseline replacement — discharged as delivered** and Archived; see the
+  2026-08-30 entries. **#6 Migration and validation record — partly open.** Its
+  route and alias migration guidance is published, and the alias removal window
+  is recorded as at least two minor Core releases and 90 days, whichever is
+  later, with removal gated and rollback named. Its executable fixtures were
+  discharged per-spec rather than centrally, as section 6 intended: each shipped
+  spec carries its applicable families as satisfied acceptance items. Two pieces
+  remain. The adopter routing study evidence has no published artifact — the
+  answer key and pass condition exist only in this document, so the study that
+  gated acceptance cannot be independently re-read. And the versioned fixture
+  specification that section 6 required before acceptance was never created, so
+  no central register proves all seven fixture families are covered across the
+  three shipped specs. Both are records of completed work, not new capability;
+  closing them is a publication task. Until they close, this RFC is delivered
+  but not auditable end to end.
