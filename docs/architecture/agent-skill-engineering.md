@@ -63,8 +63,8 @@ it informs authoring without forcing rewrites.
 ## 3. Knowledge topology
 
 The corpus is organized by task and capability rather than by source file. Of
-the 36 leaves the taxonomy names, **7 are admitted and 29 are declared absent**
-as of slice 2a; a leaf is in exactly one of those sets, never both and never
+the 36 leaves the taxonomy names, **12 are admitted and 24 are declared absent**
+as of slice 2b; a leaf is in exactly one of those sets, never both and never
 neither. Admission is evidence-limited, so the admitted count is expected to
 stay well below the leaves enumerated below:
 
@@ -252,6 +252,17 @@ against pack version 0.2.0: 7 topics admitted of 36 leaves, retrieval measured
 at 40/40 exact-set agreement over 40 declared cases, and a fixed 40-prompt
 generic-engineering negative set returning a topic body for 0 of 40 against a
 bar of at most five percent. Activation observed headless at 18/18 with zero
-exclusivity violations. This document stays **PLANNED**: runtime profiles,
-language and execution topics, and the composition floors described above are
-not implemented, and slice 2a claims no surface belonging to them.
+exclusivity violations.
+
+Slice 2b (languages and execution) verified 2026-08-31 against pack version
+0.3.0: 12 topics admitted of 36 leaves, seven claim groups across three
+promotion classes, retrieval measured at 0.951 precision, 1.000 recall and 0.951
+exact-set agreement over 61 declared cases, all 24 inherited foundation pins
+holding, and the fixed 40-prompt negative set still returning a topic body for 0
+of 40. Activation re-observed headless at 18/18 with zero exclusivity
+violations. Behaviour graded over eight authoring cases with 30 of 32 assertions
+holding and two misses recorded as measured.
+
+This document stays **PLANNED**: runtime profiles and the composition floors
+described above are not implemented, and neither slice claims a surface
+belonging to them.

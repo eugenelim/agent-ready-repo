@@ -37,6 +37,12 @@ REVIEW_EVAL_IDS = frozenset(
     {"detect-activation-failure", "detect-script-contract-failure"}
 )
 REVIEW_EVAL_FILES = (
+    # The workflow body. Without it a result graded against a superseded body
+    # satisfies every other guard here, which is what happened when T4 edited
+    # this body after slice 2a recorded these two results: the staleness was
+    # invisible because AC5 conditions re-measurement on a *pinned* digest
+    # moving, and the body was not pinned. The results were re-taken blind.
+    "SKILL.md",
     # The declaration itself, so rewording a prompt or an expectation cannot
     # silently re-point a recorded result at a run it never came from.
     "evals/evals.json",
@@ -309,14 +315,34 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # `actual_findings`, the mode marker in `actual_markers`. Bind the
         # union, so no declared element can go unattested by living in
         # whichever field the check does not read.
-        # Containment, not equality. `expect.output_contains` is graded by the
-        # runner as a substring check, so it declares a floor; asserting
-        # equality here made the record stricter than the check it records and
-        # turned a review finding a real defect beyond the seeded set into a
-        # failure. An independent blind run sustained five findings against
-        # four declared, and nine against six.
+        # Containment, not equality, *for the findings half only*. The runner
+        # grades `expect.output_contains` as a substring check, so the checklist
+        # ids declare a floor; asserting equality over them made the record
+        # stricter than the check it records and turned a review finding a real
+        # defect beyond the seeded set into a failure. An independent blind run
+        # sustained six findings against four declared, and nine against six.
+        # The mode marker below has no such floor and is bound by equality.
         declared_findings = {value for value in declared if value.startswith("ASE-")}
         assert declared_findings <= set(result["actual_findings"])
+        # The non-identifier half of the declaration, bound by value rather than
+        # by the record's own `output_ok` boolean. Without this the mode marker
+        # was declared, counted in the slice record's marker figure, and attested
+        # by nothing but a hand-set flag -- the comment above claimed the union
+        # was bound while the code read only one field of it.
+        #
+        # The recorded values were lifted from the captured responses when this
+        # record was written, and this assertion then ties them to the
+        # declaration -- which is what makes a wrong or padded record fail. Do
+        # not read that as evidence the values were *derived* from `declared`;
+        # deriving them would be the circular derivation this pack has removed
+        # twice, and the guard cannot tell the two apart.
+        #
+        # Equality, not containment. The findings floor above is a floor for a
+        # real reason -- a review may sustain more defects than the case seeds --
+        # but the mode marker is exactly one value, and `<=` let a result record
+        # `Mode: review` *and* `Mode: optimize` and stay green, which asserts a
+        # read-only workflow entered a writing mode.
+        assert set(result["actual_markers"]) == declared - declared_findings
         # The floor cannot be padded into meaninglessness: every extra has to
         # be a checklist identifier the skill actually defines, so a result
         # cannot inflate its count with invented ids.
@@ -335,11 +361,12 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
             sorted(known_missing - set(declared_assertions)),
         )
         # One recorded miss, named rather than absorbed, in the same shape the
-        # authoring side uses. Assertion 6 asks the review to name the replay,
+        # authoring side uses. Assertion index 5 -- 0-based, as the fixture and
+        # the slice record both number it -- asks the review to name the replay,
         # exit and cleanup contract `ASE-DET-01` requires. The run named the
         # first two -- prescribing injected-input determinism and distinct exit
         # classes -- and never returned to cleanup, neither prescribing a path
-        # nor disposing of it as vacuous. Naming the exact (case, index) means a
+        # nor disposing of it as vacuous. Naming the exact (case, assertion text) means a
         # *different* miss still reddens while the known one does not read as a
         # pass.
         failing = {
@@ -348,6 +375,15 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
             if not verdict
         }
         assert failing <= known_missing, (result["eval_id"], sorted(failing))
+        # And the other direction, matching the authoring side: an exemption
+        # whose miss has since been repaired must be removed. Liveness above
+        # asserts the assertion is still *declared*, not that it is still
+        # failing, so without this a re-record flipping it to true leaves the
+        # exemption standing to excuse the next regression at that assertion.
+        assert known_missing <= failing, (
+            result["eval_id"],
+            sorted(known_missing - failing),
+        )
         # AC14: the values the graded runner emits, so a failure can be
         # attributed. Without these a re-record could drop them silently, and
         # `Mode: review` would again be attested by nothing the fixture holds.
@@ -372,6 +408,7 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # workspace-less case fails this assertion with a message instead of
         # raising KeyError, and cannot be satisfied by an empty record.
         assert set(result["source_files"]) == {
+            "SKILL.md",
             "evals/evals.json",
             *(case.get("files") or ()),
         }

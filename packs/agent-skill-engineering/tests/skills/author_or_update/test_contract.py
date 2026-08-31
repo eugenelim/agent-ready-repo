@@ -27,10 +27,37 @@ AUTHOR_ROUTES = (
     "references/security-boundaries.md",
     "references/update.md",
 )
-AUTHORING_EVAL_IDS = frozenset({"frame-new-skill", "update-existing-skill"})
+# Every authoring case, not only those declaring a payload. All eight record an
+# `evals/evals.json` digest, so the two-id set at the merge base left six free to
+# carry a stale digest the parametrized sweep below would never read.
+#
+# Pinned by its own test. Emptying this set fails closed -- the sweep's
+# `recorded == {digest}` sees an empty set -- but *narrowing* it does not: drop one
+# id, forge that result's digest, and the whole suite stays green. That is the
+# mutation that matters here and the one an incomplete audit missed.
+AUTHORING_EVAL_IDS = frozenset(
+    {
+        "frame-new-skill",
+        "update-existing-skill",
+        "cold-start-orientation",
+        "cross-session-resumption",
+        "progressive-result-presentation",
+        "knowledge-provider-read-only-entry",
+        "pytest-suite",
+        "node-browser-suite",
+    }
+)
 AUTHOR_EVIDENCE_SOURCES = (
+    # The workflow body itself. A graded authoring result depends on the body
+    # that produced it far more than on the eval payload, and without this key
+    # a result measured against a superseded body satisfies every other guard
+    # here -- which is how two contract fixes in this slice moved the body
+    # while the recorded evidence still looked bound to it.
+    "SKILL.md",
     "evals/evals.json",
     "evals/files/update-existing-SKILL.md",
+    "evals/files/pytest-suite-SKILL.md",
+    "evals/files/node-browser-suite-SKILL.md",
 )
 
 
@@ -158,6 +185,8 @@ def test_authoring_behavior_evals_cover_frame_and_existing_update() -> None:
         "cross-session-resumption",
         "progressive-result-presentation",
         "knowledge-provider-read-only-entry",
+        "pytest-suite",
+        "node-browser-suite",
     }
     assert cases["frame-new-skill"].get("files") is None
     update_files = cases["update-existing-skill"]["files"]
@@ -198,25 +227,67 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         "cross-session-resumption",
         "progressive-result-presentation",
         "knowledge-provider-read-only-entry",
+        "pytest-suite",
+        "node-browser-suite",
         "detect-activation-failure",
         "detect-script-contract-failure",
     }
-    # One recorded miss, named rather than absorbed. The response declined to
-    # commit to a durable resumption record because persisting one would widen
-    # the skill past `filesystem_read_untrusted`, and it put that choice to the
-    # user instead. Naming the exact (case, index) means a *different* miss
-    # still reddens this test, while the known one does not read as a pass.
-    known_misses = {("cross-session-resumption", 1)}
+    # Each exemption names an exact (case, assertion text) so a *different* miss still
+    # reddens while the known one does not read as a pass.
+    #
+    # ("cross-session-resumption", 1) is inherited: the case asks for a durable
+    # record while its sibling assertion requires the skill's read-only boundary
+    # preserved, and durability implies the write that boundary forbids. Two
+    # independent attesting contexts have now called the pair contradictory.
+    #
+    # ("progressive-result-presentation", 2) is new at this slice, measured
+    # 2026-08-31. The response stated the universal rule -- exactly one next
+    # action -- and paired it with two of the four states it had named, giving
+    # the other two a reporting rule rather than a next action. The assertion is
+    # well posed and the response did not meet it, so it is recorded as measured
+    # rather than reworded. Nothing in the skill's contract governs how
+    # exhaustively a framing response enumerates states, so unlike the two
+    # contract gaps this slice fixed, there is no wording defect behind it.
+    # Keyed by assertion *text*, not by index, and checked for liveness -- the
+    # shape the review side already uses. An index-keyed exemption migrates onto
+    # a different assertion when one is inserted or reworded above it, and the
+    # length pin below only catches that until a legitimate re-record restores
+    # the count. Text keying does not by itself stop an exemption outliving its
+    # miss -- the liveness check asserts the assertion is still declared, not that
+    # it is still failing -- so the exemptions are also asserted to be used.
+    known_misses = {
+        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
+        (
+            "progressive-result-presentation",
+            "Pairs each incomplete state with the next action it hands the user",
+        ),
+    }
+    # Every exemption still describes a declared assertion. Without this, a
+    # reworded assertion silently drops its exemption's subject and the exemption
+    # goes on excusing whatever now sits at that position.
+    for eval_id, text in known_misses:
+        assert eval_id in cases, eval_id
+        assert text in cases[eval_id]["assertions"], (eval_id, text)
+
     for eval_id in cases:
         result = results[eval_id]
         case = cases[eval_id]
+        exempt = {
+            index
+            for index, text in enumerate(case["assertions"])
+            if (eval_id, text) in known_misses
+        }
         for index, verdict in enumerate(result["assertions"]):
-            assert verdict or (eval_id, index) in known_misses, (eval_id, index)
-        assert {
-            (eval_id, index)
+            assert verdict or index in exempt, (eval_id, index, case["assertions"][index])
+        failing = {
+            index
             for index, verdict in enumerate(result["assertions"])
             if not verdict
-        } <= known_misses
+        }
+        assert failing <= exempt
+        # And the other direction: an exemption whose miss has since been repaired
+        # must be removed, not left standing to excuse the next regression there.
+        assert exempt <= failing, (eval_id, sorted(exempt - failing))
         # Bind the record to what the eval declares, not merely to truthiness.
         # Without this a recorded run could claim any markers at all -- the
         # negation of the frame mode's read-only contract included -- and stay
@@ -231,6 +302,7 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         # workspace) while it still consumes the eval payload that declares
         # it, so the floor is the declared files plus that payload.
         assert set(result["source_files"]) == {
+            "SKILL.md",
             "evals/evals.json",
             *(case.get("files") or ()),
         }
@@ -263,6 +335,266 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
         and relative_path in result.get("source_files", {})
     }
     assert recorded == {digest}
+
+
+# Each clause a graded run forced into the shipped body.
+#
+# Four conjuncts per clause: the pinned heading occurs exactly once, exactly one
+# paragraph carries the anchor, that paragraph's nearest preceding heading is the
+# pinned one, and its whitespace-collapsed text hashes to the recorded digest.
+#
+# The predicate reached this shape after five review rounds each defeated the
+# previous one:
+#
+#   1. eval assertions only -- authored in the same change as the behavior they
+#      assert, so a mirror rather than a contract.
+#   2. `substring in body` checks -- one asserted a truncated prefix, and
+#      swapping the words just past it removed the disposition.
+#   3. more `substring in body` checks -- an unpinned limb, `Remain in `frame``,
+#      could be flipped to `Enter `update`` with every asserted substring intact.
+#      Positive containment is monotone under insertion, so that predicate class
+#      cannot catch an appended reversal however many sentences it enumerates.
+#   4. a bare paragraph digest -- answered "some paragraph somewhere collapses to
+#      this hash", not "this clause is in force". The normative paragraph could be
+#      replaced with an advisory sentence and the original re-appended verbatim
+#      under a `## Superseded guidance (not normative)` heading, or a flipped
+#      duplicate added below the original where first-match never reached it.
+#   5. three conjuncts -- match count, heading text, digest -- beaten by gutting
+#      the clause in place and re-appending it verbatim under a *second*
+#      `## Modes`, which a heading-text pin satisfies exactly. That is why the
+#      uniqueness conjunct exists.
+#
+# A sixth round then defeated the four conjuncts too, with `- ## Superseded
+# guidance` as a container-block heading, and that defeat was documented as
+# uncovered rather than closed -- see the NOT-closed list below.
+#
+# A seventh round defeated the guard without touching the body at all: the
+# subject set this dict provides was unpinned, so deleting an entry dropped that
+# clause's coverage while everything stayed green. Pinned now, in its own test,
+# because putting the pin inside one consumer left the sibling vacuous. The
+# lesson that generalizes is in the slice qa.md: a set is safe only when some
+# assertion demands a positive result from its members.
+#
+# Four conjuncts, stated at the width they actually hold:
+#   - the pinned heading occurs exactly once, which closes relocation under a
+#     second copy of the same heading *when that copy is a column-0 ATX
+#     heading* -- round 4's probe varied the heading's text and never varied how
+#     many headings carried it;
+#   - exactly one paragraph carries the anchor, which closes duplication;
+#   - that paragraph's nearest preceding heading is the pinned one, which closes
+#     relocation *only when the replacement heading is a column-0 ATX heading*;
+#   - the digest closes rewording, including markup-only edits, within a
+#     normative block.
+# Re-wrapping the same words changes none of them.
+#
+# NOT closed, all one class: this reads raw lines, not the rendered document.
+#   - a clause whose bytes survive inside a non-normative block -- a fence, a
+#     four-space indent, an HTML comment, a `<div hidden>` wrapper;
+#   - a clause relocated under a heading this file's line pattern does not
+#     recognize -- a setext underline, a 1-3-space-indented ATX heading, a raw
+#     `<h2>`, or an ATX heading inside a container block such as
+#     `- ## Superseded guidance`, after which the tracked nearest heading is
+#     still the pinned one while a renderer shows the clause under the new h2.
+#
+# Two enumerations were proposed for these and both were rejected on
+# adjudication, for the same reason each time: they enumerate members of an open
+# class. A fence-and-comment stripper misses the four-space indent. A
+# heading-form check over setext, indented ATX and raw HTML misses
+# `- ## heading`, because heading *syntax* is a closed set but "the nearest
+# heading preceding this paragraph in the rendered document" is not -- container
+# blocks compose with heading syntax. Making the predicate categorical needs a
+# real CommonMark parse: a new dependency to defend two prose sentences, which
+# the cut-before-adding ladder routes through a decision record, not a test file.
+#
+# Also not closed, and not closable here: a contradicting sentence elsewhere.
+# That is a judgment about meaning, not a property of form, and it stays with
+# review.
+#
+# Re-pinning is meant to be deliberate. These clauses exist because a graded run
+# measured their absence, so changing one is a contract change needing a fresh
+# measurement and an updated record -- not a digest refresh.
+MEASUREMENT_FORCED_CLAUSES = {
+    # "Identifying which mode the work will need is not entering it ... Until
+    # that transition the receipt reports `Mode: frame`, however far the plan has
+    # progressed -- a fully specified patch that has not been authorized is still
+    # framing."
+    "mode-identity": (
+        "Identifying which mode the work will need is not entering it.",
+        "## Modes",
+        "747111bd13a24f2e6c55aa1ed5ff0bbf0aa6801993b3b823067d5268d8fa96fe",
+    ),
+    # "The same holds when the target is resolved but the *requested change* is
+    # not ... Remain in `frame`, name the candidate changes and the authority
+    # each would need ... Do not infer a change from the target's current shape."
+    # One paragraph, so this also pins the authority-cost clause and the
+    # `Remain in `frame`` directive that the substring guards left free.
+    "unspecified-change": (
+        "The same holds when the target is resolved but the *requested change* "
+        "is not",
+        "## Modes",
+        "b08e6757ea5fddf3e9c581d5ed0f5f7020ff050a17a241e7fb6f21977a2dca09",
+    ),
+}
+
+
+def _clause_paragraphs(body: str, anchor: str) -> list[tuple[str | None, str]]:
+    """Every (nearest preceding heading, collapsed paragraph) carrying `anchor`.
+
+    Returns all matches rather than the first: a duplicate paragraph with one
+    sentence reversed is invisible to a first-match lookup, and the count is what
+    makes it visible.
+
+    Whitespace is collapsed before matching, not after. The source is
+    hard-wrapped, so an anchor spanning a line break finds nothing in the raw
+    paragraph -- that exact mistake made an earlier version of this helper return
+    nothing and report every mutation as caught.
+    """
+    heading: str | None = None
+    buffer: list[str] = []
+    found: list[tuple[str | None, str]] = []
+
+    def flush() -> None:
+        if buffer:
+            collapsed = " ".join(" ".join(buffer).split())
+            if anchor in collapsed:
+                found.append((heading, collapsed))
+        buffer.clear()
+
+    for line in body.splitlines():
+        if re.match(r"#{1,6}\s+\S", line):
+            flush()
+            heading = line.strip()
+            continue
+        if not line.strip():
+            flush()
+            continue
+        buffer.append(line)
+    flush()
+    return found
+
+
+def test_the_authoring_eval_id_set_covers_every_declared_case() -> None:
+    """`AUTHORING_EVAL_IDS` is derived-checked, not merely declared.
+
+    The set scopes which recorded results the digest sweep reads, so narrowing it
+    silently drops a result from coverage while every assertion still passes.
+    Emptying it fails closed; narrowing it does not, which is why it needs a pin
+    of its own rather than the protection its use site appears to give it.
+
+    Checked against the authoring skill's own declared cases, which are
+    themselves pinned by set equality elsewhere in this file, so the two cannot
+    drift apart without one of them reddening.
+    """
+    declared = {
+        case["id"]
+        for case in json.loads(
+            (AUTHOR_ROOT / "evals" / "evals.json").read_text(encoding="utf-8")
+        )["evals"]
+    }
+    assert declared == AUTHORING_EVAL_IDS, (
+        f"AUTHORING_EVAL_IDS is {sorted(AUTHORING_EVAL_IDS)} against declared "
+        f"{sorted(declared)}. Narrowing this set removes a graded result from "
+        "the digest sweep without failing anything else."
+    )
+    assert len(AUTHORING_EVAL_IDS) == 8
+
+
+def test_the_pinned_clause_set_is_exactly_the_two_measured_clauses() -> None:
+    """The subject set is pinned, independently of anything that iterates it.
+
+    Its own test rather than a line inside one of the consumers. Both guards
+    below loop over this dict, so an entry deleted -- or the dict emptied --
+    makes them pass while asserting nothing: `all([])` is True and
+    `len(set()) == len([])`. Putting the pin inside one consumer left the other
+    still vacuous, which is a smaller version of the same defect.
+
+    A clause legitimately added later reddens here exactly once, and is repaired
+    in the same edit the re-pinning doctrine above already requires.
+    """
+    assert set(MEASUREMENT_FORCED_CLAUSES) == {
+        "mode-identity",
+        "unspecified-change",
+    }, (
+        f"the pinned clause set is {sorted(MEASUREMENT_FORCED_CLAUSES)}. Adding "
+        "or removing a measurement-forced clause is a contract change: it needs "
+        "a fresh measurement and a record update in the slice qa.md, not a "
+        "silent edit to this dict."
+    )
+    # Anti-vacuity: an empty dict would satisfy the equality only if the expected
+    # set were also empty, so assert the floor the guard is sized for.
+    assert len(MEASUREMENT_FORCED_CLAUSES) == 2
+
+
+def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
+    """Each forced clause is unique, correctly placed, and byte-identical."""
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    headings = [
+        line.strip() for line in body.splitlines() if re.match(r"#{1,6}\s+\S", line)
+    ]
+
+    for name, (anchor, heading, expected) in MEASUREMENT_FORCED_CLAUSES.items():
+        assert headings.count(heading) == 1, (
+            f"{name}: {headings.count(heading)} column-0 ATX headings read "
+            f"{heading!r}, expected exactly 1. None means the pinned heading was "
+            "renamed, its level changed, or its form changed to one this "
+            "line pattern does not recognize -- re-pin it deliberately. Two or "
+            "more means the clause can be gutted where it is normative and "
+            "re-appended verbatim under the duplicate, which the heading "
+            "conjunct below cannot tell apart."
+        )
+        matches = _clause_paragraphs(body, anchor)
+        assert len(matches) == 1, (
+            f"{name}: {len(matches)} paragraphs carry this clause's anchor, "
+            "expected exactly 1. None means the clause is gone; more than one "
+            "means a copy exists, and a copy is how a reversed duplicate hides "
+            "behind the original. Sections holding it: "
+            f"{[h for h, _ in matches]}"
+        )
+        found_heading, region = matches[0]
+        assert found_heading == heading, (
+            f"{name}: the clause moved out of {heading!r} into "
+            f"{found_heading!r}. Its text is unchanged, so the digest below "
+            "would still match -- but a clause quoted under a different heading "
+            "is not the same clause in force."
+        )
+        digest = hashlib.sha256(region.encode()).hexdigest()
+        assert digest == expected, (
+            f"{name}: the measurement-forced clause changed.\n"
+            f"  recorded: {expected}\n"
+            f"  found:    {digest}\n"
+            f"  now reads: {region}\n"
+            "Re-wrapping the same words does not reach here, so some word or its "
+            "markup changed -- a blockquote prefix, a fence, or a conversion to "
+            "bullets all land here with no word altered. This clause is in the "
+            "body because a graded run measured its absence; changing it needs a "
+            "fresh measurement and a record update in the slice qa.md, not a new "
+            "digest."
+        )
+
+
+def test_the_two_forced_clauses_are_distinct_paragraphs() -> None:
+    """The two clauses are two paragraphs, not one.
+
+    This is not subsumed by the digest checks above, and the catching set is
+    narrow enough to be worth stating: merging the two paragraphs *and*
+    refreshing both recorded digests to the merged value satisfies every conjunct
+    above -- one match each, both under the same heading, both digests as
+    recorded -- because the two clauses genuinely share a heading. Only the
+    distinctness check notices that two names now resolve to one paragraph.
+
+    `assert all(...)` is likewise load-bearing rather than duplicated: one
+    missing region and one present region give a two-element set, which would
+    satisfy the length comparison vacuously.
+    """
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    regions = []
+    for anchor, _, _ in MEASUREMENT_FORCED_CLAUSES.values():
+        matches = _clause_paragraphs(body, anchor)
+        regions.append(matches[0][1] if matches else None)
+
+    assert all(regions), "a forced clause has no paragraph"
+    assert len(set(regions)) == len(regions), "both anchors resolve to one paragraph"
 
 
 def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:

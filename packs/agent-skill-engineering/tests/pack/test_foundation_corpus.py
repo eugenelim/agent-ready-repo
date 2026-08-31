@@ -31,27 +31,19 @@ REQUIRED_SECTIONS = (
     "## Related topics",
     "## Provenance and lifecycle",
 )
-# Literal filenames so the join below is statically confined to this pack.
-TOPIC_FILES = (
-    "activation-discoverability-and-mode-wayfinding.md",
-    "depth-libraries-and-okf-knowledge-providers.md",
-    "framing-and-trigger-quality.md",
-    "instruction-density-and-progressive-disclosure.md",
-    "progressive-result-presentation-and-next-actions.md",
-    "resources-scripts-and-exit-contracts.md",
-    "trust-boundaries-and-instruction-provenance.md",
-)
+# The authored root supplies the concrete files. Topic identity remains
+# independently controlled by the admission record below.
+TOPIC_FILES = tuple(sorted(path.name for path in CONCEPT_ROOT.glob("*.md")))
 UNPOPULATED_RECORD = (
     CONCEPT_ROOT / "declared-absent" / "unpopulated-leaves.md"
 )
 EXPECTED_TOPICS = {
-    "activation-discoverability-and-mode-wayfinding",
-    "depth-libraries-and-okf-knowledge-providers",
-    "framing-and-trigger-quality",
-    "instruction-density-and-progressive-disclosure",
-    "progressive-result-presentation-and-next-actions",
-    "resources-scripts-and-exit-contracts",
-    "trust-boundaries-and-instruction-provenance",
+    topic["topic"]
+    for topic in json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "topic-admission.json").read_text(
+            encoding="utf-8"
+        )
+    )["topics"]
 }
 
 
@@ -161,6 +153,79 @@ def test_each_foundation_topic_carries_its_required_sections(topic_file: str) ->
     text = (CONCEPT_ROOT / topic_file).read_text(encoding="utf-8")
     for section in REQUIRED_SECTIONS:
         assert section in text, (topic_file, section)
+
+
+def test_typescript_node_topic_covers_its_seven_assigned_subjects() -> None:
+    """The language topic retains each separately assigned subject."""
+
+    text = (CONCEPT_ROOT / "typescript-node-and-javascript-test-runners.md").read_text(
+        encoding="utf-8"
+    ).lower()
+    for subject in (
+        "package and module contracts",
+        "lockfile",
+        "child-process",
+        "runner workers",
+        "browser workers",
+        "cache keys",
+        # Names the subject, not the language pair. AC2's seventh subject is
+        # JavaScript/TypeScript *security scanning*, and the topic carries the
+        # bare language pair independently of any scanner content, so asserting
+        # the pair left the subject removable while this stayed green.
+        "security scan",
+    ):
+        assert subject in text, subject
+
+
+def test_python_pytest_topic_covers_its_four_required_subjects() -> None:
+    """The Python topic covers the four permitted concerns independently."""
+
+    text = (CONCEPT_ROOT / "python-and-pytest.md").read_text(encoding="utf-8").lower()
+    for subject in ("collection", "fixtures", "subprocess boundaries", "temporary paths"):
+        assert subject in text, subject
+
+
+def test_typescript_node_maturity_limit_appears_in_both_projections() -> None:
+    """The authored language-specific limit is retained by the generated copy."""
+
+    limit = "Node.js >= 26.8.1, upper bound open; Playwright >= 1.62, upper bound open"
+    authored = (CONCEPT_ROOT / "typescript-node-and-javascript-test-runners.md").read_text(
+        encoding="utf-8"
+    )
+    compiled = (ROUTER_ROOT / "references" / "okf" / "concepts" / "typescript-node-and-javascript-test-runners.md").read_text(encoding="utf-8")
+    assert limit in authored
+    assert limit in compiled
+
+
+def test_related_topics_references_resolve_to_admitted_topics() -> None:
+    """Every backticked related-topic id names an admitted topic."""
+
+    for path in CONCEPT_ROOT.glob("*.md"):
+        related = path.read_text(encoding="utf-8").split("## Related topics", 1)[1].split(
+            "## Provenance and lifecycle", 1
+        )[0]
+        assert set(re.findall(r"`([a-z0-9-]+)`", related)) <= EXPECTED_TOPICS
+
+
+def test_each_newly_admitted_topic_declares_a_doctrine_group() -> None:
+    """The five new leaves enter through the doctrine basis."""
+
+    new_topics = {
+        "python-and-pytest",
+        "typescript-node-and-javascript-test-runners",
+        "process-and-filesystem-cost",
+        "pack-and-ci-critical-paths",
+        "worktrees-state-locks-and-shared-host-admission",
+    }
+    record = json.loads(
+        (PACK_ROOT / "tests" / "fixtures" / "topic-admission.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    declared = {topic["topic"]: topic for topic in record["topics"]}
+    assert new_topics <= declared.keys()
+    for name in new_topics:
+        assert any(group["basis"] == "doctrine" for group in declared[name]["claim_groups"])
 
 
 def test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses() -> None:

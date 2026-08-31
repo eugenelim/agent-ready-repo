@@ -260,5 +260,156 @@
     "expected_topics": [
       "trust-boundaries-and-instruction-provenance"
     ]
+  },
+  {
+    "id": "pytest-collection-root",
+    "prompt": "My skill's tests stop being importable when I move them into a subfolder",
+    "expected_topics": [
+      "python-and-pytest"
+    ]
+  },
+  {
+    "id": "pytest-fixture-lifetime",
+    "prompt": "How long should a fixture that builds a sample project directory live?",
+    "expected_topics": [
+      "python-and-pytest"
+    ]
+  },
+  {
+    "id": "pytest-temp-path-cleanup",
+    "prompt": "Where should a Python test put scratch files so nothing survives the run?",
+    "expected_topics": [
+      "python-and-pytest"
+    ]
+  },
+  {
+    "id": "node-runner-workers",
+    "prompt": "How many workers should my browser test job use on a shared machine?",
+    "expected_topics": [
+      "typescript-node-and-javascript-test-runners"
+    ]
+  },
+  {
+    "id": "node-clean-install",
+    "prompt": "My skill's Node checks pass locally and fail on a clean machine",
+    "expected_topics": [
+      "typescript-node-and-javascript-test-runners"
+    ]
+  },
+  {
+    "id": "node-module-resolution",
+    "prompt": "Why is my helper script loaded as the wrong module kind?",
+    "expected_topics": [
+      "typescript-node-and-javascript-test-runners"
+    ]
+  },
+  {
+    "id": "proc-spawn-per-item",
+    "prompt": "My lint step spawns one process per file and takes minutes",
+    "expected_topics": [
+      "process-and-filesystem-cost"
+    ]
+  },
+  {
+    "id": "proc-batch-boundary",
+    "prompt": "Should I batch these repeated lookups, and where does the batch belong?",
+    "expected_topics": [
+      "process-and-filesystem-cost"
+    ]
+  },
+  {
+    "id": "proc-measure-before-tuning",
+    "prompt": "The suite is slow and I do not know what to optimise first",
+    "expected_topics": [
+      "process-and-filesystem-cost"
+    ]
+  },
+  {
+    "id": "ci-declare-dependencies",
+    "prompt": "How do I make one job wait for another without guessing at ordering?",
+    "expected_topics": [
+      "pack-and-ci-critical-paths"
+    ]
+  },
+  {
+    "id": "ci-cache-key-inputs",
+    "prompt": "My cache never invalidates when the dependency set changes",
+    "expected_topics": [
+      "pack-and-ci-critical-paths"
+    ]
+  },
+  {
+    "id": "ci-split-stops-paying",
+    "prompt": "I keep splitting jobs and the pipeline is not getting faster",
+    "expected_topics": [
+      "pack-and-ci-critical-paths"
+    ]
+  },
+  {
+    "id": "lock-read-decide-write",
+    "prompt": "Two runs raced and one overwrote the other's decision",
+    "expected_topics": [
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "worktree-shared-resources",
+    "prompt": "Separate checkouts still collide over the same cache and ports",
+    "expected_topics": [
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "host-admission-capacity",
+    "prompt": "How many of these can run at once on one machine?",
+    "expected_topics": [
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "nm-cost-vs-ci",
+    "prompt": "Our checks are expensive; is that a job-graph problem or a per-item problem?",
+    "expected_topics": [
+      "process-and-filesystem-cost",
+      "pack-and-ci-critical-paths"
+    ]
+  },
+  {
+    "id": "nm-lang-vs-scripts",
+    "prompt": "What contract should my skill's helper script honour in either language?",
+    "expected_topics": [
+      "resources-scripts-and-exit-contracts"
+    ]
+  },
+  {
+    "id": "nm-python-vs-node",
+    "prompt": "Both language suites configure parallelism differently; which rule is portable?",
+    "expected_topics": [
+      "python-and-pytest",
+      "typescript-node-and-javascript-test-runners"
+    ]
+  },
+  {
+    "id": "nm-lock-vs-cost",
+    "prompt": "Is my slowdown contention over a shared resource or just process startup?",
+    "expected_topics": [
+      "worktrees-state-locks-and-shared-host-admission",
+      "process-and-filesystem-cost"
+    ]
+  },
+  {
+    "id": "nm-ci-vs-lock",
+    "prompt": "Jobs on one runner interfere with each other's temporary directories",
+    "expected_topics": [
+      "worktrees-state-locks-and-shared-host-admission"
+    ]
+  },
+  {
+    "id": "nm-scripts-vs-python",
+    "prompt": "My Python helper needs a stable exit contract and a temp directory",
+    "expected_topics": [
+      "resources-scripts-and-exit-contracts",
+      "python-and-pytest"
+    ]
   }
 ]

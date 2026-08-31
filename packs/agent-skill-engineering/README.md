@@ -88,10 +88,12 @@ least-authority mechanism.
 
 ## Knowledge grounding
 
-Seven governed topics cover trigger quality, progressive disclosure,
+Twelve governed topics cover trigger quality, progressive disclosure,
 deterministic resource and script contracts, depth libraries and knowledge
 providers, activation discoverability and mode wayfinding, progressive result
-presentation, and trust boundaries and instruction provenance. Each declares the
+presentation, trust boundaries and instruction provenance, Python and pytest,
+TypeScript and Node test runners, process and filesystem cost, pack and CI
+critical paths, and worktrees with state locks and shared-host admission. Each declares the
 basis its claims rest on; an observed practice also names the population it was
 drawn from and states that it is not established beyond it. Taxonomy leaves the
 evidence could not support are recorded as absent with the reason, so a reader
@@ -109,8 +111,8 @@ workflows never crawl another pack's raw corpus.
 
 ## Foundation limits
 
-The foundation recognizes Python/pytest and TypeScript/Node as future extension
-families but ships no language-specific guidance. Provider authoring, runtime
+The foundation ships Python/pytest and TypeScript/Node guidance, each bounded to
+its own ecosystem and version range and not generalized to the portable floor. Provider authoring, runtime
 packaging, runtime profiles, plugins, hooks, subagents, installation,
 projection, publication, and catalogue governance belong to later slices or
 external delivery tooling.

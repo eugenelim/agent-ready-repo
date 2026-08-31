@@ -252,9 +252,12 @@ REPOSITORY_ONLY_PATTERNS = (
     re.compile(r"\bworkspace\.toml\b"),
 )
 PORTABLE_SUFFIXES = {".md", ".json", ".toml", ".py"}
-# The pack ships 37 such files today. The floor exists because a wrong root, an
+# Measured at 44 files on this tree. The floor sits deliberately below that and
+# is not re-anchored to the measurement: it exists because a wrong root, an
 # unlisted suffix, or an empty walk is otherwise indistinguishable from
-# compliance -- a green result proving only that nothing was read.
+# compliance -- a green result proving only that nothing was read. An exact count
+# would add nothing to that job and would redden on any unrelated addition
+# upstream, so the headroom is the point rather than slack to be closed.
 PORTABLE_FILE_FLOOR = 37
 
 

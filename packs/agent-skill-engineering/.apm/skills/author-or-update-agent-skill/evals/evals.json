@@ -28,13 +28,13 @@
       "assertions": [
         "Inventories the existing skill before proposing changes",
         "Preserves the narrow activation and read-only authority",
-        "Proposes an exact minimal diff rather than replacing the skill",
+        "Names the candidate changes and the authority each would need rather than inferring one, since the request leaves the change unspecified",
         "Requires explicit authorization before write and names verification"
       ],
       "expect": {
         "output_contains": [
-          "Mode: update",
-          "Write status: awaiting explicit authorization"
+          "Mode: frame",
+          "Write status: not authorized"
         ]
       }
     },
@@ -60,7 +60,7 @@
       "prompt": "Update this skill so a second session can resume its work without re-reading everything. The skill root is evals/files/update-existing-SKILL.md.",
       "expected_output": "An update result that adds a durable resumption record and waits for explicit authorization before writing.",
       "assertions": [
-        "Enters update mode against the named existing skill root",
+        "Names update as the mode the work will need, against the named existing skill root, without entering it before authorization",
         "Adds a durable record a later session can read to resume",
         "Preserves the skill's existing supported behavior",
         "Waits for explicit authorization before the first write"
@@ -70,7 +70,7 @@
       ],
       "expect": {
         "output_contains": [
-          "Mode: update",
+          "Mode: frame",
           "Write status: awaiting explicit authorization"
         ]
       }
@@ -105,6 +105,46 @@
       "expect": {
         "output_contains": [
           "Mode: knowledge-provider",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "pytest-suite",
+      "prompt": "I am adding a Python test suite to the supplied skill. Frame the verification contract it needs before I write any of it: what the suite must guarantee, and what the draft's current shape would cost me. Do not write files.",
+      "files": [
+        "evals/files/pytest-suite-SKILL.md"
+      ],
+      "expected_output": "A read-only frame of the verification contract naming test-collection identity, temporary-path lifetime, fixture isolation under parallel runs, and the process-cost trade-off, each as a decision the author must make rather than a rewrite of the draft.",
+      "assertions": [
+        "Frames collection and import identity as a contract the suite must fix, not a style choice",
+        "Names temporary-path lifetime and where scratch state belongs",
+        "Identifies the shared fixture directory as unsafe once runs go parallel",
+        "States at least one guarantee as a cost trade-off rather than an absolute"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
+          "Write status: not authorized"
+        ]
+      }
+    },
+    {
+      "id": "node-browser-suite",
+      "prompt": "I am adding a browser test suite to the supplied skill. Frame the verification contract it needs before I write any of it: what the suite must guarantee about workers, installs, and shared state. Do not write files.",
+      "files": [
+        "evals/files/node-browser-suite-SKILL.md"
+      ],
+      "expected_output": "A read-only frame of the verification contract naming worker sizing against real machine cost, reproducible installs, and per-worker isolation of browser state, each bounded to the ecosystem it applies to.",
+      "assertions": [
+        "Frames worker sizing against memory and browser cost, not CPU count alone",
+        "Names install reproducibility as a property the suite must guarantee",
+        "Identifies shared browser profile state as unsafe across workers",
+        "Bounds at least one guarantee to its ecosystem rather than stating it portably"
+      ],
+      "expect": {
+        "output_contains": [
+          "Mode: frame",
           "Write status: not authorized"
         ]
       }

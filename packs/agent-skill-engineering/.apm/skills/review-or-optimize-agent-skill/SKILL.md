@@ -62,7 +62,8 @@ and unavailable evidence.
 Mode: review | optimize
 ```
 
-Python/pytest and TypeScript/Node are recognized but unpopulated extension
-families. Apply
+Python/pytest and TypeScript/Node are populated extension families, each bounded
+to its own ecosystem and version range. Apply
 [language-extension-seams.md](../author-or-update-agent-skill/references/language-extension-seams.md)
-and fall back to foundation checks without inventing language guidance.
+for that boundary alongside the foundation checks, and treat a language claim
+carried outside its stated ecosystem as a finding.

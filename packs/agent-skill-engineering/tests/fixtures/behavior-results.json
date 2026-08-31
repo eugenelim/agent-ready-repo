@@ -1,6 +1,6 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-30",
+  "evaluated_at": "2026-08-31",
   "candidate_execution": false,
   "results": [
     {
@@ -16,14 +16,15 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
       "eval_id": "update-existing-skill",
       "actual_markers": [
-        "Mode: update",
-        "Write status: awaiting explicit authorization"
+        "Mode: frame",
+        "Write status: not authorized"
       ],
       "assertions": [
         true,
@@ -32,7 +33,8 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
@@ -49,13 +51,14 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
       "eval_id": "cross-session-resumption",
       "actual_markers": [
-        "Mode: update",
+        "Mode: frame",
         "Write status: awaiting explicit authorization"
       ],
       "assertions": [
@@ -65,7 +68,8 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
@@ -78,11 +82,12 @@
       "assertions": [
         true,
         true,
-        true,
+        false,
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
@@ -98,7 +103,44 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
+      }
+    },
+    {
+      "eval_id": "pytest-suite",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/files/pytest-suite-SKILL.md": "sha256:a6faa2a53786059ea24d06f9e72255ebfa514d61877e78969165db4f7d89bdf1"
+      }
+    },
+    {
+      "eval_id": "node-browser-suite",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "SKILL.md": "sha256:3b471136a404eb20ebc35788db4e665b1d1678885c34baa10ec64ee96917ec6e",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/files/node-browser-suite-SKILL.md": "sha256:6a4d24f394ceb0c4e5fae58ebc2f7766bf52ba48ae5b2e4bf6fb1fbce42ba8b1"
       }
     },
     {
@@ -119,6 +161,7 @@
         true
       ],
       "source_files": {
+        "SKILL.md": "sha256:e2f08f07faa619f528662c8a7d40530ea49b9053b2b98d58c177c54356393818",
         "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
         "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
       },
@@ -126,7 +169,10 @@
       "output_ok": true,
       "assertions_ok": true,
       "errored": false,
-      "passed": true
+      "passed": true,
+      "actual_markers": [
+        "Mode: review"
+      ]
     },
     {
       "eval_id": "detect-script-contract-failure",
@@ -150,6 +196,7 @@
         false
       ],
       "source_files": {
+        "SKILL.md": "sha256:e2f08f07faa619f528662c8a7d40530ea49b9053b2b98d58c177c54356393818",
         "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
         "evals/files/nondeterministic-SKILL.md": "sha256:16b5a3da8f542f58474a351b3620d0270c272712dfb290091990dd8eb6800f1e",
         "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85",
@@ -159,7 +206,10 @@
       "output_ok": true,
       "assertions_ok": false,
       "errored": false,
-      "passed": false
+      "passed": false,
+      "actual_markers": [
+        "Mode: review"
+      ]
     }
   ],
   "graded_run": {
@@ -167,7 +217,7 @@
     "tier": "B-lite",
     "fidelity": "observed+attested",
     "provenance": "operator-attested",
-    "author_iteration": 2,
-    "review_iteration": 5
+    "author_iteration": 3,
+    "review_iteration": 6
   }
 }

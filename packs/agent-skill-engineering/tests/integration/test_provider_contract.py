@@ -472,7 +472,16 @@ def test_shipped_contract_prose_states_the_same_bounds_as_the_fixture() -> None:
     )
 
 
-def test_language_extension_families_are_distinct_and_unpopulated() -> None:
+def test_language_extension_families_are_distinct_and_populated() -> None:
+    """AC7: every shipped availability-or-count statement matches the admitted set.
+
+    Retargeted. The families are populated now, so the assertion that once
+    pinned their absence would pin a sentence the corpus contradicts. What is
+    checkable instead is agreement: no shipped file may state a topic count the
+    corpus does not have, or assert an absence it no longer has. Reverting any
+    one of the five reconciled statements reddens this test.
+    """
+    pack_root = Path(__file__).resolve().parents[2]
     contract = json.loads(
         (FIXTURES / "provider-contract.json").read_text(encoding="utf-8")
     )
@@ -480,16 +489,55 @@ def test_language_extension_families_are_distinct_and_unpopulated() -> None:
         "python-pytest",
         "typescript-node",
     ]
-    seam = (
-        Path(__file__).resolve().parents[2]
-        / ".apm"
-        / "skills"
+
+    admitted = {
+        path.stem
+        for path in (
+            pack_root / "okf" / "agent-skill-engineering-foundation" / "concepts"
+        ).glob("*.md")
+        if path.is_file()
+    }
+    assert {"python-and-pytest", "typescript-node-and-javascript-test-runners"} <= admitted
+
+    skills = pack_root / ".apm" / "skills"
+    shipped = {
+        "author SKILL.md": skills / "author-or-update-agent-skill" / "SKILL.md",
+        "review SKILL.md": skills / "review-or-optimize-agent-skill" / "SKILL.md",
+        "seam reference": skills
         / "author-or-update-agent-skill"
         / "references"
-        / "language-extension-seams.md"
-    ).read_text(encoding="utf-8")
-    assert "Neither has a language-specific topic body" in seam
-    assert "foundation topics" in seam
+        / "language-extension-seams.md",
+        "pack README": pack_root / "README.md",
+    }
+
+    # No shipped sentence may assert an absence the corpus no longer has.
+    absence_claims = (
+        "unpopulated extension",
+        "ships no language-specific",
+        "language guidance unavailable",
+        "Neither has a language-specific topic body",
+        "not active foundation modes",
+        "future extension families",
+    )
+    for label, path in shipped.items():
+        # Collapsed, not raw. These are absence assertions over hard-wrapped
+        # prose, so a claim spanning a line break can never match and the check
+        # becomes evadable by reflowing: the same forbidden sentence reddens on
+        # one line and passes across two. Two of the six members were already
+        # dead this way. Matching the slice's own precedent for wrapped prose.
+        body = " ".join(path.read_text(encoding="utf-8").split())
+        for claim in absence_claims:
+            assert claim not in body, (label, claim)
+
+    # The README's count is stated in words and must equal the admitted set.
+    words = {7: "Seven", 12: "Twelve", 13: "Thirteen"}
+    readme = shipped["pack README"].read_text(encoding="utf-8")
+    assert f"{words[len(admitted)]} governed topics" in readme, len(admitted)
+
+    # Each language family's boundary reaches the reader of the seam reference.
+    seam = shipped["seam reference"].read_text(encoding="utf-8")
+    assert "version range" in seam
+    assert "portable floor" in seam
 
 
 def test_provider_pattern_failure_surfaces_conform_as_declared() -> None:

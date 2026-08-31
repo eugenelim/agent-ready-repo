@@ -14,6 +14,15 @@ requested task. Preserve the user's intent, existing behavior, and authority.
 
 `frame` is the default and is read-only. Move to `create` or `update` only
 after an explicit mode transition and immediately before the first write.
+
+Identifying which mode the work will need is not entering it. Naming the target
+and the eventual mode is this workflow's first step and happens in `frame`;
+entering `create` or `update` is a separate act that happens immediately before
+the first write. Until that transition the receipt reports `Mode: frame`,
+however far the plan has progressed — a fully specified patch that has not been
+authorized is still framing. Report the mode you are acting in, never the one
+the request names or the one the work is heading toward.
+
 `knowledge-provider` is entered read-only and never carries write authority on
 entry; move from `knowledge-provider` to a write only after the user authorizes
 that write in its own explicit transition.
@@ -37,7 +46,13 @@ that write in its own explicit transition.
 
 If the mode or target is missing or ambiguous, remain in `frame` and ask for the
 exact target here; resolving an ambiguous target is this workflow's first step,
-not a reason to decline it. Requests to
+not a reason to decline it. The same holds when the target is resolved but the
+*requested change* is not: an instruction to update a skill that never says what
+to change leaves the edit unspecified, and choosing one would be authoring the
+user's contract for them. Remain in `frame`, name the candidate changes and the
+authority each would need — an edit confined to the body costs less than one
+widening a declared boundary — and ask which is intended. Do not infer a change
+from the target's current shape. Requests to
 author a `runtime-package`, `runtime-profile`, `plugin`, `hook`, or `subagent`
 use the stable unavailable result below; none is an activation mode for this
 foundation.
@@ -76,11 +91,12 @@ baseline: frame the portable skill concern without inventing mode-specific guida
    disclosure, and the requested behavioral contract. If verification fails,
    report it and retain recoverable authored files; do not claim completion.
 
-Python/pytest and TypeScript/Node are recognized extension families, not active
-foundation modes. When a task turns on one, read
-[references/language-extension-seams.md](references/language-extension-seams.md),
-report language guidance unavailable, and continue with applicable foundation
-topics instead of inventing language-specific instruction.
+Python/pytest and TypeScript/Node are populated extension families, each bounded
+to its own ecosystem and version range. When a task turns on one, read
+[references/language-extension-seams.md](references/language-extension-seams.md)
+for that boundary, apply the matching language topic, and keep its claims inside
+the ecosystem it was evidenced from rather than generalizing them to the
+portable floor.
 
 ## Completion receipt
 

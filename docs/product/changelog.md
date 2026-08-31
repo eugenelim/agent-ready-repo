@@ -52,6 +52,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [agent-skill-engineering][0.3.0] — 2026-08-31
+
+### Highlights
+
+- **The reference corpus now answers language and execution questions, and says
+  out loud which ecosystem and which versions each answer holds for.** Five
+  topics were admitted: Python with pytest, TypeScript/Node with JavaScript test
+  runners, process and filesystem cost, pack and continuous-integration critical
+  paths, and worktrees with state locks on a shared host. Twelve of thirty-six
+  subjects are now carried and twenty-four remain recorded as absent.
+- **Two answers that a single ecosystem's own documentation settles are now
+  admissible.** Earlier, a claim shipped only on two independent observations or
+  two vendors agreeing. That bar silently excluded anything true of exactly one
+  ecosystem — a language's own test runner, for instance. Such a claim now ships
+  only when it names its ecosystem, an explicit version range with both bounds,
+  and the vendor documentation it comes from.
+
+### Added
+
+- Five governed topics covering language and execution depth. The
+  TypeScript/Node topic separately addresses package and module contracts,
+  clean installs that respect the lockfile, child-process behavior, test-runner
+  worker models, browser-worker cost, cache keys, and security scanning.
+- Every claim group now ships the basis a reader needs to check it: the
+  ecosystem and version range where it applies, the documentation it rests on
+  with the date that documentation was read, and what would require it to be
+  revalidated. A group resting on repeated observed failures instead records the
+  shared mechanism and the distinct subsystems and dates it was seen in, and
+  cites no external source.
+- Execution-cost guidance is bounded to skill scripts, evaluations, packs, and
+  the environments they run in, and carries no host-identifying data — checked
+  structurally rather than against whichever machine happens to run the check.
+
+### Fixed
+
+- The authoring workflow no longer treats a resolved target as a resolved
+  request. Asked to change a skill without being told what to change, it now
+  names the candidate changes and the authority each would need, instead of
+  inferring one from the target's current shape.
+- Identifying which mode a piece of work will need is no longer reported as
+  having entered that mode. A fully specified change that has not been
+  authorized is still framing, and the receipt now says so.
 ## [core][2.17.1] — 2026-08-31
 
 ### Highlights
