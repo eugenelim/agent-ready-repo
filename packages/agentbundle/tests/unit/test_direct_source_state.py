@@ -122,7 +122,7 @@ def test_digest_version_prefix_refuses():
     for foreign in ("sha256-2:" + "a" * 64, "blake3-1:" + "a" * 64, "a" * 64):
         with pytest.raises(DirectStateError) as raised:
             comparable_digest(foreign)
-        assert "einstall" in str(raised.value) or "malformed" in str(raised.value)
+        assert "Reinstall" in str(raised.value) or "malformed" in str(raised.value)
     for malformed in (DIGEST_PREFIX + "a" * 63, DIGEST_PREFIX + "A" * 64):
         with pytest.raises(DirectStateError):
             comparable_digest(malformed)

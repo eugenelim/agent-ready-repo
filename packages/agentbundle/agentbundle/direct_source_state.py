@@ -20,6 +20,9 @@ from agentbundle.direct_source import DirectClassification
 # recomputing — recomputation would silently re-baseline a digest that was
 # meant to detect exactly that change.
 DIGEST_PREFIX = "sha256-1:"
+# A capability-acceptance pin is not a content digest; separate prefixes stop
+# one being accepted where the other is meant.
+PIN_PREFIX = "cappin-1:"
 
 # `pack` is a direct pack; `skill` is a manifestless skill, whose display label
 # is `manifestless`. The display mapping lives here so the stored value and the
@@ -349,5 +352,8 @@ def accept_capability_pin(delta: CapabilityDelta, supplied: str, computed: str) 
 def capability_pin(delta: CapabilityDelta) -> str:
     """A stable pin over the exact difference set that was displayed."""
 
+    # Its own prefix. Reusing the digest's would let `comparable_digest`
+    # accept a capability pin as a valid `source-digest`, and the two values
+    # attest to different things.
     joined = "\n".join(delta.differences)
-    return f"{DIGEST_PREFIX}{hashlib.sha256(joined.encode('utf-8')).hexdigest()}"
+    return f"{PIN_PREFIX}{hashlib.sha256(joined.encode('utf-8')).hexdigest()}"

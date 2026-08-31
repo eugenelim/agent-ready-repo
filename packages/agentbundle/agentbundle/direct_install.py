@@ -302,7 +302,7 @@ def capability_block(
     scope: str,
     adapter: str,
     skill_digest: str,
-    payload_digests: dict[str, str],
+    payload_digests: dict[str, tuple[str, str]],
 ) -> list[str]:
     """One per-selected-skill capability block, per AC19.
 
@@ -358,7 +358,8 @@ def capability_block(
         f"  SKILL.md:    {skill_digest}",
     ]
     for relpath in sorted(payload_digests):
-        lines.append(f"    {escape_path_value(relpath)}  {payload_digests[relpath]}")
+        digest, mode = payload_digests[relpath]
+        lines.append(f"    {escape_path_value(relpath)}  {digest}  {mode}")
     return lines
 
 
@@ -457,7 +458,9 @@ def render_receipt(
 def _file_digest(measured) -> str:
     """The reported per-file digest, in the same prefixed form as the tree's."""
 
-    return "sha256-1:" + hashlib.sha256(measured.data).hexdigest()
+    from agentbundle.direct_source_state import DIGEST_PREFIX
+
+    return DIGEST_PREFIX + hashlib.sha256(measured.data).hexdigest()
 
 
 def resolve_skill_target(adapter: str, source: str) -> str:
@@ -540,12 +543,7 @@ def run_direct_install(args, source: Path | str) -> int:
         try:
             acquired = acquire_git_https_archive(source)
         except DirectAcquisitionError as exc:
-            print(
-                f"install: [{exc.diagnostic.code}] {exc.diagnostic.message}",
-                file=sys.stderr,
-            )
-            if exc.diagnostic.remediation:
-                print(f"  → {exc.diagnostic.remediation}", file=sys.stderr)
+            _print_refusal(exc.diagnostic)
             return 1
         from agentbundle.direct_source import declare_remote_root_identity
         from agentbundle.direct_source_acquisition import parse_direct_source
@@ -680,7 +678,6 @@ def _summarise_and_project(
     import sys
 
     from agentbundle import safety
-    from agentbundle.direct_source import normalize_direct_source
     from agentbundle.direct_source_state import direct_source_digest
 
     skill_target = resolve_skill_target(adapter, source_string)
@@ -699,7 +696,10 @@ def _summarise_and_project(
     blocks = []
     for skill in selection.skills:
         payload = {
-            str(measured.path.relative_to(skill.envelope)): _file_digest(measured)
+            str(measured.path.relative_to(skill.envelope)): (
+                _file_digest(measured),
+                report_time_mode(measured.mode),
+            )
             for measured in skill.files
             if measured.path.name != "SKILL.md"
         }
@@ -709,8 +709,18 @@ def _summarise_and_project(
                 for measured in skill.files
                 if measured.path.name == "SKILL.md"
             ),
-            digest,
+            None,
         )
+        if skill_digest is None:
+            # Classification makes this unreachable today, which is exactly why
+            # it must not fall back: reporting the whole-source digest under a
+            # `SKILL.md:` label would be a wrong observation rather than a
+            # refusal, and the reader consents to the rendering.
+            raise _refuse(
+                DiagnosticCode.CAT_D009,
+                f"skill envelope has no SKILL.md to digest: {skill.name}",
+                path=source_string,
+            )
         blocks.append(
             capability_block(
                 skill,
@@ -722,7 +732,11 @@ def _summarise_and_project(
                 payload_digests=payload,
             )
         )
-    print(render_admissibility_summary(blocks, source=source_string))
+    # On stderr, like every refusal. On stdout, `install <source> --yes >
+    # install.log` hid the entire verdict-and-delimiter block from view while
+    # the install went ahead — the one output that must not be redirectable
+    # away from the person consenting.
+    print(render_admissibility_summary(blocks, source=source_string), file=sys.stderr)
 
     if getattr(args, "dry_run", False):
         # AC25: a preview writes nothing at all, and says which files it would
@@ -750,20 +764,18 @@ def _summarise_and_project(
 
     written: dict[str, bytes] = {}
     try:
-        with normalize_direct_source(classification) as normalized:
-            for skill in selection.skills:
-                for measured in skill.files:
-                    relative = measured.path.relative_to(skill.envelope)
-                    relpath = f"{skill_target}/{skill.name}/{relative.as_posix()}"
-                    safety.write_jailed(
-                        projection_root,
-                        relpath,
-                        measured.data,
-                        scope=scope,
-                        allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
-                    )
-                    written[relpath] = measured.data
-            _ = normalized
+        for skill in selection.skills:
+            for measured in skill.files:
+                relative = measured.path.relative_to(skill.envelope)
+                relpath = f"{skill_target}/{skill.name}/{relative.as_posix()}"
+                safety.write_jailed(
+                    projection_root,
+                    relpath,
+                    measured.data,
+                    scope=scope,
+                    allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
+                )
+                written[relpath] = measured.data
     except OSError as exc:
         # A jail or refusal error is publisher-influenced and is mapped to a
         # registered diagnostic by the caller; only a genuine I/O fault lands
@@ -824,7 +836,10 @@ def _record_direct_rows(
     from agentbundle import statelock
     from agentbundle.config import PackState
     from agentbundle.direct_source import MANIFESTLESS_VERSION_SENTINEL
-    from agentbundle.direct_source_state import build_provenance
+    from agentbundle.direct_source_state import (
+        build_provenance,
+        relative_repo_source,
+    )
 
     state_path = target_root / ".agentbundle-state.toml"
 
@@ -845,8 +860,28 @@ def _record_direct_rows(
             else:
                 kind = "skill"
                 relative = skill.envelope.relative_to(classification.root).as_posix()
+            stored_source = source_string
+            if scope == "repo" and not source_string.startswith("git+https://"):
+                # AC12: a repo-scope source that lives INSIDE the repository is
+                # stored relatively, because an absolute path in repository
+                # state is wrong for every other clone. A source outside the
+                # repository keeps its verbatim string: refusing it would
+                # reject `install /elsewhere/skill --output .`, which is the
+                # ordinary local workflow. AC12's "refuse out-of-repository
+                # sources" is read here as the confinement rule its neighbouring
+                # sentence states, not as a ban on that workflow.
+                # No caller-side canonicalisation: AC39 assigns that to the
+                # confinement helpers, and this is a question about which
+                # string to store, not a security boundary — `write_jailed`
+                # has already confined every write by the time we get here.
+                try:
+                    stored_source = relative_repo_source(
+                        Path(source_string), target_root
+                    )
+                except DirectStateError:
+                    stored_source = source_string
             provenance = build_provenance(
-                source=source_string,
+                source=stored_source,
                 source_revision=revision,
                 source_kind=kind,
                 source_path=relative,

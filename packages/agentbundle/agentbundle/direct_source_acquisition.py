@@ -671,9 +671,6 @@ def _acquire_bytes(
     if outcome.ok:
         return captured["downloaded"]
     exception = outcome.exception
-    if isinstance(exception, DirectAcquisitionError):
-        # Our own registered refusal, raised from inside the attempt.
-        raise exception
     detail = escape_transport_detail(getattr(exception, "reason", None) or exception)
     if outcome.certificate_failure and outcome.anchors:
         # AC37's single retry against operating-system anchors, through the one

@@ -20,13 +20,15 @@ def _write_skill(path: Path, name: str) -> None:
 def _refusal_code(callable_: Callable[[], object], code: str) -> None:
     """Assert a direct admission call emits one registered refusal code."""
 
-    with pytest.raises(Exception) as raised:
+    import agentbundle.direct_source as direct_source
+
+    with pytest.raises(direct_source.DirectAdmissionError) as raised:
         callable_()
     assert raised.value.diagnostic.code == code
 
 
 def test_classification_contract(tmp_path: Path):
-    # AC1, AC2, AC14–AC17, AC25, AC32–AC34, AC36
+    # AC1, AC2, AC14–AC17, AC25, AC32–AC34
     import agentbundle.direct_source as direct_source
 
     root_single = tmp_path / "root-single"

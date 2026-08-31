@@ -6,7 +6,6 @@ test here breaks the pairing in one direction and asserts the lint notices.
 
 from __future__ import annotations
 
-import importlib.util
 import shutil
 import subprocess
 import sys
@@ -17,14 +16,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LINT = REPO_ROOT / "tools" / "lint-direct-code-table.py"
 REGISTRY = Path("packages/agentbundle/agentbundle/catalogue_tooling/diagnostics.py")
 TABLE = Path("guides/catalogue-curation/reference/direct-install-diagnostics.md")
-
-
-def _load_lint():
-    spec = importlib.util.spec_from_file_location("lint_direct_code_table", LINT)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:

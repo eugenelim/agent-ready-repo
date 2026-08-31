@@ -172,7 +172,7 @@ def test_capability_block_reports_what_the_publisher_declared(tmp_path: Path):
         scope="repo",
         adapter="claude-code",
         skill_digest="sha256-1:" + "ab" * 32,
-        payload_digests={"scripts/run.py": "sha256-1:" + "cd" * 32},
+        payload_digests={"scripts/run.py": ("sha256-1:" + "cd" * 32, "executable")},
     )
     rendered = "\n".join(block)
     assert "Grep, Read" in rendered, "the tool union is normalized and deduplicated"
@@ -180,6 +180,9 @@ def test_capability_block_reports_what_the_publisher_declared(tmp_path: Path):
     assert "credentialed: False" in rendered
     assert "scripts/run.py" in rendered
     assert "0" * 40 in rendered
+    # AC19 requires report-time executable mode beside each payload digest. It
+    # was computed by `report_time_mode` and never rendered anywhere.
+    assert "executable" in rendered
 
 
 def test_absent_allowed_tools_renders_unrestricted(tmp_path: Path):
@@ -320,9 +323,11 @@ def test_dry_run_writes_nothing_at_all(tmp_path: Path, capsys):
     assert exit_code == 0
     assert list(target.rglob("*")) == [], "a dry run must write nothing"
 
-    rendered = capsys.readouterr().out
-    assert rendered.count(ADMISSIBILITY_VERDICT) == 2
-    assert "would install (dry run — nothing written)" in rendered
+    captured = capsys.readouterr()
+    # The summary is on stderr, like every refusal: `install ... > install.log`
+    # must not hide the verdict block while the install proceeds.
+    assert captured.err.count(ADMISSIBILITY_VERDICT) == 2
+    assert "would install (dry run — nothing written)" in captured.out
 
 
 def test_install_writes_the_measured_bytes_and_owns_them(tmp_path: Path, capsys):

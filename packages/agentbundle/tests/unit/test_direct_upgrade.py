@@ -94,7 +94,7 @@ def test_unknown_drift_refuses_even_with_the_flag():
     assert delta.requires_reconsent is True
     with pytest.raises(DirectStateError) as raised:
         accept_capability_pin(delta, "any", "any")
-    assert "einstall" in str(raised.value)
+    assert "Reinstall" in str(raised.value)
 
 
 def test_the_pin_ties_acceptance_to_the_displayed_changes():
