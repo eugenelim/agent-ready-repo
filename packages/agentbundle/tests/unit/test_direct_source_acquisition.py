@@ -184,7 +184,7 @@ def test_extraction_bounds_and_link_policy(tmp_path: Path):
             max_decompressed=kwargs.get("max_decompressed", 1 << 30),
         )
 
-    revision, members = _extract_bytes(_archive({"repo-1/SKILL.md": b"ok\n"}))
+    revision, members, _roots = _extract_bytes(_archive({"repo-1/SKILL.md": b"ok\n"}))
     assert revision == SHA and members == 1
 
     # Escaping and absolute destinations, built with the library's own name.
@@ -357,3 +357,74 @@ def test_bounds_match_the_recorded_e11_values():
     assert acquisition.INACTIVITY_TIMEOUT_SECONDS == 90
     assert acquisition.LIST_INSTALLED_CHECK_DEADLINE_SECONDS == 90
     assert acquisition.LIST_INSTALLED_CHECK_MAX_RESOLUTIONS == 25
+
+
+def test_the_github_wrapper_directory_is_descended(tmp_path: Path):
+    # A GitHub source archive prefixes every member with `<repo>-<ref>/`, and
+    # admission looks for `SKILL.md`, `skills/`, or `pack.toml` — none of which
+    # sit beside that wrapper. Acquisition must return the source root.
+    #
+    # This is the defect a live remote run found and these fixtures had missed:
+    # every archive built here previously placed members at the archive root,
+    # so acquisition and admission were each correct in isolation and did not
+    # join. The prefix is derived from the member names rather than by listing
+    # the extracted tree.
+    from agentbundle.direct_source import validate_direct_source
+
+    source = acquisition.parse_direct_source(f"git+https://github.com/o/r@{SHA}")
+    wrapper = f"r-{SHA}"
+    payload = _archive(
+        {
+            f"{wrapper}/README.md": b"# repo\n",
+            f"{wrapper}/skills/alpha/SKILL.md": b"---\nname: alpha\n---\n# alpha\n",
+        }
+    )
+    spool = tmp_path / "a.tar.gz"
+    spool.write_bytes(payload)
+    destination = tmp_path / "out"
+    destination.mkdir()
+
+    revision, members, roots = acquisition._extract(
+        spool, destination, source, max_members=100, max_decompressed=1 << 30
+    )
+    assert revision == SHA
+    assert roots == {wrapper}, "the single root segment is the wrapper"
+
+    # Descending is what makes the two halves join.
+    descended = destination / wrapper
+    assert validate_direct_source(destination).ok is False
+    admitted = validate_direct_source(descended)
+    assert admitted.ok is True, admitted.diagnostics
+    assert admitted.classification is not None
+    assert admitted.classification.shape == "collection"
+
+
+def test_members_at_the_archive_root_are_not_descended_into(tmp_path: Path):
+    # The positive control for the rule above. An archive whose members really
+    # do sit at its root has more than one first segment, so nothing is
+    # descended — a rule written as "if there is one directory, enter it" would
+    # wrongly enter a lone `skills/`.
+    source = acquisition.parse_direct_source(f"git+https://github.com/o/r@{SHA}")
+    payload = _archive({"SKILL.md": b"---\nname: a\n---\n# a\n", "README.md": b"x"})
+    spool = tmp_path / "b.tar.gz"
+    spool.write_bytes(payload)
+    destination = tmp_path / "out2"
+    destination.mkdir()
+    _, _, roots = acquisition._extract(
+        spool, destination, source, max_members=100, max_decompressed=1 << 30
+    )
+    assert len(roots) > 1, "no single wrapper segment, so nothing to descend"
+
+
+def test_the_working_directory_is_carried_not_derived():
+    # `AcquiredArchive` declares the tree its caller must remove. Deriving it by
+    # walking up from `root` is wrong the moment `root` is not nested at the
+    # expected depth: with no wrapper to descend through, two levels up from
+    # `root` is the system temporary directory, and the cleanup would delete it.
+    import dataclasses
+
+    fields = {field.name for field in dataclasses.fields(acquisition.AcquiredArchive)}
+    assert "working" in fields, (
+        "the caller-owned temporary directory must be declared, not inferred "
+        "from the root's depth"
+    )

@@ -31,15 +31,47 @@ appeared when the real CLI ran.
 
 Both fixes are in this change; the transcript below is the re-run after them.
 
-## Not executed
+## Pinned remote acquisition
 
-**Pinned remote acquisition.** The remote arm requires an outbound fetch to
-GitHub. It is not run here: remote installation is a human action by design, and
-this session had no authorisation to reach the network. The acquisition path is
-covered by construction tests over local archive fixtures — grammar, redirect
-equivalence, bounds, link policy, and SHA binding — but the assertion "this
-works against real GitHub" is **not** discharged by this record and remains open
-for a human run.
+Run on 2026-08-30 against `git+https://github.com/anthropics/skills@3b3fad96af16a10759d930941b4520ba0c40edae`,
+a real public repository pinned to a full 40-hex commit SHA.
+
+| Observation | Result |
+|---|---|
+| Archive fetched | 3,731,428 bytes, 510 members — inside the 256 MiB / 20,000-member bounds |
+| Revision binding | `pax_global_header` SHA equalled the requested ref exactly |
+| Redirect | `github.com/.../archive/<sha>.tar.gz` → `codeload.github.com/.../tar.gz/<sha>`, an equivalent target |
+| Admission | `collection`, 19 skills, 411 files, 10,730,611 bytes |
+| Install without `--yes` | refused, **0 files written** |
+| Install with `--yes` | 83 files for `canvas-design`, state row at schema 0.5 recording the SHA |
+| Temporary tree | removed on the success path and on the refusal path alike |
+
+### Two defects this arm found
+
+Both were invisible to the construction tests, because each half was correct in
+isolation and the two never met.
+
+1. **Acquisition and admission did not join.** A GitHub source archive prefixes
+   every member with a `<repo>-<ref>/` wrapper, and admission looks for
+   `SKILL.md`, `skills/`, or `pack.toml` — none of which sit beside that
+   wrapper. Every local archive fixture had placed members at the archive root,
+   so acquisition returned a tree admission refused with "no supported shape".
+   Acquisition now descends the wrapper, derived from the member names rather
+   than by listing the extracted tree, so an archive whose members genuinely sit
+   at its root is left alone. Regressions:
+   `test_the_github_wrapper_directory_is_descended` and its
+   `..._not_descended_into` control.
+2. **The cleanup could have deleted the system temporary directory.** The
+   working tree was found by walking two parents up from the extracted root.
+   That is correct only when a wrapper was descended; without one, two levels up
+   is the system temp directory. `AcquiredArchive` now declares its `working`
+   directory. Regression: `test_the_working_directory_is_carried_not_derived`.
+
+A third gap surfaced at the same time: the CLI had no remote arm at all — a
+`git+https://` positional is not a directory, so it fell through to the usage
+error. Remote sources now route through acquisition, and a remote install
+requires `--yes`, because the bytes are fetched before the reader has seen
+anything.
 
 ## Transcript
 

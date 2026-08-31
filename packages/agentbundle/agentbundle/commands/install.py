@@ -264,6 +264,34 @@ def run(args: argparse.Namespace) -> int:
             return 1
         return _run_profile(args)
 
+    # AC7: `--pack` / `--profile` is no longer an argparse-required group,
+    # because a direct source arrives as the positional with neither flag.
+    # "Exactly one of --pack / --profile / a direct source" is enforced here
+    # instead, and a usage error still exits 2 so the observable contract is
+    # what it was.
+    if not getattr(args, "pack", None):
+        from agentbundle.commands.validate import _has_direct_marker
+        from agentbundle.direct_install import run_direct_install
+
+        positional = getattr(args, "catalogue", None)
+        if positional and positional.startswith("git+https://"):
+            # A remote direct source is a string, not a path; acquisition
+            # resolves it to a tree before admission sees it.
+            return run_direct_install(args, positional)
+        candidate = Path(positional) if positional else None
+        if candidate is not None and _has_direct_marker(candidate):
+            return run_direct_install(args, candidate)
+        print(
+            "install: one of --pack, --profile, or a direct source directory "
+            "is required\n"
+            "  --pack NAME       install a pack from a catalogue\n"
+            "  --profile NAME    install a curated set of packs\n"
+            "  <path>            install a skill folder, a skills/ collection, "
+            "or a direct pack",
+            file=sys.stderr,
+        )
+        return 2
+
     pack_name: str = args.pack
     # Resolve the default source when the `catalogue` positional was
     # omitted (an explicit arg short-circuits through layer 1 unchanged).

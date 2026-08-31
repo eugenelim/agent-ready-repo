@@ -35,7 +35,7 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | Check | Disposition | Control |
 |---|---|---|
 | Arbitrary host fetch (SSRF) | Resolved | Source grammar admits `git+https://github.com/<owner>/<repo>@<ref>` only; the built URL is re-parsed and re-validated before use. |
-| Redirect to an unrelated host | Resolved | `_BoundedRedirectHandler` permits at most five redirects, HTTPS only, and only to `github.com` or `codeload.github.com` for the *same* owner, repository, and ref. |
+| Redirect to an unrelated host | Resolved | `_BoundedRedirectHandler` permits at most five redirects, HTTPS only, and only to `github.com` or `codeload.github.com` for the *same* owner, repository, and ref. Exercised live: GitHub's real `github.com → codeload.github.com` redirect is admitted, and the four rejection shapes refuse. |
 | Redirect comparison bypass via encoding | Resolved | Targets are compared in the same percent-encoded form as the request; comparing a decoded target against an encoded expectation would admit anything that merely decodes to the right place. |
 | Credentials leaking into a URL | Resolved | User-info in a redirect target is refused; the route is credential-free by construction and never attaches a token. |
 | Path injection through a ref | Resolved | Every component is percent-encoded with an empty safe set, so a ref containing `/` cannot introduce a path segment. |
@@ -51,7 +51,7 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 
 | Check | Disposition | Control |
 |---|---|---|
-| Bytes not bound to the requested revision | Resolved | The 40-hex SHA is read from `pax_global_header`; a full ref must equal it, an abbreviation must prefix it, and an absent or malformed value refuses. |
+| Bytes not bound to the requested revision | Resolved | The 40-hex SHA is read from `pax_global_header`; a full ref must equal it, an abbreviation must prefix it, and an absent or malformed value refuses. Verified against a real GitHub archive, not only fixtures. |
 | Mutable reference installed as if pinned | Resolved | A bare or defaulted branch (`main`, `master`, `HEAD`) refuses; an explicit branch or tag resolves to the archive's SHA and is recorded as `source-revision`. |
 | Ambiguous ref classification | Resolved | A hex-shaped ref that is neither 40 characters nor a 7–39 character abbreviation refuses rather than being guessed at in either direction. |
 | Silent content change between installs | Resolved | A content-only digest over sorted length-prefixed path/content entries, with independently derived vectors committed. |
@@ -69,7 +69,8 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | Check | Disposition | Control |
 |---|---|---|
 | Partial write on refusal | Resolved | Admission completes before any write; normalization materialises into a temporary tree removed on every exit path, success or exception. |
-| Temporary tree surviving a failure | Resolved | `acquire_git_https_archive` and `normalize_direct_source` both clean up under `BaseException`, so a `KeyboardInterrupt` is covered too. |
+| Temporary tree surviving a failure | Resolved | `acquire_git_https_archive` and `normalize_direct_source` both clean up under `BaseException`, so a `KeyboardInterrupt` is covered too. The install path removes the acquisition tree on the success and refusal paths alike, verified live. |
+| Cleanup deleting the wrong directory | Resolved | `AcquiredArchive` declares the working directory the caller must remove. It was previously found by walking two parents up from the extracted root, which is the system temporary directory whenever no wrapper was descended. Found by the live remote run. |
 | Replacement race between measurement and copy | Resolved | Normalization writes the already-measured bytes and never re-reads the source; a mutation test that re-reads fails the control. |
 | Orphan sweep deleting installed content | Resolved | All seven sweep call sites refuse when state cannot be read. Four previously swallowed the failure into an empty protected set; three built no protected set at all. |
 | Concurrent state write losing a row | Resolved | Every direct mutation goes through `persist_state_locked`, and the 0.5 floor is computed from the state re-read **inside** the lock. |

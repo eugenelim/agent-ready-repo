@@ -36,6 +36,20 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
 
     def _capture(cmd, cwd):  # noqa: ANN001
         calls.append((cmd, cwd))
+        # The direct suites are judged by executed-test count, not by return
+        # code alone, so a faithful fake writes the report the real pytest
+        # would. Returning 0 without one makes every mocked run look like an
+        # all-skipped suite -- exactly the case the floor rejects.
+        for part in cmd:
+            if str(part).startswith("--junitxml="):
+                report = Path(str(part).split("=", 1)[1])
+                report.parent.mkdir(parents=True, exist_ok=True)
+                report.write_text(
+                    '<testsuites><testsuite name="pytest" errors="0" '
+                    'failures="0" skipped="0" tests="4" time="0.1">'
+                    "</testsuite></testsuites>\n",
+                    encoding="utf-8",
+                )
         return FakeResult(0)
 
     with patch(
@@ -67,6 +81,11 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
         (str(Path("packages") / "agentbundle"), "test_credential_brokers_pack_install.py"),
         (str(Path("tests") / "skills" / "jira"), "test_check_sso_login.py"),
         (str(Path("tests") / "skills" / "confluence-crawler"), "test_sso_config.py"),
+        # The direct suites, whose Windows arms assert documented outcomes
+        # rather than skipping.
+        (str(Path("packages") / "agentbundle"), "test_direct_source_acquisition.py"),
+        (str(Path("packages") / "agentbundle"), "test_direct_admission.py"),
+        (str(Path("packages") / "agentbundle"), "test_direct_install.py"),
     }
     observed = [(str(cwd), " ".join(str(part) for part in cmd)) for cmd, cwd in calls]
     for cwd_suffix, token in sorted(expected):

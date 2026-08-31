@@ -547,6 +547,46 @@ routes to the reference and that the reference still carries the rule.
 - Core and Product Engineering guidance now distinguish contract shaping review
   from later code-review lenses.
 
+## [agentbundle][0.41.0] — 2026-08-30
+
+### Highlights
+
+- **You can install a skill straight from a repository, without a catalogue.**
+  Point `agentbundle install` at a skill folder, a `skills/` collection, or a
+  single pack — locally or on GitHub — and it admits the source against
+  explicit size and shape limits, pins it to the commit its bytes came from,
+  and shows you exactly what the publisher declared before anything is written.
+  A collection never installs everything by default: name the skills you want,
+  or ask for all of them.
+- **An upgrade that widens what a skill can do now stops and tells you what
+  changed.** Added tools, changed boundaries, new payload files, or a different
+  credentialed status each need explicit acceptance, tied to the exact list you
+  were shown.
+
+### Added
+
+- Direct installation for skill folders, `skills/` collections, and single
+  packs, from a local path or a credential-free
+  `git+https://github.com/<owner>/<repo>@<ref>` URL. A defaulted branch is
+  refused: a revision that names different bytes over time is not a pin.
+- `validate` accepts the same sources and gains `--format json`.
+- A published reference for every direct diagnostic code, held equal to the
+  code registry by a lint.
+
+### Changed
+
+- Skill and pack frontmatter may use YAML block scalars for any field. Agent
+  frontmatter still may not — adapters rewrite it key by key and would drop the
+  text.
+- `pack.toml` gained a top-level `schema` field. Catalogue manifests keep
+  implicit v1.
+
+### Fixed
+
+- Adapter orphan sweeps no longer delete installed skills when the state file
+  cannot be read. Four adapters treated an unreadable state file as "nothing is
+  protected", and three built no protected set at all.
+
 ## [agentbundle][0.40.3] — 2026-08-29
 
 ### Highlights

@@ -93,12 +93,20 @@ class DirectSource:
 
 @dataclass(frozen=True)
 class AcquiredArchive:
-    """An extracted archive root and the revision its bytes are bound to."""
+    """An extracted archive root and the revision its bytes are bound to.
+
+    ``working`` is the temporary directory the caller must remove when it is
+    done, carried explicitly rather than derived from ``root``. Deriving it by
+    walking parents is wrong the moment ``root`` is not nested at the expected
+    depth — with no wrapper directory to descend through, two levels up from
+    ``root`` is the system temporary directory.
+    """
 
     root: Path
     revision: str
     downloaded_bytes: int
     members: int
+    working: Path
 
 
 def _refuse(
@@ -538,10 +546,18 @@ def _extract(
     *,
     max_members: int,
     max_decompressed: int,
-) -> tuple[str, int]:
-    """Extract the archive under Family-1 bounds and AC6's link policy."""
+) -> tuple[str, int, set[str]]:
+    """Extract the archive under Family-1 bounds and AC6's link policy.
+
+    Also returns the set of first path segments seen across every member. A
+    GitHub source archive prefixes all of them with one `<repo>-<ref>/`
+    directory, and the caller has to descend through it to reach the source
+    root — admission looks for `SKILL.md`, `skills/`, or `pack.toml`, none of
+    which sit beside the wrapper.
+    """
 
     seen_casefolded: set[str] = set()
+    root_segments: set[str] = set()
     members = 0
     decompressed = 0
     with (
@@ -609,8 +625,9 @@ def _extract(
                     "case-insensitive filesystem.",
                 )
             seen_casefolded.add(folded)
+            root_segments.add(PurePosixPath(member.name).parts[0])
             archive.extract(member, path=destination, filter="data")
-    return revision, members
+    return revision, members, root_segments
 
 
 def _acquire_bytes(
@@ -726,7 +743,7 @@ def acquire_git_https_archive(
             clock=clock,
             progress=progress,
         )
-        revision, members = _extract(
+        revision, members, root_segments = _extract(
             spool,
             extracted,
             source,
@@ -734,8 +751,16 @@ def acquire_git_https_archive(
             max_decompressed=max_decompressed,
         )
         spool.unlink()
+        # Descend through GitHub's single wrapper directory. Derived from the
+        # member names rather than by listing the extracted tree, so a source
+        # whose members genuinely sit at the archive root is left alone instead
+        # of being descended into by accident.
+        if len(root_segments) == 1:
+            candidate = extracted / next(iter(root_segments))
+            if candidate.is_dir():
+                extracted = candidate
     except BaseException:
         # AC25: every refusal removes its temporary tree.
         shutil.rmtree(working, ignore_errors=True)
         raise
-    return AcquiredArchive(extracted, revision, downloaded, members)
+    return AcquiredArchive(extracted, revision, downloaded, members, working)

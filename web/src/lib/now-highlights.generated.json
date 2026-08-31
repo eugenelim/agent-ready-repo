@@ -642,6 +642,61 @@
     {
       "packages": [
         {
+          "name": "agentbundle",
+          "version": "0.41.0"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[agentbundle][0.41.0] — 2026-08-30",
+      "changelogAnchor": "agentbundle0410--2026-08-30",
+      "highlights": [
+        {
+          "source": "**You can install a skill straight from a repository, without a catalogue.** Point `agentbundle install` at a skill folder, a `skills/` collection, or a single pack — locally or on GitHub — and it admits the source against explicit size and shape limits, pins it to the commit its bytes came from, and shows you exactly what the publisher declared before anything is written. A collection never installs everything by default: name the skills you want, or ask for all of them.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "You can install a skill straight from a repository, without a catalogue."
+            },
+            {
+              "type": "text",
+              "value": " Point "
+            },
+            {
+              "type": "code",
+              "value": "agentbundle install"
+            },
+            {
+              "type": "text",
+              "value": " at a skill folder, a "
+            },
+            {
+              "type": "code",
+              "value": "skills/"
+            },
+            {
+              "type": "text",
+              "value": " collection, or a single pack — locally or on GitHub — and it admits the source against explicit size and shape limits, pins it to the commit its bytes came from, and shows you exactly what the publisher declared before anything is written. A collection never installs everything by default: name the skills you want, or ask for all of them."
+            }
+          ]
+        },
+        {
+          "source": "**An upgrade that widens what a skill can do now stops and tells you what changed.** Added tools, changed boundaries, new payload files, or a different credentialed status each need explicit acceptance, tied to the exact list you were shown.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "An upgrade that widens what a skill can do now stops and tells you what changed."
+            },
+            {
+              "type": "text",
+              "value": " Added tools, changed boundaries, new payload files, or a different credentialed status each need explicit acceptance, tied to the exact list you were shown."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.16.0"
         },

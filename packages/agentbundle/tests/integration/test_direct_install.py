@@ -284,3 +284,129 @@ def test_executable_mode_is_reported_not_applied():
         assert report_time_mode(0o644) == "not executable"
     else:
         assert report_time_mode(0o755) == "unknown"
+
+
+class _Args:
+    """A minimal install namespace, as the CLI would build it."""
+
+    def __init__(self, catalogue, output, **overrides):
+        self.catalogue = str(catalogue)
+        self.output = str(output)
+        self.pack = None
+        self.profile = None
+        self.scope = None
+        self.adapter = None
+        self.skill = None
+        self.all_skills = False
+        self.dry_run = False
+        self.yes = True
+        self.force = False
+        self.__dict__.update(overrides)
+
+
+def test_dry_run_writes_nothing_at_all(tmp_path: Path, capsys):
+    # AC25 — a preview leaves target, adapter directories, and state
+    # byte-identical, and creates no empty directory either.
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "solo"
+    _write_skill(source, "solo", description="Does one thing.")
+    (source / "scripts").mkdir()
+    (source / "scripts" / "run.py").write_text("x = 1\n")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    exit_code = run_direct_install(_Args(source, target, dry_run=True), source)
+    assert exit_code == 0
+    assert list(target.rglob("*")) == [], "a dry run must write nothing"
+
+    rendered = capsys.readouterr().out
+    assert rendered.count(ADMISSIBILITY_VERDICT) == 2
+    assert "would install (dry run — nothing written)" in rendered
+
+
+def test_install_writes_the_measured_bytes_and_owns_them(tmp_path: Path, capsys):
+    # AC15, AC12 — installed bytes equal the source bytes, and the state row
+    # that owns them is written at schema 0.5 through the locked mutation.
+    from agentbundle import config
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "solo"
+    _write_skill(source, "solo", description="Does one thing.")
+    (source / "scripts").mkdir()
+    (source / "scripts" / "run.py").write_text("x = 1\n")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_Args(source, target), source) == 0
+    capsys.readouterr()
+
+    installed = target / ".claude" / "skills" / "solo"
+    assert installed.joinpath("SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
+    assert installed.joinpath("scripts/run.py").read_bytes() == (
+        source / "scripts" / "run.py"
+    ).read_bytes()
+
+    state = config.load_state(target / ".agentbundle-state.toml")
+    assert state.schema_version == "0.5"
+    row = state.row("solo", "claude-code")
+    assert row is not None
+    assert row.source_kind == "skill"
+    assert row.source_digest.startswith("sha256-1:")
+    assert ".claude/skills/solo/SKILL.md" in row.files
+
+
+def test_a_category_keeps_its_full_path_in_state_but_flattens_on_disk(tmp_path: Path, capsys):
+    # AC13, AC24 — the identity flattens to the leaf, while the recorded
+    # source-path keeps the full relative path. Recording the leaf would make
+    # two envelopes sharing a leaf name indistinguishable in state.
+    from agentbundle import config
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "kit"
+    _write_skill(source / "skills" / "text" / "summarise", "summarise", description="Shortens.")
+    _write_skill(source / "skills" / "text" / "expand", "expand", description="Lengthens.")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_Args(source, target, skill=["summarise"]), source) == 0
+    capsys.readouterr()
+
+    assert (target / ".claude" / "skills" / "summarise" / "SKILL.md").exists()
+    assert not (target / ".claude" / "skills" / "text").exists(), "the category flattens"
+    assert not (target / ".claude" / "skills" / "expand").exists(), "unselected stays out"
+
+    row = config.load_state(target / ".agentbundle-state.toml").row("summarise", "claude-code")
+    assert row is not None
+    assert row.source_path == "skills/text/summarise", "state keeps the full path"
+
+
+def test_an_unselected_collection_refuses_before_any_write(tmp_path: Path, capsys):
+    # AC8, AC25 — the refusal lists the candidates and writes nothing.
+    from agentbundle.direct_install import run_direct_install
+
+    source = _collection(tmp_path, "alpha", "beta")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_Args(source, target), source) == 1
+    assert list(target.rglob("*")) == []
+    err = capsys.readouterr().err
+    assert "CAT-D008" in err
+    assert "alpha" in err and "beta" in err
+    assert "--all-skills" in err
+
+
+def test_a_refused_source_writes_nothing(tmp_path: Path, capsys):
+    # AC25 — a mandatory refusal leaves the target untouched.
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "ambiguous"
+    _write_skill(source / "skills" / "one", "one")
+    _write_skill(source / ".claude" / "skills" / "two", "two")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    assert run_direct_install(_Args(source, target), source) == 1
+    assert list(target.rglob("*")) == []
+    assert "CAT-D009" in capsys.readouterr().err
