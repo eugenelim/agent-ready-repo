@@ -350,6 +350,10 @@ JOIN_EXEMPTIONS = {
     # Joins components returned by `_enumerate`'s confined traversal, and
     # candidate names already probed through the marker primitive.
     ("direct_source.py", "_inventory_collection"),
+    # IS AC39 mechanism (5) — the marker probe itself, and AC17's sanctioned
+    # `lstat`/`resolve` carve-out. It cannot call itself, and its own join is
+    # the one the criterion names as confined by this function.
+    ("direct_source.py", "probe_measured_path"),
 }
 
 _PATH_OPERAND_HINTS = (
@@ -393,8 +397,18 @@ def joins_without_confinement(source: str, filename: str) -> list[str]:
             continue
         if (filename, node.name) in JOIN_EXEMPTIONS:
             continue
-        body = ast.dump(node)
-        confined = any(call in body for call in CONFINEMENT_CALLS)
+        # Collected from CALL nodes, not from `ast.dump` of the whole function.
+        # `ast.dump` includes docstrings and every other string constant, so a
+        # function whose docstring said "confined by read_confined_regular_file"
+        # silenced the rule for itself — the same substring-satisfies-the-control
+        # shape the Windows registration test was repaired for.
+        called = {
+            inner.func.id if isinstance(inner.func, ast.Name) else inner.func.attr
+            for inner in ast.walk(node)
+            if isinstance(inner, ast.Call)
+            and isinstance(inner.func, ast.Name | ast.Attribute)
+        }
+        confined = bool(called & CONFINEMENT_CALLS)
         for inner in ast.walk(node):
             joined = (
                 isinstance(inner, ast.BinOp)
@@ -438,6 +452,18 @@ def test_a_join_in_an_unconfined_function_is_reported():
     )
     assert joins_without_confinement(confined, "direct_source.py") == []
 
+    # A docstring naming a mechanism the body never calls must NOT silence the
+    # rule. This is the mutation the previous `ast.dump` form failed.
+    docstring_only = (
+        "from pathlib import Path\n"
+        "def f(root, name):\n"
+        '    """Confined by read_confined_regular_file."""\n'
+        "    return (root / name).read_bytes()\n"
+    )
+    assert joins_without_confinement(docstring_only, "direct_source.py"), (
+        "a docstring mentioning a mechanism is not a call to it"
+    )
+
     # A literal join cannot escape, so it is not the thing being policed.
     literal = (
         "from pathlib import Path\n"
@@ -454,6 +480,7 @@ def test_the_join_exemption_list_does_not_grow_silently():
     assert {
         ("direct_source.py", "_select_collection_root"),
         ("direct_source.py", "_inventory_collection"),
+        ("direct_source.py", "probe_measured_path"),
     } == JOIN_EXEMPTIONS
 
 

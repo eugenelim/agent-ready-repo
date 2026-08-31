@@ -141,7 +141,6 @@ def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | 
     return None
 
 
-# Mirror of claude_code.py:_installed_skill_names — keep in sync.
 def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 

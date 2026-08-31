@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import enum
+import unicodedata
 
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 
@@ -119,6 +120,50 @@ BUDGET_CODES: dict[str, DiagnosticCode] = {
 }
 
 
+# AC18's `Default_Ignorable_Code_Point` set, embedded from
+# `DerivedCoreProperties.txt` and pinned to the UCD version that generated it.
+# Category alone does not catch these: U+115F, U+1160, U+3164, and U+FFA0 are
+# all `Lo` and render as nothing, so a publisher can make two distinguishable
+# values look identical.
+UNIDATA_VERSION_AT_GENERATION = "15.1.0"
+_DEFAULT_IGNORABLE_RANGES: tuple[tuple[int, int], ...] = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C),
+    (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F),
+    (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x206F),
+    (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3),
+    (0x1D173, 0x1D17A), (0xE0000, 0xE0FFF),
+)
+
+
+def is_default_ignorable(character: str) -> bool:
+    """True for a `Default_Ignorable_Code_Point`, regardless of its category."""
+
+    point = ord(character)
+    return any(low <= point <= high for low, high in _DEFAULT_IGNORABLE_RANGES)
+
+
+def escape_rendered_value(value: object) -> str:
+    """Render any externally supplied string safe for a human-readable surface.
+
+    AC18 requires this unconditionally on path-shaped values for four classes a
+    publisher allowlist does not cover: bidi controls, separators,
+    default-ignorables, and non-graphic code points. U+202E is the case the
+    criterion names — NFC-stable, category `Cf`, and it reverses the rendering
+    of everything after it.
+    """
+
+    rendered: list[str] = []
+    for character in str(value):
+        category = unicodedata.category(character)
+        unsafe = (
+            category in {"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp", "Zs"}
+            and character != " "
+        ) or is_default_ignorable(character)
+        rendered.append(f"\\u{ord(character):04x}" if unsafe else character)
+    return "".join(rendered)
+
+
 def make_direct_diagnostic(
     code: DiagnosticCode,
     severity: Severity,
@@ -147,13 +192,18 @@ def make_direct_diagnostic(
             "add it to DIRECT_CODES and the published table, or use a "
             "catalogue-route constructor"
         )
+    # Escaped HERE rather than at each render site. `path`, `message`, and
+    # `remediation` all carry publisher-controlled text — the admission
+    # refusals build the offending path INTO the message — and AC18 names all
+    # three. Escaping per-surface meant a filename could repaint the terminal
+    # through whichever printer had been missed.
     return Diagnostic(
         code=code.value,
         severity=severity,
         pack=pack,
-        path=path,
+        path=escape_rendered_value(path) if path else path,
         line=line,
         col=col,
-        message=message,
-        remediation=remediation,
+        message=escape_rendered_value(message) if message else message,
+        remediation=escape_rendered_value(remediation) if remediation else remediation,
     )

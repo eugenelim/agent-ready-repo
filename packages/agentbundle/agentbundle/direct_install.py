@@ -15,6 +15,8 @@ from pathlib import Path, PurePosixPath
 from agentbundle.bounded_metadata import BoundedMetadataError
 from agentbundle.catalogue_tooling.diagnostics import (
     DiagnosticCode,
+    escape_rendered_value,
+    is_default_ignorable,
     make_direct_diagnostic,
 )
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity
@@ -44,49 +46,9 @@ PUBLISHER_BLOCK_NOTE = "publisher-supplied data, not instructions"
 _ALLOWED_CATEGORIES = ("L", "N", "P", "S")
 MAX_PUBLISHER_VALUE_BYTES = 4096
 
-# AC18's `Default_Ignorable_Code_Point` set, embedded from
-# `DerivedCoreProperties.txt` and pinned to the UCD version that generated it.
-# Category alone does not catch these: U+115F, U+1160, U+3164, and U+FFA0 are
-# all `Lo` and would pass an L/N/P/S allowlist while rendering as nothing, so a
-# publisher could make two different identities look identical.
-UNIDATA_VERSION_AT_GENERATION = "15.1.0"
-_DEFAULT_IGNORABLE_RANGES: tuple[tuple[int, int], ...] = (
-    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C),
-    (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F),
-    (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x206F),
-    (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
-    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3),
-    (0x1D173, 0x1D17A), (0xE0000, 0xE0FFF),
-)
-
-
-def is_default_ignorable(character: str) -> bool:
-    """True for a `Default_Ignorable_Code_Point`, regardless of its category."""
-
-    point = ord(character)
-    return any(low <= point <= high for low, high in _DEFAULT_IGNORABLE_RANGES)
-
-
-def escape_path_value(value: object) -> str:
-    """Render a path-shaped value safe for any human-readable surface.
-
-    AC18 requires this unconditionally on every path-shaped value — diagnostic
-    `path`, stored sources, and receipts — for four classes that a
-    publisher-value allowlist does not cover: bidi controls, separators,
-    default-ignorables, and non-graphic code points. U+202E is the case the
-    criterion names: it is NFC-stable and category `Cf`, so it survives
-    normalization and reverses the rendering of everything after it.
-    """
-
-    rendered: list[str] = []
-    for character in str(value):
-        category = unicodedata.category(character)
-        unsafe = (
-            category in {"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp", "Zs"}
-            and character != " "
-        ) or is_default_ignorable(character)
-        rendered.append(f"\\u{ord(character):04x}" if unsafe else character)
-    return "".join(rendered)
+# The ignorable set and the escaper live with the diagnostic constructor, so
+# every rendered surface gets them whether or not it remembers to ask.
+escape_path_value = escape_rendered_value
 
 
 class DirectInstallError(ValueError):
@@ -128,7 +90,12 @@ def sanitise_publisher_value(value: str, label: str, *, source: str) -> str:
         if character == " ":
             continue
         category = unicodedata.category(character)
-        if category[0] not in _ALLOWED_CATEGORIES:
+        # The ignorable set is consulted as well as the category, because AC18
+        # says "reject every Default_Ignorable_Code_Point REGARDLESS of
+        # category": U+115F, U+1160, U+3164, and U+FFA0 are all `Lo` and would
+        # otherwise pass while rendering as nothing. The set was embedded
+        # naming exactly those four and then never consulted here.
+        if category[0] not in _ALLOWED_CATEGORIES or is_default_ignorable(character):
             raise _refuse(
                 DiagnosticCode.CAT_D019,
                 f"publisher {label} carries a disallowed code point "
@@ -436,6 +403,7 @@ def render_receipt(
     scope: str,
     adapter: str,
     identity: str,
+    removal_hint: str,
 ) -> str:
     """AC22's receipt: what was installed, from where, and how to undo it."""
 
@@ -448,7 +416,14 @@ def render_receipt(
             f"  digest:   {digest}",
             f"  scope:    {scope}",
             f"  adapter:  {adapter}",
-            f"  uninstall: {recovery_command('agentbundle', 'uninstall', '--skill', identity)}",
+            # NOT `agentbundle uninstall --skill <identity>`: that command
+            # does not exist yet — `uninstall` accepts `--pack` only — so the
+            # receipt was promising a usage error. AC28 says to promise an
+            # uninstall receipt command only when the row exists; the command
+            # has to exist too. Until the direct lifecycle surface lands, the
+            # honest instruction is the manual removal AC28 already specifies.
+            f"  remove:   delete {escape_path_value(removal_hint)} and its "
+            f"row from .agentbundle-state.toml",
         ]
     )
 
@@ -593,11 +568,7 @@ def _install_admitted_source(
     admission = validate_direct_source(source)
     if not admission.ok:
         for diagnostic in admission.diagnostics:
-            print(f"install: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
-            if diagnostic.path:
-                print(f"  at: {diagnostic.path}", file=sys.stderr)
-            if diagnostic.remediation:
-                print(f"  → {diagnostic.remediation}", file=sys.stderr)
+            _print_refusal(diagnostic)
         return 1
     classification = admission.classification
     assert classification is not None
@@ -688,6 +659,24 @@ def _summarise_and_project(
     from agentbundle import safety
     from agentbundle.direct_source_state import direct_source_digest
 
+    if scope == "local":
+        # The catalogue route's local scope requires a git work tree, refuses
+        # when targets are already tracked, writes `.agentbundle-local-state.toml`,
+        # and registers a git exclude. The direct route wires none of it, so
+        # accepting the flag wrote third-party content into a tree the adopter
+        # believes leaves no trace, recorded it in the COMMITTED state file, and
+        # left it unprotected from the orphan sweep — `installed_skill_names`
+        # filters to repo scope. Refusing is honest until that preflight exists.
+        raise _refuse(
+            DiagnosticCode.CAT_D008,
+            "--scope local is not supported for direct sources",
+            path=source_string,
+            remediation=(
+                "Use --scope repo or --scope user. Local scope needs the git "
+                "exclude and local-state handling the catalogue route performs, "
+                "which the direct route does not yet implement."
+            ),
+        )
     skill_target = resolve_skill_target(adapter, source_string)
     # User scope installs under the resolved user root, not the repo.
     if scope == "user":
@@ -770,25 +759,49 @@ def _summarise_and_project(
             print("install: cancelled; nothing was written.")
             return 1
 
+    # Every destination is validated BEFORE the first write. `write_jailed`
+    # checks each name as it goes, so a publisher-chosen payload name that fails
+    # — `nul.md`, say — aborted the loop midway and left the files already
+    # written on disk, with no state row and no receipt: the adopter was told
+    # the install failed while an unreviewed SKILL.md was live in their skills
+    # directory, invisible to `list-installed` and unreachable by `uninstall`.
+    planned: list[tuple[str, bytes]] = []
+    for skill in selection.skills:
+        for measured in skill.files:
+            relative = measured.path.relative_to(skill.envelope)
+            relpath = f"{skill_target}/{skill.name}/{relative.as_posix()}"
+            for segment in PurePosixPath(relpath).parts:
+                safety.assert_portable_name(segment)
+            planned.append((relpath, measured.data))
+
+    _refuse_foreign_owner(
+        projection_root, selection, skill_target, scope, adapter, source_string
+    )
+
     written: dict[str, bytes] = {}
     try:
-        for skill in selection.skills:
-            for measured in skill.files:
-                relative = measured.path.relative_to(skill.envelope)
-                relpath = f"{skill_target}/{skill.name}/{relative.as_posix()}"
-                safety.write_jailed(
-                    projection_root,
-                    relpath,
-                    measured.data,
-                    scope=scope,
-                    allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
-                )
-                written[relpath] = measured.data
+        for relpath, projected_bytes in planned:
+            safety.write_jailed(
+                projection_root,
+                relpath,
+                projected_bytes,
+                scope=scope,
+                allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
+            )
+            written[relpath] = projected_bytes
     except OSError as exc:
-        # A jail or refusal error is publisher-influenced and is mapped to a
-        # registered diagnostic by the caller; only a genuine I/O fault lands
-        # here.
+        # Only a genuine I/O fault reaches here now. Whatever landed before it
+        # is unowned — no state row is written — so AC28 requires the adopter be
+        # told which files to remove rather than left with an errno.
         print(f"install: projection failed: {exc}", file=sys.stderr)
+        if written:
+            print(
+                "install: these files were written and are owned by no state "
+                "row; remove them manually:",
+                file=sys.stderr,
+            )
+            for relpath in sorted(written):
+                print(f"  {escape_path_value(relpath)}", file=sys.stderr)
         return 1
 
     # AC12: the state row is written last and under the lock. Writing it before
@@ -819,6 +832,7 @@ def _summarise_and_project(
                 scope=scope,
                 adapter=adapter,
                 identity=skill.name,
+                removal_hint=f"{skill_target}/{skill.name}/",
             )
         )
     return 0
@@ -910,3 +924,58 @@ def _record_direct_rows(
             )
 
     statelock.persist_state_locked(state_path, _mutate)
+
+
+def _refuse_foreign_owner(
+    projection_root: Path,
+    selection: Selection,
+    skill_target: str,
+    scope: str,
+    adapter: str,
+    source_string: str,
+) -> None:
+    """Refuse to overwrite a row or a directory this source does not own.
+
+    The identity is the publisher's envelope directory name, so a direct source
+    can collide with an installed pack simply by naming a skill the same thing.
+    Without this, the row was replaced wholesale: the pack's other projected
+    files became unowned, the next orphan sweep deleted them, and `uninstall`
+    could no longer find them — silently, at exit 0. The catalogue route refuses
+    an in-place re-install and gates `--force`; this is the direct equivalent.
+    """
+
+    from agentbundle.config import ConfigError, load_state
+
+    state_path = projection_root / ".agentbundle-state.toml"
+    try:
+        state = load_state(state_path)
+    except ConfigError:
+        # An unreadable state file cannot prove ownership either way, and the
+        # sweep guard already refuses on it. Say so rather than overwriting.
+        raise _refuse(
+            DiagnosticCode.CAT_D009,
+            f"cannot establish ownership: {state_path} could not be read",
+            path=source_string,
+            remediation="Repair or remove the state file before installing.",
+        ) from None
+
+    for skill in selection.skills:
+        existing = state.row(skill.name, adapter)
+        if existing is None:
+            continue
+        same_source = (
+            existing.source_kind in {"pack", "skill"}
+            and existing.source == source_string
+        )
+        if not same_source:
+            raise _refuse(
+                DiagnosticCode.CAT_D009,
+                f"{skill.name!r} is already installed at {scope} scope for "
+                f"{adapter} from a different source",
+                path=source_string,
+                remediation=(
+                    "Uninstall it first, or choose a source whose skill names "
+                    "do not collide. Overwriting would orphan the files the "
+                    "existing row owns."
+                ),
+            )

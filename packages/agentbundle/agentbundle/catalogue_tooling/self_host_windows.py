@@ -36,6 +36,14 @@ def _attribute(element: str, name: str) -> int:
     return int(matched.group(1)) if matched else 0
 
 
+# The steps judged by executed-test count rather than return code alone.
+# Lifted to a module constant so a test can assert the set: with it inline, a
+# deleted label silently reverted the floor and the whole file stayed green.
+EXECUTED_FLOOR_LABELS = frozenset(
+    {"direct source acquisition", "direct admission", "direct install"}
+)
+
+
 def _step(label: str, cmd: list[str], cwd: Path) -> int:
     print(f"\n=== {label} ===", flush=True)
     if not cwd.exists():
@@ -237,11 +245,7 @@ def run_windows_compat(root: Path) -> int:
         ),
     ]
 
-    executed_floor_labels = {
-        "direct source acquisition",
-        "direct admission",
-        "direct install",
-    }
+    executed_floor_labels = EXECUTED_FLOOR_LABELS
     for label, cmd, cwd in steps:
         if label in executed_floor_labels:
             rc = _pytest_step_with_executed_floor(label, cmd, cwd, py)

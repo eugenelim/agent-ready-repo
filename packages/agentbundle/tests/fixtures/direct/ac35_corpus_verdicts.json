@@ -7,6 +7,7 @@
     "selected_skills": 500,
     "total_bytes": 26214400
   },
+  "category_level_coverage": "The eighteen repositories still on disk contain no ADMITTED category-level collection. The three the plan's T0d run recorded as category admissions \u2014 google/skills, obra/superpowers-skills, davidondrej/skills \u2014 are not in this corpus, and mrgoonie/claudekit-skills, recorded there as the mixed case, refuses correctly under AC1's nested-envelope rule (its category directory holds its own SKILL.md as well as four child envelopes). Category flattening is therefore covered by the hand-authored fixture in test_direct_install.py::test_a_category_keeps_its_full_path_in_state_but_flattens_on_disk rather than by this table.",
   "criterion": "AC35 \u2014 corpus admission evidence",
   "depth_basis": "measured from the collection root when present, else the repository root",
   "measured_on": "2026-08-31",

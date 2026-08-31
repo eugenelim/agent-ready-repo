@@ -237,10 +237,17 @@ def test_receipt_reports_kind_source_revision_digest_and_undo():
         scope="repo",
         adapter="claude-code",
         identity="alpha",
+        removal_hint=".claude/skills/alpha/",
     )
     for expected in ("manifestless", "git+https://github.com/o/r@v1", "0" * 40, "repo"):
         assert expected in receipt
-    assert "agentbundle uninstall --skill alpha" in receipt
+    # NOT an `uninstall --skill` line. That command does not exist — `uninstall`
+    # accepts `--pack` only — so pinning it here made a false promise a
+    # contract. AC28 allows an uninstall command in the receipt only when the
+    # row exists; the command must exist too.
+    assert "uninstall --skill" not in receipt
+    assert ".claude/skills/alpha/" in receipt
+    assert ".agentbundle-state.toml" in receipt
 
 
 def test_sentinel_never_reaches_a_rendered_surface(tmp_path: Path):
@@ -270,6 +277,7 @@ def test_sentinel_never_reaches_a_rendered_surface(tmp_path: Path):
         scope="repo",
         adapter="claude-code",
         identity="alpha",
+        removal_hint=".claude/skills/alpha/",
     )
     for surface in (rendered, receipt):
         assert "0.0.0" not in surface
@@ -340,14 +348,26 @@ def test_install_writes_the_measured_bytes_and_owns_them(tmp_path: Path, capsys)
     _write_skill(source, "solo", description="Does one thing.")
     (source / "scripts").mkdir()
     (source / "scripts" / "run.py").write_text("x = 1\n")
+    (source / "scripts" / "run.py").chmod(0o755)
     target = tmp_path / "target"
     target.mkdir()
 
     assert run_direct_install(_Args(source, target), source) == 0
-    capsys.readouterr()
+    summary_output = "".join(capsys.readouterr())
 
     installed = target / ".claude" / "skills" / "solo"
     assert installed.joinpath("SKILL.md").read_bytes() == (source / "SKILL.md").read_bytes()
+
+    # AC19's report-time mode, asserted from the RENDERED summary rather than
+    # by passing the label in. The capability-block test injects
+    # `payload_digests={... "executable"}`, which pins the rendering but not the
+    # computation: `report_time_mode` could return "" and both tests would pass.
+    import os
+
+    expected_mode = "executable" if os.name == "posix" else "unknown"
+    assert expected_mode in summary_output, (
+        f"the summary must report the source executable bit as {expected_mode!r}"
+    )
     assert installed.joinpath("scripts/run.py").read_bytes() == (
         source / "scripts" / "run.py"
     ).read_bytes()
@@ -415,3 +435,174 @@ def test_a_refused_source_writes_nothing(tmp_path: Path, capsys):
     assert run_direct_install(_Args(source, target), source) == 1
     assert list(target.rglob("*")) == []
     assert "CAT-D009" in capsys.readouterr().err
+
+
+def test_a_hostile_filename_cannot_repaint_the_consent_surface(tmp_path: Path, capsys):
+    # AC18 — a publisher's FILENAME reached the terminal raw on both `validate`
+    # and `install`, because escaping was applied to `diagnostic.path` in one of
+    # three renderers and never to `message` — and the admission refusals build
+    # the offending path into the message. Escaping now happens at
+    # `make_direct_diagnostic`, so no renderer can bypass it.
+    from agentbundle.commands import validate as validate_cmd
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "hostile"
+    envelope = source / "skills" / "alpha"
+    envelope.mkdir(parents=True)
+    (envelope / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    (envelope / ".\x1b[2J\x1b[1;1Hevil").write_text("x")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    class _Args:
+        catalogue = str(source)
+        output = str(target)
+        pack = profile = scope = adapter = None
+        skill = ["alpha"]
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert run_direct_install(_Args(), source) == 1
+    install_output = "".join(capsys.readouterr())
+
+    class _VArgs:
+        pack_path = str(source)
+        strict = False
+        format = "text"
+
+    assert validate_cmd.run(_VArgs()) == 1
+    validate_output = "".join(capsys.readouterr())
+
+    for surface, rendered in (("install", install_output), ("validate", validate_output)):
+        assert "\x1b" not in rendered, f"{surface} emitted a raw escape sequence"
+        assert "\\u001b" in rendered, f"{surface} did not render the escaped form"
+
+
+def test_the_publisher_allowlist_refuses_invisible_code_points():
+    # AC18 — "reject every Default_Ignorable_Code_Point REGARDLESS of category".
+    # U+115F, U+1160, U+3164 and U+FFA0 are all `Lo`, so a category-only filter
+    # admits them while they render as nothing: two distinguishable values look
+    # identical in the consent block. The set was embedded naming exactly these
+    # four and then never consulted by the allowlist.
+    from agentbundle.catalogue_tooling.diagnostics import (
+        UNIDATA_VERSION_AT_GENERATION,
+    )
+    from agentbundle.direct_install import sanitise_publisher_value
+
+    for point in (0x115F, 0x1160, 0x3164, 0xFFA0, 0x200B, 0x202E, 0xFEFF):
+        with pytest.raises(DirectInstallError) as raised:
+            sanitise_publisher_value(f"a{chr(point)}b", "description", source="s")
+        assert raised.value.diagnostic.code == "CAT-D019", hex(point)
+
+    assert sanitise_publisher_value("ordinary text", "description", source="s")
+
+    # The embedded table is pinned to the UCD that generated it, so a CPython
+    # bump lands as a failure with a regeneration instruction rather than drift.
+    import unicodedata
+
+    assert unicodedata.unidata_version == UNIDATA_VERSION_AT_GENERATION, (
+        "the embedded Default_Ignorable set was generated against UCD "
+        f"{UNIDATA_VERSION_AT_GENERATION} and this interpreter ships "
+        f"{unicodedata.unidata_version}; regenerate it from "
+        "DerivedCoreProperties.txt"
+    )
+
+
+def test_a_foreign_source_cannot_take_over_an_installed_identity(tmp_path: Path, capsys):
+    # The identity is the publisher's envelope directory name, so a direct
+    # source collides with an installed one simply by naming a skill the same
+    # thing. The row was replaced wholesale at exit 0: the previous owner's
+    # other files became unowned, the next sweep deleted them, and `uninstall`
+    # could no longer find them.
+    from agentbundle.direct_install import run_direct_install
+
+    def _source(name: str, body: str) -> Path:
+        root = tmp_path / name
+        envelope = root / "skills" / "alpha"
+        envelope.mkdir(parents=True)
+        (envelope / "SKILL.md").write_text(f"---\nname: alpha\n---\n# {body}\n")
+        return root
+
+    first, second = _source("first", "original"), _source("second", "replacement")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    def _args(source: Path):
+        class _A:
+            catalogue = str(source)
+            output = str(target)
+            pack = profile = scope = adapter = None
+            skill = ["alpha"]
+            all_skills = dry_run = force = False
+            yes = True
+
+        return _A()
+
+    assert run_direct_install(_args(first), first) == 0
+    capsys.readouterr()
+
+    assert run_direct_install(_args(second), second) == 1
+    assert "already installed" in "".join(capsys.readouterr())
+    installed = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    assert "original" in installed.read_text(), "the existing content survived"
+
+    # Reinstalling the SAME source is still permitted.
+    assert run_direct_install(_args(first), first) == 0
+    capsys.readouterr()
+
+
+def test_a_refused_projection_leaves_nothing_behind(tmp_path: Path, capsys):
+    # AC25/AC28 — `write_jailed` validates each name as it goes, so a publisher
+    # payload name that fails aborted the loop midway and left the files already
+    # written on disk with no state row and no receipt: the adopter was told the
+    # install failed while an unreviewed SKILL.md was live in their skills
+    # directory. Destinations are validated before the first write now.
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "reserved"
+    envelope = source / "skills" / "alpha"
+    envelope.mkdir(parents=True)
+    (envelope / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    (envelope / "nul.md").write_text("payload\n")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    class _Args:
+        catalogue = str(source)
+        output = str(target)
+        pack = profile = scope = adapter = None
+        skill = ["alpha"]
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert run_direct_install(_Args(), source) == 1
+    capsys.readouterr()
+    assert list(target.rglob("*.md")) == [], "a refused projection wrote a file"
+    assert not (target / ".agentbundle-state.toml").exists()
+
+
+def test_local_scope_is_refused_rather_than_half_honoured(tmp_path: Path, capsys):
+    # The catalogue route's local scope needs a git work tree, a tracked-path
+    # refusal, `.agentbundle-local-state.toml`, and a git exclude. Accepting the
+    # flag without them wrote third-party content into a tree the adopter
+    # believes leaves no trace, recorded it in the COMMITTED state file, and
+    # left it unprotected from the sweep, which filters to repo scope.
+    from agentbundle.direct_install import run_direct_install
+
+    source = tmp_path / "solo"
+    source.mkdir()
+    (source / "SKILL.md").write_text("---\nname: solo\n---\n# solo\n")
+    target = tmp_path / "target"
+    target.mkdir()
+
+    class _Args:
+        catalogue = str(source)
+        output = str(target)
+        pack = profile = adapter = skill = None
+        scope = "local"
+        all_skills = dry_run = force = False
+        yes = True
+
+    assert run_direct_install(_Args(), source) == 1
+    assert "not supported" in "".join(capsys.readouterr())
+    assert list(target.rglob("*")) == []

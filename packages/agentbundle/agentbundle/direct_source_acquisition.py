@@ -24,7 +24,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from agentbundle.catalogue import classify_transport_attempt, retry_with_system_trust
+from agentbundle.catalogue import (
+    CatalogueError,
+    classify_transport_attempt,
+    retry_with_system_trust,
+)
 from agentbundle.catalogue_tooling.diagnostics import (
     DiagnosticCode,
     make_direct_diagnostic,
@@ -719,9 +723,31 @@ def _acquire_bytes(
         # certificate-verification failure, only when anchors exist, and
         # disabled by AGENTBUNDLE_NO_SYSTEM_TRUST — which
         # `classify_transport_attempt` reports by leaving `anchors` unset.
-        retry_with_system_trust(
-            url, spool.parent, attempt, outcome.anchors, empty_store=outcome.empty_store
-        )
+        try:
+            retry_with_system_trust(
+                url,
+                spool.parent,
+                attempt,
+                outcome.anchors,
+                empty_store=outcome.empty_store,
+            )
+        except CatalogueError as retry_failure:
+            # The shared helper raises a catalogue-flavoured `CatalogueError`
+            # when the second attempt also fails. Unhandled it exited as a
+            # traceback rather than the registered exit-1 refusal AC27 and AC21
+            # require, and its message reached the terminal unescaped.
+            raise _refuse(
+                DiagnosticCode.CAT_D006,
+                f"the certificate for {url} could not be verified, and the "
+                f"operating-system trust retry also failed: "
+                f"{escape_transport_detail(retry_failure)}",
+                path=source.requested,
+                remediation=(
+                    "Install the authority into the operating-system trust "
+                    "store, or set AGENTBUNDLE_CA_BUNDLE to a bundle that "
+                    "contains it."
+                ),
+            ) from retry_failure
         return captured["downloaded"]
     if outcome.certificate_failure:
         raise _refuse(

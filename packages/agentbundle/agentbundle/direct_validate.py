@@ -73,6 +73,10 @@ def render_direct_validation_text(admission: DirectAdmission) -> str:
     if admission.ok:
         skills = ", ".join(summary["selected_skills"]) or "none"  # type: ignore[arg-type]
         return f"ok: direct source valid (shape {summary['shape']}; skills: {skills})"
+    # `path`, `message`, and `remediation` are escaped by
+    # `make_direct_diagnostic` at construction, so this renderer cannot print a
+    # raw bidi override or ANSI sequence even by forgetting to ask — which is
+    # what happened when each surface escaped for itself.
     lines = [
         f"  [{diagnostic.code}] {diagnostic.severity.name} {diagnostic.path or ''}".rstrip()
         for diagnostic in admission.diagnostics

@@ -15,7 +15,7 @@ REQUIRED_TARGETS = (
 )
 
 
-def _steps(root: Path | None = None) -> list[str]:
+def _steps() -> list[str]:
     """The strings actually DISPATCHED by the curated step list.
 
     Walks the `steps` list literal inside `run_windows_compat` rather than every
@@ -48,7 +48,7 @@ def _steps(root: Path | None = None) -> list[str]:
 def test_the_three_direct_suites_are_on_the_curated_windows_list():
     # Their Windows arms assert documented outcomes rather than skipping, so
     # they have to be dispatched at all.
-    literals = _steps(Path())
+    literals = _steps()
     for target in REQUIRED_TARGETS:
         assert target in literals, f"{target} is not on the Windows list"
 
@@ -57,7 +57,7 @@ def test_performance_suites_stay_off_the_windows_list():
     # The performance suite is deliberately excluded. Checked against the
     # dispatched string literals rather than the file text, so a comment
     # explaining the exclusion does not read as the exclusion being violated.
-    literals = _steps(Path())
+    literals = _steps()
     assert not any(literal.startswith("tests/performance/") for literal in literals)
 
 
@@ -121,3 +121,22 @@ def test_a_failing_suite_still_fails_on_its_return_code(tmp_path: Path):
         "failing run", [str(module)], tmp_path, sys.executable
     )
     assert rc != 0
+
+
+def test_the_three_direct_suites_are_judged_by_executed_count():
+    # Registration alone is not the fix: a step dispatched but judged by return
+    # code reports a pass for an all-skipped run. Nothing read the label set, so
+    # deleting an entry reverted the floor while every other test here stayed
+    # green — the same shape as the grep guard this file replaced.
+    labels = self_host_windows.EXECUTED_FLOOR_LABELS
+    assert labels == {
+        "direct source acquisition",
+        "direct admission",
+        "direct install",
+    }
+
+    # And every floored label is actually dispatched with one of the three
+    # required targets, so the set cannot drift away from what it governs.
+    dispatched = _steps()
+    for target in REQUIRED_TARGETS:
+        assert target in dispatched

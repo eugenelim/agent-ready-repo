@@ -233,3 +233,47 @@ def test_a_catalogue_pack_keeps_the_catalogue_route_in_text(tmp_path: Path, caps
     assert "direct source" not in combined, (
         "a manifest with no top-level schema is a catalogue pack"
     )
+
+
+def test_a_root_level_collection_is_routed_by_both_commands(tmp_path: Path, capsys):
+    # Manual QA found `_has_direct_marker` gating on SKILL.md / skills/ /
+    # .claude/skills/, so a repository whose own root IS the collection carried
+    # none of them: classification admitted the shape and the CLI in front of it
+    # refused with a usage error. Nothing guarded the gate — the only
+    # root-collection test called `validate_direct_source` directly, bypassing
+    # exactly the code that was broken. Reverting the marker list leaves that
+    # test green and this one red.
+    from agentbundle.commands import install as install_cmd
+
+    root = tmp_path / "rootcol"
+    for name in ("alt-text", "brand-yml"):
+        _write_skill(root / name, name)
+    (root / "README.md").write_text("# repo\n")
+
+    class _VArgs:
+        pack_path = str(root)
+        strict = False
+        format = "json"
+
+    assert validate_cmd.run(_VArgs()) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["operation"] == "direct"
+    assert payload["summary"]["shape"] == "collection"
+
+    target = tmp_path / "target"
+    target.mkdir()
+
+    class _IArgs:
+        catalogue = str(root)
+        output = str(target)
+        pack = profile = scope = adapter = skill = None
+        all_skills = True
+        dry_run = force = yes = False
+        yes = True
+
+    assert install_cmd.run(_IArgs()) == 0, (
+        "install must route a root-level collection to the direct path, not "
+        "refuse it with the `--pack / --profile` usage error"
+    )
+    capsys.readouterr()
+    assert (target / ".claude" / "skills" / "alt-text" / "SKILL.md").exists()

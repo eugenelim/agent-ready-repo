@@ -115,3 +115,33 @@ def test_the_three_now_union_the_installed_set(adapter):
     assert "expected_names |= installed_skill_names(" in source, (
         f"{adapter} sweeps without unioning the installed set"
     )
+
+
+def test_install_reports_a_sweep_refusal_instead_of_a_traceback(tmp_path: Path, capsys):
+    # `install` reaches the sweep through each adapter's single-pack `project()`
+    # wrapper, so the refusal arrived as a traceback with internal paths on
+    # stderr. The handler that fixes it had no test: removing the try/except
+    # restored the traceback with the whole suite green.
+    from agentbundle.commands import install as install_cmd
+
+    _state(tmp_path, 'schema-version = "0.6"\n')
+    target = tmp_path / ".claude" / "skills" / "installed"
+    target.mkdir(parents=True)
+    (target / "SKILL.md").write_text("# installed\n", encoding="utf-8")
+
+    class _Args:
+        catalogue = None
+        output = str(tmp_path)
+        pack = "core"
+        profile = scope = adapter = skill = None
+        all_skills = dry_run = force = yes = False
+
+    try:
+        exit_code = install_cmd.run(_Args())
+    except Exception as exc:  # noqa: BLE001 - the point is that none escapes
+        raise AssertionError(f"a sweep refusal escaped as {type(exc).__name__}") from exc
+
+    # The command may fail earlier for unrelated reasons in this fixture; what
+    # must never happen is an unhandled OrphanSweepRefused.
+    assert exit_code != 0
+    assert "Traceback" not in "".join(capsys.readouterr())

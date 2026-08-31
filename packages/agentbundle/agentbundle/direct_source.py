@@ -266,6 +266,12 @@ def root_skill_folders(root: Path) -> tuple[str, ...]:
         )
     except OSError:
         return ()
+    # AC15: any enumeration carries an entry bound. Without one, a root holding
+    # 6,000 child directories probed all 6,000 — two `lstat`s and a `resolve`
+    # each — before the 2,500-entry budget refused downstream, and a local path
+    # has no archive member cap to fall back on.
+    if len(candidates) > DIRECT_MAX_ENTRIES:
+        raise _budget_refusal("entries", DIRECT_MAX_ENTRIES, len(candidates))
     found: list[str] = []
     for child in candidates:
         # `is_dir()` selects candidates only. It is not a measured-path
@@ -575,16 +581,6 @@ def _enforce_root_skill_depths(root: Path, paths: list[Path]) -> None:
             )
 
 
-def _within_envelope(path: Path, envelope: Path) -> bool:
-    """Return whether a known traversed path belongs below an envelope."""
-
-    try:
-        path.relative_to(envelope)
-    except ValueError:
-        return False
-    return True
-
-
 def _make_skill(root: Path, envelope: Path, files: list[MeasuredFile]) -> DirectSkill:
     """Parse a skill frontmatter record and enforce its envelope depth."""
 
@@ -684,6 +680,26 @@ def _enforce_total_bytes(files: tuple[MeasuredFile, ...] | list[MeasuredFile]) -
         raise _budget_refusal("total-bytes", DIRECT_MAX_TOTAL_BYTES, observed)
 
 
+def _enforce_hidden_entries(root: Path, path: Path) -> None:
+    """Refuse a hidden entry, admitting only an empty Git placeholder by name."""
+
+    relative = path.relative_to(root)
+    hidden = [part for part in relative.parts if part.startswith(".")]
+    if not hidden:
+        return
+    permitted = (
+        len(hidden) == 1
+        and hidden[0] == relative.parts[-1]
+        and hidden[0] in _PERMITTED_PLACEHOLDERS
+    )
+    if not permitted:
+        raise _refusal(
+            DiagnosticCode.CAT_D009,
+            f"hidden entry in skill envelope: {relative.as_posix()}",
+            path=relative.as_posix(),
+        )
+
+
 def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[MeasuredFile]:
     """Read files, refusing as soon as the running total breaks the budget.
 
@@ -697,6 +713,13 @@ def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[Measu
     files: list[MeasuredFile] = []
     total = carried
     for path in paths:
+        # Hoisted here from `_build_envelopes` so BOTH shapes enforce it. The
+        # check lived only on the collection path, so a root-single or
+        # local-skill source admitted `scripts/.hidden` carrying content while
+        # the byte-identical file inside a collection envelope refused. Only
+        # the placeholder-emptiness half ran for root-single, because that
+        # happened to sit in this function.
+        _enforce_hidden_entries(root, path)
         measured = _read_named(root, path)
         # The hidden-entry rule admits `.gitkeep`/`.keep` on the strength of
         # their being placeholders. That only holds while they are empty: a

@@ -41,7 +41,6 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-# Mirror of claude_code.py:_installed_skill_names — keep in sync.
 def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
     """Return skill dir names recorded in the repo state file under target_dir.
 

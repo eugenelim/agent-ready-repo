@@ -734,10 +734,13 @@ def test_an_empty_git_placeholder_is_admitted_and_a_full_one_is_not(tmp_path: Pa
     assert full.ok is False
     assert "not empty" in full.diagnostics[0].message
 
-    # Every other dotfile still refuses.
-    other = direct_source.validate_direct_source(_source(".env", "TOKEN=x"))
-    assert other.ok is False
-    assert "hidden entry" in other.diagnostics[0].message
+    # Every other dotfile still refuses, EMPTY OR NOT: the relaxation is by
+    # name and emptiness together, so an empty `.env` must not slip through the
+    # emptiness half.
+    for content in ("TOKEN=x", ""):
+        other = direct_source.validate_direct_source(_source(".env", content))
+        assert other.ok is False, f".env with {len(content)} bytes was admitted"
+        assert "hidden entry" in other.diagnostics[0].message
 
 
 def test_the_two_frontmatter_parsers_have_not_drifted():

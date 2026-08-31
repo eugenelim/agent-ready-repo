@@ -262,41 +262,55 @@ def test_direct_row_serializes_in_the_pinned_order(tmp_path: Path):
     assert row.source_digest == E2_VECTORS["single"]
 
 
-def test_interrupted_install_leaves_unowned_projection(tmp_path: Path):
+def test_interrupted_install_leaves_unowned_projection(tmp_path: Path, capsys):
     # AC28 — a hard interruption after projection and before the direct-row
     # state write leaves projection files with no owning row. That is the
     # accepted post-condition, not a bug to repair: the criterion forbids any
-    # transaction, staging, rollback, or reconcile extension. What must hold is
-    # that the files are *visible as unowned* and that no sweep deletes them.
-    state_path = tmp_path / ".agentbundle-state.toml"
-    projection = tmp_path / ".claude" / "skills" / "alpha"
-    projection.mkdir(parents=True)
-    (projection / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    # transaction, staging, rollback, or reconcile extension.
+    #
+    # This drives the REAL install with the state write made to fail. The
+    # previous version hand-built the post-condition it claimed to observe —
+    # `projection.mkdir()` then asserting the projection existed, and asserting
+    # no row after writing no state — so every assertion mirrored its own setup
+    # and it stayed green no matter what order `run_direct_install` used.
+    import agentbundle.direct_install as direct_install
+    from agentbundle.direct_source_state import DirectStateError
 
-    # No state file at all: the projection exists and is owned by nobody.
-    assert not state_path.exists()
-    state = config.load_state(state_path)
-    assert state.row("alpha", "claude-code") is None
-    assert (projection / "SKILL.md").exists(), "projection must survive"
+    source = tmp_path / "alpha"
+    source.mkdir()
+    (source / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
+    target = tmp_path / "target"
+    target.mkdir()
 
-    # The state write that would have claimed it happens under the lock, and
-    # once it lands the row owns the projection.
-    def _mutate(current: config.State) -> None:
-        current.packs[("alpha", "claude-code")] = config.PackState(
-            installed_version="0.0.0",
-            source="git+https://github.com/o/r@v1",
-            scope="repo",
-            adapter="claude-code",
-            source_kind="skill",
-            source_path="skills/alpha",
-            source_digest=E2_VECTORS["single"],
-        )
+    def _die(**_kwargs):
+        raise DirectStateError("state write interrupted")
 
-    result = statelock.persist_state_locked(state_path, _mutate)
-    assert result.schema_version == "0.5", "the floor is applied inside the lock"
-    reread = config.load_state(state_path)
-    assert reread.row("alpha", "claude-code") is not None
-    assert reread.schema_version == "0.5"
+    class _Args:
+        catalogue = str(source)
+        output = str(target)
+        pack = profile = scope = adapter = skill = None
+        all_skills = dry_run = force = False
+        yes = True
+
+    original = direct_install._record_direct_rows
+    direct_install._record_direct_rows = _die
+    try:
+        exit_code = direct_install.run_direct_install(_Args(), source)
+    finally:
+        direct_install._record_direct_rows = original
+    capsys.readouterr()
+
+    assert exit_code == 1, "an interrupted state write must not report success"
+
+    # The post-condition AC28 accepts: the projection is on disk and owns
+    # nothing. If the row were written BEFORE projecting — the ordering AC28
+    # and `run_direct_install`'s docstring forbid — the row would exist here.
+    projected = target / ".claude" / "skills" / "alpha" / "SKILL.md"
+    assert projected.exists(), "the projection landed before the state write"
+    state = config.load_state(target / ".agentbundle-state.toml")
+    assert state.row("alpha", "claude-code") is None, (
+        "the state row must not exist; the write is what failed"
+    )
 
 
 def test_golden_state_file_pins_row_key_order(tmp_path: Path):

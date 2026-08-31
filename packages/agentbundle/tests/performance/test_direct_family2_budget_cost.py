@@ -134,16 +134,21 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     # loaded box the number is recorded and not asserted — the same shape
     # measured 5.34s at load 88 and 1.23s at load 4 on one machine, and
     # failing on a peer session's load would teach a reader to ignore this.
+    # Memory belongs beside CPU, not behind the wall-clock gate: `tracemalloc`
+    # peak is not load-sensitive. It previously sat AFTER the skip, so on a
+    # loaded machine the 256 MiB half of the ceiling was never asserted — while
+    # the skip text said it had been.
+    assert peak_mib <= CEILING_MIB, (
+        f"AC36 memory ceiling exceeded: {peak_mib:.1f} MiB > {CEILING_MIB} MiB"
+    )
+
     if load_per_core > LOAD_PER_CORE_CEILING:
         pytest.skip(
             f"wall-clock not asserted: load/core {load_per_core:.1f} exceeds "
-            f"{LOAD_PER_CORE_CEILING}; cpu median {cpu_median:.2f}s and "
-            f"{peak_mib:.1f} MiB were asserted"
+            f"{LOAD_PER_CORE_CEILING}. CPU ({cpu_median:.2f}s) and memory "
+            f"({peak_mib:.1f} MiB) were asserted unconditionally."
         )
     assert median <= CEILING_SECONDS, (
         f"AC36 ceiling exceeded: median {median:.2f}s > {CEILING_SECONDS}s "
         f"(range {min(durations):.2f}-{max(durations):.2f}s)"
-    )
-    assert peak_mib <= CEILING_MIB, (
-        f"AC36 memory ceiling exceeded: {peak_mib:.1f} MiB > {CEILING_MIB} MiB"
     )
