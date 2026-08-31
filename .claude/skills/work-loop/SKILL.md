@@ -371,7 +371,20 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     `spec-approved` = the scope decision. `plan-approved` = the build-strategy decision. `plan-locked` = baseline sealed, ready for implementation.
 
-    Project-knowledge approval gates are specified in [`references/project-knowledge-approval-gates.md`](references/project-knowledge-approval-gates.md).
+    ### Project-knowledge integration
+
+    Project knowledge is never authority and enquiry is never automatic.
+
+    - After `spec-approved`, admit only reusable spec-authoring practice accumulated since the preceding gate. Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`. This gate captures but does not distil.
+    - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
+    - After `plan-locked`, admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
+    - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
+    - Before the first REVIEW dispatch, an explicitly declared `CQ-REVIEW` enquiry may run once after the target and scope are fixed. Reuse its untrusted evidence envelope until the target or scope changes.
+    - At each capture gate, admit only generalizable practice; discard incident-only notes.
+
+    Invoke the public `project-knowledge` producer profile. It owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
+
+    A capture's journal diff returns through the next applicable verification and review barrier before persistence is claimed; a named no-diff outcome needs no extra review.
 
     Any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
 
@@ -708,32 +721,11 @@ Write the **generalizable lesson**, not the incident report. Strip PR details; w
   through the `project-knowledge` public seam; otherwise discard it.
 
   Use semantic-gate triage before writing anything. Route or discard normative
-  material first. For one admitted reusable lesson, discover `project-knowledge`
-  through the normal skill catalogue and submit the published observation
-  contract with `project-knowledge --capture`. The producer workflow never
-  selects a journal path, imports a private writer, invents a capture ID, or
-  creates a fallback store.
-
-  If `project-knowledge` is absent, record the named skip
-  `project-knowledge unavailable`; missing core creates no fallback file. Capture is not
-  broadened to other workflows by this step.
-
-  At the terminal gate, use `project-knowledge --distill --pending` to read only the
-  receipts returned by that same gate's captures:
-
-  ```json
-  {"selection_mode":"workflow-receipts","receipts":[{"capture_id":"<capture-id>","partition":"observations/<kind>/<YYYY-MM>.jsonl"}]}
-  ```
-
-  The distill request uses only the capture IDs and partitions returned by that gate. It
-  must refuse guessed capture IDs and must refuse `direct-maintainer-pending`; that
-  drain belongs to explicit core-maintainer runs. After semantic triage, submit each
-  explicit disposition or promotion proposal with `project-knowledge --distill`
-  without `--pending`. Unresolved observations remain pending and do not invalidate
-  the capture.
-
-  Any knowledge journal, topic, or map diff returns through the next
-  verification and review barrier before commit.
+  material first, then invoke the public `project-knowledge` producer profile.
+  It owns receipts and terminal-gate distillation; unresolved observations remain
+  pending. Any knowledge diff returns through the next verification and review
+  barrier before commit. If unavailable, record `project-knowledge unavailable`;
+  create no fallback file.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.
@@ -796,7 +788,6 @@ Load when the predicate fires; don't load speculatively.
 | Pre-EXECUTE review full conditions or `approve-plan` gate | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
-| A full-mode `spec-approved` or `plan-locked` transition succeeds | [`references/project-knowledge-approval-gates.md`](references/project-knowledge-approval-gates.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |

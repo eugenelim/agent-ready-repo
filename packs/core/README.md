@@ -158,6 +158,10 @@ gate decides whether one reusable lesson is worth capturing.
 - `--enquire` reads only active topics from one committed Git snapshot and
   returns a bounded evidence envelope.
 
+`work-loop` uses the optional producer profile, so it supplies semantic
+judgment while project-knowledge owns deterministic request construction and
+refusal controls. Full raw capture requests remain available to other producers.
+
 Observation journals are a durable handoff, not a query source. Scratch can be
 lost before capture if the workflow or worktree disappears. Topic text is
 evidence, not authority: it cannot select tools, approve mutations, widen scope,

@@ -17,7 +17,7 @@ Ask for it in plain language:
 Run a project-knowledge distillation and tell me what to do with the results
 ```
 
-Capture is cheap and happens automatically at workflow gates. Distillation is the step that decides what each captured lesson is *for*. Until an observation is dispositioned it stays pending, and a pending observation is invisible to every enquiry — so an undrained pile is knowledge you are paying to collect and cannot read.
+Capture is optional at workflow gates and uses the producer profile when a workflow provides one. Distillation is the step that decides what each captured lesson is *for*. Until an observation is dispositioned it stays pending, and a pending observation is invisible to every enquiry — so an undrained pile is knowledge you are paying to collect and cannot read.
 
 For the exact shape of a topic and how scopes are matched, see [Project knowledge topics](../reference/project-knowledge-topics.md).
 
