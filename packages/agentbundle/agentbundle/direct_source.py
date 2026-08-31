@@ -61,6 +61,9 @@ _MARKER_KINDS = {
     ".claude/skills": True,
 }
 _PAYLOAD_DIRECTORIES = frozenset({"scripts", "references", "assets", "evals"})
+# Hidden files admitted inside an envelope, and only when empty. Both are
+# Git placeholder conventions with no other purpose.
+_PERMITTED_PLACEHOLDERS = frozenset({".gitkeep", ".keep"})
 
 _DIRECT_TOP_LEVEL_KEYS = frozenset({"schema", "pack"})
 _DIRECT_PACK_KEYS = frozenset(
@@ -235,7 +238,48 @@ def classify_direct_source(root: Path) -> DirectClassification:
         return _inventory_collection(root, collection_root, "collection", has_pack=False)
     if has_skill:
         return _inventory_root_skill(root)
+    # The repository root may itself be the collection. Publishers commonly put
+    # skill folders straight at the root with no `skills/` wrapper — two of
+    # eighteen surveyed repositories do — and refusing them left a whole real
+    # publishing shape unreachable. Reached only after every other marker has
+    # been ruled out, and it is still one level: a child holding `SKILL.md` is
+    # an envelope, exactly as it would be under `skills/`. No recursive
+    # discovery is added.
+    envelopes = _root_skill_folders(root)
+    if envelopes:
+        return _inventory_collection(
+            root, root, "collection", has_pack=False, enumerate_only=envelopes
+        )
     raise _refusal(DiagnosticCode.CAT_D009, "direct source has no supported shape")
+
+
+def _root_skill_folders(root: Path) -> tuple[str, ...]:
+    """The child directory names of *root* that carry a `SKILL.md`.
+
+    Probed through the marker primitive rather than a bare walk, so a link-like
+    or wrong-type child refuses through AC34 instead of being followed.
+    """
+
+    try:
+        candidates = sorted(
+            entry for entry in root.iterdir() if not entry.name.startswith(".")
+        )
+    except OSError:
+        return ()
+    found: list[str] = []
+    for child in candidates:
+        # `is_dir()` selects candidates only. It is not a measured-path
+        # observation: a root sibling that is a file — `README.md`, a script —
+        # is ignorable repository context under E13, so asking the marker probe
+        # to assert its type would refuse the repository over a file we are
+        # supposed to ignore. Integrity still holds downstream: the `SKILL.md`
+        # probe below is the marker primitive, and the confined traversal
+        # refuses a link-like entry before anything is read.
+        if not child.is_dir():
+            continue
+        if probe_measured_path(root, f"{child.name}/SKILL.md", directory=False).exists:
+            found.append(child.name)
+    return tuple(found)
 
 
 # Set by acquisition for a remote source, so a root-single takes the repository
@@ -277,11 +321,30 @@ def _select_collection_root(
 
 
 def _inventory_collection(
-    root: Path, collection_root: Path, shape: str, *, has_pack: bool
+    root: Path,
+    collection_root: Path,
+    shape: str,
+    *,
+    has_pack: bool,
+    enumerate_only: tuple[str, ...] | None = None,
 ) -> DirectClassification:
-    """Inventory an E14 collection using one bounded confined traversal."""
+    """Inventory an E14 collection using one bounded confined traversal.
 
-    paths, entries = _enumerate(root, collection_root, 0)
+    ``enumerate_only`` restricts the walk to named children of
+    *collection_root*. It is supplied when the repository root **is** the
+    collection: walking the root wholesale would enumerate `.git`, `.github`,
+    and every other repository directory, which E13 says is never inspected or
+    counted — and which would spend the entry budget on Git internals before
+    reaching a single skill.
+    """
+
+    if enumerate_only is None:
+        paths, entries = _enumerate(root, collection_root, 0)
+    else:
+        paths, entries = [], 0
+        for name in enumerate_only:
+            found, entries = _enumerate(root, collection_root / name, entries)
+            paths.extend(found)
     by_envelope: dict[Path, list[Path]] = {}
     for path in paths:
         relative = path.relative_to(collection_root)
@@ -438,7 +501,18 @@ def _build_envelopes(
             # The envelope is a subtree, not an allowlist of four directories:
             # the Agent Skills spec's own example puts `reference.md` and
             # `examples.md` at the envelope root. Hidden entries still refuse.
-            if any(part.startswith(".") for part in relative.parts):
+            hidden = [part for part in relative.parts if part.startswith(".")]
+            # `.gitkeep` and `.keep` exist only to make Git track an otherwise
+            # empty directory. The hidden-entry rule guards against a dotfile
+            # carrying instructions, which an empty placeholder cannot; refusing
+            # a whole repository over one was rejecting real sources for a file
+            # with no content. Emptiness is enforced after the read, so a
+            # placeholder that carries anything is still refused.
+            if hidden and not (
+                len(hidden) == 1
+                and hidden[0] == relative.parts[-1]
+                and hidden[0] in _PERMITTED_PLACEHOLDERS
+            ):
                 raise _refusal(
                     DiagnosticCode.CAT_D009,
                     f"hidden entry in skill envelope: {relative}",
@@ -449,12 +523,21 @@ def _build_envelopes(
         skills.append(_make_skill(root, envelope, files))
     assigned = {file.path for skill in skills for file in skill.files}
     for path in paths:
-        if path not in assigned:
-            raise _refusal(
-                DiagnosticCode.CAT_D009,
-                f"unowned collection file: {path.relative_to(root)}",
-                path=path.relative_to(root).as_posix(),
-            )
+        if path in assigned:
+            continue
+        # A path with no envelope ancestor sits outside every skill, so it is
+        # repository context — a root `README.md`, a `LICENSE`, a note beside a
+        # category directory. The grouping pass above already ignores these;
+        # refusing them here made the two halves disagree and rejected whole
+        # repositories over one stray file, including every repository whose
+        # root is itself the collection.
+        if not any(parent in envelope_set for parent in path.parents):
+            continue
+        raise _refusal(
+            DiagnosticCode.CAT_D009,
+            f"unowned collection file: {path.relative_to(root)}",
+            path=path.relative_to(root).as_posix(),
+        )
     return tuple(skills)
 
 
@@ -615,6 +698,20 @@ def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[Measu
     total = carried
     for path in paths:
         measured = _read_named(root, path)
+        # The hidden-entry rule admits `.gitkeep`/`.keep` on the strength of
+        # their being placeholders. That only holds while they are empty: a
+        # placeholder carrying bytes is a hidden file with content, which is
+        # the thing the rule exists to refuse.
+        if path.name in _PERMITTED_PLACEHOLDERS and measured.data:
+            raise _refusal(
+                DiagnosticCode.CAT_D009,
+                f"hidden entry in skill envelope is not empty: {path.name}",
+                path=path.relative_to(root).as_posix(),
+                remediation=(
+                    "A .gitkeep or .keep is admitted only as an empty Git "
+                    "placeholder. Move its content to a named file."
+                ),
+            )
         total += len(measured.data)
         if total > DIRECT_MAX_TOTAL_BYTES:
             raise _budget_refusal("total-bytes", DIRECT_MAX_TOTAL_BYTES, total)

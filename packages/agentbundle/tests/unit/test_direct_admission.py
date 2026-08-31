@@ -647,3 +647,92 @@ def test_ac35_recorded_measurements_respect_the_bounds_they_were_measured_agains
         assert row["admitted_files"] <= bounds["files"], row["repository"]
         assert row["admitted_total_bytes"] <= bounds["total_bytes"], row["repository"]
         assert row["selected_skills"] <= bounds["selected_skills"], row["repository"]
+
+
+def test_a_repository_root_may_itself_be_the_collection(tmp_path: Path):
+    # RFC-0098 E22 — publishers commonly put skill folders straight at the
+    # repository root with no `skills/` wrapper; two of eighteen surveyed
+    # repositories do, and refusing them left a real publishing shape
+    # unreachable. Still one level: a child holding SKILL.md is an envelope,
+    # exactly as it would be under `skills/`.
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "posit-style"
+    for name in ("alt-text", "brand-yml"):
+        _write_skill(root / name, name)
+    (root / "README.md").write_text("# repo\n")
+    (root / "count.py").write_text("x = 1\n")
+
+    result = direct_source.validate_direct_source(root)
+    assert result.ok, result.diagnostics
+    assert result.classification is not None
+    assert result.classification.shape == "collection"
+    assert sorted(s.name for s in result.classification.skills) == ["alt-text", "brand-yml"]
+
+
+def test_the_root_collection_shape_is_the_last_resort(tmp_path: Path):
+    # It is reached only after every other marker is ruled out, so a repository
+    # that has `skills/` uses that and a decoy at the root is not discovered.
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "has-skills-dir"
+    _write_skill(root / "skills" / "inner", "inner")
+    _write_skill(root / "decoy", "decoy")
+
+    result = direct_source.validate_direct_source(root)
+    assert result.ok, result.diagnostics
+    assert result.classification is not None
+    assert [s.name for s in result.classification.skills] == ["inner"]
+
+    # A repository with no skills anywhere still refuses.
+    empty = tmp_path / "links-only"
+    empty.mkdir()
+    (empty / "README.md").write_text("# links\n")
+    refused = direct_source.validate_direct_source(empty)
+    assert refused.ok is False
+    assert "no supported shape" in refused.diagnostics[0].message
+
+
+def test_a_symlinked_root_child_still_refuses(tmp_path: Path):
+    # The root-collection shape selects candidates with `is_dir()`, which
+    # follows a link. Integrity is not weakened: the confined traversal refuses
+    # the link before anything is read.
+
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "linked"
+    _write_skill(root / "real", "real")
+    Path(root / "alias").symlink_to(root / "real")
+
+    result = direct_source.validate_direct_source(root)
+    assert result.ok is False
+    assert result.diagnostics[0].code == "CAT-D009"
+
+
+def test_an_empty_git_placeholder_is_admitted_and_a_full_one_is_not(tmp_path: Path):
+    # RFC-0098 E22 — the hidden-entry rule guards against a dotfile carrying
+    # instructions, which an empty Git placeholder cannot. Refusing a whole
+    # repository over a zero-byte `.gitkeep` rejected real sources for a file
+    # with no content.
+    import agentbundle.direct_source as direct_source
+
+    def _source(name: str, content: str) -> Path:
+        root = tmp_path / f"src-{name.lstrip('.')}-{len(content)}"
+        _write_skill(root / "skills" / "a", "a")
+        (root / "skills" / "a" / "references").mkdir(parents=True)
+        (root / "skills" / "a" / "references" / name).write_text(content)
+        return root
+
+    for placeholder in (".gitkeep", ".keep"):
+        assert direct_source.validate_direct_source(_source(placeholder, "")).ok, placeholder
+
+    # The relaxation is by name AND emptiness: a placeholder carrying bytes is
+    # a hidden file with content, which is the thing the rule exists to refuse.
+    full = direct_source.validate_direct_source(_source(".gitkeep", "instructions"))
+    assert full.ok is False
+    assert "not empty" in full.diagnostics[0].message
+
+    # Every other dotfile still refuses.
+    other = direct_source.validate_direct_source(_source(".env", "TOKEN=x"))
+    assert other.ok is False
+    assert "hidden entry" in other.diagnostics[0].message
