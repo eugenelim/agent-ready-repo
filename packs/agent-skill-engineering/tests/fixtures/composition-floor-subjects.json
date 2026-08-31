@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "source_ref": "docs/rfc/0097-agent-skill-engineering.md:D3",
+  "note": "Transcribes the subject list D3 assigns each composition floor. Each subject carries a distinctive phrase the floor body must name, so a floor omitting a subject fails. Whether a named subject is adequately answered is the slice reviewer's judgment, not this fixture's.",
+  "floors": {
+    "skills-and-subagents-common-floor": {
+      "expected_count": 8,
+      "subjects": {
+        "main-or-isolated-context": "main context or an isolated",
+        "knowledge-the-delegate-receives": "summarized brief",
+        "skill-discovery-mode": "inherit skills automatically",
+        "filesystem-and-write-ownership": "who owns writes",
+        "restrictions-surviving-delegation": "survive delegation",
+        "nested-delegation": "nested delegation",
+        "concurrency-and-result-contract": "synthesis owner",
+        "failure-and-cancellation": "cancellation"
+      },
+      "conservative_default": "Keep final synthesis and authority in the parent loop."
+    },
+    "hooks-common-floor": {
+      "expected_count": 6,
+      "subjects": {
+        "enforcement-versus-guidance": "model-interpreted guidance",
+        "observation-versus-interception": "authority-changing",
+        "blocking-versus-diagnostics": "post-action diagnostics",
+        "scope": "managed scope",
+        "trusted-code-versus-untrusted-instructions": "untrusted repository instructions",
+        "contract-versus-envelope": "runtime-specific envelope"
+      },
+      "degradation": "keep enforcement at the boundary that actually owns it"
+    },
+    "plugin-package-common-floor": {
+      "expected_count": 7,
+      "subjects": {
+        "component-cohesion": "Component cohesion",
+        "least-authority": "Least authority",
+        "dependency-disclosure": "Dependency disclosure",
+        "install-time-trust": "Install-time trust",
+        "update-and-version-provenance": "Update and version provenance",
+        "namespace-collision": "Namespace collision",
+        "disable-and-recovery": "Independent disable and recovery"
+      }
+    }
+  }
+}

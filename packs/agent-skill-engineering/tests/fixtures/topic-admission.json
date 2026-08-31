@@ -124,60 +124,108 @@
       "topic": "python-and-pytest",
       "reviewer": "foundation-corpus-reviewer",
       "last_verified": "2026-08-30",
-      "claim_groups": [{
-        "name": "Python and pytest contract",
-        "basis": "doctrine",
-        "promotion_class": "single-ecosystem-contract",
-        "clause": "Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout.",
-        "ecosystem": "pytest and CPython",
-        "sources": [
-          {"identity": "pytest documentation — https://docs.pytest.org/en/stable/explanation/pythonpath.html", "retrieved_at": "2026-08-30", "version": "9.1.1"},
-          {"identity": "CPython unittest documentation — https://docs.python.org/3/library/unittest.html", "retrieved_at": "2026-08-30", "version": "3.14.7"},
-          {"identity": "CPython tempfile documentation — https://docs.python.org/3/library/tempfile.html", "retrieved_at": "2026-08-30", "version": "3.14.7"}
-        ],
-        "version_range": "pytest >= 9.1.1, upper bound open; CPython >= 3.14.7, upper bound open",
-        "fixture": "pytest-suite",
-        "revalidation_trigger": "Revalidate when pytest or CPython changes test discovery or import behavior."
-      }]
+      "claim_groups": [
+        {
+          "name": "Python and pytest contract",
+          "basis": "doctrine",
+          "promotion_class": "single-ecosystem-contract",
+          "clause": "Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout.",
+          "ecosystem": "pytest and CPython",
+          "sources": [
+            {
+              "identity": "pytest documentation \u2014 https://docs.pytest.org/en/stable/explanation/pythonpath.html",
+              "retrieved_at": "2026-08-30",
+              "version": "9.1.1"
+            },
+            {
+              "identity": "CPython unittest documentation \u2014 https://docs.python.org/3/library/unittest.html",
+              "retrieved_at": "2026-08-30",
+              "version": "3.14.7"
+            },
+            {
+              "identity": "CPython tempfile documentation \u2014 https://docs.python.org/3/library/tempfile.html",
+              "retrieved_at": "2026-08-30",
+              "version": "3.14.7"
+            }
+          ],
+          "version_range": "pytest >= 9.1.1, upper bound open; CPython >= 3.14.7, upper bound open",
+          "fixture": "pytest-suite",
+          "revalidation_trigger": "Revalidate when pytest or CPython changes test discovery or import behavior."
+        }
+      ]
     },
     {
       "topic": "typescript-node-and-javascript-test-runners",
       "reviewer": "foundation-corpus-reviewer",
       "last_verified": "2026-08-30",
-      "claim_groups": [{
-        "name": "TypeScript and Node runner contract",
-        "basis": "doctrine",
-        "promotion_class": "single-ecosystem-contract",
-        "clause": "Each runner provides runner-specific controls for limiting test parallelism.",
-        "ecosystem": "Node.js and Playwright",
-        "sources": [
-          {"identity": "Node.js test runner documentation — https://nodejs.org/api/test.html", "retrieved_at": "2026-08-30", "version": "26.8.1"},
-          {"identity": "Playwright parallelism documentation — https://playwright.dev/docs/test-parallel", "retrieved_at": "2026-08-30", "version": "1.62"},
-          {"identity": "Node.js packages documentation — https://nodejs.org/api/packages.html", "retrieved_at": "2026-08-30", "version": "26.8.1"},
-          {"identity": "Node.js child process documentation — https://nodejs.org/api/child_process.html", "retrieved_at": "2026-08-30", "version": "26.8.1"},
-          {"identity": "npm ci documentation — https://docs.npmjs.com/cli/v11/commands/npm-ci/", "retrieved_at": "2026-08-30", "version_state": "none exposed"}
-        ],
-        "version_range": "Node.js >= 26.8.1, upper bound open; Playwright >= 1.62, upper bound open",
-        "fixture": "node-browser-suite",
-        "revalidation_trigger": "Revalidate when Node.js or Playwright changes test-parallelism controls."
-      }]
+      "claim_groups": [
+        {
+          "name": "TypeScript and Node runner contract",
+          "basis": "doctrine",
+          "promotion_class": "single-ecosystem-contract",
+          "clause": "Each runner provides runner-specific controls for limiting test parallelism.",
+          "ecosystem": "Node.js and Playwright",
+          "sources": [
+            {
+              "identity": "Node.js test runner documentation \u2014 https://nodejs.org/api/test.html",
+              "retrieved_at": "2026-08-30",
+              "version": "26.8.1"
+            },
+            {
+              "identity": "Playwright parallelism documentation \u2014 https://playwright.dev/docs/test-parallel",
+              "retrieved_at": "2026-08-30",
+              "version": "1.62"
+            },
+            {
+              "identity": "Node.js packages documentation \u2014 https://nodejs.org/api/packages.html",
+              "retrieved_at": "2026-08-30",
+              "version": "26.8.1"
+            },
+            {
+              "identity": "Node.js child process documentation \u2014 https://nodejs.org/api/child_process.html",
+              "retrieved_at": "2026-08-30",
+              "version": "26.8.1"
+            },
+            {
+              "identity": "npm ci documentation \u2014 https://docs.npmjs.com/cli/v11/commands/npm-ci/",
+              "retrieved_at": "2026-08-30",
+              "version_state": "none exposed"
+            }
+          ],
+          "version_range": "Node.js >= 26.8.1, upper bound open; Playwright >= 1.62, upper bound open",
+          "fixture": "node-browser-suite",
+          "revalidation_trigger": "Revalidate when Node.js or Playwright changes test-parallelism controls."
+        }
+      ]
     },
     {
       "topic": "process-and-filesystem-cost",
       "reviewer": "foundation-corpus-reviewer",
       "last_verified": "2026-08-30",
-      "claim_groups": [{
-        "name": "Process cost",
-        "basis": "doctrine",
-        "promotion_class": "repeated-observed-failures",
-        "mechanism": "Per-item process spawning was treated as free.",
-        "failures": [
-          {"mechanism": "Per-item process spawning was treated as free.", "subsystem": "lint path", "observed_at": "2026-08-06", "detail": "roughly 37,000 shell processes"},
-          {"mechanism": "Per-item process spawning was treated as free.", "subsystem": "subprocess query path", "observed_at": "2026-08-17", "detail": "337 repeated single-item subprocess queries later batched into one"}
-        ],
-        "independence_basis": "Distinct subsystems and dates, eleven days apart.",
-        "revalidation_trigger": "Revalidate when another independent execution-cost failure is observed."
-      }]
+      "claim_groups": [
+        {
+          "name": "Process cost",
+          "basis": "doctrine",
+          "promotion_class": "repeated-observed-failures",
+          "mechanism": "Per-item process spawning was treated as free.",
+          "failures": [
+            {
+              "mechanism": "Per-item process spawning was treated as free.",
+              "subsystem": "lint path",
+              "observed_at": "2026-08-06",
+              "detail": "roughly 37,000 shell processes"
+            },
+            {
+              "mechanism": "Per-item process spawning was treated as free.",
+              "subsystem": "subprocess query path",
+              "observed_at": "2026-08-17",
+              "detail": "337 repeated single-item subprocess queries later batched into one"
+            }
+          ],
+          "independence_basis": "Distinct subsystems and dates, eleven days apart.",
+          "revalidation_trigger": "Revalidate when another independent execution-cost failure is observed."
+        }
+      ]
     },
     {
       "topic": "pack-and-ci-critical-paths",
@@ -189,8 +237,28 @@
           "basis": "doctrine",
           "promotion_class": "two-runtime-public-contract",
           "clause": "Job execution order is declared explicitly by naming prerequisite jobs.",
-          "runtimes": [{"runtime": "GitHub Actions", "clause": "Job execution order is declared explicitly by naming prerequisite jobs."}, {"runtime": "GitLab CI", "clause": "Job execution order is declared explicitly by naming prerequisite jobs."}],
-          "sources": [{"identity": "GitHub Actions workflow syntax — https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax", "retrieved_at": "2026-08-30", "version_state": "none exposed"}, {"identity": "GitLab CI needs documentation — https://docs.gitlab.com/ci/yaml/needs/", "retrieved_at": "2026-08-30", "version_state": "none exposed"}],
+          "runtimes": [
+            {
+              "runtime": "GitHub Actions",
+              "clause": "Job execution order is declared explicitly by naming prerequisite jobs."
+            },
+            {
+              "runtime": "GitLab CI",
+              "clause": "Job execution order is declared explicitly by naming prerequisite jobs."
+            }
+          ],
+          "sources": [
+            {
+              "identity": "GitHub Actions workflow syntax \u2014 https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+              "retrieved_at": "2026-08-30",
+              "version_state": "none exposed"
+            },
+            {
+              "identity": "GitLab CI needs documentation \u2014 https://docs.gitlab.com/ci/yaml/needs/",
+              "retrieved_at": "2026-08-30",
+              "version_state": "none exposed"
+            }
+          ],
           "revalidation_trigger": "Revalidate when either documented job dependency model changes."
         },
         {
@@ -198,8 +266,28 @@
           "basis": "doctrine",
           "promotion_class": "two-runtime-public-contract",
           "clause": "Cache reuse is controlled by an explicit key, which may be derived from file contents.",
-          "runtimes": [{"runtime": "GitHub Actions", "clause": "Cache reuse is controlled by an explicit key, which may be derived from file contents."}, {"runtime": "GitLab CI", "clause": "Cache reuse is controlled by an explicit key, which may be derived from file contents."}],
-          "sources": [{"identity": "GitHub Actions dependency caching — https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching", "retrieved_at": "2026-08-30", "version_state": "none exposed"}, {"identity": "GitLab CI caching documentation — https://docs.gitlab.com/ci/caching/", "retrieved_at": "2026-08-30", "version_state": "none exposed"}],
+          "runtimes": [
+            {
+              "runtime": "GitHub Actions",
+              "clause": "Cache reuse is controlled by an explicit key, which may be derived from file contents."
+            },
+            {
+              "runtime": "GitLab CI",
+              "clause": "Cache reuse is controlled by an explicit key, which may be derived from file contents."
+            }
+          ],
+          "sources": [
+            {
+              "identity": "GitHub Actions dependency caching \u2014 https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching",
+              "retrieved_at": "2026-08-30",
+              "version_state": "none exposed"
+            },
+            {
+              "identity": "GitLab CI caching documentation \u2014 https://docs.gitlab.com/ci/caching/",
+              "retrieved_at": "2026-08-30",
+              "version_state": "none exposed"
+            }
+          ],
           "revalidation_trigger": "Revalidate when either documented cache-key model changes."
         },
         {
@@ -207,7 +295,20 @@
           "basis": "doctrine",
           "promotion_class": "repeated-observed-failures",
           "mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.",
-          "failures": [{"mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.", "subsystem": "build gate", "observed_at": "2026-08-17", "detail": "job split cut the measured critical path from 430–450s to 185s and stopped when coordination dominated"}, {"mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.", "subsystem": "docs publish", "observed_at": "2026-08-21", "detail": "one setup and cache step covered two projects instead of running twice inside one job"}],
+          "failures": [
+            {
+              "mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.",
+              "subsystem": "build gate",
+              "observed_at": "2026-08-17",
+              "detail": "job split cut the measured critical path from 430\u2013450s to 185s and stopped when coordination dominated"
+            },
+            {
+              "mechanism": "Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save.",
+              "subsystem": "docs publish",
+              "observed_at": "2026-08-21",
+              "detail": "one setup and cache step covered two projects instead of running twice inside one job"
+            }
+          ],
           "independence_basis": "Different workflows serving different purposes, four days and 95 pull requests apart.",
           "revalidation_trigger": "Revalidate when another independent critical-path failure is observed."
         }
@@ -217,15 +318,100 @@
       "topic": "worktrees-state-locks-and-shared-host-admission",
       "reviewer": "foundation-corpus-reviewer",
       "last_verified": "2026-08-30",
-      "claim_groups": [{
-        "name": "layered guarantees",
-        "basis": "doctrine",
-        "promotion_class": "repeated-observed-failures",
-        "mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.",
-        "failures": [{"mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.", "subsystem": "state transition", "observed_at": "2026-08-08 to 2026-08-10", "detail": "an atomic final write did not protect a read/decide/write transition"}, {"mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.", "subsystem": "worktree execution", "observed_at": "2026-08-19 to 2026-08-21", "detail": "directory-separated worktrees still shared temporary, cache, port, and state ownership"}],
-        "independence_basis": "Distinct subsystems and dates, nine days apart.",
-        "revalidation_trigger": "Revalidate when another independent state-ownership failure is observed."
-      }]
+      "claim_groups": [
+        {
+          "name": "layered guarantees",
+          "basis": "doctrine",
+          "promotion_class": "repeated-observed-failures",
+          "mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.",
+          "failures": [
+            {
+              "mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.",
+              "subsystem": "state transition",
+              "observed_at": "2026-08-08 to 2026-08-10",
+              "detail": "an atomic final write did not protect a read/decide/write transition"
+            },
+            {
+              "mechanism": "A guarantee at one layer was mistaken for a stronger guarantee at another.",
+              "subsystem": "worktree execution",
+              "observed_at": "2026-08-19 to 2026-08-21",
+              "detail": "directory-separated worktrees still shared temporary, cache, port, and state ownership"
+            }
+          ],
+          "independence_basis": "Distinct subsystems and dates, nine days apart.",
+          "revalidation_trigger": "Revalidate when another independent state-ownership failure is observed."
+        }
+      ]
+    },
+    {
+      "topic": "skills-and-subagents-common-floor",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-31",
+      "claim_groups": [
+        {
+          "name": "delegation capability floor",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/frontend-engineering/.apm/agents/frontend-reviewer.md",
+            "packs/product-engineering/.apm/agents/discovery-lead.md"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the seven packs in the catalogue that developed this pack and ship agent definitions, censused on 2026-08-31. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the agent-definition census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "plugin-package-common-floor",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-31",
+      "claim_groups": [
+        {
+          "name": "package container floor",
+          "basis": "observed-practice",
+          "observations": [
+            "packs/desk-research/.claude-plugin/plugin.json",
+            "packs/governance-extras/.claude-plugin/plugin.json"
+          ],
+          "applicability_limit": "This guidance is an observed practice from the 23 packs in the catalogue that developed this pack and ship a package manifest, censused on 2026-08-31. It is not established beyond that population.",
+          "revalidation_trigger": "Revalidate when the package-manifest census changes or a claim is promoted to doctrine."
+        }
+      ]
+    },
+    {
+      "topic": "hooks-common-floor",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-31",
+      "claim_groups": [
+        {
+          "name": "lifecycle interception contract",
+          "basis": "doctrine",
+          "promotion_class": "two-runtime-public-contract",
+          "clause": "A hook executes automatically on a declared lifecycle event, and a declared subset of those events can block the action before it occurs.",
+          "runtimes": [
+            {
+              "runtime": "Claude Code",
+              "clause": "A hook executes automatically on a declared lifecycle event, and a declared subset of those events can block the action before it occurs."
+            },
+            {
+              "runtime": "Kiro",
+              "clause": "A hook executes automatically on a declared lifecycle event, and a declared subset of those events can block the action before it occurs."
+            }
+          ],
+          "sources": [
+            {
+              "identity": "Claude Code hooks reference \u2014 https://code.claude.com/docs/en/hooks",
+              "retrieved_at": "2026-08-31",
+              "version_state": "none exposed"
+            },
+            {
+              "identity": "Kiro hooks documentation \u2014 https://kiro.dev/docs/hooks/",
+              "retrieved_at": "2026-08-31",
+              "last_updated": "2026-08-21"
+            }
+          ],
+          "revalidation_trigger": "Revalidate when either documented hook event model changes."
+        }
+      ]
     }
   ]
 }

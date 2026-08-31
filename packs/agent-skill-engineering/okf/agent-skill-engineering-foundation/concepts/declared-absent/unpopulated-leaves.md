@@ -87,23 +87,8 @@ establish it, and no promotion class is evidenced.
 **What would admit it.** Two packs whose fixture isolation is chosen for
 execution cost, evidenced as one practice.
 
-## skills-and-subagents-common-floor
 
-**Why absent.** Reserved for the later slice that covers runtime composition.
 
-**What would admit it.** That slice's admission run.
-
-## hooks-common-floor
-
-**Why absent.** Reserved for the later slice that covers runtime composition.
-
-**What would admit it.** That slice's admission run.
-
-## plugin-package-common-floor
-
-**Why absent.** Reserved for the later slice that covers runtime composition.
-
-**What would admit it.** That slice's admission run.
 
 ## claude-code-skills-subagents-hooks-and-plugins
 
