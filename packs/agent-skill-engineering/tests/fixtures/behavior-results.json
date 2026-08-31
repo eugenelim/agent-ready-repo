@@ -161,6 +161,7 @@
         true
       ],
       "source_files": {
+        "SKILL.md": "sha256:e2f08f07faa619f528662c8a7d40530ea49b9053b2b98d58c177c54356393818",
         "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
         "evals/files/catchall-SKILL.md": "sha256:28e7f2066735b741ae06884ba559a9a9d1525ca7eebed4519716df12eeab341c"
       },
@@ -192,6 +193,7 @@
         false
       ],
       "source_files": {
+        "SKILL.md": "sha256:e2f08f07faa619f528662c8a7d40530ea49b9053b2b98d58c177c54356393818",
         "evals/evals.json": "sha256:548f445bc8ee0d35de282e6aadf240962ec41666a6939bb0288d5df968b670ce",
         "evals/files/nondeterministic-SKILL.md": "sha256:16b5a3da8f542f58474a351b3620d0270c272712dfb290091990dd8eb6800f1e",
         "evals/files/nondeterministic-helper.py": "sha256:0e1dc0843514dd5cd20e3b68a89f525f14b9e0bad47ff2f52fbd29c2cd095d85",
@@ -210,6 +212,6 @@
     "fidelity": "observed+attested",
     "provenance": "operator-attested",
     "author_iteration": 3,
-    "review_iteration": 5
+    "review_iteration": 6
   }
 }

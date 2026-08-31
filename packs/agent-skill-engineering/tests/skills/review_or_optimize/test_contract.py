@@ -37,6 +37,12 @@ REVIEW_EVAL_IDS = frozenset(
     {"detect-activation-failure", "detect-script-contract-failure"}
 )
 REVIEW_EVAL_FILES = (
+    # The workflow body. Without it a result graded against a superseded body
+    # satisfies every other guard here, which is what happened when T4 edited
+    # this body after slice 2a recorded these two results: the staleness was
+    # invisible because AC5 conditions re-measurement on a *pinned* digest
+    # moving, and the body was not pinned. The results were re-taken blind.
+    "SKILL.md",
     # The declaration itself, so rewording a prompt or an expectation cannot
     # silently re-point a recorded result at a run it never came from.
     "evals/evals.json",
@@ -372,6 +378,7 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # workspace-less case fails this assertion with a message instead of
         # raising KeyError, and cannot be satisfied by an empty record.
         assert set(result["source_files"]) == {
+            "SKILL.md",
             "evals/evals.json",
             *(case.get("files") or ()),
         }

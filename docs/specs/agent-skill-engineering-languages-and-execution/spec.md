@@ -316,9 +316,43 @@ incidental fix.
   dispositioned a missing mode and a missing target but never a resolved target
   whose requested change is unspecified, so a response that named candidates and
   asked was measured as a miss while behaving correctly. Both fixes are in the
-  skill body; the activation-bearing description is untouched, and activation
-  was re-observed clean after each. (source: `SKILL.md` Modes section and its
-  ambiguity clause; three headless activation runs, 18 of 18 each.)
+  skill body; the activation-bearing description is untouched, so trigger
+  discrimination is not perturbed. Two consequences were paid rather than
+  avoided: each body edit moved the skill digest, so the captured authoring
+  responses and the activation observation were discarded and re-taken each
+  time, and the graded authoring results were re-taken blind against the fixed
+  body at iteration 3. (source:
+  `packs/agent-skill-engineering/.apm/skills/author-or-update-agent-skill/SKILL.md`,
+  Modes section and ambiguity clause; activation re-observed by
+  `python3 -m agentbundle pack evals run --pack agent-skill-engineering --mode
+  headless --runs 1`, recorded at
+  `packs/agent-skill-engineering/tests/fixtures/activation-results.json`
+  iteration 3, 18 of 18 with zero exclusivity violations. The two prior
+  observations no artifact retains — the opposite receipt modes, and the response
+  measured as a miss while behaving correctly — are recorded with their values in
+  this slice's `qa.md`.)
+
+- The same owner direction carries two further acts the Boundaries route to
+  authority, both recorded in this slice's `qa.md` rather than inferred from the
+  diff. Two authoring-case declarations were corrected on the narrower ground the
+  amended Boundary admits, a predeclaration falsified by the corrected contract
+  rather than by the measurement; and the known-miss exemption
+  `("progressive-result-presentation", 2)` was authorised on 2026-08-31. The
+  exemption was added before that authority was obtained, contrary to the plan's
+  prohibition; the gap was found at the ship gate and the authority sought rather
+  than assumed.
+
+- The two fixed clauses are verified by guards, not by the eval assertions that
+  were authored alongside them.
+  `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
+  asserts both clauses against the shipped body in
+  `test_shipped_body_keeps_the_two_clauses_measurement_forced`. Three reversions
+  applied separately each redden it, and the third reverts only the prohibition
+  while keeping the "name the candidate changes" half, so the guard is not
+  satisfied by the easier half of either fix. Each restored by editing rather
+  than by checkout, leaving the body byte-identical. The graded authoring assertions are corroborating evidence
+  only: they were written in the same change as the behavior they assert, so
+  alone they would be a mirror rather than a contract.
 
 ## Follow-ons
 

@@ -306,6 +306,36 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
     assert recorded == {digest}
 
 
+def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
+    """Both contract fixes this slice made are held by a guard, not by an eval.
+
+    Each fix was forced by a graded run, and the eval assertions that assert
+    them were written in the same change as the behavior -- a mirror, not a
+    contract. Without this test, either clause could be dropped and the only
+    thing to notice would be a fixture that had been edited alongside it.
+
+    Matched on collapsed whitespace because the source is hard-wrapped prose and
+    a re-wrap would otherwise read as a reverted clause.
+    """
+    body = " ".join((AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8").split())
+
+    # Fix 1 -- identifying a mode is not entering it. The load-bearing half is
+    # that the receipt stays `frame` no matter how complete the plan is; without
+    # the second clause the first reads as advice rather than a rule.
+    assert "Identifying which mode the work will need is not entering it." in body
+    assert (
+        "the receipt reports `Mode: frame`, however far the plan has progressed"
+        in body
+    )
+
+    # Fix 2 -- a resolved target is not a resolved request. The prohibition is
+    # the half that decides behavior: naming candidates while still inferring one
+    # would satisfy the first clause and defeat the fix.
+    assert "The same holds when the target is resolved but the" in body
+    assert "name the candidate changes and the authority each would need" in body
+    assert "Do not infer a change from the target's current shape." in body
+
+
 def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:
     content = "\n".join(
         path.read_text(encoding="utf-8")
