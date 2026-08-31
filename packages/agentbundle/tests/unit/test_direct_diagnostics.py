@@ -246,3 +246,193 @@ def test_every_registered_direct_code_has_a_raise_site():
         f"adopter table documents must be emittable, or the table promises a "
         f"refusal that cannot happen."
     )
+
+
+def _emitted_codes(tmp_path) -> set[str]:
+    """Every direct code an actual refusal emits, one scenario per code.
+
+    AC31 requires that across committed direct fixtures "every emitted direct
+    `code` ... exactly covers that set". The sibling test above scans for raise
+    SITES, which its own docstring calls weaker: a code can have a raise site
+    that no input reaches. These scenarios reach them.
+    """
+    import gzip
+    import io
+    import sys
+    import tarfile
+    import unicodedata
+
+    import agentbundle.direct_source as direct_source
+    import agentbundle.direct_source_acquisition as acquisition
+    from agentbundle.direct_install import (
+        DirectInstallError,
+        sanitise_publisher_value,
+        select_collection_skills,
+    )
+
+    emitted: set[str] = set()
+
+    def _record(call) -> None:
+        try:
+            call()
+        except (
+            direct_source.DirectAdmissionError,
+            acquisition.DirectAcquisitionError,
+            DirectInstallError,
+        ) as exc:
+            emitted.add(exc.diagnostic.code)
+
+    def _skill(path, name="s"):
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "SKILL.md").write_text(f"---\nname: {name}\n---\n# {name}\n")
+        return path
+
+    sha = "0" * 40
+    # --- acquisition grammar and transport ---------------------------------
+    _record(lambda: acquisition.parse_direct_source("git+https://github.com/o/r@v1?x=1"))
+    _record(lambda: acquisition.parse_direct_source("git+https://github.com/o/r@main"))
+    _record(lambda: acquisition.parse_direct_source("git+https://github.com/o/r@abc12"))
+
+    source = acquisition.parse_direct_source(f"git+https://github.com/o/r@{sha}")
+
+    def _archive(members, revision=sha):
+        raw = io.BytesIO()
+        with tarfile.open(
+            fileobj=raw, mode="w", format=tarfile.PAX_FORMAT,
+            pax_headers={"comment": revision},
+        ) as archive:
+            for member_name, payload in members.items():
+                info = tarfile.TarInfo(member_name)
+                info.size = len(payload)
+                archive.addfile(info, io.BytesIO(payload))
+        return gzip.compress(raw.getvalue())
+
+    def _extract(payload, **kwargs):
+        spool = tmp_path / f"a{len(emitted)}.tar.gz"
+        spool.write_bytes(payload)
+        destination = tmp_path / f"out{len(emitted)}"
+        destination.mkdir(exist_ok=True)
+        return acquisition._extract(
+            spool, destination, source,
+            max_members=kwargs.get("max_members", 20_000),
+            max_decompressed=kwargs.get("max_decompressed", 1 << 30),
+        )
+
+    # SHA mismatch, member limit, escaping member.
+    _record(lambda: _extract(_archive({"r/SKILL.md": b"x"}, revision="f" * 40)))
+    _record(lambda: _extract(_archive({f"r/{i}.md": b"x" for i in range(4)}), max_members=2))
+    _record(lambda: _extract(_archive({"../escape.md": b"x"})))
+
+    class _Old(tuple):
+        major, minor, micro = 3, 10, 0
+
+    real_version = sys.version_info
+    sys.version_info = _Old((3, 10, 0))  # type: ignore[assignment]
+    try:
+        _record(lambda: acquisition.enforce_runtime_floor("git+https://github.com/o/r@v1"))
+    finally:
+        sys.version_info = real_version  # type: ignore[assignment]
+
+    # --- admission shape, identity, integrity, logical path ----------------
+    ambiguous = tmp_path / "amb"
+    _skill(ambiguous / "skills" / "a", "a")
+    _skill(ambiguous / ".claude" / "skills" / "b", "b")
+    _record(lambda: direct_source.admit_direct_source(ambiguous))
+
+    bad_identity = tmp_path / "ident"
+    _skill(bad_identity / "skills" / "Bad_Name", "x")
+    _record(lambda: direct_source.admit_direct_source(bad_identity))
+
+    nfd = tmp_path / "nfd"
+    envelope = _skill(nfd / "skills" / "a", "a")
+    (envelope / "scripts").mkdir()
+    (envelope / "scripts" / unicodedata.normalize("NFD", "café.py")).write_text("x")
+    _record(lambda: direct_source.admit_direct_source(nfd))
+
+    # CAT-D010 is the marker-probe failure: a path whose containing directory
+    # cannot be searched makes `lstat` raise, which is neither "absent" nor a
+    # shape refusal. Reached with a mode-000 parent rather than a missing path,
+    # because a missing path is simply absent.
+    unsearchable = tmp_path / "unsearchable"
+    (unsearchable / "skills").mkdir(parents=True)
+    unsearchable.chmod(0o000)
+    try:
+        _record(lambda: direct_source.admit_direct_source(unsearchable))
+    finally:
+        unsearchable.chmod(0o755)
+
+    # --- budgets ------------------------------------------------------------
+    entries = _skill(tmp_path / "entries", "entries")
+    (entries / "scripts").mkdir()
+    for index in range(direct_source.DIRECT_MAX_ENTRIES + 1):
+        (entries / "scripts" / f"d{index}").mkdir()
+    _record(lambda: direct_source.admit_direct_source(entries))
+
+    depth = tmp_path / "depth"
+    deep_envelope = _skill(depth / "skills" / "d", "d")
+    deep = deep_envelope / "scripts"
+    for index in range(direct_source.DIRECT_MAX_DEPTH):
+        deep = deep / f"l{index}"
+    deep.mkdir(parents=True)
+    (deep / "x.txt").write_text("x")
+    _record(lambda: direct_source.admit_direct_source(depth))
+
+    files = _skill(tmp_path / "files", "files")
+    (files / "scripts").mkdir()
+    for index in range(direct_source.DIRECT_MAX_FILES):
+        (files / "scripts" / f"f{index}.txt").write_text("x")
+    _record(lambda: direct_source.admit_direct_source(files))
+
+    skills_over = tmp_path / "skills-over"
+    for index in range(direct_source.DIRECT_MAX_SELECTED_SKILLS + 1):
+        _skill(skills_over / "skills" / f"s{index:04d}", f"s{index:04d}")
+    _record(lambda: direct_source.admit_direct_source(skills_over))
+
+    per_file = _skill(tmp_path / "perfile", "perfile")
+    (per_file / "scripts").mkdir()
+    (per_file / "scripts" / "big.txt").write_bytes(
+        b"x" * (direct_source.DIRECT_MAX_FILE_BYTES + 1)
+    )
+    _record(lambda: direct_source.admit_direct_source(per_file))
+
+    total = _skill(tmp_path / "total", "total")
+    (total / "scripts").mkdir()
+    for index in range(26):
+        (total / "scripts" / f"p{index}").write_bytes(
+            b"x" * (direct_source.DIRECT_MAX_FILE_BYTES - 1)
+        )
+    _record(lambda: direct_source.admit_direct_source(total))
+
+    # --- selection and publisher values -------------------------------------
+    collection = tmp_path / "collection"
+    _skill(collection / "skills" / "alpha", "alpha")
+    _skill(collection / "skills" / "beta", "beta")
+    admitted = direct_source.admit_direct_source(collection)
+    _record(
+        lambda: select_collection_skills(
+            admitted, source=str(collection), requested=None, all_skills=False
+        )
+    )
+    _record(lambda: sanitise_publisher_value("aㅤb", "description", source="s"))
+    return emitted
+
+
+def test_every_registered_direct_code_is_emitted_by_a_fixture(tmp_path):
+    # AC31's coverage half. The raise-site scan above proves a code is wired to
+    # something; this proves an input reaches it. CAT-D018 passed a set-equality
+    # lint against the published table while having no raise site at all, so
+    # "declared" and "reachable" are demonstrably different properties.
+    from agentbundle.catalogue_tooling.diagnostics import DIRECT_CODES
+
+    emitted = _emitted_codes(tmp_path)
+    registered = {code.value for code in DIRECT_CODES}
+
+    # Every emitted code is registered — nothing invents a string.
+    assert emitted <= registered, sorted(emitted - registered)
+
+    unreached = sorted(registered - emitted)
+    assert unreached == [], (
+        f"registered but reached by no fixture: {unreached}. A code the adopter "
+        f"table publishes must be emittable by some input, or the table promises "
+        f"a refusal that cannot happen."
+    )
