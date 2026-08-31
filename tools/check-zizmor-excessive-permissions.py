@@ -4,7 +4,14 @@
 The broad zizmor gate intentionally retains its high-severity floor. Lowering it
 would also make the repository's unrelated medium/low findings block this job.
 This focused companion run keeps `excessive-permissions` continuously enforced
-for the two workflows closed by the CI-posture backlog item.
+for the three workflows closed by the CI-posture backlog items.
+
+Scope note, because the two halves of a token posture are separate zizmor
+audits: this guard filters on `excessive-permissions` alone, so it makes a
+workflow's `permissions:` block durable and says nothing about
+`persist-credentials:` on its checkouts — that is the `artipacked` ident, still
+only visible to the broad gate at its high-severity floor. The uncovered half is
+recorded in `workflow-posture-guard-coverage-gaps`.
 """
 
 from __future__ import annotations
@@ -18,6 +25,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = (
     ".github/workflows/build-check-windows.yml",
+    ".github/workflows/catalogue-tooling-ci-gates.yml",
     ".github/workflows/codeql.yml",
 )
 AUDIT = "excessive-permissions"

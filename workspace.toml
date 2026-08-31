@@ -543,6 +543,17 @@ open = [
   # present — which would make the no-install state fully green and consistent with
   # ADR-0094 — or whether the local gate should provision per worktree.
   {slug = "pre-existing-marketplace-parity-needs-an-editable-agentbundle", source = "pre-flight/2026-08-28"},
+  # Added 2026-08-31 by the catalogue-tooling token-posture change, so the gap is
+  # registered rather than assumed covered: tools/check-zizmor-excessive-permissions.py
+  # filters on the `excessive-permissions` ident alone, so adding a workflow to its
+  # WORKFLOWS tuple makes that workflow's top-level `permissions:` block durable and
+  # asserts NOTHING about `persist-credentials:` on its checkouts. That is zizmor's
+  # separate `artipacked` ident, visible only to the broad gate, which runs at
+  # --min-severity high while artipacked is medium — so removing
+  # `persist-credentials: false` from any checkout in any workflow still lands green.
+  # To close: decide whether this guard grows a second ident (its name and docstring
+  # are scoped to one), whether a sibling guard owns artipacked, or whether the broad
+  # gate's floor drops for that ident alone.
   {slug = "workflow-posture-guard-coverage-gaps", source = "security+quality review of the posture assertion-proof change"},
   # permissions: contents: read + persist-credentials: false for
   # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
