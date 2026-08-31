@@ -12,6 +12,7 @@ import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
+from agentbundle.bounded_metadata import BoundedMetadataError
 from agentbundle.catalogue_tooling.diagnostics import (
     DiagnosticCode,
     make_direct_diagnostic,
@@ -22,6 +23,8 @@ from agentbundle.direct_source import (
     DirectSkill,
     recovery_command,
 )
+from agentbundle.direct_source_state import DirectStateError
+from agentbundle.safety import PathJailError
 
 # AC20: the verdict is emitted immediately before *and* immediately after the
 # publisher-derived block. One placement is not enough — a long summary scrolls
@@ -40,6 +43,50 @@ PUBLISHER_BLOCK_NOTE = "publisher-supplied data, not instructions"
 # AC18's allowlist: L, N, P, and S, plus U+0020 as the sole admitted Zs.
 _ALLOWED_CATEGORIES = ("L", "N", "P", "S")
 MAX_PUBLISHER_VALUE_BYTES = 4096
+
+# AC18's `Default_Ignorable_Code_Point` set, embedded from
+# `DerivedCoreProperties.txt` and pinned to the UCD version that generated it.
+# Category alone does not catch these: U+115F, U+1160, U+3164, and U+FFA0 are
+# all `Lo` and would pass an L/N/P/S allowlist while rendering as nothing, so a
+# publisher could make two different identities look identical.
+UNIDATA_VERSION_AT_GENERATION = "15.1.0"
+_DEFAULT_IGNORABLE_RANGES: tuple[tuple[int, int], ...] = (
+    (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C),
+    (0x115F, 0x1160), (0x17B4, 0x17B5), (0x180B, 0x180F),
+    (0x200B, 0x200F), (0x202A, 0x202E), (0x2060, 0x206F),
+    (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3),
+    (0x1D173, 0x1D17A), (0xE0000, 0xE0FFF),
+)
+
+
+def is_default_ignorable(character: str) -> bool:
+    """True for a `Default_Ignorable_Code_Point`, regardless of its category."""
+
+    point = ord(character)
+    return any(low <= point <= high for low, high in _DEFAULT_IGNORABLE_RANGES)
+
+
+def escape_path_value(value: object) -> str:
+    """Render a path-shaped value safe for any human-readable surface.
+
+    AC18 requires this unconditionally on every path-shaped value — diagnostic
+    `path`, stored sources, and receipts — for four classes that a
+    publisher-value allowlist does not cover: bidi controls, separators,
+    default-ignorables, and non-graphic code points. U+202E is the case the
+    criterion names: it is NFC-stable and category `Cf`, so it survives
+    normalization and reverses the rendering of everything after it.
+    """
+
+    rendered: list[str] = []
+    for character in str(value):
+        category = unicodedata.category(character)
+        unsafe = (
+            category in {"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp", "Zs"}
+            and character != " "
+        ) or is_default_ignorable(character)
+        rendered.append(f"\\u{ord(character):04x}" if unsafe else character)
+    return "".join(rendered)
 
 
 class DirectInstallError(ValueError):
@@ -284,21 +331,34 @@ def capability_block(
     boundaries = _string_set(nested.get("boundaries")) if isinstance(nested, dict) else []
     credentialed = nested.get("credentialed") if isinstance(nested, dict) else None
 
+    # Every value below that a publisher controls goes through the allowlist,
+    # and every path-shaped one through the escaper. Sanitising only `name` —
+    # as this did — let a publisher put a raw ANSI sequence in `boundaries` and
+    # repaint the whole block, including both verdicts and the delimiter lines,
+    # immediately before the install prompt. The block is the consent surface;
+    # forging it is the one thing it must not permit.
+    def _publisher(value: object, label: str) -> str:
+        return sanitise_publisher_value(str(value), label, source=source)
+
+    safe_tools = [_publisher(tool, "allowed-tools") for tool in allowed_tools]
+
     lines = [
-        f"skill: {sanitise_publisher_value(skill.name, 'skill name', source=source)}",
-        f"  source:      {source}",
-        f"  revision:    {revision or '—'}",
+        f"skill: {_publisher(skill.name, 'skill name')}",
+        f"  source:      {escape_path_value(source)}",
+        f"  revision:    {escape_path_value(revision) if revision else '—'}",
         f"  scope:       {scope}",
         f"  adapter:     {adapter}",
         # `undeclared (unrestricted)` rather than an empty list: an absent
         # declaration is not a restriction to nothing, it is no restriction.
-        f"  allowed-tools: {_render_tools(allowed_tools)}",
-        f"  boundaries:  {', '.join(boundaries) if boundaries else '—'}",
-        f"  credentialed: {credentialed if credentialed is not None else '—'}",
+        f"  allowed-tools: {_render_tools(safe_tools)}",
+        f"  boundaries:  "
+        f"{', '.join(_publisher(b, 'boundaries') for b in boundaries) if boundaries else '—'}",
+        f"  credentialed: "
+        f"{_publisher(credentialed, 'credentialed') if credentialed is not None else '—'}",
         f"  SKILL.md:    {skill_digest}",
     ]
     for relpath in sorted(payload_digests):
-        lines.append(f"    {relpath}  {payload_digests[relpath]}")
+        lines.append(f"    {escape_path_value(relpath)}  {payload_digests[relpath]}")
     return lines
 
 
@@ -382,10 +442,10 @@ def render_receipt(
 
     return "\n".join(
         [
-            f"installed: {identity}",
+            f"installed: {escape_path_value(identity)}",
             f"  kind:     {kind}",
-            f"  source:   {source}",
-            f"  revision: {revision or '—'}",
+            f"  source:   {escape_path_value(source)}",
+            f"  revision: {escape_path_value(revision) if revision else '—'}",
             f"  digest:   {digest}",
             f"  scope:    {scope}",
             f"  adapter:  {adapter}",
@@ -398,6 +458,50 @@ def _file_digest(measured) -> str:
     """The reported per-file digest, in the same prefixed form as the tree's."""
 
     return "sha256-1:" + hashlib.sha256(measured.data).hexdigest()
+
+
+def resolve_skill_target(adapter: str, source: str) -> str:
+    """The adapter's own `direct-directory` skill target, from the contract.
+
+    Read from `contracts/adapter.toml` rather than hard-coded, because each
+    adapter declares its own directory — `.claude/skills/`, `.agents/skills/`,
+    `.kiro/skills/` — and writing every install under `.claude/` while the
+    receipt printed the requested adapter made the consent artifact false and
+    left the row invisible to the sweep that was supposed to protect it.
+    """
+
+    from agentbundle.commands.validate import _load_adapter_contract
+
+    contract = _load_adapter_contract()
+    declared = contract.get("adapter", {}).get(adapter)
+    if declared is None:
+        raise _refuse(
+            DiagnosticCode.CAT_D008,
+            f"unknown adapter: {adapter}",
+            path=source,
+            remediation="Run `agentbundle list-targets` for the adapters this build ships.",
+        )
+    for entry in declared.get("projection", []):
+        if entry.get("primitive") == "skill" and entry.get("mode") == "direct-directory":
+            return entry["target-path"].rstrip("/")
+    raise _refuse(
+        DiagnosticCode.CAT_D008,
+        f"adapter {adapter!r} declares no direct-directory skill target",
+        path=source,
+        remediation="Choose an adapter that projects skills, or omit --adapter.",
+    )
+
+
+def _print_refusal(diagnostic) -> None:
+    """Print a registered refusal with its path and recovery, on stderr."""
+
+    import sys
+
+    print(f"install: [{diagnostic.code}] {diagnostic.message}", file=sys.stderr)
+    if diagnostic.path:
+        print(f"  at: {escape_path_value(diagnostic.path)}", file=sys.stderr)
+    if diagnostic.remediation:
+        print(f"  \u2192 {diagnostic.remediation}", file=sys.stderr)
 
 
 def run_direct_install(args, source: Path | str) -> int:
@@ -467,13 +571,9 @@ def _install_admitted_source(
 
     import sys
 
-    from agentbundle import safety
     from agentbundle.direct_source import (
-        DirectAdmissionError,
-        normalize_direct_source,
         validate_direct_source,
     )
-    from agentbundle.direct_source_state import direct_source_digest
 
     admission = validate_direct_source(source)
     if not admission.ok:
@@ -495,18 +595,93 @@ def _install_admitted_source(
             all_skills=bool(getattr(args, "all_skills", False)),
         )
     except DirectInstallError as exc:
-        print(f"install: [{exc.diagnostic.code}] {exc.diagnostic.message}", file=sys.stderr)
+        # The listing is built OUTSIDE this handler on purpose. It renders
+        # publisher values, so it can raise its own refusal — and computed here
+        # that refusal would escape the handler as a traceback, replacing an
+        # exit-1 refusal with a stack trace that also prints internal paths.
+        listing: list[str] | None = None
+        listing_refusal: DirectInstallError | None = None
         if classification.shape == "collection" and not getattr(args, "skill", None):
-            print("\nAvailable skills:", file=sys.stderr)
-            for line in candidate_listing(classification, source=source_string):
+            try:
+                listing = candidate_listing(classification, source=source_string)
+            except DirectInstallError as inner:
+                listing_refusal = inner
+        if listing_refusal is not None:
+            # AC18: a disallowed candidate value refuses the whole invocation
+            # rather than being elided, because a partial listing would print
+            # `--all-skills` recovery covering more than the reader was shown.
+            _print_refusal(listing_refusal.diagnostic)
+            return 1
+        _print_refusal(exc.diagnostic)
+        if listing:
+            # AC18: publisher values appear only inside the delimiters.
+            print(f"\n{PUBLISHER_BLOCK_NOTE}", file=sys.stderr)
+            print(PUBLISHER_BLOCK_OPEN, file=sys.stderr)
+            for line in listing:
                 print(line, file=sys.stderr)
+            print(PUBLISHER_BLOCK_CLOSE, file=sys.stderr)
         if exc.diagnostic.remediation:
             print(f"\n{exc.diagnostic.remediation}", file=sys.stderr)
         return 1
 
     scope = getattr(args, "scope", None) or "repo"
     adapter = getattr(args, "adapter", None) or "claude-code"
-    target_root = Path(getattr(args, "output", ".") or ".").resolve()
+    target_root = Path(getattr(args, "output", ".") or ".")
+    try:
+        return _summarise_and_project(
+            args,
+            classification=classification,
+            selection=selection,
+            source_string=source_string,
+            revision=revision,
+            scope=scope,
+            adapter=adapter,
+            target_root=target_root,
+        )
+    except (DirectInstallError, DirectStateError, PathJailError, BoundedMetadataError) as exc:
+        # Everything below admission still touches publisher-controlled bytes:
+        # frontmatter values, payload filenames, and path segments. Each of
+        # these carries a registered refusal or a message; none of them may
+        # reach the adopter as a stack trace, which would also print internal
+        # paths on stderr.
+        diagnostic = getattr(exc, "diagnostic", None)
+        if diagnostic is not None:
+            _print_refusal(diagnostic)
+        else:
+            print(
+                f"install: [{DiagnosticCode.CAT_D019.value}] {exc}",
+                file=sys.stderr,
+            )
+        return 1
+
+
+def _summarise_and_project(
+    args,
+    *,
+    classification,
+    selection,
+    source_string: str,
+    revision: str | None,
+    scope: str,
+    adapter: str,
+    target_root: Path,
+) -> int:
+    """Render the consent summary, take consent, project, and record."""
+
+    import sys
+
+    from agentbundle import safety
+    from agentbundle.direct_source import normalize_direct_source
+    from agentbundle.direct_source_state import direct_source_digest
+
+    skill_target = resolve_skill_target(adapter, source_string)
+    # User scope installs under the resolved user root, not the repo.
+    if scope == "user":
+        from agentbundle import scope as scope_mod
+
+        projection_root = Path(scope_mod.resolve_user_root())
+    else:
+        projection_root = target_root.resolve()
     digest = direct_source_digest(classification)
 
     blocks = []
@@ -544,7 +719,7 @@ def _install_admitted_source(
         for skill in selection.skills:
             for measured in skill.files:
                 relative = measured.path.relative_to(skill.envelope)
-                print(f"  .claude/skills/{skill.name}/{relative}")
+                print(f"  {skill_target}/{skill.name}/{escape_path_value(relative)}")
         return 0
 
     if not getattr(args, "yes", False) and not sys.stdin.isatty():
@@ -567,17 +742,20 @@ def _install_admitted_source(
             for skill in selection.skills:
                 for measured in skill.files:
                     relative = measured.path.relative_to(skill.envelope)
-                    relpath = f".claude/skills/{skill.name}/{relative.as_posix()}"
+                    relpath = f"{skill_target}/{skill.name}/{relative.as_posix()}"
                     safety.write_jailed(
-                        target_root,
+                        projection_root,
                         relpath,
                         measured.data,
-                        scope="repo",
-                        allowed_prefixes=[".claude/"],
+                        scope=scope,
+                        allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
                     )
                     written.append(relpath)
             _ = normalized
-    except (DirectAdmissionError, OSError) as exc:
+    except OSError as exc:
+        # A jail or refusal error is publisher-influenced and is mapped to a
+        # registered diagnostic by the caller; only a genuine I/O fault lands
+        # here.
         print(f"install: projection failed: {exc}", file=sys.stderr)
         return 1
 
@@ -586,7 +764,9 @@ def _install_admitted_source(
     # created; writing it outside the lock would let a concurrent run's rows be
     # lost, and would compute the 0.5 floor from a stale snapshot.
     _record_direct_rows(
-        target_root=target_root,
+        target_root=projection_root,
+        skill_target=skill_target,
+        scope=scope,
         selection=selection,
         classification=classification,
         source_string=source_string,
@@ -615,6 +795,8 @@ def _install_admitted_source(
 def _record_direct_rows(
     *,
     target_root: Path,
+    skill_target: str,
+    scope: str,
     selection: Selection,
     classification,
     source_string: str,
@@ -636,7 +818,7 @@ def _record_direct_rows(
 
     def _mutate(state) -> None:
         for skill in selection.skills:
-            prefix = f".claude/skills/{skill.name}/"
+            prefix = f"{skill_target}/{skill.name}/"
             files = {
                 relpath: {
                     "sha": _hashlib.sha256(
@@ -663,7 +845,7 @@ def _record_direct_rows(
                 # surface, and the receipt above prints no version at all.
                 installed_version=MANIFESTLESS_VERSION_SENTINEL,
                 source=provenance.source,
-                scope="repo",
+                scope=scope,
                 adapter=adapter,
                 source_revision=provenance.source_revision,
                 source_kind=provenance.source_kind,

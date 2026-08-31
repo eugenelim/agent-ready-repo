@@ -196,7 +196,15 @@ def classify_direct_source(root: Path) -> DirectClassification:
     catalogue = markers["catalogue.toml"].exists
     packs = markers["packs"].exists
     if catalogue and packs:
-        return DirectClassification("catalogue", root, None, (), (), 0, 0, 0)
+        raise _refusal(
+            DiagnosticCode.CAT_D009,
+            "this is a catalogue repository, not a direct source",
+            path=str(root),
+            remediation=(
+                "Install from it as a catalogue: "
+                f"{recovery_command('agentbundle', 'install', str(root), '--pack', 'NAME')}"
+            ),
+        )
     if catalogue or packs:
         raise _refusal(
             DiagnosticCode.CAT_D009,
@@ -481,6 +489,9 @@ def _make_skill(root: Path, envelope: Path, files: list[MeasuredFile]) -> Direct
 def _read_named(root: Path, path: Path) -> MeasuredFile:
     """Observe a direct file once, applying the direct per-file byte limit."""
 
+    # Before the read, so the refusal precedes enumeration, digest, and any
+    # diagnostic that would otherwise render the offending segment.
+    enforce_logical_path(path.relative_to(root).as_posix(), root)
     try:
         data, mode = read_confined_regular_file(
             root, path, max_bytes=DIRECT_MAX_FILE_BYTES, include_mode=True
@@ -575,6 +586,49 @@ def _refusal(
             code, Severity.ERROR, message, path=path, remediation=remediation
         )
     )
+
+
+def enforce_logical_path(relative: str, root: Path) -> None:
+    """Refuse a logical path segment AC14 forbids, before anything reads it.
+
+    Three classes, all checked before enumeration, digest, normalization, or
+    diagnostic emission, because each one reaches a sink that cannot render it
+    safely:
+
+    - **C0, C1, DEL.** Terminal control and log forgery in any surface that
+      prints the path.
+    - **Surrogates.** `tarfile` decodes member names with
+      `errors="surrogateescape"`, so a lone surrogate survives extraction and
+      then raises `UnicodeEncodeError` at the first `.encode("utf-8")` — inside
+      the digest, far from the cause.
+    - **Non-NFC.** Two spellings of one name digest differently, so the same
+      tree can produce two digests depending on the filesystem that stored it.
+    """
+
+    for segment in PurePosixPath(relative).parts:
+        for character in segment:
+            point = ord(character)
+            if point < 0x20 or point == 0x7F or 0x80 <= point <= 0x9F:
+                raise _refusal(
+                    DiagnosticCode.CAT_D018,
+                    f"path segment carries a control code point U+{point:04X}",
+                    path=str(root),
+                    remediation="Ask the publisher to rename the offending file.",
+                )
+            if 0xD800 <= point <= 0xDFFF:
+                raise _refusal(
+                    DiagnosticCode.CAT_D018,
+                    f"path segment carries a surrogate code point U+{point:04X}",
+                    path=str(root),
+                    remediation="Ask the publisher to rename the offending file.",
+                )
+        if unicodedata.normalize("NFC", segment) != segment:
+            raise _refusal(
+                DiagnosticCode.CAT_D018,
+                f"path segment is not NFC-normalized: {segment!r}",
+                path=str(root),
+                remediation="Ask the publisher to rename the offending file.",
+            )
 
 
 def _is_reparse_point(inspected: object) -> bool:

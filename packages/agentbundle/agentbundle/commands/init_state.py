@@ -199,17 +199,22 @@ def _run_migrate(args: argparse.Namespace) -> int:
     # the body in the v0.3 shape — a file the v0.4 reader would then
     # mis-parse. So any non-current version is refused with re-install
     # guidance; an already-current file is an idempotent no-op.
-    if source_version == config.STATE_SCHEMA_VERSION:
+    # Compared against the SUPPORTED set, not the base constant. A 0.5 file is
+    # one this build reads perfectly well; telling its owner it was written by
+    # a newer agentbundle and to reinstall would destroy working direct-source
+    # provenance to fix nothing.
+    supported = ", ".join(sorted(config.SUPPORTED_STATE_SCHEMA_VERSIONS))
+    if source_version in config.SUPPORTED_STATE_SCHEMA_VERSIONS:
         print(
             f"init-state --migrate: {state_path} is already schema-version "
-            f"{config.STATE_SCHEMA_VERSION}; nothing to migrate"
+            f"{source_version}; nothing to migrate"
         )
         return 0
 
     print(
         f"init-state --migrate: {state_path} is schema-version "
         f"{source_version or 'absent'}, but this agentbundle speaks "
-        f"{config.STATE_SCHEMA_VERSION}. Migration is greenfield — "
+        f"{supported}. Migration is greenfield — "
         f"reinstall the pack(s) to regenerate state instead.",
         file=sys.stderr,
     )

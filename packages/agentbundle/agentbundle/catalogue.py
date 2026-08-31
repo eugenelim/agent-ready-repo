@@ -331,10 +331,14 @@ INTERCEPTED_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = (
     urllib.error.URLError,
     ssl.SSLError,
     TimeoutError,
-    OSError,
     tarfile.TarError,
     gzip.BadGzipFile,
 )
+# Deliberately NOT a bare `OSError`. The catalogue attempt body extracts as well
+# as fetches, so intercepting every `OSError` reported a local `ENOSPC` or
+# `EACCES` during extraction as "Failed to fetch catalogue archive", sending the
+# reader after a network fault that never happened. `URLError`, `ssl.SSLError`,
+# and `TimeoutError` are the OSError subclasses the transport actually raises.
 
 
 @dataclass(frozen=True)

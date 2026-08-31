@@ -54,6 +54,12 @@ class ConfigError(ValueError):
     """Raised when a TOML source fails to load or fails schema invariants."""
 
 
+def _supported_versions() -> str:
+    """The state schema versions this build reads, for a refusal message."""
+
+    return ", ".join(sorted(SUPPORTED_STATE_SCHEMA_VERSIONS))
+
+
 class StateFileLegacy(ConfigError):
     """Raised when a state file's ``schema-version`` is not the one this
     binary speaks.
@@ -82,7 +88,7 @@ class StateFileLegacy(ConfigError):
         self.version = version
         super().__init__(
             f"state file at {path} is schema-version {version}, but this "
-            f"agentbundle speaks {STATE_SCHEMA_VERSION}; reinstall the pack "
+            f"agentbundle speaks {_supported_versions()}; reinstall the pack "
             f"to regenerate state (no legacy migration)"
         )
 
