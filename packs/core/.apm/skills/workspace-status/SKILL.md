@@ -254,8 +254,18 @@ For closeout orientation, project only current pause, closeout blockers,
 all-specs-shipped initiative eligibility, cooling-context visibility, and the next
 action to invoke `close-work`. Never infer semantic freshness, choose a disposition,
 confirm authority, distil content, record a closeout result, compact coordination,
-remove an entry, or delete. A paused item remains visible as paused; cooling context
-remains visible because ordinary-context exclusion is not part of this wave.
+remove an entry, or delete. A paused item remains visible as paused.
+
+Cooling context is excluded from ordinary orientation. `status` and `reconcile`
+carry a `cooling` block — `due_count`, the named due list, every loaded record,
+and the retention exceptions — and a `closeout` block; `explain` and
+`repair-plan` carry neither. An artifact named by a `Cooling` or `Retired`
+lifecycle record is neither scanned nor dispatchable, and its body is never
+opened; `Retained` and `ExternalAdvisory` artifacts stay visible because someone
+still owes work against them. Read `closeout.cooling_context_visible` before
+trusting that exclusion happened: it is `false` only when the cooled set
+resolved cleanly, and `true` when a lifecycle record or the cooling module
+could not be read, in which case nothing was excluded this run.
 
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 

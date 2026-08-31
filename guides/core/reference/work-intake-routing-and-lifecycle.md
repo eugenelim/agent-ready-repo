@@ -123,9 +123,13 @@ change; history is never rewritten.
 A pause uses an existing resolved writable shaping or build surface and stores
 only contract/plan locators and fingerprints, current statuses, evidence
 references, coordination locator, and restore action. Resume reacquires every
-reference. `workspace-status` projects pause, closeout blockers, cooling
-visibility, and next action, but never distils, dispositions, confirms, or
-mutates.
+reference. `workspace-status` projects pause, closeout blockers, due cooling
+reviews, retention exceptions with their owner role and review date, and next
+action, but never distils, dispositions, confirms, or mutates. Ordinary
+orientation never loads a cooled artifact body: it reads each lifecycle record
+through the bounded reader and reports whether that resolution succeeded, so a
+run that could not establish the cooled set says so rather than implying an
+exclusion it did not perform.
 
 Initiative coordination and artifact retention are assessed independently. A
 settled workspace entry may leave while an RFC/release/decision family remains
