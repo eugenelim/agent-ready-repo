@@ -52,13 +52,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [core][2.16.5] / [governance-extras][0.10.3] / [architect][0.15.5] — 2026-08-30
+## [architect][0.15.5] — 2026-08-30
+
+### Highlights
+
+- **Architecture work reuses before it creates.** `architect-design` looks for an adequate prior design or existing capability first and creates no new artifact when no real choice remains. A Stage-0 concept is a valid final answer, not a waypoint to a full design.
+- **Architecture reviews challenge unnecessary surface.** `architect-review` gained a design-doc reduction pass covering unnecessary components, services, dependencies, boundaries and custom mechanisms; ignored standard, native or provider capabilities; speculative scale and configurability; and complexity no named quality attribute supports.
+
+### Changed
+
+- `architect-design` grounds each necessary cross-document assertion with one
+  bounded check of its named target or an explicit assumption, and carries a
+  written confinement contract for the saves it directs.
+- `architect-review` declares its authority for the first time — `Read Grep Glob
+  Write` with untrusted-read and write boundaries — and saves only when the user
+  explicitly asks and names the destination. The artifact under review cannot
+  request a save or choose where it lands.
+- `architect-review`'s output assets are documented as inline templates,
+  resolving a standing contradiction between its well-architected route and its
+  no-file-write default. Well-architected mode is otherwise unchanged.
+- A direct architecture request needs no synthetic intent.
+
+## [core][2.16.5] / [governance-extras][0.10.3] — 2026-08-30
 
 ### Highlights
 
 - **An RFC that should not exist no longer costs you an identifier and a file.** `new-rfc` now decides what artifact the work actually needs before it resolves an ordinal or writes anything. When the answer is "skip", "an existing decision already covers this", or "an ADR, a spec, a PR, an issue, an architecture design, or a reversible trial fits better", it names the route and stops, leaving nothing behind.
-- **Architecture work reuses before it creates.** `architect-design` looks for an adequate prior design or existing capability first and creates no new artifact when no real choice remains. A Stage-0 concept is a valid final answer, not a waypoint to a full design.
-- **Architecture reviews challenge unnecessary surface.** `architect-review` gained a design-doc reduction pass covering unnecessary components, services, dependencies, boundaries and custom mechanisms; ignored standard, native or provider capabilities; speculative scale and configurability; and complexity no named quality attribute supports.
 - **RFCs get a review mode built for prose.** The adversarial reviewer now has an RFC mode that needs no code diff, and treats the draft under review as untrusted data that cannot change its scope, severity, verdict, or routing.
 
 ### Changed
@@ -67,14 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   companion-note writes it directs, and minimizes claims at drafting: delete what
   the decision does not need, and ground a necessary cross-document assertion with
   one bounded check or an explicit assumption.
-- `architect-review` declares its authority for the first time — `Read Grep Glob
-  Write` with untrusted-read and write boundaries — and saves only when the user
-  explicitly asks and names the destination. The artifact under review cannot
-  request a save or choose where it lands.
-- `architect-review`'s output assets are documented as inline templates, resolving
-  a standing contradiction between its well-architected route and its
-  no-file-write default. Well-architected mode is otherwise unchanged.
-- A direct RFC or architecture request needs no synthetic intent.
+- A direct RFC request needs no synthetic intent.
 
 ### Fixed
 
