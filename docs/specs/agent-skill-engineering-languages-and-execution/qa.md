@@ -290,6 +290,32 @@ legitimate re-wrap that must not:
 | clause demoted to a blockquote | red | digest — markup counts |
 | the same words re-wrapped across lines | **green** | a legitimate reflow must not fire |
 
+### Which subject sets need pinning, and why only one did
+
+Round 7's defeat was a *subject set*, not a predicate, so the lesson generalizes
+past this guard. Every subject set the slice's guards use was emptied and its
+suite re-run:
+
+| Subject set | Emptied | Used as |
+| --- | --- | --- |
+| `MEASUREMENT_FORCED_CLAUSES` | **was vacuous**, now pinned | drives iteration |
+| `AUTHORING_EVAL_IDS` | fails closed | filter inside a positive assertion |
+| `KNOWN_REVIEW_MISSES` | fails closed | filter inside a positive assertion |
+| `LANGUAGE_SPECIFIC_TOPICS` | fails closed | filter inside a positive assertion |
+| `DOCTRINE_CLASSES` | fails closed | filter inside a positive assertion |
+| `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | parametrized, and set-equality asserted |
+| `REVIEW_EVAL_IDS` | fails closed | set-equality asserted |
+
+The rule the measurement gives: **a set that drives iteration needs its own pin; a
+set used as a filter inside an assertion that demands a positive result already
+fails closed.** Emptying a filter empties the result and the assertion notices.
+Emptying an iteration driver empties the loop and nothing notices, because a loop
+that runs zero times raises nothing.
+
+Only one set in this slice drove iteration, which is why only one was vacuous.
+That is a cheaper check than reasoning about each guard: ask what the set is *for*
+before asking whether it is pinned.
+
 ### What the guard does not cover, enumerated
 
 Seven rounds produced seven defeats, five of which changed the predicate, so the
