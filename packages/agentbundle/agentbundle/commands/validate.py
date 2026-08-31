@@ -71,6 +71,13 @@ def run(args) -> int:
 
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
+    # `--format json` is the direct route's output contract, and a direct pack
+    # is one of the three direct shapes even though it carries a pack.toml.
+    # Without this, asking for JSON on a direct pack silently produced the
+    # catalogue route's text output — which for a valid pack is nothing at all.
+    # Text output for a pack is unchanged; only an explicit JSON request routes.
+    if getattr(args, "format", "text") == "json" and _has_direct_marker(pack_path):
+        return _run_direct(pack_path, "json")
     if not pack_toml_path.exists():
         # Route to the direct path only when a direct marker is actually
         # present. A directory that is neither a pack nor a direct source is a

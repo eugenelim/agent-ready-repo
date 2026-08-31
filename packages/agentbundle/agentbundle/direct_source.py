@@ -246,6 +246,10 @@ def _select_collection_root(
         raise _refusal(
             DiagnosticCode.CAT_D009,
             "ambiguous collection roots: skills and .claude/skills",
+            remediation=(
+                "This source offers two collection roots and the choice changes "
+                "what is installed. Point at one of them directly."
+            ),
         )
     return root / roots[0] if roots else None
 
@@ -558,12 +562,18 @@ def _budget_refusal(
 
 
 def _refusal(
-    code: DiagnosticCode, message: str, *, path: str | None = None
+    code: DiagnosticCode,
+    message: str,
+    *,
+    path: str | None = None,
+    remediation: str | None = None,
 ) -> DirectAdmissionError:
     """Create a direct error using the typed direct diagnostic constructor."""
 
     return DirectAdmissionError(
-        make_direct_diagnostic(code, Severity.ERROR, message, path=path)
+        make_direct_diagnostic(
+            code, Severity.ERROR, message, path=path, remediation=remediation
+        )
     )
 
 
@@ -762,7 +772,15 @@ def validate_direct_source(root: Path) -> DirectAdmission:
     try:
         classification = admit_direct_source(root)
     except DirectAdmissionError as exc:
-        return DirectAdmission(False, None, (exc.diagnostic,))
+        # AC27 requires an offending path on every refusal. A raise site that
+        # knows a more specific path supplies it; the rest describe the source
+        # as a whole, so the source stands in rather than a null reaching the
+        # reader. Before a root exists this is the validated source string,
+        # which is what the criterion asks for.
+        diagnostic = exc.diagnostic
+        if not diagnostic.path:
+            diagnostic.path = str(root)
+        return DirectAdmission(False, None, (diagnostic,))
     return DirectAdmission(True, classification, ())
 
 

@@ -11,9 +11,29 @@ matching the stop-on-failure behaviour of the CI workflow they replace.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+# pytest's JUnit report opens with a single `<testsuite ...>` element carrying
+# these counts as attributes. Read with a narrow pattern rather than an XML
+# parser: the file is one we generated seconds earlier in a temporary
+# directory, and pulling in an XML parser for two integers would add a parsing
+# surface this module has no other use for.
+#
+# Each attribute is matched independently because pytest emits `skipped` before
+# `tests`; a single pattern that fixed their order silently matched nothing and
+# reported every run as having executed zero tests.
+_TESTSUITE_ELEMENT = re.compile(r"<testsuite\b[^>]*>")
+
+
+def _attribute(element: str, name: str) -> int:
+    """Read one integer attribute from a `<testsuite>` element."""
+
+    matched = re.search(rf'\b{name}="(\d+)"', element)
+    return int(matched.group(1)) if matched else 0
 
 
 def _step(label: str, cmd: list[str], cwd: Path) -> int:
@@ -22,6 +42,58 @@ def _step(label: str, cmd: list[str], cwd: Path) -> int:
         print(f"SKIP — working directory not found: {cwd}", flush=True)
         return 1
     return subprocess.run(cmd, cwd=cwd).returncode
+
+
+def _executed_count(report: Path) -> int:
+    """Tests that actually ran, from a pytest JUnit report.
+
+    Skipped tests are subtracted deliberately. A pytest run where every test
+    skipped — a missing optional dependency, a platform guard, a collection
+    error swallowed into a skip — exits 0, so a step judged by return code alone
+    reports a pass for a suite that never executed anything.
+    """
+
+    if not report.exists():
+        return 0
+    element = _TESTSUITE_ELEMENT.search(report.read_text(encoding="utf-8"))
+    if element is None:
+        return 0
+    found = element.group(0)
+    return _attribute(found, "tests") - _attribute(found, "skipped")
+
+
+def _pytest_step_with_executed_floor(
+    label: str, targets: list[str], cwd: Path, python: str
+) -> int:
+    """Run a pytest target and require it to have executed at least one test.
+
+    Used for the modules whose Windows arms exist precisely to prove they run
+    on Windows: reporting a pass for an all-skipped run would make the Windows
+    signal indistinguishable from no signal at all.
+    """
+
+    print(f"\n=== {label} ===", flush=True)
+    if not cwd.exists():
+        print(f"SKIP — working directory not found: {cwd}", flush=True)
+        return 1
+    with tempfile.TemporaryDirectory(prefix="agentbundle-windows-junit-") as scratch:
+        report = Path(scratch) / "report.xml"
+        completed = subprocess.run(
+            [python, "-m", "pytest", *targets, f"--junitxml={report}"], cwd=cwd
+        )
+        if completed.returncode != 0:
+            return completed.returncode
+        for target in targets:
+            executed = _executed_count(report)
+            if executed == 0:
+                print(
+                    f"FAIL — {target} executed no tests on this platform; an "
+                    f"all-skipped run exits 0 and would otherwise report a pass",
+                    flush=True,
+                )
+                return 1
+        print(f"executed {_executed_count(report)} test(s)", flush=True)
+    return 0
 
 
 def run_windows_compat(root: Path) -> int:
@@ -110,6 +182,26 @@ def run_windows_compat(root: Path) -> int:
             [py, "-m", "pytest", "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py"],
             root / "packs" / "atlassian" / "tests" / "skills" / "confluence-crawler",
         ),
+        # Direct-install suites. Their Windows arms assert documented
+        # `unknown`/no-write outcomes for FIFO and symlink cases rather than
+        # skipping, so they must actually execute here — hence the executed-count
+        # floor below rather than a bare return-code check. The performance suite
+        # stays off this list deliberately.
+        (
+            "direct source acquisition",
+            ["tests/unit/test_direct_source_acquisition.py"],
+            pkg,
+        ),
+        (
+            "direct admission",
+            ["tests/unit/test_direct_admission.py"],
+            pkg,
+        ),
+        (
+            "direct install",
+            ["tests/integration/test_direct_install.py"],
+            pkg,
+        ),
         # Experience agnosticism lint (proves `python` portability, not `python3`)
         (
             "experience lint self-test (design-craft-pack)",
@@ -140,8 +232,16 @@ def run_windows_compat(root: Path) -> int:
         ),
     ]
 
+    executed_floor_labels = {
+        "direct source acquisition",
+        "direct admission",
+        "direct install",
+    }
     for label, cmd, cwd in steps:
-        rc = _step(label, cmd, cwd)
+        if label in executed_floor_labels:
+            rc = _pytest_step_with_executed_floor(label, cmd, cwd, py)
+        else:
+            rc = _step(label, cmd, cwd)
         if rc != 0:
             return rc
 

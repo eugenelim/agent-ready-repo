@@ -135,3 +135,52 @@ def test_validate_help_describes_the_direct_form():
     assert result.returncode == 0, result.stderr
     assert "--format" in result.stdout
     assert "direct source" in result.stdout
+
+
+def test_every_refusal_names_an_offending_path(tmp_path: Path):
+    # AC27 — a refusal with a null path leaves the reader with a rule and
+    # nothing to look at. Manual QA caught this: the shared entry point
+    # reported `path: null` for every refusal that did not name a more
+    # specific one at its raise site.
+    refused = tmp_path / "bad"
+    _write_skill(refused / "skills" / "one", "one")
+    _write_skill(refused / ".claude" / "skills" / "two", "two")
+
+    admission = validate_direct_source(refused)
+    assert admission.ok is False
+    for diagnostic in admission.diagnostics:
+        assert diagnostic.path, f"{diagnostic.code} carries no offending path"
+    assert str(refused) in admission.diagnostics[0].path
+    assert admission.diagnostics[0].remediation, "a refusal needs a next step"
+
+
+def test_json_reaches_a_direct_pack_despite_its_pack_toml(tmp_path: Path):
+    # AC7 — a direct pack is one of the three direct shapes. Manual QA caught
+    # `--format json` being silently ignored for it, because `pack.toml` sent
+    # the invocation down the catalogue route, whose output for a valid pack is
+    # nothing at all.
+    root = tmp_path / "dpack"
+    _write_skill(root / "skills" / "one", "one")
+    (root / "pack.toml").write_text(
+        'schema = 1\n[pack]\nname = "dpack"\nversion = "1.0.0"\n'
+    )
+
+    admission = validate_direct_source(root)
+    assert admission.ok and admission.classification is not None
+    assert admission.classification.shape == "direct-pack"
+
+    class _Args:
+        pack_path = str(root)
+        strict = False
+        format = "json"
+
+    import io
+    from contextlib import redirect_stdout
+
+    captured = io.StringIO()
+    with redirect_stdout(captured):
+        exit_code = validate_cmd.run(_Args())
+    assert exit_code == 0
+    payload = json.loads(captured.getvalue())
+    assert payload["summary"]["shape"] == "direct-pack"
+    assert payload["operation"] == "direct"
