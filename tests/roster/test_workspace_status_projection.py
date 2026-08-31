@@ -1017,13 +1017,13 @@ class RepositoryLifecycleRatchetTests(unittest.TestCase):
         counts = collections.Counter(f.code for f in canonical.findings)
         for code, ceiling in (
             ("legacy_entry", 2),
-            # 9 from 2026-08-29. The ninth is INI-009 slice 2b
-            # (agent-skill-engineering-languages-and-execution) declaring its
-            # real dependency on slice 2a. It is unsatisfied only until 2a
-            # ships, and dropping the edge to stay under the ceiling would make
-            # a queued slice look startable when it is blocked. Raised with
-            # owner approval rather than worked around.
-            ("unsatisfied_dependency", 9),
+            # Restored to 8 on 2026-08-31. The ninth had been INI-009 slice 2b
+            # declaring its real dependency on slice 2a, raised with owner
+            # approval because dropping the edge would have made a blocked slice
+            # look startable. That edge cleared when 2a shipped and the measured
+            # count returned to 8, so the slot is retired rather than left as
+            # silent headroom.
+            ("unsatisfied_dependency", 8),
             ("missing_plan", 5),
             # 2 from 2026-08-28. Both instances are the same legitimate state
             # the engine does not model: a programme brief that is `Executing`

@@ -4,6 +4,71 @@
     {
       "packages": [
         {
+          "name": "agent-skill-engineering",
+          "version": "0.3.0"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[agent-skill-engineering][0.3.0] — 2026-08-31",
+      "changelogAnchor": "agent-skill-engineering030--2026-08-31",
+      "highlights": [
+        {
+          "source": "**The reference corpus now answers language and execution questions, and says out loud which ecosystem and which versions each answer holds for.** Five topics were admitted: Python with pytest, TypeScript/Node with JavaScript test runners, process and filesystem cost, pack and continuous-integration critical paths, and worktrees with state locks on a shared host. Twelve of thirty-six subjects are now carried and twenty-four remain recorded as absent.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The reference corpus now answers language and execution questions, and says out loud which ecosystem and which versions each answer holds for."
+            },
+            {
+              "type": "text",
+              "value": " Five topics were admitted: Python with pytest, TypeScript/Node with JavaScript test runners, process and filesystem cost, pack and continuous-integration critical paths, and worktrees with state locks on a shared host. Twelve of thirty-six subjects are now carried and twenty-four remain recorded as absent."
+            }
+          ]
+        },
+        {
+          "source": "**Two answers that a single ecosystem's own documentation settles are now admissible.** Earlier, a claim shipped only on two independent observations or two vendors agreeing. That bar silently excluded anything true of exactly one ecosystem — a language's own test runner, for instance. Such a claim now ships only when it names its ecosystem, an explicit version range with both bounds, and the vendor documentation it comes from.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Two answers that a single ecosystem's own documentation settles are now admissible."
+            },
+            {
+              "type": "text",
+              "value": " Earlier, a claim shipped only on two independent observations or two vendors agreeing. That bar silently excluded anything true of exactly one ecosystem — a language's own test runner, for instance. Such a claim now ships only when it names its ecosystem, an explicit version range with both bounds, and the vendor documentation it comes from."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.17.1"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.17.1] — 2026-08-31",
+      "changelogAnchor": "core2171--2026-08-31",
+      "highlights": [
+        {
+          "source": "**Exact clean reviews now finish without a redundant adjudicator call, while low-risk agent-context changes can remain in light mode.** Mandatory automated reviewers no longer make work multi-person, and security review is tied to changed trust boundaries, data flows, or guarding controls.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Exact clean reviews now finish without a redundant adjudicator call, while low-risk agent-context changes can remain in light mode."
+            },
+            {
+              "type": "text",
+              "value": " Mandatory automated reviewers no longer make work multi-person, and security review is tied to changed trust boundaries, data flows, or guarding controls."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.17.0"
         }

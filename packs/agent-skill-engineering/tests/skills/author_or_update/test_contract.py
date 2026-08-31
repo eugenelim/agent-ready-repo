@@ -27,10 +27,28 @@ AUTHOR_ROUTES = (
     "references/security-boundaries.md",
     "references/update.md",
 )
+# Every authoring case, not only those declaring a payload. All eight record an
+# `evals/evals.json` digest, so a set naming four left four free to carry a
+# stale digest that the parametrized sweep below would never read.
 AUTHORING_EVAL_IDS = frozenset(
-    {"frame-new-skill", "update-existing-skill", "pytest-suite", "node-browser-suite"}
+    {
+        "frame-new-skill",
+        "update-existing-skill",
+        "cold-start-orientation",
+        "cross-session-resumption",
+        "progressive-result-presentation",
+        "knowledge-provider-read-only-entry",
+        "pytest-suite",
+        "node-browser-suite",
+    }
 )
 AUTHOR_EVIDENCE_SOURCES = (
+    # The workflow body itself. A graded authoring result depends on the body
+    # that produced it far more than on the eval payload, and without this key
+    # a result measured against a superseded body satisfies every other guard
+    # here -- which is how two contract fixes in this slice moved the body
+    # while the recorded evidence still looked bound to it.
+    "SKILL.md",
     "evals/evals.json",
     "evals/files/update-existing-SKILL.md",
     "evals/files/pytest-suite-SKILL.md",
@@ -209,11 +227,6 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         "detect-activation-failure",
         "detect-script-contract-failure",
     }
-    # One recorded miss, named rather than absorbed. The response declined to
-    # commit to a durable resumption record because persisting one would widen
-    # the skill past `filesystem_read_untrusted`, and it put that choice to the
-    # user instead. Naming the exact (case, index) means a *different* miss
-    # still reddens this test, while the known one does not read as a pass.
     # Each exemption names an exact (case, index) so a *different* miss still
     # reddens while the known one does not read as a pass.
     #
@@ -258,6 +271,7 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         # workspace) while it still consumes the eval payload that declares
         # it, so the floor is the declared files plus that payload.
         assert set(result["source_files"]) == {
+            "SKILL.md",
             "evals/evals.json",
             *(case.get("files") or ()),
         }

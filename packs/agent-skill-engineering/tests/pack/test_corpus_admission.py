@@ -14,6 +14,10 @@ CONCEPTS = PACK / "okf" / "agent-skill-engineering-foundation" / "concepts"
 COMPILED_CONCEPTS = (
     PACK / ".apm" / "skills" / "ase-okf-reference" / "references" / "okf" / "concepts"
 )
+AUTHOR_EVALS = (
+    PACK / ".apm" / "skills" / "author-or-update-agent-skill" / "evals" / "evals.json"
+)
+BEHAVIOR_RESULTS = FIXTURES / "behavior-results.json"
 # Line-scoped, and matched per line rather than against the whole file. An
 # unanchored `.search()` over the full text with `^...$` and no MULTILINE can
 # only match a file whose entire content is one token, so a reviewer name
@@ -775,3 +779,69 @@ def test_every_leaf_is_in_exactly_one_set() -> None:
     # Neither set may carry a name the taxonomy does not have.
     assert admitted <= set(leaves), sorted(admitted - set(leaves))
     assert unpopulated <= set(leaves), sorted(unpopulated - set(leaves))
+
+
+def _declared_eval_ids() -> set[str]:
+    return {
+        case["id"]
+        for case in json.loads(AUTHOR_EVALS.read_text(encoding="utf-8"))["evals"]
+    }
+
+
+def _graded_eval_ids() -> set[str]:
+    return {
+        result["eval_id"]
+        for result in json.loads(BEHAVIOR_RESULTS.read_text(encoding="utf-8"))["results"]
+        if result.get("assertions")
+    }
+
+
+def _fixture_resolves(fixture: str, declared: set[str], graded: set[str]) -> bool:
+    """A fixture reference resolves only if its case is both declared and graded.
+
+    Taken as a pure function of the two sets so the seeded control can supply
+    constructed ones. Deriving the negative case from the shipped record instead
+    would make the control vacuous whenever every declared case has been graded,
+    which is the normal healthy state.
+    """
+    return fixture in declared and fixture in graded
+
+
+def test_single_ecosystem_fixture_reference_resolves_to_a_graded_fixture() -> None:
+    """A single-ecosystem group's fixture names a case that was actually graded.
+
+    The promotion class is the cheapest by evidence cost, so its one non-textual
+    obligation is that the fixture exists as measured work. Declaration alone is
+    not enough: an id in `evals.json` with no graded result names a case nobody
+    ran.
+    """
+    declared, graded = _declared_eval_ids(), _graded_eval_ids()
+    # Anti-vacuity: empty sets would satisfy nothing meaningfully.
+    assert len(declared) >= 2 and len(graded) >= 2, (len(declared), len(graded))
+
+    checked = 0
+    for topic in json.loads(ADMISSION.read_text(encoding="utf-8"))["topics"]:
+        for group in topic.get("claim_groups", []):
+            if group.get("promotion_class") != "single-ecosystem-contract":
+                continue
+            checked += 1
+            assert _fixture_resolves(group["fixture"], declared, graded), (
+                topic["topic"],
+                group["name"],
+                group["fixture"],
+            )
+    assert checked == 2, checked
+
+
+def test_fixture_resolution_rejects_both_ways_a_reference_can_be_empty() -> None:
+    """Seeded control over constructed sets: resolution can fail, two ways.
+
+    An id absent everywhere and an id declared but never graded fail for
+    different reasons; a check that read only `evals.json` would pass the second.
+    """
+    declared = {"real-and-graded", "declared-but-never-run"}
+    graded = {"real-and-graded"}
+
+    assert _fixture_resolves("real-and-graded", declared, graded)
+    assert not _fixture_resolves("declared-but-never-run", declared, graded)
+    assert not _fixture_resolves("absent-everywhere", declared, graded)
