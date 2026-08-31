@@ -364,8 +364,11 @@ incidental fix.
   the conjuncts do not reach: merging the paragraphs *and* refreshing both
   recorded digests satisfies every one, because both clauses share a heading.
 
-  Five review rounds each defeated the previous predicate, and `qa.md` records
-  each with the mutation that beat it and the boundary that resulted. The
+  Seven review rounds each defeated the guard, five of them producing a
+  predicate change, and `qa.md` records each with the mutation that beat it and
+  the boundary that resulted. The seventh defeat was not in the body at all: the
+  guard's own subject set was unpinned, so an entry could be deleted and both
+  guards would pass while asserting nothing. The
   boundary is the durable output: **the guard owns form and review owns
   meaning.** It does not cover a clause whose bytes are preserved inside a
   non-normative block — a fence, a four-space indent, or an HTML comment —

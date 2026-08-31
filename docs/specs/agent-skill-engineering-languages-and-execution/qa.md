@@ -231,9 +231,16 @@ adversarial review sustained exactly that. A guard was added at the ship gate:
 matching on collapsed whitespace so a re-wrap of hard-wrapped prose does not read
 as a reverted clause.
 
-Five review rounds each defeated this guard a different way. The fourth change
-was to the predicate's **category** rather than its pattern; the sixth stopped
-changing the predicate and wrote the boundary down instead.
+Seven review rounds each defeated this guard a different way, and five of them
+produced a change to the predicate over the body; the seventh defeat was in the
+guard's own subject set rather than in the clauses it reads. Round 3's fix changed the predicate's **category**
+rather than its pattern. Round 6's fix changed nothing about the predicate: it
+wrote the boundary down instead, because the proposed closure turned out to be
+another incomplete enumeration.
+
+Rounds are numbered throughout; there is no separate change numbering, because
+using both is how an earlier version of this paragraph made two ordinals
+disagree.
 
 | Round | Guard | How it was defeated |
 | --- | --- | --- |
@@ -242,6 +249,8 @@ changing the predicate and wrote the boundary down instead.
 | 3 | six `substring in body` checks | `Remain in \`frame\`` was pinned by nothing; flipping it to `Enter \`update\`` inverted the contract and stayed green |
 | 4 | one digest per clause paragraph | the digest answered "some paragraph somewhere collapses to this hash", not "this clause is in force" — so the normative paragraph could be replaced with an advisory sentence and the original re-appended verbatim under a `## Superseded guidance (not normative)` heading, or a reversed duplicate added below the original where first-match never reached it |
 | 5 | three conjuncts: match count, heading text, digest | the heading conjunct pinned the heading's *text* and never how many headings carried it, so gutting the clause in place and re-appending it verbatim under a **second `## Modes`** satisfied all three |
+| 6 | four conjuncts: heading uniqueness, match count, heading text, digest | `- ## Superseded guidance` as a container-block heading, with the clause as indented list continuation — no line pattern matches it, a renderer shows the clause under the new h2, and the collapsed digest is unchanged. **Documented as uncovered rather than closed**, since closing it needs a CommonMark parse |
+| 7 | the guard itself | the subject set `MEASUREMENT_FORCED_CLAUSES` was unpinned, so deleting an entry — or emptying the dict — left both guards green while asserting nothing. Closed by pinning the set |
 
 Rounds 2 and 3 were the same mistake twice. The adjudication named why adding a
 seventh assertion could not work: positive substring containment is **monotone
@@ -283,9 +292,9 @@ legitimate re-wrap that must not:
 
 ### What the guard does not cover, enumerated
 
-Five rounds produced five defeats, so the useful thing to record is not another
-conjunct but where the boundary now sits. These five all satisfy every conjunct
-and were verified green:
+Seven rounds produced seven defeats, five of which changed the predicate, so the
+useful thing to record is not another conjunct but where the boundary now sits.
+The five rows below all satisfy every conjunct and were verified green:
 
 | Uncovered | Why |
 | --- | --- |
@@ -315,6 +324,8 @@ well-formedness check both pass on it.
 
 That is the same mistake twice at two levels: enumerating sentences, then
 enumerating the syntactic forms in which a sentence can be hidden or displaced.
+Both times I validated the enumeration against the cases I had thought of, and
+both times the counterexample was a case I had not.
 Making the predicate categorical needs a real CommonMark parse: a new dependency
 to defend two prose sentences, which the repository's cut-before-adding ladder
 routes through a decision record rather than a test file.

@@ -306,9 +306,11 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
     assert recorded == {digest}
 
 
-# Each clause a graded run forced into the shipped body. Three conjuncts per
-# clause: exactly one paragraph carries the anchor, it sits under the pinned
-# heading, and its whitespace-collapsed text hashes to the recorded digest.
+# Each clause a graded run forced into the shipped body.
+#
+# Four conjuncts per clause: the pinned heading occurs exactly once, exactly one
+# paragraph carries the anchor, that paragraph's nearest preceding heading is the
+# pinned one, and its whitespace-collapsed text hashes to the recorded digest.
 #
 # The predicate reached this shape after five review rounds each defeated the
 # previous one:
@@ -326,11 +328,20 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
 #      replaced with an advisory sentence and the original re-appended verbatim
 #      under a `## Superseded guidance (not normative)` heading, or a flipped
 #      duplicate added below the original where first-match never reached it.
+#   5. three conjuncts -- match count, heading text, digest -- beaten by gutting
+#      the clause in place and re-appending it verbatim under a *second*
+#      `## Modes`, which a heading-text pin satisfies exactly. That is why the
+#      uniqueness conjunct exists.
+#
+# A sixth round then defeated the four conjuncts too, with `- ## Superseded
+# guidance` as a container-block heading, and that defeat was documented as
+# uncovered rather than closed -- see the NOT-closed list below.
 #
 # Four conjuncts, stated at the width they actually hold:
 #   - the pinned heading occurs exactly once, which closes relocation under a
-#     second copy of the same heading -- round 4's probe varied the heading's
-#     text and never varied how many headings carried it;
+#     second copy of the same heading *when that copy is a column-0 ATX
+#     heading* -- round 4's probe varied the heading's text and never varied how
+#     many headings carried it;
 #   - exactly one paragraph carries the anchor, which closes duplication;
 #   - that paragraph's nearest preceding heading is the pinned one, which closes
 #     relocation *only when the replacement heading is a column-0 ATX heading*;
@@ -426,6 +437,25 @@ def _clause_paragraphs(body: str, anchor: str) -> list[tuple[str | None, str]]:
 
 def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
     """Each forced clause is unique, correctly placed, and byte-identical."""
+    # The subject set is pinned before anything iterates it. Both guards below
+    # loop over this dict, so without this an entry could be deleted -- or the
+    # dict emptied -- and both would pass: `all([])` is True and `len(set()) ==
+    # len([])`. The guard would then assert nothing while staying green, which is
+    # the cheaper version of the record-editing attack the distinctness test
+    # already treats as in scope.
+    #
+    # A clause legitimately added later reddens here exactly once, and is
+    # repaired in the same edit the re-pinning doctrine above already requires.
+    assert set(MEASUREMENT_FORCED_CLAUSES) == {
+        "mode-identity",
+        "unspecified-change",
+    }, (
+        f"the pinned clause set is {sorted(MEASUREMENT_FORCED_CLAUSES)}. Adding "
+        "or removing a measurement-forced clause is a contract change: it needs "
+        "a fresh measurement and a record update in the slice qa.md, not a "
+        "silent edit to this dict."
+    )
+
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
 
     headings = [
