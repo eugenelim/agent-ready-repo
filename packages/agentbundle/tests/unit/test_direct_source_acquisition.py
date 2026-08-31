@@ -486,3 +486,46 @@ def test_the_working_directory_is_carried_not_derived():
         "the caller-owned temporary directory must be declared, not inferred "
         "from the root's depth"
     )
+
+
+def test_the_decompressed_bound_measures_bytes_read_not_declared_sizes(tmp_path: Path):
+    # E11 bounds "incrementally measured decompressed bytes on the decompressed
+    # side of gzip". Summing `TarInfo.size` measures what the archive DECLARES
+    # in its headers, which a hostile archive controls independently of what it
+    # ships. This fixture is the plan's: declared member sizes stay tiny while
+    # the decompressed stream is far larger, so only a reader-side counter can
+    # see it.
+    source = acquisition.parse_direct_source(f"git+https://github.com/o/r@{SHA}")
+
+    # Every member declares 8 bytes, but tar pads each to a 512-byte block and
+    # prefixes a 512-byte header — so the stream carries roughly 128x what the
+    # headers claim. Forty members declare 320 bytes and read past 40 KiB.
+    members = 40
+    raw = io.BytesIO()
+    with tarfile.open(
+        fileobj=raw, mode="w", format=tarfile.PAX_FORMAT, pax_headers={"comment": SHA}
+    ) as archive:
+        for index in range(members):
+            info = tarfile.TarInfo(f"repo/small{index}.txt")
+            info.size = 8
+            archive.addfile(info, io.BytesIO(b"x" * 8))
+    payload = gzip.compress(raw.getvalue())
+
+    spool = tmp_path / "lying.tar.gz"
+    spool.write_bytes(payload)
+    destination = tmp_path / "out"
+    destination.mkdir()
+
+    declared_total = members * 8
+    bound = 4096
+    assert declared_total < bound, "the declared sizes must stay under the bound"
+
+    refusal = _refusal(
+        lambda: acquisition._extract(
+            spool, destination, source, max_members=100, max_decompressed=bound
+        ),
+        "CAT-D006",
+    )
+    assert "read" in refusal.diagnostic.message, (
+        "the refusal must report bytes read, not the declared total"
+    )

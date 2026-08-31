@@ -194,3 +194,55 @@ def test_integrity_refusal_is_discriminable_from_a_budget_breach(tmp_path):
     with pytest.raises(UnsafeContentError) as excinfo:
         read_confined_regular_file(root, link, max_bytes=1024)
     assert not isinstance(excinfo.value, BoundExceeded)
+
+
+def test_every_registered_direct_code_has_a_raise_site():
+    # AC31 requires every DIRECT_CODES member to be reachable. Nothing asserted
+    # it, which is how CAT-D018 was registered, published in the adopter table,
+    # and lint-checked for set equality while having no raise site at all — the
+    # table lint compares the registry to the document, so it certified a code
+    # that could never be emitted.
+    #
+    # Checked structurally rather than by exercising a fixture per code: some
+    # codes need a network failure or a Windows filesystem to reach. A raise
+    # site is weaker than a reached refusal, and this docstring says so — but it
+    # is the difference between "declared" and "wired to nothing".
+    import ast
+    from pathlib import Path
+
+    import agentbundle.direct_install as direct_install
+    import agentbundle.direct_source as direct_source
+    import agentbundle.direct_source_acquisition as direct_source_acquisition
+    from agentbundle.catalogue_tooling.diagnostics import DIRECT_CODES
+
+    referenced: set[str] = set()
+    for module in (direct_source, direct_source_acquisition, direct_install):
+        tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "DiagnosticCode"
+            ):
+                referenced.add(node.attr)
+
+    # The six budget codes are emitted through the BUDGET_CODES mapping — the
+    # typed `BoundExceeded.budget` is looked up rather than named — so a direct
+    # reference to them does not exist by design. Credit them only when a
+    # module actually consumes that mapping.
+    from agentbundle.catalogue_tooling.diagnostics import BUDGET_CODES
+
+    consumes_mapping = any(
+        "BUDGET_CODES" in Path(module.__file__).read_text(encoding="utf-8")
+        for module in (direct_source, direct_source_acquisition, direct_install)
+    )
+    if consumes_mapping:
+        referenced |= {code.name for code in BUDGET_CODES.values()}
+
+    registered = {code.name for code in DIRECT_CODES}
+    unreachable = sorted(registered - referenced)
+    assert unreachable == [], (
+        f"registered and published but never raised: {unreachable}. A code the "
+        f"adopter table documents must be emittable, or the table promises a "
+        f"refusal that cannot happen."
+    )

@@ -327,6 +327,34 @@ def permitted_redirect_targets(source: DirectSource) -> frozenset[str]:
     )
 
 
+class _CountingReader:
+    """Wrap a decompressed stream and count the bytes actually read from it.
+
+    E11 bounds "incrementally measured decompressed bytes on the decompressed
+    side of gzip". Summing `TarInfo.size` measures what the archive *declares*
+    in its headers, which a hostile archive controls independently of what it
+    ships — a member can declare one byte and stream a gigabyte. Counting reads
+    measures what the process actually paid.
+    """
+
+    def __init__(self, stream, limit: int, on_exceeded) -> None:
+        self._stream = stream
+        self._limit = limit
+        self._on_exceeded = on_exceeded
+        self.count = 0
+
+    def read(self, size: int = -1) -> bytes:
+        chunk = self._stream.read(size)
+        self.count += len(chunk)
+        if self.count > self._limit:
+            self._on_exceeded(self.count)
+        return chunk
+
+    def __getattr__(self, name):
+        # tarfile also seeks and tells on this object.
+        return getattr(self._stream, name)
+
+
 class _BoundedRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Allow at most E11's redirects, and only to an equivalent target."""
 
@@ -571,73 +599,86 @@ def _extract(
     root_segments: set[str] = set()
     members = 0
     decompressed = 0
-    with (
-        gzip.open(spool, "rb") as stream,
-        tarfile.open(fileobj=stream, mode="r:") as archive,
-    ):
-        revision = _read_revision(archive, source)
-        for member in archive:
-            members += 1
-            if members > max_members:
-                raise _refuse(
-                    DiagnosticCode.CAT_D006,
-                    f"the archive exceeds the {max_members}-member limit",
-                    path=source.requested,
-                    remediation="The repository is too large to install directly.",
-                )
-            decompressed += max(member.size, 0)
-            if decompressed > max_decompressed:
-                raise _refuse(
-                    DiagnosticCode.CAT_D006,
-                    f"the archive exceeds the {max_decompressed}-byte "
-                    f"decompressed limit",
-                    path=source.requested,
-                    remediation="The repository is too large to install directly.",
-                )
-            # The library-resolved name, never a reconstructed one.
-            if not _member_is_safe(member.name):
-                _refuse_member(
-                    source,
-                    member.name,
-                    "archive member escapes its destination",
-                    "The archive is malformed or hostile.",
-                )
-            if member.issym() or member.islnk():
-                # Direct-only. The catalogue route deliberately retains
-                # symlinks, because a catalogue legitimately ships
-                # CLAUDE.md -> AGENTS.md.
-                if member.linkname and not _member_is_safe(member.linkname):
+
+    def _too_large(observed: int) -> None:
+        raise _refuse(
+            DiagnosticCode.CAT_D006,
+            f"the archive exceeds the {max_decompressed}-byte decompressed "
+            f"limit (read {observed} bytes)",
+            path=source.requested,
+            remediation="The repository is too large to install directly.",
+        )
+
+    with gzip.open(spool, "rb") as raw:
+        stream = _CountingReader(raw, max_decompressed, _too_large)
+        with tarfile.open(fileobj=stream, mode="r:") as archive:
+            revision = _read_revision(archive, source)
+            for member in archive:
+                members += 1
+                if members > max_members:
+                    raise _refuse(
+                        DiagnosticCode.CAT_D006,
+                        f"the archive exceeds the {max_members}-member limit",
+                        path=source.requested,
+                        remediation="The repository is too large to install directly.",
+                    )
+                # A cheap pre-check on what the archive DECLARES. The
+                # authoritative bound is the counting reader above, which
+                # measures bytes actually read off the decompressed stream —
+                # a member can declare one byte and stream a gigabyte.
+                decompressed += max(member.size, 0)
+                if decompressed > max_decompressed:
+                    raise _refuse(
+                        DiagnosticCode.CAT_D006,
+                        f"the archive exceeds the {max_decompressed}-byte "
+                        f"decompressed limit",
+                        path=source.requested,
+                        remediation="The repository is too large to install directly.",
+                    )
+                # The library-resolved name, never a reconstructed one.
+                if not _member_is_safe(member.name):
                     _refuse_member(
                         source,
-                        member.linkname,
-                        "archive link target escapes the root",
+                        member.name,
+                        "archive member escapes its destination",
                         "The archive is malformed or hostile.",
                     )
-                _refuse_member(
-                    source,
-                    member.name,
-                    "a direct source may not carry links",
-                    "Ask the publisher to ship regular files only.",
-                )
-            if member.isdev() or member.isfifo():
-                _refuse_member(
-                    source,
-                    member.name,
-                    "the archive carries a device or FIFO member",
-                    "The archive is malformed or hostile.",
-                )
-            folded = member.name.casefold()
-            if folded in seen_casefolded:
-                _refuse_member(
-                    source,
-                    member.name,
-                    "archive members collide when case-folded",
-                    "The archive cannot be extracted safely on a "
-                    "case-insensitive filesystem.",
-                )
-            seen_casefolded.add(folded)
-            root_segments.add(PurePosixPath(member.name).parts[0])
-            archive.extract(member, path=destination, filter="data")
+                if member.issym() or member.islnk():
+                    # Direct-only. The catalogue route deliberately retains
+                    # symlinks, because a catalogue legitimately ships
+                    # CLAUDE.md -> AGENTS.md.
+                    if member.linkname and not _member_is_safe(member.linkname):
+                        _refuse_member(
+                            source,
+                            member.linkname,
+                            "archive link target escapes the root",
+                            "The archive is malformed or hostile.",
+                        )
+                    _refuse_member(
+                        source,
+                        member.name,
+                        "a direct source may not carry links",
+                        "Ask the publisher to ship regular files only.",
+                    )
+                if member.isdev() or member.isfifo():
+                    _refuse_member(
+                        source,
+                        member.name,
+                        "the archive carries a device or FIFO member",
+                        "The archive is malformed or hostile.",
+                    )
+                folded = member.name.casefold()
+                if folded in seen_casefolded:
+                    _refuse_member(
+                        source,
+                        member.name,
+                        "archive members collide when case-folded",
+                        "The archive cannot be extracted safely on a "
+                        "case-insensitive filesystem.",
+                    )
+                seen_casefolded.add(folded)
+                root_segments.add(PurePosixPath(member.name).parts[0])
+                archive.extract(member, path=destination, filter="data")
     return revision, members, root_segments
 
 

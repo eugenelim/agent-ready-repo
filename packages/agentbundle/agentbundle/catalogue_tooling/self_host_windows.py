@@ -83,16 +83,21 @@ def _pytest_step_with_executed_floor(
         )
         if completed.returncode != 0:
             return completed.returncode
-        for target in targets:
-            executed = _executed_count(report)
-            if executed == 0:
-                print(
-                    f"FAIL — {target} executed no tests on this platform; an "
-                    f"all-skipped run exits 0 and would otherwise report a pass",
-                    flush=True,
-                )
-                return 1
-        print(f"executed {_executed_count(report)} test(s)", flush=True)
+        # One invocation produces one report, so the count is an aggregate over
+        # every target. The previous loop recomputed that same aggregate once
+        # per target and named a different target each time, claiming per-target
+        # attribution it never had; it was correct only because each step
+        # happens to pass a single target.
+        executed = _executed_count(report)
+        if executed == 0:
+            print(
+                f"FAIL — {', '.join(targets)} executed no tests on this "
+                f"platform; an all-skipped run exits 0 and would otherwise "
+                f"report a pass",
+                flush=True,
+            )
+            return 1
+        print(f"executed {executed} test(s)", flush=True)
     return 0
 
 

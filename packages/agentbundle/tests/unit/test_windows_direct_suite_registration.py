@@ -15,17 +15,34 @@ REQUIRED_TARGETS = (
 )
 
 
-def _steps(root: Path):
-    """Re-read the curated step list without running any of it."""
+def _steps(root: Path | None = None) -> list[str]:
+    """The strings actually DISPATCHED by the curated step list.
+
+    Walks the `steps` list literal inside `run_windows_compat` rather than every
+    string constant in the module. Collecting all constants meant a docstring or
+    a comment-as-string mentioning a path satisfied the registration assertion,
+    so the test could pass with nothing dispatched.
+    """
     import ast
 
     source = Path(self_host_windows.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)
-    literals: list[str] = []
-    for node in ast.walk(tree):
+    function = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name == "run_windows_compat"
+    )
+    assignment = next(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.AnnAssign | ast.Assign)
+        and "steps" in ast.dump(node.targets[0] if isinstance(node, ast.Assign) else node.target)
+    )
+    dispatched: list[str] = []
+    for node in ast.walk(assignment.value):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            literals.append(node.value)
-    return literals
+            dispatched.append(node.value)
+    return dispatched
 
 
 def test_the_three_direct_suites_are_on_the_curated_windows_list():
