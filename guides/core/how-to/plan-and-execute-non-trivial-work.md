@@ -117,11 +117,17 @@ Naming the skill is the reliable form. The `work-loop` description also matches 
 
 The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/skills/work-loop/SKILL.md). The short version:
 
-- **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, designs construction tests up front, and asks you to name the **declined-pattern register**: one to three things you were tempted to add (a layer, a flag, a defensive wrapper) and explicitly declined. The register pairs with the spec's Boundaries section so REVIEW can catch drift toward declined temptations as self-contradiction in the diff. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
-- **EXECUTE** — implements task by task. TDD-mode tasks run red-green-refactor; goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
+- **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, and designs construction tests up front. For a TDD task, it stores the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch; it does not create a repository test file. A `spec-plan` run can therefore stop after approval with clean gates. PLAN also asks you to name the **declined-pattern register**: one to three things you were tempted to add (a layer, a flag, a defensive wrapper) and explicitly declined. The register pairs with the spec's Boundaries section so REVIEW can catch drift toward declined temptations as self-contradiction in the diff. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
+- **EXECUTE** — implements task by task. Once full mode enters `CODE-IMPLEMENTATION`, a TDD task copies the approved plan block unchanged into the real test path, verifies byte identity, proves the intended red, and continues through green and refactor. Goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
 - **GATES** — lint, typecheck, tests. Mechanical, ordered, no editing the gate to make it pass.
 - **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `CONVENTIONS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what enables stasis detection in the next phase. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants.
 - **DECIDE** — intent fit decides each finding: in-intent work that cannot share this unit becomes the next review unit in the same session; excluded work is acknowledged in the PR and captured only if its owner asks. Stasis detection fires if the same findings come back two iterations in a row — stop and surface to a human rather than spinning a third pass.
+
+Two no-stub records are closed exceptions. Use `no stub (mode)` when the chosen
+verification mode is not TDD. Use `no stub (implementation-discovered)` only
+when the callable seam genuinely cannot be known before implementation, and
+record both its discovery predicate and proof obligation. Neither record is a
+reason to repeat the acceptance criterion as behavior prose.
 
 For the end-to-end narrative with the parts in context, read [core-pack.md § How they tie together](../explanation/core-pack.md#how-they-tie-together).
 

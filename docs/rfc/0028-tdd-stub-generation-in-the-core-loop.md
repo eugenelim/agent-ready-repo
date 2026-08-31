@@ -175,3 +175,16 @@ D and B are the genuine fork in the road: both produce compilable stubs; B adds 
 - Convention update: `docs/CONVENTIONS.md` § 4 — the stub→EXECUTE handoff convention.
 - `quality-engineer` agent: note the timing distinction (in-PLAN stub generation vs. post-impl test-author review) in the test-author mode section.
 - Deferred: pack-skill enrichment seam for framework-specific stubs — revisit if/when a test-authoring pack skill lands in this repo.
+
+## Errata
+
+### E1 — PLAN proof and repository materialization are separate phases (2026-08-30) · ✅ signed off: eugenelim (RFC-0028 Approver), 2026-08-30
+
+RFC-0028's vehicle decision stands: `work-loop` owns TDD stub generation through
+its progressive-disclosure reference, and `new-spec` supplies only the
+testability self-check. The lifecycle wording is corrected as follows. PLAN
+keeps the exact test as PLAN-contained code and validates its syntax and red
+from disposable scratch; PLAN and `spec-plan` create no repository test file.
+Only after code mode enters `CODE-IMPLEMENTATION` does EXECUTE materialize the
+approved block unchanged, prove the intended red, and continue to green. The
+frozen body remains the historical decision and is not rewritten.

@@ -504,6 +504,13 @@ jobs:
           tests/roster/test_agent_boundary_metadata_contract.py
           tests/roster/test_shaping_review_documentation_contract.py
 
+      # tdd-stub lifecycle: the PLAN-proof / EXECUTE-materialization boundary
+      # spans packs/core, docs/, guides/, tools/, and docs-site/, so it is
+      # roster-owned rather than pack-owned. CI does not auto-discover roster
+      # tests, so keep it explicit.
+      - name: pytest TDD stub lifecycle contract (roster-owned)
+        run: python -m pytest tests/roster/test_tdd_stub_lifecycle_contract.py
+
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +
       # the install→upgrade offer, and the dropped --scope flags. The CLI

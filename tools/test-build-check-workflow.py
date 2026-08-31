@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Posture test for `.github/workflows/build-check.yml`'s job graph.
 
-# STUB: AC13 — red stub materialised at PLAN per CONVENTIONS § Stub → EXECUTE
-handoff.
+# STUB: AC13 — planned before code, then materialized during CODE-IMPLEMENTATION.
 
 Pure stdlib, matching `tools/test-build-check-windows-workflow.py`.
 (`tools/test-ci-security-workflow.py` is wired too, but imports PyYAML — tolerable

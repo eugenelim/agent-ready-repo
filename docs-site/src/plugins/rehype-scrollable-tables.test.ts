@@ -1,4 +1,4 @@
-// STUB: AC5/AC6 — red stub materialised at PLAN per CONVENTIONS § Stub → EXECUTE handoff.
+// STUB: AC5/AC6 — planned before code, then materialized during CODE-IMPLEMENTATION.
 //
 // Behavioural coverage for `rehypeScrollableTables`, run by Node's built-in test
 // runner under the `engines` floor `docs-site/package.json` declares. No test

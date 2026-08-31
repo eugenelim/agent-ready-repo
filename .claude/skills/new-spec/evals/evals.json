@@ -136,6 +136,17 @@
         "Marks each repair-authorizing finding as draft-origin or prior-round-repair and stops when origin is unresolved",
         "States what the green gate proves and one relevant blind spot without copying the lint invariant list"
       ]
+    },
+    {
+      "id": "tdd-stub-proof-belongs-to-work-loop-plan",
+      "prompt": "While drafting a new spec, a TDD-mode acceptance criterion is concrete enough to test. Should new-spec create the failing test now, and what does the later work-loop do with it?",
+      "expected_output": "new-spec performs a pointer/self-check only and creates no repository test file. Work-loop PLAN owns the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch with no repository test file. After full mode enters `CODE-IMPLEMENTATION`, EXECUTE must materialize the approved stub unchanged, verify byte identity, and continue red-green-refactor.",
+      "assertions": [
+        "Keeps new-spec at pointer and stubbability self-check scope",
+        "Routes exact plan-contained code and disposable validation to work-loop PLAN",
+        "Creates no repository test file before CODE-IMPLEMENTATION",
+        "Materializes the approved code unchanged during EXECUTE"
+      ]
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
   "name": "core",
-  "version": "2.16.2",
+  "version": "2.16.3",
   "description": "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 }

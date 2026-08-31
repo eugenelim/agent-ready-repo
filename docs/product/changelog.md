@@ -52,6 +52,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.3] — 2026-08-30
+
+### Highlights
+
+- **Planning-only sessions can now prove TDD acceptance criteria without
+  leaving failing tests in the repository.** The approved plan carries the
+  executable stub, and implementation sessions materialize it only when code
+  work begins.
+
+### Changed
+
+- `new-spec` keeps TDD work at contract and stubbability scope. Full-mode
+  `work-loop` PLAN stores exact stub code and validates it from disposable
+  scratch; after `CODE-IMPLEMENTATION`, EXECUTE copies the approved block
+  unchanged into the real test path and completes red-green-refactor.
+- The loop architecture and adopter guides now explain the planning-proof and
+  repository-materialization boundary, including the two closed no-stub
+  dispositions.
+
 ## [core][2.16.2] — 2026-08-30
 
 ### Highlights

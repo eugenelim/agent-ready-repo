@@ -43,6 +43,20 @@ advance FSM phase state.
 3. `loop-cohort.py` records plan approval, scheduling, attempts, waves, and
    review evidence. `loop-engine.py` records phase transitions and events.
 
+### TDD stub artifact boundary
+
+For a full-mode TDD task, `plan.md` owns the exact stub code and its validation
+result before approval. PLAN compiles and exercises that code from
+disposable scratch, so the proof participates in the approved plan hash without creating a
+repository test file. In `spec-plan` mode, `plan-locked` is terminal and no
+implementation artifact is written.
+
+In code mode, `plan-locked` advances the engine to `CODE-IMPLEMENTATION`.
+EXECUTE then materializes the approved block unchanged at the repository's real
+test path, verifies byte identity, observes the intended red, and continues to
+green. The engine owns the phase boundary; the plan and test tree own different
+representations on either side of it.
+
 ## 6. Failure and recovery behavior
 
 A failed guard blocks the transition. A run-identifier mismatch blocks cohort
@@ -76,4 +90,3 @@ Workspace MCP reads the event stream.
 ## 10. Last verified against commit
 
 `c8cf4b37`
-
