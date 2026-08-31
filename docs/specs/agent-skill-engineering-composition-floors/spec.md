@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Composition Floors
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);

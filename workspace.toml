@@ -2030,7 +2030,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · runtime composition profiles in flight"
+milestone = "M2 · composition floors and pilot profile in flight"
 
 ["ini-009".brief_queue]
 executing = [
@@ -2045,6 +2045,7 @@ backlog = []
 
 ["ini-009".work]
 active  = [
+  { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [{ type = "local", kind = "spec", path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md" }] },
 ]
 queue   = [
 ]
