@@ -1,6 +1,7 @@
 """RFC-0096 Wave 6 — cooling module loading and cooled locator resolution."""
 
 import ast
+import datetime
 import importlib.util
 import json
 import sys
@@ -80,12 +81,19 @@ def _spec(root: Path, slug: str, *, status: str = "Approved", brief: str = "none
     (directory / "plan.md").write_text("# Plan\n", encoding="utf-8")
 
 
-def _workspace(root: Path, *, queue: str, active: str = "", shipped: str = "") -> None:
+def _workspace(
+    root: Path,
+    *,
+    queue: str,
+    active: str = "",
+    shipped: str = "",
+    status: str = "active",
+) -> None:
     """Write one active initiative using already-rendered TOML work entries."""
     (root / "workspace.toml").write_text(
         "[\"ini-002\"]\n"
         "name = \"Cooling fixture\"\n"
-        "status = \"active\"\n"
+        f"status = \"{status}\"\n"
         "milestone = \"M1\"\n\n"
         "[\"ini-002\".work]\n"
         f"queue = [{queue}]\n"
@@ -120,10 +128,10 @@ def _load_status_module():
     return module
 
 
-def _reconcile_json(root: Path, engine) -> dict:
+def _reconcile_json(root: Path, engine, *, now: datetime.datetime | None = None) -> dict:
     """Build the reconcile projection from the source CLI and source engine."""
     status = _load_status_module()
-    return status._build_json(root, engine.analyze(root), "reconcile")
+    return status._build_json(root, engine.analyze(root, now=now), "reconcile")
 
 
 # STUB: AC1
@@ -615,3 +623,134 @@ def test_alias_declared_dependency_does_not_read_its_body(tmp_path, engine) -> N
     )
 
     assert "COOLSENTINEL42" not in json.dumps(_reconcile_json(root, engine))
+
+
+def test_due_reviews_are_counted_and_named(tmp_path, engine) -> None:
+    """AC23–AC26: due records project bounded review and evidence fields."""
+    root = _tree(tmp_path, records=[
+        _record(delivery_id="spec-a", completed_on="2026-07-02", review_on="2026-08-01"),
+        _record(delivery_id="spec-b", completed_on="2098-12-02", review_on="2099-01-01"),
+    ], specs=("spec-a", "spec-b"))
+    _workspace(root, queue="")
+    data = _reconcile_json(
+        root, engine, now=datetime.datetime(2026, 8, 30, tzinfo=datetime.timezone(datetime.timedelta(hours=8)))
+    )
+    cooling = data["cooling"]
+    assert cooling["due_count"] == 1
+    assert {record["delivery_id"] for record in cooling["records"]} == {"spec-a", "spec-b"}
+    assert cooling["due"] == [{
+        "delivery_id": "spec-a", "locator": "docs/specs/spec-a/spec.md", "review_on": "2026-08-01",
+    }]
+    record = next(item for item in cooling["records"] if item["delivery_id"] == "spec-a")
+    assert set(record) == {
+        "delivery_id", "locator", "disposition", "post_closeout_result",
+        "completion_event", "completion_evidence_ref", "review_on", "due",
+    }
+    assert (record["completion_event"], record["completion_evidence_ref"]) == (
+        "merge", "commit:" + "1" * 40,
+    )
+
+
+def test_retention_exceptions_and_retired_records_project_correctly(tmp_path, engine) -> None:
+    """AC27–AC28: retained work is visible; retired work is never due."""
+    root = _tree(tmp_path, records=[
+        _record(delivery_id="retained", disposition="retain-exception", result="Retained"),
+        _record(delivery_id="retired", disposition="retain-exception", result="Retired", completed_on="2026-07-02", review_on="2026-08-01"),
+    ], specs=("retained", "retired"))
+    _workspace(root, queue="")
+    cooling = _reconcile_json(
+        root, engine, now=datetime.datetime(2026, 8, 30, tzinfo=datetime.UTC)
+    )["cooling"]
+    assert cooling["exceptions"] == [{
+        "delivery_id": "retained", "locator": "docs/specs/retained/spec.md",
+        "owner_role": "maintainer", "reason": "audit-obligation", "review_on": "2026-02-01",
+    }]
+    retired = next(item for item in cooling["records"] if item["delivery_id"] == "retired")
+    assert retired["due"] is False
+    assert all(item["delivery_id"] != "retired" for item in cooling["due"] + cooling["exceptions"])
+
+
+def test_closeout_facts_are_projected(tmp_path, engine) -> None:
+    """AC29–AC32: closeout reflects pause, queue state, and reconciliation."""
+    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
+    _workspace(root, queue="")
+    closeout = _reconcile_json(root, engine)["closeout"]
+    assert set(closeout) == {
+        "paused", "all_specs_shipped", "closeout_blockers", "initiative_eligible",
+        "next_action", "cooling_context_visible",
+    }
+    assert closeout["next_action"] == "invoke-close-work"
+    _workspace(root, queue="", status="paused")
+    assert _reconcile_json(root, engine)["closeout"]["next_action"] == "resume-or-keep-paused"
+    _workspace(root, queue=_entry("alpha"))
+    assert "unshipped-specs" in _reconcile_json(root, engine)["closeout"]["closeout_blockers"]
+
+
+@pytest.mark.parametrize("mode", ("status", "reconcile"))
+@pytest.mark.parametrize("failure", ("invalid", "unavailable"))
+def test_exclusion_claim_is_earned_not_declared(tmp_path, engine, mode, failure) -> None:
+    """AC33: lifecycle refusals fail closed on the exclusion claim."""
+    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
+    _workspace(root, queue="")
+    if failure == "invalid":
+        (root / "docs/lifecycle/alpha.json").write_text(
+            '{"schema":"delivery-lifecycle-record.v1"}', encoding="utf-8"
+        )
+    else:
+        root = _tree(tmp_path / "unavailable", lifecycle=False, specs=("alpha",))
+        _workspace(root, queue="")
+        (root / "docs/lifecycle").write_text("unavailable", encoding="utf-8")
+    status = _load_status_module()
+    result = engine.analyze_bounded(root) if mode == "status" else engine.analyze(root)
+    assert status._build_json(root, result, mode)["closeout"]["cooling_context_visible"] is True
+
+
+def test_clean_cooling_state_and_unrelated_canonical_refusal_keep_claim_false(tmp_path, engine) -> None:
+    """AC33–AC34: only cooling findings determine the visibility claim."""
+    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
+    _workspace(root, queue=(
+        '{locator = {kind = "external", value = "https://example.test/alpha"}, '
+        'kind = "spec", surface_role = "user-documentation", source = {mode = "repo-origin"}, '
+        'summary = "fixture", needs = []}'
+    ))
+    data = _reconcile_json(root, engine)
+    assert any(
+        finding["code"] == "configuration_mismatch"
+        for item in data["canonical"]["evaluations"]
+        for finding in item["findings"]
+    )
+    assert data["closeout"]["cooling_context_visible"] is False
+
+
+def test_only_ordinary_orientation_carries_cooling_and_closeout(tmp_path, engine) -> None:
+    """AC35: repair-plan's shared builder stays outside the positive mode gate."""
+    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
+    _workspace(root, queue="")
+    status = _load_status_module()
+    result = engine.analyze(root)
+    repair = status._build_repair_plan_json(root, result, engine.compute_repair_plan(result, root / "workspace.toml"))
+    explain = status._build_explain_json(root, engine.analyze_bounded(root), "alpha", {})
+    assert {"cooling", "closeout"}.isdisjoint(repair)
+    assert {"cooling", "closeout"}.isdisjoint(explain)
+
+
+def test_dueness_uses_the_recorded_zone_and_default_clock(tmp_path, engine) -> None:
+    """AC42–AC43: projection delegates to Wave 5 with an aware production clock."""
+    root = _tree(tmp_path, records=[_record(completed_on="2026-08-01", review_on="2026-08-31")])
+    _workspace(root, queue="")
+    zone_boundary = datetime.datetime(2026, 8, 30, 16, 30, tzinfo=datetime.UTC)
+    assert _reconcile_json(root, engine, now=zone_boundary)["cooling"]["records"][0]["due"] is True
+    root = _tree(tmp_path / "default", records=[_record(completed_on="2019-12-02", review_on="2020-01-01")])
+    _workspace(root, queue="")
+    assert _reconcile_json(root, engine)["cooling"]["due_count"] == 1
+
+
+def test_non_boolean_visibility_fact_is_refused(engine) -> None:
+    """AC44: the Wave 4 type guard survives context-exclusion support."""
+    with pytest.raises(ValueError, match="boolean facts"):
+        engine.project_closeout_status(
+            paused=False,
+            all_specs_shipped=True,
+            closeout_blockers=[],
+            cooling_context_visible="no",
+        )

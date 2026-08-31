@@ -71,6 +71,7 @@ _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
 _migration_operation_digest: Any = None
+project_closeout_status: Any = None
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
@@ -125,6 +126,7 @@ def _bind_engine() -> bool:
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
         "_migration_operation_digest": engine_mod._migration_operation_digest,
+        "project_closeout_status": engine_mod.project_closeout_status,
     })
     _ENGINE_BOUND = True
     return True
@@ -633,6 +635,81 @@ def _scan_dict(result) -> dict:
     }
 
 
+def _cooling_projection(result) -> dict:
+    """Project validated lifecycle records using the analysis-time clock."""
+    records: list[dict] = []
+    due: list[dict] = []
+    exceptions: list[dict] = []
+    for record in result.cooling_records:
+        due_now = (
+            record.post_closeout_result != "Retired"
+            and result.cooling_module is not None
+            and result.cooling_module.is_due(record, result.now).due
+        )
+        records.append({
+            "delivery_id": record.delivery_id,
+            "locator": record.locator,
+            "disposition": record.disposition,
+            "post_closeout_result": record.post_closeout_result,
+            "completion_event": record.completion_event,
+            "completion_evidence_ref": record.completion_evidence_ref,
+            "review_on": record.review_on.isoformat(),
+            "due": due_now,
+        })
+        if due_now:
+            due.append({
+                "delivery_id": record.delivery_id,
+                "locator": record.locator,
+                "review_on": record.review_on.isoformat(),
+            })
+        if record.post_closeout_result == "Retained" and record.exception is not None:
+            exception = dict(record.exception)
+            exceptions.append({
+                "delivery_id": record.delivery_id,
+                "locator": record.locator,
+                "owner_role": exception["owner_role"],
+                "reason": exception["reason"],
+                "review_on": exception["review_on"],
+            })
+    return {
+        "due_count": len(due),
+        "due": due,
+        "records": records,
+        "exceptions": exceptions,
+    }
+
+
+def _closeout_projection(result) -> dict:
+    """Project the first active initiative's closeout facts by slug order."""
+    active = sorted(
+        (
+            initiative
+            for initiative in result.initiatives
+            if initiative.status in {"active", "paused"}
+        ),
+        key=lambda initiative: initiative.slug,
+    )
+    initiative = active[0] if active else None
+    paused = initiative is not None and initiative.status == "paused"
+    all_specs_shipped = initiative is not None and not (
+        initiative.work.queue or initiative.work.active
+    )
+    blockers = [
+        f"type{finding.finding_type}:{finding.spec_path}"
+        for finding in result.reconciliation
+        if initiative is not None
+        and finding.ini_slug == initiative.slug
+        and finding.finding_type in {2, 3}
+    ]
+    projection = project_closeout_status(
+        paused=paused,
+        all_specs_shipped=all_specs_shipped,
+        closeout_blockers=blockers,
+        cooling_context_visible=bool(result.cooling_findings),
+    )
+    return dataclasses.asdict(projection)
+
+
 def _build_json(root: Path, result, mode: str) -> dict:
     # initiatives/work.active/work.shipped are filtered to active initiatives only;
     # reconciliation.* spans all initiatives (including paused/closed) — mirroring analyze().
@@ -691,7 +768,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
     )
     if canonical_failed:
         type2_cleanup_ops = []
-    return {
+    output = {
         "schema_version": 1,
         "mode": mode,
         "workspace_present": True,
@@ -739,6 +816,10 @@ def _build_json(root: Path, result, mode: str) -> dict:
             "spec_files_read": result.files_read,
         },
     }
+    if mode in {"status", "reconcile"}:
+        output["cooling"] = _cooling_projection(result)
+        output["closeout"] = _closeout_projection(result)
+    return output
 
 
 def _build_explain_json(root: Path, result, selector: str, explain_result: dict) -> dict:

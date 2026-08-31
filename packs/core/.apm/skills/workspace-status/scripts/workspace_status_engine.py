@@ -491,6 +491,9 @@ class WorkspaceStatusResult:
     global_scan_files_read: int = dataclasses.field(default=0)
     cooled: frozenset[Path] = dataclasses.field(default_factory=frozenset)
     cooling_findings: tuple[RoutingFinding, ...] = ()
+    cooling_records: tuple[Any, ...] = ()
+    cooling_module: Any | None = None
+    now: datetime.datetime | None = None
 
     @property
     def files_read(self) -> int:
@@ -557,8 +560,6 @@ def project_closeout_status(
         for value in (paused, all_specs_shipped, cooling_context_visible)
     ):
         raise ValueError("closeout projection boolean facts are required")
-    if not cooling_context_visible:
-        raise ValueError("Wave 4 cannot exclude cooling context")
     if not isinstance(closeout_blockers, (list, tuple)) or any(
         not isinstance(blocker, str) or not blocker.strip()
         for blocker in closeout_blockers
@@ -1942,7 +1943,7 @@ _COOLING_PAIRS = frozenset(
 
 
 def _cooled_locators(
-    root: Path, module: Any
+    root: Path, module: Any, records_out: list[Any] | None = None
 ) -> tuple[frozenset[Path], tuple[RoutingFinding, ...]]:
     """Read accepted lifecycle records and return their resolved artifact paths."""
     lifecycle_dir = root / "docs" / "lifecycle"
@@ -1969,6 +1970,8 @@ def _cooled_locators(
         if getattr(result, "code", None) is not None or record is None:
             findings.append(_finding("invalid_lifecycle_record", relative_path))
             continue
+        if records_out is not None:
+            records_out.append(record)
         if (record.disposition, record.post_closeout_result) not in _COOLING_PAIRS:
             continue
         for locator in (record.locator, *record.aliases):
@@ -1983,13 +1986,17 @@ def _cooled_locators(
 
 def _resolve_cooled_state(
     root: Path,
+    records_out: list[Any] | None = None,
+    module_out: list[Any] | None = None,
 ) -> tuple[frozenset[Path], tuple[RoutingFinding, ...]]:
     """Resolve cooling support once, then load the repository's cooled set."""
     try:
         module = _load_cooling_module()
     except RuntimeError:
         return frozenset(), (_finding("cooling_state_unavailable"),)
-    return _cooled_locators(root, module)
+    if module_out is not None:
+        module_out.append(module)
+    return _cooled_locators(root, module, records_out)
 
 
 def _parse_source_authority_status(
@@ -3721,6 +3728,7 @@ def analyze(
     *,
     workspace_bytes: bytes | None = None,
     cooling_enabled: bool = True,
+    now: datetime.datetime | None = None,
 ) -> WorkspaceStatusResult:
     """Run full workspace-status analysis from a repo root.
 
@@ -3739,8 +3747,12 @@ def analyze(
     # repair-plan and the migration paths keep pre-Wave-6 behaviour: they see an
     # empty cooled set so their operations still reach cooled entries. Whether
     # cooling constrains them is RFC-0096 Wave 7's decision.
+    moment = now if now is not None else datetime.datetime.now(datetime.UTC)
+    cooling_records: list[Any] = []
+    cooling_modules: list[Any] = []
     cooled, cooling_findings = (
-        _resolve_cooled_state(root) if cooling_enabled else (frozenset(), ())
+        _resolve_cooled_state(root, cooling_records, cooling_modules)
+        if cooling_enabled else (frozenset(), ())
     )
 
     workspace_path = root / "workspace.toml"
@@ -3786,10 +3798,17 @@ def analyze(
         global_scan_files_read=type1_files,
         cooled=cooled,
         cooling_findings=cooling_findings,
+        cooling_records=tuple(cooling_records),
+        cooling_module=cooling_modules[0] if cooling_modules else None,
+        now=moment,
     )
 
 
-def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceStatusResult:
+def analyze_bounded(
+    root: Path,
+    autonomous_dispatch: bool = False,
+    now: datetime.datetime | None = None,
+) -> WorkspaceStatusResult:
     """Run bounded workspace-status analysis (Type 2+3 only; no global spec walk).
 
     Used by 'status' and 'explain' subcommands. Structurally guarantees no Type 1
@@ -3800,7 +3819,12 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
     is_need_satisfied and SKILL.md §2). workspace_status() passes autonomous_dispatch=True.
     """
     t0 = time.monotonic()
-    cooled, cooling_findings = _resolve_cooled_state(root)
+    moment = now if now is not None else datetime.datetime.now(datetime.UTC)
+    cooling_records: list[Any] = []
+    cooling_modules: list[Any] = []
+    cooled, cooling_findings = _resolve_cooled_state(
+        root, cooling_records, cooling_modules
+    )
 
     workspace_path = root / "workspace.toml"
     workspace = parse_workspace(workspace_path)
@@ -3832,6 +3856,9 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
         global_scan_files_read=0,
         cooled=cooled,
         cooling_findings=cooling_findings,
+        cooling_records=tuple(cooling_records),
+        cooling_module=cooling_modules[0] if cooling_modules else None,
+        now=moment,
     )
 
 
