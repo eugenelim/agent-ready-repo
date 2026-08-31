@@ -366,26 +366,24 @@ incidental fix.
 
   Seven review rounds each defeated the guard, five of them producing a
   predicate change, and `qa.md` records each with the mutation that beat it and
-  the boundary that resulted. The seventh defeat was not in the body at all: the
-  guard's own subject set was unpinned, so an entry could be deleted and both
-  guards would pass while asserting nothing. The
-  boundary is the durable output: **the guard owns form and review owns
-  meaning.** It does not cover a clause whose bytes are preserved inside a
-  non-normative block — a fence, a four-space indent, or an HTML comment —
-  because it reads the raw file rather than the rendered document; stripping
-  those spans
-  was rejected on adjudication as enumerating span kinds, already incomplete when
-  proposed, and a real CommonMark parse is a dependency needing its own decision
-  record. It likewise does not cover a clause relocated under a heading the
-  guard's line pattern does not recognize — a setext underline, an indented ATX
-  heading, a raw `<h2>`, or an ATX heading inside a container block — which is the
-  same class and the one whose apparent closability cost a round: heading syntax
-  is enumerable, but the nearest heading in the rendered document is not. Nor
-  does it cover a contradicting sentence anywhere, including under the pinned
-  heading, which is judgment rather than form. The graded authoring assertions are
-  corroborating evidence only: they were written in the same change as the
-  behavior they assert, so alone they would be a mirror rather than a
-  contract.
+  the boundary that resulted. The seventh defeat was not in the body at all:
+  the guard's own subject set was unpinned, so an entry could be deleted and
+  both guards would pass while asserting nothing. The boundary is the durable
+  output: **the guard owns form and review owns meaning.** It does not cover a
+  clause whose bytes are preserved inside a non-normative block — a fence, a
+  four-space indent, or an HTML comment — because it reads the raw file rather
+  than the rendered document; stripping those spans was rejected on
+  adjudication as enumerating span kinds, already incomplete when proposed, and
+  a real CommonMark parse is a dependency needing its own decision record. It
+  likewise does not cover a clause relocated under a heading the guard's line
+  pattern does not recognize — a setext underline, an indented ATX heading, a
+  raw `<h2>`, or an ATX heading inside a container block — which is the same
+  class and the one whose apparent closability cost a round: heading syntax is
+  enumerable, but the nearest heading in the rendered document is not. Nor does
+  it cover a contradicting sentence anywhere, including under the pinned
+  heading, which is judgment rather than form. The graded authoring assertions
+  are corroborating evidence only: they were written in the same change as the
+  behavior they assert, so alone they would be a mirror rather than a contract.
 
 ## Follow-ons
 

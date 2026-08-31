@@ -362,6 +362,13 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
 # guidance` as a container-block heading, and that defeat was documented as
 # uncovered rather than closed -- see the NOT-closed list below.
 #
+# A seventh round defeated the guard without touching the body at all: the
+# subject set this dict provides was unpinned, so deleting an entry dropped that
+# clause's coverage while everything stayed green. Pinned now, in its own test,
+# because putting the pin inside one consumer left the sibling vacuous. The
+# lesson that generalizes is in the slice qa.md: a set is safe only when some
+# assertion demands a positive result from its members.
+#
 # Four conjuncts, stated at the width they actually hold:
 #   - the pinned heading occurs exactly once, which closes relocation under a
 #     second copy of the same heading *when that copy is a column-0 ATX

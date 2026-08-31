@@ -233,7 +233,8 @@ as a reverted clause.
 
 Seven review rounds each defeated this guard a different way, and five of them
 produced a change to the predicate over the body; the seventh defeat was in the
-guard's own subject set rather than in the clauses it reads. Round 3's fix changed the predicate's **category**
+guard's own subject set rather than in the clauses it reads. Round 3's fix
+changed the predicate's **category**
 rather than its pattern. Round 6's fix changed nothing about the predicate: it
 wrote the boundary down instead, because the proposed closure turned out to be
 another incomplete enumeration.
