@@ -570,39 +570,6 @@ open = [
   # strict=false since the queue supersedes it, and set the queue's status-check
   # timeout well above the slowest required check.
   {slug = "merge-queue-rejected-tooling-integration", source = "spec/ci-gate-parallelization Objective"},
-  # project-knowledge --capture TIMES OUT on this repo, and reports the timeout as a
-  # capacity/request problem. Reproduced: a well-formed 2.5KB observation (well under
-  # the 16KB capture_event_bytes budget) takes 33.4s against script_seconds=30 and
-  # returns {"reason_code":"journal_capacity","recovery_action":"fix_request",
-  # "retryable":false}. Both fields are wrong and actively misleading: nothing about
-  # the request needs fixing, it is not a capacity breach, and a deadline breach IS
-  # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
-  # which reuses the journal_capacity code for an elapsed deadline.
-  # CAUSE FOUND 2026-08-27 — the earlier "git is not the cause" line was wrong and is
-  # retracted. It IS git. _assert_v1_writer_allowed() -> _committed_v1_map_is_coherent()
-  # -> _read_committed_topic_map() calls _committed_blob_id() once per committed topic,
-  # and each spawns `git ls-tree -z <commit> -- <path>` through _git_read(). That is
-  # 64+ SEQUENTIAL subprocess spawns; the original probe timed single `git ls-files` /
-  # `git status` calls, which never touch this loop. The "~2.4s system time across 33s
-  # wall" observation is the confirming detail, not a counter-indication: the parent
-  # blocks on children, so their cost never lands in the parent's own accounting.
-  # Measured here at 65 topics: the coherence check alone takes 22-31s (two runs) of
-  # the 30s whole-script budget, and one batched `git ls-tree -r -z` over the same
-  # tree takes 0.064s. Not capture-only: the same check runs on all four writer paths
-  # — capture_observation:2809, write_terminal_disposition:1658,
-  # _apply_guarded_mutation_body:1683, distill_observation:3254 — so every promotion
-  # through the --distill CLI also fails, there reported as `map_mismatch` because
-  # _git_read() catches TimeoutExpired alongside CalledProcessError.
-  # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
-  # so lessons are silently not captured by anyone who does not read the exit code.
-  # To close: (1) give a deadline breach its own reason_code with retryable=true and a
-  # recovery_action that is not fix_request, and stop _git_read() reporting a timeout
-  # as map_mismatch; (2) batch the per-topic lookup into one `git ls-tree -r -z`,
-  # following the existing precedent at _committed_topic_paths:1222 — and decide
-  # explicitly what a non-success exit means for the batch, treating a partial answer
-  # as unusable (see topic batching-n-subprocess-calls-into-one-changes-the-blast-radius).
-  # Raising script_seconds is not the fix; the loop is O(topics) and will re-breach.
-  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
 
   # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
   # package-suite fixture setup. First, pip/ensurepip cannot create its temporary
@@ -1886,6 +1853,8 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings", summary = "Closed 2026-08-31 by PR #1186 in core 2.17.2, both halves now evidenced. TIMING (the entry's own reproduction, which the first draft of this closure only inferred): the coherence check it measured at 22-31s of a 30s budget over 65 topics now runs in 0.68s over 76 committed topic files, because batching the per-topic git ls-tree into one ls-tree -r -z had already shipped -- _read_committed_topic_map calls the batched _committed_blob_ids and the only single-object caller left is _committed_blob_size. DIAGNOSTICS landed here: an elapsed deadline refused as journal_capacity with recovery_action fix_request and retryable false, all three wrong. deadline_exceeded now carries retryable=true so _diagnostic derives retry. THREE of the four subprocess.TimeoutExpired catch sites report it (_git_read, _git_read_bounded, _committed_blobs_by_id); the fourth is deliberate and pinned by a named test -- resolve_worktree_root IS the confinement proof, so an unfinished check stays a non-retryable confinement refusal rather than inviting a loop against an unbounded boundary check. Review also caught that the first revision made capture WORSE: _committed_path_exists, _committed_v1_map_is_coherent and _git_object_algorithm each converted the new refusal into False or a sha1 default, so _assert_v1_writer_allowed -- the gate on all four writer paths including capture -- re-refused as staged_dual_writer. A _reraise_deadline helper closes all three, mutation-proven. Preserved: byte-limit refusals stay journal_capacity, genuine incoherence stays map_mismatch, and no other refusal's retryability changed. RESIDUAL, not blocking this closure: no consumer reads the retryable field yet -- work-loop SKILL.md gives no retry instruction -- so the field is honest metadata rather than an automatic retry"},
+
   {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12", summary = "Closed 2026-08-31 by PR #1184. catalogue-tooling-ci-gates.yml was the only workflow with no top-level permissions block; the entry's \"one of three\" was already stale. All eight jobs reviewed before applying: no step references GITHUB_TOKEN, github.token or any secret, none writes to git, and the artifact actions authenticate with ACTIONS_RUNTIME_TOKEN while download-artifact's optional github-token input is unset -- so the entry's \"very likely safe\" is now measured. Gate G keeps fetch-depth: 0 because check_release_impact.py shells out to git diff alone. zizmor --min-severity low on the file went from 17 medium findings (8 artipacked plus excessive-permissions) to none; the broad gate runs at high, so this was never a red gate and its threshold is unchanged. Security review then found the new posture unasserted, so the workflow joins check-zizmor-excessive-permissions.py's WORKFLOWS tuple -- mutation-proven, deleting the block exits 1. The persist-credentials half stays uncovered because artipacked is a separate ident below the broad gate's floor; that gap is recorded against workflow-posture-guard-coverage-gaps rather than left implied"},
 
   {slug = "tdd-stub-replaces-prose", source = "docs/product/intents/tdd-stub-replaces-prose.md", summary = "Closed 2026-08-30 as delivered in core 2.16.3. The accepted semantic rule stands: exact executable test code replaces behavior-restating prose. PLAN now owns bounded, no-network, timeout-limited, filesystem-confined validation from disposable scratch and writes no repository test; failed compile or intended-red proof blocks approval unless the closed implementation-discovered exception applies. Code-mode EXECUTE materializes the approved payload only after CODE-IMPLEMENTATION, using an explicit one-terminal-newline byte contract, then completes red-green-refactor. RFC-0028 errata, conventions, architecture, adopter guides, evals, projections, and regression tests carry the durable result"},

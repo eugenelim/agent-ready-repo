@@ -46,6 +46,7 @@ REQUIRED_DIAGNOSTIC_CODES = (
     "confinement",
     "lock_contention",
     "lock_loss",
+    "deadline_exceeded",
     "journal_capacity",
     "cursor_stale",
     "replay_required",

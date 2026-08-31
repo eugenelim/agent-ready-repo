@@ -153,6 +153,7 @@ def test_ac37_diagnostics_are_typed_redacted_and_allowlisted() -> None:
         "confinement",
         "lock_contention",
         "lock_loss",
+        "deadline_exceeded",
         "journal_capacity",
         "cursor_stale",
         "replay_required",

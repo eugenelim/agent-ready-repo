@@ -105,6 +105,144 @@ def _query(**overrides: Any) -> dict[str, Any]:
     return query
 
 
+def test_deadline_refusal_is_retryable_without_waiting(store, monkeypatch) -> None:
+    # Set the deadline in the past rather than patching `time.monotonic`, which
+    # is process-wide: every caller in the interpreter would see the frozen
+    # clock for this test's duration.
+    monkeypatch.setattr(store, "_DEADLINE", time.monotonic() - 1)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._remaining_timeout()
+
+    assert refused.value.diagnostic == {
+        "version": "knowledge-diagnostic.v1",
+        "reason_code": "deadline_exceeded",
+        "retryable": True,
+        "recovery_action": "retry",
+    }
+
+
+def test_git_read_timeout_is_retryable_deadline_breach(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "check_output", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._git_read(tmp_path, ["rev-parse", "HEAD"])
+
+    assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+    assert refused.value.diagnostic["retryable"] is True
+    assert refused.value.diagnostic["recovery_action"] == "retry"
+
+
+def test_git_read_bounded_keeps_capacity_and_map_refusals(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def over_budget(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        kwargs["stdout"].write(b"12")
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(store.subprocess, "run", over_budget)
+    with pytest.raises(store.KnowledgeStoreError) as capacity_refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+    assert capacity_refused.value.diagnostic["reason_code"] == "journal_capacity"
+
+    monkeypatch.setattr(
+        store.subprocess,
+        "run",
+        lambda *args, **_kwargs: subprocess.CompletedProcess(args, 1),
+    )
+    with pytest.raises(store.KnowledgeStoreError) as mismatch_refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+    assert mismatch_refused.value.diagnostic["reason_code"] == "map_mismatch"
+
+
+def test_git_read_bounded_timeout_is_retryable_deadline_breach(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "run", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._git_read_bounded(tmp_path, ["rev-parse", "HEAD"], max_bytes=1)
+
+    assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+    assert refused.value.diagnostic["retryable"] is True
+    assert refused.value.diagnostic["recovery_action"] == "retry"
+
+
+def test_committed_blobs_by_id_timeout_is_retryable_deadline_breach(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "run", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store._committed_blobs_by_id(tmp_path, ["a" * 40])
+
+    assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+    assert refused.value.diagnostic["retryable"] is True
+
+
+def test_a_deadline_survives_every_fallback_to_the_writer_gate(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    """A deadline must not be laundered into a boolean and re-refused.
+
+    `_committed_path_exists` and `_committed_v1_map_is_coherent` convert a
+    refusal into `False`, and `_git_object_algorithm` converts one into a
+    `sha1` default. Each of those swallowed the deadline, and the writer gate
+    then re-refused as `staged_dual_writer` -- telling the caller another
+    writer was mid-migration and its request needed fixing. That is the gate on
+    every writer path, capture included, so this is the case that matters.
+    """
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "check_output", timed_out)
+    monkeypatch.setattr(store.subprocess, "run", timed_out)
+
+    for call in (
+        lambda: store._committed_path_exists(tmp_path, "HEAD", "x"),
+        lambda: store._committed_v1_map_is_coherent(tmp_path),
+        lambda: store._git_object_algorithm(tmp_path),
+        lambda: store._assert_v1_writer_allowed(tmp_path),
+    ):
+        with pytest.raises(store.KnowledgeStoreError) as refused:
+            call()
+        assert refused.value.diagnostic["reason_code"] == "deadline_exceeded"
+        assert refused.value.diagnostic["retryable"] is True
+
+
+def test_a_deadline_at_the_confinement_proof_stays_fail_closed(
+    store, monkeypatch, tmp_path: Path
+) -> None:
+    """The one deliberate exception: the call that IS the confinement proof.
+
+    An unfinished boundary check leaves the root unproven, so it refuses
+    `confinement` and stays non-retryable rather than inviting a caller to loop
+    against an unbounded check. Pinned so the exception cannot be "tidied" into
+    consistency with the other paths without this reason being read.
+    """
+    def timed_out(*_args: Any, **_kwargs: Any) -> None:
+        raise subprocess.TimeoutExpired("git", 1)
+
+    monkeypatch.setattr(store.subprocess, "check_output", timed_out)
+
+    with pytest.raises(store.KnowledgeStoreError) as refused:
+        store.resolve_worktree_root(tmp_path)
+
+    assert refused.value.diagnostic["reason_code"] == "confinement"
+    assert refused.value.diagnostic["retryable"] is False
+
+
 def test_ac24_enquiry_reads_only_one_committed_snapshot(contracts_repo: Path, store) -> None:
     commit = _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
     working = _topic(
@@ -463,11 +601,19 @@ def test_ac19_committed_topic_listing_is_entry_bounded(
 def test_ac19_script_deadline_fails_closed(
     contracts_repo: Path, store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # AC19 governs byte and count budgets. A script deadline is neither, so the
+    # refusal must not borrow `journal_capacity` -- that told the caller its
+    # request needed fixing and was not retryable, both false of a deadline. The
+    # property this case exists for is unchanged: an elapsed deadline still
+    # fails closed rather than proceeding.
     _publish_topics(store, contracts_repo, _topic(store, contracts_repo))
     monkeypatch.setattr(store, "_DEADLINE", time.monotonic() - 1)
     with pytest.raises(store.KnowledgeStoreError) as refused:
         store.enquire(contracts_repo, _query())
-    assert refused.value.diagnostic["reason_code"] == "journal_capacity"
+    diagnostic = refused.value.diagnostic
+    assert diagnostic["reason_code"] == "deadline_exceeded"
+    assert diagnostic["retryable"] is True
+    assert diagnostic["recovery_action"] != "fix_request"
 
 
 def test_ac26_every_registered_read_helper_is_implemented(

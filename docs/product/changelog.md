@@ -52,6 +52,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.2] — 2026-08-31
+
+### Highlights
+
+- **When saving project knowledge runs out of time, it now says so and tells you
+  to try again.** It used to report a storage-capacity problem and advise fixing
+  the request, and on the save path it could even claim another writer was
+  mid-migration — so a run that simply needed more time looked like a request
+  you had to rewrite, and the step that records lessons could not finish for
+  anyone who did not read the exit code.
+
+### Fixed
+
+- `project-knowledge` gives an elapsed script deadline its own diagnostic,
+  `deadline_exceeded`, carrying `retryable: true` and a recovery action of
+  `retry`. It previously reused `journal_capacity`, whose contract says the
+  request needs fixing and must not be retried; all three fields were wrong for
+  a deadline.
+- Three Git read helpers no longer report a subprocess timeout as
+  `map_mismatch`, which was indistinguishable from an incoherent committed
+  snapshot — a different cause with a different remedy.
+- A deadline is no longer swallowed by the handlers that fall back to a boolean
+  or to a default hash algorithm. Those fallbacks previously hid the timeout and
+  let the writer gate re-refuse as `staged_dual_writer`, which was more
+  misleading than the code it replaced.
+- Byte-limit refusals still report `journal_capacity` and genuine snapshot
+  incoherence still reports `map_mismatch`. One deadline deliberately keeps its
+  old code: the call that *is* the repository-confinement proof still refuses
+  `confinement` and stays non-retryable, because an unfinished boundary check
+  leaves the root unproven.
+
 ## [desk-research][1.1.7] — 2026-08-31
 
 ### Changed
