@@ -92,10 +92,17 @@ def test_rfc_write_contract_refuses_unsafe_targets_before_mutation() -> None:
         )
     assert "including before creating a directory" in step_one
 
-    # The remaining clause checks are scoped to step 1 too, and flattened for the
-    # same wrapping reason. A whole-file search would pass on prose anywhere.
-    for target in ("RFC target", "index", "companion-note"):
-        assert target in step_one, f"step 1 no longer names the {target} write"
+    # All three targets must be proven confined in ONE clause that precedes
+    # creation. Asserting each word separately proved only presence: "index" is
+    # satisfied by "standard index" inside the creation instruction itself, so a
+    # regression confining just the RFC target and validating the index and
+    # companion note afterwards would have passed.
+    proof = "RFC target, index, and companion-note paths stay inside it"
+    assert proof in step_one, f"step 1 no longer carries the combined proof clause: {proof!r}"
+    assert step_one.index(proof) < creation, (
+        "the combined confinement proof must precede the creation instruction, "
+        "or some targets are validated only after the directory exists"
+    )
     for refusal in ("unsafe", "link-like", "identity-changing", "out-of-root"):
         assert refusal in step_one, f"step 1 no longer refuses a {refusal} target"
     assert "Refuse an unsafe, link-like, identity-changing, or out-of-root target" in step_one
