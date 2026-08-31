@@ -550,6 +550,18 @@ def test_cooling_satisfies_only_local_spec_dependencies(tmp_path, engine) -> Non
     ready = _reconcile_json(root, engine)["canonical"]["ready"]
     assert all(item["path"] != "docs/specs/beta/spec.md" for item in ready)
 
+    # Scope note, measured 2026-08-30. This criterion proves the defect half:
+    # deleting the defect branch's `cooled_dependency` refusal reddens
+    # test_cooled_defect_dependency_does_not_read_its_body. It cannot prove the
+    # `dep.kind == "spec"` restriction on the later line, because a defect is
+    # caught by its own branch first, and the four remaining
+    # WORKSPACE_ARTIFACT_KINDS are refused downstream by
+    # _dependency_metadata_safety_finding (invalid_artifact_path) whether cooled
+    # or not -- verified by running a cooled and an uncooled brief-kind
+    # dependency, both yielding ready == []. The restriction is therefore
+    # correct defence-in-depth with no observable removal, and a fixture
+    # contrived to kill it would pass for the wrong reason.
+
 
 def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monkeypatch) -> None:
     """Mutation guard: the defect probe avoids cooled artifact metadata reads."""

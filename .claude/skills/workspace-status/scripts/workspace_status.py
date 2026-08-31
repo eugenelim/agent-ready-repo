@@ -448,12 +448,13 @@ def _is_work_spec_item(item: dict) -> bool:
     return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
 
 
-def _canonical_projection(root: Path, result) -> dict:
+def _canonical_projection(root: Path, result, cooled: frozenset[Path]) -> dict:
+    """Build canonical dispatch data using the caller's cooling selection."""
     workspace_bytes = _migration_read_bytes(root, "workspace.toml")
     if workspace_bytes is None:
         raise UnsafeMigrationPathError
     workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-    canonical = run_canonical_reconciliation(workspace, root)
+    canonical = run_canonical_reconciliation(workspace, root, cooled)
     evaluations = [_canonical_evaluation_dict(e) for e in canonical.evaluations]
     legacy_memberships = [
         _canonical_legacy_dict(m, workspace_bytes) for m in canonical.legacy_memberships
@@ -537,7 +538,7 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
         return public_selector, {"selector_status": "not_found"}
 
     canonical_path, legacy_path = targets
-    projection = _canonical_projection(root, result)
+    projection = _canonical_projection(root, result, result.cooled)
     candidates = [
         item
         for item in [
@@ -679,7 +680,11 @@ def _build_json(root: Path, result, mode: str) -> dict:
 
     types_performed = [1, 2, 3] if result.global_scan_performed else [2, 3]
 
-    canonical = _canonical_projection(root, result)
+    canonical = _canonical_projection(
+        root,
+        result,
+        result.cooled if mode in {"status", "reconcile"} else frozenset(),
+    )
     canonical_failed = any(
         finding["code"] in {"invalid_workspace", "configuration_mismatch"}
         for finding in canonical["findings"]
@@ -744,7 +749,7 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
         "workspace_root": ".",
         "scan": _scan_dict(result),
         "selector": selector,
-        "canonical": _canonical_projection(root, result),
+        "canonical": _canonical_projection(root, result, result.cooled),
         **explain_result,
     }
 
@@ -2383,7 +2388,11 @@ def main(argv: list[str] | None = None) -> int:
             # to avoid following a retargeted symlink between the guard and this read.
             _plan_ws_bytes = _ws_toml_resolved.read_bytes()
             _plan_ws_fp = hashlib.sha256(_plan_ws_bytes).hexdigest()
-            result = analyze(root, workspace_bytes=_plan_ws_bytes)
+            result = analyze(
+                root,
+                workspace_bytes=_plan_ws_bytes,
+                cooling_enabled=False,
+            )
             plan = compute_repair_plan(result, workspace_toml, workspace_fingerprint=_plan_ws_fp)
             data = _build_repair_plan_json(root, result, plan)
             # Emit stdout first — plan JSON always available even if file write fails

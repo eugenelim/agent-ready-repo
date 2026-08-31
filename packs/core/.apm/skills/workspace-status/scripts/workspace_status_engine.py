@@ -3716,7 +3716,12 @@ def run_reconciliation(
 
 # ── Main analysis entry point ─────────────────────────────────────────────────
 
-def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceStatusResult:
+def analyze(
+    root: Path,
+    *,
+    workspace_bytes: bytes | None = None,
+    cooling_enabled: bool = True,
+) -> WorkspaceStatusResult:
     """Run full workspace-status analysis from a repo root.
 
     Reads workspace.toml, extracts initiatives, classifies queue entries,
@@ -3731,7 +3736,12 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
     should pass the same bytes to eliminate the TOCTOU window.
     """
     t0 = time.monotonic()
-    cooled, cooling_findings = _resolve_cooled_state(root)
+    # repair-plan and the migration paths keep pre-Wave-6 behaviour: they see an
+    # empty cooled set so their operations still reach cooled entries. Whether
+    # cooling constrains them is RFC-0096 Wave 7's decision.
+    cooled, cooling_findings = (
+        _resolve_cooled_state(root) if cooling_enabled else (frozenset(), ())
+    )
 
     workspace_path = root / "workspace.toml"
     if workspace_bytes is not None:
