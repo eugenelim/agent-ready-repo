@@ -409,8 +409,10 @@ the two-exclusive-result floor, and predeclare near-miss cases for the adjacent
 pairs most likely to collide. Measure in a context held apart from authoring.
 Both the retrieval record and the generic-negative record are bound to the
 digest triple this slice moved, so both are re-measured. The inherited
-foundation pins are a non-regression gate: a moved pin is surfaced, never
-rewritten.
+foundation pins are a non-regression gate: a moved pin is surfaced first, and
+re-taken only on the recorded owner authority the spec's Boundaries admit,
+naming the prior value, which topic the movement added, and why the new routing
+is more correct. Rewriting one without that record is a defect.
 
 **Tests:**
 - `test_foundation_router_cases_are_predeclared_bounded_and_include_near_misses`
@@ -426,8 +428,11 @@ rewritten.
   the retrieval and near-miss cases this task writes **and** the retrieval and
   generic-negative result records it re-measures (AC3)
 
-**Done when:** every inherited pin reproduces, each admitted topic has at least
-two exclusive measured results, and the negative set stays within its bar.
+**Done when:** every inherited pin reproduces except those the slice `qa.md`
+names as re-taken under recorded owner authority, with its prior and current
+value; each admitted topic has at least two exclusive measured results; and the
+negative set stays within its bar. The exception is closed by enumeration, so a
+pin that moved without a naming record leaves this task not done.
 
 ### T8: Record the pytest-suite and Node/browser behavior fixtures
 

@@ -46,6 +46,7 @@ incidental fix.
 | Release history | The pack's version bump is a released-artifact change. | `docs/product/changelog.md` — a `## [agent-skill-engineering][<version>] — <date>` entry | This spec | Entry present in the same change that bumps the manifests | Entry names the admitted topic set and the language-availability change |
 | Interface compatibility | The pack's published surface is consumed externally. | `packs/agent-skill-engineering/pack.toml` and `.claude-plugin/plugin.json`, both authored and edited in lockstep under the pack version-bump rule; the aggregated marketplace manifest, which is regenerated and never hand-edited | This spec | Matching version bump per `packs/AGENTS.md`; publication and roster gates green | Both authored manifests carry the same bumped version, and the aggregate is regenerated |
 | Spec index | The index row states this spec's shape and counts. | `docs/specs/README.md` | This spec | Row's criterion and task counts equal this document's | Row matches the shipped spec |
+| Verification record | Two Boundaries now require a recorded basis, and both name this artifact as its location. | `docs/specs/agent-skill-engineering-languages-and-execution/qa.md` | This spec | Every re-taken pin and corrected declaration named with prior value, current value, authority, and ground; every observed gate failure attributed | No required record's basis lives only in a commit message |
 | Reusable learning | Work-loop's `spec-approved` and `plan-locked` gates capture authoring residue. | `project-knowledge` public seam | work-loop | Capture receipts, or the named skip `project-knowledge unavailable` | Receipts distilled at `plan-locked`, or the skip recorded |
 
 ## Boundaries
@@ -87,18 +88,25 @@ incidental fix.
   capability; those are owned by later slices.
 - Re-record the corpus slice's foundation retrieval pins silently, or to make a
   test pass. Those pins are a non-regression gate: a measurement that moves one
-  is surfaced first, and re-taken only on explicit owner authority recorded with
-  the measurement that moved it, which topic the movement added, and why the new
-  routing is the corpus becoming more correct rather than regressing. A pin
+  is surfaced first, and re-taken only on explicit owner authority recorded in
+  this slice's `qa.md` with the measurement that moved it, the prior pinned
+  value, which topic the movement added, and why the new routing is the corpus
+  becoming more correct rather than regressing. A basis that lives only in a
+  commit message does not satisfy this: the record is the control. A pin
   moved by anything other than a measurement taken in a context held apart from
   authoring is a defect, not a re-take. Their count is asserted in the owning
   fixture test, not restated here.
 - Claim maturity for a topic whose governing evidence note withholds it.
 - Reword an acceptance criterion, assertion, or retrieval case to match a
-  measured result. A predeclaration the measurement refutes may be corrected
-  only on explicit owner authority, recorded with the prompt, the declared
-  expectation, the measured result, and why the measurement is judged the better
-  reading — never by adjusting the declaration until it agrees.
+  measured result. A refuted predeclaration may be corrected only on explicit
+  owner authority, recorded in this slice's `qa.md` with the prompt, the declared
+  expectation, the measured result, and which of two grounds it rests on: the
+  measurement is judged the better reading, or the predeclaration was falsified
+  by a *corrected shipped contract* rather than by the measurement. The second
+  ground is the narrower one and carries its own burden — the corrected
+  declaration must follow from the contract with no measurement in hand, and the
+  record states the contract change it follows from. Never adjust a declaration
+  until it agrees.
 - Commit personal or host-identifying data in any recorded evidence field.
 
 ## Testing Strategy
@@ -154,9 +162,17 @@ incidental fix.
   fire where it is gated.
 - [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
-  pinned foundation result. Both the retrieval record and the generic-negative
-  record are re-measured against the tree they describe, since both are bound
-  to the same digest triple that admitting a topic moves.
+  pinned foundation result — except a pin re-taken under the owner authority the
+  Boundaries admit, which this slice's `qa.md` names individually with its prior
+  and current value. The exception is enumerated rather than open, so a pin that
+  moves without a naming record still fails this criterion: the count of re-taken
+  pins in the record equals the count of pins whose value differs from the
+  corpus slice's, and no other pin differs. The same holds for `predeclared`: a
+  declaration corrected under that authority is named in the record, and any
+  other post-measurement change to a declaration fails here. Both the retrieval
+  record and the generic-negative record are re-measured against the tree they
+  describe, since both are bound to the same digest triple that admitting a
+  topic moves.
 - [ ] **AC5 — Behavior evidence expands.** The pytest-suite and Node/browser
   behavior fixtures are declared and recorded through the established observed
   evaluation process, and every graded result whose pinned source digest this
@@ -288,6 +304,21 @@ incidental fix.
   and routed through an approved spec amendment before close, never reworded
   and never withdrawn in flight: the ship transition requires every criterion
   checked, and a deferral marker no longer satisfies it.
+
+- Two defects in the authoring workflow's shipped contract were fixed during
+  this slice, on owner direction given in session on 2026-08-31 after a graded
+  behavior run surfaced each. Both sit outside this slice's original boundary,
+  so the direction is the scope change that admits them, recorded here rather
+  than inferred from the diff. First, the skill used "mode" for two distinct
+  acts — identifying which mode work needs, and entering it — so a read-only
+  planning task reported a write-time mode; two independent runs against that
+  wording returned opposite receipt modes for the same cases. Second, the skill
+  dispositioned a missing mode and a missing target but never a resolved target
+  whose requested change is unspecified, so a response that named candidates and
+  asked was measured as a miss while behaving correctly. Both fixes are in the
+  skill body; the activation-bearing description is untouched, and activation
+  was re-observed clean after each. (source: `SKILL.md` Modes section and its
+  ambiguity clause; three headless activation runs, 18 of 18 each.)
 
 ## Follow-ons
 
