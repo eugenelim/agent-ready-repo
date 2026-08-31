@@ -71,6 +71,7 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
+  {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
 ]
 shipped = [
   {path = "docs/specs/cooling-untrusted-input-refusals/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Refuse malformed cooling-record input with a named code instead of raising", needs = [{type = "local", kind = "spec", path = "docs/specs/thirty-day-cooling-and-retirement/spec.md"}]},
@@ -169,7 +170,6 @@ shipped = [
   {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
