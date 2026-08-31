@@ -62,9 +62,24 @@ def test_warranted_rfc_retains_existing_authoring_and_review_gates() -> None:
 
 
 def test_rfc_write_contract_refuses_unsafe_targets_before_mutation() -> None:
-    """Every directed write stays under the resolved RFC owner root."""
+    """Every directed write stays under the resolved RFC owner root.
+
+    Scoped to step 1, where the write happens, not to the whole skill: a
+    whole-file search would still pass if the confinement clause were moved
+    below a write instruction or made conditional, which is exactly the defect
+    it exists to prevent.
+    """
     text = SKILL.read_text(encoding="utf-8")
     section = _checkpoint()
+    step_one = text[text.index("1. Find the next ordinal"):text.index("2. **Resolve the target")]
+
+    # The refusal must precede the creation instruction inside step 1.
+    assert "create the directory and standard index" in step_one
+    assert step_one.index("Refuse an unsafe") > step_one.index("Before any write"), (
+        "the confinement contract must be stated as a precondition of writing"
+    )
+    for clause in ("RFC owner root", "before any mutation"):
+        assert clause in step_one, f"step 1 no longer states {clause!r}"
 
     assert "RFC owner root" in text
     for target in ("RFC target", "index", "companion-note"):

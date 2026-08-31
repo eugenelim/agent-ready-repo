@@ -49,7 +49,12 @@ def test_review_cuts_unnecessary_claims_without_changing_other_modes() -> None:
     assert "Keep the other artifact rubrics and well-architected modes unchanged." in text
     assert "Remove unnecessary claims rather than asking the author to enlarge the document to defend them." in text
     assert "one bounded check of its named target or an explicit assumption or discovery predicate" in text
-    assert "shaping-review" not in text
+    # Reject every spelling of a shaping dispatch, not just the hyphenated one:
+    # "dispatch shaping review" would have passed the previous substring check.
+    import re as _re
+    assert not _re.search(r"shaping[ -]review", text), (
+        "architect-review must not dispatch shaping review in any spelling"
+    )
 
 
 def test_review_templates_are_inline_output_templates() -> None:
@@ -84,7 +89,7 @@ def test_review_authority_is_exactly_the_declared_baseline() -> None:
     assert frontmatter.splitlines() == [
         "",
         "name: architect-review",
-        "description: Use when the user supplies an architecture artifact (assessment report, design doc, diagram, RFC, ADR) and asks for critique. Triggers on \"review this\", \"what's wrong with\", \"is this any good\", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing \"what's working\" section. Also runs a well-architected / lens review mode (concern + workload-class lenses incl. GenAI/agentic) emitting a risk register with mechanical/judgment-tagged findings. Inline only. Do NOT assess a repository, produce an artifact, or redesign the system.",
+        "description: Use when the user supplies an architecture artifact (assessment report, design doc, diagram, RFC, ADR) and asks for critique. Triggers on \"review this\", \"what's wrong with\", \"is this any good\", or any artifact-shaped paste with a question attached. Produces a verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), executive summary, severity-tagged findings, and a closing \"what's working\" section. Also runs a well-architected / lens review mode (concern + workload-class lenses incl. GenAI/agentic) emitting a risk register with mechanical/judgment-tagged findings. Renders inline by default; saves only on an explicit user request naming the destination. Do NOT assess a repository, produce an artifact, or redesign the system.",
         "allowed-tools: Read Grep Glob Write",
         "metadata:",
         "  boundaries: [filesystem_read_untrusted, filesystem_write]",
