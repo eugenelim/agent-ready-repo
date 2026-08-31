@@ -52,6 +52,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.6] — 2026-08-31
+
+### Highlights
+
+- **Reviewers now test the evidence behind a finding before they emit it.**
+  They retain uncertain concerns, clearly marking an untraced consequence
+  instead of silently dropping it.
+
+### Changed
+
+- Security review reports now always disclose unreviewed issue classes, even
+  when the review is otherwise clean.
+- The active work-loop no longer supplies captured project knowledge to
+  reviewers; review stays grounded in the current target and governing inputs.
+
 ## [architect][0.15.5] — 2026-08-30
 
 ### Highlights

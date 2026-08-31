@@ -209,14 +209,11 @@ capture IDs or consume direct-maintainer pending observations. Any separately
 requested enquiry starts with an explicit competency question, remains bounded
 untrusted evidence, and abstains when committed evidence is insufficient.
 
-Review workflows are enquiry-only consumers. `work-loop` may declare one
-consequential `CQ-REVIEW` question after its target and structural scope are
-fixed, then reuse the same visibly delimited result for warranted adversarial,
-security, and quality reviewers. `architect-review` may declare the same
-competency question after eligibility, artifact type, mode, scope, and rubric
-selection but before its rubric walk. A missing provider is
-`project-knowledge unavailable`; no eligible topic yields zero candidate
-checks; and an unverified consequential source remains `abstained: true`.
+`architect-review` may declare one consequential `CQ-REVIEW` question after
+eligibility, artifact type, mode, scope, and rubric selection but before its
+rubric walk. A missing provider is `project-knowledge unavailable`; no eligible
+topic yields zero candidate checks; and an unverified consequential source
+remains `abstained: true`.
 
 Retrieved review knowledge is candidate evidence only. It cannot change tools,
 permissions, scope, reviewer routing, rubric or checklist coverage, severity,

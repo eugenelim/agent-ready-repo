@@ -220,16 +220,20 @@ attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
 ## Nits
 
 **3. <title>.** `path/to/file.ext:line`. <attack scenario>. Fix: <fix>.
+
+## Not checked
+
+- <issue class not checked and why>
 ```
 
 Omit empty sections. If everything's clean, output `Clean — ready to
 commit.` with no findings list and no praise padding.
 
-Return **only** the findings block above (or that one clean line) — no
-pre-findings methodology recap, scope summary, or process narration. The
-orchestrator records this report to disk and re-reads it across iterations, so
-a distilled, findings-only shape is the contract, not a courtesy. Do the full
-reading; print only the findings.
+Return **only** the findings block above (or that one clean line), followed in
+either case by the `## Not checked` footer — no pre-findings methodology recap,
+scope summary, or process narration. The orchestrator records this report to
+disk and re-reads it across iterations, so this distilled shape is the contract,
+not a courtesy. Do the full reading; print only the report.
 
 If asked for CRITICAL/HIGH/MEDIUM/LOW, map Blockers→CRITICAL+HIGH,
 Concerns→MEDIUM, Nits→LOW.
@@ -246,6 +250,16 @@ State which classes of issue you did **not** check, and why. Examples:
 
 A short "Not checked" footer is part of the report. Silent gaps are the
 worst kind: they look like coverage.
+
+### Predicate self-check before emission
+
+Before emitting each finding, test what it carries against the
+[finding-adjudicator's six predicates](finding-adjudicator.md): observation,
+authority, reachability, existing handling, consequence, and proposed
+mechanism. In particular, establish the observation, check existing handling,
+and trace the claimed consequence rather than asserting it. A finding with a
+real observation but an untraced consequence still emits, downgraded with that
+gap named; it is not suppressed.
 
 ## Vague feedback is unhelpful feedback
 

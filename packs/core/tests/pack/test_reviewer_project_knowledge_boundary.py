@@ -96,3 +96,60 @@ def test_reviewers_preserve_specialized_independent_judgment() -> None:
     assert "cannot assign threat severity" in security
     assert "cannot prove test coverage" in quality
     assert "cannot decide the quality verdict" in quality
+
+
+def test_reviewers_self_test_against_adjudicator_predicates() -> None:
+    """Require findings to expose the evidence gap rather than disappear."""
+    heading = "### Predicate self-check before emission"
+    for name, (path, _gate) in AGENTS.items():
+        text = _text(path)
+        assert heading in text, name
+        # Scope the predicate list to its own section. "authority",
+        # "existing handling", and "reachability" all occur in unrelated
+        # reviewer prose, so a whole-file search would still pass with the
+        # list deleted.
+        section = _flat(text.split(heading, 1)[1].split("\n## ", 1)[0])
+        assert "finding-adjudicator's six predicates" in section, name
+        for predicate in (
+            "observation",
+            "authority",
+            "reachability",
+            "existing handling",
+            "consequence",
+            "proposed mechanism",
+        ):
+            assert predicate in section, (name, predicate)
+        assert "untraced consequence" in section, name
+        assert "downgraded with that gap named" in section, name
+
+
+def test_security_report_always_includes_not_checked_footer() -> None:
+    """Keep the anti-silent-gap footer in both finding and clean reports."""
+    text = _text(AGENTS["security-reviewer"][0])
+    report = text.split("## Report numbered findings", 1)[1].split(
+        "## Honest about your limits", 1
+    )[0]
+    assert "## Not checked" in report
+    assert "<issue class not checked and why>" in report
+    # Flatten before matching: pinning the prose at its current line wrap
+    # would redden on any reflow of a paragraph this test does not own.
+    assert "followed in either case by the `## Not checked` footer" in _flat(report)
+
+
+def test_active_work_loop_has_no_reviewer_knowledge_enquiry() -> None:
+    """Keep captured knowledge outside reviewer dispatch and review evals."""
+    skill = _text(PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md")
+    evals = _text(
+        PACK_ROOT / ".apm" / "skills" / "work-loop" / "evals" / "evals.json"
+    )
+    assert "CQ-REVIEW" not in skill
+    assert "project-knowledge --enquire" not in skill
+    assert "knowledge-evidence" not in skill
+    assert "review-enquiry-" not in evals
+    # Reviewer dispatch must still name its inputs, and must not reacquire the
+    # envelope. Flattened so a reflow of the paragraph cannot redden this.
+    dispatch = _flat(skill)
+    assert (
+        "Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path."
+        in dispatch
+    )
