@@ -45,7 +45,7 @@ statements agree with what shipped.
 
 ## Constraints
 
-- AC2 owns the taxonomy invariant and AC21 the activation freeze; the mechanism
+- AC2 owns the taxonomy invariant and AC17 the activation freeze; the mechanism
   worth recording here is that re-observing activation is the expensive recovery,
   so any edit to either workflow `SKILL.md` or its eval query fixture must be
   treated as a scope change rather than a detail.
@@ -69,6 +69,7 @@ The suites of record for this slice, and what each owns:
 | `packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py` | Topic identity and sections, router-case shape floors, the precision and recall gate, and the negative-set record |
 | new module under `tests/pack/` | The lifecycle-state function, window elapse, and the roll-up recomputation |
 | `packs/agent-skill-engineering/tests/pack/test_pack_boundary.py` | The unchanged five-mode closed set and the repository-reference scan over `.apm/` |
+| `packs/agent-skill-engineering/tests/integration/test_provider_contract.py` | The shipped-count diagnostic only. This slice adds no provider case, so it owns nothing about the provider response |
 
 ## Durable-output map
 
@@ -98,7 +99,9 @@ value reviewable in the diff, recomputing it makes a hand-edit fail.
 identifier matching the provider contract's `identifier_pattern`, the `topic`
 slug it projects into, `declared_window_days`, its stored `roll_up`, and a
 `capabilities` list. Each capability carries `capability`, `state`, `scope`,
-`surface`, `os`, `last_verified`, `revalidation_trigger`, a `sources` list, and
+`surface`, `os`, `last_verified`, `revalidation_trigger`, a `sources` list whose
+members each carry a title, an absolute URL, a `retrieved_at` date and the
+source's exposed version or `none exposed`, and
 an optional `probe` record carrying its gesture, its observed outcome, and
 whether that outcome passed — a probe that ran and failed is neither absent nor
 passing, and without the recorded result it would take the probe-present branch
@@ -144,12 +147,19 @@ runtime-profile topics there, which D8 authorizes by name at
 
 `resolve_state(row, reference_date, window_days)` returns one of the four states.
 `unavailable` is a recorded property of the row and short-circuits. Otherwise
-window elapse is computed from `last_verified`; an elapsed window returns `stale`
-regardless of probe. Inside the window, a passing probe record returns `verified`
-and its absence returns `experimental`.
+window elapse is computed from the maximum `retrieved_at` across the row's
+sources — the date the authority makes `verified` depend on, and the one an
+author cannot advance without a fresh retrieval; an elapsed window returns
+`stale` regardless of probe. Inside the window, a probe record reporting a pass
+returns `verified`, a probe record reporting a failure returns `experimental`,
+and an absent probe record also returns `experimental`. Every co-occurrence is
+decided by the first matching guard in that chain, so no pair needs its own
+rule.
 
 ### Failure, edge cases & resilience
 
+A `last_verified` later than the maximum `retrieved_at` across the row's
+sources — a verification date advanced without a fresh retrieval — is rejected.
 A malformed or absent date, a window exceeding 90 days, an empty sources list, a
 source whose URL is relative or repository-internal, and a probe record without an
 observed outcome are each rejected with a named diagnostic rather than defaulted
@@ -320,10 +330,12 @@ the register.
   which raises `KeyError` for any count outside `{7, 12, 13}`.
 - Raise the anti-vacuity floors to the new populations, and extend the forbidden
   absence-claim set to the statements this slice makes false.
-- Move the three assertions this slice's new cases push past their floors:
-  `test_provider_contract.py:375` (`len(cases) >= 19`), the closed-set
-  `surface_class` equality at `:376-381`, and `test_foundation_corpus.py:237`
-  (`len(cases) >= 40`).
+- Move the one assertion this slice's new cases push past its floor:
+  `test_foundation_corpus.py:237` (`len(cases) >= 40`). The two
+  `provider-cases.json` floors an earlier draft listed here —
+  `test_provider_contract.py:375` and the `surface_class` closed set at
+  `:376-381` — are not touched, because no surviving task authors a provider
+  case.
 
 **Done when:** the pack suite is green and the count check fails cleanly when
 driven with an unmapped count.
@@ -412,7 +424,7 @@ was measured on the tree that ships.
 ## Rollout
 
 No migration and no runtime flag. The pack's installed behavior changes only by
-gaining topics and by making three already-declared provider fields reachable.
+gaining topics; no provider field or status changes meaning here.
 Installers see the change through the version bump.
 
 ## Risks

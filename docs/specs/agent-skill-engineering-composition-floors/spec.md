@@ -30,10 +30,10 @@ runtime-specific behavior, and gets it without being told a capability is
 supported when nobody checked. The corpus carries three portable composition
 floors and one runtime profile — Claude Code — whose every capability row names
 a first-party source, the date it was retrieved, the product version that
-source exposed where it exposes one, and a lifecycle state that the router
-reports rather than averages away. A sourced claim nobody has independently
-probed reads as `experimental`; a claim whose verification window elapsed reads
-as `stale` and returns provenance instead of guidance; a capability that is
+source exposed where it exposes one, and a lifecycle state the row records and
+the topic body projects. A sourced claim nobody has independently probed reads
+as `experimental`; a claim whose verification window elapsed reads as `stale`; a
+capability that is
 absent, or whose sources conflict so that safe verification cannot be performed,
 reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
 
@@ -180,8 +180,9 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
 
 - [ ] **AC9 — Each state is produced by a distinct named input.** `verified`,
   `experimental`, `stale`, and `unavailable` are each produced by an input the
-  record names. A row whose probe record reports a failed outcome resolves
-  `experimental`, not `verified`. Where two entry conditions co-occur — an absent
+  record names. A row inside its window whose probe record reports a failed
+  outcome resolves `experimental`, not `verified`; past its window the elapsed
+  window decides it. Where two entry conditions co-occur — an absent
   capability whose window has also elapsed — the resolution order is stated, so
   the outcome is determined rather than left to evaluation order.
 
@@ -283,7 +284,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
 
 - [ ] **AC26 — The brief carries a row per delivered slice.** The brief's
   confirmed-slices table carries separate 3a and 3b rows, each with its own ships
-  column and hard predecessor, and its spec map names this spec. The three
+  column and hard predecessor, and its spec map names this spec. The
   residuals this spec assigns to slice 3b name that row as their owner, so the row
   exists rather than being implied.
 
@@ -339,7 +340,7 @@ reads as `unavailable` and is recorded as an enterprise delta rather than a gap.
 - Technical: exactly 11 taxonomy leaves are reserved for runtime composition, of which 3 are composition floors (source: `packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/declared-absent/unpopulated-leaves.md`, 24 `##` blocks of which 11 read "Reserved for the later slice that covers runtime composition")
 - Technical: topic frontmatter is a closed five-key set carrying no provenance, which lives in the body's `## Provenance and lifecycle` section (source: `packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/trust-boundaries-and-instruction-provenance.md:1-7`)
 - Technical: the provider contract declares `runtime`, `profile_provenance` and `stale-profile`, and shipped cases already reach all three — `runtime` 5 times, `profile_provenance` 8, `stale-profile` 2. What is absent is a capability-lifecycle meaning for them, not their reachability. An earlier draft of this spec asserted they were unreached; that assertion was checked against the file declaring the fields rather than the file exercising them, and was false (source: `packs/agent-skill-engineering/tests/fixtures/provider-cases.json`, counted 2026-08-31; declaration at `packs/agent-skill-engineering/tests/fixtures/provider-contract.json:4,8,10,12`)
-- Technical: `stale-profile` today means every candidate provider's `contract_version` is stale, and the oracle returns an eligible provider's declared status verbatim, so a case can assert the status it declares. A capability-lifecycle meaning must therefore be derived, and the two conditions distinguished by `diagnostic` (source: `packs/agent-skill-engineering/tests/integration/test_provider_contract.py:241-242`, `:266-271`, `:292-296`)
+- Technical: `stale-profile` today means every candidate provider's `contract_version` is stale, and the oracle returns an eligible provider's declared status verbatim, so a provider case can assert the status it declares. Both facts are why the router's capability-lifecycle reporting is deferred rather than attempted here; this slice adds no provider case and imposes no derivation obligation (source: `packs/agent-skill-engineering/tests/integration/test_provider_contract.py:241-242`, `:266-271`, `:292-296`)
 - Technical: all five composition authoring modes are `unavailable` today (source: `packs/agent-skill-engineering/tests/fixtures/unsupported-mode-cases.json`)
 - Technical: admitting a topic moves binding digests on both recorded runs. The retrieval record's four all change value; on the negative record three change, because its `case_fixture_digest` binds `generic-negatives.json`, which this slice does not edit. Both records assert four digests each (source: `packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py:278-292` and `:491-502`)
 - Technical: an admitted topic must have at least two *declared* solo cases and at least two *measured* solo selections, and these are different populations (source: `packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py:253-259` and `packs/agent-skill-engineering/tests/pack/test_corpus_admission.py:816-831`)
