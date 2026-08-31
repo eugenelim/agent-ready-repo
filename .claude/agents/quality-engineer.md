@@ -379,6 +379,16 @@ For legacy or hard-to-test code:
 - Recommend characterization tests (snapshot the current behaviour
   before refactoring) where the existing behaviour is undocumented.
 
+### Predicate self-check before emission
+
+Before emitting each finding, test what it carries against the
+[finding-adjudicator's six predicates](finding-adjudicator.md): observation,
+authority, reachability, existing handling, consequence, and proposed
+mechanism. In particular, establish the observation, check existing handling,
+and trace the claimed consequence rather than asserting it. A finding with a
+real observation but an untraced consequence still emits, downgraded with that
+gap named; it is not suppressed.
+
 ## Report numbered findings
 
 Same format as adversarial-reviewer. Group by severity. **Cite file

@@ -468,13 +468,10 @@ in the paired audit; an indeterminate stops unless the evidence retry admits it.
 - **Full mode:** iterate `adversarial-reviewer` until its adjudicated main-loop result returns `Clean — ready to commit.`
 - **Light mode:** run the single bounded pass and adjudicate its report. After every sustained finding has an `apply` or `defer` disposition and applied fixes pass GATES, do not run another adversarial pass except for the single sustained-Blocker re-review allowed by the light-mode rules.
 
-If a review-planning enquiry was explicitly declared, load [its protocol](references/review-planning-enquiry.md) before the first adversarial dispatch.
-
-After that branch, select a subagent matching `adversarial-reviewer`. Pass the
-diff, spec path, and the delimited envelope or named skip. Fallback if no
-subagent is installed: record the mandatory reviewer outcome as `missing`,
-emit `BLOCKED`, and stop readiness. Do not convert missing adversarial evidence
-into a summary-only or named-skip path.
+Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path.
+Fallback if no subagent is installed: record the mandatory reviewer outcome as
+`missing`, emit `BLOCKED`, and stop readiness. Do not convert missing
+adversarial evidence into a summary-only or named-skip path.
 
 ### Finding-adjudication gateway
 
@@ -800,7 +797,6 @@ Load when the predicate fires; don't load speculatively.
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | A full-mode `spec-approved` or `plan-locked` transition succeeds | [`references/project-knowledge-approval-gates.md`](references/project-knowledge-approval-gates.md) |
-| A review-planning enquiry was explicitly declared after target and review scope are fixed, before adversarial dispatch | [`references/review-planning-enquiry.md`](references/review-planning-enquiry.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
