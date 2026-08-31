@@ -453,8 +453,12 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-nosec-form",
             "tools", "lint-nosec-form.py",
         ),
-        # Semgrep suppression comments are checked separately because Semgrep's
-        # rule registry is unavailable to a stdlib-only local form lint.
+        # The Semgrep twin of the bandit form lint above, and separate from it
+        # because the two suppression grammars differ: Semgrep matches raw line
+        # text rather than parsed comments, and a second comment marker does not
+        # terminate its rule-id list the way bandit's does. It checks suppression
+        # *form* only — a stdlib-only gate cannot reach Semgrep's rule registry
+        # to confirm a named rule exists.
         _script_step(
             "test-lint-nosemgrep-form",
             "tools", "test-lint-nosemgrep-form.py",

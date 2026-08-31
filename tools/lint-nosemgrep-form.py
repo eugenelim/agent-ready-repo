@@ -5,11 +5,18 @@ Run: python3 tools/lint-nosemgrep-form.py [<root> ...]
 Exit 0 = clean, 1 = violations, 2 = usage/tool error (including an empty scan).
 
 The scan roots come from Makefile's SAST_DIRS. It makes one bounded pass over
-the git-tracked UTF-8 text files below those roots; it never asks Git about
-individual files. The scan is deliberately not suffix-filtered: Semgrep's
-configured languages can change, while its raw-line suppression matcher is
-language-independent. Scanning this small superset prevents a new recognised
-source suffix from becoming a fail-open gap.
+the UTF-8 text files below those roots — tracked *and* untracked-but-unignored,
+matching what the semgrep gate's directory walk would see — and it never asks
+Git about individual files. The scan is deliberately not suffix-filtered:
+Semgrep's configured languages can change, while its raw-line suppression
+matcher is language-independent. Scanning this small superset prevents a new
+recognised source suffix from becoming a fail-open gap.
+
+Cost, measured 2026-08-31 on darwin 25.5.0 / Python 3.13.13: 3.56 s over ~2,700
+files, one bounded pass, zero ignore queries. Recorded here rather than in
+`docs/specs/lint-performance-p0/notes/lint-inventory.md`, which is a frozen
+dated capture: `docs/CONVENTIONS.md` rule 4 keeps the operative figure in a
+Living file at the point of use instead of patching the historical record.
 """
 
 from __future__ import annotations
@@ -28,11 +35,21 @@ _SAST_DIRS_RE = re.compile(r"^SAST_DIRS\s*[:+?]*=\s*(.+)$", re.MULTILINE)
 # These are Semgrep 1.175.0's live core-binary strings, extracted from
 # `semgrep/bin/semgrep-core` beside `OSS/src/reporting/Nosemgrep.ml`.
 # `semgrep/constants.py` is not the live matcher: its only live suppression
-# constant is NOSEM_INLINE_COMMENT_RE, used by rule_match.py for fingerprint
-# normalisation. A Semgrep upgrade that changes a core string must change this
-# lint too — ADR-0084's `Revisit if` trigger, pinned by a self-test rather than
-# left to memory. The split string literals avoid making this lint source itself
-# an accidental Semgrep suppression.
+# constant is `NOSEM_INLINE_COMMENT_RE`, used by `rule_match.py` for fingerprint
+# normalisation. Note the previous-line pattern allows ZERO spaces, where
+# `constants.py` requires one — copying the Python constant is a fail-open bug.
+#
+# The self-test compares these literals against its own copy, so it catches a
+# local edit. It cannot catch upstream drift: `tools/requirements-sast.txt` pins
+# `semgrep>=1.174,<2`, a floating range. Closing that is part of the deferred
+# decision tracked by the `sast-nosemgrep-has-no-form-lint` register entry.
+#
+# The identifiers above are backticked and the literals below are split on
+# purpose: this file must never contain the directive token in a shape Semgrep
+# honours, or its own source becomes a real suppression that this lint reports.
+# Note backticking is NOT sufficient at the start of a comment line, because the
+# previous-line pattern's `[^a-zA-Z0-9]*` consumes the marker and the backtick
+# alike. Keep the spelled token out of this file entirely.
 CORE_RULE_IDS_PATTERN = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
 CORE_INLINE_PATTERN = " " + r"nosem(?:grep)?"
 CORE_PREVIOUS_LINE_PATTERN = r"^[^a-zA-Z0-9]* *" + r"nosem(?:grep)?"
@@ -89,9 +106,18 @@ def sast_dirs(root: Path | None = None) -> list[str]:
 
 
 def tracked_source_files(roots: list[str], root: Path | None = None) -> list[Path]:
-    """Return sorted tracked files in the configured Semgrep roots."""
+    """Return sorted scannable files in the configured Semgrep roots.
+
+    `--cached --others --exclude-standard` deliberately, not bare `ls-files`.
+    The gate this mirrors (`run-semgrep-gate.py ... $(SAST_DIRS)`) walks the
+    directories, so it honours a suppression in a file that is not committed
+    yet. A tracked-only listing cannot see the files a change *adds*, which is
+    exactly when an author needs the answer — and it hid a real blanket
+    suppression in this lint's own source until the file was staged.
+    `--exclude-standard` keeps gitignored build output out.
+    """
     completed = subprocess.run(  # nosec B603, B607  # list argv, no shell; "git" from PATH, roots from the Makefile
-        ["git", "ls-files", "-z", "--", *roots],
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *roots],
         cwd=root or REPO_ROOT,
         capture_output=True,
         encoding="utf-8",
@@ -141,6 +167,12 @@ def classify(
             "that marker does not terminate Semgrep's rule-id parser",
         )
     reason = line[token.end() + reason_marker.end():]
+    if not reason.strip():
+        return (
+            NO_REASON,
+            f"a Semgrep suppression{target} has a comment marker but no reason after it; "
+            "the prose is the requirement, not the delimiter",
+        )
     if "," in reason:
         return (
             NO_REASON,
@@ -224,7 +256,8 @@ def main(argv: list[str]) -> int:
         return 1
     print(
         f"lint-nosemgrep-form: OK — every suppression in {scanned} UTF-8 text file(s) "
-        f"names a rule and has a second-comment reason; skipped {skipped} non-UTF-8 file(s)."
+        f"carries a rule-id list and a comma-free second-comment reason; "
+        f"skipped {skipped} non-UTF-8 file(s)."
     )
     return 0
 

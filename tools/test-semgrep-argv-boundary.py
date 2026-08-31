@@ -81,11 +81,10 @@ RULE_ID = "argv-path-without-boundary-validator"
 # Scoped to `#` deliberately: every path this rule ratchets is Python (see the
 # rule's paths.include), so `//` and `<!-- -->` forms cannot occur in this target
 # set. That is a property of the target set, NOT general coverage — a non-Python
-# target added to paths.include would need this widened. Whether a
-# repository-wide form-lint should span comment syntaxes is the open half of the
-# repository-wide form lint at tools/lint-nosemgrep-form.py. Its marker set
-# covers `#`, `//`, `<!-- -->`, and `/* */`; the backlog entry remains open for
-# the ADR-shape decision recorded in its summary.
+# target added to paths.include would need this widened. Repository-wide coverage
+# across comment syntaxes now lives in `tools/lint-nosemgrep-form.py`, whose
+# marker set spans `#`, `//`, `<!-- -->` and `/* */`; the register entry stays
+# open for the ADR-shape decision its summary names.
 SUPPRESSION_COMMENT_RE = re.compile(r"#.*\bnosem(?:grep)?\b")
 
 

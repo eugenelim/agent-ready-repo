@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import subprocess  # nosec B404  # list argv, no shell; argv[0] is sys.executable or "git"
 import sys
 import tempfile
@@ -37,6 +38,15 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 def kinds(source: str, path: str) -> list[str]:
     """Return violation kinds from one in-memory source file."""
     return [violation.kind for violation in _MOD.scan_source(source, path)]
+
+
+def details(source: str, path: str) -> str:
+    """Return the joined operator-facing advice for one in-memory source file.
+
+    The advice differs per branch and is the lint's real output contract, so a
+    kind-only assertion would let two branches' messages be swapped silently.
+    """
+    return " | ".join(violation.detail for violation in _MOD.scan_source(source, path))
 
 
 def run(
@@ -163,16 +173,38 @@ def main() -> int:
         "line-start identifier is accidental",
         kinds("_NO" + "SEMGREP_COMMENT = 1\n", "x.py") == [_MOD.ACCIDENTAL],
     )
+    check(
+        "line-start advice names the next-line effect",
+        "applies to the next line" in details("_NO" + "SEMGREP_COMMENT = 1\n", "x.py"),
+    )
+    check(
+        "inline accidental advice says to break the token",
+        "Break the token"
+        in details("if " + "NO" + "SEMGREP_COMMENT.search(line): x()\n", "x.py"),
+    )
+    check(
+        "delimiter with no reason fires",
+        kinds("x = 1 # " + _TOKEN + ": alpha #\n", "x.py") == [_MOD.NO_REASON],
+    )
 
     empty = run(["definitely-not-a-root"])
     check("empty scan exits 2", empty.returncode == 2, f"rc={empty.returncode}")
 
     clean_tree = run([])
-    scanned_match = _MOD.re.search(r"in (\d+) UTF-8 text file\(s\)", clean_tree.stdout)
+    scanned_match = re.search(r"in (\d+) UTF-8 text file\(s\)", clean_tree.stdout)
     scanned_count = int(scanned_match.group(1)) if scanned_match else 0
-    # The current tree has 2,731 files and its largest SAST_DIRS root has 217.
-    # 2,000 rejects a one-root collapse while retaining roughly 27% churn headroom.
+    # Measured 2026-08-31: tools 219, packs 1776, packages 657, tests 82 -> 2734.
+    # 2,000 rejects a collapse to any single root, but only by 224 files against
+    # `packs` -- the fastest-growing root. So the file floor alone is thin, and the
+    # root-count assertion below is what actually pins the scope: `packs` passing
+    # 2,000 on its own would leave the other three roots (958 files, including
+    # every gate script) unscanned behind a green floor.
     check("real-tree scan remains broad", scanned_count >= 2000, f"count={scanned_count}")
+    check(
+        "every SAST_DIRS root stays in scope",
+        len(_MOD.sast_dirs()) >= 4,
+        f"roots={_MOD.sast_dirs()}",
+    )
     check("real-tree lint is clean", clean_tree.returncode == 0, f"rc={clean_tree.returncode}")
 
     with tempfile.TemporaryDirectory() as raw:
@@ -238,10 +270,17 @@ def main() -> int:
         check=False,
         env={**os.environ, "LINT_NOSEMGREP_FORM_TEST_FORCE_FAILURE": "1"},
     )
+    # Both halves matter: rc==1 alone also passes when the child died at import
+    # (a traceback exits 1 too), which would mean the control never ran.
     check(
         "a failing harness case exits 1",
         forced_failure.returncode == 1,
         f"rc={forced_failure.returncode}",
+    )
+    check(
+        "the failing child reported its failure rather than crashing",
+        "1 case(s) failed." in forced_failure.stdout,
+        forced_failure.stdout[-160:] + forced_failure.stderr[-160:],
     )
 
     return report()
