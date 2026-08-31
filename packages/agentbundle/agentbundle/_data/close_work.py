@@ -18,10 +18,10 @@ import secrets
 import stat
 import sys
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
-sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")  # type: ignore[union-attr]
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[union-attr]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILLS_DIR = SCRIPT_DIR.parents[1]
@@ -883,7 +883,7 @@ def classify_artifact_closeout(
     return ArtifactCloseoutResult("disposition-classification-ready", "Closeout-pending")
 
 
-def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> object:
+def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> Any:
     try:
         inspected = os.lstat(path)
     except OSError as exc:
@@ -913,7 +913,7 @@ def _load_regular_sibling(path: Path, module_name: str, required: set[str]) -> o
     return module
 
 
-def file_safety() -> object:
+def file_safety() -> Any:
     """Load only the co-located byte projection of the blessed helper."""
     global _file_safety_module
     if _file_safety_module is None:
@@ -945,7 +945,7 @@ def _in_installed_skills_tree() -> bool:
     return SCRIPT_DIR.name == "scripts" and SKILLS_DIR.name == "skills"
 
 
-def surface_resolver() -> object:
+def surface_resolver() -> Any:
     """Load the installed Wave 1 resolver from its sibling skill, with no fallback."""
     global _surface_resolver_module
     if not _in_installed_skills_tree():
@@ -1329,7 +1329,7 @@ def _resolved_surface(
     write_authority: str,
     deletion_authority: str,
     authority_evidence_refs: Mapping[str, str],
-) -> tuple[object, str]:
+) -> tuple[Any, str]:
     """Resolve and validate one repository-owned deletion surface."""
     resolver = surface_resolver()
     result = resolver.resolve_surface(repository_root, role, candidates)
@@ -1700,7 +1700,7 @@ def preview_deletion(
         if normalized_targets != [resolved_physical]:
             return DeletionResult("surface-resolution-refused")
         boundary = resolved_physical.parent
-        resolved_targets = (resolved_physical,)
+        resolved_targets: tuple[Path, ...] = (resolved_physical,)
     else:
         if boundary != resolved_physical:
             return DeletionResult("surface-resolution-refused")
