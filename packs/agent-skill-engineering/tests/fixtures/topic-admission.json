@@ -412,6 +412,35 @@
           "revalidation_trigger": "Revalidate when either documented hook event model changes."
         }
       ]
+    },
+    {
+      "topic": "claude-code-skills-subagents-hooks-and-plugins",
+      "reviewer": "foundation-corpus-reviewer",
+      "last_verified": "2026-08-31",
+      "claim_groups": [
+        {
+          "name": "delegation and skill-loading contract",
+          "basis": "doctrine",
+          "promotion_class": "single-ecosystem-contract",
+          "clause": "Delegated work runs in a fresh context window that does not inherit the parent conversation, and a skill's body enters context only when the skill is invoked.",
+          "ecosystem": "Claude Code.",
+          "version_range": "Claude Code >= 2.1.251, upper bound open.",
+          "fixture": "claude-code-capability-probes",
+          "sources": [
+            {
+              "identity": "Claude Code subagents reference \u2014 https://code.claude.com/docs/en/sub-agents",
+              "retrieved_at": "2026-08-31",
+              "version": "2.1.251"
+            },
+            {
+              "identity": "Claude Code skills reference \u2014 https://code.claude.com/docs/en/skills",
+              "retrieved_at": "2026-08-31",
+              "version_state": "none exposed"
+            }
+          ],
+          "revalidation_trigger": "Revalidate when a release changes subagent context construction or skill body loading."
+        }
+      ]
     }
   ]
 }

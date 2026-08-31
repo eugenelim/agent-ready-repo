@@ -2,6 +2,7 @@
 # OKF index: concepts
 
 - [Activation, discoverability, and mode wayfinding](activation-discoverability-and-mode-wayfinding.md) - Active Reference
+- [Claude Code skills, subagents, hooks, and plugins](claude-code-skills-subagents-hooks-and-plugins.md) - Active Reference
 - [Depth libraries and knowledge providers](depth-libraries-and-okf-knowledge-providers.md) - Active Reference
 - [Framing and trigger quality](framing-and-trigger-quality.md) - Active Reference
 - [Hooks common floor](hooks-common-floor.md) - Active Reference

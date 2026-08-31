@@ -2,7 +2,7 @@
   "schema_version": 1,
   "source_ref": "packs/agent-skill-engineering/okf/agent-skill-engineering-foundation/concepts/declared-absent/unpopulated-leaves.md",
   "note": "Transcribes the register so its size is asserted against a declared count. The register's own frontmatter stays a closed five-key set, so the count cannot live there.",
-  "expected_count": 21,
+  "expected_count": 20,
   "leaves": [
     "inline-and-progressive-reference-skills",
     "multimode-artifact-and-script-backed-skills",
@@ -12,7 +12,6 @@
     "activation-and-near-miss-evals",
     "behavioral-and-construction-checks",
     "fixtures-isolation-and-execution-economics",
-    "claude-code-skills-subagents-hooks-and-plugins",
     "codex-skills-subagents-hooks-and-plugins",
     "github-copilot-skills-subagents-hooks-and-plugins",
     "cursor-skills-subagents-hooks-and-plugins",

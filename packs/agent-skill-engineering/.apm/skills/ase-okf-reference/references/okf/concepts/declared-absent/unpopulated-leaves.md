@@ -90,11 +90,6 @@ execution cost, evidenced as one practice.
 
 
 
-## claude-code-skills-subagents-hooks-and-plugins
-
-**Why absent.** Reserved for the later slice that covers runtime composition.
-
-**What would admit it.** That slice's admission run.
 
 ## codex-skills-subagents-hooks-and-plugins
 

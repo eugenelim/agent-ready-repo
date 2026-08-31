@@ -19,7 +19,7 @@
       "runtime": "claude-code",
       "topic": "claude-code-skills-subagents-hooks-and-plugins",
       "declared_window_days": 90,
-      "roll_up": "incomplete",
+      "roll_up": "complete-current",
       "capabilities": [
         {
           "capability": "skill-preloading-versus-invocation",
@@ -81,8 +81,82 @@
               "source_version": "2.1.251"
             }
           ]
+        },
+        {
+          "capability": "worktree-isolation",
+          "state": "verified",
+          "scope": "Whether parallel sessions can run against isolated checkouts of one repository.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing worktree session support or its isolation boundary.",
+          "sources": [
+            {
+              "title": "Common workflows \u2014 run parallel sessions with worktrees",
+              "url": "https://code.claude.com/docs/en/common-workflows",
+              "retrieved_at": "2026-08-31",
+              "source_version": "none exposed"
+            }
+          ],
+          "probe": {
+            "gesture": "Ran a full session inside a linked git worktree, inspecting status, rebasing onto the upstream branch, and committing.",
+            "outcome": "The worktree carried its own HEAD, index and working tree while sharing the parent repository's object store; commits landed on the worktree's own branch only.",
+            "passed": true
+          }
+        },
+        {
+          "capability": "component-scoped-hooks",
+          "state": "experimental",
+          "scope": "Whether a hook's declaration site determines the scope it applies to.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing the hook configuration scope table.",
+          "sources": [
+            {
+              "title": "Claude Code hooks reference",
+              "url": "https://code.claude.com/docs/en/hooks",
+              "retrieved_at": "2026-08-31",
+              "source_version": "none exposed"
+            }
+          ]
+        },
+        {
+          "capability": "managed-hook-policy",
+          "state": "experimental",
+          "scope": "Whether organization-managed policy can define or constrain hooks.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing managed-policy precedence over local hook settings.",
+          "sources": [
+            {
+              "title": "Claude Code hooks reference",
+              "url": "https://code.claude.com/docs/en/hooks",
+              "retrieved_at": "2026-08-31",
+              "source_version": "none exposed"
+            }
+          ]
+        },
+        {
+          "capability": "plugin-agent-restrictions",
+          "state": "experimental",
+          "scope": "Whether an agent supplied by a package is subordinate to a same-named local agent.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing plugin-versus-local agent precedence or namespacing.",
+          "sources": [
+            {
+              "title": "Create plugins",
+              "url": "https://code.claude.com/docs/en/plugins",
+              "retrieved_at": "2026-08-31",
+              "source_version": "none exposed"
+            }
+          ]
         }
-      ]
+      ],
+      "probe_fixture": "claude-code-capability-probes"
     }
   ]
 }

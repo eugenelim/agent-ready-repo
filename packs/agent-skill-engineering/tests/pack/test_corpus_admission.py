@@ -46,6 +46,15 @@ LANGUAGE_SPECIFIC_TOPICS = {
     "python-and-pytest",
     "typescript-node-and-javascript-test-runners",
 }
+# D8 extends the single-ecosystem-contract exception to runtime profiles by
+# name: "Runtime profiles follow the same scoped exception and must be
+# revalidated when their contract changes." A profile's ecosystem is a product,
+# not a language, so it cannot join the language set above without making that
+# set mean two different things.
+RUNTIME_PROFILE_TOPICS = {
+    "claude-code-skills-subagents-hooks-and-plugins",
+}
+SINGLE_ECOSYSTEM_TOPICS = LANGUAGE_SPECIFIC_TOPICS | RUNTIME_PROFILE_TOPICS
 SOURCE_IDENTITY = re.compile(r"\S.*\s+(?:—\s*)?https?://\S+")
 ABSOLUTE_URL = re.compile(r"https?://[^\s)\]>]+")
 VERSION_LOWER_BOUND = re.compile(r"(?:>=|>)\s*\d")
@@ -139,7 +148,7 @@ def _assert_doctrine_group_shape(topic: dict[str, object], group: dict[str, obje
             assert runtime["clause"] == group["clause"]
     if promotion_class == "single-ecosystem-contract":
         assert "eligibility" not in group, group["name"]
-        assert topic["topic"] in LANGUAGE_SPECIFIC_TOPICS, topic["topic"]
+        assert topic["topic"] in SINGLE_ECOSYSTEM_TOPICS, topic["topic"]
         assert VERSION_LOWER_BOUND.search(group["version_range"]), group["version_range"]
         assert VERSION_UPPER_BOUND.search(group["version_range"]), group["version_range"]
     if promotion_class == "repeated-observed-failures":
@@ -984,6 +993,59 @@ def _fixture_resolves(fixture: str, declared: set[str], graded: set[str]) -> boo
     return fixture in declared and fixture in graded
 
 
+def _probe_fixture_resolves(fixture: str, ledger: dict) -> bool:
+    """A runtime profile's fixture names a probe-record set that exists.
+
+    RFC-0097 D8 admits a "construction or behavior fixture" for this promotion
+    class. A language topic's is a graded behavior eval; a runtime profile's is
+    the probe record, because the evidence is observed runtime behavior rather
+    than a graded authoring run. Taken as a pure function of the ledger so the
+    control below can supply a constructed one.
+    """
+    for profile in ledger.get("profiles", []):
+        if profile.get("probe_fixture") != fixture:
+            continue
+        return any("probe" in row for row in profile.get("capabilities", []))
+    return False
+
+
+def test_a_runtime_profile_fixture_resolves_to_its_probe_records() -> None:
+    ledger = json.loads(
+        (FIXTURES / "runtime-capability-ledger.json").read_text(encoding="utf-8")
+    )
+    checked = 0
+    record = json.loads(ADMISSION.read_text(encoding="utf-8"))
+    for topic in record["topics"]:
+        if topic["topic"] not in RUNTIME_PROFILE_TOPICS:
+            continue
+        for group in topic.get("claim_groups", []):
+            if group.get("promotion_class") != "single-ecosystem-contract":
+                continue
+            checked += 1
+            assert _probe_fixture_resolves(group["fixture"], ledger), (
+                topic["topic"],
+                group["fixture"],
+            )
+    assert checked == 1, checked
+
+
+def test_probe_fixture_resolution_rejects_both_ways_it_can_be_empty() -> None:
+    """Seeded control: an unmatched name and a matched name with no probe fail
+    for different reasons, and a check reading only the name would pass the
+    second."""
+    named_but_unprobed = {
+        "profiles": [{"probe_fixture": "f", "capabilities": [{"capability": "a"}]}]
+    }
+    probed = {
+        "profiles": [
+            {"probe_fixture": "f", "capabilities": [{"capability": "a", "probe": {}}]}
+        ]
+    }
+    assert not _probe_fixture_resolves("absent", probed)
+    assert not _probe_fixture_resolves("f", named_but_unprobed)
+    assert _probe_fixture_resolves("f", probed)
+
+
 def test_single_ecosystem_fixture_reference_resolves_to_a_graded_fixture() -> None:
     """A single-ecosystem group's fixture names a case that was actually graded.
 
@@ -998,6 +1060,8 @@ def test_single_ecosystem_fixture_reference_resolves_to_a_graded_fixture() -> No
 
     checked = 0
     for topic in json.loads(ADMISSION.read_text(encoding="utf-8"))["topics"]:
+        if topic["topic"] in RUNTIME_PROFILE_TOPICS:
+            continue
         for group in topic.get("claim_groups", []):
             if group.get("promotion_class") != "single-ecosystem-contract":
                 continue
