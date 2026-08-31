@@ -53,9 +53,31 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 ## Procedure
 
+0. **Pre-create artifact checkpoint — mandatory.** Before resolving an ordinal or
+   setting up an RFC target, decide in this order:
+
+   - Is there an unresolved consequential direction that more than one owner must
+     agree, or an explicit request to circulate an RFC? If neither applies, select
+     `skip`, report the selected route once and return.
+   - Does an adequate existing RFC or decision already resolve it? If so, select
+     `reuse`, `amend`, or `reference`, report the selected route once and return.
+   - Is a cheaper correct artifact sufficient? Route a settled durable choice to an
+     ADR; a settled bounded feature to a spec; routine work to a PR; tracked work to
+     an issue; a remaining architecture choice to `architect-design`; and reversible
+     work to a reversible, time-bounded trial with exit criteria. Report the selected
+     route once and return.
+   - Only a warranted RFC continues. Choose `light`, `standard`, or `heavy` by
+     consulting `work-loop`'s risk triggers; do not reproduce those triggers here.
+
+   Every return above has no RFC effect. Do not resolve an ordinal, create a directory
+   or index, choose a target, or draft body text.
+
 1. Find the next ordinal with `python3 scripts/next-ordinal.py docs/rfc`. Resolve the
-   repository root, the RFC location and its sibling index from project instructions;
-   if an explicit RFC request needs them, create the directory and standard index.
+   repository root, the RFC location and its sibling index from project instructions.
+   Only on the warranted-RFC path, create the directory and standard index if needed.
+   Before any write, resolve the RFC owner root and prove the RFC target, index, and
+   companion-note writes stay inside it. Refuse an unsafe, link-like,
+   identity-changing, or out-of-root target before any mutation.
 
 2. **Resolve the target — don't create the file yet.** Choose a short
    `NNNN-kebab-title.md`; do not copy `assets/rfc.md` until the checkpoint and preview
@@ -64,8 +86,8 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 3. **Guided shape/intake — offer, don't force.** Infer a clear request; otherwise ask
    only outcome, scope, and risk. Pick `light`, `standard`, or `heavy` by consulting
-   `work-loop`'s risk triggers; do not reproduce those triggers here. Default to
-   `standard` when unsure and confirm the frame without forcing a questionnaire.
+   `work-loop`'s risk triggers. Default to `standard` when unsure and confirm the
+   frame without forcing a questionnaire.
 
 4. **Research + de-risk checkpoint — gated.** Do not create an RFC or write body text
    before the author signs off on findings in chat. For each decision, inspect relevant
@@ -81,8 +103,10 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    `frame-intent`/`de-risk-intent` shaping output, an `architect-design` or
    `architect-review` result — read it and cite it instead of repeating the work. Say so
    when a provider is absent; absence is never a failure and never justifies a stand-in
-   file. Evidence too large for the body may go in a sibling `docs/rfc/NNNN-notes/`
-   folder, summarized and linked from `Evidence & prior art`; it is optional.
+   file. A direct RFC request needs no synthetic intent; an accepted intent or design
+   result may supply provenance when present. Evidence too large for the body may go
+   in a sibling `docs/rfc/NNNN-notes/` folder, summarized and linked from
+   `Evidence & prior art`; it is optional.
 
    Emit a self-contained block for each decision: options and trade-offs, a recommendation
    with owner and decide-by, repository/external backing, and de-risk result. A `light`
@@ -115,8 +139,11 @@ implementation review for a reversible, time-bounded trial with exit criteria.
    absolute and repository-relative target, index path, and a preview of Reviewer brief
    plus The ask before writing. Then copy the template, set metadata, and lead with
    Reviewer brief then The ask. The body is the argument; summarize proof-of-work rather
-   than copying it. Gloss each coined term, acronym, and sibling-RFC reference inline on
-   first use so a reader arriving from the index can understand it.
+   than copying it. Delete claims the decision does not need. Before stating a necessary
+   cross-document assertion as fact, perform one bounded check of its named target or
+   mark the claim as an assumption or discovery predicate. Gloss each coined term,
+   acronym, and sibling-RFC reference inline on first use so a reader arriving from
+   the index can understand it.
 
 6. **Pre-handoff gate — mandatory, before status → Open.** At every tier,
    citation-integrity checks that references contain their cited claims and
