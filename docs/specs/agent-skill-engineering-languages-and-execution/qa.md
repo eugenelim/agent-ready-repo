@@ -622,6 +622,36 @@ holds 40 cases with no `nm-python-vs-node`, and it carries both status rollbacks
 A hash in a record is a claim that needs re-checking after every rebase, the same
 as any other measured figure. It looks durable and is not.
 
+## Where the review loop stopped, and what that leaves open
+
+Eleven adversarial rounds, each adjudicated: **87 findings raised, 72 sustained
+and fixed, 13 refuted, 2 indeterminate and later resolved by measurement.** A
+further 9 defects were found by checking a fix rather than trusting it, which is
+recorded because it was the higher-yield habit.
+
+The loop stopped after round 11 on a stated criterion rather than on fatigue.
+Round 11 was asked directly whether the defect recursion — guard, then its subject
+set, then the controls' own subject set — had a fourth level, and it established
+that the level-3 pin is self-terminating: a set equality plus an exact length has
+no further subject set above it. That is what closes the sequence, not a judgment
+that enough rounds had been run.
+
+**The residual, stated plainly: round 11's own fixes were not re-reviewed.** Five
+changes went in after the last adversarial pass — the `PLACEHOLDER_CONTROLS` pin,
+the corrected findings count, the re-pinned hashes, the round-10 guard rows, and
+two count corrections. Each was mutation-proved or verified against the artifact
+it describes, and each is listed above with that evidence, but none has had an
+independent reader. On this slice's own record that is not a small caveat: of the
+fixes this session shipped, several were themselves defective, and the pattern was
+that a fix aimed at the last defect reproduced it one level down.
+
+Why stop anyway. The findings migrated over the last four rounds from the slice's
+deliverables to the record's own internal consistency and to the guards protecting
+two prose sentences. The deliverables — five admitted topics, the retrieval
+baseline, the admission records, the behaviour evidence — were last found defective
+in round 9, and rounds 10 and 11 found nothing in them. Continuing would have kept
+finding real things at a cost the remaining findings no longer justified.
+
 ## Failure attribution
 
 The *Always do* Boundary requires every failure this slice's gate chain observed
