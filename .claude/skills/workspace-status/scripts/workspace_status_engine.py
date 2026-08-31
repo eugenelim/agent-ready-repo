@@ -2533,7 +2533,14 @@ def _dependency_is_satisfied(
         return False, _finding(
             "unsatisfied_dependency", dep.path, "defect lacks closed membership"
         )
-    if dep.kind == "spec" and cooled_dependency:
+    # Decide every cooled dependency here, before any probe is built. Keying
+    # this on `dep.kind == "spec"` let intent/research/design fall through to
+    # the probe below and read the cooled body. The per-kind *outcome* is
+    # preserved: `defect` already returned above when it lacks a closed
+    # membership, so reaching this line means the dependency is satisfied by
+    # its lifecycle record — which is completion evidence, and the only
+    # evidence available once the body may not be read.
+    if cooled_dependency:
         return True, None
     if matches:
         metadata = _artifact_metadata(workspace, matches[0].entry, root)
@@ -2837,6 +2844,7 @@ def _structural_findings(
     brief_child_states: dict[str, set[str]],
     global_invalid_workspace: bool = False,
     root: Path | None = None,
+    cooled: bool = False,
 ) -> list[RoutingFinding]:
     entry = membership.entry
     findings: list[RoutingFinding] = []
@@ -2857,6 +2865,17 @@ def _structural_findings(
     ):
         findings.append(_finding("invalid_artifact_path", source_parent or "", "source parent"))
     skip_status_lifecycle = _append_collection_kind_findings(findings, membership)
+    if cooled:
+        # Everything above is derived from the membership: the workspace entry,
+        # its collection, and the duplicate/cycle sets. Everything below reads
+        # the artifact body — existence, readability, parent provenance, plan
+        # state, status lifecycle. For a cooled artifact those predicates are
+        # not observable, so they are not evaluated rather than evaluated
+        # against absent values. Passing read-free metadata down instead would
+        # report a live artifact as `missing_artifact` and its declared parent
+        # as a `provenance_mismatch`, which is how a cooled defect came to
+        # block its own live dependants.
+        return findings
     if metadata is not None and metadata.invalid_path:
         findings.append(_finding("invalid_artifact_path", entry.path, "artifact path"))
         return findings
@@ -3076,9 +3095,10 @@ def run_canonical_reconciliation(
         *parse_blocked_paths,
     }
     for membership in local_memberships:
+        membership_cooled = _membership_is_cooled(membership, root, cooled)
         metadata = (
-            _metadata_from_membership(membership)
-            if _membership_is_cooled(membership, root, cooled)
+            None
+            if membership_cooled
             else (
                 _artifact_metadata(workspace, membership.entry, root)
                 or _metadata_from_membership(membership)
@@ -3092,6 +3112,7 @@ def run_canonical_reconciliation(
             brief_child_states,
             global_invalid_workspace,
             root,
+            cooled=membership_cooled,
         ):
             structurally_blocked_paths.add(membership.entry.path)
     evaluations = [
