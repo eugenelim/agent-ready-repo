@@ -829,16 +829,22 @@ def _canonical_status_projection(
 ) -> dict[str, Any] | None:
     workspace_path = repo_root / "workspace.toml"
     try:
+        if cooled is None:
+            # `analyze_bounded` failed, but it does work this projection does
+            # not, so this projection can still succeed. Passing its absent
+            # cooled set through meant reconciling with no exclusion at all:
+            # the surface still answered, and it answered with cooled artifacts
+            # presented as work. Re-resolving here keeps the exclusion, reuses
+            # the engine's existing entry point rather than adding a resolver,
+            # and lets a genuine failure land in the handler below — the same
+            # mapping the CLI applies to the same failure.
+            cooled, cooling_findings = engine._resolve_cooled_state(repo_root)
         workspace_path.lstat()
         if workspace_path.is_symlink():
             resolved = workspace_path.resolve()
             resolved.relative_to(repo_root.resolve())
         workspace = engine.parse_workspace(workspace_path)
-        canonical = (
-            engine.run_canonical_reconciliation(workspace, repo_root, cooled)
-            if cooled is not None
-            else engine.run_canonical_reconciliation(workspace, repo_root)
-        )
+        canonical = engine.run_canonical_reconciliation(workspace, repo_root, cooled)
     except tomllib.TOMLDecodeError as exc:
         _log.warning("workspace_status: canonical parse failed: %s", type(exc).__name__)
         return _canonical_failure_projection("invalid_workspace")

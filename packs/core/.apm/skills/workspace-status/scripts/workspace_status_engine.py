@@ -1904,6 +1904,28 @@ def _cooling_module_path() -> Path | None:
     return None
 
 
+# The callables the projection and the cooled-set resolution reach for. The
+# record *attributes* they read are guarded per record by _COOLING_RECORD_FIELDS,
+# because a module can satisfy this contract while one record does not.
+_COOLING_MODULE_CALLABLES = ("load_record", "is_due")
+
+# Every attribute _cooling_projection reads off an accepted record. A record
+# missing one raises AttributeError from inside the projection, which the
+# top-level handler reports as configuration_mismatch with exit 2 — a record
+# problem presented as a configuration one, and with no finding naming the file.
+_COOLING_RECORD_FIELDS = (
+    "delivery_id",
+    "locator",
+    "aliases",
+    "disposition",
+    "post_closeout_result",
+    "completion_event",
+    "completion_evidence_ref",
+    "review_on",
+    "exception",
+)
+
+
 def _load_cooling_module() -> Any:
     """Load the cooling module through a confined filesystem or package route."""
     module_path = _cooling_module_path()
@@ -1928,7 +1950,15 @@ def _load_cooling_module() -> Any:
             except Exception as exc:
                 sys.modules.pop(module_name, None)
                 raise RuntimeError("cooling module unavailable") from exc
-    if not callable(getattr(module, "load_record", None)):
+    # Guard everything the projection calls, not just the entry point. Loading
+    # on `load_record` alone let a module missing `is_due` pass here and raise
+    # AttributeError later, deep inside `_cooling_projection`, where the
+    # top-level handler turns it into `configuration_mismatch` and exit 2 — a
+    # module-shape problem reported as a configuration one.
+    if any(
+        not callable(getattr(module, name, None))
+        for name in _COOLING_MODULE_CALLABLES
+    ):
         raise RuntimeError("cooling module unavailable")
     return module
 
@@ -1967,7 +1997,11 @@ def _cooled_locators(
             continue
         result = module.load_record(root, record_path)
         record = getattr(result, "record", None)
-        if getattr(result, "code", None) is not None or record is None:
+        if (
+            getattr(result, "code", None) is not None
+            or record is None
+            or any(not hasattr(record, name) for name in _COOLING_RECORD_FIELDS)
+        ):
             findings.append(_finding("invalid_lifecycle_record", relative_path))
             continue
         if records_out is not None:
@@ -3754,9 +3788,9 @@ def _run_type23_scan(
         for list_name, entries in [("queue", ini.work.queue), ("active", ini.work.active)]:
             for entry in entries:
                 spec_file = _safe_spec_path(root, entry.slug)
-                if spec_file in cooled:
-                    continue
                 if spec_file is None or not spec_file.exists():
+                    continue
+                if spec_file in cooled:
                     continue
                 files_read += 1
                 status = extract_spec_status(spec_file)
@@ -3773,9 +3807,9 @@ def _run_type23_scan(
     for ini in initiatives:
         for entry in ini.work.shipped:
             spec_file = _safe_spec_path(root, entry.slug)
-            if spec_file in cooled:
-                continue
             if spec_file is None or not spec_file.exists():
+                continue
+            if spec_file in cooled:
                 continue
             files_read += 1
             status = extract_spec_status(spec_file)

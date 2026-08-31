@@ -71,17 +71,32 @@ Removing any one of the three wave-boundary statements from
 `docs/architecture/work-intake-and-artifact-routing.md` reddens
 `tests/roster/test_wave4_durable_outputs_and_release.py::test_wave4_docs_keep_the_remaining_wave_boundary`.
 
-## Two guards deliberately not manufactured
+## Retracted: the `dep.kind == "spec"` restriction
 
-- **The `dep.kind == "spec"` restriction has no observable removal.** A `defect`
-  dependency is caught by its own branch before that line is reached, and the
-  four remaining `WORKSPACE_ARTIFACT_KINDS` are refused downstream by
-  `_dependency_metadata_safety_finding` whether cooled or not — measured, both a
-  cooled and an uncooled `brief`-kind dependency yield `ready == []`. The
-  restriction is correct defence-in-depth. A fixture contrived to kill it would
-  pass for the wrong reason, which is the defect class three of T1's guards had.
-- **A `brief`-kind case added to AC56 was vacuous** and was removed rather than
-  kept for appearances.
+This section previously recorded that the restriction had no observable removal
+and was correct defence-in-depth. **Both claims were wrong, and the restriction
+was a defect (A1), repaired in `fix(core)!: decide a cooled dependency before
+any probe is built`.**
+
+The measurement was wrong in two independent ways, and each alone invalidates
+it:
+
+- **It used the one kind that structurally cannot reproduce the defect.**
+  `brief` is constrained by `_is_canonical_local_brief_path`, so a `brief`-kind
+  dependency is refused by `_dependency_metadata_safety_finding` before the
+  probe matters. `intent`, `research`, and `design` are not so constrained, and
+  those are the kinds that fell through and opened the cooled body.
+- **It observed the wrong thing.** `ready == []` is a dispatch outcome. Whether
+  the artifact body was *read* is a different question, and a refusal downstream
+  of the read says nothing about it. The repair is verified instead by a
+  sentinel planted in the cooled body and asserted absent from the emitted JSON,
+  and by a probe recording entry to the reader.
+
+**The generalizing lesson:** a sample drawn from the one member that cannot
+exhibit the behaviour proves nothing about the others, and an observable one
+layer downstream of the property under test cannot decide it. This is the same
+defect class as the guards that "passed for the wrong reason" — it simply
+appeared in the justification for skipping a guard rather than in a guard.
 
 ## Gate results
 
@@ -89,7 +104,11 @@ Removing any one of the three wave-boundary statements from
 | --- | --- |
 | `make lint-ruff` | clean |
 | `lint-spec-status.py --root .` | exit 0 |
-| `tests/roster/test_status_projection_and_context_exclusion.py` | 48 passed |
+| `tests/roster/test_status_projection_and_context_exclusion.py` | 57 passed |
+
+Counts above are the post-GATES figures. The repair round that followed the
+review added criteria and controls; the suite count is re-measured at
+closeout rather than carried forward from this table.
 | `tools/test_workspace_status_cli.py` | 158 passed, 19 subtests |
 | `tools/test_workspace_status.py` | 86 passed |
 | `tests/roster/test_workspace_status_projection.py` | 26 passed, 12 subtests |

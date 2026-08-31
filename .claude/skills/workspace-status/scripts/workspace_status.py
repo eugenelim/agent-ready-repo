@@ -665,9 +665,11 @@ def _cooling_projection(result) -> dict:
     due: list[dict] = []
     exceptions: list[dict] = []
     for record in result.cooling_records:
+        # `cooling_module` is never None here: a record can only exist because
+        # the module that parsed it loaded, and `_load_cooling_module` now
+        # guards `is_due` alongside `load_record`.
         due_now = (
             record.post_closeout_result != "Retired"
-            and result.cooling_module is not None
             and result.cooling_module.is_due(record, result.now).due
         )
         records.append({
@@ -686,7 +688,15 @@ def _cooling_projection(result) -> dict:
                 "locator": record.locator,
                 "review_on": record.review_on.isoformat(),
             })
-        if record.post_closeout_result == "Retained" and record.exception is not None:
+        # Gate on the post-closeout result, not on `exception is not None`.
+        # `retain-exception` makes the block mandatory, so presence alone would
+        # also admit ("retain-exception", "Retired") — a settled record AC28
+        # requires to contribute nothing. `ExternalAdvisory` is the other live
+        # obligation and was dropped entirely, losing its owner, reason and date.
+        if (
+            record.post_closeout_result in {"Retained", "ExternalAdvisory"}
+            and record.exception is not None
+        ):
             exception = dict(record.exception)
             exceptions.append({
                 "delivery_id": record.delivery_id,
@@ -703,8 +713,15 @@ def _cooling_projection(result) -> dict:
     }
 
 
-def _closeout_projection(result) -> dict:
-    """Project the first active initiative's closeout facts by slug order."""
+def _closeout_projection(result) -> dict | None:
+    """Project the first active or paused initiative's closeout facts, by slug.
+
+    Returns None when no initiative is active or paused. There is no closeout
+    state to project then, and synthesizing one from the absent initiative
+    reported `unshipped-specs` against a workspace whose initiatives are all
+    closed — a blocker naming work that does not exist. The block is omitted
+    rather than emitted empty, which leaves AC29's closed key set untouched.
+    """
     active = sorted(
         (
             initiative
@@ -713,17 +730,15 @@ def _closeout_projection(result) -> dict:
         ),
         key=lambda initiative: initiative.slug,
     )
-    initiative = active[0] if active else None
-    paused = initiative is not None and initiative.status == "paused"
-    all_specs_shipped = initiative is not None and not (
-        initiative.work.queue or initiative.work.active
-    )
+    if not active:
+        return None
+    initiative = active[0]
+    paused = initiative.status == "paused"
+    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
     blockers = [
         f"type{finding.finding_type}:{finding.spec_path}"
         for finding in result.reconciliation
-        if initiative is not None
-        and finding.ini_slug == initiative.slug
-        and finding.finding_type in {2, 3}
+        if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
     ]
     projection = project_closeout_status(
         paused=paused,
@@ -838,7 +853,9 @@ def _build_json(root: Path, result, mode: str) -> dict:
     }
     if mode in {"status", "reconcile"}:
         output["cooling"] = _cooling_projection(result)
-        output["closeout"] = _closeout_projection(result)
+        closeout = _closeout_projection(result)
+        if closeout is not None:
+            output["closeout"] = closeout
     return output
 
 
@@ -2873,6 +2890,22 @@ def main(argv: list[str] | None = None) -> int:
                 else "configuration_mismatch"
             )
         )
+        # Only the unclassified fallback. `unsafe_path` and `invalid_workspace`
+        # are recognized refusals that already carry their own emitted code, and
+        # a shipped criterion requires them to stay silent on stderr;
+        # `configuration_mismatch` is the branch that swallows genuine
+        # programming errors, so it is the one that needs a diagnostic.
+        #
+        # The exception type only, never `str(exc)`: an exception message
+        # routinely carries an absolute host path, and this stream is read into
+        # agent context. The type name is the largest disclosure-free signal,
+        # and it is what the exit-code contract at the top of this module
+        # promises — one line on stderr, no traceback, no internal paths.
+        if code == "configuration_mismatch":
+            print(
+                f"workspace-status: {code}: {type(exc).__name__}",
+                file=sys.stderr,
+            )
         _emit(_canonical_failure_payload(subcommand, code))
         return 2
 

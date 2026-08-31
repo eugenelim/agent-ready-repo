@@ -58,11 +58,13 @@ exact observable it must produce.
   RFC §7 forbids. A record added by a pull request deserves spec-level scrutiny.
   (source: `cooling.py:728-747` cross-checks only `path.stem == delivery_id` and
   the recomputed `review_on`.)
-- **`project_closeout_status` has no production caller.** Defined at
-  `workspace_status_engine.py:539`, called only from
-  `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py` at
-  `:420`, `:454`, and `:472`. (source: verified by repository search,
-  2026-08-30.)
+- **`project_closeout_status` gained its first production callers in this
+  wave.** Defined at `workspace_status_engine.py:550`, it was test-only when this
+  spec was drafted; `workspace_status.py` now binds it at `:74` and `:129` and
+  calls it at `:743` from `_closeout_projection`. The original assumption of no
+  production caller no longer holds, and the closeout block is therefore shipped
+  behaviour rather than an unreached projection. (source: verified by repository
+  search, 2026-08-31.)
 - **Wave 5's `cooling.is_due`, `cooling.load_record`, and the record schema stay
   byte-unchanged.** Wave 6 consumes them and adds no field and no date logic.
   (source: RFC §9 Wave 6 non-goals; Wave 5 is Shipped and frozen.)
@@ -122,8 +124,11 @@ files are not frozen and are amended by criterion.
 
 - Never open the `spec.md` or `plan.md` of a cooled artifact during `status`,
   `reconcile`, `explain`, or the MCP status tool — including through the
-  dependency probe at `workspace_status_engine.py:2386-2396`, which reaches
-  artifacts that are not workspace entries.
+  dependency probes built inside
+  `workspace_status_engine._dependency_is_satisfied`, which reach artifacts that
+  are not workspace entries. Cited by symbol: a line range in a file this size
+  drifts with every edit, and the range this criterion first carried had already
+  moved into an unrelated function.
 - Never write, move, rename, or delete anything under `docs/lifecycle/`.
 - Never distil, disposition, confirm, or delete from `workspace-status`.
 - Never recompute a review date or re-derive a cooling period.
@@ -290,6 +295,13 @@ absent in whitespace-normalized text.
   `canonical.blocked` has the path `spec/alpha`, which the control does carry:
   a legacy entry reaches that list as a legacy membership rather than as an
   evaluation, so the scan and ready assertions alone leave it presented.
+  A `legacy_entry` finding for that path is still emitted, and this is
+  deliberate. Exclusion governs the *artifact*: it is not offered as work and
+  its body is not opened. `legacy_entry` is a fact about the `workspace.toml`
+  entry's shape, and migrating that entry is still owed whether or not the
+  artifact it points at has cooled. Suppressing it would hide a live workspace
+  obligation, and the migration surfaces that would otherwise act on it receive
+  an empty cooled set by design.
 - [ ] **AC21 — Bounded mode excludes identically.** The AC17 fixture run through
   subcommand `status` yields `canonical.ready` containing no item whose `path`
   is `docs/specs/alpha/spec.md`.
@@ -323,7 +335,12 @@ absent in whitespace-normalized text.
   `exception.owner_role = "maintainer"` and
   `exception.review_on = "2026-09-15"` yields one `cooling.exceptions` object
   with exactly the keys `delivery_id`, `locator`, `owner_role`, `reason`, and
-  `review_on`, carrying those two values.
+  `review_on`, carrying those two values. A
+  `("retain-exception", "ExternalAdvisory")` record yields a second such object,
+  because it is the other live obligation someone still owes work against. The
+  selection is on `post_closeout_result`, not on the presence of an exception
+  block: `retain-exception` makes that block mandatory, so presence alone would
+  also admit the settled record AC28 excludes.
 - [ ] **AC28 — Finished work is not a due review.** A
   `("retain-exception", "Retired")` record with `review_on = "2026-08-01"` at
   injected instant `2026-08-30T00:00+08:00` contributes no object to
@@ -456,6 +473,13 @@ absent in whitespace-normalized text.
   `backlog.closed` membership, is absent from `canonical.ready`. A cooled
   dependency is otherwise satisfied from its lifecycle record whatever its kind,
   so the defect gate is the closed membership and never the kind alone.
+- [ ] **AC58 — No live initiative means no `closeout` block.** With every
+  initiative `closed`, the `reconcile` and `status` JSON carry no `closeout` key
+  at all, while `cooling` is still present. Synthesizing the block from the
+  absent initiative reported a `closeout_blockers` entry of `unshipped-specs`
+  against a workspace with no unshipped spec. Omission rather than an empty
+  block keeps AC29's closed key set unchanged.
+
 - [ ] **AC57 — A cooled cross-repo dependency is refused without a read.** A
   queued spec declaring a `cross-repo` dependency whose `containing_brief` is
   named by a `Cooling` record is absent from `canonical.ready`, and
