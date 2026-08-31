@@ -350,6 +350,32 @@ while resting on one mutation shape over a corpus assembled from memory. A
 measured claim has to say *which mutation* was applied to *which set*, so a reader
 can see the gap. The table above does; the rule it replaced did not.
 
+### Four more guards that could not fail, found past the guard itself
+
+Round 9 stopped attacking the clause guard and attacked the slice's own criteria.
+Everything it found was the same shape as the clause-guard defects, which is the
+useful part: the pattern is not specific to that one artifact.
+
+| Guard | Could not fail because | Now |
+| --- | --- | --- |
+| `PROJECTED_REFERENCE_PATTERNS`, the projected-root internal-reference scan | no assertion demanded a positive match from any member; an empty tuple reddened nothing, so a clean result proved only that nothing matched | five class-isolating controls, one per pattern |
+| `/var/folders/…` in the host-identifier set | fully shadowed by `RE_ABS_PATH`'s `/var/` branch, so its seeded control was satisfied by a different member and dropping it was silent | its control uses a string only it can match |
+| the `<placeholder>` branch of the reviewer matcher | both existing controls were absorbed by the sibling role-token branch | its own control |
+| AC2's seventh subject, JavaScript/TypeScript **security scanning** | guarded by `"javascript and typescript"` — the language pair, which the topic carries independently of any scanner content | asserts `"security scan"`; removing the subject reddens |
+| two of six shipped absence claims | they span a line break and the loop compared unnormalized text, so a forbidden claim reddened on one line and passed across two | whitespace collapsed before comparison |
+| the AC3 host-identifier scan | reached two of the five roots the plan extends it over, under one combined floor | five roots, each with its own floor; the eval tree was scanned by nothing before |
+
+`_assert_no_patterns` raising on the first match is what made the second and third
+possible: a control asserting "the tuple fires" is satisfied by one broad member
+and says nothing about the rest. **Seeding a control is not the same as isolating
+it.**
+
+And the first version of the new controls compiled the pattern *strings*, leaving
+the compiled tuples the scans actually consume free to be emptied — the same
+mistake one level down, for the third time in this slice. The rule that keeps
+falling out: **control the value the code reads, not the value it was built
+from.**
+
 ### What the guard does not cover, enumerated
 
 Seven rounds produced seven defeats, five of which changed the predicate, so the
