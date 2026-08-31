@@ -98,6 +98,21 @@ def _refuse(reason_code: str, *, retryable: bool = False) -> None:
     raise KnowledgeStoreError(_diagnostic(reason_code, retryable=retryable))
 
 
+DEADLINE_EXCEEDED = "deadline_exceeded"
+
+
+def _reraise_deadline(error: KnowledgeStoreError) -> None:
+    """Re-raise *error* when it is a deadline breach, otherwise return.
+
+    Call this from every handler that converts a refusal into a fallback value.
+    A deadline breach must not become `False`, a default, or another reason
+    code: the caller loses both the retry advice and the true cause, and the
+    fallback then re-refuses with something that reads as a different fault.
+    """
+    if error.diagnostic.get("reason_code") == DEADLINE_EXCEEDED:
+        raise error
+
+
 def _refuse_with_diagnostic(diagnostic: dict[str, Any]) -> None:
     raise KnowledgeStoreError(diagnostic)
 
@@ -257,6 +272,12 @@ def resolve_worktree_root(repo_root: Path | str) -> Path:
         UnicodeDecodeError,
         ValueError,
         subprocess.CalledProcessError,
+        # A timeout stays a `confinement` refusal here, deliberately, and this is
+        # the one place a deadline is not reported as one. This call IS the
+        # confinement proof: if it does not finish, the root is unproven, and a
+        # retryable diagnostic would invite a caller to loop against an
+        # unbounded boundary check instead of stopping. Fail closed and say
+        # `confinement`; every other deadline path reports `deadline_exceeded`.
         subprocess.TimeoutExpired,
     ):
         _refuse("confinement")
@@ -1089,8 +1110,11 @@ def _git_object_algorithm(repo_root: Path | str | None = None) -> str:
             value = value.decode("ascii").strip()
             if value in _GIT_OBJECT_LENGTHS:
                 return value
-        except KnowledgeStoreError:
-            pass
+        except KnowledgeStoreError as error:
+            # A deadline must not become a silent sha1 default. On a sha256
+            # repository that is the wrong algorithm, and it resurfaces two hops
+            # later as a map or provenance refusal with no trace of the timeout.
+            _reraise_deadline(error)
     return "sha1"
 
 
@@ -1241,7 +1265,8 @@ def _committed_path_exists(repo_root: Path | str, commit_id: str, relative_path:
         _refuse("confinement")
     try:
         return bool(_git_read(repo_root, ["ls-tree", commit_id, "--", relative_path]))
-    except KnowledgeStoreError:
+    except KnowledgeStoreError as error:
+        _reraise_deadline(error)
         return False
 
 
@@ -2066,7 +2091,8 @@ def _read_committed_topic_map(
 def _committed_v1_map_is_coherent(repo_root: Path | str) -> bool:
     try:
         snapshot = _head_snapshot(repo_root)
-    except KnowledgeStoreError:
+    except KnowledgeStoreError as error:
+        _reraise_deadline(error)
         return False
     if not _committed_path_exists(repo_root, snapshot["commit_id"], TOPIC_MAP.as_posix()):
         return False
@@ -2148,7 +2174,9 @@ def _committed_blobs_by_id(
                 _refuse("journal_capacity")
             output.seek(0)
             raw = output.read(corpus + 1)
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except subprocess.TimeoutExpired:
+        _refuse(DEADLINE_EXCEEDED, retryable=True)
+    except (FileNotFoundError, OSError):
         _refuse("map_mismatch")
     blobs: dict[str, bytes] = {}
     cursor = 0
