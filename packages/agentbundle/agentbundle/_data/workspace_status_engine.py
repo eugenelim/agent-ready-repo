@@ -2611,17 +2611,38 @@ def _legacy_canonical_alias(entry: LegacyWorkspaceEntry) -> str | None:
     return None
 
 
+def _membership_is_cooled(
+    membership: WorkspaceMembership,
+    root: Path | None,
+    cooled: frozenset[Path],
+) -> bool:
+    """True when this membership's artifact is named by a lifecycle record.
+
+    The single membership-key rule for the whole engine: resolve through
+    `_confined_artifact_path`, because every read site canonicalizes before
+    opening and a raw string can never match a resolved cooled path.
+    """
+    if root is None or not cooled:
+        return False
+    return _confined_artifact_path(root, membership.entry.path or "") in cooled
+
+
 def _brief_child_spec_states(
     memberships: list[WorkspaceMembership],
     workspace: dict,
     root: Path | None,
+    cooled: frozenset[Path] = frozenset(),
 ) -> dict[str, set[str]]:
     states: dict[str, set[str]] = {}
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
             continue
-        metadata = _artifact_metadata(workspace, entry, root)
+        metadata = (
+            _metadata_from_membership(membership)
+            if _membership_is_cooled(membership, root, cooled)
+            else _artifact_metadata(workspace, entry, root)
+        )
         parent_paths = {
             path for path in (
                 _normalized_optional_artifact_value(entry.source.parent),
@@ -2992,17 +3013,13 @@ def run_canonical_reconciliation(
         parse_findings,
         parse_blocked_path_counts,
     ) = _extract_canonical_memberships(workspace)
-    if root is not None:
-        memberships = [
-            membership
-            for membership in memberships
-            if _confined_artifact_path(root, membership.entry.path or "") not in cooled
-        ]
-        legacy_memberships = [
-            membership
-            for membership in legacy_memberships
-            if _confined_artifact_path(root, membership.entry.path) not in cooled
-        ]
+    # Cooling is applied at evaluation and emission, never here. Every fact
+    # derived below — by_path, duplicate_paths, cycle_paths and the structural
+    # loop — must see a cooled artifact as *cooled*, not as *absent*, or a
+    # lifecycle record silently erases unrelated conclusions about it. What the
+    # cooled set governs is the artifact *body*: the structural loop and
+    # _brief_child_spec_states take the read-free membership metadata for a
+    # cooled entry instead of opening it.
     parse_blocked_paths = set(parse_blocked_path_counts)
     local_memberships = [
         membership for membership in memberships if membership.entry.path is not None
@@ -3045,7 +3062,9 @@ def run_canonical_reconciliation(
         )
     ]
     cycle_paths = _dependency_cycles(local_memberships)
-    brief_child_states = _brief_child_spec_states(local_memberships, workspace, root)
+    brief_child_states = _brief_child_spec_states(
+        local_memberships, workspace, root, cooled
+    )
     global_invalid_workspace = any(
         finding.code == "invalid_workspace" for finding in parse_findings
     )
@@ -3058,8 +3077,12 @@ def run_canonical_reconciliation(
     }
     for membership in local_memberships:
         metadata = (
-            _artifact_metadata(workspace, membership.entry, root)
-            or _metadata_from_membership(membership)
+            _metadata_from_membership(membership)
+            if _membership_is_cooled(membership, root, cooled)
+            else (
+                _artifact_metadata(workspace, membership.entry, root)
+                or _metadata_from_membership(membership)
+            )
         )
         if _structural_findings(
             membership,
@@ -3085,6 +3108,7 @@ def run_canonical_reconciliation(
             cooled,
         )
         for membership in memberships
+        if not _membership_is_cooled(membership, root, cooled)
     ]
     dispatch_by_path = {
         evaluation.entry.path: evaluation
