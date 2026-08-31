@@ -532,11 +532,21 @@ def run_direct_install(args, source: Path | str) -> int:
         # AC20: a remote install is non-interactive by nature — the bytes are
         # fetched before the reader has seen anything — so `--yes` is required
         # rather than merely sufficient. It never hides the summary.
-        if not getattr(args, "yes", False):
+        # `--dry-run` is exempt: it writes nothing, and it is the only way to
+        # read the admissibility summary for a remote source before consenting
+        # to install it. Requiring --yes for it would leave the reader choosing
+        # blind — and would make the refusal message below false, since it
+        # points at exactly this.
+        if not getattr(args, "yes", False) and not getattr(args, "dry_run", False):
+            # The message must not claim a summary it does not produce: the
+            # refusal happens before acquisition, so no admission has run and
+            # there is nothing to summarise yet. Saying otherwise sends the
+            # reader looking for output that was never written.
             print(
-                "install: a remote direct source requires --yes. The "
-                "admissibility summary is printed either way; --yes confirms "
-                "that you accept it before anything is written.",
+                "install: a remote direct source requires --yes. Fetching the "
+                "archive is itself an action, so consent is given up front; "
+                "the admissibility summary is then printed before anything is "
+                "written, and --dry-run shows it without installing.",
                 file=sys.stderr,
             )
             return 1

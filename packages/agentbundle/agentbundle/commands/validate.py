@@ -772,8 +772,19 @@ _DIRECT_MARKERS = ("SKILL.md", "skills", ".claude/skills")
 
 
 def _has_direct_marker(source: Path) -> bool:
-    """Report whether *source* looks like a direct source at all."""
+    """Report whether *source* looks like a direct source at all.
 
-    return source.is_dir() and any(
-        (source / marker).exists() for marker in _DIRECT_MARKERS
-    )
+    The fixed markers are not the whole set. RFC-0098 E22 admits a repository
+    whose own root is the collection — skill folders sitting directly at the
+    root with no wrapper — and such a source carries none of the markers above.
+    Checking only for them made the CLI refuse a shape admission accepts, which
+    is the two halves failing to join rather than a judgement about the source.
+    """
+
+    if not source.is_dir():
+        return False
+    if any((source / marker).exists() for marker in _DIRECT_MARKERS):
+        return True
+    from agentbundle.direct_source import root_skill_folders
+
+    return bool(root_skill_folders(source))

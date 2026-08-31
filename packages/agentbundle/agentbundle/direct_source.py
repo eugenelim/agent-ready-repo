@@ -245,7 +245,7 @@ def classify_direct_source(root: Path) -> DirectClassification:
     # been ruled out, and it is still one level: a child holding `SKILL.md` is
     # an envelope, exactly as it would be under `skills/`. No recursive
     # discovery is added.
-    envelopes = _root_skill_folders(root)
+    envelopes = root_skill_folders(root)
     if envelopes:
         return _inventory_collection(
             root, root, "collection", has_pack=False, enumerate_only=envelopes
@@ -253,7 +253,7 @@ def classify_direct_source(root: Path) -> DirectClassification:
     raise _refusal(DiagnosticCode.CAT_D009, "direct source has no supported shape")
 
 
-def _root_skill_folders(root: Path) -> tuple[str, ...]:
+def root_skill_folders(root: Path) -> tuple[str, ...]:
     """The child directory names of *root* that carry a `SKILL.md`.
 
     Probed through the marker primitive rather than a bare walk, so a link-like
