@@ -2030,7 +2030,7 @@ queue   = [
 ["ini-009"]
 name      = "Agent Skill Engineering"
 status    = "active"
-milestone = "M2 · language and execution depth in flight"
+milestone = "M2 · runtime composition profiles in flight"
 
 ["ini-009".brief_queue]
 executing = [
