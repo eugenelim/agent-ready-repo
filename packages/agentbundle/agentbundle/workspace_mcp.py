@@ -824,21 +824,14 @@ def _surface_metadata(item: dict[str, Any]) -> dict[str, Any]:
 def _canonical_status_projection(
     engine: Any,
     repo_root: Path,
-    cooled: frozenset[Path] | None,
-    cooling_findings: tuple = (),
 ) -> dict[str, Any] | None:
     workspace_path = repo_root / "workspace.toml"
     try:
-        if cooled is None:
-            # `analyze_bounded` failed, but it does work this projection does
-            # not, so this projection can still succeed. Passing its absent
-            # cooled set through meant reconciling with no exclusion at all:
-            # the surface still answered, and it answered with cooled artifacts
-            # presented as work. Re-resolving here keeps the exclusion, reuses
-            # the engine's existing entry point rather than adding a resolver,
-            # and lets a genuine failure land in the handler below — the same
-            # mapping the CLI applies to the same failure.
-            cooled, cooling_findings = engine._resolve_cooled_state(repo_root)
+        # This projection owns the resolution because it must run before
+        # `parse_workspace`: the symlink check below is the only confinement on
+        # `workspace.toml`, so nothing may read that file earlier. A genuine
+        # failure lands in the handler below, the same mapping the CLI applies.
+        cooled, cooling_findings = engine._resolve_cooled_state(repo_root)
         workspace_path.lstat()
         if workspace_path.is_symlink():
             resolved = workspace_path.resolve()
@@ -948,7 +941,7 @@ class _WorkspaceStatusTool:
         # before the check that exists to reject it. Passing `None` for the
         # cooled set makes the projection resolve it itself, which is what
         # removes the need to run the analysis first at all.
-        canonical_projection = _canonical_status_projection(engine, repo_root, None)
+        canonical_projection = _canonical_status_projection(engine, repo_root)
         legacy_analysis_allowed = bool(
             canonical_projection.pop("_legacy_analysis_allowed", False)
         )

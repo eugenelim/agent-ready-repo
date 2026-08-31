@@ -44,7 +44,8 @@ exact observable it must produce.
   `_TRANSITIONS` and its exception-review outcome map admit five reachable
   pairs, and `Retired` is reachable from both dispositions. This spec's
   predicate is stated on the pair. (source:
-  `packs/core/.apm/skills/close-work/scripts/cooling.py:55-64` and `:869-875`.)
+  `cooling._TRANSITIONS` and its exception-review outcome map in
+  `packs/core/.apm/skills/close-work/scripts/cooling.py`.)
 - **Excluding a `Retained` artifact is unauthorized; excluding a `Retired` one
   is an owner decision.** RFC §7 grants exclusion for cooling only, §5 defines
   `retain-exception` as a longer obligation to retain, and §6 requires status to
@@ -56,12 +57,13 @@ exact observable it must produce.
   from orientation. Wave 6 cannot cross-check `fingerprint`, `authority`, or
   `confirmation_proof` against the artifact, because doing so requires the read
   RFC §7 forbids. A record added by a pull request deserves spec-level scrutiny.
-  (source: `cooling.py:728-747` cross-checks only `path.stem == delivery_id` and
+  (source: `cooling.load_record` cross-checks only `path.stem == delivery_id` and
   the recomputed `review_on`.)
 - **`project_closeout_status` gained its first production callers in this
-  wave.** Defined at `workspace_status_engine.py:550`, it was test-only when this
-  spec was drafted; `workspace_status.py` now binds it at `:74` and `:129` and
-  calls it at `:743` from `_closeout_projection`. The original assumption of no
+  wave.** Defined as `workspace_status_engine.project_closeout_status`, it was test-only
+  when this spec was drafted; `workspace_status.py` now binds it and calls it
+  from `_closeout_projection`. Cited by symbol: the line numbers this Assumption
+  first carried drifted three times during review. The original assumption of no
   production caller no longer holds, and the closeout block is therefore shipped
   behaviour rather than an unreached projection. (source: verified by repository
   search, 2026-08-31.)
@@ -85,7 +87,7 @@ exact observable it must produce.
 | `interface-contract` | Applicable, unchanged: [`contracts/jsonschema/delivery-lifecycle-record.schema.json`](../../../contracts/jsonschema/delivery-lifecycle-record.schema.json) | Wave 5 owns the record shape; Wave 6 consumes it and adds no field. Closeout verifies SHA-256 `557e3d60b8fd5647a06fbc2225de51a52cfff1b8777fd3d917e91bcebbe27878`. |
 | `current-architecture` | Applicable: [`docs/architecture/work-intake-and-artifact-routing.md`](../../architecture/work-intake-and-artifact-routing.md) | Owns the Wave 6/7 boundary statement and the routing-table row at `:91`. Closeout verifies the boundary sentence names Wave 7 alone. |
 | `user-documentation` (reference) | Applicable: [`guides/core/reference/work-intake-routing-and-lifecycle.md`](../../../guides/core/reference/work-intake-routing-and-lifecycle.md) | Owns the public statement of what `workspace-status` projects. Closeout verifies the visibility claim is replaced by the exclusion statement. |
-| `user-documentation` (finding-code reference) | Applicable: [`guides/core/reference/workspace-toml-schema.md`](../../../guides/core/reference/workspace-toml-schema.md) | Owns the public finding-code table that `tests/roster/test_workspace_status_projection.py:486-495` gates. Closeout verifies a reason and a next action for each new code. |
+| `user-documentation` (finding-code reference) | Applicable: [`guides/core/reference/workspace-toml-schema.md`](../../../guides/core/reference/workspace-toml-schema.md) | Owns the public finding-code table that the finding-code table check in `tests/roster/test_workspace_status_projection.py` gates. Closeout verifies a reason and a next action for each new code. |
 | `user-documentation` (workflow instructions) | Applicable: [`packs/core/.apm/skills/workspace-status/SKILL.md`](../../../packs/core/.apm/skills/workspace-status/SKILL.md) | Owns what the agent renders at runtime, its finding-code table, and its output-section list. Closeout verifies the Wave 4 visibility sentence is gone and both new codes are documented. |
 | `capability-evidence` (Wave 4 live dependency) | Applicable: [`packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`](../../../packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py) | Owns the shipped assertion that Wave 4 could not exclude cooling context. Wave 6 replaces that one test function; the rest of the file is untouched. Closeout verifies the replacement, not a deletion. |
 | `release-history` | Applicable: [`docs/product/changelog.md`](../../product/changelog.md) | Owns the shipped Core capability. Closeout verifies the topmost dated `[core]` heading equals `packs/core/pack.toml`. |
@@ -170,6 +172,8 @@ Wave 7 entries and the `workspace.toml` summary were corrected together.
 | Slug | Outcome | Owner |
 | --- | --- | --- |
 | `cooling-repair-migration-scope` | Decide whether cooling constrains `repair-plan`, `repair-apply`, and the migration paths, including whether the two rootless `run_canonical_reconciliation` call sites gain a repository root. | RFC-0096 Wave 7 |
+| `cooling-brief-child-scope` | Decide how a cooled child spec contributes to its parent brief's `invalid_child_scope` verdict. Two defects are shipped and pinned: a cooled child whose parent is declared only in the artifact body is dropped from the parent's child-state set, so the empty set reads as compliance under `brief_queue.shipped` (erasing `impossible_transition` and unblocking the brief's dependants) and as a violation under `brief_queue.executing` (planting one on live work); and a cooled child that *does* declare `source.parent` is attributed with a status derived from its collection rather than observed, so `work.shipped` fabricates `Shipped`. A Wave 6 repair was attempted and reverted — it refused every brief-kind dependency in the workspace whenever any cooled spec lacked `source.parent`, which is the common shape, so it denied service far more often than it closed the bypass. The fix needs a per-brief unevaluable set, and probably a finding code that says "child scope unknown", which AC46's pinned pair does not admit. | RFC-0096 Wave 7 |
+| `cooling-closeout-eligibility` | Decide whether a cooled queue entry counts toward `all_specs_shipped`. It currently does, so a fully cooled initiative reports `unshipped-specs` indefinitely and never reaches `invoke-close-work`. A Wave 6 repair was attempted and reverted: filtering the count let an unverified lifecycle record drive an affirmative recommendation to run a skill that distils and disposes, while `initiatives[].queue_empty` stayed unfiltered and disagreed inside the same response. Whichever way it resolves, the two must agree. | RFC-0096 Wave 7 |
 | `wave6-dependency-scoped-completion-receipts` | Project the four-field `{delivery_id, outcome, completion_event, evidence_ref}` completion receipt from its coordination surface. Wave 6 projects record completion evidence only; `outcome` has no source in the lifecycle record schema. | RFC-0096 Wave 7 |
 
 ## Testing Strategy
@@ -189,7 +193,7 @@ absent in whitespace-normalized text.
   carries `gamma` for the global scan, AC18 and AC20 carry `beta` for the
   declared scan. The **byte class** (AC13) uses the one route by which an artifact-body
   value reaches emitted JSON verbatim: a `- **Brief:**` preamble value becomes
-  `metadata.parent` (`workspace_status_engine.py:1922-1924`) and is emitted as
+  `metadata.parent` (`workspace_status_engine._metadata_from_root` (the `metadata.parent` assignment)) and is emitted as
   the `path` of an `invalid_artifact_path` finding when the cooled spec is a
   dependency target (`:2346`). AC13 asserts the sentinel is **present** in the
   control run and absent in the cooled run, so a fixture that never produced it
@@ -214,7 +218,7 @@ absent in whitespace-normalized text.
 - **Frozen-body preservation: pinned digest**, so the check holds after the
   branch is gone.
 
-**Stub coverage.** Compiled red stubs: AC1–AC44 and AC55–AC56 (T1–T3).
+**Stub coverage.** Compiled red stubs: AC1–AC44 and AC55–AC58 (T1–T3; AC57 and AC58 were added during review and are covered by tests at `tests/roster/test_status_projection_and_context_exclusion.py`).
 `no stub (mode)`: AC45–AC54 (T4, goal-based). Uncovered: none.
 
 ## Acceptance Criteria
@@ -456,7 +460,7 @@ absent in whitespace-normalized text.
 - [ ] **AC51 — Both follow-ons carry a durable pointer.** `spec.md`'s
   `## Follow-ons` table names `cooling-repair-migration-scope` and
   `wave6-dependency-scoped-completion-receipts`, each with an owner, and the
-  spec contains no `(deferred:` token.
+  spec carries no `(deferred:` marker on any Acceptance Criterion line. The Follow-ons prose names the token to explain why this spec does not use one, so the check is per criterion line rather than per file.
 - [ ] **AC52 — Wave 4's frozen spec is untouched.**
   `docs/specs/close-work-extraction-and-immediate-disposition/spec.md` has
   SHA-256 `4f1b98e7fdb53a4726a65432ef2993a7f0db1f65987c46bd00763a999915de8a`.

@@ -114,11 +114,11 @@
           ]
         },
         {
-          "source": "**Orientation says whether the exclusion actually happened.** If a lifecycle record or the cooling module cannot be read, the run still projects the workspace and reports `cooling_context_visible: true` — nothing was excluded, and it says so rather than implying a guarantee it did not deliver.",
+          "source": "**Orientation says whether the exclusion is complete.** If a lifecycle record or the cooling module cannot be read, the run still projects the workspace and reports `cooling_context_visible: true`. That means the exclusion may be incomplete, not that it did not happen: one unreadable record leaves every other record still cooling its artifact, and the accompanying finding says which case you are in.",
           "segments": [
             {
               "type": "strong",
-              "value": "Orientation says whether the exclusion actually happened."
+              "value": "Orientation says whether the exclusion is complete."
             },
             {
               "type": "text",
@@ -130,7 +130,7 @@
             },
             {
               "type": "text",
-              "value": " — nothing was excluded, and it says so rather than implying a guarantee it did not deliver."
+              "value": ". That means the exclusion may be incomplete, not that it did not happen: one unreadable record leaves every other record still cooling its artifact, and the accompanying finding says which case you are in."
             }
           ]
         },

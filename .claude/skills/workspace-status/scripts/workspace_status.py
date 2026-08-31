@@ -659,11 +659,25 @@ def _scan_dict(result) -> dict:
     }
 
 
+def _projected_locator(value: object) -> str | None:
+    """Return a locator safe to render, or None when it cannot be shown.
+
+    `_public_canonical_path` degrades anything outside its charset to the
+    literal `workspace.toml`. For a finding path that is a safe fallback; for a
+    record locator it is a lie — the artifact is excluded correctly while the
+    projection names a different, real file. Wave 5 admits any non-control
+    character up to 1000 bytes, so this case is reachable.
+    """
+    public = _public_canonical_path(value)
+    return public if public == value else None
+
+
 def _cooling_projection(result) -> dict:
     """Project validated lifecycle records using the analysis-time clock."""
     records: list[dict] = []
     due: list[dict] = []
     exceptions: list[dict] = []
+    unreadable_records: list = []
     for record in result.cooling_records:
         # `cooling_module` is never None here: a record can only exist because
         # the module that parsed it loaded. The guard proves `is_due` exists and
@@ -676,10 +690,14 @@ def _cooling_projection(result) -> dict:
                 and result.cooling_module.is_due(record, result.now).due
             )
         except Exception:
+            # Degrading to "not due" silently under-reported the maintainer's
+            # queue while `cooling_context_visible` still claimed a clean run.
+            # The finding both names the record and flips that claim.
             due_now = False
+            unreadable_records.append(record)
         records.append({
             "delivery_id": record.delivery_id,
-            "locator": _public_canonical_path(record.locator),
+            "locator": _projected_locator(record.locator),
             "disposition": record.disposition,
             "post_closeout_result": record.post_closeout_result,
             "completion_event": record.completion_event,
@@ -690,7 +708,7 @@ def _cooling_projection(result) -> dict:
         if due_now:
             due.append({
                 "delivery_id": record.delivery_id,
-                "locator": _public_canonical_path(record.locator),
+                "locator": _projected_locator(record.locator),
                 "review_on": record.review_on.isoformat(),
             })
         # Gate on the post-closeout result, not on `exception is not None`.
@@ -705,7 +723,7 @@ def _cooling_projection(result) -> dict:
             exception = dict(record.exception)
             exceptions.append({
                 "delivery_id": record.delivery_id,
-                "locator": _public_canonical_path(record.locator),
+                "locator": _projected_locator(record.locator),
                 "owner_role": exception["owner_role"],
                 "reason": exception["reason"],
                 "review_on": exception["review_on"],
@@ -715,32 +733,11 @@ def _cooling_projection(result) -> dict:
         "due": due,
         "records": records,
         "exceptions": exceptions,
+        "_unreadable": tuple(unreadable_records),
     }
 
 
-def _live_queue_entries(root: Path, result, initiative) -> list:
-    """Return the initiative's queue and active entries that are not cooled.
-
-    `closeout` is the one consumer that decided this from the raw workspace
-    lists. Every other surface in the same run had already excluded these
-    entries, so a fully cooled initiative reported `unshipped-specs` forever
-    and could never reach `invoke-close-work` — the disagreement the spec's
-    `Always do` rail forbids between two consumers of one run.
-    """
-    entries = [*initiative.work.queue, *initiative.work.active]
-    if not result.cooled:
-        return entries
-    # `_safe_spec_path` is the same key the Type 2/3 scans use to skip cooled
-    # entries, so closeout and the scans cannot disagree about which entry a
-    # record names.
-    return [
-        entry
-        for entry in entries
-        if _safe_spec_path(root, entry.slug) not in result.cooled
-    ]
-
-
-def _closeout_projection(root: Path, result) -> dict | None:
+def _closeout_projection(result, *, dueness_failed: bool = False) -> dict | None:
     """Project the first active or paused initiative's closeout facts, by slug.
 
     Returns None when no initiative is active or paused. There is no closeout
@@ -761,7 +758,7 @@ def _closeout_projection(root: Path, result) -> dict | None:
         return None
     initiative = active[0]
     paused = initiative.status == "paused"
-    all_specs_shipped = not _live_queue_entries(root, result, initiative)
+    all_specs_shipped = not (initiative.work.queue or initiative.work.active)
     # `spec_path` is `entry.path` straight from workspace.toml with no charset
     # rule, and this string is rendered into agent context. Every sibling
     # emitter bounds its path through this same filter.
@@ -774,7 +771,9 @@ def _closeout_projection(root: Path, result) -> dict | None:
         paused=paused,
         all_specs_shipped=all_specs_shipped,
         closeout_blockers=blockers,
-        cooling_context_visible=bool(result.cooling_findings),
+        # A record whose dueness could not be judged is an incomplete run just
+        # as a record that would not load is, so it flips the same claim.
+        cooling_context_visible=bool(result.cooling_findings) or dueness_failed,
     )
     return dataclasses.asdict(projection)
 
@@ -882,8 +881,10 @@ def _build_json(root: Path, result, mode: str) -> dict:
         },
     }
     if mode in {"status", "reconcile"}:
-        output["cooling"] = _cooling_projection(result)
-        closeout = _closeout_projection(root, result)
+        cooling = _cooling_projection(result)
+        unreadable = cooling.pop("_unreadable")
+        output["cooling"] = cooling
+        closeout = _closeout_projection(result, dueness_failed=bool(unreadable))
         if closeout is not None:
             output["closeout"] = closeout
     return output

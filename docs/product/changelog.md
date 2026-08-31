@@ -66,10 +66,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it.** Only artifacts whose lifecycle record says `Cooling` or `Retired` are
   excluded; `Retained` and `ExternalAdvisory` records are projected and their
   artifacts remain available to start.
-- **Orientation says whether the exclusion actually happened.** If a lifecycle
-  record or the cooling module cannot be read, the run still projects the
-  workspace and reports `cooling_context_visible: true` — nothing was excluded,
-  and it says so rather than implying a guarantee it did not deliver.
+- **Orientation says whether the exclusion is complete.** If a lifecycle record
+  or the cooling module cannot be read, the run still projects the workspace and
+  reports `cooling_context_visible: true`. That means the exclusion may be
+  incomplete, not that it did not happen: one unreadable record leaves every
+  other record still cooling its artifact, and the accompanying finding says
+  which case you are in.
 - Repair and migration keep their previous behaviour and still reach cooled
   entries; whether cooling constrains them is a later decision.
 
