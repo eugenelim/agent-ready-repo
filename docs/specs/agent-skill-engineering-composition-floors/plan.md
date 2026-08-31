@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Composition Floors
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/agent-skill-engineering.md` and
   `docs/CONVENTIONS.md` govern placement and spec/plan separation. Two analogous
   production implementations carry the shapes this slice reuses:
@@ -340,40 +340,87 @@ the register.
 **Done when:** the pack suite is green and the count check fails cleanly when
 driven with an unmapped count.
 
-### T7: Retrieval is re-measured, not re-stamped
+### T7: The retrieval cases are authored and declared
 
 **Depends on:** T3, T4
 
-**Verification mode:** goal-based check. Implements AC18, AC19, AC20, AC21, AC22.
-**Review shape: WIDE** — mechanically uniform record regeneration, carried with
-reproducibility proof rather than split.
+**Verification mode:** goal-based check. Implements AC18.
 
 **Tests:**
-- The declared solo floor at `test_foundation_corpus.py:253-259`.
-- The measured exclusivity gate at
-  `packs/agent-skill-engineering/tests/pack/test_corpus_admission.py:816-831`,
-  which is the binding one and a different population: declaring a solo case does
-  not make the measurement return that topic alone.
-- Thresholds and the negative-set share on the re-measured records.
-- Pin non-regression, with any re-take accounted in `qa.md`.
+- The declared solo floor at
+  `packs/agent-skill-engineering/tests/pack/test_foundation_corpus.py:253-259`:
+  at least two cases whose expected topic set is exactly that topic, per admitted
+  topic.
+- The case-shape floors that move with the set: id uniqueness, the topic-bearing
+  ratio, and `test_foundation_corpus.py:237` (`len(cases) >= 40`).
 
 **Approach:**
-- Author solo cases per new topic, then measure; set the number from the measured
-  exclusivity result rather than asserting a margin in advance. The four new
-  topics are mutually adjacent — a hooks-in-Claude-Code prompt plausibly selects
-  both the hooks floor and the profile — so the declared count that clears the
-  measured gate is discovered, not predicted.
-- Re-observe every case and every generic negative in independent read-only
-  subcontexts, each writing to a path unique per run. Run the measurement only
-  after T3 and T4's `compile-okf` regeneration: the record binds the router and
-  generated-tree digests, so measuring a pre-regeneration tree spends roughly 110
-  observations on a record that is stale on arrival.
+- Author solo cases per new topic plus near-misses. Author more than the declared
+  minimum for the four new topics, because they are mutually adjacent — a
+  "hooks in Claude Code" prompt plausibly selects both the hooks floor and the
+  profile — and the measured gate in T7a is the binding one.
+- Author the cases only; measure nothing here. Splitting authorship from
+  measurement is what makes an interrupted measurement cheap to retake.
 
-**Done when:** both records carry current digests and every gate above passes.
+**Done when:** the case fixture passes every shape floor and the declared solo
+floor holds for all 16 admitted topics.
+
+### T7a: The retrieval record is re-measured
+
+**Depends on:** T7
+
+**Verification mode:** goal-based check. **Review shape: WIDE** — mechanically
+uniform record regeneration, carried with reproducibility proof.
+Implements AC19, AC20, AC22.
+
+**Tests:**
+- The measured exclusivity gate at
+  `packs/agent-skill-engineering/tests/pack/test_corpus_admission.py:816-831`,
+  which is the binding one and a different population from T7's declared floor:
+  declaring a solo case does not make the measurement return that topic alone.
+- Precision, recall and exact-selection on the re-measured record.
+- Pin non-regression against
+  `packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json`,
+  with any re-take accounted in `qa.md`.
+- All four binding digests match the tree they describe.
+
+**Approach:**
+- Run only after T3 and T4's `compile-okf` regeneration: the record binds the
+  router and generated-tree digests, so measuring a pre-regeneration tree spends
+  the run on a record that is stale on arrival.
+- Re-observe every case in an independent read-only subcontext, each writing to a
+  path unique per run.
+- A run that reaches no verdict is not a measurement: discard and retake it rather
+  than recording a partial record.
+- If the measured exclusivity gate fails for a topic, return to T7 for more
+  declared cases rather than re-stamping this record.
+
+**Done when:** the retrieval record carries current digests and every gate above
+passes.
+
+### T7b: The generic-negative record is re-measured
+
+**Depends on:** T7
+
+**Verification mode:** goal-based check. **Review shape: WIDE**. Implements AC21.
+
+**Tests:**
+- The negative set holds exactly 40 prompts and at most 2 return any topic.
+- The record's binding digests match the tree.
+
+**Approach:**
+- Re-observe all 40 negatives after the same `compile-okf` regeneration, to a path
+  unique per run. The prompt set itself is unchanged — only the measurement is
+  retaken, because admission moves the digests the record binds.
+- Independent of T7a and shares no output path with it, so an interruption in
+  either costs only that record.
+
+**Done when:** the negative record carries current digests and the answered count
+is within bound.
 
 ### T8: Shipped surfaces state what shipped
 
-**Depends on:** T3, T4, T7
+**Depends on:** T3, T4, T7a, T7b
 
 **Verification mode:** goal-based check. Implements AC23, AC27, AC28, AC29, AC30.
 
@@ -396,7 +443,7 @@ reproducibility proof rather than split.
 
 ### T9: The record is written and the slice closes
 
-**Depends on:** T1, T2, T3, T4, T6, T7, T8
+**Depends on:** T1, T2, T3, T4, T6, T7, T7a, T7b, T8
 
 **Verification mode:** goal-based check. Implements AC24, AC25.
 
@@ -462,3 +509,8 @@ Installers see the change through the version bump.
   the provider contract change it requires move to slice 3b, because the shipped
   response has no channel for a capability state and no wording of a criterion
   could supply one. Four criteria and one task were removed rather than reworded.
+- 2026-08-31 — T7 split into T7 (author cases), T7a (retrieval record) and T7b
+  (negative record) at the plan gate. The three were one WIDE task of roughly 110
+  observations; splitting gives a recovery point, since an interrupted
+  measurement no longer discards the authored cases, and lets the two records be
+  retaken independently.
