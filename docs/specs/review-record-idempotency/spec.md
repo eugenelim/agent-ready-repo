@@ -22,7 +22,9 @@ refused.
 
 A maintainer reading `state.json` can see which round the counters belong to. An
 agent that re-issues a recording after losing its own record of whether the write
-landed gets one write, not two.
+landed gets one write, not two. The record is a decision aid for a session
+resuming inside that round, not a durable audit log: once the run takes its next
+transition, the recorded id names a round the loop has already moved past.
 
 The existing human-authorization obligation on a clean-round replay is unchanged.
 This contract supplies the mechanism that makes such a replay safe; it does not
@@ -95,182 +97,97 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **Replay, conflict refusal, and id-form refusal: TDD.** Each is an exact
-  before-and-after assertion over named `state.json` fields, mirroring the
-  existing crash-window tests for the recorded implementation attempt.
-- **Flagless compatibility: goal-based check** against a baseline artifact
-  captured before the writer changes, because the comparison value must exist
-  independently of the change.
-- **Absent-field tolerance: TDD**, because a pre-change `state.json` is a concrete
-  input with one correct reading.
-- **The bundled template and the state-schema reference: goal-based check**, a
-  parse and a grep.
-- **The shipped invocations: goal-based check** over an enumerated site list.
-- **The two adopter guides: goal-based check**, one grep each for the flag name.
-- **The command as a user runs it: visual / manual QA.** Re-issue a recording
-  against a throwaway spec directory and record the observed counters and exit
-  codes. This is a CLI a user invokes, and a green unit suite does not establish
-  that the assembled sequence behaves.
-- **Projection drift and release consistency: goal-based check**, one command
-  each.
+Each behavior names its mode; the plan names the suite and the mutation that must
+kill each check.
+
+- **Replay, conflict refusal, id-form refusal, and the never-undecidable
+  guarantee: TDD.** Each is an exact before-and-after assertion over `state.json`,
+  mirroring the existing crash-window tests for the recorded implementation
+  attempt.
+- **Unchanged behavior for a caller that omits the flag: goal-based check**
+  against a baseline captured before the writer changes, because the comparison
+  value must exist independently of the change.
+- **Unchanged existing per-form validation: TDD**, reusing the shipped cases that
+  already pin each form's refusals.
+- **Tolerance of a pre-change `state.json`: TDD**, because it is a concrete input
+  with one correct reading.
+- **The bundled template, its pinned anchor, and the state-schema reference:
+  goal-based check**, a parse and a grep.
+- **The shipped instructions and resumption guidance: goal-based check** over an
+  enumerated site list, covering the id's recomputability, the transition guard,
+  and the pinned obligations.
+- **The eval corpus: goal-based check**, a parse plus an id lookup.
+- **The adopter guides: goal-based check**, one grep each.
+- **The command as a user runs it: visual / manual QA.** This is a CLI a user
+  invokes, and a green unit suite does not establish that the assembled sequence
+  behaves.
+- **The release surface: goal-based check**, one command per member.
 
 ## Acceptance Criteria
 
-**Operation id.** An operation id is `<run_id>:<transition_sequence>`, where
-`transition_sequence` is the value produced by the transition that entered the
-round being recorded — read after that transition, not before it. The caller
-reads both values from `loop-engine status`, the same value and the same division of
-labour the shipped instructions already use for a recorded implementation
-attempt. `loop-cohort` validates the form and never reads engine state.
+**Operation id.** An operation id is `<run_id>:<transition_sequence>`, read after
+the transition that entered the round being recorded. The caller supplies it, the
+same division the shipped instructions already use for a recorded implementation
+attempt; `loop-cohort` validates its form and never reads engine state.
 
-**Payload digest.** The digest is computed from the payload at the moment the
-round is recorded and stored beside the id. It is not derived on read, because
-`state.json` stops describing a round's payload as soon as the next round lands: a
-fingerprint or all-skipped round overwrites `finding_fingerprints` and leaves
-`last_review_clean_source` untouched, and no field records which form closed a
-round.
+The plan carries the mechanism these outcomes are met by — the per-form digest
+preimage, the field names, the exit codes, and the case table the writer
+implements. Where a criterion below does not fix a detail, the build chooses it
+and the plan's mutation proofs keep the choice honest.
 
-**Outcome table.** These six cases are the whole of the *idempotency* behavior
-this contract adds. Each form's existing payload validation runs first and is
-unchanged: a malformed fingerprint, an unreadable clean artifact, non-sentinel
-bytes, or a non-clean report each refuse before any row applies. AC2 through AC7
-and AC10 through AC12 each name one row; AC1, AC8, and AC9 state properties
-holding across rows. "Pair" means the two fields this spec adds. "Round delta" means the mutation the
-form already performs over `review_round_count`, `review_retry_count`,
-`finding_fingerprints`, `previous_finding_fingerprints`,
-`last_review_clean_source`, and `last_review_clean_digest`. "Digest" compares the
-supplied payload's digest against the digest recorded with that id.
+### Behavior
 
-| # | Recorded id in state | Supplied id | Payload digest | Exit | Round delta | Pair after |
-| --- | --- | --- | --- | --- | --- | --- |
-| R1 | any | absent | — | unchanged from today | unchanged from today | unchanged |
-| R2 | absent, or different from supplied | well-formed | computable | 0 | applied | set to supplied id and digest |
-| R3 | equal to supplied | well-formed | matches recorded | 0 | none | unchanged |
-| R4 | equal to supplied | well-formed | differs from recorded | non-zero | none | unchanged |
-| R5 | any | well-formed | not computable | non-zero | none | unchanged |
-| R6 | any | malformed | — | non-zero | none | unchanged |
+- [ ] **AC1.** A recording re-issued with the same operation id and the same
+  payload leaves every review counter, fingerprint list, and clean-round
+  provenance field exactly as the first application left them, and says the round
+  was already recorded.
+- [ ] **AC2.** A recording presented with a recorded operation id and a different
+  payload is refused, and `state.json` is byte-identical to its state before the
+  attempt.
+- [ ] **AC3.** Recordings under different operation ids each count as a distinct
+  review round.
+- [ ] **AC4.** A recording that omits `--operation-id` produces the same
+  observable result as it does today, for each of the four recording forms,
+  measured against a baseline captured before the writer changes.
+- [ ] **AC5.** A malformed operation id is refused with `state.json` unchanged.
+- [ ] **AC6.** No round is recorded under an operation id unless a comparison
+  value for a later repeat is recorded with it, so a repeat is never undecidable.
+- [ ] **AC7.** An operator can tell the refusal outcomes apart — a payload
+  conflict, a missing comparison value, and a malformed id — from the command's
+  output alone.
+- [ ] **AC8.** Each recording form's existing payload validation is unchanged:
+  what refuses today still refuses, with the same result.
 
-R1 keeps a flagless recording identical to today, including leaving the pair
-alone: the pair names the last round recorded *under an id*, which a flagless
-round does not become. R5 refuses rather than storing an id with a null digest,
-which is what keeps R3 and R4 decidable for every recorded round.
+### Persisted state
 
-### The writer
+- [ ] **AC9.** `state.json` records which round the counters belong to, and a
+  session resuming before the run's next transition judges a repeat of that round
+  correctly from it.
+- [ ] **AC10.** A `state.json` written before this change is read without error
+  and every recording form operates on it.
+- [ ] **AC11.** The shipped state-schema reference and the bundled template
+  describe the recorded state accurately, including how a repeat is judged.
+- [ ] **AC12.** Every shipped check that pins the template's field set matches the
+  shipped template.
 
-- [ ] **AC1.** `review record --operation-id <id>` is accepted alongside each of
-  the four existing recording forms: `--fingerprint`, `--direct-clean-file`,
-  `--report --adjudication`, and `--all-skipped`.
-- [ ] **AC2.** Row R6: `review record --operation-id <id>` exits non-zero and
-  changes no field of `state.json` when `<id>` does not match
-  `<expect-run-id>:<decimal-sequence>`.
-- [ ] **AC3.** Rows R2 and R1 apply the same round delta: for each form whose
-  payload digest is computable, a first application carrying `--operation-id` produces the same delta
-  over the six named fields as the same form without the flag.
-- [ ] **AC4.** Row R3: a repeat carrying the recorded id and a payload whose
-  digest matches the recorded digest exits 0 and leaves the six named fields and
-  the pair unchanged from the first application.
-- [ ] **AC5.** Row R4: a repeat carrying the recorded id and a payload whose
-  digest differs from the recorded digest exits non-zero and leaves `state.json`
-  byte-identical to its state before the attempt.
-- [ ] **AC6.** Row R2 twice: two applications carrying different operation ids
-  each increment `review_round_count`.
-- [ ] **AC7.** Row R5: an application carrying a well-formed id whose payload
-  digest cannot be computed exits non-zero and leaves `state.json` byte-identical,
-  on a first application as well as on a repeat, so no id is ever recorded without
-  a digest.
-- [ ] **AC8.** Re-ordering or duplicating the fingerprints supplied to
-  `--fingerprint` yields the same digest, so the same finding set under the same
-  id is one payload.
-- [ ] **AC9.** Two different recording forms never produce the same digest.
-- [ ] **AC10.** The stdout line on row R3 states that the round was already
-  recorded, distinctly from the line rows R1 and R2 print.
-- [ ] **AC11.** The stderr reasons on rows R4, R5, and R6 are each distinct, so
-  one exit code does not conflate a payload conflict, an uncomputable digest, and
-  a malformed id.
-- [ ] **AC12.** Row R1: `review record` invoked without `--operation-id`
-  produces, for each of the four forms, the per-form state delta and the stdout
-  line recorded in the committed flagless baseline artifact, and leaves the pair
+### Shipped surfaces
+
+- [ ] **AC13.** Every shipped recording instruction supplies an operation id that
+  a session resuming at that point recomputes identically.
+- [ ] **AC14.** A refused transition never reaches a recording.
+- [ ] **AC15.** The shipped resumption guidance says when a replay is safe and
+  when it is not, and every obligation its pinned tests require is intact.
+- [ ] **AC16.** The pack's eval corpus exercises the command shape the skill
+  emits, and the expectations of its two existing crash-window cases are
   unchanged.
+- [ ] **AC17.** An adopter reading the core guides can find what the flag
+  guarantees.
 
-### The persisted schema
+### Release
 
-- [ ] **AC13.** `state.json` carries `last_review_record_operation_id`, holding the
-  id of the round most recently recorded under an id, and
-  `last_review_record_payload_digest`, holding the digest of the payload recorded
-  under that id.
-- [ ] **AC14.** Both fields hold `null` before any round is recorded under an id.
-- [ ] **AC15.** Both fields are written in the same atomic write as the round
-  delta, so no observable state has one set without the other.
-- [ ] **AC16.** After the sequence R2 then R1 then a repeat of R2's command, the
-  repeat resolves as R3, because the pair records the earlier round's payload
-  rather than describing current state.
-- [ ] **AC17.** A `state.json` written before this change, carrying neither field,
-  is read without error, and each of the four forms applied to it with the flag
-  exits 0 and writes both fields.
-- [ ] **AC18.** `packs/core/.apm/skills/work-loop/assets/state.json` carries both
-  fields with a `null` value.
-- [ ] **AC19.** The shipped state-schema reference documents both fields, the
-  digest's preimage per recording form, and that a repeated id with a matching
-  digest is a completed write while a repeated id with a differing digest is
-  refused.
-- [ ] **AC20.** Every shipped check that asserts the bundled template's exact
-  field set asserts the field set including both new fields.
-
-### The shipped statements and rows
-
-- [ ] **AC21.** In every shipped command statement that records a round, the
-  operation id is produced by a read that executes after the transition entering
-  that round, not by a value substituted into the statement beforehand.
-- [ ] **AC22.** Every shipped command statement that records a round is
-  conditional on its transition having succeeded, so a refused transition never
-  reaches the recording. The condition may be a shell `&&` or an explicit stated
-  precondition, and the transition prints the sequence the operation id needs.
-- [ ] **AC23.** Each `review record` replay recipe in the shipped resumption table
-  passes `--operation-id` and names the id's source as the run id and transition
-  sequence the resumption protocol already reads.
-- [ ] **AC24.** The resumption row governing a clean-round replay states that the
-  double-increment risk applies to a replay without a matching operation id, and
-  retains the four phrases its pinned test requires.
-- [ ] **AC25.** The `findings-remain` resumption row retains the three phrases
-  its pinned test requires.
-
-### The shipped invocations and guides
-
-- [ ] **AC26.** Every `review record` command statement in `SKILL.md` and in the
-  skill's `references/` tree passes `--operation-id`. A command statement is a
-  line naming the cohort script together with the `review record` verb, extended
-  through any trailing-backslash continuations. A mention that does not name the
-  cohort script is prose, not a command statement.
-- [ ] **AC27.** `guides/core/how-to/plan-and-execute-non-trivial-work.md` names
-  `--operation-id` and states that a repeat under a matching id leaves the round
-  count unchanged.
-- [ ] **AC28.** `guides/core/explanation/core-pack.md` names `--operation-id`.
-- [ ] **AC29.** The pack's eval harness carries a case exercising the crash window
-  of a recording that passes `--operation-id`, so the corpus covers the command
-  shape the skill emits.
-- [ ] **AC30.** The expectations of the two existing eval cases covering the
-  flagless crash window and the clean-signal replay are unchanged.
-
-### The release surface
-
-- [ ] **AC31.** Re-issuing a recording with the same id against a throwaway spec
-  directory advances `review_round_count` exactly once, with the observed
-  counters, the recorded id, and each command's exit code captured at the
-  destination the Durable Outputs table names.
-- [ ] **AC32.** That transcript states which recording forms and which conditions
-  the session does not exercise.
-- [ ] **AC33.** `docs/product/changelog.md` carries a free-standing
-  `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
-  `[Unreleased]`.
-- [ ] **AC34.** That entry contains a `### Highlights` block.
-- [ ] **AC35.** `packs/core/pack.toml` and
-  `packs/core/.claude-plugin/plugin.json` read the same version, one patch above
-  the value on the base branch at commit time.
-- [ ] **AC36.** `make build-self-dry-run` reports no projection drift.
-- [ ] **AC37.** The generated highlights projection matches the changelog entry.
-- [ ] **AC38.** The flagless baseline artifact's commit precedes the commit that
-  changes the writer, so the comparison value cannot have been produced from the
-  changed writer.
+- [ ] **AC18.** The release surface is consistent: a dated free-standing changelog
+  entry carrying a highlights block, both version files reading one patch above
+  the base branch, and no projection drift.
 
 ## Follow-ons
 
