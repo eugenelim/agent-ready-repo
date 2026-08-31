@@ -53,6 +53,8 @@ VERSION_UPPER_BOUND = re.compile(r"(?:<=|<)\s*\d|upper\s+bound\s+open", re.IGNOR
 # maintainer or host.
 HOST_IDENTIFYING_PATTERN_STRINGS = (
     RE_ABS_PATH.pattern,
+    r"/var/folders/[A-Za-z0-9_/-]+",
+    r"@[A-Za-z0-9-]+|\b[A-Za-z0-9-]+\.local\b",
     r"\b\"?(?:username|user|login)\"?\s*[:=]\s*\"?[^\s,]+",
     r"\b\"?(?:hostname|host)\"?\s*[:=]\s*\"?[^\s,]+",
     r"\b\"?worktree(?:\s+name)?\"?\s*[:=]\s*\"?[^\s,]+",
@@ -664,6 +666,23 @@ def test_doctrine_parity_rejects_a_repository_internal_source_identity() -> None
 
     with pytest.raises(AssertionError):
         _assert_doctrine_group_shape(_doctrine_topic(group), group)
+
+
+def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
+    """AC3: recorded and authored evidence reject structural host identifiers."""
+
+    scanned = [ADMISSION, *CONCEPTS.rglob("*.md")]
+    assert len(scanned) >= 6
+    for path in scanned:
+        _assert_no_patterns(path.read_text(encoding="utf-8"), HOST_IDENTIFYING_PATTERNS)
+    for seeded in (
+        "/opt/foreign-user/project",
+        "/var/folders/foreign-id/T/work",
+        "worker@foreign-host",
+        "foreign-host.local",
+    ):
+        with pytest.raises(AssertionError):
+            _assert_no_patterns(seeded, HOST_IDENTIFYING_PATTERNS)
 
 
 def test_reviewer_identity_is_rejected_from_both_projections() -> None:
