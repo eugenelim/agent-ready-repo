@@ -59,7 +59,11 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         it runs; malformed or contradictory markers are always HARD.
 
 Exit codes: 0 = clean (warnings allowed), 1 = one or more HARD violations.
-Usage: lint-spec-status.py [--root DIR] [--base-ref REF]
+By default, per-spec checks run only for spec directories changed from the base
+ref.  In CI, pass ``--all`` to retain the full sweep.  The warn-only dangling
+reference pass always reads every spec because its value is repository-wide.
+
+Usage: lint-spec-status.py [--root DIR] [--base-ref REF] [--all]
 """
 
 from __future__ import annotations
@@ -777,6 +781,65 @@ def base_spec_text(
     return r.stdout if r.returncode == 0 else None
 
 
+def changed_spec_paths(root: Path, base_ref: str) -> list[Path] | None:
+    """Return current spec files for directories changed from ``base_ref``.
+
+    ``None`` means Git could not determine the changed set, which callers must
+    treat as a full-sweep fallback rather than as an empty, clean selection.
+    A change anywhere below ``docs/specs/<slug>/`` selects that directory's
+    current ``spec.md`` so plan-only edits retain metadata coverage.
+    """
+    try:
+        result = subprocess.run(
+            # `--relative` and `-z`, both load-bearing. Without --relative git
+            # reports paths from the REPO root, so a `--root` that is a
+            # subdirectory yields `sub/docs/specs/...`, the `docs/specs` prefix
+            # filter below drops every entry, and the per-spec pass becomes a
+            # silent no-op. Without -z a path needing quoting arrives as
+            # `"docs/specs/caf\303\251/spec.md"`, whose first part is `"docs`,
+            # and that spec is dropped the same way.
+            ["git", "-C", str(root), "diff", "--name-only", "-z", "--relative",
+             base_ref, "--", "docs/specs"],
+            capture_output=True, text=True, errors="replace", check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+
+    # `git diff` reports TRACKED changes only, so a brand-new spec that has not
+    # been committed yet is invisible to it -- and a brand-new spec is exactly
+    # what an author has open during a work-loop session. Without this second
+    # call the scoped default silently stops linting the file being written,
+    # which is worse than the cost the scoping removes.
+    try:
+        untracked = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard",
+             "-z", "--", "docs/specs"],
+            capture_output=True, text=True, errors="replace", check=False,
+            timeout=GIT_TIMEOUT_S,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if untracked.returncode != 0:
+        return None
+
+    specs_dir = root / "docs" / "specs"
+    changed: set[Path] = set()
+    # -z output is NUL-separated with a trailing NUL, so the final split
+    # element is empty; the falsy guard drops it.
+    reported = result.stdout.split("\0") + untracked.stdout.split("\0")
+    for relpath in (entry for entry in reported if entry):
+        parts = Path(relpath).parts
+        if len(parts) < 3 or parts[:2] != ("docs", "specs"):
+            continue
+        spec_path = _confined_file(specs_dir / parts[2] / "spec.md", root)
+        if spec_path is not None:
+            changed.add(spec_path)
+    return sorted(changed)
+
+
 # Skip implausibly large files — an untrusted repo could ship a multi-GB
 # spec.md or contract; reading it whole is a memory-exhaustion DoS. Mirrors
 # lint-traceability.py's guard of the same name.
@@ -885,8 +948,83 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
-    """Return (hard_violations, warnings)."""
+def _repo_wide_findings(
+    root: Path, spec_paths: list[Path], anchors: set[str]
+) -> tuple[list[str], list[str]]:
+    """Return `(hard, warn)` for the invariants that must span every spec.
+
+    Two invariants belong here rather than in the per-spec pass, for different
+    reasons:
+
+      (iii) dangling references — warn-only, and its value is repository-wide.
+      (iv)  deferral anchors — HARD, and its second input is `workspace.toml`,
+            not the spec file. Closing a `[backlog].open` entry invalidates the
+            marker in every spec that cites it, none of which need have changed,
+            so scoping this to changed specs would let the routine close-work
+            operation break anchors with nothing reporting it.
+
+    Both read the same text, so they share one pass over the corpus.
+    """
+    hard: list[str] = []
+    warn: list[str] = []
+    for spec_path in spec_paths:
+        rel = spec_path.relative_to(root).as_posix()
+        text = _read(spec_path)
+        if text is None:
+            warn.append(
+                f"{rel}: could not be read (unreadable, or over the size cap); "
+                "invariants (iii) and (iv) were not checked"
+            )
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            for match in _LINK_RE.finditer(line):
+                target = match.group(1).split("#", 1)[0].strip()
+                if not target or "://" in target or not target.endswith(".md"):
+                    continue
+                candidates = [spec_path.parent / target, root / target]
+                if not any(_confined_file(candidate, root) is not None
+                           for candidate in candidates):
+                    warn.append(
+                        f"{rel}:{lineno}: invariant (iii) — doc link '{target}' "
+                        "does not resolve (warn-only)"
+                    )
+        for lineno, path in code_references(text):
+            candidates = [spec_path.parent / path, root / path]
+            if not any(_confined_file(candidate, root) is not None
+                       for candidate in candidates):
+                warn.append(
+                    f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
+                    "does not resolve (warn-only)"
+                )
+        # (iv) deferral anchors resolve. HARD, and repo-wide: see the docstring.
+        for lineno, anchor in deferred_anchors(text):
+            if anchor not in anchors:
+                hard.append(
+                    f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
+                    f"does not resolve in workspace.toml [backlog].open"
+                )
+    return hard, warn
+
+
+# What the most recent `check` call gated. A module-level record rather than a
+# third return value: `check`'s two-tuple is what every caller and test reads,
+# and widening it to carry a reporting detail would churn all of them.
+LAST_SCOPE: dict[str, object] = {
+    "selected": 0,
+    "available": 0,
+    "mode": "all",
+    "base_ref": None,
+}
+
+
+def check(
+    root: Path, base_ref: str | None, all_specs: bool = False
+) -> tuple[list[str], list[str]]:
+    """Return hard violations and warnings for changed specs or the full sweep.
+
+    Also records the per-spec selection in `LAST_SCOPE`, which `_describe_scope`
+    reads to build the summary line. `main` must call them in that order.
+    """
     hard: list[str] = []
     warn: list[str] = []
 
@@ -913,7 +1051,35 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         )
 
     specs_dir = root / "docs" / "specs"
-    for spec_path in sorted(_confined(specs_dir.glob("*/spec.md"), root)):
+    all_spec_paths = sorted(_confined(specs_dir.glob("*/spec.md"), root))
+    spec_paths = all_spec_paths
+    if not all_specs and base_resolvable:
+        changed = changed_spec_paths(root, base_ref)  # type: ignore[arg-type]
+        if changed is None:
+            warn.append(
+                f"base ref {base_ref!r} could not determine changed specs — "
+                "running all per-spec invariants"
+            )
+        else:
+            spec_paths = changed
+
+    # Record what this run actually gated. Without it the scoped default prints
+    # the same "spec metadata clean." as a full sweep, so a run that selected
+    # zero specs is indistinguishable from one that checked all of them -- the
+    # failure mode the scoped-run change exists alongside, not one to introduce.
+    # `mode` records what actually happened, not what was asked for: an
+    # unresolvable base or an undetermined changed set full-sweeps, and calling
+    # that a "changed against <base>" run would name a comparison that did not
+    # happen.
+    swept = all_specs or spec_paths is all_spec_paths
+    LAST_SCOPE.update(
+        selected=len(spec_paths),
+        available=len(all_spec_paths),
+        mode="all" if swept else "changed",
+        base_ref=None if swept else base_ref,
+    )
+
+    for spec_path in spec_paths:
         rel = spec_path.relative_to(root).as_posix()
         text = _read(spec_path)
         if text is None:
@@ -1039,14 +1205,6 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                 "opt-out header"
             )
 
-        # (iv) deferral anchors resolve
-        for lineno, anchor in deferred_anchors(text):
-            if anchor not in anchors:
-                hard.append(
-                    f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open"
-                )
-
         # (ii) ACs at the ship transition (diff-triggered)
         if base_resolvable and not base_text_undetermined and token == "Shipped":
             base_token = parse_status(base_text) if base_text is not None else None
@@ -1058,29 +1216,6 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                             f"{rel}:{lineno}: invariant (ii) — spec moved to "
                             f"Shipped but AC is unchecked"
                         )
-
-        # (iii) dangling intra-repo references (warn-only) — doc links (.md)
-        # and, since v1.1, repo-relative code references.
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            for m in _LINK_RE.finditer(line):
-                target = m.group(1).split("#", 1)[0].strip()
-                if not target or "://" in target or not target.endswith(".md"):
-                    continue
-                # A link may be spec-relative or repo-root-relative; warn only
-                # if it resolves under neither.
-                candidates = [spec_path.parent / target, root / target]
-                if not any(_confined_file(c, root) is not None for c in candidates):
-                    warn.append(
-                        f"{rel}:{lineno}: invariant (iii) — doc link '{target}' "
-                        f"does not resolve (warn-only)"
-                    )
-        for lineno, path in code_references(text):
-            candidates = [spec_path.parent / path, root / path]
-            if not any(_confined_file(c, root) is not None for c in candidates):
-                warn.append(
-                    f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
-                    f"does not resolve (warn-only)"
-                )
 
         # (v) spec↔contract traceability (warn-only). Forward `Contract:` header
         # must point at an existing contract carrying a backward ref. No-ops when
@@ -1113,19 +1248,41 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                         f"backward x-spec/REGISTRY.md ref to {feature_dir} (warn-only)"
                     )
 
+    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths, anchors)
+    hard.extend(repo_hard)
+    warn.extend(repo_warn)
     return hard, warn
+
+
+def _describe_scope() -> str:
+    """Describe the last run's per-spec coverage for the summary line.
+
+    The repo-wide invariant (iii) pass always covers every spec; this describes
+    only the per-spec coverage, which is what `--all` widens.
+    """
+    selected = LAST_SCOPE["selected"]
+    available = LAST_SCOPE["available"]
+    if LAST_SCOPE["mode"] == "all":
+        return f"all {available} spec(s)"
+    base = LAST_SCOPE["base_ref"] or "no resolvable base"
+    return f"{selected} of {available} spec(s) changed against {base}"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=None)
     parser.add_argument("--base-ref", default=None)
+    parser.add_argument(
+        "--all", action="store_true",
+        help="run per-spec checks for every current spec instead of changed specs",
+    )
     args = parser.parse_args(argv)
 
     root = _validated_root(args.root)
     base_ref = args.base_ref if args.base_ref else resolve_default_base_ref(root)
 
-    hard, warn = check(root, base_ref)
+    hard, warn = check(root, base_ref, all_specs=args.all)
+    scope = _describe_scope()
 
     for w in warn:
         print(f"lint-spec-status: warning: {w}", file=sys.stderr)
@@ -1133,10 +1290,11 @@ def main(argv: list[str] | None = None) -> int:
         for v in hard:
             print(f"lint-spec-status: {v}", file=sys.stderr)
         print(
-            f"lint-spec-status: {len(hard)} hard violation(s).", file=sys.stderr
+            f"lint-spec-status: {len(hard)} hard violation(s) ({scope}).",
+            file=sys.stderr,
         )
         return 1
-    print("lint-spec-status: spec metadata clean.")
+    print(f"lint-spec-status: spec metadata clean ({scope}).")
     return 0
 
 

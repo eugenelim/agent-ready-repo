@@ -5,6 +5,40 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.17.3"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.17.3] — 2026-08-31",
+      "changelogAnchor": "core2173--2026-08-31",
+      "highlights": [
+        {
+          "source": "**The spec-metadata check now looks at the specs you touched, so finishing a work loop takes about two seconds instead of about thirty.** It used to re-read all 423 specs and start a Git process for each one. Two checks still cover every spec regardless: the dangling-reference scan, and the one that resolves each deferral marker — because retiring a tracked follow-up can invalidate a marker in a spec you never opened. The remaining per-spec checks cover what you changed, and `--all` runs the full audit — wire that into a gate.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "The spec-metadata check now looks at the specs you touched, so finishing a work loop takes about two seconds instead of about thirty."
+            },
+            {
+              "type": "text",
+              "value": " It used to re-read all 423 specs and start a Git process for each one. Two checks still cover every spec regardless: the dangling-reference scan, and the one that resolves each deferral marker — because retiring a tracked follow-up can invalidate a marker in a spec you never opened. The remaining per-spec checks cover what you changed, and "
+            },
+            {
+              "type": "code",
+              "value": "--all"
+            },
+            {
+              "type": "text",
+              "value": " runs the full audit — wire that into a gate."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.17.2"
         }
       ],

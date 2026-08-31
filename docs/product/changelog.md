@@ -52,6 +52,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.3] — 2026-08-31
+
+### Highlights
+
+- **The spec-metadata check now looks at the specs you touched, so finishing a
+  work loop takes about two seconds instead of about thirty.** It used to re-read
+  all 423 specs and start a Git process for each one. Two checks still cover every
+  spec regardless: the dangling-reference scan, and the one that resolves each
+  deferral marker — because retiring a tracked follow-up can invalidate a marker
+  in a spec you never opened. The remaining per-spec checks cover what you
+  changed, and `--all` runs the full audit — wire that into a gate.
+
+### Changed
+
+- `lint-spec-status.py` scopes its per-spec invariants to the specs changed
+  against the resolved base ref, and takes `--all` for the full sweep. The
+  changed set includes specs that are new and not yet committed, so a spec being
+  written is never skipped, and it reads NUL-separated paths relative to the
+  scanned root so an unusual filename or a subdirectory `--root` cannot drop a
+  spec silently.
+- Invariants (iii) and (iv) run over every spec in both modes. (iv) resolves
+  each `(deferred: <slug>)` marker against `workspace.toml [backlog].open`, so
+  its second input is not the spec file: closing an entry invalidates the marker
+  in every spec citing it, none of which need have changed. Scoping it would have
+  let the routine close-work operation break anchors unreported.
+- The per-spec warn-only output for *unchanged* specs is what narrows in the
+  scoped default — measured at 34 (v) and 18 (i) warnings on this repository.
+  `--all` still reports them.
+- Both summary lines now name the coverage they achieved — `0 of 423 spec(s)
+  changed against origin/main` rather than a bare `spec metadata clean` — so a
+  run that selected nothing cannot be mistaken for a run that checked
+  everything.
+- An unresolvable base ref falls back to the full per-spec sweep instead of
+  selecting zero specs.
+
 ## [core][2.17.2] — 2026-08-31
 
 ### Highlights
