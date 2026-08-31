@@ -164,6 +164,24 @@ at the moment it stops being so. Rolling the status while the entry stays in
 `queue` emits `impossible_transition`, whose tolerated count is already at its
 ceiling of 2.
 
+**The pair is split during a contract amendment, deliberately, and this records
+the condition that closes it.** A `contract-amendment` returns the spec to
+drafting and resets both status tokens, so between firing it and completing
+re-approval the spec reads `Draft` while its registration stays in `.active` and
+the implementation stays in the tree. That is the half-rolled state this task
+otherwise exists to prevent, and it is invisible to the gate cited above, which
+only detects the opposite direction. Leaving the entry in `.active` is the
+correct half to keep: moving it back to `queue` would advertise blocked work as
+startable, and no gate would object.
+
+The condition that releases the split is re-approval: the commit that resumes
+implementation after the amendment restores `Implementing`, and until then the
+`Draft` token is accurate about authorization rather than about progress. A
+review round found this state and was right to; it is recorded here so the next
+reader can tell a deliberate split from a forgotten one, and so a session that
+finds `Draft` beside committed code checks the engine state before rolling
+anything.
+
 **Tests:**
 - `tests/roster/test_workspace_status_projection.py` (AC8) — no stub
   (goal-based)
@@ -480,6 +498,18 @@ milestone descriptor is not touched here; T1 owns it, so that the string names
 this slice while the slice is in flight rather than at the moment it stops
 being.
 
+Write this slice's `qa.md`, the Durable Output the amendment added. Two
+Boundaries now require a recorded basis and name that file as its location, so it
+is a shipped artifact of this task rather than a session note. The field list is
+not restated here: the spec's *Never do* rules enumerate exactly what each
+recorded basis carries, and this task's obligation is to satisfy that
+enumeration for every re-taken pin, every corrected declaration, the known-miss
+exemption, every retrieval disagreement including those left uncorrected, and
+every observed gate failure. Three copies of one field list is how the record
+came to satisfy one copy and fail the others. A figure in it must come from the
+invocation named beside it, re-measured at the shipping tree rather than carried
+from when it was first observed.
+
 Then close the pair T1 opened: set the spec to `Shipped`, move its registration
 from `["ini-009".work].active` to `.shipped`, and re-pin the brief digest in
 both registrations a second time, in the same commit that sets the status. A
@@ -496,9 +526,11 @@ both registrations a second time, in the same commit that sets the status. A
   be checked rather than asserted — stub: true
 
 **Done when:** both authored manifests carry the same bumped version, the
-changelog entry is topmost for the pack, the spec reads `Shipped` in
-`work.shipped` with both digests re-pinned, and the roster suite is green at
-the restored ceiling.
+changelog entry is topmost for the pack, `qa.md` exists and carries every record
+the Boundaries require with no figure older than the shipping tree, the spec
+reads `Shipped` in `work.shipped` with the brief digest re-pinned in every
+registration that pins it, and the roster suite is green at the restored
+ceiling.
 
 ## Risks
 

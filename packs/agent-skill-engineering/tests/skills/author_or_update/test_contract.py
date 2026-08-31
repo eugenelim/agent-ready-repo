@@ -306,34 +306,95 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
     assert recorded == {digest}
 
 
-def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
-    """Both contract fixes this slice made are held by a guard, not by an eval.
+# Each clause a graded run forced into the shipped body, pinned by the digest of
+# its whole paragraph with whitespace collapsed.
+#
+# This replaced a set of `substring in body` assertions after three review rounds
+# each found a different way past them. Positive containment is monotone under
+# insertion, so no finite set of such assertions can catch a paragraph that keeps
+# every pinned sentence and appends one reversing them; and the set of limbs to
+# enumerate is open, which is how a truncated anchor and then an unpinned
+# `Remain in `frame`` both survived. A region digest closes all three classes at
+# once: any deletion, addition, reversal, or requoting inside the paragraph moves
+# it, while re-wrapping the same words does not.
+#
+# Re-pinning is meant to be deliberate. These clauses exist because a graded run
+# measured their absence, so changing one is a contract change that needs a fresh
+# measurement and an updated record -- not a digest refresh.
+MEASUREMENT_FORCED_CLAUSES = {
+    # "Identifying which mode the work will need is not entering it ... Until
+    # that transition the receipt reports `Mode: frame`, however far the plan has
+    # progressed -- a fully specified patch that has not been authorized is still
+    # framing."
+    "mode-identity": (
+        "Identifying which mode the work will need is not entering it.",
+        "747111bd13a24f2e6c55aa1ed5ff0bbf0aa6801993b3b823067d5268d8fa96fe",
+    ),
+    # "The same holds when the target is resolved but the *requested change* is
+    # not ... Remain in `frame`, name the candidate changes and the authority each
+    # would need ... Do not infer a change from the target's current shape."
+    # One paragraph, so it also pins the cost clause and the `Remain in `frame``
+    # directive that the substring guard left free.
+    "unspecified-change": (
+        "The same holds when the target is resolved but the *requested change* "
+        "is not",
+        "b08e6757ea5fddf3e9c581d5ed0f5f7020ff050a17a241e7fb6f21977a2dca09",
+    ),
+}
 
-    Each fix was forced by a graded run, and the eval assertions that assert
-    them were written in the same change as the behavior -- a mirror, not a
-    contract. Without this test, either clause could be dropped and the only
-    thing to notice would be a fixture that had been edited alongside it.
 
-    Matched on collapsed whitespace because the source is hard-wrapped prose and
-    a re-wrap would otherwise read as a reverted clause.
+def _clause_region(body: str, anchor: str) -> str | None:
+    """The whole paragraph containing `anchor`, whitespace-collapsed.
+
+    Collapsed before matching, not after: the source is hard-wrapped, so an
+    anchor spanning a line break finds nothing in the raw paragraph. That exact
+    mistake made a first version of this helper return `None` and report every
+    mutation as caught.
     """
-    body = " ".join((AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8").split())
+    for paragraph in re.split(r"\n\s*\n", body):
+        collapsed = " ".join(paragraph.split())
+        if anchor in collapsed:
+            return collapsed
+    return None
 
-    # Fix 1 -- identifying a mode is not entering it. The load-bearing half is
-    # that the receipt stays `frame` no matter how complete the plan is; without
-    # the second clause the first reads as advice rather than a rule.
-    assert "Identifying which mode the work will need is not entering it." in body
-    assert (
-        "the receipt reports `Mode: frame`, however far the plan has progressed"
-        in body
-    )
 
-    # Fix 2 -- a resolved target is not a resolved request. The prohibition is
-    # the half that decides behavior: naming candidates while still inferring one
-    # would satisfy the first clause and defeat the fix.
-    assert "The same holds when the target is resolved but the" in body
-    assert "name the candidate changes and the authority each would need" in body
-    assert "Do not infer a change from the target's current shape." in body
+def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
+    """Both clauses a graded run forced are byte-identical to their record."""
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    for name, (anchor, expected) in MEASUREMENT_FORCED_CLAUSES.items():
+        region = _clause_region(body, anchor)
+        assert region is not None, (
+            f"{name}: the clause paragraph is gone -- no paragraph contains "
+            f"{anchor!r}. It was added because a graded authoring run measured "
+            f"its absence as a miss."
+        )
+        digest = hashlib.sha256(region.encode()).hexdigest()
+        assert digest == expected, (
+            f"{name}: the measurement-forced clause changed.\n"
+            f"  recorded: {expected}\n"
+            f"  found:    {digest}\n"
+            f"  now reads: {region}\n"
+            "Re-wrapping the same words does not reach here, so some word "
+            "changed. This clause is in the body because a graded run measured "
+            "its absence; changing it needs a fresh measurement and a record "
+            "update in the slice qa.md, not a new digest."
+        )
+
+
+def test_the_two_forced_clauses_are_distinct_paragraphs() -> None:
+    """Anti-vacuity: two names must not resolve to one paragraph.
+
+    Both digests would still match if one anchor drifted into the other's
+    paragraph, and the guard would silently cover half of what it claims.
+    """
+    body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    regions = [
+        _clause_region(body, anchor)
+        for anchor, _ in MEASUREMENT_FORCED_CLAUSES.values()
+    ]
+    assert all(regions)
+    assert len(set(regions)) == len(regions), "both anchors hit one paragraph"
 
 
 def test_portable_workflow_contains_no_delivery_or_runtime_coupling() -> None:

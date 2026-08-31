@@ -46,7 +46,7 @@ incidental fix.
 | Release history | The pack's version bump is a released-artifact change. | `docs/product/changelog.md` — a `## [agent-skill-engineering][<version>] — <date>` entry | This spec | Entry present in the same change that bumps the manifests | Entry names the admitted topic set and the language-availability change |
 | Interface compatibility | The pack's published surface is consumed externally. | `packs/agent-skill-engineering/pack.toml` and `.claude-plugin/plugin.json`, both authored and edited in lockstep under the pack version-bump rule; the aggregated marketplace manifest, which is regenerated and never hand-edited | This spec | Matching version bump per `packs/AGENTS.md`; publication and roster gates green | Both authored manifests carry the same bumped version, and the aggregate is regenerated |
 | Spec index | The index row states this spec's shape and counts. | `docs/specs/README.md` | This spec | Row's criterion and task counts equal this document's | Row matches the shipped spec |
-| Verification record | Two Boundaries now require a recorded basis, and both name this artifact as its location. | `docs/specs/agent-skill-engineering-languages-and-execution/qa.md` | This spec | Every re-taken pin and corrected declaration named with prior value, current value, authority, and ground; every observed gate failure attributed | No required record's basis lives only in a commit message |
+| Verification record | Two Boundaries now require a recorded basis, and both name this artifact as its location. | `docs/specs/agent-skill-engineering-languages-and-execution/qa.md` | This spec | Every re-taken pin and corrected declaration carries exactly the fields the *Never do* rules enumerate — those rules are the single authority for the list, restated nowhere — and every observed gate failure is attributed | No required record's basis lives only in a commit message |
 | Reusable learning | Work-loop's `spec-approved` and `plan-locked` gates capture authoring residue. | `project-knowledge` public seam | work-loop | Capture receipts, or the named skip `project-knowledge unavailable` | Receipts distilled at `plan-locked`, or the skip recorded |
 
 ## Boundaries
@@ -167,7 +167,12 @@ incidental fix.
   and current value. The exception is enumerated rather than open, so a pin that
   moves without a naming record still fails this criterion: the count of re-taken
   pins in the record equals the count of pins whose value differs from the
-  corpus slice's, and no other pin differs. The same holds for `predeclared`: a
+  baseline, and no other pin differs. The baseline is named rather than implied:
+  `packs/agent-skill-engineering/tests/fixtures/foundation-retrieval-pins.json`
+  as the corpus slice shipped it, sha256 `d6db5307348a8374…`, whose 24 pin values
+  the record reproduces for the two it re-takes. Naming it by digest rather than
+  as "the corpus slice's" keeps the comparison performable after this branch
+  merges, when no diff against `origin/main` recovers it. The same holds for `predeclared`: a
   declaration corrected under that authority is named in the record, and any
   other post-measurement change to a declaration fails here. Both the retrieval
   record and the generic-negative record are re-measured against the tree they
@@ -345,14 +350,26 @@ incidental fix.
 - The two fixed clauses are verified by guards, not by the eval assertions that
   were authored alongside them.
   `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
-  asserts both clauses against the shipped body in
-  `test_shipped_body_keeps_the_two_clauses_measurement_forced`. Three reversions
-  applied separately each redden it, and the third reverts only the prohibition
-  while keeping the "name the candidate changes" half, so the guard is not
-  satisfied by the easier half of either fix. Each restored by editing rather
-  than by checkout, leaving the body byte-identical. The graded authoring assertions are corroborating evidence
-  only: they were written in the same change as the behavior they assert, so
-  alone they would be a mirror rather than a contract.
+  pins each clause in
+  `test_shipped_body_keeps_the_two_clauses_measurement_forced` by a recorded
+  sha256 over its whole paragraph with whitespace collapsed, so any deletion,
+  addition, reversal, or requoting inside the paragraph reddens while a
+  re-wrap does not. Seven defeating mutations each redden it and a legitimate
+  re-wrap does not, all eight restored by rewriting the file rather than by
+  checkout and the body verified byte-identical afterwards; the mutations and
+  the three review rounds that forced this design are recorded in `qa.md`.
+
+  The predicate is a paragraph digest rather than a set of substring checks
+  because substring checks were defeated three times: positive containment is
+  monotone under insertion, so no finite set of them catches a paragraph that
+  keeps every pinned sentence and appends one reversing them. That is a property
+  of the predicate class, not a gap in the enumeration, so the category changed
+  rather than the pattern. It does not cover a contradicting sentence in a
+  different paragraph; the whole-file `SKILL.md` digest recorded on every graded
+  result covers any other body change. The graded authoring assertions are
+  corroborating evidence only: they were written in the same change as the
+  behavior they assert, so alone they would be a mirror rather than a
+  contract.
 
 ## Follow-ons
 

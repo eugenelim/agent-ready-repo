@@ -45,9 +45,19 @@ slice's subject, which is what distinguishes a corpus becoming more correct from
 a regression: a regression would have removed or redirected an existing routing.
 The remaining 22 pins are unchanged and hold against the current measurement.
 
-## Retrieval case correction — and why this record is its only home
+## Retrieval case disagreements — and why this record is one case's only home
 
-One predeclared retrieval case disagreed with the corpus.
+Three of the 61 declared retrieval cases disagreed with the measurement. Those
+three are exactly the arithmetic behind the recorded 0.951 precision: 3
+unexpected topics returned, 0 missing, hence recall 1.000. Two are the moved
+foundation pins recorded above; the third, `nm-ci-vs-lock`, is recorded in its
+own subsection below and is **not** corrected.
+
+A fourth declaration, `nm-python-vs-node`, also disagreed — before it was
+corrected under the authority recorded immediately below. It is not among the
+three because the corrected declaration now agrees with the measurement, which is
+exactly why its prior value has to live in this record: nothing in the tree
+carries it.
 
 | Field | Value |
 | --- | --- |
@@ -70,24 +80,77 @@ says a basis living only in a commit message does not satisfy it. An adversarial
 review raised this; the adjudication set it aside for want of a prior revision
 to cite, which is the same fact seen from the other side.
 
+### The third disagreement, recorded and left uncorrected
+
+| Field | Value |
+| --- | --- |
+| Case | `nm-ci-vs-lock` |
+| Prompt | "Jobs on one runner interfere with each other's temporary directories" |
+| Declared expectation | `[worktrees-state-locks-and-shared-host-admission]` |
+| Measured result | `[worktrees-state-locks-and-shared-host-admission, pack-and-ci-critical-paths]` |
+| Disposition | **not corrected.** Recorded as measured. |
+
+No owner authority was sought for this one, so the declaration stands as written
+and the disagreement is carried instead. Whether the second topic belongs is
+arguable — temporary-directory interference between jobs on one runner is
+genuinely a shared-host admission subject, and the CI-critical-paths topic
+reaches it through the runner — and that is the point: an arguable disagreement
+is exactly the kind a session under time pressure would rather tune away.
+
+An earlier version of this record said "one predeclared retrieval case
+disagreed" and named only the corrected one. That sentence was false, and the
+figure it sat beside — 0.951 precision, which is *three* unexpected topics over
+61 cases — contradicted it in the same document. A reviewer recomputed the
+arithmetic and found the missing case.
+
 ## Declaration corrections from a clarified contract
 
 Two authoring-case declarations were corrected on the second, narrower ground
 the amended Boundary admits: the predeclaration was falsified by a *corrected
 shipped contract* rather than by the measurement.
 
-| Case | Declared | Corrected to | Measured |
-| --- | --- | --- | --- |
-| `update-existing-skill` | `Mode: update` | `Mode: frame`, `Write status: not authorized` | `Mode: frame` |
-| `cross-session-resumption` | `Mode: update` | `Mode: frame` | `Mode: frame` |
+| Field | Value |
+| --- | --- |
+| Authorised by | the repository owner, in session, 2026-08-31 — the same direction that authorised the two contract fixes below, since these corrections follow from them |
+| Ground | the predeclaration was falsified by a corrected shipped contract, not by the measurement |
 
-The contract change they follow from: the workflow's Modes preamble says to move
-to `create` or `update` "immediately before the first write", so for a case that
-forbids writing, `Mode: frame` is the correct receipt and the declarations were
-the thing out of step. The reasoning runs contract → declaration and reaches the
-same answer with no measurement in hand, which is the burden that ground
-carries. That the correction agrees with what was observed is evidence the
-contract fix was the right repair, not the reason for the correction.
+Required markers. Both cases declared `Write status: awaiting explicit
+authorization`; only `update-existing-skill`'s changed, so the other's row shows
+it unchanged rather than omitting it:
+
+| Case | Prompt | Declared | Corrected to | Measured |
+| --- | --- | --- | --- | --- |
+| `update-existing-skill` | "Update the supplied migration review skill without widening its activation boundary. First inventory the current contract, then describe the exact patch and verification; do not write until explicitly authorized." | `Mode: update`, `Write status: awaiting explicit authorization` | `Mode: frame`, `Write status: not authorized` | `Mode: frame`, `Write status: not authorized` |
+| `cross-session-resumption` | "Update this skill so a second session can resume its work without re-reading everything. The skill root is evals/files/update-existing-SKILL.md." | `Mode: update`, `Write status: awaiting explicit authorization` | `Mode: frame`, `Write status: awaiting explicit authorization` (unchanged) | `Mode: frame` |
+
+Assertion texts. The Boundary names "assertion" as well as "criterion" and
+"retrieval case", so these belong in this table and not in prose:
+
+| Case, index | Declared | Corrected to |
+| --- | --- | --- |
+| `update-existing-skill`, 2 | "Proposes an exact minimal diff rather than replacing the skill" | "Names the candidate changes and the authority each would need rather than inferring one, since the request leaves the change unspecified" |
+| `cross-session-resumption`, 0 | "Enters update mode against the named existing skill root" | "Names update as the mode the work will need, against the named existing skill root, without entering it before authorization" |
+
+**The contract change all four follow from** is the clause Fix 1 *added*, at
+`SKILL.md` lines 18-24: "Identifying which mode the work will need is not
+entering it … Until that transition the receipt reports `Mode: frame`, however
+far the plan has progressed."
+
+Naming the unchanged Modes preamble here would not discharge this burden, and an
+adversarial review caught an earlier version of this record doing exactly that.
+The preamble — enter `create` or `update` "immediately before the first write" —
+is byte-identical on `origin/main`, and it is one of the *two* readings the
+pre-fix contract supported: it is the reading that produced `Mode: frame`, while
+the description's "identify the target and mode first" produced `Mode: update`.
+An unchanged sentence that supports both readings cannot be what falsified a
+declaration. The added clause is what removes the second reading, and removing it
+is what makes `Mode: frame` the only correct receipt for a case that forbids
+writing.
+
+The reasoning then runs contract → declaration and reaches the same answer with
+no measurement in hand, which is the burden that ground carries. That the
+correction agrees with what was observed is evidence the contract fix was the
+right repair, not the reason for the correction.
 
 **The same session caught itself failing this test once.** Alongside one
 assertion it also softened the case *prompt* to admit the path the response had
@@ -168,16 +231,48 @@ adversarial review sustained exactly that. A guard was added at the ship gate:
 matching on collapsed whitespace so a re-wrap of hard-wrapped prose does not read
 as a reverted clause.
 
-| Reversion | Result |
-| --- | --- |
-| Fix 1, rule half — drop "however far the plan has progressed" | red |
-| Fix 1, naming half — drop "Identifying which mode the work will need is not entering it" | red |
-| Fix 2, prohibition only — drop "Do not infer a change from the target's current shape", keeping "name the candidate changes" | red |
+Three review rounds each defeated this guard a different way, so the fourth
+change was to the predicate's **category** rather than its pattern.
 
-The third is the one worth stating: it keeps the easier half of the fix, so the
-guard cannot be satisfied by the half that reads as advice. Each reversion was
-restored by editing rather than by checkout, and the body is byte-identical
-afterwards.
+| Round | Guard | How it was defeated |
+| --- | --- | --- |
+| 1 | eval assertions only | authored in the same change as the behavior they assert — a mirror, not a contract |
+| 2 | five `substring in body` assertions | one asserted a truncated prefix, `"…resolved but the"`, stopping before `*requested change* is not`; swapping that subject removed the disposition and stayed green |
+| 3 | six `substring in body` assertions | `Remain in \`frame\`` was pinned by nothing; flipping it to `Enter \`update\`` inverted the contract and stayed green |
+
+Adding a seventh assertion would have closed round 3's instance and left the
+category open. The adjudication put the reason precisely: positive substring
+containment is **monotone under insertion**, so no finite set of `substring in
+body` checks can catch a paragraph that keeps every pinned sentence and appends
+one reversing them. And the set of limbs needing enumeration is open — a fourth
+unpinned clause, the authority-cost sentence, was still free after round 3.
+
+The guard now pins each clause's **whole paragraph by sha256 over its
+whitespace-collapsed text**. Any deletion, addition, reversal, or requoting
+inside the paragraph moves the digest; re-wrapping the same words does not. Eight
+probes, each restored by rewriting the file rather than by checkout, with the body
+verified byte-identical afterwards:
+
+| Probe | Guard | Note |
+| --- | --- | --- |
+| `Remain in \`frame\`` → `Enter \`update\`` | red | round 3's defeat |
+| advisory sentence appended after the prohibition | red | the class no positive assertion can catch |
+| Fix 1 demoted to "an earlier draft said this. It is withdrawn." | red | recontextualization |
+| `*requested change*` → `*platform*` | red | round 2's defeat |
+| `however far the plan has progressed` → `as appropriate` | red | |
+| `Do not infer a change` → `You may infer a change` | red | |
+| authority-cost clause reworded | red | was unpinned until the paragraph became the unit |
+| the same words re-wrapped across lines | **green** | a legitimate reflow must not fire |
+
+A second test asserts the two anchors resolve to *different* paragraphs. Without
+it, one anchor drifting into the other's paragraph would leave both digests
+matching while the guard covered half of what it claims.
+
+**What this still does not cover, stated rather than implied.** It pins the two
+clauses' text, not the absence of a contradicting sentence in some other
+paragraph. No guard over a prose contract can catch arbitrary contradiction. The
+whole-file `SKILL.md` digest now recorded on every graded result is what catches
+any other body change, and it forces re-measurement rather than a digest refresh.
 
 **Cost paid rather than avoided.** Two body edits moved the skill digest twice,
 so both the captured responses and the activation observation were discarded and
@@ -218,11 +313,31 @@ Both halves are now closed:
 
 The re-take was executed in one read-only subcontext and graded in a separate
 one, with the expected identifiers and assertions withheld from the executing
-context. It reproduces the recorded verdicts: **10 of 10 assertions true, 12 of
-12 declared markers present**, recorded as `review_iteration` 6. No recorded
-verdict changed, so the re-take confirms the evidence rather than replacing it —
-but it is now bound to the body that produced it, which is the part that was
-missing.
+context. It reproduces the recorded verdicts: **10 of 11 assertions
+true and 12 of 12 declared markers present**, recorded as `review_iteration` 6.
+The eleventh is the recorded miss `("detect-script-contract-failure", 5)`, which
+stays `false` and stays exempted. No recorded verdict changed, so the re-take
+confirms the evidence rather than replacing it — but it is now bound to the body
+that produced it, which is the part that was missing.
+
+An earlier version of this record said "10 of 10", which was wrong twice: the two
+cases declare 5 and 6 assertions, so 11 were graded, and the headline erased the
+one recorded miss. It read as a clean sweep. A reviewer recounted the fixture.
+
+**The two graders disagree on that eleventh assertion, and the disagreement is
+kept rather than resolved.** The committed fixture records it `false`. The
+grading context for this re-take reached `true`, explicitly "on the naming",
+while flagging the same assertion as having no observable in a review-mode
+response — review never reaches optimization, so nothing in the output can
+falsify the ordering the assertion asserts. The recorded `false` therefore stands
+and the exemption stands with it.
+
+Adopting the friendlier verdict because a second grader offered it is the act the
+Boundaries forbid, and it would have been unusually easy to justify here: the
+newer measurement is the one bound to the current body. But the assertion's own
+ill-posedness is *why* two careful graders diverge, so the divergence is evidence
+about the assertion, not about the response. Recording it is worth more than
+either verdict.
 
 The grading context flagged three assertions as ill-posed. They are recorded, not
 reworded, because rewording an assertion after seeing its result is exactly what

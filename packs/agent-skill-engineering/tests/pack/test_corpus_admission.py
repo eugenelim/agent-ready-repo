@@ -247,7 +247,14 @@ def test_topology_transcription_is_complete() -> None:
 
 
 def test_foundation_pins_hold_the_shipped_cases() -> None:
-    """Pins reproduce every pre-change measured foundation result exactly."""
+    """Every inherited pin reproduces the current measurement.
+
+    Not "reproduces the pre-change value": two of the 24 pins were re-taken
+    under recorded owner authority when this slice admitted the language topics,
+    and the slice `qa.md` names both with their prior and current values. The
+    fixture is therefore not an untouched baseline, and reading it as one is how
+    a future re-record passes unnoticed.
+    """
     pins = json.loads(
         (FIXTURES / "foundation-retrieval-pins.json").read_text(encoding="utf-8")
     )
@@ -263,9 +270,11 @@ def test_foundation_pins_hold_the_shipped_cases() -> None:
     assert all("measured_topics" in pin for pin in recorded)
 
     # The corpus grows, so the result set is a superset of the pinned
-    # foundation cases. Every pinned case must still be measured, and must
-    # still return exactly what it returned before -- a case that quietly
-    # disappeared from the fixture would otherwise satisfy a subset check.
+    # foundation cases. Every pinned case must still be measured and must agree
+    # with the pinned value as it now stands -- a case that quietly disappeared
+    # from the fixture would otherwise satisfy a subset check. This compares the
+    # pins to the current measurement, not to any earlier one, so it cannot by
+    # itself detect an unrecorded re-take; the naming record is that control.
     actual = {result["id"]: result["actual_topics"] for result in measured}
     assert {pin["id"] for pin in recorded} <= set(actual)
     assert {pin["id"]: pin["measured_topics"] for pin in recorded} == {

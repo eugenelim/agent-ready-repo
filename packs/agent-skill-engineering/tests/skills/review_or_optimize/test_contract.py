@@ -341,7 +341,8 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
             sorted(known_missing - set(declared_assertions)),
         )
         # One recorded miss, named rather than absorbed, in the same shape the
-        # authoring side uses. Assertion 6 asks the review to name the replay,
+        # authoring side uses. Assertion index 5 -- 0-based, as the fixture and
+        # the slice record both number it -- asks the review to name the replay,
         # exit and cleanup contract `ASE-DET-01` requires. The run named the
         # first two -- prescribing injected-input determinism and distinct exit
         # classes -- and never returned to cleanup, neither prescribing a path
