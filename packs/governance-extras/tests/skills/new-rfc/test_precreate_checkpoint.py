@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 SKILL = (
     Path(__file__).resolve().parents[3]
     / ".apm"
