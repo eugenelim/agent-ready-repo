@@ -21,13 +21,13 @@ contract:
   decisionGateIds:
     - approve-plan
     - merge-reviewed-change
-whatChanges: "After installing core, work-intake becomes the neutral front door for raw or ambiguous start, remember, status, refresh, and intake-safety requests. Direct artifact requests go to their owner: intake-intent admits repository intents, author-delivery-brief creates or continues coordination briefs, and new-spec owns one independently shippable feature. Before construction, those callers may use shaping-reviewer to test contract scope and observability; it is separate from the later adversarial, security, and quality code-review lenses. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge; review planning may separately enquire once for untrusted candidate checks, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
+whatChanges: "After installing core, work-intake becomes the neutral front door for raw or ambiguous start, remember, status, refresh, and intake-safety requests. Direct artifact requests go to their owner: intake-intent admits repository intents, author-delivery-brief creates or continues coordination briefs, and new-spec owns one independently shippable feature. Before construction, those callers may use shaping-reviewer to test contract scope and observability; it is separate from the later adversarial, security, and quality code-review lenses. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
 skills:
   - name: work-intake
     description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice, while one bounded CQ-REVIEW enquiry may inform candidate checks without changing reviewer authority."
+    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice."
     humanTouches: 2
   - name: close-work
     description: "Pauses or closes delivery work, verifies durable semantic owners and whole-surface freshness, and recommends disposition without granting automatic mutation."
@@ -263,12 +263,6 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 At semantic gates, the workflow may hand one strict observation to `project-knowledge --capture`. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
 
 Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
-
-During review planning, `work-loop` can declare one consequential `CQ-REVIEW`
-question after fixing the target and structural scope. Adversarial, security,
-and quality reviewers share the same untrusted envelope, derive findings
-independently, and keep all scratch, findings, severities, and verdicts outside
-project knowledge. Missing knowledge is a named no-write skip.
 
 Scratch before capture can be lost if the workflow or worktree disappears. Retention and compaction are intentionally deferred to a future whole-partition policy; this slice has no per-event deletion path.
 

@@ -121,6 +121,33 @@ def test_reviewers_self_test_against_adjudicator_predicates() -> None:
             assert predicate in section, (name, predicate)
         assert "untraced consequence" in section, name
         assert "downgraded with that gap named" in section, name
+        # The self-check exists to make findings carry their evidence, never to
+        # emit fewer of them. Without these two, an edit could keep every
+        # phrase above while turning the section into a suppression path.
+        assert "still emits" in section, name
+        # adversarial-reviewer ties this to its closed suppressible list;
+        # the other two state it directly. Either discharges the constraint.
+        assert (
+            "does not add a suppressible category" in section
+            or "it is not suppressed" in section
+        ), name
+
+
+def test_predicate_self_check_does_not_weaken_flagging() -> None:
+    """Pin the calibration constraint: carry more evidence, not flag less."""
+    adversarial = _text(AGENTS["adversarial-reviewer"][0])
+    flat = _flat(adversarial)
+
+    # The measured refutations were confident findings with untraced
+    # consequences, not doubt-hedged ones, so removing this instruction would
+    # not have prevented any of them.
+    assert "**When in doubt, flag.**" in flat
+
+    # The suppressible list must stay closed, and the new section must not
+    # become an entry in it.
+    assert "the complete enumeration of suppressible categories" in flat
+    assert "anything not on this list is not suppressible" in flat
+    assert "this does not add a suppressible category" in flat
 
 
 def test_security_report_always_includes_not_checked_footer() -> None:
@@ -145,7 +172,13 @@ def test_active_work_loop_has_no_reviewer_knowledge_enquiry() -> None:
     assert "CQ-REVIEW" not in skill
     assert "project-knowledge --enquire" not in skill
     assert "knowledge-evidence" not in skill
+    # Guard the eval payload, not just the id prefix: a retained review-time
+    # enquiry eval renamed off "review-enquiry-" would still train the
+    # behaviour this change removes.
     assert "review-enquiry-" not in evals
+    assert "CQ-REVIEW" not in evals
+    assert "knowledge-evidence" not in evals
+    assert "enquiry seam" not in evals
     # Reviewer dispatch must still name its inputs, and must not reacquire the
     # envelope. Flattened so a reflow of the paragraph cannot redden this.
     dispatch = _flat(skill)
