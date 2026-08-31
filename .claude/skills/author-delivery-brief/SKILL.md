@@ -228,7 +228,8 @@ For each surviving observation, invoke the public
 `kind`, `project_scope`, `competency_facets`, `destination_hint`, `producer`,
 `semantic_gate`, `provenance`, `freshness_anchor`, `observed_at`, and
 `privacy_attestation`. Set `producer.workflow: author-delivery-brief`, use the
-shipped Core version as `producer.workflow_version`, set
+producer-profile contract version — not the shipped Core release — as
+`producer.workflow_version`, set
 `semantic_gate.name: brief-ready`, and name the repository-relative brief as
 `semantic_gate.artifact`.
 

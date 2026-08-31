@@ -1140,7 +1140,7 @@ None.
 
 
 def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
-    """Pin the post-GATES path before classification, fingerprints, or fixes."""
+    """Pin exact-clean fast path and non-exact adjudication before action."""
     entrypoint = WORK_LOOP.read_text(encoding="utf-8")
     text = flat(entrypoint + FINDING_ADJUDICATION.read_text(encoding="utf-8"))
 
@@ -1149,6 +1149,14 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
 
     for required in (
         "Finding-adjudication gateway",
+        # The artifact is written first and unconditionally; only the
+        # adjudicator dispatch is conditional on exactness. Pinned together so
+        # neither half can be dropped without reddening.
+        "persist the completed report to the ignored session path first",
+        "skips the `finding-adjudicator` dispatch, the paired artifacts, and "
+        "the adjudication classifier — but never the raw artifact itself",
+        "Do not trim, case-fold, normalize Unicode, unwrap Markdown",
+        "Every non-exact return follows the protocol below",
         "review-artifact.py' validate",
         "Dispatch a subagent matching `finding-adjudicator`",
         "<round>-post-gates-<reviewer-role>-raw.md",
@@ -1176,10 +1184,18 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
         "review classify",
         "before every clean, apply, defer, or escalation decision",
         "Never substitute stateful inspect in light mode",
+        "--direct-clean-file",
     ):
         assert required in text
 
     assert "pass `--report <raw-report-path>`" in text
+    # Measured inside the reference alone. Against the concatenated buffer the
+    # left anchor resolves in the SKILL.md prefix, so the comparison would hold
+    # no matter where the fast-path section sat in the file it describes.
+    reference = flat(FINDING_ADJUDICATION.read_text(encoding="utf-8"))
+    assert reference.index("## Exact-clean fast path") < reference.index(
+        "## Artifact identity"
+    )
     for role in (
         "adversarial-reviewer",
         "security-reviewer",
@@ -1206,19 +1222,27 @@ def test_review_artifact_configures_utf8_before_output() -> None:
 
 
 def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
-    """Pin all spec-stage reports to the path-based gateway before decisions."""
+    """Pin exact clean direct and all non-exact spec reports to the gateway."""
     text = flat(PRE_EXECUTE_REVIEW.read_text(encoding="utf-8"))
 
     for required in (
-        "every completed pre-EXECUTE reviewer report",
+        "Persist every completed pre-EXECUTE reviewer report, then compare the "
+        "persisted artifact's bytes",
+        "Byte equality is direct clean",
+        # Persistence must be stated as unconditional and prior. Without this
+        # the ordering is only implementable when the controller holds the
+        # return, which is the runtime-dependent reading this pass removed.
+        "Persistence is unconditional and comes first",
+        "Trimmed whitespace, a trailing newline, case folding, Unicode "
+        "normalization, unwrapped Markdown",
+        "Route every non-exact report through the same independent gateway",
         "<round>-pre-execute-<reviewer-role>-raw.md",
         "<round>-pre-execute-<reviewer-role>-adjudication.md",
         "review-artifact.py' validate",
         "finding-adjudicator",
-        "before classifying the report as clean or finding-bearing",
         "Only sustained findings",
         "indeterminate stop for owner choice",
-        "missing adjudicator is a loud stop",
+        "A missing adjudicator on this path is a loud stop",
         "review inspect <spec-dir>",
         "git check-ignore -q .context/reviews",
         "<pre-execute-adjudication-path> --adjudication --json",
@@ -1228,6 +1252,10 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
         "adds no `design-reviewer` trigger",
     ):
         assert required in text
+
+    assert text.index("Byte equality is direct clean") < text.index(
+        "Route every non-exact report"
+    )
 
 
 def test_evidence_retry_is_closed_accounted_and_independently_authored() -> None:

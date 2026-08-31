@@ -12,12 +12,24 @@
 
 ## Finding-adjudication gateway
 
-Route every completed pre-EXECUTE reviewer report through the same independent
-gateway before classifying the report as clean or finding-bearing, revising the
-spec or plan, or firing a review transition. This applies to adversarial,
-security, design-intent, and frontend pre-flight reports whenever those
-reviewers are warranted. A missing adjudicator is a loud stop; it is never a
-named clean skip.
+Persist every completed pre-EXECUTE reviewer report, then compare the persisted
+artifact's bytes with the UTF-8 encoding of exactly `Clean — ready to commit.`.
+Byte equality is direct clean: do not dispatch `finding-adjudicator`, create
+paired artifacts, or run an adjudication classifier. Trimmed whitespace, a
+trailing newline, case folding, Unicode normalization, unwrapped Markdown, and
+the sentinel as a substring, prefix, or suffix all fail the comparison.
+
+Persistence is unconditional and comes first, so this rule holds identically
+whether the harness routes reviewer output straight to the file or the
+controller delivers it once: exactness is decided by reading the artifact, never
+by classifying output before anyone has written it down.
+
+Route every non-exact report through the same independent gateway before
+classifying or acting on it, revising the spec or plan, or firing a review
+transition. This applies to adversarial, security, design-intent, and frontend
+pre-flight reports whenever those reviewers are warranted. Malformed or mixed
+output is not clean. A missing adjudicator on this path is a loud stop; it is
+never a named clean skip.
 
 This also includes the architect pack's `design-reviewer` whenever an
 architecture integration activates it inside the work-loop. Supply the named
@@ -47,10 +59,12 @@ adopter whose `.gitignore` already existed never received the rule. Stop and ask
 the owner rather than writing reports into a tracked directory.
 
 Artifact-capable runtimes route reviewer output directly to that file. When a
-runtime must deliver the output through the controller once, persist it
-immediately without classifying, summarizing, quoting, or acting on it. The raw
-report is opaque from that point onward. Validate the orchestrator-derived path
-before dispatch; never accept a reviewer-selected path:
+runtime must deliver output through the controller once, persist it immediately
+without classifying, summarizing, quoting, or acting on it. Either way the
+routing rule is content-independent — it does not need to know whether the
+report is clean, because exactness is decided afterward by reading the file. The
+raw report is opaque from that point onward. Validate the orchestrator-derived
+path before dispatch; never accept a reviewer-selected path:
 
 ```bash
 python '<skill-dir>/scripts/review-artifact.py' validate \

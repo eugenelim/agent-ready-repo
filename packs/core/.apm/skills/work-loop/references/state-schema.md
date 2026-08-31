@@ -60,8 +60,10 @@ write-second ordering.
 | `implementation_retry_count` | Number of distinct implementation cycles, incremented by `record-attempt`. |
 | `max_implementation_retries` | Cap; `check --phase gates-failed` exits non-zero when `implementation_retry_count >= max`. Default: `5`. |
 | `last_record_attempt_cycle_id` | `<run_id>:<seq>` of the last recorded attempt; used for idempotency — a repeated cycle-id is a no-op. |
-| `review_round_count` | Total review rounds (all outcomes), incremented by `review record --fingerprint`, `--report`, and `--all-skipped`. |
-| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--report` or `--all-skipped`). `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
+| `review_round_count` | Total review rounds (all outcomes), incremented by `review record --fingerprint`, `--direct-clean-file`, `--report`, and `--all-skipped`. |
+| `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--direct-clean-file`, `--report`, or `--all-skipped`). `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
+| `last_review_clean_source` | Which form closed the most recent clean round: `"direct-clean"` or `"report"`. `null` until a clean round is recorded. Resumption reads this to replay the original form; artifact presence cannot answer it, because an evicted artifact and a direct clean look identical on disk. |
+| `last_review_clean_digest` | SHA-256 of the artifact that clean round rested on — the raw reviewer return for `--direct-clean-file`, the adjudication report for `--report`. `null` until a clean round is recorded, and `null` for a `--report` round whose file became unreadable after classification. |
 | `max_review_retries` | Cap. Default: `5`. |
 | `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; used for stasis detection via `review inspect`. |
 | `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |

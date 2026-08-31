@@ -1,6 +1,6 @@
 # Spec: work-loop review verdicts
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by [`[core][2.17.1]`](../../product/changelog.md) — AC6's "Every completed reviewer report—including one that claims clean—passes through a `finding-adjudicator` before classification" now excepts a raw return whose bytes equal `Clean — ready to commit.`; that return is still persisted and validated, only the adjudicator dispatch is skipped; every other decision stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md), [ADR-0031](../../adr/0031-infra-support-is-doctrine-on-existing-reviewers-not-a-new-reviewer-or-runtime.md), [ADR-0061](../../adr/0061-loop-infrastructure-phase-1.md)

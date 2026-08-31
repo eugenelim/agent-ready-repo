@@ -60,15 +60,21 @@ the pre-EXECUTE spec-stage pass), the orchestrator:
 3. **Inlines the selected modules' content** into the security-reviewer subagent's brief.
 
 Load only the modules the change crosses — never a flat march through all modules. An
-auth-touching endpoint pulls `access-control` and often `authn-session`; a SKILL.md being
-authored pulls `agentic-skills` and may also pull `llm-agent` if the skill constructs
-prompts or exposes tools.
+auth-touching endpoint pulls `access-control` and often `authn-session`. A `SKILL.md`
+change pulls `agentic-skills` only when it alters authority, untrusted-input handling,
+tools, permissions, sandboxing, metadata parsing, security-metadata declarations
+(`metadata.boundaries`, `metadata.credentialed`), distribution security, or data handling; it may
+also pull `llm-agent` when it changes prompt trust boundaries, tools, permissions,
+sandboxing, or model-output/data handling. Ordinary prompt wording does not load either.
 
 ## Shift-left secure-design review
 
-When the **security-boundary risk trigger** fires on a spec (auth, secrets, user input,
-deserialization, file/network I/O, or skill-layer authoring), the work-loop dispatches the
-`security-reviewer` in **spec-stage secure-design mode** — before any code is written.
+When the **security-boundary risk trigger** fires on a spec (auth, secrets, untrusted
+input, deserialization, or a changed file/network trust boundary, data flow, or guarding
+control; for agent work, authority, input, tool, permission, sandbox, or data-handling
+behavior), the work-loop dispatches the `security-reviewer` in **spec-stage secure-design
+mode** — before any code is written. Unchanged existing I/O and ordinary prompt wording
+do not fire the trigger.
 It checks whether each control is specified as an acceptance criterion at the right depth
 (confinement, not just traversal-blocking; scheme allowlist, not "validate the URL";
 broker-mediated secrets, not ad-hoc reads). The same module depth backs this spec-stage

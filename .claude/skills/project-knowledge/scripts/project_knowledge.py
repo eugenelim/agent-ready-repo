@@ -19,7 +19,14 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 CONTRACT_VERSION = "knowledge-captured-observation.v1"
-PRODUCER_WORKFLOW_VERSION = "2.17.0"
+# Deliberately NOT the pack version. This records which producer-profile
+# contract emitted the observation, so it changes only when that contract's
+# emitted shape changes. Mirroring `pack.toml` made every core release a
+# two-file edit enforced by a red test, to populate a field no consumer reads
+# for a decision — the schema validates it as free text, and nothing compares
+# or branches on it. A release number also answers the wrong question here:
+# "which contract produced this record" outlives "which release was current".
+PRODUCER_WORKFLOW_VERSION = "work-loop-producer-profile.v1"
 CAPTURE_ID_PREFIX = "kco"
 COMPETENCY_QUESTIONS = (
     "CQ-ORIENT",

@@ -513,12 +513,14 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    the freshly drafted `spec.md` + `plan.md` in spec mode — the role supports
    this explicitly.
 
-   Every completed reviewer report, including one that claims clean, passes
-   through `finding-adjudicator` before the author classifies or acts on it.
-   Follow the installed
+   Mechanically classify a completed reviewer report as direct clean only when
+   its entire returned text value is exactly `Clean — ready to commit.`. Do not
+   persist, validate, or adjudicate that exact value. Every non-exact report
+   passes through `finding-adjudicator` before the author classifies or acts on
+   it. Follow the installed
    [`work-loop` pre-EXECUTE review protocol](../work-loop/references/pre-execute-review.md)
    for spec-stage artifact identity and validation: prove `.context/reviews/` is ignored,
-   persist the complete raw report, validate that artifact before dispatch,
+   persist the complete non-exact raw report, validate that artifact before dispatch,
    then dispatch `finding-adjudicator` by the validated path with the unchanged
    review target, structural scope, reviewer role, and governing authority
    paths. Its finding-adjudication gateway owns the shared adjudication
@@ -547,7 +549,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    that the lint proves plan content, implementation behavior, or finding
    reachability.
 
-   Iterate on sustained findings until the adjudicated result is
+   Iterate on sustained findings until the direct or adjudicated result is
    `Clean — ready to commit.` Spec-mode reviews should converge in 1-2 passes;
    if you can't reach clean in 3, the spec has a structural problem — surface
    to a human rather than grinding. If the reviewer keeps finding

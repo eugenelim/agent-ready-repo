@@ -13,6 +13,7 @@ _WORK_LOOP = (
 )
 _RESUMPTION_REFERENCE = "references/session-resumption.md"
 _RESUMPTION = _WORK_LOOP.parent / "references" / "session-resumption.md"
+_SECURITY_REVIEWER = _WORK_LOOP.parents[2] / "agents" / "security-reviewer.md"
 
 
 def test_missing_contract_fails_closed() -> None:
@@ -159,7 +160,7 @@ _ELIGIBILITY_CONJUNCTS = (
 
 _DURABILITY_TRIGGERS = (
     "A current full-mode risk trigger",
-    "Multi-person or parallel execution",
+    "Multi-implementer, external-collaborator, or parallel execution",
     "Dependent delivery tasks needing durable sequencing",
     "Expected multi-session work",
     "Queueing for later",
@@ -221,3 +222,41 @@ def test_the_predicate_tables_have_no_unpinned_rows() -> None:
         len(eligibility), len(_ELIGIBILITY_CONJUNCTS))
     assert len(durability) == len(_DURABILITY_TRIGGERS), (
         len(durability), len(_DURABILITY_TRIGGERS))
+
+
+def test_mandatory_automated_reviewers_do_not_make_work_multi_person() -> None:
+    # Scoped to the risk-trigger block for the reason _section documents: a
+    # whole-file scan would stay green if this statement were moved out of the
+    # procedure an agent follows and into unrelated commentary.
+    body = _section(
+        _WORK_LOOP.read_text(encoding="utf-8"),
+        "<!-- risk-triggers:start",
+        "<!-- risk-triggers:end -->",
+    )
+    assert "multiple implementers or external collaborators" in body
+    assert "Mandatory automated reviewers do not count" in body
+
+
+def test_security_routing_requires_a_changed_boundary_or_guarding_control() -> None:
+    body = _section(
+        _WORK_LOOP.read_text(encoding="utf-8"),
+        "<!-- risk-triggers:start",
+        "<!-- risk-triggers:end -->",
+    )
+    assert "changes a security boundary, data flow, or guarding control" in body
+    assert "Merely touching unchanged existing I/O" in body
+
+
+def test_agent_security_routing_excludes_ordinary_prompt_wording() -> None:
+    body = _section(
+        _SECURITY_REVIEWER.read_text(encoding="utf-8"),
+        "Invoke security-reviewer for diffs that touch:",
+        "For diffs that don't touch any of the above",
+    )
+    assert "File system or network trust boundaries, data flows, or guarding controls" in body
+    assert (
+        "LLM- or agent-related authority, untrusted-input handling, tool/function "
+        "exposure, permissions, MCP servers, sandboxing, or model/data-output handling"
+    ) in body
+    assert "Merely touching unchanged existing I/O does not fire this reviewer" in body
+    assert "ordinary prompt wording that changes none of the LLM/agent surfaces above" in body

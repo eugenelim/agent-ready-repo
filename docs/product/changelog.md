@@ -52,6 +52,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.1] — 2026-08-31
+
+### Highlights
+
+- **Exact clean reviews now finish without a redundant adjudicator call, while
+  low-risk agent-context changes can remain in light mode.** Mandatory
+  automated reviewers no longer make work multi-person, and security review is
+  tied to changed trust boundaries, data flows, or guarding controls.
+
+### Changed
+
+- `work-loop` and `new-spec` persist every completed reviewer report, then
+  compare the persisted artifact's bytes to the exact `Clean — ready to commit.`
+  sentinel. A byte-equal raw return closes the round without an adjudicator
+  call; every other response still follows the fail-closed finding-adjudication
+  protocol. Persistence is unconditional, so a clean round stays auditable and
+  the exactness check never rests on a model-performed string comparison.
+- Full-mode cohort review state accepts that artifact through a dedicated
+  `review record --direct-clean-file <path>` form, which reads the file and
+  refuses a near-miss without changing state. `state.json` gains
+  `last_review_clean_source` and `last_review_clean_digest`, so a resumed
+  session can tell an adjudicated clean from a direct one instead of inferring
+  it from an artifact whose absence is ambiguous.
+- Light/full and security-review routing now excludes mandatory automated
+  reviewers, unchanged existing file/network I/O, and ordinary prompt wording,
+  while retaining review for changed boundary controls and agent authority,
+  input, tool, permission, sandbox, or data-handling behavior.
+- `project-knowledge` records `producer.workflow_version` as the
+  producer-profile contract version rather than the shipped pack version. The
+  recorded value now changes when the producer contract's shape changes, not on
+  every release, so a version bump no longer requires a matching source edit.
 ## [core][2.17.0] — 2026-08-31
 
 ### Highlights

@@ -9,8 +9,11 @@ boundaries:
 ---
 # agentic-skills
 
-Use when the change authors, modifies, packages, parses, distributes, or
-isolates an agent skill or equivalent behavior-definition file.
+Use when a change to an agent skill or equivalent behavior-definition file
+alters authority, untrusted-input handling, tools, permissions, sandboxing,
+metadata parsing, security-metadata declarations (`metadata.boundaries`,
+`metadata.credentialed`), distribution security, or data handling. Ordinary
+prompt wording with none of those effects does not load this module.
 
 ## Spec-stage
 

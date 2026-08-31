@@ -21,6 +21,8 @@
   "max_review_retries": 5,
   "finding_fingerprints": [],
   "previous_finding_fingerprints": [],
+  "last_review_clean_source": null,
+  "last_review_clean_digest": null,
   "auto_parallel": false,
   "last_commit_sha": null,
   "worktrees": []

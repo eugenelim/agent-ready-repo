@@ -1,6 +1,6 @@
 # Spec: Project knowledge authoring integrations
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by [`[core][2.17.1]`](../../product/changelog.md) — `producer.workflow_version` records the producer-profile contract version, not the shipped pack version; mirroring the release coupled every core bump to a source constant to populate a field the schema validates as free text and no consumer reads for a decision; every other decision stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0077, ADR-0081, and ADR-0082 (Accepted)

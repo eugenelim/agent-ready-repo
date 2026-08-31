@@ -1,9 +1,11 @@
 # agentic-skills — skill-file authoring, distribution, metadata, isolation
 
-> **Loaded when:** the change authors, modifies, or packages a skill file (SKILL.md or
-> equivalent behaviour-definition file); parses or validates skill metadata (frontmatter,
-> plugin.json, pack.toml); builds or installs from a skill registry or distribution
-> package; or adds skill-execution sandbox configuration.
+> **Loaded when:** a skill-file change alters authority, untrusted-input
+> handling, tools, permissions, sandboxing, metadata parsing, security-metadata
+> declarations (`metadata.boundaries`, `metadata.credentialed`), distribution
+> security, or data handling; or the change builds or installs from a skill
+> registry or distribution package. Ordinary prompt wording with none of those
+> effects does not load this module.
 > **Standards:** OWASP Agentic Skills Top 10 v1.0 — **AST01** Malicious Skills, **AST03**
 > Over-Privileged Skills, **AST04** Insecure Metadata, **AST05** Untrusted External
 > Instructions, **AST06** Weak Isolation, **AST07** Update Drift, **AST09** No Governance,

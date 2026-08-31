@@ -214,9 +214,11 @@ Both EXECUTE fan-out (supervisor mode) and REVIEW fan-out share these rules:
 - Timeout, tool error, or missing report = `failed` for that target. Same as
   substantive failure; don't retry silently.
 - EXECUTE fan-out: merge implementer results in your own context. REVIEW
-  fan-out: persist each raw report, adjudicate it by path, and merge only the
+  fan-out: persist each raw report, byte-compare it against the exact clean
+  sentinel, adjudicate every non-matching one by path, and merge only the
   sustained main-loop results; never read N raw reviewer reports into the
-  controller to aggregate them.
+  controller to aggregate them. Persistence is unconditional — a fan-out round
+  where every reviewer returned clean still leaves one artifact per reviewer.
 
 ## Phase 1 supervisor procedure
 
