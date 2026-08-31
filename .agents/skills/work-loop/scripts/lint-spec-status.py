@@ -791,8 +791,15 @@ def changed_spec_paths(root: Path, base_ref: str) -> list[Path] | None:
     """
     try:
         result = subprocess.run(
-            ["git", "-C", str(root), "diff", "--name-only", base_ref,
-             "--", "docs/specs"],
+            # `--relative` and `-z`, both load-bearing. Without --relative git
+            # reports paths from the REPO root, so a `--root` that is a
+            # subdirectory yields `sub/docs/specs/...`, the `docs/specs` prefix
+            # filter below drops every entry, and the per-spec pass becomes a
+            # silent no-op. Without -z a path needing quoting arrives as
+            # `"docs/specs/caf\303\251/spec.md"`, whose first part is `"docs`,
+            # and that spec is dropped the same way.
+            ["git", "-C", str(root), "diff", "--name-only", "-z", "--relative",
+             base_ref, "--", "docs/specs"],
             capture_output=True, text=True, errors="replace", check=False,
             timeout=GIT_TIMEOUT_S,
         )
@@ -809,7 +816,7 @@ def changed_spec_paths(root: Path, base_ref: str) -> list[Path] | None:
     try:
         untracked = subprocess.run(
             ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard",
-             "--", "docs/specs"],
+             "-z", "--", "docs/specs"],
             capture_output=True, text=True, errors="replace", check=False,
             timeout=GIT_TIMEOUT_S,
         )
@@ -820,7 +827,10 @@ def changed_spec_paths(root: Path, base_ref: str) -> list[Path] | None:
 
     specs_dir = root / "docs" / "specs"
     changed: set[Path] = set()
-    for relpath in result.stdout.splitlines() + untracked.stdout.splitlines():
+    # -z output is NUL-separated with a trailing NUL, so the final split
+    # element is empty; the falsy guard drops it.
+    reported = result.stdout.split("\0") + untracked.stdout.split("\0")
+    for relpath in (entry for entry in reported if entry):
         parts = Path(relpath).parts
         if len(parts) < 3 or parts[:2] != ("docs", "specs"):
             continue
@@ -938,8 +948,24 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _dangling_reference_warnings(root: Path, spec_paths: list[Path]) -> list[str]:
-    """Return warn-only dangling-reference findings across every current spec."""
+def _repo_wide_findings(
+    root: Path, spec_paths: list[Path], anchors: set[str]
+) -> tuple[list[str], list[str]]:
+    """Return `(hard, warn)` for the invariants that must span every spec.
+
+    Two invariants belong here rather than in the per-spec pass, for different
+    reasons:
+
+      (iii) dangling references — warn-only, and its value is repository-wide.
+      (iv)  deferral anchors — HARD, and its second input is `workspace.toml`,
+            not the spec file. Closing a `[backlog].open` entry invalidates the
+            marker in every spec that cites it, none of which need have changed,
+            so scoping this to changed specs would let the routine close-work
+            operation break anchors with nothing reporting it.
+
+    Both read the same text, so they share one pass over the corpus.
+    """
+    hard: list[str] = []
     warn: list[str] = []
     for spec_path in spec_paths:
         rel = spec_path.relative_to(root).as_posix()
@@ -947,7 +973,7 @@ def _dangling_reference_warnings(root: Path, spec_paths: list[Path]) -> list[str
         if text is None:
             warn.append(
                 f"{rel}: could not be read (unreadable, or over the size cap); "
-                "invariant (iii) was not checked"
+                "invariants (iii) and (iv) were not checked"
             )
             continue
         for lineno, line in enumerate(text.splitlines(), start=1):
@@ -970,7 +996,14 @@ def _dangling_reference_warnings(root: Path, spec_paths: list[Path]) -> list[str
                     f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
                     "does not resolve (warn-only)"
                 )
-    return warn
+        # (iv) deferral anchors resolve. HARD, and repo-wide: see the docstring.
+        for lineno, anchor in deferred_anchors(text):
+            if anchor not in anchors:
+                hard.append(
+                    f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
+                    f"does not resolve in workspace.toml [backlog].open"
+                )
+    return hard, warn
 
 
 # What the most recent `check` call gated. A module-level record rather than a
@@ -987,7 +1020,11 @@ LAST_SCOPE: dict[str, object] = {
 def check(
     root: Path, base_ref: str | None, all_specs: bool = False
 ) -> tuple[list[str], list[str]]:
-    """Return hard violations and warnings for changed specs or the full sweep."""
+    """Return hard violations and warnings for changed specs or the full sweep.
+
+    Also records the per-spec selection in `LAST_SCOPE`, which `_describe_scope`
+    reads to build the summary line. `main` must call them in that order.
+    """
     hard: list[str] = []
     warn: list[str] = []
 
@@ -1030,11 +1067,16 @@ def check(
     # the same "spec metadata clean." as a full sweep, so a run that selected
     # zero specs is indistinguishable from one that checked all of them -- the
     # failure mode the scoped-run change exists alongside, not one to introduce.
+    # `mode` records what actually happened, not what was asked for: an
+    # unresolvable base or an undetermined changed set full-sweeps, and calling
+    # that a "changed against <base>" run would name a comparison that did not
+    # happen.
+    swept = all_specs or spec_paths is all_spec_paths
     LAST_SCOPE.update(
         selected=len(spec_paths),
         available=len(all_spec_paths),
-        mode="all" if all_specs else "changed",
-        base_ref=base_ref if not all_specs and base_resolvable else None,
+        mode="all" if swept else "changed",
+        base_ref=None if swept else base_ref,
     )
 
     for spec_path in spec_paths:
@@ -1163,14 +1205,6 @@ def check(
                 "opt-out header"
             )
 
-        # (iv) deferral anchors resolve
-        for lineno, anchor in deferred_anchors(text):
-            if anchor not in anchors:
-                hard.append(
-                    f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open"
-                )
-
         # (ii) ACs at the ship transition (diff-triggered)
         if base_resolvable and not base_text_undetermined and token == "Shipped":
             base_token = parse_status(base_text) if base_text is not None else None
@@ -1214,7 +1248,9 @@ def check(
                         f"backward x-spec/REGISTRY.md ref to {feature_dir} (warn-only)"
                     )
 
-    warn.extend(_dangling_reference_warnings(root, all_spec_paths))
+    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths, anchors)
+    hard.extend(repo_hard)
+    warn.extend(repo_warn)
     return hard, warn
 
 
