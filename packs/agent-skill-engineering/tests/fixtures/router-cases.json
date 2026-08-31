@@ -59,6 +59,7 @@
     "id": "mode-loading",
     "prompt": "Make frame, create, and update load only their own procedures",
     "expected_topics": [
+      "activation-discoverability-and-mode-wayfinding",
       "instruction-density-and-progressive-disclosure"
     ]
   },
@@ -66,7 +67,8 @@
     "id": "asset-or-reference",
     "prompt": "Should this template be an asset or an instruction reference?",
     "expected_topics": [
-      "instruction-density-and-progressive-disclosure"
+      "instruction-density-and-progressive-disclosure",
+      "resources-scripts-and-exit-contracts"
     ]
   },
   {
@@ -423,7 +425,8 @@
     "id": "delegate-write-ownership",
     "prompt": "Two delegated agents will edit files in the same checkout; how do I assign write ownership",
     "expected_topics": [
-      "skills-and-subagents-common-floor"
+      "skills-and-subagents-common-floor",
+      "worktrees-state-locks-and-shared-host-admission"
     ]
   },
   {
@@ -437,6 +440,7 @@
     "id": "delegate-partial-failure",
     "prompt": "One of four parallel delegates failed halfway; what should the parent do",
     "expected_topics": [
+      "progressive-result-presentation-and-next-actions",
       "skills-and-subagents-common-floor"
     ]
   },
@@ -458,7 +462,8 @@
     "id": "hook-untrusted-config",
     "prompt": "A contributor added a hook definition in the repository; is that safe to execute",
     "expected_topics": [
-      "hooks-common-floor"
+      "hooks-common-floor",
+      "trust-boundaries-and-instruction-provenance"
     ]
   },
   {
@@ -514,7 +519,8 @@
     "id": "claude-code-parallel-sessions",
     "prompt": "In Claude Code, how do I run two sessions without their edits colliding",
     "expected_topics": [
-      "claude-code-skills-subagents-hooks-and-plugins"
+      "claude-code-skills-subagents-hooks-and-plugins",
+      "worktrees-state-locks-and-shared-host-admission"
     ]
   },
   {
@@ -559,5 +565,28 @@
     "id": "near-miss-k8s-sidecar",
     "prompt": "Should this run as a sidecar container or its own pod",
     "expected_topics": []
+  },
+  {
+    "id": "depth-library-inert-activation",
+    "prompt": "Keep this checklist library from being chosen to answer a user's question directly",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers",
+      "framing-and-trigger-quality"
+    ]
+  },
+  {
+    "id": "depth-library-matched-modules",
+    "prompt": "A workflow should load only the checklist modules its task actually matches",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers",
+      "instruction-density-and-progressive-disclosure"
+    ]
+  },
+  {
+    "id": "depth-library-compiled-source",
+    "prompt": "Governed source documents are compiled into references another workflow retrieves by topic id",
+    "expected_topics": [
+      "depth-libraries-and-okf-knowledge-providers"
+    ]
   }
 ]

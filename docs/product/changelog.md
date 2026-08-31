@@ -138,6 +138,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pack's shipped release. Each value changes when its own contract's emitted
   shape changes, so a pack release no longer requires a matching edit to the
   skills.
+## [agent-skill-engineering][0.4.0] — 2026-08-31
+
+### Highlights
+
+- **The corpus now answers how a skill composes with subagents, hooks and
+  packaged bundles, and keeps the portable question separate from any one
+  tool's answer.** Three portable floors were admitted — skills with subagents,
+  hooks, and plugin packages. Each states the questions worth asking before
+  reaching for a tool's syntax, and each says out loud that event names,
+  configuration paths and output protocols belong to the tool rather than to the
+  floor. Sixteen of thirty-six subjects are now carried and twenty remain
+  recorded as absent.
+- **A capability claim about a tool now carries a lifecycle state, so nobody
+  reads "we checked" where the truth is "we read the manual".** Each claim
+  records its first-party source, the date it was retrieved, the version that
+  source exposed, and one of four states. A claim confirmed by actually
+  exercising the behaviour reads `verified`; a claim taken from documentation
+  alone reads `experimental` and is not a support claim; a claim whose
+  verification window has run out reads `stale` and returns provenance instead
+  of guidance; an absent capability reads `unavailable` and is recorded as a
+  difference rather than a gap.
+- **Claude Code is the first tool profiled, and three of its seven capabilities
+  are backed by an actual probe rather than a citation.** Skill body loading,
+  subagent context isolation and worktree isolation were exercised directly and
+  read `verified`. Nesting limits, hook scoping, managed hook policy and
+  package-supplied agent precedence are documented but unexercised, and read
+  `experimental` on purpose.
+
+### Changed
+
+- The pack README and the pack's page on the website stated a topic count that
+  had been wrong since the previous release. Both now state the count that
+  matches what ships, and a check that previously crashed on an unrecognised
+  count now reports which number it saw and which it expected.
 
 ## [agent-skill-engineering][0.3.0] — 2026-08-31
 

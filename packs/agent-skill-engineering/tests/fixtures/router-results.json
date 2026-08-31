@@ -1,10 +1,10 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-30",
-  "source_digest": "sha256:b80d94a5f0c8a787b22d27f83ed14bac05f067ea14a17e355b289f5746b5e4f2",
-  "router_digest": "sha256:6a8bbeaf6913f47301185fae757f170354cea8a644cf15357370c76f16fd2164",
-  "generated_tree_digest": "sha256:fbbbd91361976d2a51d330e9f91a535f9e76a8c06eb33452debdc0b6713a41b2",
-  "case_fixture_digest": "sha256:5f4b73889021d853066335a13faaeb31a4c1b5596b9964f42db2d45753070d4e",
+  "evaluated_at": "2026-08-31",
+  "source_digest": "sha256:5b3038ca46dc89b93dbbcb6b32c91f0924eb964c44375959993fa5260d43c129",
+  "router_digest": "sha256:575aeb694153a7ff472c0f0701ac538df97a8bdc6f8f135374bf610609f1e39e",
+  "generated_tree_digest": "sha256:09998130a6b239f3d10de2c01ac7b882d8214e5fa357a21796c03ee8af36b2ca",
+  "case_fixture_digest": "sha256:56928b600f0e21e4b6fc0ad0f0c35c072394a551a2e353b28a74f87d6349c527",
   "results": [
     {
       "id": "new-skill-purpose",
@@ -33,7 +33,8 @@
     {
       "id": "authorization-at-trigger",
       "actual_topics": [
-        "framing-and-trigger-quality"
+        "framing-and-trigger-quality",
+        "activation-discoverability-and-mode-wayfinding"
       ]
     },
     {
@@ -57,12 +58,14 @@
     {
       "id": "mode-loading",
       "actual_topics": [
-        "instruction-density-and-progressive-disclosure"
+        "instruction-density-and-progressive-disclosure",
+        "activation-discoverability-and-mode-wayfinding"
       ]
     },
     {
       "id": "asset-or-reference",
       "actual_topics": [
+        "resources-scripts-and-exit-contracts",
         "instruction-density-and-progressive-disclosure"
       ]
     },
@@ -93,14 +96,12 @@
     {
       "id": "python-extension",
       "actual_topics": [
-        "resources-scripts-and-exit-contracts",
         "python-and-pytest"
       ]
     },
     {
       "id": "node-extension",
       "actual_topics": [
-        "resources-scripts-and-exit-contracts",
         "typescript-node-and-javascript-test-runners"
       ]
     },
@@ -153,7 +154,8 @@
     {
       "id": "depth-library-root-index",
       "actual_topics": [
-        "depth-libraries-and-okf-knowledge-providers"
+        "depth-libraries-and-okf-knowledge-providers",
+        "instruction-density-and-progressive-disclosure"
       ]
     },
     {
@@ -251,7 +253,8 @@
     {
       "id": "node-runner-workers",
       "actual_topics": [
-        "typescript-node-and-javascript-test-runners"
+        "typescript-node-and-javascript-test-runners",
+        "worktrees-state-locks-and-shared-host-admission"
       ]
     },
     {
@@ -336,8 +339,7 @@
     {
       "id": "nm-python-vs-node",
       "actual_topics": [
-        "python-and-pytest",
-        "typescript-node-and-javascript-test-runners"
+        "worktrees-state-locks-and-shared-host-admission"
       ]
     },
     {
@@ -359,6 +361,156 @@
       "actual_topics": [
         "resources-scripts-and-exit-contracts",
         "python-and-pytest"
+      ]
+    },
+    {
+      "id": "delegate-or-stay-inline",
+      "actual_topics": [
+        "skills-and-subagents-common-floor"
+      ]
+    },
+    {
+      "id": "delegate-write-ownership",
+      "actual_topics": [
+        "skills-and-subagents-common-floor",
+        "worktrees-state-locks-and-shared-host-admission"
+      ]
+    },
+    {
+      "id": "delegate-result-contract",
+      "actual_topics": [
+        "skills-and-subagents-common-floor"
+      ]
+    },
+    {
+      "id": "delegate-partial-failure",
+      "actual_topics": [
+        "skills-and-subagents-common-floor",
+        "progressive-result-presentation-and-next-actions"
+      ]
+    },
+    {
+      "id": "hook-or-instruction",
+      "actual_topics": [
+        "hooks-common-floor"
+      ]
+    },
+    {
+      "id": "hook-blocking-versus-observing",
+      "actual_topics": [
+        "hooks-common-floor"
+      ]
+    },
+    {
+      "id": "hook-untrusted-config",
+      "actual_topics": [
+        "hooks-common-floor",
+        "trust-boundaries-and-instruction-provenance"
+      ]
+    },
+    {
+      "id": "hook-absent-capability",
+      "actual_topics": [
+        "hooks-common-floor"
+      ]
+    },
+    {
+      "id": "package-component-cohesion",
+      "actual_topics": [
+        "plugin-package-common-floor"
+      ]
+    },
+    {
+      "id": "package-uninstall-residue",
+      "actual_topics": [
+        "plugin-package-common-floor"
+      ]
+    },
+    {
+      "id": "package-namespace-collision",
+      "actual_topics": [
+        "plugin-package-common-floor"
+      ]
+    },
+    {
+      "id": "package-install-trust",
+      "actual_topics": [
+        "plugin-package-common-floor"
+      ]
+    },
+    {
+      "id": "claude-code-subagent-context",
+      "actual_topics": [
+        "claude-code-skills-subagents-hooks-and-plugins"
+      ]
+    },
+    {
+      "id": "claude-code-skill-loading",
+      "actual_topics": [
+        "claude-code-skills-subagents-hooks-and-plugins"
+      ]
+    },
+    {
+      "id": "claude-code-parallel-sessions",
+      "actual_topics": [
+        "claude-code-skills-subagents-hooks-and-plugins",
+        "worktrees-state-locks-and-shared-host-admission"
+      ]
+    },
+    {
+      "id": "claude-code-hook-scope-claim",
+      "actual_topics": [
+        "claude-code-skills-subagents-hooks-and-plugins"
+      ]
+    },
+    {
+      "id": "hooks-floor-then-claude-code",
+      "actual_topics": [
+        "hooks-common-floor",
+        "claude-code-skills-subagents-hooks-and-plugins"
+      ]
+    },
+    {
+      "id": "delegation-floor-then-claude-code",
+      "actual_topics": [
+        "skills-and-subagents-common-floor",
+        "claude-code-skills-subagents-hooks-and-plugins"
+      ]
+    },
+    {
+      "id": "near-miss-git-worktree-generic",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-webhook",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-npm-package",
+      "actual_topics": []
+    },
+    {
+      "id": "near-miss-k8s-sidecar",
+      "actual_topics": []
+    },
+    {
+      "id": "depth-library-inert-activation",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers",
+        "framing-and-trigger-quality"
+      ]
+    },
+    {
+      "id": "depth-library-matched-modules",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers",
+        "instruction-density-and-progressive-disclosure"
+      ]
+    },
+    {
+      "id": "depth-library-compiled-source",
+      "actual_topics": [
+        "depth-libraries-and-okf-knowledge-providers"
       ]
     }
   ]

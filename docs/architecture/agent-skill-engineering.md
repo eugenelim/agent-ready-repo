@@ -263,6 +263,19 @@ of 40. Activation re-observed headless at 18/18 with zero exclusivity
 violations. Behaviour graded over eight authoring cases with 30 of 32 assertions
 holding and two misses recorded as measured.
 
-This document stays **PLANNED**: runtime profiles and the composition floors
-described above are not implemented, and neither slice claims a surface
-belonging to them.
+The composition-floors slice admitted four further leaves: the portable
+skills-and-subagents, hooks and plugin-package floors, and one runtime profile
+for Claude Code. Sixteen of thirty-six subjects are carried and twenty remain
+recorded as absent. Capability claims are held in a runtime capability-claim
+ledger whose four lifecycle states and three-value profile roll-up are computed
+from each row rather than declared beside it, and whose window runs from a
+source's retrieval date rather than from a verification date an author can
+advance. Claude Code rolls up `complete-current` with three probe-backed
+`verified` rows and four `experimental` ones.
+
+This document stays **PLANNED**. Seven runtime profiles — Codex, GitHub Copilot,
+Cursor, Kiro IDE, Kiro CLI, Gemini CLI and Google Antigravity — are not
+implemented, and neither is the router's per-claim state and roll-up reporting:
+the shipped provider response is a closed field set with no channel for a
+capability state, so that reporting and the contract change it needs belong to
+the slice that completes the eight profiles.
