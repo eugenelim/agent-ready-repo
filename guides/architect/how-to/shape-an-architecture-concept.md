@@ -19,11 +19,12 @@ an agreed ≤½-page concept naming the problem, constraints, candidate shapes,
 provider, and key tradeoff, with a full design doc only when needed.
 
 :::note
-Check for an adequate prior design before creating a concept. If a real choice
-remains, get a ≤½-page architecture concept agreed before committing to a full
-design doc. This assumes you know roughly what you're building; if the product
-bet itself is still unsettled, shape that first with
-[`product-engineering`](../../product-engineering/).
+Get a ≤½-page architecture concept agreed before you commit to a full design
+doc. Assumes you know roughly what you're building; if the product bet itself is
+still unsettled, shape that first with
+[`product-engineering`](../../product-engineering/). Check for an adequate prior
+design first — when one already resolves the question, you need no new artifact
+at all.
 :::
 
 You have a product to build — a strategy, a brief, or a clear feature — and a
