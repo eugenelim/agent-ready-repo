@@ -78,7 +78,7 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.
 6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses.
-7. Every completed report, including a clean claim, goes through
+7. Every completed `adversarial-reviewer` report, including a clean claim, goes through
    `finding-adjudicator` before the author classifies it or edits either
    artifact. Only sustained findings can change the spec or plan; refuted
    findings stay in the audit, and an indeterminate result stops for your

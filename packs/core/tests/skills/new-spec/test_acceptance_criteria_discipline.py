@@ -239,6 +239,13 @@ def test_spec_review_adjudicates_every_report_before_action() -> None:
 def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
     """The gateway must supply the adjudicator's validated path inputs."""
     body = flattened(SKILL)
+    step = body.split("7. Spec-mode adversarial review.", 1)[1].split(
+        "8. Update `docs/specs/README.md`", 1
+    )[0]
+    protocol = (
+        "[`work-loop` pre-EXECUTE review protocol]"
+        "(../work-loop/references/pre-execute-review.md)"
+    )
     ignored = "prove `.context/reviews/` is ignored"
     persist = "persist the complete raw report"
     validate = "validate that artifact before dispatch"
@@ -248,8 +255,9 @@ def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
         "authority paths"
     )
     consume = "Classify and act only on the paired adjudication artifact"
-    for phrase in (ignored, persist, validate, dispatch, context, consume):
+    for phrase in (protocol, ignored, persist, validate, dispatch, context, consume):
         assert phrase in body
+    assert "../work-loop/references/finding-adjudication.md" not in step
     assert body.index(ignored) < body.index(persist) < body.index(validate)
     assert body.index(validate) < body.index(dispatch) < body.index(consume)
 
@@ -287,17 +295,22 @@ def test_spec_review_triage_eval_has_required_shape_and_behaviour() -> None:
     assert "prior-round-repair" in expected
     assert "blind spot" in expected
     assert "persist" in expected
+    assert "pre-EXECUTE review protocol" in expected
     assert "validated path" in expected
     assert "paired adjudication artifact" in expected
     assert any("clean" in assertion.lower() for assertion in entry["assertions"])
     assert any("origin" in assertion.lower() for assertion in entry["assertions"])
     assert any("blind spot" in assertion.lower() for assertion in entry["assertions"])
     assert any("validated path" in assertion.lower() for assertion in entry["assertions"])
+    assert any("pre-execute" in assertion.lower() for assertion in entry["assertions"])
 
 
 def test_planning_guide_explains_spec_review_triage() -> None:
     body = flattened(PLANNING_GUIDE)
-    assert "Every completed report, including a clean claim, goes through `finding-adjudicator`" in body
+    assert (
+        "Every completed `adversarial-reviewer` report, including a clean claim, "
+        "goes through `finding-adjudicator`"
+    ) in body
     assert "Only sustained findings can change the spec or plan" in body
     assert "`draft-origin` or `prior-round-repair`" in body
     assert "unresolved origin stops for your direction" in body

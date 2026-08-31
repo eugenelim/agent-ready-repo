@@ -515,13 +515,14 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    Every completed reviewer report, including one that claims clean, passes
    through `finding-adjudicator` before the author classifies or acts on it.
    Follow the installed
-   [`work-loop` finding-adjudication path protocol](../work-loop/references/finding-adjudication.md)
-   for artifact identity and validation: prove `.context/reviews/` is ignored,
+   [`work-loop` pre-EXECUTE review protocol](../work-loop/references/pre-execute-review.md)
+   for spec-stage artifact identity and validation: prove `.context/reviews/` is ignored,
    persist the complete raw report, validate that artifact before dispatch,
    then dispatch `finding-adjudicator` by the validated path with the unchanged
    review target, structural scope, reviewer role, and governing authority
-   paths. Classify and act only on the paired adjudication artifact; never use
-   raw report prose as verdict-bearing input.
+   paths. Its finding-adjudication gateway owns the shared adjudication
+   semantics. Classify and act only on the paired adjudication artifact; never
+   use raw report prose as verdict-bearing input.
    Revise the spec or plan only from sustained findings; keep refuted findings
    in the audit, and stop on an indeterminate result. `finding-adjudicator`
    already tests authority, reachability, existing handling, consequence, and
