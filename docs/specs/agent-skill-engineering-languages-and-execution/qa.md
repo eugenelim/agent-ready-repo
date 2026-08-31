@@ -3,13 +3,25 @@
 Base for every measurement below: `origin/main` at `9f11be473`. Every figure here
 was produced by the invocation named beside it.
 
-This branch has been rebased four times, and the base named above is the current
-one rather than the base a given measurement was first taken on. The measurements
-are carried forward rather than re-taken, and the premise is checkable rather
-than asserted: `git diff` over `packs/agent-skill-engineering/` between each
-consecutive pair of bases this record has had is empty, so upstream never touched
-the measured tree and the artifacts are byte-identical across every base change.
-Re-verified at this base, not assumed to have survived the rebase.
+This branch has been rebased repeatedly, and the base named above is the
+current one rather than the base a given measurement was first taken on. The
+number of rebases is deliberately not stated: it is not recoverable from the
+tree, and an unverifiable count has no place in a record whose premise is that
+every figure came from a named invocation.
+
+The measurements are carried forward rather than re-taken, on one premise stated
+so it can be re-run:
+
+    git diff 74f9a4ac9 9f11be473 -- packs/agent-skill-engineering/
+
+That is empty, so upstream has not touched the measured tree anywhere in the
+range this record spans, and the artifacts are byte-identical across every base
+it has had. Checked at this base rather than assumed to have survived the rebase.
+
+The command sits on its own line because hard-wrapping split it mid-path when it
+ran inline, which makes a "re-runnable" premise uncopyable. An earlier wording
+also claimed the check held between each consecutive pair of bases, which was
+more than had been verified; the range check above implies it and is one command.
 
 The graded *review* results were not carried forward and were re-taken, for a
 reason unrelated to rebasing; it is recorded under **Review evidence re-taken**
@@ -593,7 +605,7 @@ Surfaced by executing contexts, unresolved and not blocking:
 ## A note on the commit hashes below
 
 Every hash in this record names a commit on this branch, and the branch has been
-rebased four times. Two citations went stale that way — they named pre-rebase
+rebased five times. Two citations went stale that way — they named pre-rebase
 objects unreachable from HEAD, so the "reproducing invocation" this record
 requires for every observed failure reproduced only in one local clone. Both are
 re-pinned to `c25052d15`, and both claims were re-verified against it rather than
