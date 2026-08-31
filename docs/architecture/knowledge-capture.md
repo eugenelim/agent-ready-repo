@@ -20,6 +20,11 @@ artifact, instruction, or runtime control.
 - `project-knowledge --enquire` loads `references/enquire-mode.md` and may
   call only committed-topic, map, and current-source read helpers.
 
+`--producer-profile work-loop` is an additive producer seam. It accepts only
+workflow semantic judgments, then constructs deterministic capture fields and
+the fixed review enquiry envelope before normal validation. A full raw request
+without the profile remains a supported public path.
+
 ## 3. Owned state and write authority
 
 | State | Location | Write authority | Readers |
@@ -113,5 +118,4 @@ named command enforces it.
 
 ## 11. Last verified against commit
 
-`c8cf4b37`
-
+`615b68d8c`

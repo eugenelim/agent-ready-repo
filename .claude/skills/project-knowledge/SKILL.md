@@ -17,6 +17,14 @@ Boundary metadata is informational. Mode dispatch and helper registries enforce 
 
 Capture persists strict pending observations. Distill records one terminal disposition and may apply one guarded topic mutation from an explicit proposal. Enquire reads only the committed topic/map surface.
 
+## Producer profiles
+
+`--producer-profile work-loop` lets work-loop submit only semantic judgment.
+The profile constructs deterministic capture fields, confines artifacts and
+provenance, builds freshness digests, and refuses caller overrides. It also owns
+the fixed, read-only `CQ-REVIEW` enquiry envelope. The raw full-request path
+remains supported unchanged.
+
 ## Output rendering
 
 <!-- agentbundle:output-rendering:start -->

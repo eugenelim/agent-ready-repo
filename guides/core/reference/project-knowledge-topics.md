@@ -9,6 +9,9 @@ kind: reference
 
 Authoritative field and matching rules for a **project-knowledge topic** — the distilled, committed form of a captured lesson. For the workflow that produces and retires topics, see [How to distill captured project knowledge](../how-to/distill-captured-project-knowledge.md).
 
+Producer profiles may construct capture fields from a workflow's semantic input.
+They do not change topic fields, matching, or the supported full raw-request path.
+
 ## Scope
 
 `scopes` is the field that decides whether a topic is ever found. It is a **list of repository-relative paths**.

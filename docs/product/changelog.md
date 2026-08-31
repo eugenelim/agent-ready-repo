@@ -52,6 +52,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.17.0] — 2026-08-31
+
+### Highlights
+
+- **Work-loop now supplies reusable lessons through project-knowledge without
+  having to assemble its storage and safety details.**
+
+### Added
+
+- Added the work-loop producer profile for project-knowledge capture and review enquiry.
+
+### Fixed
+
+- Project-knowledge now refuses hard-linked source files before using them for captured lessons.
+
 ## [core][2.16.6] — 2026-08-31
 
 ### Highlights

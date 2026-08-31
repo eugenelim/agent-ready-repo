@@ -167,6 +167,7 @@ def _read_regular_file_bounded(
     max_bytes: int,
     *,
     missing_ok: bool = False,
+    reject_hard_links: bool = False,
 ) -> bytes | None:
     try:
         metadata = path.lstat()
@@ -180,12 +181,15 @@ def _read_regular_file_bounded(
         not stat.S_ISREG(metadata.st_mode)
         or stat.S_ISLNK(metadata.st_mode)
         or bool(getattr(metadata, "st_file_attributes", 0) & 0x400)
+        or (reject_hard_links and metadata.st_nlink > 1)
     ):
         _refuse("confinement")
     try:
         with path.open("rb") as handle:
             opened = os.fstat(handle.fileno())
-            if not stat.S_ISREG(opened.st_mode):
+            if not stat.S_ISREG(opened.st_mode) or (
+                reject_hard_links and opened.st_nlink > 1
+            ):
                 _refuse("confinement")
             if opened.st_size > max_bytes:
                 _refuse("journal_capacity")
@@ -2268,6 +2272,7 @@ def _confined_current_source(repo_root: Path | str, source: dict[str, Any]) -> b
         path,
         budget_contract()["enquiry_body_read_bytes"],
         missing_ok=True,
+        reject_hard_links=True,
     )
 
 

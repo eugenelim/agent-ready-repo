@@ -259,7 +259,7 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 
 ### 6. Preserve reusable lessons
 
-At semantic gates, the workflow may hand one strict observation to `project-knowledge --capture`. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
+At semantic gates, the workflow may hand its semantic judgment to the `project-knowledge` producer profile. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
 
 Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
 

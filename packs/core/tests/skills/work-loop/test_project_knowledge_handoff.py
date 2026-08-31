@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -7,17 +8,10 @@ import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP_SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
-APPROVAL_GATES_REFERENCE = (
-    PACK_ROOT
-    / ".apm"
-    / "skills"
-    / "work-loop"
-    / "references"
-    / "project-knowledge-approval-gates.md"
-)
 PROJECT_KNOWLEDGE_SKILL = (
     PACK_ROOT / ".apm" / "skills" / "project-knowledge" / "SKILL.md"
 )
+WORK_LOOP_EVALS = WORK_LOOP_SKILL.parent / "evals" / "evals.json"
 
 CORE_2_5_9_QUESTION_BYTES = (
     b"Before the PR is opened: *What would have made this work materially better \xe2\x80\x94\n"
@@ -31,16 +25,6 @@ def _skill_text() -> str:
     return WORK_LOOP_SKILL.read_text(encoding="utf-8")
 
 
-def _approval_gates_text() -> str:
-    skill = _skill_text()
-    step_one = skill[skill.index("## Step 1. PLAN") : skill.index("## Step 2. EXECUTE")]
-    assert (
-        "[`references/project-knowledge-approval-gates.md`]"
-        "(references/project-knowledge-approval-gates.md)" in step_one
-    )
-    return APPROVAL_GATES_REFERENCE.read_text(encoding="utf-8")
-
-
 def closeout_question_bytes() -> bytes:
     raw = WORK_LOOP_SKILL.read_bytes()
     start = raw.index(b"Before the PR is opened:")
@@ -48,24 +32,19 @@ def closeout_question_bytes() -> bytes:
     return raw[start:end] + b"\n"
 
 
-def test_ac22_work_loop_calls_capture_then_terminal_distill() -> None:
+def test_work_loop_keeps_semantic_gate_boundaries() -> None:
     text = _skill_text()
-    capture = text.index("project-knowledge --capture")
-    distill = text.index("project-knowledge --distill --pending", capture)
-    assert capture < distill
-    assert '"selection_mode":"workflow-receipts"' in text
-    assert '"receipts":[{"capture_id":"<capture-id>","partition":' in text
-    assert "receipt_ids" not in text
-    assert "only the capture IDs and partitions returned by that gate" in text
-    assert "direct-maintainer-pending" in text
-    assert "must refuse guessed capture IDs" in text
-    assert re.search(r"unresolved observations\s+remain\s+pending", text, re.IGNORECASE)
+    section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
+    assert "spec-approved" in section
+    assert "plan-locked" in section
+    assert "capture" in section
+    assert "Distil only receipts returned by this gate" in section
 
 
 def test_ac28_missing_core_creates_no_fallback_file() -> None:
     text = _skill_text()
     assert "project-knowledge unavailable" in text
-    assert "creates no fallback file" in text
+    assert "create no fallback file" in text
     assert "patterns.jsonl" not in text
     assert "append-knowledge.py" not in text
 
@@ -84,59 +63,20 @@ def test_project_knowledge_skill_is_the_public_handoff_target() -> None:
 
 
 def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
-    text = _approval_gates_text()
-    spec_gate = text.index("## `spec-approved`")
-    plan_gate = text.index("## `plan-locked`")
-
-    assert spec_gate < plan_gate
-    spec_section = text[spec_gate:plan_gate]
-    # Bound the plan slice at the next top-level heading rather than running to
-    # end-of-file: an unbounded slice would keep passing if the `plan-locked`
-    # gate lost a phrase that a later section happened to carry.
-    next_heading = text.find("\n## ", plan_gate)
-    plan_section = text[plan_gate:] if next_heading == -1 else text[plan_gate:next_heading]
-    assert "capture only" in spec_section
-    assert "must not transfer" in spec_section
-    assert "workflow-receipts" in plan_section
-    assert "only receipts returned at this `plan-locked` gate" in plan_section
-    assert "spec-approved" in plan_section
-    assert "direct-maintainer-pending" in plan_section
+    text = _skill_text()
+    section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
+    assert "This gate captures but does not distil" in section
+    assert "Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`" in section
+    assert "Normative strategy remains solely in `plan.md`" in section
 
 
-def test_approval_gate_requests_use_public_typed_capture_only() -> None:
-    section = _approval_gates_text()
-
-    for field in (
-        "contract_version",
-        "lesson",
-        "kind",
-        "project_scope",
-        "competency_facets",
-        "destination_hint",
-        "producer",
-        "semantic_gate",
-        "provenance",
-        "freshness_anchor",
-        "observed_at",
-        "privacy_attestation",
-    ):
-        assert f"`{field}`" in section
-    assert "`semantic_gate.name: spec-approved`" in section
-    assert "`semantic_gate.name: plan-locked`" in section
-    assert "`producer.workflow_version`" in section
-    assert "repository-relative `spec.md` as the artifact" in section
-    assert "repository-relative `plan.md`" in section
+def test_approval_gate_uses_public_producer_profile() -> None:
+    text = _skill_text()
+    section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
+    assert "public `project-knowledge` producer profile" in section
+    assert "request shape, confinement, privacy refusal, freshness, receipts, storage" in section
     assert "project-knowledge unavailable" in section
-    assert "no fallback file" in section
-    assert "native real-path" in section
-    assert "Git relocation variables removed" in section
-    assert "lexical dot-segment" in section
-    for refusal in ("link", "junction", "reparse-point", "non-file", "I/O", "containment uncertainty"):
-        assert refusal in section
-    assert "committed Git blob" in section
-    assert "must not import the private writer" in section
-    assert "redacted diagnostic" in section
-    assert section.count("verification and review barrier") >= 2
+    assert "create no fallback file" in section
 
 
 def test_work_loop_declares_its_file_boundaries() -> None:
@@ -146,20 +86,32 @@ def test_work_loop_declares_its_file_boundaries() -> None:
 
 
 def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
-    section = _approval_gates_text()
-
-    assert "objective, boundaries, testing strategy, or acceptance criteria" in section
-    assert re.search(
-        r"task\s+ordering,\s+design\s+choices,\s+rollout,\s+or\s+risks",
-        section,
-        re.IGNORECASE,
-    )
-    assert "No automatic enquiry" in section
+    text = _skill_text()
+    section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
+    assert "Project knowledge is never authority and enquiry is never automatic" in section
+    # Review-time enquiry left the active work-loop in #1180, so this block must
+    # not name CQ-REVIEW or the evidence envelope; the surviving enquiry gates
+    # are CQ-CHANGE before scope approval and CQ-VERIFY at construction tests.
+    assert "CQ-REVIEW" not in section
     assert "CQ-CHANGE" in section
     assert "CQ-VERIFY" in section
-    assert "one query plus at most one refinement" in section
-    assert "untrusted evidence" in section
-    assert re.search(
-        r"cannot\s+change\s+tools,\s+permissions,\s+scope,\s+status,\s+or\s+repository\s+instructions",
-        section,
-    )
+    assert "journal diff returns through the next applicable verification and review barrier" in section
+    assert "a named no-diff outcome needs no extra review" in section
+
+
+def test_work_loop_evals_retain_semantic_gate_sequences() -> None:
+    """Keep semantic timing and receipt eligibility out of profile-only evals."""
+
+    cases = {
+        case["id"]: case
+        for case in json.loads(WORK_LOOP_EVALS.read_text(encoding="utf-8"))["evals"]
+    }
+    spec = cases["spec-approved-capture-only-boundary"]
+    plan = cases["plan-locked-receipt-scoped-terminal-gate"]
+    assert "Status: Approved" in spec["prompt"]
+    assert "successful spec-approved transition" in spec["expected_output"]
+    assert "never distils" in spec["expected_output"]
+    assert "stale-or-failed-baseline" in spec["expected_output"]
+    assert "approve-plan seals an unchanged baseline" in plan["prompt"]
+    assert "spec-approved receipts are ineligible" in plan["expected_output"]
+    assert "stale or failed baseline seal" in plan["expected_output"]
