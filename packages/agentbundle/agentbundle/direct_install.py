@@ -263,8 +263,13 @@ def candidate_listing(
     return lines
 
 
-def _skill_description(skill: DirectSkill) -> str:
-    """Read a skill's declared description, or the empty string."""
+def skill_metadata(skill: DirectSkill) -> dict:
+    """Parse a skill's frontmatter once, for every reader that needs it.
+
+    Two call sites each scanned `skill.files` for `SKILL.md`, parsed it, and
+    swallowed a parse failure into a *different* empty default — so the listing
+    and the capability block could disagree about the same skill.
+    """
 
     from agentbundle.bounded_metadata import (
         BoundedMetadataError,
@@ -274,12 +279,17 @@ def _skill_description(skill: DirectSkill) -> str:
     for measured in skill.files:
         if measured.path.name == "SKILL.md":
             try:
-                metadata = parse_bounded_metadata(measured.data)
+                return parse_bounded_metadata(measured.data)
             except BoundedMetadataError:
-                return ""
-            value = metadata.get("description")
-            return value.strip() if isinstance(value, str) else ""
-    return ""
+                return {}
+    return {}
+
+
+def _skill_description(skill: DirectSkill) -> str:
+    """Read a skill's declared description, or the empty string."""
+
+    value = skill_metadata(skill).get("description")
+    return value.strip() if isinstance(value, str) else ""
 
 
 def report_time_mode(mode: int) -> str:
@@ -312,19 +322,7 @@ def capability_block(
     observations we made about their bytes.
     """
 
-    from agentbundle.bounded_metadata import (
-        BoundedMetadataError,
-        parse_bounded_metadata,
-    )
-
-    metadata: dict = {}
-    for measured in skill.files:
-        if measured.path.name == "SKILL.md":
-            try:
-                metadata = parse_bounded_metadata(measured.data)
-            except BoundedMetadataError:
-                metadata = {}
-            break
+    metadata = skill_metadata(skill)
 
     allowed_tools = _normalised_allowed_tools(metadata, source=source)
     nested = metadata.get("metadata")

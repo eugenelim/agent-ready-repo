@@ -71,13 +71,18 @@ def run(args) -> int:
 
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
-    # `--format json` is the direct route's output contract, and a direct pack
-    # is one of the three direct shapes even though it carries a pack.toml.
-    # Without this, asking for JSON on a direct pack silently produced the
-    # catalogue route's text output — which for a valid pack is nothing at all.
-    # Text output for a pack is unchanged; only an explicit JSON request routes.
-    if getattr(args, "format", "text") == "json" and _has_direct_marker(pack_path):
-        return _run_direct(pack_path, "json")
+    # A direct pack is one of the three direct shapes even though it carries a
+    # pack.toml, and it is distinguishable: T2 requires a direct manifest to
+    # declare a top-level `schema`, while catalogue manifests keep it implicit.
+    # Routing on that rather than on the requested output format, because the
+    # earlier rule made the same directory take the catalogue route in text and
+    # the direct route in JSON — the route is a property of the source, not of
+    # how the caller wants it printed.
+    output_format = getattr(args, "format", "text")
+    if _is_direct_manifest(pack_toml_path) or (
+        output_format == "json" and _has_direct_marker(pack_path)
+    ):
+        return _run_direct(pack_path, output_format)
     if not pack_toml_path.exists():
         # Route to the direct path only when a direct marker is actually
         # present. A directory that is neither a pack nor a direct source is a
@@ -788,3 +793,22 @@ def _has_direct_marker(source: Path) -> bool:
     from agentbundle.direct_source import root_skill_folders
 
     return bool(root_skill_folders(source))
+
+
+def _is_direct_manifest(pack_toml_path: Path) -> bool:
+    """True when a `pack.toml` declares the top-level `schema` a direct pack needs.
+
+    T2 makes `schema = 1` required for a direct manifest and its omission fail
+    closed, while catalogue manifests keep schema-major-1 implicit. That makes
+    the field the discriminator between the two profiles, so neither has to be
+    guessed at from the caller's output format.
+    """
+
+    if not pack_toml_path.exists():
+        return False
+    try:
+        return "schema" in tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError):
+        # A manifest we cannot read is not a direct manifest; the catalogue
+        # route below reports the parse failure with its own diagnostic.
+        return False

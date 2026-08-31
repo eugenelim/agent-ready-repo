@@ -738,3 +738,57 @@ def test_an_empty_git_placeholder_is_admitted_and_a_full_one_is_not(tmp_path: Pa
     other = direct_source.validate_direct_source(_source(".env", "TOKEN=x"))
     assert other.ok is False
     assert "hidden entry" in other.diagnostics[0].message
+
+
+def test_the_two_frontmatter_parsers_have_not_drifted():
+    # AC16 pins `bounded_metadata`'s parser as lifted from `okf_discovery`, and
+    # the block-scalar support added by this spec landed in both. They cannot be
+    # merged: `okf_discovery` imports `file_safety` and so has a filesystem API,
+    # which `bounded_metadata` deliberately does not — a fresh direct-module
+    # import must leave that surface absent.
+    #
+    # So the duplication stays and is policed instead. Source equality of the
+    # shared functions is the check the copies never had: `_sweep_guard` exists
+    # because four adapters carried "keep in sync" comments and three drifted
+    # anyway, and a comment is not a control.
+    import ast
+    import inspect
+    from pathlib import Path
+
+    import agentbundle.bounded_metadata as bounded_metadata
+    from agentbundle.catalogue_tooling import okf_discovery
+
+    shared = ("_is_block_scalar_header", "_consume_block_scalar")
+
+    def _bodies(module) -> dict[str, str]:
+        tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
+        return {
+            node.name: ast.dump(node)
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name in shared
+        }
+
+    direct = _bodies(bounded_metadata)
+    catalogue = _bodies(okf_discovery)
+    for name in shared:
+        assert name in direct, f"{name} missing from bounded_metadata"
+        assert name in catalogue, f"{name} missing from okf_discovery"
+        assert direct[name] == catalogue[name], (
+            f"{name} has drifted between the two parsers; AC16 pins them as the "
+            f"same primitive and nothing else compares them"
+        )
+
+    # And the behaviour they exist for agrees on the forms that matter.
+    limits = bounded_metadata.MetadataLimits()
+    discovery_limits = okf_discovery.DiscoveryLimits()
+    for raw in (
+        "description: >\n  folded one\n  folded two\n",
+        "description: |-\n  literal\n  lines\n",
+        "metadata:\n  summary: >+\n    kept\n\n",
+        "name: plain\ndescription: single line\n",
+    ):
+        assert bounded_metadata._parse_subset(
+            raw, "SKILL.md", limits
+        ) == okf_discovery.parse_frontmatter_subset(raw, "SKILL.md", discovery_limits), raw
+
+    assert inspect.getmodule(bounded_metadata) is not inspect.getmodule(okf_discovery)

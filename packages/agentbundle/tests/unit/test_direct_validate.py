@@ -184,3 +184,52 @@ def test_json_reaches_a_direct_pack_despite_its_pack_toml(tmp_path: Path):
     payload = json.loads(captured.getvalue())
     assert payload["summary"]["shape"] == "direct-pack"
     assert payload["operation"] == "direct"
+
+
+@pytest.mark.parametrize("output_format", ["text", "json"])
+def test_a_direct_pack_takes_the_direct_route_in_either_format(
+    tmp_path: Path, output_format: str, capsys
+):
+    # The route is a property of the source, not of how the caller wants it
+    # printed. Routing on `--format` made the same directory take the catalogue
+    # route in text and the direct route in JSON, so `validate` and `install`
+    # disagreed about what the source was. T2 gives the discriminator: a direct
+    # manifest declares a top-level `schema` and a catalogue manifest does not.
+    root = tmp_path / f"dpack-{output_format}"
+    _write_skill(root / "skills" / "one", "one")
+    (root / "pack.toml").write_text(
+        'schema = 1\n[pack]\nname = "dpack"\nversion = "1.0.0"\n'
+    )
+
+    class _Args:
+        pack_path = str(root)
+        strict = False
+        format = output_format
+
+    assert validate_cmd.run(_Args()) == 0
+    captured = capsys.readouterr()
+    combined = captured.out + captured.err
+    if output_format == "json":
+        assert json.loads(captured.out)["operation"] == "direct"
+    else:
+        assert "direct source valid" in combined
+        assert "direct-pack" in combined
+
+
+def test_a_catalogue_pack_keeps_the_catalogue_route_in_text(tmp_path: Path, capsys):
+    # The other half of the discriminator, so the change cannot silently drag
+    # every catalogue pack onto the direct route.
+    root = tmp_path / "catalogue-pack"
+    _write_skill(root / "skills" / "one", "one")
+    (root / "pack.toml").write_text('[pack]\nname = "cpack"\nversion = "1.0.0"\n')
+
+    class _Args:
+        pack_path = str(root)
+        strict = False
+        format = "text"
+
+    validate_cmd.run(_Args())
+    combined = "".join(capsys.readouterr())
+    assert "direct source" not in combined, (
+        "a manifest with no top-level schema is a catalogue pack"
+    )

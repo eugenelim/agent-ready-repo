@@ -223,6 +223,21 @@ def run(args: argparse.Namespace) -> int:
     Returns 0 on success, non-zero on any failure. See module docstring
     for the dual-scope contract.
     """
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
+
+    try:
+        return _run(args)
+    except OrphanSweepRefused as exc:
+        # AC28's refusal is correct — a sweep that cannot read the state file
+        # must not delete what it cannot prove is unowned — but install reaches
+        # it through each adapter's `project()`, and unhandled it arrived as a
+        # traceback with internal paths on stderr.
+        print(f"install: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run(args: argparse.Namespace) -> int:
+    """The install body; `run` owns the sweep-refusal boundary."""
     # Structural git answers are cached for this invocation only.
     from agentbundle.local_exclude import reset_git_query_cache
 
