@@ -270,13 +270,27 @@ def test_oversized_record_refuses_without_raising(tmp_path, engine) -> None:
 
 # STUB: AC12
 def test_membership_is_decided_on_the_real_file(tmp_path, engine) -> None:
-    # The record names the artifact through an in-root alias symlink, so the
-    # stored member differs from the literal locator unless it is resolved.
-    root = _tree(tmp_path, records=[_record(locator="docs/specs/alias-alpha/spec.md")])
+    """AC12: an alias path is excluded because it resolves to the cooled file.
+
+    The criterion names `canonical.ready`, and only that surface can show it.
+    The earlier form asserted the cooled set, whose second clause compared an
+    unresolved `Path` against a set of resolved ones -- a membership test that
+    cannot hold whatever the code does.
+    """
+    root = _tree(tmp_path, records=[_record()], specs=())
+    _spec(root, "alpha")
     (root / "docs/specs/alias-alpha").symlink_to(root / "docs/specs/alpha", target_is_directory=True)
-    cooled, _ = engine._resolve_cooled_state(root)
-    assert cooled == {(root / "docs/specs/alpha/spec.md").resolve()}
-    assert (root / "docs/specs/alias-alpha/spec.md") not in cooled
+    _workspace(root, queue=_entry("alias-alpha"))
+
+    ready = _reconcile_json(root, engine)["canonical"]["ready"]
+    assert all(item["path"] != "docs/specs/alias-alpha/spec.md" for item in ready)
+
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    _spec(control, "alpha")
+    (control / "docs/specs/alias-alpha").symlink_to(control / "docs/specs/alpha", target_is_directory=True)
+    _workspace(control, queue=_entry("alias-alpha"))
+    control_ready = [item["path"] for item in _reconcile_json(control, engine)["canonical"]["ready"]]
+    assert "docs/specs/alias-alpha/spec.md" in control_ready
 
 
 # STUB: AC37
@@ -650,24 +664,38 @@ def test_explain_mode_excludes_too(tmp_path, engine) -> None:
 
 
 def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
-    """AC55: a structural block beats local-spec cooling satisfaction."""
+    """AC55: a structural block beats cooling satisfaction, on the real surface.
+
+    The block is earned rather than injected: `alpha` is registered twice, so it
+    is a duplicate membership and therefore structurally blocked, and it is also
+    cooled. Passing a synthetic `structurally_blocked_paths` to
+    `_dependency_is_satisfied` proved only that the first line of that function
+    runs -- it could not show that a cooled artifact still reaches the set.
+    """
     root = _tree(tmp_path, records=[_record()], specs=())
     _spec(root, "alpha")
-    dependency = engine.Dependency(
-        type="local",
-        kind="spec",
-        path="docs/specs/alpha/spec.md",
-    )
-    satisfied, finding = engine._dependency_is_satisfied(
-        dependency,
-        {},
-        {},
-        {dependency.path},
+    _spec(root, "beta")
+    needs = '[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]'
+    _workspace(
         root,
-        engine._resolve_cooled_state(root)[0],
+        queue=", ".join([_entry("alpha"), _entry("alpha"), _entry("beta", needs=needs)]),
     )
-    assert not satisfied
-    assert finding is not None and finding.code == "unsatisfied_dependency"
+
+    canonical = _reconcile_json(root, engine)["canonical"]
+    assert all(item["path"] != "docs/specs/beta/spec.md" for item in canonical["ready"])
+    assert ("unsatisfied_dependency", "docs/specs/alpha/spec.md") in {
+        (f["code"], f["path"]) for f in canonical["findings"]
+    }
+
+    # Control: the same cooled dependency without the duplicate. `beta` is ready,
+    # so the refusal above is attributable to the structural block and not to
+    # cooling refusing every dependency it touches.
+    control = _tree(tmp_path / "control", records=[_record()], specs=())
+    _spec(control, "alpha")
+    _spec(control, "beta")
+    _workspace(control, queue=", ".join([_entry("alpha"), _entry("beta", needs=needs)]))
+    control_ready = [item["path"] for item in _reconcile_json(control, engine)["canonical"]["ready"]]
+    assert control_ready == ["docs/specs/beta/spec.md"]
 
 
 def test_cooling_never_satisfies_an_unclosed_defect_dependency(tmp_path, engine) -> None:
