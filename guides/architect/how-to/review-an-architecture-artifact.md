@@ -35,6 +35,15 @@ state diagram, ER diagram, or a generic rubric. Assessment review checks scope,
 evidence, model coherence, heat use, lens coverage, claim calibration, and action
 traceability from the artifact; it does not rescan the repository.
 
+For a design doc, the review also runs a reduction pass. It challenges a full
+design where a Stage-0 concept would answer the question, a document with no
+real choice, and each unnecessary component, service, dependency, boundary, or
+custom mechanism. It looks for an ignored existing, standard, native, or
+provider capability; speculative scale, configurability, compatibility, or
+extensibility; and complexity that lacks a named quality attribute and credible
+constraint. The intended fix is to remove unsupported complexity or claims,
+not to expand the document to defend them.
+
 ```text
   artifact type          rubric                  verdict           review body
   ───────────────────────────────────────────────────────────────────────────

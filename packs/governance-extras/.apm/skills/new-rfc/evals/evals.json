@@ -126,6 +126,17 @@
       ]
     },
     {
+      "id": 11,
+      "prompt": "Before doing any RFC work, route these requests: a proposal already settled by an ADR; a settled bounded feature; routine work; tracked work; a remaining architecture choice; and a reversible trial with exit criteria. Do not create an RFC for any of them.",
+      "expected_output": "new-rfc selects reuse/reference, spec, PR, issue, architect-design, and a reversible time-bounded trial respectively. It reports each selected route and returns before resolving an RFC ordinal, selecting an RFC target, creating a directory or index, or drafting RFC body text.",
+      "assertions": [
+        "Routes the existing settled decision to reuse or reference rather than a new RFC",
+        "Routes the settled feature, routine work, tracked work, architecture choice, and reversible trial to the correct cheaper artifact or path",
+        "Returns each cheaper route before ordinal resolution, target selection, directory or index creation, and RFC body drafting",
+        "Does not create any RFC effect while reporting cheaper routes"
+      ]
+    },
+    {
       "id": "cognitive-load-output-quality",
       "prompt": "Complete a representative task that produces a user-facing RFC. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
       "expected_output": "The RFC leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
