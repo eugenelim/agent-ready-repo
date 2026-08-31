@@ -47,8 +47,21 @@ def _collapse(text: str) -> str:
     return " ".join(text.split())
 
 
+def _bodies(root: Path) -> dict[str, str]:
+    """Map topic slug to body, built by globbing rather than by joining a slug.
+
+    The pack-test boundary lint cannot statically resolve a path joined from a
+    variable, so `root / f"{slug}.md"` reads as an escape above the pack even
+    though it never leaves it. Globbing the owning directory is the idiom the
+    sibling suites already use and keeps the path provably pack-local.
+    """
+    return {
+        path.stem: path.read_text(encoding="utf-8") for path in root.glob("*.md")
+    }
+
+
 def _body(slug: str) -> str:
-    return (CONCEPTS / f"{slug}.md").read_text(encoding="utf-8")
+    return _bodies(CONCEPTS)[slug]
 
 
 @pytest.fixture(name="subjects")
@@ -111,7 +124,7 @@ def test_no_floor_names_a_runtime_specific_identifier(slug) -> None:
 
 @pytest.mark.parametrize("slug", FLOORS)
 def test_the_compiled_floor_copy_is_also_portable(slug) -> None:
-    body = (COMPILED / f"{slug}.md").read_text(encoding="utf-8")
+    body = _bodies(COMPILED)[slug]
     hits = {
         name: match.group(0)
         for name, pattern in FORBIDDEN_IDENTIFIER_CLASSES
