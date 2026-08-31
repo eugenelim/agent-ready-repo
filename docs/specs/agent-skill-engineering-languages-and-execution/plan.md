@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Languages and Execution
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` D3 and its
   shared language contracts; `docs/rfc/0097-notes/practice-inventory.md` and
   `docs/rfc/0097-notes/execution-economics-archaeology.md` for the doctrine
@@ -163,33 +163,6 @@ descriptor corrected in the commit that ships the slice names it as in flight
 at the moment it stops being so. Rolling the status while the entry stays in
 `queue` emits `impossible_transition`, whose tolerated count is already at its
 ceiling of 2.
-
-**The pair is split during a contract amendment, deliberately, and this records
-the condition that closes it.** A `contract-amendment` returns the engine to
-drafting and clears its schedule baseline; the two status *tokens* are rolled
-back by hand to match, because the engine does not write `spec.md`. So between
-firing the amendment and completing re-approval the spec reads `Draft` while its
-registration stays in `.active` and the implementation stays in the tree.
-
-That hand rollback was made inside the T6/T7 commit and its message did not
-mention it, which is the defect worth naming here: the only place a status
-rollback is visible is the commit that makes it, and a contract change riding
-silently inside a feature commit is indistinguishable from an accident. An
-earlier version of this paragraph attributed the rollback to the engine, which
-was wrong in a way that would have sent a reader looking in the wrong place.
-That is the half-rolled state this task
-otherwise exists to prevent, and it is invisible to the gate cited above, which
-only detects the opposite direction. Leaving the entry in `.active` is the
-correct half to keep: moving it back to `queue` would advertise blocked work as
-startable, and no gate would object.
-
-The condition that releases the split is re-approval: the commit that resumes
-implementation after the amendment restores `Implementing`, and until then the
-`Draft` token is accurate about authorization rather than about progress. A
-review round found this state and was right to; it is recorded here so the next
-reader can tell a deliberate split from a forgotten one, and so a session that
-finds `Draft` beside committed code checks the engine state before rolling
-anything.
 
 **Tests:**
 - `tests/roster/test_workspace_status_projection.py` (AC8) — no stub
@@ -520,6 +493,22 @@ every observed gate failure. Three copies of one field list is how the record
 came to satisfy one copy and fail the others. A figure in it must come from the
 invocation named beside it, re-measured at the shipping tree rather than carried
 from when it was first observed.
+
+**On the status pair T1 opened.** T1 rolls the spec to `Implementing` together
+with the registration move. A `contract-amendment` between then and here returns
+the engine to drafting and clears its schedule baseline, and the two status tokens
+are rolled back by hand to match, because the engine does not write `spec.md`. The
+pair is therefore split for the duration of a re-approval: the spec reads `Draft`
+while its registration stays in `.active` and the implementation stays in the
+tree. Leaving the entry in `.active` is the correct half to keep, since moving it
+back to `queue` would advertise blocked work as startable and no gate would
+object.
+
+This is recorded here rather than in T1 because T1 is a completed task whose
+section text is pinned by the cohort seal, and editing it retroactively rewrites
+the contract the completed work was done against — `approve-plan` refuses exactly
+that, correctly. The slice `qa.md` carries the same record with the commit that
+made the rollback and the fact that its message never mentioned it.
 
 Then close the pair T1 opened: set the spec to `Shipped`, move its registration
 from `["ini-009".work].active` to `.shipped`, and re-pin the brief digest in
