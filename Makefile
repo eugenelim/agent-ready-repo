@@ -512,9 +512,10 @@ test:
 	$(PYTHON) tools/repo/coordination_lease.py with-lease -- $(MAKE) -f $(firstword $(MAKEFILE_LIST)) test-unleased
 
 override define run-test-suite
-$(PYTHON) -m pytest packages/agentbundle/tests/ -q
+$(PYTHON) -m pytest packages/agentbundle/tests/ -q -p tools.pytest_collection_floor --minimum-collected=3200 --collection-floor-suite=packages/agentbundle/tests/
 $(PYTHON) -m pytest packages/credbroker/ -q
 $(PYTHON) tools/lint-conformance-portability.py --root .
+$(PYTHON) tools/lint-direct-code-table.py --root .
 # spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
 # too, so `make ci` covers what gate-main's contrast step runs.
 $(PYTHON) tools/check-docs-contrast.py
@@ -614,6 +615,7 @@ $(PYTHON) -m pytest \
 	tools/test_check_release_impact.py \
 	tools/test_scaffold_projection.py \
 	tools/test_conformance_portability.py \
+	tools/test_lint_direct_code_table.py \
 	tools/test_lint_guides_no_repo_only_refs.py \
 	tools/test_okf_pre_pr.py \
 	tools/test_pack_test_compatibility.py -q

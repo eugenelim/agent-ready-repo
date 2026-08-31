@@ -72,6 +72,12 @@ def run(args) -> int:
     # ── 1. Locate and load pack.toml ──────────────────────────────────────
     pack_toml_path = pack_path / "pack.toml"
     if not pack_toml_path.exists():
+        # Route to the direct path only when a direct marker is actually
+        # present. A directory that is neither a pack nor a direct source is a
+        # mistake, and it must keep reporting the missing pack.toml rather than
+        # a shape refusal that would send the reader after the wrong cause.
+        if _has_direct_marker(pack_path):
+            return _run_direct(pack_path, getattr(args, "format", "text"))
         print(
             f"validate: pack.toml not found at {pack_toml_path}",
             file=sys.stderr,
@@ -724,3 +730,43 @@ def _tree_files(root: Path) -> dict[str, bytes]:
             relpath = path.relative_to(root).as_posix()
             out[relpath] = path.read_bytes()
     return out
+
+
+def _run_direct(source: Path, output_format: str) -> int:
+    """Validate a direct source through the one shared admission entry point.
+
+    AC14 requires validation and install preflight to yield identical
+    diagnostics, which holds here because neither owns a check: both call
+    `validate_direct_source`.
+    """
+
+    from agentbundle.direct_source import validate_direct_source
+    from agentbundle.direct_validate import (
+        render_direct_validation_json,
+        render_direct_validation_text,
+    )
+
+    if not source.is_dir():
+        print(f"validate: no pack.toml and no directory at {source}", file=sys.stderr)
+        return 1
+
+    admission = validate_direct_source(source)
+    if output_format == "json":
+        print(render_direct_validation_json(admission))
+    else:
+        rendered = render_direct_validation_text(admission)
+        print(rendered, file=sys.stdout if admission.ok else sys.stderr)
+    return 0 if admission.ok else 1
+
+
+# The fixed markers that make a directory a candidate direct source. Kept in one
+# place so the routing rule and its diagnostic cannot disagree.
+_DIRECT_MARKERS = ("SKILL.md", "skills", ".claude/skills")
+
+
+def _has_direct_marker(source: Path) -> bool:
+    """Report whether *source* looks like a direct source at all."""
+
+    return source.is_dir() and any(
+        (source / marker).exists() for marker in _DIRECT_MARKERS
+    )

@@ -3,6 +3,15 @@
 `pack.toml` is the **single, rich source of truth** for a pack's metadata.
 The build derives a smaller, schema-compliant **subset** from it and projects
 that into each distribution route's manifest, alongside the pack's `README.md`.
+
+One route has no `pack.toml` at all. A **manifestless** direct install takes a
+skill folder or a `skills/` collection from a repository that never declared a
+pack, so there is no manifest to be the source of truth for. Such an install
+derives its identity from the skill's own directory name and records its
+provenance in install state rather than in a manifest. A direct source that
+*does* carry a `pack.toml` is validated against a deliberately narrower profile
+than a catalogue pack — the fields below still mean what they say, but several
+are not admitted on that route.
 This page describes that model. The on-disk *shape* of a pack lives in
 [`pack-layout.md`](pack-layout.md); the decision record is
 [ADR-0021](../adr/0021-pack-manifest-source-of-truth-and-scoped-identity.md).

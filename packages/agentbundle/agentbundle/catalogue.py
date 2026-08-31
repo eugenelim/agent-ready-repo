@@ -33,6 +33,7 @@ imports lazily and delegates to.
 from __future__ import annotations
 
 import atexit
+import gzip
 import re
 import shutil
 import ssl
@@ -43,6 +44,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 # A black-holing corporate proxy accepts the connection and never answers, so an
@@ -68,7 +70,25 @@ _SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
 
 
 class CatalogueError(ValueError):
-    """Raised when a catalogue URI cannot be resolved."""
+    """Raised when a catalogue URI cannot be resolved.
+
+    ``code`` and ``remediation`` are optional so the direct route can carry a
+    registered diagnostic code and its recovery text on the same exception the
+    catalogue route already raises.  The string form stays exactly the message,
+    so the sixty-one existing raise sites and every ``pytest.raises(match=...)``
+    assertion against them are unaffected by the added fields.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        remediation: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.remediation = remediation
 
 
 def resolve_catalogue(uri: str) -> Path:
@@ -302,6 +322,82 @@ def _system_trust_module():
     return system_trust
 
 
+INTERCEPTED_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = (
+    # `URLError` is listed rather than `HTTPError` because the latter subclasses
+    # it; both arrive here. `OSError` covers a connect-time failure raised
+    # outside urllib's wrapping. The archive-decode errors are intercepted so a
+    # corrupt or bomb-shaped payload is observable through this one seam rather
+    # than escaping past it uncaught.
+    urllib.error.URLError,
+    ssl.SSLError,
+    TimeoutError,
+    OSError,
+    tarfile.TarError,
+    gzip.BadGzipFile,
+)
+
+
+@dataclass(frozen=True)
+class TransportAttempt:
+    """What one transport attempt did, classified but not interpreted.
+
+    This carries the originating exception rather than an outcome enum, and the
+    reason is worth recording because three narrower designs were tried first.
+    A three-valued enum could not separate a non-certificate TLS failure from a
+    socket timeout; a four-valued one still could not separate a non-2xx HTTP
+    status, because `urllib.error.HTTPError` subclasses `urllib.error.URLError`
+    and lands in the same `except` arm. Every added value left the next
+    collapse, so the caller receives the exception and classifies it directly.
+    """
+
+    ok: bool
+    exception: BaseException | None = None
+    certificate_failure: bool = False
+    anchors: str | None = None
+    empty_store: bool = False
+    system_trust_disabled: bool = False
+
+
+def classify_transport_attempt(
+    attempt: Callable[[ssl.SSLContext], None],
+) -> TransportAttempt:
+    """Run *attempt* against the default context and classify the result.
+
+    The single shared entry point for both the catalogue and direct routes. It
+    **never raises and never formats a message**: message construction stays
+    per-route so each caller renders its own diagnostic and applies its own
+    escaping to any transport detail. Resolving the trust anchors here — before
+    any caller announces anything — is deliberate: on a platform with no
+    administrator trust store to read, a second connection against an identical
+    context is pure noise, and telling the adopter the anchors "did not complete
+    the chain" sends them after the wrong cause.
+    """
+
+    system_trust = _system_trust_module()
+    try:
+        attempt(system_trust.build_context())
+    except INTERCEPTED_TRANSPORT_ERRORS as exc:
+        if not _is_cert_verification_failure(exc):
+            return TransportAttempt(ok=False, exception=exc)
+        if system_trust.system_trust_disabled():
+            return TransportAttempt(
+                ok=False,
+                exception=exc,
+                certificate_failure=True,
+                system_trust_disabled=True,
+            )
+        empty_store = system_trust.default_store_is_empty()
+        anchors = system_trust.system_anchor_pem(include_public_roots=empty_store)
+        return TransportAttempt(
+            ok=False,
+            exception=exc,
+            certificate_failure=True,
+            anchors=anchors or None,
+            empty_store=empty_store,
+        )
+    return TransportAttempt(ok=True)
+
+
 def _fetch_and_extract(url: str, dest: Path) -> None:
     system_trust = _system_trust_module()
 
@@ -330,89 +426,85 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
                 # DeprecationWarning. Path-jail is belt; this is braces.
                 tf.extractall(path=dest, filter="data")
 
-    try:
-        attempt(system_trust.build_context())
-    except (urllib.error.URLError, ssl.SSLError, TimeoutError) as exc:
-        # ssl.SSLError and TimeoutError are caught alongside URLError because
-        # urlopen only wraps failures raised during connect. A stall or TLS
-        # error while the tarball body is still streaming escapes unwrapped,
-        # which would break this module's documented promise that an
-        # unreachable URL raises CatalogueError.
-        detail = getattr(exc, "reason", None) or exc
-        if not _is_cert_verification_failure(exc):
-            raise CatalogueError(
-                f"Failed to fetch catalogue archive: {url} — {detail}"
-            ) from exc
-        if system_trust.system_trust_disabled():
-            raise CatalogueError(
-                _verification_failure_message(
-                    url,
-                    detail,
-                    fallback_note=(
-                        "The operating-system trust fallback was not attempted, "
-                        "because AGENTBUNDLE_NO_SYSTEM_TRUST is set."
-                    ),
-                    offer_opt_out=False,
-                )
-            ) from exc
-        # Resolve the anchors BEFORE announcing anything. On a platform with no
-        # administrator trust store to read, a second connection against an
-        # identical context would be pure noise, and claiming the anchors "did
-        # not complete the chain" would send the adopter after the wrong cause.
-        # An interpreter with an empty trust store is a different fault from an
-        # inspected network: nothing verifies, and the administrator keychain
-        # alone cannot repair it because it holds private roots, not public ones.
-        # Observed in the field on a python.org macOS build whose
-        # Install Certificates.command was never run.
-        empty_store = system_trust.default_store_is_empty()
-        anchors = system_trust.system_anchor_pem(include_public_roots=empty_store)
-        if not anchors:
-            # Two different causes, and conflating them misdirects the adopter.
-            # Off macOS the fallback does not apply at all. *On* macOS it applied
-            # and found an empty administrator keychain, which means the
-            # authority is installed somewhere this deliberately does not read.
-            if sys.platform == "darwin":
-                note = (
-                    "The administrator keychain holds no certificates to retry "
-                    "with, so the authority is likely installed somewhere else — "
-                    "a login keychain, or an application's own store. Only "
-                    "/Library/Keychains/System.keychain is read, because it is "
-                    "the one store that requires administrator rights to write."
-                )
-            elif system_trust.running_under_wsl():
-                # True on WSL but not on Windows, and the distinction is the
-                # whole point: Windows needs no fallback (Python reads the CA
-                # and ROOT stores and honours per-certificate trust settings),
-                # while a WSL distribution reports linux and inherits none of
-                # it. The generic linux message is accurate and useless here —
-                # it does not name the cause the adopter can act on.
-                note = (
-                    "No operating-system trust anchors were consulted: this is a "
-                    "WSL distribution, which keeps its own trust store separate "
-                    "from Windows'. A certificate authority pushed to Windows by "
-                    "Group Policy or Intune is not visible here until it is "
-                    "installed into the distribution as well — export the "
-                    "authority to a .crt, place it in "
-                    "/usr/local/share/ca-certificates/, and run "
-                    "`sudo update-ca-certificates`."
-                )
-            else:
-                note = (
-                    f"No operating-system trust anchors were consulted on "
-                    f"{sys.platform}: the automatic fallback is macOS-only, "
-                    "because macOS is the only platform where Python ignores "
-                    "the operating system's trust store."
-                )
-            raise CatalogueError(
-                _verification_failure_message(
-                    url, detail, fallback_note=note, empty_store=empty_store
-                )
-            ) from exc
-        _retry_with_system_trust(url, dest, attempt, anchors, empty_store=empty_store)
-    except tarfile.TarError as exc:
+    # One shared classifier for both routes; message construction stays here.
+    outcome = classify_transport_attempt(attempt)
+    if outcome.ok:
+        return
+    exc = outcome.exception
+    assert exc is not None, "a non-ok attempt always carries its exception"
+    if isinstance(exc, tarfile.TarError | gzip.BadGzipFile):
+        raise CatalogueError(f"Failed to extract tarball from {url}: {exc}") from exc
+    detail = getattr(exc, "reason", None) or exc
+    if not outcome.certificate_failure:
         raise CatalogueError(
-            f"Failed to extract tarball from {url}: {exc}"
+            f"Failed to fetch catalogue archive: {url} — {detail}"
         ) from exc
+    if outcome.system_trust_disabled:
+        raise CatalogueError(
+            _verification_failure_message(
+                url,
+                detail,
+                fallback_note=(
+                    "The operating-system trust fallback was not attempted, "
+                    "because AGENTBUNDLE_NO_SYSTEM_TRUST is set."
+                ),
+                offer_opt_out=False,
+            )
+        ) from exc
+    # Resolve the anchors BEFORE announcing anything. On a platform with no
+    # administrator trust store to read, a second connection against an
+    # identical context would be pure noise, and claiming the anchors "did
+    # not complete the chain" would send the adopter after the wrong cause.
+    # An interpreter with an empty trust store is a different fault from an
+    # inspected network: nothing verifies, and the administrator keychain
+    # alone cannot repair it because it holds private roots, not public ones.
+    # Observed in the field on a python.org macOS build whose
+    # Install Certificates.command was never run.
+    empty_store = outcome.empty_store
+    anchors = outcome.anchors
+    if not anchors:
+        # Two different causes, and conflating them misdirects the adopter.
+        # Off macOS the fallback does not apply at all. *On* macOS it applied
+        # and found an empty administrator keychain, which means the
+        # authority is installed somewhere this deliberately does not read.
+        if sys.platform == "darwin":
+            note = (
+                "The administrator keychain holds no certificates to retry "
+                "with, so the authority is likely installed somewhere else — "
+                "a login keychain, or an application's own store. Only "
+                "/Library/Keychains/System.keychain is read, because it is "
+                "the one store that requires administrator rights to write."
+            )
+        elif system_trust.running_under_wsl():
+            # True on WSL but not on Windows, and the distinction is the
+            # whole point: Windows needs no fallback (Python reads the CA
+            # and ROOT stores and honours per-certificate trust settings),
+            # while a WSL distribution reports linux and inherits none of
+            # it. The generic linux message is accurate and useless here —
+            # it does not name the cause the adopter can act on.
+            note = (
+                "No operating-system trust anchors were consulted: this is a "
+                "WSL distribution, which keeps its own trust store separate "
+                "from Windows'. A certificate authority pushed to Windows by "
+                "Group Policy or Intune is not visible here until it is "
+                "installed into the distribution as well — export the "
+                "authority to a .crt, place it in "
+                "/usr/local/share/ca-certificates/, and run "
+                "`sudo update-ca-certificates`."
+            )
+        else:
+            note = (
+                f"No operating-system trust anchors were consulted on "
+                f"{sys.platform}: the automatic fallback is macOS-only, "
+                "because macOS is the only platform where Python ignores "
+                "the operating system's trust store."
+            )
+        raise CatalogueError(
+            _verification_failure_message(
+                url, detail, fallback_note=note, empty_store=empty_store
+            )
+        ) from exc
+    _retry_with_system_trust(url, dest, attempt, anchors, empty_store=empty_store)
 
 
 def _retry_with_system_trust(

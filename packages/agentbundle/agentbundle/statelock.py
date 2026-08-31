@@ -255,7 +255,13 @@ def persist_state_locked(
 
     with state_lock(state_path, timeout=timeout):
         state = config.load_state(state_path, for_write=True)
+        existing_version = state.schema_version
         mutate(state)
+        # AC12: the floor is computed against the state re-read *inside* the
+        # lock, never a pre-lock snapshot. A concurrent run that raised the file
+        # to 0.5 between our read and our write would otherwise be silently
+        # downgraded back to 0.4 by this write, stranding its direct rows.
+        state.schema_version = direct_state_floor(existing_version, state)
         safety.write_jailed(
             root,
             relpath,
@@ -264,3 +270,33 @@ def persist_state_locked(
             allowed_prefixes=allowed_prefixes,
         )
     return state
+
+
+def direct_state_floor(existing_version: str, state) -> str:
+    """Return the schema version to write: `max(existing, 0.5 if direct)`.
+
+    Separated from :func:`persist_state_locked` so it can be driven directly,
+    but it is deliberately not a general comparison: only two versions exist,
+    and 0.5 is never downgraded to 0.4 even when the mutation being applied
+    touches no direct row. A file reaches 0.5 because it holds direct
+    provenance some earlier install wrote, and that provenance does not stop
+    existing because this run installed a catalogue pack.
+    """
+
+    from agentbundle import config
+
+    if existing_version == config.DIRECT_STATE_SCHEMA_VERSION:
+        return config.DIRECT_STATE_SCHEMA_VERSION
+    if state_carries_direct_rows(state):
+        return config.DIRECT_STATE_SCHEMA_VERSION
+    return config.STATE_SCHEMA_VERSION
+
+
+def state_carries_direct_rows(state) -> bool:
+    """True when any row records direct-source provenance."""
+
+    # `State.packs` is flat and keyed by `(pack_name, adapter)`, not nested.
+    return any(
+        getattr(row, "source_kind", None) in {"pack", "skill"}
+        for row in getattr(state, "packs", {}).values()
+    )

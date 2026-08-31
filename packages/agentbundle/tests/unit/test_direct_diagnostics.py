@@ -22,7 +22,7 @@ BUDGET_NAMES = frozenset(
 
 
 def test_direct_codes_registry_contract():
-    # STUB: AC31 — DIRECT_CODES is an explicit frozenset of DiagnosticCode members,
+    # AC31 — DIRECT_CODES is an explicit frozenset of DiagnosticCode members,
     # and make_direct_diagnostic accepts only those.
     from agentbundle.catalogue_tooling.diagnostics import (
         DIRECT_CODES,
@@ -91,7 +91,7 @@ def test_direct_codes_registry_contract():
 
 
 def test_bound_exceeded_carries_typed_budget_attribution():
-    # STUB: AC33 — a budget breach is attributed through the exception's
+    # AC33 — a budget breach is attributed through the exception's
     # attributes, never by parsing UnsafeContentError message text.
     from agentbundle.catalogue_tooling.file_safety import BoundExceeded, UnsafeContentError
 
@@ -115,7 +115,7 @@ def test_bound_exceeded_carries_typed_budget_attribution():
 
 
 def test_read_confined_regular_file_attributes_the_per_file_bytes_budget(tmp_path):
-    # STUB: AC33 — both max_bytes overrun sites in read_confined_regular_file
+    # AC33 — both max_bytes overrun sites in read_confined_regular_file
     # raise BoundExceeded carrying the per-file-bytes budget. Constructing
     # BoundExceeded by hand (above) is satisfied by a class that is defined and
     # never raised; this is the arm that reddens if either site stays bare.
@@ -142,7 +142,7 @@ def test_read_confined_regular_file_attributes_the_per_file_bytes_budget(tmp_pat
 
 
 def test_read_confined_regular_file_attributes_the_post_read_overrun(tmp_path, monkeypatch):
-    # STUB: AC33 — the SECOND max_bytes site. The pre-read size check and the
+    # AC33 — the SECOND max_bytes site. The pre-read size check and the
     # post-read "changed beyond byte limit" check are different code paths, and
     # a file that is simply oversized only ever reaches the first. Under-report
     # st_size so the pre-read check passes and the read overruns, which is the
@@ -174,7 +174,7 @@ def test_read_confined_regular_file_attributes_the_post_read_overrun(tmp_path, m
 
 
 def test_integrity_refusal_is_discriminable_from_a_budget_breach(tmp_path):
-    # STUB: AC33 — an entry-integrity refusal is NOT a budget breach. A caller
+    # AC33 — an entry-integrity refusal is NOT a budget breach. A caller
     # must separate the two without parsing UnsafeContentError message text.
     from agentbundle.catalogue_tooling.file_safety import (
         BoundExceeded,

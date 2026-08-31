@@ -35,6 +35,14 @@ _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 _CREDENTIAL_SUBSTRINGS = ("token", "key", "secret", "password", "auth")
 
 STATE_SCHEMA_VERSION = "0.4"
+# 0.5 adds direct-source provenance rows. A reader accepts both, because a
+# repository that has never installed a direct skill keeps a 0.4 file and must
+# not be forced to migrate. A writer raises the version to 0.5 only when a
+# mutation actually adds or updates a direct row, and never downgrades it — see
+# `statelock.direct_state_floor`, which computes the floor from the state
+# re-read inside the lock rather than from a pre-lock snapshot.
+DIRECT_STATE_SCHEMA_VERSION = "0.5"
+SUPPORTED_STATE_SCHEMA_VERSIONS = frozenset({STATE_SCHEMA_VERSION, DIRECT_STATE_SCHEMA_VERSION})
 
 # Read-time default for v0.3 rows lacking explicit ``target-file`` when the
 # resolved adapter is ``claude-code`` — the adapter's user-scope settings
@@ -155,6 +163,14 @@ class PackState:
     artifact_uri: str | None = None
     archive_sha256: str | None = None
     source_revision: str | None = None
+
+    # Direct-source provenance (state 0.5). `source_kind` is `pack` for a
+    # direct pack and `skill` for a manifestless one, whose display label is
+    # `manifestless`. A direct pack has no `source_path`; a manifestless one
+    # carries a validated relative POSIX path that is never empty.
+    source_kind: str | None = None
+    source_path: str | None = None
+    source_digest: str | None = None
 
     def file_sha(self, relpath: str) -> str | None:
         entry = self.files.get(relpath)
@@ -471,7 +487,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     # speaks is refused — including an absent version (which previously
     # defaulted to the current constant and parsed through).
     schema_version = raw.get("schema-version")
-    if schema_version != STATE_SCHEMA_VERSION:
+    if schema_version not in SUPPORTED_STATE_SCHEMA_VERSIONS:
         display = schema_version if isinstance(schema_version, str) else "absent"
         raise StateFileLegacy(path, version=display)
 
@@ -558,6 +574,9 @@ def _parse_adapter_row(
     raw_artifact_uri = body.get("artifact-uri")
     raw_archive_sha256 = body.get("archive-sha256")
     raw_source_revision = body.get("source-revision")
+    raw_source_kind = body.get("source-kind")
+    raw_source_path = body.get("source-path")
+    raw_source_digest = body.get("source-digest")
 
     return PackState(
         installed_version=body.get("installed-version", ""),
@@ -574,6 +593,9 @@ def _parse_adapter_row(
         artifact_uri=raw_artifact_uri if isinstance(raw_artifact_uri, str) else None,
         archive_sha256=raw_archive_sha256 if isinstance(raw_archive_sha256, str) else None,
         source_revision=raw_source_revision if isinstance(raw_source_revision, str) else None,
+        source_kind=raw_source_kind if isinstance(raw_source_kind, str) else None,
+        source_path=raw_source_path if isinstance(raw_source_path, str) else None,
+        source_digest=raw_source_digest if isinstance(raw_source_digest, str) else None,
     )
 
 
@@ -684,6 +706,15 @@ def dump_state(state: State) -> str:
             lines.append(f"archive-sha256 = {_emit_basic_string(ps.archive_sha256)}")
         if ps.source_revision is not None:
             lines.append(f"source-revision = {_emit_basic_string(ps.source_revision)}")
+        # AC12 pins this order: source-kind, then source-path when present,
+        # then source-digest, then install-route. The order is part of the
+        # contract because a golden state file asserts row key order.
+        if ps.source_kind is not None:
+            lines.append(f"source-kind = {_emit_basic_string(ps.source_kind)}")
+        if ps.source_path is not None:
+            lines.append(f"source-path = {_emit_basic_string(ps.source_path)}")
+        if ps.source_digest is not None:
+            lines.append(f"source-digest = {_emit_basic_string(ps.source_digest)}")
         lines.append(f"install-route = {_emit_basic_string(ps.install_route)}")
         lines.append(f"scope = {_emit_basic_string(ps.scope)}")
         # user-root: always emit so round-trip is byte-stable. Default value

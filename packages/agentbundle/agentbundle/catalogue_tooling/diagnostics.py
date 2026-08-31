@@ -10,7 +10,7 @@ from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 class DiagnosticCode(enum.StrEnum):
     UNKNOWN = "UNKNOWN"
 
-    # Lint codes — CAT-L001 through CAT-L027
+    # Lint codes — CAT-L001 through CAT-L031
     CAT_L001 = "CAT-L001"   # catalogue.toml present but invalid per config.py
     CAT_L002 = "CAT-L002"   # Required catalogue marker missing (packs dir or marketplace.json)
     CAT_L003 = "CAT-L003"   # Duplicate pack identity across packs dir
@@ -37,13 +37,16 @@ class DiagnosticCode(enum.StrEnum):
     CAT_L024 = "CAT-L024"   # Primitive name does not match required pattern
     CAT_L025 = "CAT-L025"   # Primitive name exceeds max length
     CAT_L026 = "CAT-L026"   # Primitive description exceeds max length
-    CAT_L027 = "CAT-L027"   # Multiline metadata form not supported
+    # Scoped to agents: adapter projection rewrites agent frontmatter line by
+    # line, so a block scalar reaches the target as the bare `>` indicator with
+    # its text dropped. Skills are copied byte-for-byte and may use them.
+    CAT_L027 = "CAT-L027"   # Block scalar in agent frontmatter is not projectable
     CAT_L028 = "CAT-L028"   # Install profile invariant violation (scope, deps, order)
     CAT_L029 = "CAT-L029"   # Catalogue seeds lint failure (blocklist, placeholder, patterns.jsonl)
     CAT_L030 = "CAT-L030"   # First-value contract violation (Level A/B fields, writes-to-repo, tutorial)  # noqa: E501
     CAT_L031 = "CAT-L031"   # Credentialed-skill convention violation (D1/D2/D2b/D3/broker-specific)  # noqa: E501
 
-    # Direct-route codes — CAT-D001 through CAT-D020 (RFC-0098).
+    # Direct-route codes — CAT-D001 through CAT-D019 (RFC-0098).
     #
     # Derived by walking every acceptance criterion that mandates a registered
     # direct refusal, which is the enumeration AC31's lint asserts exact
@@ -69,7 +72,6 @@ class DiagnosticCode(enum.StrEnum):
     CAT_D017 = "CAT-D017"   # AC33 budget: total bytes
     CAT_D018 = "CAT-D018"   # AC14: logical path segment carries a control or surrogate code point
     CAT_D019 = "CAT-D019"   # AC8/AC18: publisher candidate value failed the output allowlist
-    CAT_D020 = "CAT-D020"   # AC38: `--check` resolution outcome outside the silent class
 
 
 # The direct-route subset, as an explicit frozenset literal of enum members.
@@ -99,7 +101,6 @@ DIRECT_CODES: frozenset[DiagnosticCode] = frozenset(
         DiagnosticCode.CAT_D017,
         DiagnosticCode.CAT_D018,
         DiagnosticCode.CAT_D019,
-        DiagnosticCode.CAT_D020,
     }
 )
 

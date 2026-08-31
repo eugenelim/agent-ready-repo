@@ -240,6 +240,49 @@ def _agent_tools(value: Any) -> set[str]:
     return set()
 
 
+_AGENT_BLOCK_SCALAR_RE = re.compile(r"^(\s*)([\w.-]+)\s*:\s*[|>][-+]?\d*\s*$")
+
+
+def _agent_block_scalar_diagnostics(
+    frontmatter: str,
+    agent_file: Path,
+    *,
+    pack: str,
+    root: Path,
+) -> list[Diagnostic]:
+    """Refuse YAML block scalars in agent frontmatter (CAT-L027).
+
+    The frontmatter subset parser accepts block scalars, because published
+    skills use them heavily and every adapter copies a skill directory
+    byte-for-byte.  Agents take the opposite path: adapters rewrite their
+    frontmatter key by key with a line-based splitter, which reads
+    ``description: >`` as the literal string ``">"`` and drops the folded text
+    entirely.  Nothing downstream notices, so the loss is silent -- hence an
+    error at authoring time rather than a warning.
+    """
+
+    diags: list[Diagnostic] = []
+    for line in frontmatter.splitlines():
+        matched = _AGENT_BLOCK_SCALAR_RE.match(line)
+        if matched is None:
+            continue
+        key = matched.group(2)
+        diags.append(_diag(
+            DiagnosticCode.CAT_L027,
+            Severity.ERROR,
+            f"agent frontmatter key {key!r} uses a YAML block scalar, which "
+            f"adapter projection cannot carry",
+            pack=pack,
+            path=_diagnostic_path(root, agent_file),
+            remediation=(
+                "Put the value on one line. Adapters rewrite agent frontmatter "
+                "line by line and would emit the block indicator instead of the "
+                "text. Skills are copied verbatim and may use block scalars."
+            ),
+        ))
+    return diags
+
+
 def _agent_boundary_diagnostics(
     frontmatter: str,
     agent_file: Path,
@@ -1759,6 +1802,15 @@ class _PackRules:
                     ))
             match = _FM_RE.match(text)
             if match is not None:
+                # Unconditional: the boundary check below returns early when an
+                # agent declares no `metadata:`, which used to leave exactly
+                # those agents unguarded against unprojectable block scalars.
+                diags.extend(_agent_block_scalar_diagnostics(
+                    match.group(1),
+                    agent_file,
+                    pack=self._name,
+                    root=self._root,
+                ))
                 diags.extend(_agent_boundary_diagnostics(
                     match.group(1),
                     agent_file,

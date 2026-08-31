@@ -362,6 +362,7 @@ jobs:
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .
+          python tools/lint-direct-code-table.py --root .
           python -m pytest tests/ -q
           python -m pytest packs/architect/tests/pack/ -q
           python -m pytest packs/architect/tests/skills/architect-assess/ -q
@@ -384,6 +385,7 @@ jobs:
             tools/test_check_release_impact.py \
             tools/test_scaffold_projection.py \
             tools/test_conformance_portability.py \
+            tools/test_lint_direct_code_table.py \
             tools/test_lint_guides_no_repo_only_refs.py \
             tools/test_okf_pre_pr.py \
             tools/test_pack_test_compatibility.py -q

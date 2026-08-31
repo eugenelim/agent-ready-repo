@@ -15,8 +15,30 @@ from typing import Any, NoReturn
 
 JSON_SAFE_INTEGER_MIN = -9007199254740991
 JSON_SAFE_INTEGER_MAX = 9007199254740991
+# The Agent Skills specification's own frontmatter field set. Every field is
+# optional, including `name`, which the spec defines as a display name that
+# defaults to the directory name.
 DIRECT_SKILL_TOP_LEVEL_KEYS = frozenset(
-    {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+    {
+        "name",
+        "description",
+        "when_to_use",
+        "argument-hint",
+        "arguments",
+        "disable-model-invocation",
+        "user-invocable",
+        "allowed-tools",
+        "disallowed-tools",
+        "model",
+        "effort",
+        "context",
+        "agent",
+        "background",
+        "hooks",
+        "paths",
+        "shell",
+        "metadata",
+    }
 )
 MAX_PUBLISHER_VALUE_BYTES = 4096
 
@@ -67,9 +89,12 @@ def parse_bounded_metadata(
 
     active_limits = limits or MetadataLimits()
     parsed = _parse_frontmatter(data, label, active_limits)
-    unknown = parsed.keys() - allowed_top_level_keys
-    if unknown:
-        _fail(f"{label}: unknown top-level frontmatter keys: {sorted(unknown)}")
+    # An unrecognised top-level key is IGNORED, never refused. The spec's field
+    # set grows by release and publishers already carry keys it never defined
+    # (`requires` appears 832 times across a 2,545-skill corpus). Claude Code
+    # tolerates them, so refusing here would reject skills that work. Dropping
+    # them keeps them out of anything we project or report.
+    parsed = {k: v for k, v in parsed.items() if k in allowed_top_level_keys}
     for key in ("name", "description"):
         value = parsed.get(key)
         if value is not None:
@@ -120,7 +145,12 @@ def _parse_subset(raw: str, label: str, limits: MetadataLimits) -> dict[str, Any
     result: dict[str, Any] = {}
     current: str | None = None
     nested: str | None = None
-    for line in raw.splitlines():
+    lines = raw.splitlines()
+    ends_with_break = raw.endswith("\n")
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        index += 1
         if not line.strip():
             continue
         if line.startswith("    - "):
@@ -144,18 +174,118 @@ def _parse_subset(raw: str, label: str, limits: MetadataLimits) -> dict[str, Any
             if current is None or not isinstance(result.get(current), dict):
                 _fail(f"{label}: unsupported frontmatter shape")
             key, value = _split_key_value(line.strip(), label)
+            if _is_block_scalar_header(value):
+                result[current][key], index = _consume_block_scalar(
+                    lines, index, 2, value, label, ends_with_break=ends_with_break
+                )
+                nested = None
+                continue
             result[current][key] = _parse_value(value, label, limits)
             nested = key if value == "" else None
             continue
         key, value = _split_key_value(line, label)
         current = key
         nested = None
+        if _is_block_scalar_header(value):
+            result[key], index = _consume_block_scalar(
+                lines, index, 0, value, label, ends_with_break=ends_with_break
+            )
+            current = None
+            continue
         if value == "":
             result[key] = {}
         else:
             result[key] = _parse_value(value, label, limits)
             current = key if isinstance(result[key], (dict, list)) else None
     return result
+
+
+BLOCK_SCALAR_HEADER = re.compile(r"^([|>])([-+]?)$")
+
+
+def _is_block_scalar_header(value: str) -> bool:
+    """Report whether a value position opens a YAML block scalar.
+
+    ``|`` and ``>`` are YAML indicators, so a plain scalar can never begin with
+    either; treating any such value as a block header is unambiguous.
+    """
+
+    return value.startswith(("|", ">"))
+
+
+def _consume_block_scalar(
+    lines: list[str],
+    start: int,
+    key_indent: int,
+    header: str,
+    label: str,
+    *,
+    ends_with_break: bool,
+) -> tuple[str, int]:
+    """Read a block scalar body, returning its value and the next line index.
+
+    Supports the literal (``|``) and folded (``>``) styles with clip, strip
+    (``-``), and keep (``+``) chomping.  An explicit indentation indicator is
+    refused rather than guessed at, because mis-reading the indent silently
+    changes the parsed value.  The body needs no separate budget: the caller
+    has already bounded the whole frontmatter block by size.
+
+    Clip and keep chomping only retain a trailing line break that the input
+    actually contains, so ``ends_with_break`` reports whether the frontmatter
+    slice ended in a newline.  It is false whenever the block is the document's
+    last key, which is the common case for a trailing ``description``.
+    """
+
+    matched = BLOCK_SCALAR_HEADER.match(header)
+    if matched is None:
+        _fail(f"{label}: unsupported block scalar header")
+    style, chomping = matched.groups()
+
+    body: list[str] = []
+    index = start
+    block_indent: int | None = None
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            body.append("")
+            index += 1
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent <= key_indent:
+            break
+        if block_indent is None:
+            block_indent = indent
+        elif indent < block_indent:
+            break
+        body.append(line[block_indent:])
+        index += 1
+
+    trailing = 0
+    while body and not body[-1]:
+        body.pop()
+        trailing += 1
+
+    if style == "|":
+        content = "\n".join(body)
+    else:
+        content = ""
+        for position, entry in enumerate(body):
+            if position == 0:
+                content = entry
+            elif not entry:
+                content += "\n"
+            elif not body[position - 1]:
+                content += entry
+            else:
+                content += " " + entry
+
+    final_break = ends_with_break or index < len(lines)
+    if content and final_break:
+        if chomping == "+":
+            content += "\n" * (trailing + 1)
+        elif chomping != "-":
+            content += "\n"
+    return content, index
 
 
 def _split_key_value(line: str, label: str) -> tuple[str, str]:

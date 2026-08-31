@@ -52,6 +52,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Skill and pack frontmatter may now use YAML block scalars for any field —
+  literal `|` and folded `>`, with clip, strip, and keep chomping. Folding and
+  chomping follow YAML, checked against a reference parser over every published
+  skill in a 2,545-skill survey that uses one. Writing a long `description`
+  across several indented lines no longer makes a skill unreadable to
+  `agentbundle`. An explicit indentation indicator such as `>2` is still
+  refused rather than guessed at.
+- `CAT-L027` now fires on an **agent** whose frontmatter uses a block scalar.
+  Adapters copy a skill directory verbatim but rewrite agent frontmatter key by
+  key, reading `description: >` as the literal `">"` and dropping the text, so
+  the agent reached Cursor, Gemini, and Kiro with no description at all. The
+  check runs on every agent; previously the construct was refused only as a
+  side effect, and only when the agent also declared `metadata:`.
+
+## [core][2.18.1] — 2026-08-31
+## [core][2.18.1] — 2026-08-31
 ## [core][2.18.1] — 2026-08-31
 
 ### Changed

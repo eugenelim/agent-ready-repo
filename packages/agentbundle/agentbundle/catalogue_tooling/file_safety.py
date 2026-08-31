@@ -7,11 +7,22 @@ import stat
 from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
-from typing import BinaryIO, Iterator, Literal, overload
+from typing import BinaryIO, Iterator, Literal, NamedTuple, overload
 
 
 class UnsafeContentError(ValueError):
-    """A source entry is not a confined, single-link regular file."""
+    """A source entry is not a confined, single-link regular file.
+
+    ``path`` carries the offending root-relative path as data when one is
+    known, so a caller can name it without parsing the message.  It is
+    optional and defaults to ``None``: several refusals happen before any
+    path is established, and every existing single-argument construction and
+    ``str(exc)`` result is unchanged.
+    """
+
+    def __init__(self, message: str, *, path: str | None = None) -> None:
+        super().__init__(message)
+        self.path = path
 
 
 class BoundExceeded(UnsafeContentError):
@@ -37,8 +48,9 @@ class BoundExceeded(UnsafeContentError):
         budget: str,
         limit: int,
         observed: int | None = None,
+        path: str | None = None,
     ) -> None:
-        super().__init__(message)
+        super().__init__(message, path=path)
         self.budget = budget
         self.limit = limit
         self.observed = observed
@@ -87,15 +99,29 @@ def validate_confined_directory(root: Path, path: Path) -> None:
         ) from exc
 
 
-def list_confined_regular_files(
+class ConfinedWalk(NamedTuple):
+    """One bounded traversal's files and the directory entries it consumed.
+
+    ``entries_seen`` is what a caller needs to thread a shared entry allowance
+    across several directories.  The file list alone cannot do it: a tree made
+    entirely of directories consumes entries while contributing no files, so a
+    caller counting returned files under-counts and lets a multi-directory
+    source exceed a shared bound.  Under-counting is the unsafe direction.
+    """
+
+    files: list[Path]
+    entries_seen: int
+
+
+def walk_confined_regular_files(
     root: Path,
     directory: Path,
     *,
     max_files: int | None = None,
     max_depth: int | None = None,
     max_entries: int | None = None,
-) -> list[Path]:
-    """List regular files without following link-like directory entries.
+) -> ConfinedWalk:
+    """List regular files and report the directory entries consumed.
 
     When ``max_files``, ``max_depth`` or ``max_entries`` is supplied, refuse
     during traversal as soon as the next entry would exceed the bound.  Callers
@@ -155,13 +181,15 @@ def list_confined_regular_files(
                         inspected = entry.stat(follow_symlinks=False)
                     except OSError as exc:
                         raise UnsafeContentError(
-                            f"source entry cannot be inspected: {relative}"
+                            f"source entry cannot be inspected: {relative}",
+                            path=relative,
                         ) from exc
                     if stat.S_ISLNK(inspected.st_mode) or _is_reparse_point(
                         inspected
                     ):
                         raise UnsafeContentError(
-                            f"source entry is not a regular file: {relative}"
+                            f"source entry is not a regular file: {relative}",
+                            path=relative,
                         )
                     if stat.S_ISDIR(inspected.st_mode):
                         pending.append(entry_path)
@@ -176,14 +204,40 @@ def list_confined_regular_files(
                         files.append(entry_path)
                     else:
                         raise UnsafeContentError(
-                            f"source entry is not a regular file: {relative}"
+                            f"source entry is not a regular file: {relative}",
+                            path=relative,
                         )
         except OSError as exc:
             relative = current.relative_to(root).as_posix()
             raise UnsafeContentError(
                 f"directory boundary cannot be traversed safely: {relative}"
             ) from exc
-    return sorted(files, key=lambda path: path.relative_to(root).as_posix())
+    return ConfinedWalk(
+        sorted(files, key=lambda path: path.relative_to(root).as_posix()),
+        entries_seen,
+    )
+
+
+def list_confined_regular_files(
+    root: Path,
+    directory: Path,
+    *,
+    max_files: int | None = None,
+    max_depth: int | None = None,
+    max_entries: int | None = None,
+) -> list[Path]:
+    """List regular files, discarding the entry count.
+
+    The established surface, unchanged for every existing caller. Callers
+    that thread a shared entry allowance want `walk_confined_regular_files`.
+    """
+    return walk_confined_regular_files(
+        root,
+        directory,
+        max_files=max_files,
+        max_depth=max_depth,
+        max_entries=max_entries,
+    ).files
 
 
 def list_confined_directories(root: Path, directory: Path) -> list[Path]:

@@ -1,0 +1,205 @@
+{
+  "criterion": "AC35",
+  "measured_on": "2026-08-30",
+  "measured_with": "agentbundle.direct_source.admit_direct_source",
+  "bounds": {
+    "entries": 2500,
+    "depth": 12,
+    "files": 1000,
+    "selected_skills": 500,
+    "per_file_bytes": 1048576,
+    "total_bytes": 26214400
+  },
+  "repositories": [
+    {
+      "repository": "BehiSecc/awesome-claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 0,
+      "allowlist_failures": 0,
+      "revision": "e3d2916d0c4f"
+    },
+    {
+      "repository": "ComposioHQ/awesome-claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 1728,
+      "allowlist_failures": 0,
+      "revision": "be2a406907db"
+    },
+    {
+      "repository": "Jeffallan/claude-skills",
+      "verdict": "admitted",
+      "shape": "collection",
+      "entries": 572,
+      "files": 438,
+      "selected_skills": 67,
+      "depth": 2,
+      "largest_file": 32773,
+      "total_bytes": 3911467,
+      "publisher_values": 134,
+      "allowlist_failures": 0,
+      "revision": "882ef55e377d"
+    },
+    {
+      "repository": "SynaLinks/synalinks-skills",
+      "verdict": "admitted",
+      "shape": "collection",
+      "entries": 48,
+      "files": 45,
+      "selected_skills": 1,
+      "depth": 2,
+      "largest_file": 281844,
+      "total_bytes": 926115,
+      "publisher_values": 2,
+      "allowlist_failures": 0,
+      "revision": "e73f1c494c6f"
+    },
+    {
+      "repository": "abubakarsiddik31/claude-skills-collection",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 0,
+      "allowlist_failures": 0,
+      "revision": "23ea4d846e8d"
+    },
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 1682,
+      "allowlist_failures": 0,
+      "revision": "19392f7a0826"
+    },
+    {
+      "repository": "anthropics/skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "unsupported envelope file: LICENSE.txt",
+      "publisher_values": 40,
+      "allowlist_failures": 0,
+      "revision": "3b3fad96af16"
+    },
+    {
+      "repository": "borghei/Claude-Skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 738,
+      "allowlist_failures": 0,
+      "revision": "ddca910e9558"
+    },
+    {
+      "repository": "chujianyun/skills",
+      "verdict": "refused",
+      "code": "CAT-D014",
+      "reason": "files exceeds limit 1000 (observed 1255)",
+      "publisher_values": 60,
+      "allowlist_failures": 0,
+      "revision": "d5966dd5428b"
+    },
+    {
+      "repository": "coleam00/second-brain-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "invalid skill metadata: SKILL.md: unsupported frontmatter shape",
+      "publisher_values": 12,
+      "allowlist_failures": 0,
+      "revision": "75e1e9cd60ef"
+    },
+    {
+      "repository": "davidondrej/skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "unsupported envelope file: agents/openai.yaml",
+      "publisher_values": 112,
+      "allowlist_failures": 0,
+      "revision": "17be92c75f48"
+    },
+    {
+      "repository": "google/skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "invalid skill metadata: SKILL.md: unsupported frontmatter shape",
+      "publisher_values": 264,
+      "allowlist_failures": 0,
+      "revision": "a7123f80525a"
+    },
+    {
+      "repository": "haowjy/creative-writing-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "invalid skill metadata: SKILL.md: unsupported frontmatter shape",
+      "publisher_values": 70,
+      "allowlist_failures": 0,
+      "revision": "fd7a3ad9cd76"
+    },
+    {
+      "repository": "karanb192/awesome-claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 0,
+      "allowlist_failures": 0,
+      "revision": "6372d1892893"
+    },
+    {
+      "repository": "mrgoonie/claudekit-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "unsupported collection file: .env.example",
+      "publisher_values": 86,
+      "allowlist_failures": 0,
+      "revision": "80113d86bc44"
+    },
+    {
+      "repository": "obra/superpowers-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "unsupported collection file: REQUESTS.md",
+      "publisher_values": 62,
+      "allowlist_failures": 0,
+      "revision": "cdcd624ad3fd"
+    },
+    {
+      "repository": "posit-dev/skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 52,
+      "allowlist_failures": 0,
+      "revision": "b58a92e7c479"
+    },
+    {
+      "repository": "simonw/claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 0,
+      "allowlist_failures": 0,
+      "revision": "6e0a1395bb92"
+    },
+    {
+      "repository": "staruhub/ClaudeSkills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "invalid skill metadata: SKILL.md: unknown top-level frontmatter keys: ['version']",
+      "publisher_values": 40,
+      "allowlist_failures": 0,
+      "revision": "66e02d23642f"
+    },
+    {
+      "repository": "travisvn/awesome-claude-skills",
+      "verdict": "refused",
+      "code": "CAT-D009",
+      "reason": "direct source has no supported shape",
+      "publisher_values": 0,
+      "allowlist_failures": 0,
+      "revision": "1da55aa810f2"
+    }
+  ]
+}

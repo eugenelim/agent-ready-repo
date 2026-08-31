@@ -20,6 +20,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import pytest
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -204,16 +206,24 @@ def test_codex_sweep_removes_untracked_orphan(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_claude_code_degrades_on_legacy_state(tmp_path: Path) -> None:
-    """A legacy (wrong schema-version) state file must not prevent the sweep
-    from removing genuine orphans — the fix degrades to the pre-fix behavior."""
+def test_claude_code_refuses_to_sweep_on_legacy_state(tmp_path: Path) -> None:
+    """A state file this build cannot read stops the sweep instead of widening it.
+
+    This inverts the earlier decision, deliberately. The old behaviour treated an
+    unreadable state file as "no skills are protected" and swept everything, which
+    is only safe if the state file never legitimately fails to parse. State 0.5
+    makes that failure ordinary: a reader pinned to 0.4 raises on every state file
+    written after the first direct install, and would then delete the user's
+    installed skills on the next self-host run. Losing a genuine orphan is
+    recoverable; deleting installed content is not.
+    """
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
     from agentbundle.build.adapters.claude_code import project_packs
 
     orphan_dir = tmp_path / ".claude" / "skills" / "orphan-skill"
     orphan_dir.mkdir(parents=True)
     (orphan_dir / "SKILL.md").write_text("# Orphan\n", encoding="utf-8", newline="\n")
 
-    # Write a legacy state file (schema-version "0.3" is not the current "0.4").
     (tmp_path / ".agentbundle-state.toml").write_text(
         'schema-version = "0.3"\n',
         encoding="utf-8",
@@ -221,16 +231,17 @@ def test_claude_code_degrades_on_legacy_state(tmp_path: Path) -> None:
     )
 
     contract = _minimal_contract("claude-code", ".claude/skills/")
-    project_packs([], contract, tmp_path)
+    with pytest.raises(OrphanSweepRefused):
+        project_packs([], contract, tmp_path)
 
-    # Orphan must still be swept — legacy state → empty protection set.
-    assert not orphan_dir.exists(), (
-        "a legacy state file must not prevent orphan sweep from running"
+    assert orphan_dir.exists(), (
+        "a refused sweep must leave the tree untouched, orphans included"
     )
 
 
-def test_claude_code_degrades_on_malformed_state(tmp_path: Path) -> None:
-    """A syntactically invalid state file must not prevent orphan sweep."""
+def test_claude_code_refuses_to_sweep_on_malformed_state(tmp_path: Path) -> None:
+    """Unparseable state is the same case as legacy state: refuse, do not sweep."""
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
     from agentbundle.build.adapters.claude_code import project_packs
 
     orphan_dir = tmp_path / ".claude" / "skills" / "orphan-skill"
@@ -238,17 +249,16 @@ def test_claude_code_degrades_on_malformed_state(tmp_path: Path) -> None:
     (orphan_dir / "SKILL.md").write_text("# Orphan\n", encoding="utf-8", newline="\n")
 
     (tmp_path / ".agentbundle-state.toml").write_text(
-        "this is not valid TOML ][[\n",
+        "this is not valid toml [[[\n",
         encoding="utf-8",
         newline="\n",
     )
 
     contract = _minimal_contract("claude-code", ".claude/skills/")
-    project_packs([], contract, tmp_path)
+    with pytest.raises(OrphanSweepRefused):
+        project_packs([], contract, tmp_path)
 
-    assert not orphan_dir.exists(), (
-        "a malformed state file must not prevent orphan sweep from running"
-    )
+    assert orphan_dir.exists()
 
 
 # ---------------------------------------------------------------------------

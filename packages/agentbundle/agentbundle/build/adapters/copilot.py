@@ -216,23 +216,11 @@ def _sweep_skill_orphans(
 
 
 def _installed_skill_names(output_root: Path, target_dir: Path) -> set[str]:
-    """Return repo-scope installed skill names recorded beneath target_dir."""
-    from agentbundle.config import ConfigError, load_state
+    """Return skill dir names recorded in the repo state file under target_dir.
 
-    try:
-        state = load_state(output_root / ".agentbundle-state.toml")
-    except ConfigError:
-        return set()
-    skill_dir_rel = target_dir.relative_to(output_root)
-    names: set[str] = set()
-    for pack_state in state.packs.values():
-        if pack_state.scope != "repo":
-            continue
-        for relpath in pack_state.files:
-            try:
-                remainder = Path(relpath).relative_to(skill_dir_rel)
-            except ValueError:
-                continue
-            if remainder.parts:
-                names.add(remainder.parts[0])
-    return names
+    Delegates to the one shared implementation so this adapter cannot
+    drift from the other six; see `_sweep_guard` for the AC28 refusal.
+    """
+    from agentbundle.build.adapters._sweep_guard import installed_skill_names
+
+    return installed_skill_names(output_root, target_dir, adapter="copilot")
