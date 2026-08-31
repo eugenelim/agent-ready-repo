@@ -176,7 +176,8 @@ mention it, which is the defect worth naming here: the only place a status
 rollback is visible is the commit that makes it, and a contract change riding
 silently inside a feature commit is indistinguishable from an accident. An
 earlier version of this paragraph attributed the rollback to the engine, which
-was wrong in a way that would have sent a reader looking in the wrong place. That is the half-rolled state this task
+was wrong in a way that would have sent a reader looking in the wrong place.
+That is the half-rolled state this task
 otherwise exists to prevent, and it is invisible to the gate cited above, which
 only detects the opposite direction. Leaving the entry in `.active` is the
 correct half to keep: moving it back to `queue` would advertise blocked work as
@@ -383,7 +384,7 @@ sentence in the pack README. Restate each against the admitted set and retarget
 the integration assertion to that reconciliation.
 
 **Tests:**
-- `test_language_extension_families_are_distinct_and_unpopulated`, retargeted
+- `test_language_extension_families_are_distinct_and_populated`, retargeted
   to assert agreement between every shipped availability-or-count statement and
   the admitted topic set (AC7) — stub: true
 

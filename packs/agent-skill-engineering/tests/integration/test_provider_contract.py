@@ -472,7 +472,7 @@ def test_shipped_contract_prose_states_the_same_bounds_as_the_fixture() -> None:
     )
 
 
-def test_language_extension_families_are_distinct_and_unpopulated() -> None:
+def test_language_extension_families_are_distinct_and_populated() -> None:
     """AC7: every shipped availability-or-count statement matches the admitted set.
 
     Retargeted. The families are populated now, so the assertion that once
