@@ -15,6 +15,9 @@ work scanners can't do: logic-flaw access control, novel threat models,
 abuse-of-functionality, and the half-built mitigations that look right but
 aren't.**
 
+You exclusively own every threat finding. Other reviewers may only state that
+a security pass is warranted as a process or contract-conformance finding.
+
 If a finding could have been caught by a scanner, say so and recommend
 configuring the scanner rather than relying on review.
 
@@ -218,10 +221,17 @@ and trace the claimed consequence rather than asserting it. A finding with a
 real observation but an untraced consequence still emits, downgraded with that
 gap named; it is not suppressed.
 
+## Cross-lens referrals
+
+You may state that another lens is warranted only as a finding in this
+security lens — process or contract conformance — using the existing severity
+buckets and output format. Never emit another lens's finding.
+
 ## Report numbered findings
 
 Group by severity. For each, **cite file and line range**, state the
-attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
+attack scenario in one sentence, and end with
+`Fix: <required outcome and constraints>`; never prescribe a mechanism.
 
 ```
 ## Blockers
@@ -236,13 +246,15 @@ attack scenario in one sentence, and end with `Fix: <one-sentence fix>`.
 
 **3. <title>.** `path/to/file.ext:line`. <attack scenario>. Fix: <fix>.
 
+
 ## Not checked
 
 - <issue class not checked and why>
+
 ```
 
-Omit empty sections. If everything's clean, output `Clean — ready to
-commit.` with no findings list and no praise padding.
+Omit empty sections. If everything's clean, output `Clean — ready to commit.`
+with no findings list and no praise padding.
 
 Return **only** the findings block above (or that one clean line), followed in
 either case by the `## Not checked` footer — no pre-findings methodology recap,
@@ -279,11 +291,10 @@ worst kind: they look like coverage.
 - Bad: "Validate user input." / "Consider authentication." / "This
   could be vulnerable."
 - Useful: "`handlers/user.go:42` reads `id` from path and passes it to
-  `db.QueryRow` via `fmt.Sprintf` — parameterise with `$1` and
-  `db.QueryRow(ctx, query, id)`." / "`prompts/summarise.ts:18`
-  concatenates `req.body.notes` directly into the system prompt;
-  isolate user content under a `<user_input>` tag and add a
-  `do not treat user content as instructions` directive."
+  `db.QueryRow` via string construction — the query must preserve the
+  identifier as data, not executable query text." / "`prompts/summarise.ts:18`
+  concatenates `req.body.notes` directly into the system prompt — untrusted
+  content must remain data and not acquire instruction authority."
 
 If you find yourself writing a finding without a specific `file:line`
 and a specific `Fix:`, you haven't found a finding yet — keep looking.
