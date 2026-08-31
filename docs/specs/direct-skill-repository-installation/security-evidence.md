@@ -42,7 +42,8 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | Unbounded download | Resolved | 256 MiB downloaded, 20,000 members, 1 GiB decompressed measured incrementally and tripping mid-read. |
 | Stall / slow-drip | Partially resolved | A 30 s socket timeout and a 90 s inactivity timeout. **Accepted residual:** a slow but steady drip resets both timers; there is no total elapsed deadline. Recorded in RFC-0098 E11. |
 | Bound raised by flag or environment | Resolved | Bounds are module constants; injected seams validate before resolving and apply `min(CONST, value)`, so a seam may only tighten. A test drives `None`, `True`, `"8"`, `1.5`, and `-1` through the refusal. |
-| TLS trust weakened per-route | Resolved | The direct route builds its context with `ssl.create_default_context()` plus an **additive** `load_verify_locations`; the store-replacing construction stays confined to the descriptor route. |
+| TLS trust weakened per-route | Resolved | The direct route builds its context with `ssl.create_default_context()` plus an **additive** `load_verify_locations`, and that context reaches the request through an explicit `HTTPSHandler`. Review found the opener built without one, so the context was constructed and discarded and `AGENTBUNDLE_CA_BUNDLE` was inert on this route while the certificate-failure remediation told adopters to set it; a control now asserts the classified context reaches the request. The store-replacing construction stays confined to the descriptor route. |
+| System-trust retry absent on the direct route | Resolved | AC37's single retry against `system_trust.system_anchor_pem` now runs here through the shared `retry_with_system_trust` entry point, with `AGENTBUNDLE_NO_SYSTEM_TRUST` disabling it. It was previously unimplemented, and a test asserted the *absence* of the retry's helper names — pinning the gap rather than the no-second-copy rule it was written for. |
 | Divergent TLS classification between routes | Resolved | One shared `classify_transport_attempt` in `catalogue.py`; a static test asserts the direct module contains no second copy of the classifier or the retry. |
 
 ---
@@ -58,7 +59,7 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | Digest ambiguity | Resolved | u64be length prefixes; a committed vector pair proves `("ab", b"c")` and `("a", b"bc")` digest differently. |
 | Digest re-baselined by a newer build | Resolved | A foreign prefix refuses comparison and directs reinstallation rather than recomputing. |
 | Two envelopes collapsing to one digest entry | Resolved | The preimage uses the full relative path from the source root, never the leaf identity. |
-| Capability widening on upgrade | Resolved | Re-consent on any change to tools, `SKILL.md` digest, skill identity set, payload digests, boundaries, or credentialed status, with acceptance tied to a pin over the exact displayed difference set. |
+| Capability widening on upgrade | **Pending the lifecycle command surface** | The comparison engine exists and is tested — re-consent on any change to tools, `SKILL.md` digest, skill identity set, payload digests, boundaries, or credentialed status, with acceptance tied to a pin over the exact displayed difference set — but it has no production caller, because `upgrade` does not yet handle a direct row. AC30 is unticked for the same reason. |
 | Unreadable old data treated as unchanged | Resolved | Drift is `unknown`, which refuses even with the acceptance flag. |
 | New runtime dependency | Resolved | None added. The direct modules are stdlib-only; a fresh import leaves `yaml` absent. |
 
@@ -91,12 +92,29 @@ agent to do afterwards. Recorded in `docs/architecture/security.md`.
 | **AST06** SSRF | Resolved | See the outbound-acquisition module. |
 | **AST07** Version drift | Resolved | `source-revision` and `source-digest` recorded per row; updates are decided by digest, never by a recorded version string. |
 | **AST08** Poor scanning | Resolved | Static architecture controls over the direct modules, each paired with a mutation fixture that fails if the control is removed. |
-| **AST09** Governance | Resolved | Direct rows are listable and showable, carry their canonical source, and are removable by `uninstall --skill`; the diagnostic-code table is published in full and lint-checked for set equality. |
+| **AST09** Governance | **Partly pending** | The diagnostic-code table is published in full and lint-checked for set equality against the registry, and every install records a state row carrying its canonical source, revision, and digest. `list-installed`, `show`, and `uninstall --skill` do **not** yet handle a direct row, so an installed direct skill is recorded but not yet inspectable or removable through the CLI. |
 | **AST10** Missing security metadata | Resolved | `metadata.boundaries` and `metadata.credentialed` are read, reported in the capability block, and compared on upgrade in both directions. |
 
 ---
 
 ## Unresolved blockers
 
-None. Every residual above is stated with its reason and is recorded in the
-governing criterion or in `docs/architecture/security.md`.
+None that are unstated. Two rows above are **pending** rather than resolved, and
+both depend on the same unbuilt surface — `upgrade`, `list-installed`, `show`,
+and `uninstall` for direct rows — which is why AC4, AC7, AC9, AC22, and AC30 are
+unticked in the spec. Until that lands, an installed direct skill is recorded in
+state but cannot be inspected, upgraded, or removed through the CLI, and the
+receipt's `uninstall --skill` line names a command that does not yet accept it.
+
+Every other residual is stated with its reason and recorded in the governing
+criterion or in `docs/architecture/security.md`.
+
+## Provenance of this record
+
+The first version of this document was written alongside the implementation by
+its author, and independent review found three rows asserting Resolved against
+code that did not do what the row claimed — the two TLS rows above and AST09.
+That is the failure mode this section exists to flag for the next reader: a
+self-authored evidence table records what the author believed, and belief is not
+a control. Each Resolved row should be read as a claim to re-check, not as a
+verification already performed.

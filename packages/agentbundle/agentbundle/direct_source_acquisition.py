@@ -24,7 +24,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-from agentbundle.catalogue import classify_transport_attempt
+from agentbundle.catalogue import classify_transport_attempt, retry_with_system_trust
 from agentbundle.catalogue_tooling.diagnostics import (
     DiagnosticCode,
     make_direct_diagnostic,
@@ -439,14 +439,25 @@ def _download(
     source: DirectSource,
     spool: Path,
     *,
+    context: ssl.SSLContext,
     max_bytes: int,
     inactivity: int,
     clock: Callable[[], float],
     progress: Callable[[int], None] | None,
 ) -> int:
-    """Stream the archive to *spool*, bounded by bytes and by stall."""
+    """Stream the archive to *spool*, bounded by bytes and by stall.
 
-    opener = urllib.request.build_opener(_BoundedRedirectHandler(source))
+    The opener carries the *classified* context. Building one without an
+    `HTTPSHandler` silently used urllib's ambient default instead, so
+    `system_trust.build_context()`'s additive `load_verify_locations` never
+    reached the request — `AGENTBUNDLE_CA_BUNDLE` was inert on this route while
+    the certificate-failure remediation told adopters to set it.
+    """
+
+    opener = urllib.request.build_opener(
+        _BoundedRedirectHandler(source),
+        urllib.request.HTTPSHandler(context=context),
+    )
     downloaded = 0
     last_progress = clock()
     with opener.open(url, timeout=SOCKET_TIMEOUT_SECONDS) as response:
@@ -649,6 +660,7 @@ def _acquire_bytes(
             url,
             source,
             spool,
+            context=context,
             max_bytes=max_bytes,
             inactivity=inactivity,
             clock=clock,
@@ -663,6 +675,16 @@ def _acquire_bytes(
         # Our own registered refusal, raised from inside the attempt.
         raise exception
     detail = escape_transport_detail(getattr(exception, "reason", None) or exception)
+    if outcome.certificate_failure and outcome.anchors:
+        # AC37's single retry against operating-system anchors, through the one
+        # shared entry point rather than a per-route copy. Reached only for a
+        # certificate-verification failure, only when anchors exist, and
+        # disabled by AGENTBUNDLE_NO_SYSTEM_TRUST — which
+        # `classify_transport_attempt` reports by leaving `anchors` unset.
+        retry_with_system_trust(
+            url, spool.parent, attempt, outcome.anchors, empty_store=outcome.empty_store
+        )
+        return captured["downloaded"]
     if outcome.certificate_failure:
         raise _refuse(
             DiagnosticCode.CAT_D006,

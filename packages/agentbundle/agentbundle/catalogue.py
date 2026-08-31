@@ -508,10 +508,10 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
                 url, detail, fallback_note=note, empty_store=empty_store
             )
         ) from exc
-    _retry_with_system_trust(url, dest, attempt, anchors, empty_store=empty_store)
+    retry_with_system_trust(url, dest, attempt, anchors, empty_store=empty_store)
 
 
-def _retry_with_system_trust(
+def retry_with_system_trust(
     url: str,
     dest: Path,
     attempt: Callable[[ssl.SSLContext], None],

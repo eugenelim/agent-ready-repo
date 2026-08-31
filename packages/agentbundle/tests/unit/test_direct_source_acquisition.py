@@ -333,18 +333,76 @@ def test_acquisition_holds_no_second_copy_of_the_classifier():
     assert not any("system_trust" in name for name in functions), functions
 
     source = module.read_text(encoding="utf-8")
+    # Checked against the module's *code*, not its text. A docstring that
+    # explains why this module does not build its own context would otherwise
+    # trip a ban on building one — a comment about a rule reading as a
+    # violation of it.
+    #
+    # The earlier version of this list also banned `system_anchor_pem` and
+    # `default_store_is_empty` as raw text, which pinned the absence of AC37's
+    # retry rather than the absence of a second copy of it: the module consumed
+    # neither, and the test called that correct.
+    referenced = {
+        node.attr if isinstance(node, ast.Attribute) else node.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute | ast.Name)
+    }
     for restated in (
         "_is_cert_verification_failure",
-        "system_anchor_pem",
-        "default_store_is_empty",
-        "system_trust_disabled",
+        "build_context",
         "PROTOCOL_TLS_CLIENT",
     ):
-        assert restated not in source, (
-            f"{restated} is restated in the direct module; it belongs to the "
+        assert restated not in referenced, (
+            f"{restated} is called in the direct module; it belongs to the "
             f"one shared entry point in catalogue.py"
         )
-    assert "classify_transport_attempt" in source, "the shared seam must be used"
+    assert not any(
+        name.startswith("_retry") for name in functions
+    ), "the trust retry belongs to catalogue.py, not to a per-route copy"
+    # Both halves of AC37's seam are consumed, not just the classifier.
+    assert "classify_transport_attempt" in source, "the shared classifier must be used"
+    assert "retry_with_system_trust" in source, (
+        "AC37's single system-trust retry must be performed on this route too"
+    )
+
+
+def test_the_classified_context_reaches_the_request(monkeypatch, tmp_path: Path):
+    # AC37 — an opener built without an HTTPSHandler silently uses urllib's
+    # ambient default context, so `build_context()`'s additive
+    # `load_verify_locations` never reaches the socket and AGENTBUNDLE_CA_BUNDLE
+    # is inert. Nothing else here would notice: every other assertion in this
+    # module passes with the context dropped.
+    import urllib.request
+
+    source = acquisition.parse_direct_source(f"git+https://github.com/o/r@{SHA}")
+    sentinel = ssl.create_default_context()
+    seen: dict[str, object] = {}
+
+    real_build_opener = urllib.request.build_opener
+
+    def _capture(*handlers):
+        for handler in handlers:
+            if isinstance(handler, urllib.request.HTTPSHandler):
+                seen["context"] = handler._context
+        return real_build_opener(*handlers)
+
+    monkeypatch.setattr(urllib.request, "build_opener", _capture)
+    # The fetch itself fails — there is no server. What matters is which
+    # context the opener was built with before it tried.
+    with pytest.raises(urllib.error.URLError):
+        acquisition._download(
+            "https://github.com/o/r/archive/x.tar.gz",
+            source,
+            tmp_path / "spool",
+            context=sentinel,
+            max_bytes=1024,
+            inactivity=90,
+            clock=lambda: 0.0,
+            progress=None,
+        )
+    assert seen.get("context") is sentinel, (
+        "the classified context must reach the request, not urllib's default"
+    )
 
 
 def test_bounds_match_the_recorded_e11_values():
