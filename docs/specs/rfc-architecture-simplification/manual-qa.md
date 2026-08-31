@@ -23,15 +23,23 @@ fingerprinted before and after the whole session.
 
 ## Filesystem evidence
 
-Fingerprint = sha256 over, for every entry under `docs/rfc/` recursively, its
-relative path **and the sha256 of its contents**. A path-only hash would not
-detect an existing RFC being rewritten in place, so it cannot support a
-no-modification claim; this one can.
+Fingerprint = sha256 over every entry under `docs/rfc/` recursively, each
+tagged by type: `d:<path>` for a directory, `f:<path>:<sha256 of contents>` for
+a regular file. Directory *and* file counts are reported separately.
 
-| Point | Files | content-fingerprint sha256 |
-| --- | ---: | --- |
-| Before all cases | 184 | `f7952083f861e5eeda673bffc5d3df3c84bb37733a88293202dc758af39958b3` |
-| After all cases | 184 | `f7952083f861e5eeda673bffc5d3df3c84bb37733a88293202dc758af39958b3` |
+Two earlier versions of this evidence were too weak, and both are worth naming
+because each looked sufficient:
+
+- A **path-only** hash could not detect an existing RFC being rewritten in
+  place, so it could not support a no-modification claim.
+- A **file-only** content hash could not detect an empty directory being
+  created — which is precisely what the skill would have done, since it
+  originally created the directory *before* validating the target.
+
+| Point | Files | Dirs | Entries | typed-fingerprint sha256 |
+| --- | ---: | ---: | ---: | --- |
+| Before all cases | 184 | 25 | 209 | `dff53af3ab3ac7894bce6c19531a028ca667ea37636142170f8c7f0f5e86450a` |
+| After all cases | 184 | 25 | 209 | `dff53af3ab3ac7894bce6c19531a028ca667ea37636142170f8c7f0f5e86450a` |
 
 `scripts/next-ordinal.py docs/rfc` returns `0100` — the ordinal that *would* be
 allocated on a warranted path. No case below allocated it.
@@ -77,7 +85,14 @@ RFC**. The procedure therefore continues to step 1, where the write occurs.
 
 **Step 1 outcome:** refused. The RFC owner root resolves to `docs/rfc/`;
 `../../../tmp/evil-rfc.md` escapes it, so the target is rejected before the
-directory, index or file is touched. The ordinal was not consumed —
+directory, index or file is touched.
+
+**This case found a real defect.** Step 1 originally read "create the directory
+and standard index if needed" *before* "Before any write, resolve the RFC owner
+root…", so a warranted hostile request would have created a directory and only
+then refused — violating the before-any-mutation rule the step claims to
+enforce. Step 1 now proves every intended target confined first and creates only
+afterwards, and says so explicitly ("including before creating a directory"). The ordinal was not consumed —
 `next-ordinal.py` still reports `0100` after this case.
 
 **Why the ordering matters:** the refusal is stated as a precondition of
@@ -156,9 +171,10 @@ so this record is the observation and the test is the regression guard.
 
 ## Result
 
-Every cheaper route ended with no RFC effect: 184 files under `docs/rfc/` with
-an identical **content** fingerprint before and after, so nothing was created
-and nothing was rewritten in place. The warranted path retains every
+Every cheaper route ended with no RFC effect: 209 entries under `docs/rfc/`
+(184 files, 25 directories) with an identical **typed** fingerprint before and
+after, so nothing was created — file or directory — and nothing was rewritten in
+place. The warranted path retains every
 pre-existing gate, and the confinement refusal was exercised on a request that
 actually reached the write step.
 

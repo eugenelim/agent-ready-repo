@@ -1,5 +1,6 @@
 """Static contract tests for the new-RFC pre-create checkpoint."""
 
+import re
 from pathlib import Path
 
 SKILL = (
@@ -71,23 +72,33 @@ def test_rfc_write_contract_refuses_unsafe_targets_before_mutation() -> None:
     """
     text = SKILL.read_text(encoding="utf-8")
     section = _checkpoint()
-    step_one = text[text.index("1. Find the next ordinal"):text.index("2. **Resolve the target")]
-
-    # The refusal must precede the creation instruction inside step 1.
-    assert "create the directory and standard index" in step_one
-    assert step_one.index("Refuse an unsafe") > step_one.index("Before any write"), (
-        "the confinement contract must be stated as a precondition of writing"
+    # Whitespace-flattened: this prose wraps mid-phrase, so literal multi-word
+    # matches fail against the raw text and would make the ordering checks vacuous.
+    step_one = re.sub(
+        r"\s+", " ",
+        text[text.index("1. Find the next ordinal"):text.index("2. **Resolve the target")],
     )
-    for clause in ("RFC owner root", "before any mutation"):
-        assert clause in step_one, f"step 1 no longer states {clause!r}"
 
-    assert "RFC owner root" in text
+    # Both confinement phrases must precede the CREATION instruction. The earlier
+    # version of this assertion compared the two confinement phrases to each
+    # other, which said nothing about creation — and the skill did in fact
+    # create the directory first. Anchor on the creation instruction itself.
+    creation = step_one.index("create the directory and standard index")
+    for phrase in ("resolve the RFC owner root", "Refuse an unsafe", "before any mutation"):
+        assert phrase in step_one, f"step 1 no longer states {phrase!r}"
+        assert step_one.index(phrase) < creation, (
+            f"{phrase!r} appears after the creation instruction, so a directory "
+            f"can be created before the target is proven confined"
+        )
+    assert "including before creating a directory" in step_one
+
+    # The remaining clause checks are scoped to step 1 too, and flattened for the
+    # same wrapping reason. A whole-file search would pass on prose anywhere.
     for target in ("RFC target", "index", "companion-note"):
-        assert target in text
+        assert target in step_one, f"step 1 no longer names the {target} write"
     for refusal in ("unsafe", "link-like", "identity-changing", "out-of-root"):
-        assert refusal in text
-    assert "Refuse an unsafe, link-like," in text
-    assert "out-of-root target before any mutation" in text
+        assert refusal in step_one, f"step 1 no longer refuses a {refusal} target"
+    assert "Refuse an unsafe, link-like, identity-changing, or out-of-root target" in step_one
     assert section
 
 

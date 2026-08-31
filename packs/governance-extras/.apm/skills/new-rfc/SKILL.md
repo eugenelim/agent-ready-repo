@@ -74,10 +74,12 @@ implementation review for a reversible, time-bounded trial with exit criteria.
 
 1. Find the next ordinal with `python3 scripts/next-ordinal.py docs/rfc`. Resolve the
    repository root, the RFC location and its sibling index from project instructions.
-   Only on the warranted-RFC path, create the directory and standard index if needed.
-   Before any write, resolve the RFC owner root and prove the RFC target, index, and
-   companion-note writes stay inside it. Refuse an unsafe, link-like,
-   identity-changing, or out-of-root target before any mutation.
+   Then, before creating anything, resolve the RFC owner root and prove the RFC
+   target, index, and companion-note paths stay inside it. Refuse an unsafe,
+   link-like, identity-changing, or out-of-root target before any mutation —
+   including before creating a directory. Only once every intended target is
+   proven confined, and only on the warranted-RFC path, create the directory and
+   standard index if needed.
 
 2. **Resolve the target — don't create the file yet.** Choose a short
    `NNNN-kebab-title.md`; do not copy `assets/rfc.md` until the checkpoint and preview

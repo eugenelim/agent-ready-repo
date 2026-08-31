@@ -49,10 +49,13 @@ def test_review_cuts_unnecessary_claims_without_changing_other_modes() -> None:
     assert "Keep the other artifact rubrics and well-architected modes unchanged." in text
     assert "Remove unnecessary claims rather than asking the author to enlarge the document to defend them." in text
     assert "one bounded check of its named target or an explicit assumption or discovery predicate" in text
-    # Reject every spelling of a shaping dispatch, not just the hyphenated one:
-    # "dispatch shaping review" would have passed the previous substring check.
+    # Reject every spelling of a shaping dispatch. The first version of this
+    # check matched only the hyphenated "shaping-review"; the second added a
+    # space but stayed case-sensitive, so "Shaping Review" and "shaping_review"
+    # still passed. Separator class plus IGNORECASE covers the repository's
+    # variants.
     import re as _re
-    assert not _re.search(r"shaping[ -]review", text), (
+    assert not _re.search(r"shaping[\s_-]*review", text, _re.IGNORECASE), (
         "architect-review must not dispatch shaping review in any spelling"
     )
 
