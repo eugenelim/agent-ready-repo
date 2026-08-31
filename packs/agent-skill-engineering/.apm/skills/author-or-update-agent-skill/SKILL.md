@@ -76,11 +76,12 @@ baseline: frame the portable skill concern without inventing mode-specific guida
    disclosure, and the requested behavioral contract. If verification fails,
    report it and retain recoverable authored files; do not claim completion.
 
-Python/pytest and TypeScript/Node are recognized extension families, not active
-foundation modes. When a task turns on one, read
-[references/language-extension-seams.md](references/language-extension-seams.md),
-report language guidance unavailable, and continue with applicable foundation
-topics instead of inventing language-specific instruction.
+Python/pytest and TypeScript/Node are populated extension families, each bounded
+to its own ecosystem and version range. When a task turns on one, read
+[references/language-extension-seams.md](references/language-extension-seams.md)
+for that boundary, apply the matching language topic, and keep its claims inside
+the ecosystem it was evidenced from rather than generalizing them to the
+portable floor.
 
 ## Completion receipt
 
