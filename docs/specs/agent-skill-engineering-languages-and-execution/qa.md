@@ -325,6 +325,8 @@ applied — emptying, and narrowing where the set scopes a sweep — to these se
 | `REQUIRED_SECTIONS` | **vacuous** | not applied | recorded here; owned by the foundation suite, not this slice |
 | `HOST_IDENTIFYING_PATTERNS` | fails closed | not applied | seeded controls |
 | `KNOWN_REVIEW_MISSES`, `REVIEW_EVAL_IDS` | fail closed | not applied | set-equality asserted |
+| `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | not applied | parametrized and set-equality asserted |
+| `LANGUAGE_SPECIFIC_TOPICS`, `DOCTRINE_CLASSES` | fail closed | not applied | filter inside a positive assertion |
 
 One further hole was found by applying that criterion to a relation rather than a
 set. The review record's mode marker was bound by containment, `declared -
@@ -336,8 +338,6 @@ a real review may sustain more defects than a case seeds; the mode marker is
 exactly one value and has no floor to justify. Tightened to equality, and four
 mutations now redden: padded with a second mode, padded with junk, dropped, and
 falsified.
-| `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | not applied | parametrized and set-equality asserted |
-| `LANGUAGE_SPECIFIC_TOPICS`, `DOCTRINE_CLASSES` | fail closed | not applied | filter inside a positive assertion |
 
 What separates a vacuous set from a safe one is whether **some assertion demands
 a positive result from its members** — a seeded control, a set equality, or a
