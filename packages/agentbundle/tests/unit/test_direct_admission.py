@@ -552,3 +552,98 @@ def test_a_remote_root_single_takes_the_repository_name(tmp_path: Path):
         assert direct_source.admit_direct_source(wrapper).skills[0].name == "skills"
     finally:
         direct_source._REMOTE_ROOT_IDENTITY.pop(wrapper, None)
+
+
+def _corpus_fixture() -> dict:
+    """Load the committed AC35 corpus verdict table."""
+    import json
+
+    return json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "fixtures"
+            / "direct"
+            / "ac35_corpus_verdicts.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
+def test_ac35_corpus_table_pins_the_bound_constants():
+    # AC35 — the table is re-asserted whenever a bound or a shape rule changes.
+    # A measurement-versus-limit assertion alone is one-directional: it reddens
+    # only when a bound is LOWERED past a recorded measurement, and for depth,
+    # selected skills, and total bytes this corpus records no attributable
+    # refusal, so no raise could ever redden it. Pinning each constant to a
+    # committed value makes a change in either direction fail here.
+    import agentbundle.direct_source as direct_source
+
+    bounds = _corpus_fixture()["bounds"]
+    assert bounds == {
+        "entries": direct_source.DIRECT_MAX_ENTRIES,
+        "depth": direct_source.DIRECT_MAX_DEPTH,
+        "files": direct_source.DIRECT_MAX_FILES,
+        "selected_skills": direct_source.DIRECT_MAX_SELECTED_SKILLS,
+        "per_file_bytes": direct_source.DIRECT_MAX_FILE_BYTES,
+        "total_bytes": direct_source.DIRECT_MAX_TOTAL_BYTES,
+    }, "regenerate the corpus table: a Family-2 bound moved"
+
+    # The committed values themselves, so a coordinated change to both the
+    # constants and the fixture still has to be deliberate.
+    assert bounds == {
+        "entries": 2500,
+        "depth": 12,
+        "files": 1000,
+        "selected_skills": 500,
+        "per_file_bytes": 1024 * 1024,
+        "total_bytes": 25 * 1024 * 1024,
+    }
+
+
+def test_ac35_corpus_table_is_complete_and_attributable():
+    # AC35 — at least fifteen real repositories, one recorded verdict each, the
+    # measured columns present for REFUSED repositories too, and every refusal
+    # attributable to a named shape exclusion or a named budget.
+    from agentbundle.catalogue_tooling.diagnostics import DIRECT_CODES
+
+    fixture = _corpus_fixture()
+    rows = fixture["repositories"]
+    assert len(rows) >= 15, f"AC35 requires at least fifteen repositories, got {len(rows)}"
+    assert len({row["repository"] for row in rows}) == len(rows), "duplicate repository"
+
+    measured = ("entries", "depth", "files", "largest_file", "total_bytes")
+    registered = {code.value for code in DIRECT_CODES}
+    for row in rows:
+        for column in measured:
+            assert isinstance(row[column], int), (
+                f"{row['repository']} is missing the {column} column; AC35 requires "
+                f"it for refused repositories too"
+            )
+        assert row["verdict"] in {"admitted", "refused"}
+        if row["verdict"] == "refused":
+            # An unclassified or unattributable refusal fails this criterion.
+            assert row["code"] in registered, (
+                f"{row['repository']} refused with an unregistered code {row['code']}"
+            )
+            assert row["reason"], f"{row['repository']} refused with no stated reason"
+        else:
+            assert row["shape"] in {"root-single", "collection", "direct-pack"}
+            assert row["selected_skills"] >= 1
+        assert row["allowlist_failures"] == [], (
+            f"{row['repository']} carries a publisher value that fails the AC18 "
+            f"allowlist: {row['allowlist_failures']}"
+        )
+
+
+def test_ac35_recorded_measurements_respect_the_bounds_they_were_measured_against():
+    # Every admitted repository's recorded measurement must sit inside the bound
+    # it was admitted under. This is the direction that catches a bound being
+    # lowered below something the corpus already admits.
+    fixture = _corpus_fixture()
+    bounds = fixture["bounds"]
+    for row in fixture["repositories"]:
+        if row["verdict"] != "admitted":
+            continue
+        assert row["admitted_entries"] <= bounds["entries"], row["repository"]
+        assert row["admitted_files"] <= bounds["files"], row["repository"]
+        assert row["admitted_total_bytes"] <= bounds["total_bytes"], row["repository"]
+        assert row["selected_skills"] <= bounds["selected_skills"], row["repository"]
