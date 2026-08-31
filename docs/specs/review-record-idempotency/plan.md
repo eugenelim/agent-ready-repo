@@ -89,7 +89,7 @@ over its UTF-8 encoding. The literal prefix is what stops two forms colliding.
 The writer already sorts and deduplicates fingerprints at `loop-cohort.py:1939`,
 which makes a re-ordered or repeated finding set one payload. A report that
 becomes unreadable between classification and hashing yields no digest
-(`loop-cohort.py:2013-2016`); that round is refused rather than recorded, which is
+(`loop-cohort.py:2011-2016`); that round is refused rather than recorded, which is
 what keeps every recorded id paired with a digest.
 
 ## Anchor obligations
@@ -103,7 +103,7 @@ assertions on the files this change touches.
 | `test_loop_cohort_cli.py` `EXPECTED_STATE_KEYS` | exact set equality on the bundled template | T4 |
 | `test_loop_cohort.py` Phase-1 field check | subset, so unaffected | none |
 | `fixtures/golden_cli_streams.json` | pins no `review record` output | none |
-| `test_loop_engine.py` two prose tests | require four phrases be *present* in the two rows; adding a flag to a recipe keeps them | T4 |
+| `test_loop_engine.py` two prose tests | require seven phrases be *present* — three in the `findings-remain` row, four in the `reviewers-clean` row; adding a flag or a qualifying clause keeps them | T4 |
 | `test_finding_adjudication_contract.py:1286,1319` | pins `--fingerprint <validated-adjudication-sha256>` and asserts token *order* | T4 |
 
 ## Construction tests
@@ -146,7 +146,6 @@ assertions on the files this change touches.
 
 ### Data & schema
 
-Two fields, both defaulting to `null`:
 Two fields, `last_review_record_operation_id` and
 `last_review_record_payload_digest`, both defaulting to `null` and absent-tolerant
 on read, so a `state.json` written before this change reads as "no id-recorded
@@ -159,9 +158,10 @@ No payload contract changes. The CLI gains one optional flag.
 
 ### Component / module decomposition
 
-No new module and no new file. The `<run_id>:<digits>` form check is extracted
-from `cmd_record_attempt` into one helper both verbs call, rather than copied a
-second time into the same file.
+No new module and no new file: one flag, one early return, and two fields in
+`cmd_review_record`. The `<run_id>:<digits>` form check is duplicated rather than
+extracted, so `cmd_record_attempt` — shipped, Phase-1 idempotency — is not
+touched.
 
 ### State & control flow
 
@@ -195,6 +195,8 @@ None added.
 - A committed artifact at `notes/flagless-baseline.json` recording, for each of
   the four forms, the command's stdout line and the delta over the six named
   fields. This is AC12's comparison value.
+- The artifact's commit precedes the commit that changes the writer (AC38),
+  checkable with `git log`.
 
 **Approach:**
 - Record a per-form delta, not the resulting file: T3 adds two template keys, so a
@@ -202,8 +204,8 @@ None added.
 - Normalise resolved paths, digests, and run-id UUIDs the way the existing golden
   support module does, so the comparison stays an equality.
 
-**Done when:** the artifact is committed and replaying the capture against the
-unchanged writer reproduces it exactly.
+**Done when:** the artifact is committed ahead of the writer and replaying the
+capture against the unchanged writer reproduces it exactly.
 
 ### T2: the writer implements every row of the outcome table
 
@@ -211,9 +213,9 @@ unchanged writer reproduces it exactly.
 
 **Tests:** one case per row, plus the cross-row properties.
 - The flag is accepted alongside each of the four forms (AC1).
-- R6 malformed id (AC2); R1/R2 same round delta (AC3); R3 replay (AC4); R4
-  conflict (AC5); R2 twice (AC6); R5 uncomputable digest on a first application
-  and on a repeat (AC7).
+- R6 malformed id (AC2); R1/R2 same round delta for every digest-computable form
+  (AC3); R3 replay (AC4); R4 conflict (AC5); R2 twice (AC6); R5 uncomputable
+  digest (AC7).
 - Re-ordered and duplicated fingerprints yield one digest (AC8); no two forms
   share a digest (AC9).
 - R3's stdout line is distinct (AC10); R4, R5, and R6 stderr reasons are each
@@ -222,20 +224,23 @@ unchanged writer reproduces it exactly.
 - Both fields hold the recorded pair (AC13), are `null` beforehand (AC14), and are
   written in the same atomic write as the round delta (AC15).
 - The R2-then-R1-then-repeat sequence resolves as R3 (AC16).
-- `record-attempt`'s two refusal messages and its `(idempotent no-op)` line are
-  byte-unchanged after the form check is extracted.
 - Mutation proofs: removing the digest comparison makes R4 pass; removing the form
   check makes R6 pass; removing the early return makes R3 increment; removing the
   literal prefix from the preimage makes two forms collide; recording an id when
   the digest is uncomputable makes R5 pass.
 
 **Approach:**
-- Extract the `<run_id>:<digits>` form check from `cmd_record_attempt` into one
-  helper both verbs call, preserving each verb's message prefix.
 - Store the digest at record time. Do not derive it on read: the next round
   overwrites `finding_fingerprints` and no field records which form closed a
   round, so a derivation has nothing sound to read.
+- Duplicate the `<run_id>:<digits>` form check rather than extracting it; the
+  shipped `record-attempt` verb stays untouched.
 - Do not touch the pair on R1.
+- R5's only reachable trigger is the report becoming unreadable between
+  `_classify_report`'s read and the re-read at `loop-cohort.py:2011-2016`. Induce
+  it by replacing the report between the two reads. `--fingerprint` and
+  `--all-skipped` always compute a digest, and `--direct-clean-file` refuses at
+  `:1974-1978` before any digest logic, so neither exercises R5.
 
 **Done when:** all six rows have passing cases and all five mutations flip.
 
@@ -264,30 +269,36 @@ unchanged writer reproduces it exactly.
 **Depends on:** T2
 
 **Tests:**
-- In every command statement, `--operation-id` appears on or after the line
-  bearing the transition it follows, and on no line at or before it (AC21).
-- Every statement that chains a recording to a transition with `&&` still chains
-  it (AC22).
-- Each replay recipe in the resumption table passes the flag (AC23).
+- In every recording statement, the operation id comes from a read that executes
+  after the transition, not from a value substituted beforehand (AC21).
+- Every recording statement is conditional on its transition having succeeded
+  (AC22).
+- Each `review record` replay recipe passes the flag and names the id's source
+  (AC23).
 - The clean-replay row states that the double-increment risk applies to a replay
-  without a matching id, and retains the seven pinned phrases (AC24).
+  without a matching id and keeps its four pinned phrases (AC24); the
+  `findings-remain` row keeps its three (AC25).
 - No command statement in `SKILL.md` or the skill's `references/` tree omits the
   flag, where a statement extends through trailing-backslash continuations
-  (AC25).
+  (AC26).
 - A fixture naming the verb and a form flag but not the cohort script is not
   counted.
-- The two pinned row tests and the adjudication contract test stay green.
-- Mutation proofs: removing the flag from one statement reddens AC25's check;
-  breaking one `&&` reddens AC22's check; moving one `--operation-id` above its
-  transition reddens AC21's check.
+- Both pinned row tests and the adjudication contract test stay green.
+- Mutation proofs: removing the flag from one statement reddens AC26's check;
+  making one recording unconditional on its transition reddens AC22's check;
+  substituting a literal sequence before the transition reddens AC21's check.
 
 **Approach:**
 - Eight sites: the seven command statements — `SKILL.md` (4),
   `references/finding-adjudication.md` (2), `references/pre-execute-review.md`
-  (1) — plus the replay recipes in `references/session-resumption.md`.
-- Four statements are `&&`-chained after a transition. Keep the chain and read the
-  sequence inside it, so a refused transition still stops the recording; the
-  transition carries the retry-cap guard and the recording does not.
+  (1) — plus the `review record` replay recipes in
+  `references/session-resumption.md`.
+- The transition already prints its new sequence on its success line
+  (`loop-engine.py:1508-1511`), so the id's source is that output. Four statements
+  are `&&`-chained today; either keep the chain and resolve the sequence inside it
+  with a command substitution, or split the statement and state the
+  transition-succeeded precondition explicitly, as the shipped `record-attempt`
+  guidance does. Both satisfy AC21 and AC22; pick one and use it at all four.
 - Append `--operation-id` after `--expect-run-id`. A shipped check asserts the
   order of `--fingerprint` and its placeholder, so inserting between them breaks
   it.
@@ -296,7 +307,7 @@ unchanged writer reproduces it exactly.
   out of scope and the check states all three exclusions.
 - Re-check the peer session's activity in the skill tree before editing.
 
-**Done when:** all four checks pass, the anchor tests stay green, and the three
+**Done when:** all six checks pass, the anchor tests stay green, and the three
 mutations flip.
 
 ### T5: adopters can see what a matching id guarantees
@@ -305,8 +316,8 @@ mutations flip.
 
 **Tests:**
 - The how-to names `--operation-id` and states that a repeat under a matching id
-  leaves the round count unchanged (AC26); the core-pack explanation names the
-  flag (AC27); the guides lint passes (AC28).
+  leaves the round count unchanged (AC27); the core-pack explanation names the
+  flag (AC28); the guides lint stays green.
 
 **Done when:** both guides describe shipped behavior and the lint is green.
 
@@ -317,14 +328,15 @@ mutations flip.
 **Tests:**
 - The harness carries a case exercising the crash window of a recording that
   passes `--operation-id` (AC29).
-- The two existing cases' expectations are byte-unchanged (AC30).
+- The expectations of `phase1-surface-ambiguous-review-record` and
+  `phase1-explicit-auth-clean-record-replay` are byte-unchanged (AC30).
 - The eval file parses and the pack's eval contract tests stay green.
 
 **Approach:**
-- Add one case; do not edit the two existing ones. The new case's id must not
-  start with `cognitive-load-`, which a repository-contract filter keys on.
+- Add one case; do not edit those two. The new case's id must not start with
+  `cognitive-load-`, which a repository-contract filter keys on.
 
-**Done when:** the corpus covers the emitted shape and the existing cases are
+**Done when:** the corpus covers the emitted shape and the two named cases are
 untouched.
 
 ### T7: a real re-issue records the round once
@@ -357,14 +369,11 @@ untouched.
 
 **Approach:**
 - Re-read the base branch's changelog head and pack version immediately before
-  writing, and rebase if the branch has fallen behind: an entry written at the top
-  of a stale branch is not topmost after merging, and the highlights projection
-  requires topmost.
+  writing, and rebase if the branch has fallen behind.
 - Regenerate the projections and the highlights projection rather than editing
   either.
 - Run the gate chain with a clean build directory.
-- Carry the governing decision's disposition to the approval gate: the primitive
-  its revisit clause names now exists, and the policy it recorded is unchanged.
+- Carry the governing decision's disposition to the approval gate.
 
 **Done when:** versions agree, the entry sits at top level, both projections are
 regenerated, and the disposition is stated to the approver.
@@ -374,8 +383,8 @@ regenerated, and the disposition is stated to the approver.
 - **Delivery:** one PR. The flag is optional and both fields default to `null`, so
   an existing persisted run keeps working unchanged. Shipped guidance gains the
   flag and one qualifying clause; what the rows oblige is unchanged.
-- **Reversibility:** reverting removes an optional flag, two `null`-defaulting
-  fields, and one extracted helper. No persisted state becomes unreadable: the
+- **Reversibility:** reverting removes an optional flag and two `null`-defaulting
+  fields. No persisted state becomes unreadable: the
   reader validates no key set and the only forward check is on `schema_version`,
   so an added field is not rejected.
 - **Infrastructure:** none.
@@ -412,6 +421,14 @@ regenerated, and the disposition is stated to the approver.
   round asked for and two owner decisions taken afterwards, and has not been
   re-reviewed since. The spec-stage gate is unmet; approval should follow a clean
   round, not this note.
+- **The per-form digest preimage is stated in three places** — this plan's table,
+  the spec's § Payload digest, and the shipped state-schema reference AC19
+  requires. The plan's table is canonical; the other two should point at it rather
+  than restate it.
+- **The flagless baseline artifact may duplicate existing coverage.**
+  `test_loop_cohort_cli.py` already pins per-form exit codes and counter deltas;
+  the only dimension it misses is the stdout line. Adding those four assertions to
+  the existing tests would remove T1, its artifact, and its normalization harness.
 - **The replay-policy retention is stated in several places.** The Never-do rail,
   the Follow-on deferral, and the governing-decision disposition each need it; the
   remaining paraphrases are redundant and were left rather than risk another

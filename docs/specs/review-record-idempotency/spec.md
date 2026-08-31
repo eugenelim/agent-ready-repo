@@ -34,7 +34,7 @@ behavior as before.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current product truth | Applicable — the writer, the bundled state template, and the shipped invocations change | `packs/core/.apm/skills/work-loop/**` and its regenerated projections | Repository maintainer | `make build-self-dry-run` reports no drift | Source edited, projections regenerated, drift gate clean |
-| Interface compatibility | Applicable — `state.json` is a persisted schema two tools read | The shipped state-schema reference and `assets/state.json` | Repository maintainer | Field table and template carry the recorded-id field, and the reference states the digest's per-form derivation | Reference, template, and writer agree |
+| Interface compatibility | Applicable — `state.json` is a persisted schema two tools read | The shipped state-schema reference and `assets/state.json` | Repository maintainer | Field table and template carry both fields, and the reference states the digest's per-form preimage | Reference, template, and writer agree |
 | Verification evidence | Applicable — the flagless-baseline comparison must exist independently of the change | `docs/specs/review-record-idempotency/notes/flagless-baseline.json` | Implementing agent | Per-form state delta and stdout line, captured before the writer changes | Artifact committed before the writer's commit |
 | Verification evidence | Applicable — the re-issue sequence is only observable by running it | `docs/specs/review-record-idempotency/notes/qa-transcript.md` | Implementing agent | Recorded counters, the recorded id, and per-command exit codes | Transcript committed at that path |
 | User-facing promise | Applicable — adopters drive this command by hand | `guides/core/how-to/plan-and-execute-non-trivial-work.md`, `guides/core/explanation/core-pack.md` | Repository maintainer | Both surfaces name the flag and what a matching id guarantees | Guides describe shipped behavior |
@@ -67,7 +67,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Editing any file under `packages/agentbundle/`, which a protected-tree gate
   covers.
 - Removing or reordering any of the seven phrases the two pinned resumption-row
-  tests require, or changing an existing eval case's expectations. Adding
+  tests require — three in the `findings-remain` row, four in the
+  `reviewers-clean` row — or changing an existing eval case's expectations. Adding
   `--operation-id` to a replay recipe, qualifying a row's audit-risk sentence, and
   adding one eval case are all in scope and required; weakening what a row or an
   existing case obliges is not.
@@ -118,7 +119,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 **Operation id.** An operation id is `<run_id>:<transition_sequence>`, where
 `transition_sequence` is the value produced by the transition that entered the
 round being recorded — read after that transition, not before it. The caller
-reads the pair from `loop-engine status`, the same value and the same division of
+reads both values from `loop-engine status`, the same value and the same division of
 labour the shipped instructions already use for a recorded implementation
 attempt. `loop-cohort` validates the form and never reads engine state.
 
@@ -129,18 +130,20 @@ fingerprint or all-skipped round overwrites `finding_fingerprints` and leaves
 `last_review_clean_source` untouched, and no field records which form closed a
 round.
 
-**Outcome table.** These six cases are the whole of the writer's behavior. Every
-AC2 through
-AC7 and AC10 through AC12 each name one row; AC1, AC8, and AC9 state properties
+**Outcome table.** These six cases are the whole of the *idempotency* behavior
+this contract adds. Each form's existing payload validation runs first and is
+unchanged: a malformed fingerprint, an unreadable clean artifact, non-sentinel
+bytes, or a non-clean report each refuse before any row applies. AC2 through AC7
+and AC10 through AC12 each name one row; AC1, AC8, and AC9 state properties
 holding across rows. "Pair" means the two fields this spec adds. "Round delta" means the mutation the
 form already performs over `review_round_count`, `review_retry_count`,
 `finding_fingerprints`, `previous_finding_fingerprints`,
 `last_review_clean_source`, and `last_review_clean_digest`. "Digest" compares the
-supplied payload's digest against the recorded round's derived digest.
+supplied payload's digest against the digest recorded with that id.
 
 | # | Recorded id in state | Supplied id | Payload digest | Exit | Round delta | Pair after |
 | --- | --- | --- | --- | --- | --- | --- |
-| R1 | any | absent | — | 0 | applied | unchanged |
+| R1 | any | absent | — | unchanged from today | unchanged from today | unchanged |
 | R2 | absent, or different from supplied | well-formed | computable | 0 | applied | set to supplied id and digest |
 | R3 | equal to supplied | well-formed | matches recorded | 0 | none | unchanged |
 | R4 | equal to supplied | well-formed | differs from recorded | non-zero | none | unchanged |
@@ -160,8 +163,8 @@ which is what keeps R3 and R4 decidable for every recorded round.
 - [ ] **AC2.** Row R6: `review record --operation-id <id>` exits non-zero and
   changes no field of `state.json` when `<id>` does not match
   `<expect-run-id>:<decimal-sequence>`.
-- [ ] **AC3.** Rows R2 and R1 apply the same round delta: for each of the four
-  forms, a first application carrying `--operation-id` produces the same delta
+- [ ] **AC3.** Rows R2 and R1 apply the same round delta: for each form whose
+  payload digest is computable, a first application carrying `--operation-id` produces the same delta
   over the six named fields as the same form without the flag.
 - [ ] **AC4.** Row R3: a repeat carrying the recorded id and a payload whose
   digest matches the recorded digest exits 0 and leaves the six named fields and
@@ -215,32 +218,33 @@ which is what keeps R3 and R4 decidable for every recorded round.
 
 ### The shipped statements and rows
 
-- [ ] **AC21.** Every shipped command statement that records a round reads its
-  operation id after the transition that entered the round: the token
-  `--operation-id` appears on or after the line bearing that transition, and on no
-  line at or before it.
-- [ ] **AC22.** Every command statement that today chains a recording to a
-  transition with `&&` still chains it, so a refused transition still stops the
-  recording.
-- [ ] **AC23.** Each replay recipe in the shipped resumption table passes
-  `--operation-id`.
+- [ ] **AC21.** In every shipped command statement that records a round, the
+  operation id is produced by a read that executes after the transition entering
+  that round, not by a value substituted into the statement beforehand.
+- [ ] **AC22.** Every shipped command statement that records a round is
+  conditional on its transition having succeeded, so a refused transition never
+  reaches the recording. The condition may be a shell `&&` or an explicit stated
+  precondition, and the transition prints the sequence the operation id needs.
+- [ ] **AC23.** Each `review record` replay recipe in the shipped resumption table
+  passes `--operation-id` and names the id's source as the run id and transition
+  sequence the resumption protocol already reads.
 - [ ] **AC24.** The resumption row governing a clean-round replay states that the
   double-increment risk applies to a replay without a matching operation id, and
-  retains the seven phrases its pinned tests require.
+  retains the four phrases its pinned test requires.
+- [ ] **AC25.** The `findings-remain` resumption row retains the three phrases
+  its pinned test requires.
 
 ### The shipped invocations and guides
 
-- [ ] **AC25.** Every `review record` command statement in `SKILL.md` and in the
+- [ ] **AC26.** Every `review record` command statement in `SKILL.md` and in the
   skill's `references/` tree passes `--operation-id`. A command statement is a
   line naming the cohort script together with the `review record` verb, extended
   through any trailing-backslash continuations. A mention that does not name the
   cohort script is prose, not a command statement.
-- [ ] **AC26.** `guides/core/how-to/plan-and-execute-non-trivial-work.md` names
+- [ ] **AC27.** `guides/core/how-to/plan-and-execute-non-trivial-work.md` names
   `--operation-id` and states that a repeat under a matching id leaves the round
   count unchanged.
-- [ ] **AC27.** `guides/core/explanation/core-pack.md` names `--operation-id`.
-- [ ] **AC28.** No file under `guides/**` gains a repository-only path,
-  `ADR-NNNN` token, or `RFC-NNNN` token.
+- [ ] **AC28.** `guides/core/explanation/core-pack.md` names `--operation-id`.
 - [ ] **AC29.** The pack's eval harness carries a case exercising the crash window
   of a recording that passes `--operation-id`, so the corpus covers the command
   shape the skill emits.
@@ -264,6 +268,9 @@ which is what keeps R3 and R4 decidable for every recorded round.
   the value on the base branch at commit time.
 - [ ] **AC36.** `make build-self-dry-run` reports no projection drift.
 - [ ] **AC37.** The generated highlights projection matches the changelog entry.
+- [ ] **AC38.** The flagless baseline artifact's commit precedes the commit that
+  changes the writer, so the comparison value cannot have been produced from the
+  changed writer.
 
 ## Follow-ons
 
