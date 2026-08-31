@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Languages and Execution
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` D3 and its
   shared language contracts; `docs/rfc/0097-notes/practice-inventory.md` and
   `docs/rfc/0097-notes/execution-economics-archaeology.md` for the doctrine
