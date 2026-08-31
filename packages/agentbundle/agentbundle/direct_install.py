@@ -10,7 +10,7 @@ import hashlib
 import os
 import unicodedata
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from agentbundle.bounded_metadata import BoundedMetadataError
 from agentbundle.catalogue_tooling.diagnostics import (
@@ -690,7 +690,10 @@ def _summarise_and_project(
 
         projection_root = Path(scope_mod.resolve_user_root())
     else:
-        projection_root = target_root.resolve()
+        # Not canonicalised here: AC39 assigns confinement to `write_jailed`,
+        # which resolves inside the helper. A caller-side resolve is exactly
+        # the spelling that defeats that rule while looking careful.
+        projection_root = target_root
     digest = direct_source_digest(classification)
 
     blocks = []
@@ -745,7 +748,7 @@ def _summarise_and_project(
             print("install: cancelled; nothing was written.")
             return 1
 
-    written: list[str] = []
+    written: dict[str, bytes] = {}
     try:
         with normalize_direct_source(classification) as normalized:
             for skill in selection.skills:
@@ -759,7 +762,7 @@ def _summarise_and_project(
                         scope=scope,
                         allowed_prefixes=[f"{skill_target.split('/')[0]}/"],
                     )
-                    written.append(relpath)
+                    written[relpath] = measured.data
             _ = normalized
     except OSError as exc:
         # A jail or refusal error is publisher-influenced and is mapped to a
@@ -812,7 +815,7 @@ def _record_direct_rows(
     revision: str | None,
     digest: str,
     adapter: str,
-    written: list[str],
+    written: dict[str, bytes],
 ) -> None:
     """Write one owned state row per installed skill, under the state lock."""
 
@@ -827,15 +830,15 @@ def _record_direct_rows(
 
     def _mutate(state) -> None:
         for skill in selection.skills:
-            prefix = f"{skill_target}/{skill.name}/"
+            # Bucketed by path parts rather than by a string prefix: AC39 bans
+            # a hand-rolled prefix check on a path-shaped value, and the digest
+            # comes from the bytes already measured rather than a second read
+            # of what we just wrote.
+            owned = tuple(skill_target.split("/")) + (skill.name,)
             files = {
-                relpath: {
-                    "sha": _hashlib.sha256(
-                        (target_root / relpath).read_bytes()
-                    ).hexdigest()
-                }
-                for relpath in written
-                if relpath.startswith(prefix)
+                relpath: {"sha": _hashlib.sha256(payload).hexdigest()}
+                for relpath, payload in written.items()
+                if tuple(PurePosixPath(relpath).parts[: len(owned)]) == owned
             }
             if classification.shape == "direct-pack":
                 kind, relative = "pack", None

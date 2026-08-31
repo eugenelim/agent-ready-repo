@@ -12,11 +12,26 @@ import ast
 from pathlib import Path
 
 import agentbundle.bounded_metadata as bounded_metadata
+import agentbundle.direct_install as direct_install
 import agentbundle.direct_source as direct_source
 import agentbundle.direct_source_acquisition as direct_source_acquisition
+import agentbundle.direct_source_state as direct_source_state
+import agentbundle.direct_validate as direct_validate
 import pytest
 
-DIRECT_MODULES = (direct_source, direct_source_acquisition, bounded_metadata)
+# Every module on the direct route, not the three the control happened to pass
+# on. `direct_source_state` is named by the LLD; `direct_install` and
+# `direct_validate` are direct modules this spec added. Scoping the control to
+# the modules that satisfy it is how it stayed green while `direct_install`
+# canonicalised a path with `.resolve()` — a spelling AC39 exists to ban.
+DIRECT_MODULES = (
+    direct_source,
+    direct_source_acquisition,
+    direct_source_state,
+    direct_install,
+    direct_validate,
+    bounded_metadata,
+)
 
 # AC17's explicit execution-name set. Written out rather than derived, because a
 # derivation over `dir(os)` silently tracks whatever the running interpreter

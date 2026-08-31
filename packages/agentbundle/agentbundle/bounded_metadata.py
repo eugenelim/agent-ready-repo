@@ -88,7 +88,9 @@ def parse_bounded_metadata(
     """Parse bounded YAML-subset frontmatter from already-confined bytes."""
 
     active_limits = limits or MetadataLimits()
-    parsed = _parse_frontmatter(data, label, active_limits)
+    parsed = _parse_frontmatter(
+        data, label, active_limits, allowed_top_level_keys=allowed_top_level_keys
+    )
     # An unrecognised top-level key is IGNORED, never refused. The spec's field
     # set grows by release and publishers already carry keys it never defined
     # (`requires` appears 832 times across a 2,545-skill corpus). Claude Code
@@ -116,6 +118,7 @@ def _parse_frontmatter(
     limits: MetadataLimits,
     *,
     validate_bounds: bool = True,
+    allowed_top_level_keys: frozenset[str] = DIRECT_SKILL_TOP_LEVEL_KEYS,
 ) -> dict[str, Any]:
     if not data:
         _fail(f"{label}: missing file")
@@ -133,12 +136,41 @@ def _parse_frontmatter(
         _fail(f"{label}: frontmatter exceeds size limit")
     if _contains_forbidden_yaml_syntax(raw):
         _fail(f"{label}: YAML tags and aliases are not allowed")
-    parsed = _parse_subset(raw, label, limits)
+    # Unrecognised keys are dropped BEFORE their values are parsed. Filtering
+    # after the parse — which is what this did — refuses the whole source when
+    # an unrecognised key holds a value the bounded subset cannot represent:
+    # `version: 1.0` refused while `version: 2` was dropped, and `version` is
+    # the second most common publisher key in the surveyed corpus. RFC-0098 E18
+    # says an unrecognised key is ignored regardless of its value type.
+    parsed = _parse_subset(
+        _strip_unrecognised_keys(raw, allowed_top_level_keys), label, limits
+    )
     if _depth(parsed) > limits.max_frontmatter_depth:
         _fail(f"{label}: frontmatter exceeds depth limit")
     if validate_bounds:
         _validate_frontmatter_bounds(parsed, label, limits)
     return parsed
+
+
+def _strip_unrecognised_keys(raw: str, allowed: frozenset[str]) -> str:
+    """Drop every line belonging to an unrecognised top-level key.
+
+    A text pre-pass rather than a parser change, so the bounded subset parser
+    stays byte-identical to the catalogue one it was lifted from. A top-level
+    key owns its own line plus every indented or blank line that follows it, so
+    dropping the block wholesale also drops a nested mapping, a list, or a
+    block scalar the direct route would otherwise have to represent.
+    """
+
+    kept: list[str] = []
+    dropping = False
+    for line in raw.splitlines():
+        if line[:1] not in {" ", "\t", ""}:
+            key = line.split(":", 1)[0].strip()
+            dropping = key not in allowed
+        if not dropping:
+            kept.append(line)
+    return "\n".join(kept)
 
 
 def _parse_subset(raw: str, label: str, limits: MetadataLimits) -> dict[str, Any]:

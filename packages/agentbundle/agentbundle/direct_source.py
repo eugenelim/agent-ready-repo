@@ -399,6 +399,26 @@ def _build_envelopes(
     # `relative_to` calls, which measured 27.7s. Walking parents is bounded by
     # the depth budget instead, and measures 0.05s on the same shape.
     envelope_set = set(by_envelope)
+    # AC1: refuse a nested envelope rather than admitting both. AC2 makes a
+    # child holding `SKILL.md` an envelope, so it cannot also be a category of
+    # its parent — the structure is ambiguous, and the two readings install
+    # different things. Bucketing to the nearest envelope stops the inner
+    # skill's files from being counted and installed twice, but that resolves
+    # the ambiguity silently rather than reporting it.
+    for envelope in sorted(envelope_set, key=lambda candidate: candidate.as_posix()):
+        for parent in envelope.parents:
+            if parent in envelope_set:
+                raise _refusal(
+                    DiagnosticCode.CAT_D009,
+                    f"nested skill envelopes: "
+                    f"{parent.relative_to(root).as_posix()} contains "
+                    f"{envelope.relative_to(root).as_posix()}",
+                    path=envelope.relative_to(root).as_posix(),
+                    remediation=(
+                        "A skill folder may not contain another skill folder. "
+                        "Move the inner skill beside the outer one."
+                    ),
+                )
     buckets: dict[Path, list[Path]] = {envelope: [] for envelope in envelope_set}
     for path in paths:
         for parent in path.parents:

@@ -346,15 +346,45 @@ def test_direct_admission_diagnostic_registry(tmp_path: Path):
     _write_skill(refused / "skills" / "one", "one")
     _write_skill(refused / ".claude" / "skills" / "two", "two")
     first = direct_source.validate_direct_source(refused)
-    second = direct_source.validate_direct_source(refused)
     assert first.ok is False and first.classification is None
     registered = {code.value for code in DIRECT_CODES}
     for diagnostic in first.diagnostics:
         assert diagnostic.code in registered, diagnostic.code
         assert diagnostic.message
-    assert [
-        (d.code, d.path, d.message, d.remediation) for d in first.diagnostics
-    ] == [(d.code, d.path, d.message, d.remediation) for d in second.diagnostics]
+
+    # AC14's parity claim, driven through the two REAL routes. Comparing two
+    # calls of `validate_direct_source` to each other — which is what this did
+    # — cannot fail: it asserts a function is deterministic, not that install
+    # preflight and validation agree. Install must reach the same tuple by
+    # actually going through its own entry point.
+    import io
+    from contextlib import redirect_stderr, redirect_stdout
+
+    from agentbundle.commands import validate as validate_cmd
+    from agentbundle.direct_install import run_direct_install
+
+    validate_err = io.StringIO()
+    with redirect_stderr(validate_err), redirect_stdout(io.StringIO()):
+        validate_exit = validate_cmd._run_direct(refused, "text")
+
+    class _Args:
+        catalogue = str(refused)
+        output = str(tmp_path / "target")
+        pack = profile = scope = adapter = skill = None
+        all_skills = dry_run = force = False
+        yes = True
+
+    Path(_Args.output).mkdir(exist_ok=True)
+    install_err = io.StringIO()
+    with redirect_stderr(install_err), redirect_stdout(io.StringIO()):
+        install_exit = run_direct_install(_Args(), refused)
+
+    assert validate_exit == install_exit == 1
+    code = first.diagnostics[0].code
+    assert code in validate_err.getvalue(), validate_err.getvalue()
+    assert code in install_err.getvalue(), install_err.getvalue()
+    assert first.diagnostics[0].message in validate_err.getvalue()
+    assert first.diagnostics[0].message in install_err.getvalue()
 
 
 def test_identity_collision_is_nfc_normalized_and_case_folded(tmp_path: Path):
