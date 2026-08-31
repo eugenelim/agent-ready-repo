@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [core][2.17.0] — 2026-08-30
+## [core][2.18.0] — 2026-08-31
 
 ### Highlights
 

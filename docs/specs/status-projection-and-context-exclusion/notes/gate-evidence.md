@@ -131,3 +131,23 @@ closeout rather than carried forward from this table.
    tree contaminated by an earlier `pytest` run: the manifest had recorded
    bytecode as legitimate build output. The repair is a clean `dist/` rebuild,
    not satisfying the manifest.
+
+## Release version collision, 2026-08-31
+
+`plan.md:657` instructs a bump to Core 2.17.0. That number no longer names this
+wave: main released `[core][2.17.0]` on 2026-08-31 while this branch was in
+review, so the reserved version now names someone else's code. This wave ships
+**2.18.0** instead.
+
+`plan.md` is hash-pinned by `approve-plan` and is not edited, so its
+instruction stands as written and is superseded here rather than corrected in
+place. The obligation the plan step actually carries — one identical version
+across `pack.toml`, `plugin.json`, and a topmost dated `[core]` changelog
+heading — is met at 2.18.0, and AC53 states the requirement as a floor
+(`strictly greater than (2, 16, 1)`) rather than a literal, so no criterion
+had to change.
+
+A reserved version behaves like a reserved RFC ordinal: it is not held until
+it is pushed. The check that catches it is diffing `origin/main:pack.toml`
+immediately before committing a release surface, not at the time the number is
+chosen.

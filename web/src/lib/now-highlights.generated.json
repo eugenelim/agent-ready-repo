@@ -273,60 +273,12 @@
       "packages": [
         {
           "name": "core",
-          "version": "2.17.0"
+          "version": "2.18.0"
         }
       ],
       "date": "2026-08-31",
-      "heading": "[core][2.17.0] — 2026-08-31",
-      "changelogAnchor": "core2170--2026-08-31",
-      "highlights": [
-        {
-          "source": "**Work-loop now supplies reusable lessons through project-knowledge without having to assemble its storage and safety details.**",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Work-loop now supplies reusable lessons through project-knowledge without having to assemble its storage and safety details."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "core",
-          "version": "2.16.6"
-        }
-      ],
-      "date": "2026-08-31",
-      "heading": "[core][2.16.6] — 2026-08-31",
-      "changelogAnchor": "core2166--2026-08-31",
-      "highlights": [
-        {
-          "source": "**Reviewers now test the evidence behind a finding before they emit it.** They retain uncertain concerns, clearly marking an untraced consequence instead of silently dropping it.",
-          "segments": [
-            {
-              "type": "strong",
-              "value": "Reviewers now test the evidence behind a finding before they emit it."
-            },
-            {
-              "type": "text",
-              "value": " They retain uncertain concerns, clearly marking an untraced consequence instead of silently dropping it."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "packages": [
-        {
-          "name": "core",
-          "version": "2.17.0"
-        }
-      ],
-      "date": "2026-08-30",
-      "heading": "[core][2.17.0] — 2026-08-30",
-      "changelogAnchor": "core2170--2026-08-30",
+      "heading": "[core][2.18.0] — 2026-08-31",
+      "changelogAnchor": "core2180--2026-08-31",
       "highlights": [
         {
           "source": "**`workspace-status` now tells you what closed-out work is waiting on you, and stops showing you work that is already finished.** Orientation reports how many cooling reviews are due, names each one, and lists retention exceptions with the role that owns them and the date they are due. An artifact that has finished cooling is no longer offered as something to start, and is no longer opened, so a session begins on live work rather than on settled deliveries.",
@@ -413,6 +365,54 @@
             {
               "type": "text",
               "value": "Repair and migration keep their previous behaviour and still reach cooled entries; whether cooling constrains them is a later decision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.17.0"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.17.0] — 2026-08-31",
+      "changelogAnchor": "core2170--2026-08-31",
+      "highlights": [
+        {
+          "source": "**Work-loop now supplies reusable lessons through project-knowledge without having to assemble its storage and safety details.**",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Work-loop now supplies reusable lessons through project-knowledge without having to assemble its storage and safety details."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.16.6"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.16.6] — 2026-08-31",
+      "changelogAnchor": "core2166--2026-08-31",
+      "highlights": [
+        {
+          "source": "**Reviewers now test the evidence behind a finding before they emit it.** They retain uncertain concerns, clearly marking an untraced consequence instead of silently dropping it.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Reviewers now test the evidence behind a finding before they emit it."
+            },
+            {
+              "type": "text",
+              "value": " They retain uncertain concerns, clearly marking an untraced consequence instead of silently dropping it."
             }
           ]
         }
