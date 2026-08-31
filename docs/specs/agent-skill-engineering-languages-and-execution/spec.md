@@ -25,10 +25,11 @@ they do not become general language or CI handbooks.
 
 These five leaves are admitted on the **doctrine** basis, not observed practice.
 No leaf clears the inherited observed-practice rule. The doctrine evidence is
-mixed: three leaves rest on documented public contracts cited externally, and
-two rest on repeated independent internal failures carried only in the
-non-projected admission fixture, because shipped content may not cite this
-repository's own records. The
+mixed, and it is recorded per claim group rather than per leaf. Three groups
+rest on documented public contracts cited externally; three rest on repeated
+independent internal failures carried only in the non-projected admission
+fixture, because shipped content may not cite this repository's own records. One
+topic carries a group of each kind. The
 corpus slice implemented doctrine's field validation but deliberately left
 doctrine-side body parity unimplemented as a loud failure, naming the successor
 slice as its owner. This slice is that successor, so closing that gap is part of
@@ -198,10 +199,12 @@ the work rather than an incidental fix.
   the governing archaeology note is a single dated decision with no repetition
   count, and the class requires at least two repetitions. `severe-safety-failure`
   is unused because no leaf rests on a safety failure with a reproduction.
-  `pack-and-ci-critical-paths` uses `two-runtime-public-contract` on two
-  independent vendors; `process-and-filesystem-cost` and
+  The two language topics use `single-ecosystem-contract`;
+  `pack-and-ci-critical-paths` carries both a `two-runtime-public-contract` group
+  on two independent vendors and a `repeated-observed-failures` group for the
+  critical-path claim no vendor states; `process-and-filesystem-cost` and
   `worktrees-state-locks-and-shared-host-admission` use
-  `repeated-observed-failures` on paired internal failures. (source:
+  `repeated-observed-failures` alone. (source:
   `test_corpus_admission.py` `DOCTRINE_CLASSES` and its per-class assertions;
   `docs/rfc/0097-notes/execution-economics-archaeology.md` chronology table.)
 - The two language leaves rest on single-ecosystem evidence, which the governing

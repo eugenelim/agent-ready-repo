@@ -20,9 +20,10 @@
    trips a ratchet that is already at its ceiling.
 2. Close the doctrine-side parity gap the corpus slice left as a deliberate loud
    failure, before any doctrine group exists to trip it.
-3. Assemble doctrine evidence — public documented contracts for three leaves,
-   paired internal failures for two — and author the topic bodies and admission
-   record together, so no body ships a claim its record does not carry.
+3. Assemble doctrine evidence per claim group — three groups on documented
+   public contracts, three on paired internal failures — and author the topic
+   bodies and admission record together, so no body ships a doctrinal claim its
+   record does not carry.
 4. Reconcile every shipped statement about language-family availability and
    topic count.
 5. Regenerate the governed projections through the owning compiler.
@@ -395,7 +396,7 @@ restored ceiling.
 | --- | --- |
 | A language claim becomes generic developer guidance | Limit every topic and retrieval case to skills, evaluations, packs, or their execution environments; the generic-negative gate is the falsifier. |
 | New topics move a foundation result | Treat the inherited per-case pins as a hard non-regression gate; surface a moved pin rather than re-pinning it. |
-| A leaf's clause cannot be evidenced from two distinct projects | Confirm each clause against both sources before admission. Surface the finding with its evidence and route it through an approved spec amendment; do not withdraw a leaf in flight, because the ship transition requires every criterion checked. |
+| A group's evidence does not hold — a clause its sources do not state, or a mechanism only one of its failures supports | Two verification passes already refuted eight of eight asserted clauses, so treat this as the expected case rather than the unlikely one. Re-confirm at authoring time, drop the group rather than reword it, and if that leaves a leaf unadmissible surface the finding and route it through an approved spec amendment; do not withdraw a leaf in flight, because the ship transition requires every criterion checked. |
 | The TypeScript/Node topic fails retrieval distinctness | Its governing note already withholds maturity, and the corpus has withdrawn a leaf for this reason before. Report the measurement and route through the amendment path above rather than rewording cases after seeing results. |
 | The re-measured generic-negative set exceeds its bar | Five prompts in the fixed set sit directly on the new subjects: a CI job running unit tests, writing unit tests for a calculator, a flaky integration test, parallelising across worker processes, and a dependency vulnerability audit. If the bar is exceeded, report the measurement and route the offending topic through the amendment path; do not reword a negative prompt. |
 | The doctrine arm ships on its first execution | T2 exercises it from constructed inputs and mutation-proves each limb, including the two reviewer-identity assertions it must not narrow. |
