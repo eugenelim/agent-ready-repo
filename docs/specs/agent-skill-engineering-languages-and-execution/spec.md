@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Languages and Execution
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
@@ -85,13 +85,20 @@ incidental fix.
 - Turn a language topic into a general programming-language handbook.
 - Claim a runtime profile, `runtime-package`, plugin, hook, or subagent
   capability; those are owned by later slices.
-- Re-record the corpus slice's foundation retrieval pins as part of this work.
-  Those pins are a non-regression gate: a measurement that moves one is a
-  defect to surface, never a pin to rewrite. Their count is asserted in the
-  owning fixture test, not restated here.
+- Re-record the corpus slice's foundation retrieval pins silently, or to make a
+  test pass. Those pins are a non-regression gate: a measurement that moves one
+  is surfaced first, and re-taken only on explicit owner authority recorded with
+  the measurement that moved it, which topic the movement added, and why the new
+  routing is the corpus becoming more correct rather than regressing. A pin
+  moved by anything other than a measurement taken in a context held apart from
+  authoring is a defect, not a re-take. Their count is asserted in the owning
+  fixture test, not restated here.
 - Claim maturity for a topic whose governing evidence note withholds it.
-- Reword an acceptance criterion, assertion, or retrieval case after seeing its
-  measured result.
+- Reword an acceptance criterion, assertion, or retrieval case to match a
+  measured result. A predeclaration the measurement refutes may be corrected
+  only on explicit owner authority, recorded with the prompt, the declared
+  expectation, the measured result, and why the measurement is judged the better
+  reading — never by adjusting the declaration until it agrees.
 - Commit personal or host-identifying data in any recorded evidence field.
 
 ## Testing Strategy

@@ -1,7 +1,7 @@
 # Plan: Agent Skill Engineering Languages and Execution
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** `docs/rfc/0097-agent-skill-engineering.md` D3 and its
   shared language contracts; `docs/rfc/0097-notes/practice-inventory.md` and
   `docs/rfc/0097-notes/execution-economics-archaeology.md` for the doctrine
@@ -500,7 +500,8 @@ the restored ceiling.
 | Risk | Mitigation |
 | --- | --- |
 | A language claim becomes generic developer guidance | Limit every topic and retrieval case to skills, evaluations, packs, or their execution environments; the generic-negative gate is the falsifier. |
-| New topics move a foundation result | Treat the inherited per-case pins as a hard non-regression gate; surface a moved pin rather than re-pinning it. |
+| New topics move a foundation result | Surface the movement first, with the measurement that produced it. Execution showed this is the expected case, not the unlikely one: admitting a language topic moved the two pins whose cases are about that language. Re-take only on recorded owner authority, naming which topic the movement added and why the new routing is more correct. |
+| A predeclared retrieval case is refuted by its own measurement | Expected at this scale: 61 predeclarations were authored before any measurement. Record the disagreement with prompt, declaration, and result, and correct the declaration only on recorded owner authority — never by adjusting it until it agrees. |
 | A group's evidence does not hold — a clause its sources do not state, or a mechanism only one of its failures supports | Two verification passes already refuted eight of eight asserted clauses, so treat this as the expected case rather than the unlikely one. Re-confirm at authoring time, drop the group rather than reword it, and if that leaves a leaf unadmissible surface the finding and route it through an approved spec amendment; do not withdraw a leaf in flight, because the ship transition requires every criterion checked. |
 | The TypeScript/Node topic fails retrieval distinctness | Its governing note already withholds maturity, and the corpus has withdrawn a leaf for this reason before. Report the measurement and route through the amendment path above rather than rewording cases after seeing results. |
 | The re-measured generic-negative set exceeds its bar | Five prompts in the fixed set sit directly on the new subjects: a CI job running unit tests, writing unit tests for a calculator, a flaky integration test, parallelising across worker processes, and a dependency vulnerability audit. If the bar is exceeded, report the measurement and route the offending topic through the amendment path; do not reword a negative prompt. |
