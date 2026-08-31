@@ -1,7 +1,7 @@
 # Plan: RFC and architecture simplification
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/governance-extras/.apm/skills/new-rfc/`,
   `packs/core/.apm/agents/adversarial-reviewer.md`, and
   `packs/architect/.apm/skills/{architect-design,architect-review}/`; analogous
