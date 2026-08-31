@@ -327,8 +327,29 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
 #      under a `## Superseded guidance (not normative)` heading, or a flipped
 #      duplicate added below the original where first-match never reached it.
 #
-# The heading pin closes relocation; the match count closes duplication; the
-# digest closes rewording. Re-wrapping the same words changes none of the three.
+# What the conjuncts close, stated at the width they actually hold:
+#   - the match count closes duplication;
+#   - the heading pin closes relocation to another section, and the uniqueness
+#     assertion closes relocation under a second copy of the same heading, which
+#     the heading pin alone did not -- round 4's probe varied the heading's text
+#     and never varied how many headings carried it;
+#   - the digest closes rewording, including markup-only edits, within a
+#     normative block.
+# Re-wrapping the same words changes none of them.
+#
+# NOT closed, because this reads the raw file rather than the rendered document:
+# a clause whose bytes are preserved inside a non-normative block -- a fence, a
+# four-space indent, an HTML comment, or an `<div hidden>` wrapper -- satisfies
+# every conjunct while being absent from what a reader sees. Stripping those
+# spans here was considered and rejected: it enumerates span kinds, and the
+# enumeration is already incomplete (a four-space indent collapses identically,
+# since whitespace collapsing discards leading indentation). Making the predicate
+# categorical needs a real CommonMark parse, which is a new dependency to defend
+# two prose sentences and would need its own decision record.
+#
+# Also not closed, and not closable here: a contradicting sentence elsewhere.
+# That is a judgment about meaning, not a property of form, and it stays with
+# review.
 #
 # Re-pinning is meant to be deliberate. These clauses exist because a graded run
 # measured their absence, so changing one is a contract change needing a fresh
@@ -397,7 +418,17 @@ def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
     """Each forced clause is unique, correctly placed, and byte-identical."""
     body = (AUTHOR_ROOT / "SKILL.md").read_text(encoding="utf-8")
 
+    headings = [
+        line.strip() for line in body.splitlines() if re.match(r"#{1,6}\s+\S", line)
+    ]
+
     for name, (anchor, heading, expected) in MEASUREMENT_FORCED_CLAUSES.items():
+        assert headings.count(heading) == 1, (
+            f"{name}: {headings.count(heading)} headings read {heading!r}, "
+            "expected exactly 1. With two, the clause can be gutted where it is "
+            "normative and re-appended verbatim under the duplicate, and the "
+            "heading conjunct below cannot tell the copies apart."
+        )
         matches = _clause_paragraphs(body, anchor)
         assert len(matches) == 1, (
             f"{name}: {len(matches)} paragraphs carry this clause's anchor, "

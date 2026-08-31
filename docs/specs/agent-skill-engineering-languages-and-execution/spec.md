@@ -172,8 +172,9 @@ incidental fix.
   as the corpus slice shipped it, sha256 `d6db5307348a8374…`, whose 24 pin values
   the record reproduces for the two it re-takes. Naming it by digest rather than
   as "the corpus slice's" keeps the comparison performable after this branch
-  merges, when no diff against `origin/main` recovers it. The same holds for `predeclared`: a
-  declaration corrected under that authority is named in the record, and any
+  merges, when no diff against `origin/main` recovers it. The same holds for
+  `predeclared`: a declaration corrected under that authority is named in the
+  record, and any
   other post-measurement change to a declaration fails here. Both the retrieval
   record and the generic-negative record are re-measured against the tree they
   describe, since both are bound to the same digest triple that admitting a
@@ -351,23 +352,29 @@ incidental fix.
   were authored alongside them.
   `packs/agent-skill-engineering/tests/skills/author_or_update/test_contract.py`
   pins each clause in
-  `test_shipped_body_keeps_the_two_clauses_measurement_forced` on three
-  conjuncts: exactly one paragraph carries the clause's anchor, it sits under the
-  pinned heading, and its whitespace-collapsed text hashes to the recorded
-  sha256. Each conjunct closes one defeat class — the count closes duplication,
-  the heading closes relocation, the digest closes rewording — and re-wrapping
-  the same words changes none of them. Ten defeating mutations each redden it and
-  a legitimate re-wrap does not; all eleven probes were restored by rewriting the
-  file rather than by checkout, with the body verified byte-identical afterwards.
+  `test_shipped_body_keeps_the_two_clauses_measurement_forced` on four
+  conjuncts: the pinned heading occurs exactly once, exactly one paragraph
+  carries the clause's anchor, that paragraph sits under the pinned heading, and
+  its whitespace-collapsed text hashes to the recorded sha256. Twelve defeating
+  mutations each redden it and a legitimate re-wrap does not; every probe was
+  restored by rewriting the file rather than by checkout, with the body verified
+  byte-identical afterwards.
 
   A second guard asserts the two anchors resolve to different paragraphs, which
-  the three conjuncts do not reach: merging the paragraphs *and* refreshing both
-  recorded digests satisfies every conjunct, because both clauses share one
-  heading. The four review rounds that forced this design, each defeating the
-  previous predicate, are recorded in `qa.md` with the mutation that beat it.
-  What remains uncovered is a contradicting sentence in a different paragraph; no
-  guard over prose catches arbitrary contradiction, and the whole-file `SKILL.md`
-  digest recorded on every graded result covers any other body change. The graded authoring assertions are
+  the conjuncts do not reach: merging the paragraphs *and* refreshing both
+  recorded digests satisfies every one, because both clauses share a heading.
+
+  Five review rounds each defeated the previous predicate, and `qa.md` records
+  each with the mutation that beat it and the boundary that resulted. The
+  boundary is the durable output: **the guard owns form and review owns
+  meaning.** It does not cover a clause whose bytes are preserved inside a
+  non-normative block — a fence, a four-space indent, or an HTML comment —
+  because it reads the raw file rather than the rendered document; stripping
+  those spans
+  was rejected on adjudication as enumerating span kinds, already incomplete when
+  proposed, and a real CommonMark parse is a dependency needing its own decision
+  record. Nor does it cover a contradicting sentence elsewhere, which is judgment
+  rather than form. The graded authoring assertions are
   corroborating evidence only: they were written in the same change as the
   behavior they assert, so alone they would be a mirror rather than a
   contract.

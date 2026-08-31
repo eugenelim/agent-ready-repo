@@ -121,7 +121,7 @@ it unchanged rather than omitting it:
 | Case | Prompt | Declared | Corrected to | Measured |
 | --- | --- | --- | --- | --- |
 | `update-existing-skill` | "Update the supplied migration review skill without widening its activation boundary. First inventory the current contract, then describe the exact patch and verification; do not write until explicitly authorized." | `Mode: update`, `Write status: awaiting explicit authorization` | `Mode: frame`, `Write status: not authorized` | `Mode: frame`, `Write status: not authorized` |
-| `cross-session-resumption` | "Update this skill so a second session can resume its work without re-reading everything. The skill root is evals/files/update-existing-SKILL.md." | `Mode: update`, `Write status: awaiting explicit authorization` | `Mode: frame`, `Write status: awaiting explicit authorization` (unchanged) | `Mode: frame` |
+| `cross-session-resumption` | "Update this skill so a second session can resume its work without re-reading everything. The skill root is evals/files/update-existing-SKILL.md." | `Mode: update`, `Write status: awaiting explicit authorization` | `Mode: frame`, `Write status: awaiting explicit authorization` (unchanged) | `Mode: frame`, `Write status: awaiting explicit authorization` |
 
 Assertion texts. The Boundary names "assertion" as well as "criterion" and
 "retrieval case", so these belong in this table and not in prose:
@@ -250,11 +250,15 @@ is a property of the predicate class, not a gap in the enumeration.
 Round 4 was a different mistake — the new predicate was too *local*. A digest
 identifies text; it says nothing about whether that text is the operative clause.
 
-The guard now asserts **three conjuncts per clause**: exactly one paragraph
-carries the anchor, it sits under the pinned heading, and its
-whitespace-collapsed text hashes to the recorded digest. Each conjunct closes one
-defeat class — the count closes duplication, the heading closes relocation, the
-digest closes rewording — and re-wrapping the same words changes none of them.
+The guard now asserts **four conjuncts per clause**: the pinned heading occurs
+exactly once in the body, exactly one paragraph carries the anchor, that
+paragraph sits under the pinned heading, and its whitespace-collapsed text hashes
+to the recorded digest. Re-wrapping the same words changes none of them.
+
+The uniqueness conjunct exists because round 4's relocation probe varied the
+heading's *text* and never varied how many headings carried it. Gutting the
+clause where it is normative and re-appending it verbatim under a second
+`## Modes` satisfies a heading-text pin exactly.
 
 Eleven probes, each restored by rewriting the file rather than by checkout, body
 verified byte-identical afterwards:
@@ -268,10 +272,39 @@ verified byte-identical afterwards:
 | `however far the plan has progressed` → `as appropriate` | red | digest |
 | `Do not infer a change` → `You may infer a change` | red | digest |
 | authority-cost clause reworded | red | digest — unpinned until the paragraph became the unit |
-| clause gutted in place, original re-appended under `## Superseded guidance (not normative)` | red | **heading** |
-| reversed duplicate added below the original | red | **match count** |
+| clause gutted in place, original re-appended under `## Superseded guidance (not normative)` | red | heading text |
+| clause gutted in place, original re-appended under a second `## Modes` | red | **heading uniqueness** |
+| reversed duplicate added below the original | red | match count |
 | clause demoted to a blockquote | red | digest — markup counts |
 | the same words re-wrapped across lines | **green** | a legitimate reflow must not fire |
+
+### What the guard does not cover, enumerated
+
+Five rounds produced five defeats, so the useful thing to record is not another
+conjunct but where the boundary now sits. These four all satisfy every conjunct
+and were verified green:
+
+| Uncovered | Why |
+| --- | --- |
+| clause fenced in a ```` ```text ```` block | the guard reads the raw file, not the rendered document |
+| clause wrapped in an HTML comment | same — its bytes survive while a reader never sees it |
+| clause indented four spaces into a code block | same, and this is the one a span stripper misses, since collapsing whitespace discards leading indentation |
+| a contradicting paragraph appended under the same heading | a claim about meaning, not about form |
+
+The first three are one class: **the predicate reads bytes, not the rendered
+document.** Stripping fenced and comment spans was proposed and rejected on
+adjudication, and the reason is worth keeping — it enumerates span kinds, and the
+enumeration was already incomplete when proposed, because the four-space-indent
+case defeats it. Enumerating span kinds is the same mistake as enumerating
+sentences, one level up. Making the predicate categorical needs a real CommonMark
+parse: a new dependency to defend two prose sentences, which the repository's
+cut-before-adding ladder routes through a decision record rather than a test file.
+
+The fourth is a different kind and is not closable by any predicate over prose.
+Whether a later sentence contradicts an earlier one is judgment, and it stays
+with review. Naming it here is the point: **the guard owns form, review owns
+meaning**, and five rounds of trying to make one predicate own both is what
+produced five defeats.
 
 A second test asserts the two anchors resolve to *different* paragraphs, and it
 owns a catching set none of the three conjuncts reach. An earlier version of this
@@ -290,12 +323,10 @@ change and was right; the reviewer's proposed replacement would have deleted the
 catching set too. Both clauses sharing a heading is exactly what makes it
 non-redundant.
 
-**What this still does not cover, stated rather than implied.** It pins the two
-clauses' text, placement, and uniqueness — not the absence of a contradicting
-sentence in some other paragraph under some other heading. No guard over a prose
-contract catches arbitrary contradiction. The whole-file `SKILL.md` digest now
-recorded on every graded result covers any other body change, and it forces
-re-measurement rather than a digest refresh.
+The whole-file `SKILL.md` digest now recorded on every graded result covers any
+other body change and forces re-measurement rather than a digest refresh — but it
+is refreshed by that same legitimate flow, which is why the clause guard exists
+as a second, narrower control rather than as a duplicate of it.
 
 **Cost paid rather than avoided.** Two body edits moved the skill digest twice,
 so both the captured responses and the activation observation were discarded and
