@@ -34,14 +34,14 @@ behavior as before.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current product truth | Applicable — the writer, the bundled state template, and the shipped invocations change | `packs/core/.apm/skills/work-loop/**` and its regenerated projections | Repository maintainer | `make build-self-dry-run` reports no drift | Source edited, projections regenerated, drift gate clean |
-| Interface compatibility | Applicable — `state.json` is a persisted schema two tools read | The shipped state-schema reference and `assets/state.json` | Repository maintainer | Field table and template carry both fields with their derivation | Reference, template, and writer agree |
+| Interface compatibility | Applicable — `state.json` is a persisted schema two tools read | The shipped state-schema reference and `assets/state.json` | Repository maintainer | Field table and template carry the recorded-id field, and the reference states the digest's per-form derivation | Reference, template, and writer agree |
 | Verification evidence | Applicable — the flagless-baseline comparison must exist independently of the change | `docs/specs/review-record-idempotency/notes/flagless-baseline.json` | Implementing agent | Per-form state delta and stdout line, captured before the writer changes | Artifact committed before the writer's commit |
 | Verification evidence | Applicable — the re-issue sequence is only observable by running it | `docs/specs/review-record-idempotency/notes/qa-transcript.md` | Implementing agent | Recorded counters, the recorded id, and per-command exit codes | Transcript committed at that path |
 | User-facing promise | Applicable — adopters drive this command by hand | `guides/core/how-to/plan-and-execute-non-trivial-work.md`, `guides/core/explanation/core-pack.md` | Repository maintainer | Both surfaces name the flag and what a matching id guarantees | Guides describe shipped behavior |
 | Release history | Applicable — a new flag and two persisted fields are user-visible | `docs/product/changelog.md` free-standing dated entry with a `### Highlights` block | Repository maintainer | Entry at top level, not nested under `[Unreleased]` | Entry present at `##`, highlights projection regenerated |
 | Decision rationale | Applicable — this lands the primitive a governing decision named as its revisit trigger while deliberately leaving that decision's policy intact | The governing decision's disposition, recorded in this spec's Assumptions and carried to the approval gate | Repository maintainer | An explicit statement of what the trigger does and does not change | The approver accepts the disposition or directs a superseding record |
+| Operations | Applicable — the pack's eval corpus must cover the command shape the skill emits | `packs/core/.apm/skills/work-loop/evals/evals.json` | Repository maintainer | One added case for the id-carrying crash window; existing expectations unchanged | Corpus covers the emitted shape |
 | Reusable learning | Applicable — the id-plus-digest decidability pattern generalises | Routed through `project-knowledge` at the loop's capture gates | Implementing agent | Capture receipt, or a recorded `project-knowledge unavailable` | Receipt recorded or unavailability named |
-| Operations | Not applicable — no deployed runtime, endpoint, or on-call surface changes | — | — | — | — |
 | Current architecture | Not applicable — no entrypoint, ownership, or state-authority boundary changes | — | — | — | — |
 | Maintainer procedure | Not applicable — no maintainer runbook changes | — | — | — | — |
 
@@ -63,13 +63,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 ### Ask first
 
 - Changing an existing exit code, output line, or flag on any `loop-cohort` verb.
-- Adding a field to `state.json` beyond the two this spec names.
+- Adding a field to `state.json` beyond the one this spec names.
 - Editing any file under `packages/agentbundle/`, which a protected-tree gate
   covers.
 - Removing or reordering any of the four phrases the shipped resumption rows'
-  pinned tests require, or changing the pack's eval expectations. Adding
-  `--operation-id` to a row's replay recipe is in scope and required; weakening
-  what the row obliges is not.
+  pinned tests require, or changing an existing eval case's expectations. Adding
+  `--operation-id` to a row's replay recipe and adding one eval case are both in
+  scope and required; weakening what a row or an existing case obliges is not.
 
 ### Never do
 
@@ -118,28 +118,36 @@ reads the pair from `loop-engine status`, the same value and the same division o
 labour the shipped instructions already use for a recorded implementation
 attempt. `loop-cohort` validates the form and never reads engine state.
 
+**Recorded-payload digest.** The digest of the payload a round was recorded with
+is derived at comparison time from fields `state.json` already carries, and is
+never stored a second time: from `finding_fingerprints` for a fingerprint round,
+from `last_review_clean_source` together with `last_review_clean_digest` for
+either clean round, and from a constant for an all-skipped round. Deriving it
+keeps one canonical digest per artifact.
+
 **Outcome table.** These six cases are the whole of the writer's behavior. Every
 criterion in *The writer* below names one row; the table is the specification and
 the criteria are its checkable form. "Round delta" means the mutation the form
 already performs over `review_round_count`, `review_retry_count`,
 `finding_fingerprints`, `previous_finding_fingerprints`,
-`last_review_clean_source`, and `last_review_clean_digest`. "Pair" means
-`last_review_record_operation_id` and `last_review_record_payload_digest`.
+`last_review_clean_source`, and `last_review_clean_digest`. "Digest" compares the
+supplied payload's digest against the recorded round's derived digest.
 
-| # | Recorded id | Supplied id | Digest | Exit | Round delta | Pair |
+| # | Recorded id in state | Supplied id | Digest comparison | Exit | Round delta | Recorded id after |
 | --- | --- | --- | --- | --- | --- | --- |
 | R1 | any | absent | — | 0 | applied | unchanged |
-| R2 | absent, or different from supplied | well-formed | computable | 0 | applied | set to supplied id and digest |
-| R3 | equal to supplied | well-formed | matches recorded | 0 | none | unchanged |
-| R4 | equal to supplied | well-formed | differs from recorded | non-zero | none | unchanged |
-| R5 | any | well-formed | not computable | non-zero | none | unchanged |
+| R2 | absent, or different from supplied | well-formed | — | 0 | applied | set to supplied id |
+| R3 | equal to supplied | well-formed | matches | 0 | none | unchanged |
+| R4 | equal to supplied | well-formed | differs | non-zero | none | unchanged |
+| R5 | equal to supplied | well-formed | not derivable | non-zero | none | unchanged |
 | R6 | any | malformed | — | non-zero | none | unchanged |
 
-R1 keeps a flagless recording's behavior identical to today, including leaving
-the pair alone: the pair names the last round recorded *under an id*, which a
-flagless round does not become. R5 covers a clean form whose artifact is
-unreadable, on a first application as well as a repeat, because a completed write
-cannot be asserted without a digest to compare.
+R1 keeps a flagless recording's behavior identical to today, including leaving the
+recorded id alone: the field names the last round recorded *under an id*, which a
+flagless round does not become. R5 covers a repeat whose recorded round left no
+artifact digest in state, so no comparison value can be derived. A first
+application whose artifact is unreadable is refused by the command's existing
+validation, unchanged by this contract.
 
 ### The writer
 
@@ -154,17 +162,17 @@ cannot be asserted without a digest to compare.
   over the six named fields as the same form without the flag.
 - [ ] **AC4.** Row R3: a repeat carrying the recorded id and a payload whose
   digest matches the recorded digest exits 0 and leaves the six named fields and
-  the pair unchanged from the first application.
+  the recorded id unchanged from the first application.
 - [ ] **AC5.** Row R4: a repeat carrying the recorded id and a payload whose
   digest differs from the recorded digest exits non-zero and leaves `state.json`
   byte-identical to its state before the attempt.
 - [ ] **AC6.** Row R2 twice: two applications carrying different operation ids
   each increment `review_round_count`.
-- [ ] **AC7.** Row R5: an application carrying a well-formed id whose payload
-  digest cannot be computed, because the artifact a clean form names is
-  unreadable, exits non-zero and leaves `state.json` byte-identical. This holds on
-  a first application as well as on a repeat, so no id is ever recorded without a
-  digest.
+- [ ] **AC7.** Row R5: a repeat carrying the recorded id whose comparison digest
+  cannot be derived, because the round was recorded with no
+  `last_review_clean_digest`, exits non-zero and leaves `state.json`
+  byte-identical, because a completed write cannot be asserted without a value to
+  compare.
 - [ ] **AC8.** Re-ordering or duplicating the fingerprints supplied to
   `--fingerprint` yields the same digest, so the same finding set under the same
   id is one payload.
@@ -176,21 +184,19 @@ cannot be asserted without a digest to compare.
   a malformed id.
 - [ ] **AC12.** Row R1: `review record` invoked without `--operation-id`
   produces, for each of the four forms, the per-form state delta and the stdout
-  line recorded in the committed flagless baseline artifact, and leaves the pair
-  unchanged.
+  line recorded in the committed flagless baseline artifact, and leaves the
+  recorded id unchanged.
 
 ### The persisted schema
 
-- [ ] **AC13.** `state.json` carries `last_review_record_operation_id`, holding
-  the id of the round most recently recorded under an id, and
-  `last_review_record_payload_digest`, holding the digest of the payload recorded
-  under that id.
-- [ ] **AC14.** Both fields hold `null` before any round is recorded under an id.
-- [ ] **AC15.** A `null` in `last_review_record_operation_id` means no round has
-  been recorded under an id; it never means a digest was uncomputable, because no
-  outcome-table row records an id without a digest.
+- [ ] **AC13.** `state.json` carries `last_review_record_operation_id`, holding the
+  id of the round most recently recorded under an id.
+- [ ] **AC14.** That field holds `null` before any round is recorded under an id.
+- [ ] **AC15.** No field stores a recorded round's payload digest; the comparison
+  value is derived from the fields the round already wrote.
 - [ ] **AC16.** After the sequence R2 then R1 then a repeat of R2's command, the
-  repeat resolves as R3, because a flagless round does not displace the pair.
+  repeat resolves as R3, because a flagless round does not displace the recorded
+  id.
 - [ ] **AC17.** Every shipped command statement that records a round reads its
   operation id after the transition that entered the round, so the id a resuming
   session recomputes from `loop-engine status` equals the id the interrupted
@@ -198,15 +204,15 @@ cannot be asserted without a digest to compare.
 - [ ] **AC18.** Each replay recipe in the shipped resumption table passes
   `--operation-id`, so an authorized replay resolves as R3 rather than as a new
   round.
-- [ ] **AC19.** A `state.json` written before this change, carrying neither field,
-  is read without error, and each of the four forms applied to it exits 0 and
-  writes both fields.
-- [ ] **AC20.** `packs/core/.apm/skills/work-loop/assets/state.json` carries both
-  fields with a `null` value.
-- [ ] **AC21.** The shipped state-schema reference documents both fields, the
-  digest's derivation per recording form, and that a repeated id with a matching
-  digest is a completed write while a repeated id with a differing digest is
-  refused.
+- [ ] **AC19.** A `state.json` written before this change, carrying no recorded
+  id, is read without error, and each of the four forms applied to it with the
+  flag exits 0 and writes the field.
+- [ ] **AC20.** `packs/core/.apm/skills/work-loop/assets/state.json` carries the
+  field with a `null` value.
+- [ ] **AC21.** The shipped state-schema reference documents the field, the
+  per-form derivation of the comparison digest, and that a repeated id with a
+  matching digest is a completed write while a repeated id with a differing digest
+  is refused.
 - [ ] **AC22.** Every shipped check that asserts the bundled template's exact
   field set asserts the field set including both new fields.
 
@@ -223,24 +229,29 @@ cannot be asserted without a digest to compare.
 - [ ] **AC25.** `guides/core/explanation/core-pack.md` names `--operation-id`.
 - [ ] **AC26.** No file under `guides/**` gains a repository-only path,
   `ADR-NNNN` token, or `RFC-NNNN` token.
+- [ ] **AC27.** The pack's eval harness carries a case exercising the crash window
+  of a recording that passes `--operation-id`, so the corpus covers the command
+  shape the skill emits.
+- [ ] **AC28.** The expectations of the two existing eval cases covering the
+  flagless crash window and the clean-signal replay are unchanged.
 
 ### The release surface
 
-- [ ] **AC27.** Re-issuing a recording with the same id against a throwaway spec
+- [ ] **AC29.** Re-issuing a recording with the same id against a throwaway spec
   directory advances `review_round_count` exactly once, with the observed
   counters, the recorded id, and each command's exit code captured at the
   destination the Durable Outputs table names.
-- [ ] **AC28.** That transcript states which recording forms and which conditions
+- [ ] **AC30.** That transcript states which recording forms and which conditions
   the session does not exercise.
-- [ ] **AC29.** `docs/product/changelog.md` carries a free-standing
+- [ ] **AC31.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
   `[Unreleased]`.
-- [ ] **AC30.** That entry contains a `### Highlights` block.
-- [ ] **AC31.** `packs/core/pack.toml` and
+- [ ] **AC32.** That entry contains a `### Highlights` block.
+- [ ] **AC33.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` read the same version, one patch above
   the value on the base branch at commit time.
-- [ ] **AC32.** `make build-self-dry-run` reports no projection drift.
-- [ ] **AC33.** The generated highlights projection matches the changelog entry.
+- [ ] **AC34.** `make build-self-dry-run` reports no projection drift.
+- [ ] **AC35.** The generated highlights projection matches the changelog entry.
 
 ## Follow-ons
 
@@ -297,12 +308,12 @@ cannot be asserted without a digest to compare.
   for a digest — both defaulting to `null` (source:
   `packs/core/.apm/skills/work-loop/assets/state.json`, 27 fields)
 - Technical: one shipped check asserts the bundled template's exact field set, so
-  adding fields to the template requires updating it; the reader itself validates
-  no key set, and the documented forward-field rejection is a fixed literal list
-  that does not include either new field (source:
+  adding a field to the template requires updating it. The reader validates no key
+  set at all, and the only forward check is on `schema_version`, so an added field
+  is not itself rejected (source:
   `packs/core/tests/skills/work-loop/test_loop_cohort_cli.py:245` asserts
-  `set(template) == EXPECTED_STATE_KEYS`; `_loop_guards.read_state` performs no
-  key validation)
+  `set(template) == EXPECTED_STATE_KEYS`; `_loop_guards.read_state` delegates to
+  `read_managed_json` with no key validation)
 - Technical: every runnable `review record` command in the shipped skill splits
   the verb from its form flag across a trailing-backslash continuation, which is
   why a command statement is defined across continuations rather than per line; a
@@ -329,9 +340,11 @@ cannot be asserted without a digest to compare.
   trailer, so no task here edits that tree (source:
   `tools/lint-catalogue-curation-guard.py`; the gate runs at
   `tools/repo/build_gate_chain.py:305`)
-- Process: no release indicator beyond the changelog is required, because this
-  change touches only `packs/`, `docs/`, and `guides/`, all non-impacting prefixes
-  (source: `tools/repo/check_release_impact.py` `NON_IMPACTING_PREFIXES`)
+- Process: no release indicator beyond the changelog is required, because no path
+  this change touches matches a release-impacting prefix; `contracts/` is the
+  prefix that would have required one, and this change does not touch it (source:
+  `tools/repo/check_release_impact.py` `is_release_impacting` returns False for
+  `guides/`, `packs/`, and `docs/` paths)
 - Process: the core pack bumps patch rather than minor, because the closest
   precedent under the same rule — a released entry adding a new `review record`
   form together with two new persisted `state.json` fields — was a patch, and the
