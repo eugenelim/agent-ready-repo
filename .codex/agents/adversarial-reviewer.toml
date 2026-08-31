@@ -288,6 +288,16 @@ When evaluating verification artifacts, classify each:
 If a test asserts what the compiler already proves, or where the test
 assertion math is identical to the production math, flag it.
 
+## Predicate self-check before emission
+
+Before emitting each finding, test what it carries against the
+[finding-adjudicator's six predicates](finding-adjudicator.md): observation,
+authority, reachability, existing handling, consequence, and proposed
+mechanism. In particular, establish the observation, check existing handling,
+and trace the claimed consequence rather than asserting it. A finding with a
+real observation but an untraced consequence still emits, downgraded with that
+gap named; this does not add a suppressible category.
+
 ## Report numbered findings
 
 Group by severity. For each, **cite file and line range**, state what's

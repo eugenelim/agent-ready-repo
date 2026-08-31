@@ -174,14 +174,6 @@ those artifacts. Missing project knowledge emits a named skip and never creates
 fallback storage; any terminal distillation uses only receipts returned by that
 same gate.
 
-At review planning, `work-loop` may separately declare one consequential
-`CQ-REVIEW` enquiry after the target and structural scope are fixed. The same
-delimited envelope supplies candidate checks to warranted adversarial,
-security, and quality reviewers. Reviewers never write project knowledge, and
-every finding remains independently grounded in the current target, governing
-review standard, and current canonical sources. An unavailable provider is a
-named skip with no fallback file.
-
 ---
 
 ## Post-install adaptation, and the hooks that only repeat it
