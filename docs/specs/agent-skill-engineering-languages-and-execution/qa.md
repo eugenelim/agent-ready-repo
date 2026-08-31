@@ -89,7 +89,7 @@ The prompt names both ecosystems and both topics carry a parallelism clause, so
 returning both is the defensible reading and the predeclaration was wrong.
 
 **This record is the only place the original declaration exists.** The case was
-authored and corrected inside one commit (`c25052d15`); it is absent at that
+authored and corrected inside one commit (`6c98af26e`); it is absent at that
 commit's parent, where the fixture held 40 cases against 61 now. A reader
 checking whether the declaration was tuned cannot recover the prior value from
 history, which is precisely the failure mode the amended Boundary names when it
@@ -370,7 +370,7 @@ while resting on one mutation shape over a corpus assembled from memory. A
 measured claim has to say *which mutation* was applied to *which set*, so a reader
 can see the gap. The table above does; the rule it replaced did not.
 
-### Four more guards that could not fail, found past the guard itself
+### Six more guards that could not fail, found past the guard itself
 
 Round 9 stopped attacking the clause guard and attacked the slice's own criteria.
 Everything it found was the same shape as the clause-guard defects, which is the
@@ -604,13 +604,20 @@ Surfaced by executing contexts, unresolved and not blocking:
 
 ## A note on the commit hashes below
 
-Every hash in this record names a commit on this branch, and the branch has been
-rebased five times. Two citations went stale that way — they named pre-rebase
-objects unreachable from HEAD, so the "reproducing invocation" this record
-requires for every observed failure reproduced only in one local clone. Both are
-re-pinned to `c25052d15`, and both claims were re-verified against it rather than
-assumed to have survived: the parent's `router-cases.json` holds 40 cases with no
-`nm-python-vs-node`, and the commit carries both status rollbacks.
+Every hash in this record names a commit reachable from HEAD, checked with
+`git merge-base --is-ancestor <hash> HEAD` as the last step before the commit that
+ships this record.
+
+That last-step ordering is the whole point, and it was learned twice. Two
+citations first went stale when a rebase rewrote the objects they named, so the
+"reproducing invocation" this record requires for every observed failure
+reproduced only in one local clone. They were re-pinned — and the re-pinned hash
+was then orphaned by the *next* rebase, so the fix for stale hashes went stale in
+the same way. Re-pinning mid-work is futile; only re-pinning last is not.
+
+All citations now name `6c98af26e`, verified reachable, and both claims re-checked
+against it rather than assumed to have survived: its parent's `router-cases.json`
+holds 40 cases with no `nm-python-vs-node`, and it carries both status rollbacks.
 
 A hash in a record is a claim that needs re-checking after every rebase, the same
 as any other measured figure. It looks durable and is not.
@@ -628,7 +635,7 @@ attribution, and who attributed it. Nothing observed is dropped.
 | Ruff `I001` on an unsorted import block in the T2 test module | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Caught locally this time; the identical defect reached CI in slice 2a because `make lint-ruff` was in the documented command set but not in the per-edit loop. | Claude, this session |
 | Two blind authoring executions wrote to one output directory concurrently; four files were overwritten mid-run and five were removed under a live writer | Both runs pointed at one `responses/` path; the second was dispatched while the first was working, and the supervisor then moved the first run's files aside while the second was writing | `caused-here`, **contained**. Not a worker defect. The supervisor reused one output path for a discarded run and its replacement, then mutated that directory under an active writer. The executing context detected the interference, restored its own text, re-verified, and reported the collision unprompted — the only reason the evidence survived. Later runs write to a path unique per run, so provenance is structural rather than inferred. | Claude, this session |
 | A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four of this slice's spec-amendment review rounds — a different sequence from the guard rounds above — appearing in evidence tooling rather than in prose. | Claude, this session |
-| Both status tokens rolled back inside a feature commit with no mention in its message | `git show c25052d15 -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
+| Both status tokens rolled back inside a feature commit with no mention in its message | `git show 6c98af26e -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
 | Three subagents and one Codex worker returned no verdict | re-dispatched; each replacement completed | `environmental`, **not carried**. Three were killed by the host sleeping mid-response (`API Error: Your computer went to sleep`); one Codex run was load-shed with the 1-minute load average at 184.76. A run that reached no verdict is not a measurement, so each was discarded and re-taken rather than recorded as partial. Re-dispatch after a host kill is recovery, not an additional attempt. | Claude, this session |
 | Codex worker T3 first run produced zero changes | re-dispatched with the discharge stated at the top of the brief → task completed | `caused-here`, **fixed**. A briefing gap, not a worker defect: the worker's own workflow requires a base-freshness check, and the brief never said that check was already discharged or that its refusal is not a stop condition. | Claude, this session |
 

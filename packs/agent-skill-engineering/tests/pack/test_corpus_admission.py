@@ -884,6 +884,7 @@ def test_every_scanned_pattern_has_an_isolating_control() -> None:
     ) - {RE_ABS_PATH.pattern}
     assert len(REPOSITORY_REFERENCE_CONTROLS) == 5
     assert len(HOST_IDENTIFYING_CONTROLS) == 5
+    assert len(PLACEHOLDER_CONTROLS) == 3
 
 
 @pytest.mark.parametrize("pattern_string, seeded", REPOSITORY_REFERENCE_CONTROLS)
@@ -924,9 +925,14 @@ def test_each_host_identifying_pattern_matches_a_foreign_example(
     assert compiled[pattern_string].search(seeded), (pattern_string, seeded)
 
 
-@pytest.mark.parametrize(
-    "seeded", ("<placeholder-reviewer>", "<some-role>", "<redacted>")
-)
+# Module level, not inline in the decorator: an inline tuple is pinned by nothing,
+# and emptying it gives pytest an empty parameter set -- reported as skipped, exit
+# zero -- so the control disappears from a green run. Exactly the defect the
+# coverage test below describes, on the one control tuple it did not reach.
+PLACEHOLDER_CONTROLS = ("<placeholder-reviewer>", "<some-role>", "<redacted>")
+
+
+@pytest.mark.parametrize("seeded", PLACEHOLDER_CONTROLS)
 def test_the_placeholder_alternative_matches_a_bracketed_token(seeded: str) -> None:
     """The `<...>` branch of the reviewer matcher has its own control.
 

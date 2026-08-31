@@ -320,7 +320,7 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # ids declare a floor; asserting equality over them made the record
         # stricter than the check it records and turned a review finding a real
         # defect beyond the seeded set into a failure. An independent blind run
-        # sustained five findings against four declared, and nine against six.
+        # sustained six findings against four declared, and nine against six.
         # The mode marker below has no such floor and is bound by equality.
         declared_findings = {value for value in declared if value.startswith("ASE-")}
         assert declared_findings <= set(result["actual_findings"])
