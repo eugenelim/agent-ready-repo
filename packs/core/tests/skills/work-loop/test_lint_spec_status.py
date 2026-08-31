@@ -1408,6 +1408,72 @@ def test_scoped_run_keeps_dangling_reference_warnings_repo_wide() -> None:
     assert "invariant (iii)" in err, err
 
 
+def test_scoped_run_keeps_deferral_anchors_repo_wide() -> None:
+    """Invariant (iv)'s second input is workspace.toml, not the spec file.
+
+    Closing a `[backlog].open` entry -- the routine close-work operation --
+    invalidates the marker in every spec citing it, none of which need have
+    changed. Scoping (iv) to changed specs would let that land unreported, and
+    it is a HARD invariant, so this is the case that keeps it out of scope.
+    """
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "deferring", "Draft", "- [ ] AC2 (deferred: some-followup)\n")
+        (root / "workspace.toml").write_text(
+            '[backlog]\nopen = [{slug = "some-followup"}]\nclosed = []\n',
+            encoding="utf-8",
+        )
+        git_init_commit(root)
+
+        # Close the entry and touch NO spec.
+        (root / "workspace.toml").write_text(
+            '[backlog]\nopen = []\nclosed = [{slug = "some-followup"}]\n',
+            encoding="utf-8",
+        )
+        rc, out, err = run_lint(root, base_ref="HEAD")
+
+    assert rc == 1, f"a broken deferral anchor must fail the scoped run: {out}\n{err}"
+    assert "invariant (iv)" in err, err
+
+
+def test_scoped_run_reports_the_coverage_it_achieved() -> None:
+    """A run that selected nothing must not read like a full sweep."""
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp)
+        write_spec(root, "only", "Draft", "- [x] AC1\n")
+        git_init_commit(root)
+        scoped_rc, scoped_out, _ = run_lint(root, base_ref="HEAD")
+        all_rc, all_out, _ = run_lint(root, base_ref="HEAD", all_specs=True)
+
+    assert scoped_rc == 0 and all_rc == 0
+    assert "0 of 1 spec(s) changed against HEAD" in scoped_out, scoped_out
+    assert "all 1 spec(s)" in all_out, all_out
+
+
+def test_undetermined_changed_set_sweeps_and_says_so() -> None:
+    """`changed_spec_paths` returning None must full-sweep, not select zero.
+
+    The docstring calls that contract out; without a case for it the contract
+    could be inverted into a silent zero-selection with nothing red.
+    """
+    module = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        write_spec(root, "unchanged-but-invalid", "TOTALLY-INVALID", "- [x] AC1\n")
+        git_init_commit(root)
+
+        original = module.changed_spec_paths
+        module.changed_spec_paths = lambda *_a, **_k: None
+        try:
+            hard, warn = module.check(root, "HEAD")
+        finally:
+            module.changed_spec_paths = original
+
+    assert any("invariant (i)" in v for v in hard), hard
+    assert any("could not determine changed specs" in w for w in warn), warn
+    assert module.LAST_SCOPE["mode"] == "all", module.LAST_SCOPE
+
+
 def test_opting_out_while_keeping_a_commented_draft_is_rejected() -> None:
     """Also rejected beside an opt-out marker -- but for the right reason.
 

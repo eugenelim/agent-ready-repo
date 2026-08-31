@@ -12,6 +12,7 @@ import ast
 import contextlib
 import io
 import os
+import re
 import runpy
 import shutil
 import subprocess
@@ -1267,7 +1268,12 @@ class BuildCheckChainTest(unittest.TestCase):
                 # a shell would have to split.
                 self.assertGreaterEqual(len(argv), 2)
                 for extra in argv[2:]:
-                    self.assertRegex(extra, r"^[A-Za-z0-9._=/-]+$", argv)
+                    # fullmatch, not assertRegex: `search` with `$` would
+                    # admit a trailing newline, which is whitespace the
+                    # "single literal word" claim above rules out.
+                    self.assertTrue(
+                        re.fullmatch(r"[A-Za-z0-9._=/-]+", extra), argv
+                    )
             for token in argv:
                 self.assertNotIn(token, ("bash", "sh", "-c"))
                 self.assertFalse(token.endswith(".sh"))

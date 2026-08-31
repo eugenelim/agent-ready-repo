@@ -57,20 +57,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Highlights
 
 - **The spec-metadata check now looks at the specs you touched, so finishing a
-  work loop is about twelve times faster.** It used to re-read all 423 specs and
-  spawn one Git process each, taking around 44 seconds every run; the same check
-  over a session's own specs takes under four. Nothing is checked less: the
-  repository-wide reference scan still covers every spec, and `--all` restores
-  the exhaustive per-spec sweep, which is what CI runs.
+  work loop takes about two seconds instead of about thirty.** It used to re-read
+  all 423 specs and spawn a Git process for each one. Two invariants still cover
+  every spec regardless: the dangling-reference scan and the deferral-anchor
+  check, the second because closing a backlog entry can invalidate a marker in a
+  spec you never opened. The remaining per-spec checks cover what you changed,
+  and `--all` runs the full audit — wire that into a gate.
 
 ### Changed
 
 - `lint-spec-status.py` scopes its per-spec invariants to the specs changed
   against the resolved base ref, and takes `--all` for the full sweep. The
   changed set includes specs that are new and not yet committed, so a spec being
-  written is never skipped. The repo-wide dangling-reference pass (invariant iii)
-  is unscoped and reports identically in both modes — measured at 182 warnings
-  either way.
+  written is never skipped, and it reads NUL-separated paths relative to the
+  scanned root so an unusual filename or a subdirectory `--root` cannot drop a
+  spec silently.
+- Invariants (iii) and (iv) run over every spec in both modes. (iv) resolves
+  each `(deferred: <slug>)` marker against `workspace.toml [backlog].open`, so
+  its second input is not the spec file: closing an entry invalidates the marker
+  in every spec citing it, none of which need have changed. Scoping it would have
+  let the routine close-work operation break anchors unreported.
+- The per-spec warn-only output for *unchanged* specs is what narrows in the
+  scoped default — measured at 34 (v) and 18 (i) warnings on this repository.
+  `--all` still reports them.
 - Both summary lines now name the coverage they achieved — `0 of 423 spec(s)
   changed against origin/main` rather than a bare `spec metadata clean` — so a
   run that selected nothing cannot be mistaken for a run that checked
