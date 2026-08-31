@@ -132,7 +132,10 @@ the work rather than an incidental fix.
   field in any artifact this slice records carries an absolute home path,
   username, hostname, or worktree name. That set is the admission record, the
   retrieval and near-miss cases, the eval declarations and their fixture
-  payloads, and the four re-measured result records.
+  payloads, the four re-measured result records, and both the authored and the
+  compiled concept roots, whose bodies paraphrase internal incident records they
+  may not cite. The host-identifying forms are part of the same shared pattern
+  definition the repository-only scan uses, so the two cannot drift apart.
 - [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
   pinned foundation result. Both the retrieval record and the generic-negative
@@ -146,29 +149,46 @@ the work rather than an incidental fix.
   content scan, whose covered suffixes and file floor are extended to include
   each payload this slice adds.
 - [ ] **AC6 — Doctrine-side source parity is enforced, not deferred.** For every
-  doctrine claim group, the group's shipped fields appear in the topic's
-  provenance-and-lifecycle section and equal the admission record field-for-field
-  — source identities *and* dates, including each source's exposed version or
-  last-updated date, or its explicit `none exposed`. The source floor is stated
-  by promotion class, not by prose: `two-runtime-public-contract` and
-  `single-ecosystem-contract` each cite at least one source meeting the
-  inherited attributability shape, so an externality claim cannot be satisfied
-  vacuously by citing nothing; `repeated-observed-failures` cites none and
-  carries its evidence in the non-projected admission fixture, because shipped
-  content may not cite this repository's own records; and no group in this slice
-  declares `severe-safety-failure` or `controlled-measurement`.
+  doctrine claim group, the group's shipped fields appear under that group's own
+  labelled block inside the topic's `## Provenance and lifecycle` section and
+  equal the admission record field-for-field: its clause, its source identities
+  *and* dates including each source's exposed version or last-updated date or an
+  explicit `none exposed`, and for a `single-ecosystem-contract` group also its
+  ecosystem, its version range, and its fixture. A topic carrying more than one
+  group carries one labelled block per group, reusing the bolded-label form the
+  shipped bodies already use, so every check below has a decidable subject.
+
+  The source floor is stated by promotion class, not by prose:
+  `two-runtime-public-contract` and `single-ecosystem-contract` each cite at
+  least one source meeting the inherited attributability shape, so an
+  externality claim cannot be satisfied vacuously by citing nothing;
+  `repeated-observed-failures` cites none and carries its evidence in the
+  non-projected admission fixture, because shipped content may not cite this
+  repository's own records; and no group in this slice declares
+  `severe-safety-failure` or `controlled-measurement`.
+
+  `single-ecosystem-contract` is admissible only for a topic the governing RFC
+  classifies as language-specific, which in this slice is the two named language
+  leaves. It is the cheapest class by evidence cost, so without that limit it
+  would become the default escape from the two-runtime requirement for any later
+  topic. Its version range states a lower bound and an explicit upper bound, open
+  or closed — a bare point version does not say whether the claim is limited to
+  that version or holds from it onward — and its fixture reference resolves to a
+  fixture declared and graded under AC5, checked after that grading rather than
+  asserted before it.
+
   A projected source identity takes a checkable form: a non-empty title followed
   by an absolute URL, never a bare hash, a repository path, or a relative
-  reference. Every doctrine group's shipped provenance-and-lifecycle section
-  carries the concept's last-verification date and that group's revalidation
-  trigger, equal to the record, so a group citing no source still projects a
-  checkable basis rather than nothing. Parity holds in both directions — no
-  external reference appears in either projection that the **citing group's**
-  record entry does not carry —
-  and repository-internal evidence reaches neither the authored nor the compiled
-  concept root, staying in the non-projected admission fixture. The check
-  replaces the corpus slice's unconditional failure, and each predicate limb the
-  doctrine arm newly exercises carries a recorded mutation proof.
+  reference. Every doctrine group's block carries the concept's last-verification
+  date and that group's revalidation trigger, equal to the record, so a group
+  citing no source still projects a checkable basis rather than nothing. Parity
+  holds in both directions — within a group's block, no external reference
+  appears that the group's own record entry does not carry, so a group that cites
+  nothing cannot borrow a sibling group's citations — and repository-internal
+  evidence reaches neither the authored nor the compiled concept root, staying in
+  the non-projected admission fixture. The check replaces the corpus slice's
+  unconditional failure, and each predicate limb the doctrine arm newly exercises
+  carries a recorded mutation proof.
 - [ ] **AC7 — Shipped language-availability statements match what shipped.**
   Every shipped statement that today describes the corpus as lacking these
   language families, or states a topic count that admission changes, agrees with
@@ -194,8 +214,8 @@ the work rather than an incidental fix.
   requires two observations in two distinct packs. (source: evidence census over
   `packs/*/.apm/skills/`; the strongest candidate, state locking, has both
   implementations inside `packs/core`.)
-- Of the four inherited promotion classes, two are unreachable for these leaves
-  and two are used. `controlled-measurement` is unreachable because every row of
+- Of the four inherited promotion classes, one is unreachable for these leaves,
+  one is unused, and two are used. `controlled-measurement` is unreachable because every row of
   the governing archaeology note is a single dated decision with no repetition
   count, and the class requires at least two repetitions. `severe-safety-failure`
   is unused because no leaf rests on a safety failure with a reproduction.
@@ -204,9 +224,12 @@ the work rather than an incidental fix.
   on two independent vendors and a `repeated-observed-failures` group for the
   critical-path claim no vendor states; `process-and-filesystem-cost` and
   `worktrees-state-locks-and-shared-host-admission` use
-  `repeated-observed-failures` alone. (source:
-  `test_corpus_admission.py` `DOCTRINE_CLASSES` and its per-class assertions;
-  `docs/rfc/0097-notes/execution-economics-archaeology.md` chronology table.)
+  `repeated-observed-failures` alone. (source: for the four inherited classes and
+  their required fields, `test_corpus_admission.py` `DOCTRINE_CLASSES` and its
+  per-class assertions; for the single-ecosystem assignment,
+  `docs/rfc/0097-agent-skill-engineering.md` D8's single-ecosystem paragraph; for
+  the paired failures, `docs/rfc/0097-notes/execution-economics-archaeology.md`
+  chronology table.)
 - The two language leaves rest on single-ecosystem evidence, which the governing
   RFC admits for a language-specific topic under a scoped exception rather than
   under the two-runtime rule: it must come from that ecosystem's authoritative

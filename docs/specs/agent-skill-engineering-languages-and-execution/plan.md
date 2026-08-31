@@ -59,16 +59,19 @@ say.
 ### Single-ecosystem groups
 
 `single-ecosystem-contract` — the governing RFC's scoped exception for a
-language-specific topic. Required fields: the ecosystem, the authoritative
-documentation the clause comes from, the explicit version range the claim is
-limited to, and the construction or behavior fixture that exercises it. A group
+language-specific topic, and admissible only for such a topic: it is the
+cheapest class by evidence cost, so without that limit it becomes the default
+escape from the two-runtime requirement. Required fields: the clause it
+licenses, the ecosystem, the authoritative documentation the clause comes from,
+the explicit version range the claim is limited to, and the construction or
+behavior fixture that exercises it. A group
 in this class is never generalized into the portable floor, and the topic body
 states its ecosystem-and-version-range limit.
 
 | Topic | Clause | Ecosystem sources | Version range | Fixture |
 | --- | --- | --- | --- | --- |
-| `python-and-pytest` | Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `https://docs.pytest.org/en/stable/explanation/pythonpath.html`; CPython `unittest`, `https://docs.python.org/3/library/unittest.html` | pytest 9.1.1; CPython 3.14.7 | T8 pytest-suite |
-| `typescript-node-…` | Each runner provides runner-specific controls for limiting test parallelism. | Node.js test runner, `https://nodejs.org/api/test.html`; Playwright, `https://playwright.dev/docs/test-parallel` | Node.js 26.8.1; Playwright 1.62 | T8 Node/browser suite |
+| `python-and-pytest` | Test discovery and importability depend on the configured discovery root and the test directory's Python-package layout. | pytest, `https://docs.pytest.org/en/stable/explanation/pythonpath.html`; CPython `unittest`, `https://docs.python.org/3/library/unittest.html`; plus `https://docs.python.org/3/library/tempfile.html` for the temporary-path subject the body covers | pytest >= 9.1.1, upper bound open; CPython >= 3.14.7, upper bound open | T8 pytest-suite |
+| `typescript-node-…` | Each runner provides runner-specific controls for limiting test parallelism. | Node.js test runner, `https://nodejs.org/api/test.html`; Playwright, `https://playwright.dev/docs/test-parallel`; plus `https://nodejs.org/api/packages.html`, `https://nodejs.org/api/child_process.html`, and `https://docs.npmjs.com/cli/v11/commands/npm-ci/` for the package, child-process, and clean-install subjects the body covers | Node.js >= 26.8.1, upper bound open; Playwright >= 1.62, upper bound open | T8 Node/browser suite |
 
 Each topic carries **one** such group. A second group was drafted for each and
 both were dropped when verification refuted them: `tempfile` documents context
@@ -77,10 +80,13 @@ end-of-test cleanup has no second source; and Node's manifest-interpretation
 statement and npm's lockfile-validated install are two different statements
 rather than one clause both make.
 
-The remaining RFC-assigned subjects are covered descriptively in the body from
-sources recorded in the group, not as further doctrinal claims — coverage is what
-the criterion requires, and a subject with no shared contract behind it must not
-be dressed as one. Playwright's documented default of 50% of logical cores and
+The remaining RFC-assigned subjects are covered descriptively in the body, not
+as further doctrinal claims — coverage is what the criterion requires, and a
+subject with no shared contract behind it must not be dressed as one. Descriptive
+coverage still needs provenance, so every source the body relies on is recorded
+in the group even when it does not carry the group's clause; the group's clause
+is what the class licenses, and the wider source list is what the body may cite
+without tripping the converse parity limb. Playwright's documented default of 50% of logical cores and
 npm's frozen-install behaviour are body material of exactly this kind.
 
 Version ranges are evidence-backed, not conventional: pytest's changelog states
@@ -93,9 +99,19 @@ each identify their own patch version.
 `two-runtime-public-contract` — one clause stated by two independently governed
 projects in different ecosystems.
 
-| Topic | Clause | Source A | Source B |
-| --- | --- | --- | --- |
-| `pack-and-ci-critical-paths` | Both systems provide explicit syntax for job dependencies and for cache keys, including optional file-content-derived keys. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching` | GitLab CI, `https://docs.gitlab.com/ci/yaml/needs/` |
+| Topic | Group | Clause | Source A | Source B |
+| --- | --- | --- | --- | --- |
+| `pack-and-ci-critical-paths` | job dependencies | Job execution order is declared explicitly by naming prerequisite jobs. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax` | GitLab CI, `https://docs.gitlab.com/ci/yaml/needs/` |
+| `pack-and-ci-critical-paths` | cache keys | Cache reuse is controlled by an explicit key, which may be derived from file contents. | GitHub Actions, `https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching` | GitLab CI, `https://docs.gitlab.com/ci/caching/` |
+
+This is two groups, not one, because the earlier single clause was a conjunction:
+it asserted job dependencies **and** cache keys while the recorded GitHub page
+covered only caching and the recorded GitLab page only `needs`. The class requires
+each cited runtime to state the **whole** clause, so a conjunction split across
+two pages records each vendor asserting half of something it does not say. Each
+clause above was verified against each vendor page individually on 2026-08-30;
+both returned `both-pages-state-it`, and neither page exposes a version or
+last-updated date.
 
 ### Repeated-failure groups
 
@@ -108,7 +124,7 @@ cite no external source and keep their evidence in the non-projected fixture.
 | Topic | Shared mechanism | The two independent failures |
 | --- | --- | --- |
 | `process-and-filesystem-cost` | Per-item process spawning was treated as free. | A lint path spawning roughly 37,000 shell processes (2026-08-06); 337 repeated single-item subprocess queries later batched into one (2026-08-17). Distinct subsystems, eleven days apart. |
-| `pack-and-ci-critical-paths` | Per-job fixed overhead is paid once per job, so job count trades against it. | A CI job split that cut the measured critical path from 430–450s to 185s and stopped when coordination dominated (2026-08-17); one Node setup and cache step made to cover two projects instead of two separate setups (2026-08-21). Distinct subsystems, four days apart. |
+| `pack-and-ci-critical-paths` | Duplicated fixed setup and coordination overhead scales with the units it is repeated across, so adding units trades against the work they save. | A CI job split that cut the measured critical path from 430–450s to 185s and stopped when coordination dominated, where the repeated unit is the job (2026-08-17, `build-check.yml` and the catalogue gates, 406+ lines); one Node setup and cache step made to cover two npm projects instead of running twice inside one job, where the repeated unit is the setup step (2026-08-21, `pages.yml`, 24 lines). Different workflows serving different purposes — the build gate and the docs publish — four days and 95 pull requests apart. |
 | `worktrees-state-locks-and-shared-host-admission` | A guarantee at one layer was mistaken for a stronger guarantee at another. | An atomic final write that did not protect a read/decide/write transition (2026-08-08 to 08-10); directory-separated worktrees that still shared temp, cache, port, and state ownership (2026-08-19 to 08-21). Distinct subsystems, nine days apart. |
 
 Each mechanism is stated as the conjunct **both** its failures evidence. An
@@ -135,9 +151,12 @@ the ship transition requires every criterion checked.
 **Depends on:** none
 
 Set the spec to `Implementing`, move its `workspace.toml` registration from
-`["ini-009".work].queue` to `.active`, roll the brief's derived Spec-map row, and
-re-pin the brief digest in **both** registrations that carry it — all in one
-commit. Rolling the status while the entry stays in `queue` emits
+`["ini-009".work].queue` to `.active`, correct the INI-009 milestone descriptor so
+it names this slice rather than the shipped corpus, roll the brief's derived
+Spec-map row, and re-pin the brief digest in **both** registrations that carry it
+— all in one commit. The milestone edit belongs here, not at close: a descriptor
+corrected in the commit that ships the slice names it as in flight at the moment
+it stops being so. Rolling the status while the entry stays in `queue` emits
 `impossible_transition`, whose tolerated count is already at its ceiling of 2.
 
 **Tests:**
@@ -166,19 +185,30 @@ The floor is scoped by class deliberately. A `repeated-observed-failures` group
 carries internal evidence and must cite no external source — requiring one would
 push this repository's own records into shipped content, which the pack rules
 forbid. So the check reads the promotion class first and applies the source floor
-only to the class that makes an externality claim.
+to the two classes that make an externality claim,
+`two-runtime-public-contract` and `single-ecosystem-contract`, and not to the
+one that does not.
 
 The repository-internal scan runs over **both** concept roots — the authored
 `okf/.../concepts/` tree and the compiled `.apm/` tree — since the existing
 portable-file walk reaches only the second. Extend the repository-only pattern
 set with a bare-commit-SHA form and with the `\b(?:ADR|RFC)-\d{2,4}\b`
 governance-token form the guides linter already treats as repository-only, and
-make that widened set the **single shared definition** used by both the
-doctrine-parity scan and the export-boundary content scan, so the two cannot
-diverge. Confirm the already-shipped tree passes under the widened set before
+add the host-identifying forms AC3 names — absolute home path, username,
+hostname, worktree name — and make that widened set the **single shared
+definition** used by the doctrine-parity scan, the export-boundary content scan,
+and the de-identification check, so the three cannot diverge. Confirm the already-shipped tree passes under the widened set before
 adopting it. The two repeated-failure leaves take their whole basis from records
 whose native identifiers are commit hashes and governance tokens, so this is the
 form most likely to leak.
+
+Add `single-ecosystem-contract` to the inherited `DOCTRINE_CLASSES` vocabulary in
+this task, with its required-field tuple and its per-class assertions: the clause
+it licenses, its ecosystem, a version range carrying an explicit lower and upper
+bound, its fixture reference, and the eligibility limit restricting it to a
+language-specific topic. No other task owns this, and T3 declares a group in the
+class, so without it T3's first doctrine-arm execution fails on an unknown class
+and the governing RFC's three conditions go unenforced.
 
 Drive the predicate from constructed inputs as well as the shipped record, so the
 doctrine arm is exercised before a real doctrine group exists and its first
@@ -231,10 +261,16 @@ terms; the note recording that limit may not itself be cited in shipped content.
 
 Admission opens two hardcoded enumerations that are deliberate anti-vacuity
 floors, so both are widened knowingly: `EXPECTED_TOPICS` and `TOPIC_FILES` in
-`test_foundation_corpus.py`. Replace the two independent literals with the
-glob-and-index-by-stem form this pack already uses for exactly this problem,
-which keeps the read statically confined without maintaining a second list, and
-update the in-file comment that explains why the literal existed.
+`test_foundation_corpus.py`.
+
+`TOPIC_FILES` may take the glob-and-index-by-stem form this pack already uses,
+with its in-file comment updated. `EXPECTED_TOPICS` may **not**: it is compared
+against a glob of the authored concept root, so deriving it from that same root
+turns the assertion into `set(glob) == set(glob)` and deletes the only
+cross-artifact control over admitted topic identity. Derive it instead from an
+artifact independent of that root — the admission record's topic list, or the
+compiled-root walk the admission suite already performs — so the equality still
+crosses two artifacts and can still fail.
 
 **Tests:**
 - `test_every_leaf_is_in_exactly_one_set` (AC1)
@@ -301,6 +337,8 @@ harness reports as unreliable.
 
 **Tests:**
 - `test_independent_activation_results_bind_all_queries_and_descriptions` (AC7)
+- `test_recorded_evidence_fields_carry_no_host_identifying_data`, extended over
+  the activation record this task rewrites (AC3)
 
 **Done when:** a headless run reports every query classified as expected with
 zero errored runs and zero exclusivity violations, against the current digests.
@@ -326,7 +364,8 @@ are a non-regression gate: a moved pin is surfaced, never rewritten.
 - `test_corpus_does_not_answer_generic_engineering_requests` (AC3, AC4) — the
   only artifact that falsifies AC3's domain-bounding conjunct
 - `test_recorded_evidence_fields_carry_no_host_identifying_data`, extended over
-  the retrieval and near-miss cases this task writes (AC3)
+  the retrieval and near-miss cases this task writes **and** the retrieval and
+  generic-negative result records it re-measures (AC3)
 
 **Done when:** every inherited pin reproduces, each admitted topic has at least
 two exclusive measured results, and the negative set stays within its bar.
@@ -357,7 +396,8 @@ shipped payload goes unread.
 - `test_shipped_content_names_no_repository_only_reference`, over a scan whose
   suffix set and floor cover every added payload (AC5)
 - `test_recorded_evidence_fields_carry_no_host_identifying_data`, extended over
-  the eval declarations and their fixture payloads (AC3)
+  the eval declarations, their fixture payloads, and the graded behavior result
+  records this task re-measures (AC3)
 
 **Done when:** eight graded authoring results are recorded against the current
 `evals.json` digest, with any miss recorded as measured rather than exempted, and
@@ -384,6 +424,9 @@ would leave AC8 undischarged with every gate green.
 - `tests/roster/test_workspace_status_projection.py` at a ceiling of 8 (AC8)
 - Brief-coverage lint, catalogue verify, deep lint, and projection parity (AC8)
   — no stub (goal-based)
+- `test_single_ecosystem_fixture_reference_resolves_to_a_graded_fixture` (AC6)
+  — the only point after T8's grading where the class's fixture condition can be
+  checked rather than asserted — stub: true
 
 **Done when:** both authored manifests carry the same bumped version, the
 changelog entry is topmost for the pack, the spec reads `Shipped` in
