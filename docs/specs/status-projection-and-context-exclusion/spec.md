@@ -377,10 +377,15 @@ absent in whitespace-normalized text.
   body writing a marker file unique to the run: the marker is absent and the
   cooled set is still resolved when the candidate's real path lands outside its
   declared root, and present when it lands inside.
-- [ ] **AC41 — The packaged closure opens nothing outside itself.** With the
-  engine loaded from `packages/agentbundle/agentbundle/_data/` and a loadable
-  `work-intake/scripts/surface_resolver.py` present outside that directory,
-  calling `close_work.surface_resolver()` raises rather than executing it.
+- [ ] **AC41 — The packaged closure opens nothing outside itself.** With
+  `close_work.py` loaded from a `_data/`-shaped directory and a loadable
+  `work-intake/scripts/surface_resolver.py` planted at the path its `SKILLS_DIR`
+  resolves to, calling `close_work.surface_resolver()` raises `ImportError` and
+  the planted module's on-import marker is not written. The same fixture in a
+  `skills/<skill>/scripts` layout returns the resolver and writes the marker, so
+  the criterion pins containment rather than a call that always refuses. The
+  planted module defines every name the loader requires, which keeps the refusal
+  attributable to the layout and not to an incomplete module.
 
 ### Delegation and the guard
 

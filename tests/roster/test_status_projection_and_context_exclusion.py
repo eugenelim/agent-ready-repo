@@ -367,20 +367,76 @@ def test_escaping_module_candidate_is_not_executed(tmp_path, engine, monkeypatch
     assert ok_marker.exists(), f"slot {slot} control candidate did not execute"
 
 
-# STUB: AC41
-def test_packaged_closure_opens_nothing_outside_itself() -> None:
-    spec = importlib.util.spec_from_file_location("packaged_close_work", PACKAGED_DATA / "close_work.py")
+def _plant_close_work(base: Path, script_dir: Path) -> Path:
+    """Copy the packaged close_work.py to a layout and plant a live resolver.
+
+    The resolver writes a marker on import, so executing it is observable. It
+    also defines every name `_load_regular_sibling` requires, which makes the
+    refusal attributable to containment rather than to an incomplete module.
+    """
+    script_dir.mkdir(parents=True, exist_ok=True)
+    (script_dir / "close_work.py").write_bytes((PACKAGED_DATA / "close_work.py").read_bytes())
+    resolver = script_dir.parents[1] / "work-intake/scripts/surface_resolver.py"
+    resolver.parent.mkdir(parents=True, exist_ok=True)
+    marker = base / "executed.marker"
+    resolver.write_text(
+        "import pathlib\n"
+        f"pathlib.Path({str(marker)!r}).write_text('executed')\n"
+        "SURFACE_ROLES = ()\n"
+        "class SurfaceCandidate:\n    pass\n"
+        "def resolve_surface(*args, **kwargs):\n    return None\n",
+        encoding="utf-8",
+    )
+    return marker
+
+
+def _load_planted(script_dir: Path, name: str):
+    """Load a planted close_work.py copy under its own module name."""
+    spec = importlib.util.spec_from_file_location(name, script_dir / "close_work.py")
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     # Register before exec: close_work.py defines dataclasses, and dataclasses
     # resolves `sys.modules[cls.__module__]` while building each one.
-    sys.modules[spec.name] = module
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# STUB: AC41
+def test_packaged_closure_opens_nothing_outside_itself(tmp_path) -> None:
+    """AC41: the packaged layout refuses the sibling-skill reach.
+
+    The previous form loaded the real `_data/close_work.py` and asserted only
+    that the call raised. It raised because nothing sat at that relative path,
+    so it would have stayed green while the reach executed an arbitrary planted
+    module. Planting one is what makes the refusal mean containment.
+    """
+    packaged = tmp_path / "packaged"
+    marker = _plant_close_work(packaged, packaged / "agentbundle/_data")
     try:
-        spec.loader.exec_module(module)
-        with pytest.raises((ImportError, OSError, ValueError)):
+        module = _load_planted(packaged / "agentbundle/_data", "wave6_packaged_close_work")
+        with pytest.raises(ImportError):
             module.surface_resolver()
     finally:
-        sys.modules.pop(spec.name, None)
+        sys.modules.pop("wave6_packaged_close_work", None)
+    assert not marker.exists(), "planted resolver was executed from the packaged closure"
+
+
+def test_installed_skills_tree_still_reaches_its_sibling(tmp_path) -> None:
+    """AC41 control: the guard refuses the layout, not the call.
+
+    Without this, a `surface_resolver()` that always raised would satisfy the
+    criterion above while removing the capability from every real install.
+    """
+    installed = tmp_path / "installed"
+    marker = _plant_close_work(installed, installed / ".apm/skills/close-work/scripts")
+    try:
+        module = _load_planted(installed / ".apm/skills/close-work/scripts", "wave6_installed_close_work")
+        assert module.surface_resolver() is not None
+    finally:
+        sys.modules.pop("wave6_installed_close_work", None)
+        sys.modules.pop("_close_work_surface_resolver", None)
+    assert marker.exists(), "installed layout did not reach its sibling skill"
 
 
 def test_cooled_body_never_reaches_the_output(tmp_path, engine) -> None:

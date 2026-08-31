@@ -931,9 +931,27 @@ def file_safety() -> object:
     return _file_safety_module
 
 
+def _in_installed_skills_tree() -> bool:
+    """True when this module is running from an installed skills tree.
+
+    `file_safety()` loads a co-located byte projection, so it works wherever
+    this module sits. `surface_resolver()` is different: it reaches out of its
+    own directory into a sibling skill. Under the packaged closure at
+    `agentbundle/_data/` there are no sibling skills, so `SKILLS_DIR` resolves
+    to an unrelated package directory and the reach would execute whatever
+    happened to occupy that relative path. Every projected layout keeps the
+    `skills/<skill>/scripts` shape, so its absence is the signal.
+    """
+    return SCRIPT_DIR.name == "scripts" and SKILLS_DIR.name == "skills"
+
+
 def surface_resolver() -> object:
     """Load the installed Wave 1 resolver from its sibling skill, with no fallback."""
     global _surface_resolver_module
+    if not _in_installed_skills_tree():
+        raise ImportError(
+            "surface_resolver is unavailable outside an installed skills tree"
+        )
     if _surface_resolver_module is None:
         _surface_resolver_module = _load_regular_sibling(
             SKILLS_DIR / "work-intake" / "scripts" / "surface_resolver.py",
