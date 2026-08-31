@@ -291,7 +291,7 @@ It requires the platform time-zone database for `zoneinfo`; if a named zone is
 unavailable, it returns `unknown-timezone` with no UTC fallback.
 Wave 6 has shipped ordinary-context exclusion: `workspace-status` resolves the
 cooled set once per ordinary-orientation run, never loads a cooled artifact
-body, and projects `cooling` and `closeout` under `status` and `reconcile` only.
+body, and projects `cooling` under `status` and `reconcile` only, and `closeout` under those two whenever an initiative is active or paused.
 `repair-plan`, `repair-apply`, and the migration paths receive an empty cooled
 set and keep pre-Wave-6 behaviour.
 Wave 7 owns historical migration and pruning behavior.

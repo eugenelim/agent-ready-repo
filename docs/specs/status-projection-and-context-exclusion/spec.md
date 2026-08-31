@@ -96,7 +96,7 @@ exact observable it must produce.
 
 Wave 4's and Wave 5's spec/plan pairs are live dependencies and are not disposed
 of here. Wave 4's `spec.md` is Frozen under
-[`docs/CONVENTIONS.md:111`](../../CONVENTIONS.md) and is not edited; its *test*
+[`docs/CONVENTIONS.md:112`](../../CONVENTIONS.md) and is not edited; its *test*
 files are not frozen and are amended by criterion.
 
 ## Boundaries
@@ -156,9 +156,16 @@ mechanical boundary as well as a scope one. See [Follow-ons](#follow-ons).
 Separately scoped work this delivery does not perform. Recorded here rather than
 as an inline `(deferred:)` token: `docs/CONVENTIONS.md:479-486` reserves that
 token for pre-existing frozen specs and directs new separable work to this
-section. Both items are owned by RFC-0096 Wave 7, whose §9 entry already scopes
+section. Both items are owned by RFC-0096 Wave 7, whose §9 entry scopes
 them, so the RFC is their register — a `[backlog].open` slug entry would be
-legacy-shaped and the repository ratchets against adding one.
+legacy-shaped and the repository ratchets against adding one. For
+`wave6-dependency-scoped-completion-receipts` that register did not hold until
+this wave amended it: §9 assigned receipts to Wave 6's own behaviour line and
+Wave 7's entry never mentioned them, so the deferral pointed at a section that
+did not carry it. Owner decision 2026-08-31: amend §9 rather than build the
+projection, because the lifecycle record schema has no `outcome` field and
+supplying one is a contract change this wave did not accept. The Wave 6 and
+Wave 7 entries and the `workspace.toml` summary were corrected together.
 
 | Slug | Outcome | Owner |
 | --- | --- | --- |
@@ -265,7 +272,7 @@ absent in whitespace-normalized text.
   declared dependency of a queued spec. With `docs/lifecycle/` removed the
   `reconcile` JSON contains `COOLSENTINEL42`; with the `Cooling` record present
   it does not.
-- [ ] **AC14 — A cooled dependency does not block its dependant.** For the AC13
+- [ ] **AC14 — A cooled local spec dependency does not block its dependant.** For the AC13
   fixture with the record present, `canonical.ready` contains exactly one item
   and its `path` is the depending spec's.
 - [ ] **AC15 — A cooled spec raises no Type 1 finding.** Under subcommand
@@ -473,13 +480,6 @@ absent in whitespace-normalized text.
   `backlog.closed` membership, is absent from `canonical.ready`. A cooled
   dependency is otherwise satisfied from its lifecycle record whatever its kind,
   so the defect gate is the closed membership and never the kind alone.
-- [ ] **AC58 — No live initiative means no `closeout` block.** With every
-  initiative `closed`, the `reconcile` and `status` JSON carry no `closeout` key
-  at all, while `cooling` is still present. Synthesizing the block from the
-  absent initiative reported a `closeout_blockers` entry of `unshipped-specs`
-  against a workspace with no unshipped spec. Omission rather than an empty
-  block keeps AC29's closed key set unchanged.
-
 - [ ] **AC57 — A cooled cross-repo dependency is refused without a read.** A
   queued spec declaring a `cross-repo` dependency whose `containing_brief` is
   named by a `Cooling` record is absent from `canonical.ready`, and
@@ -491,3 +491,9 @@ absent in whitespace-normalized text.
   cannot satisfy this dependency: its evidence is the four-field receipt match
   carried in the brief body, and projecting that receipt is deferred to Wave 7
   by `wave6-dependency-scoped-completion-receipts`.
+- [ ] **AC58 — No live initiative means no `closeout` block.** With every
+  initiative `closed`, the `reconcile` and `status` JSON carry no `closeout` key
+  at all, while `cooling` is still present. Synthesizing the block from the
+  absent initiative reported a `closeout_blockers` entry of `unshipped-specs`
+  against a workspace with no unshipped spec. Omission rather than an empty
+  block keeps AC29's closed key set unchanged.

@@ -106,9 +106,6 @@ appeared in the justification for skipping a guard rather than in a guard.
 | `lint-spec-status.py --root .` | exit 0 |
 | `tests/roster/test_status_projection_and_context_exclusion.py` | 57 passed |
 
-Counts above are the post-GATES figures. The repair round that followed the
-review added criteria and controls; the suite count is re-measured at
-closeout rather than carried forward from this table.
 | `tools/test_workspace_status_cli.py` | 158 passed, 19 subtests |
 | `tools/test_workspace_status.py` | 86 passed |
 | `tests/roster/test_workspace_status_projection.py` | 26 passed, 12 subtests |
@@ -118,6 +115,10 @@ closeout rather than carried forward from this table.
 | `packages/agentbundle/tests/test_workspace_mcp_tools.py` | 20 passed, 5 skipped |
 | `build-site.py` → `web` build → `docs-site` build | exit 0 each, in order |
 | `npm test --prefix web` | 18 files, 129 tests passed |
+
+Counts above are the post-GATES figures. The repair rounds that followed the
+review added criteria and controls, so the suite counts are re-measured at
+closeout rather than carried forward from this table.
 
 ## Two failures worth recording, because their surface pointed away from the cause
 

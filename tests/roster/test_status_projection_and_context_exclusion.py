@@ -115,14 +115,22 @@ def _entry(slug: str, *, needs: str = "[]") -> str:
 
 
 def _load_status_module(engine=None):
-    """Load the source CLI module bound to the caller's engine object.
+    """Load the source CLI module, leaving no engine entry in `sys.modules`.
 
-    `_bind_engine` registers its engine as `sys.modules["workspace_status_engine"]`
-    through `setdefault`, so pre-registering the fixture's copy makes the CLI and
-    the test share one module object rather than two that merely exec the same
-    bytes. Two copies meant a monkeypatch applied to the fixture was invisible to
-    the CLI -- silently, since a source-level mutation is seen by both -- and left
-    the second copy in `sys.modules` for every suite that ran afterwards.
+    The CLI execs its own engine copy: `_bind_engine` builds a spec from the
+    file path, creates a fresh module and binds every symbol from *that* object,
+    so a caller cannot inject one. An earlier version of this helper
+    pre-registered the fixture's engine and documented that the two would share
+    a module — `setdefault` only suppressed the registration, and
+    `status.run_canonical_reconciliation is engine.run_canonical_reconciliation`
+    stayed False. The claim is removed rather than left for a future test to
+    rely on. A monkeypatch on the `engine` fixture reaches the CLI only through
+    the result object a test passes to `_build_json`, never through the CLI's
+    own copy.
+
+    `engine` is still accepted so call sites read as engine-scoped, and the
+    registration is cleaned up either way, which is what stops the copy leaking
+    into every suite that runs afterwards.
     """
     spec = importlib.util.spec_from_file_location("wave6_status", STATUS_PATH)
     assert spec is not None and spec.loader is not None
@@ -130,8 +138,6 @@ def _load_status_module(engine=None):
     sys.modules[spec.name] = module
     sentinel = object()
     previous = sys.modules.get("workspace_status_engine", sentinel)
-    if engine is not None:
-        sys.modules["workspace_status_engine"] = engine
     try:
         spec.loader.exec_module(module)
         assert module._bind_engine()
@@ -178,14 +184,53 @@ def test_aliases_cool_with_the_locator(tmp_path, engine) -> None:
 
 # STUB: AC3
 def test_live_obligation_stays_visible(tmp_path, engine) -> None:
-    root = _tree(tmp_path, records=[_record(disposition="retain-exception", result="Retained"), _record(delivery_id="beta", disposition="retain-exception", result="ExternalAdvisory")], specs=("alpha", "beta"))
-    assert engine._resolve_cooled_state(root)[0] == frozenset()
+    """AC3: a live obligation changes neither the scan count nor `ready`.
+
+    Asserted on the two surfaces the criterion names, against a control with
+    `docs/lifecycle/` removed. The earlier form asserted the internal cooled
+    set, which cannot see an emission filter that drops `Retained` artifacts
+    after the set is computed correctly.
+    """
+    records = [
+        _record(disposition="retain-exception", result="Retained"),
+        _record(delivery_id="beta", disposition="retain-exception", result="ExternalAdvisory"),
+    ]
+    live = _tree(tmp_path / "live", records=records, specs=())
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    for root in (live, control):
+        _spec(root, "alpha")
+        _spec(root, "beta")
+        _workspace(root, queue=", ".join([_entry("alpha"), _entry("beta")]))
+
+    live_json = _reconcile_json(live, engine)
+    control_json = _reconcile_json(control, engine)
+    assert [i["path"] for i in live_json["canonical"]["ready"]] == [
+        i["path"] for i in control_json["canonical"]["ready"]
+    ]
+    assert (
+        live_json["scan"]["declared_spec_files_read"]
+        == control_json["scan"]["declared_spec_files_read"]
+    )
+    # Both specs are genuinely offered, so the equality above is between two
+    # populated runs rather than between two empty ones.
+    assert len(live_json["canonical"]["ready"]) == 2
 
 
 # STUB: AC4
 def test_settled_exception_cools(tmp_path, engine) -> None:
-    root = _tree(tmp_path, records=[_record(disposition="retain-exception", result="Retired")])
-    assert (root / "docs/specs/alpha/spec.md").resolve() in engine._resolve_cooled_state(root)[0]
+    """AC4: a settled exception is removed from `canonical.ready`."""
+    cooled = _tree(tmp_path / "cooled", records=[
+        _record(disposition="retain-exception", result="Retired")
+    ], specs=())
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    for root in (cooled, control):
+        _spec(root, "alpha")
+        _workspace(root, queue=_entry("alpha"))
+
+    assert [i["path"] for i in _reconcile_json(control, engine)["canonical"]["ready"]] == [
+        "docs/specs/alpha/spec.md"
+    ]
+    assert _reconcile_json(cooled, engine)["canonical"]["ready"] == []
 
 
 def _emitted_findings(root: Path, engine) -> list[dict]:
@@ -290,7 +335,12 @@ def test_symlinked_record_is_refused(tmp_path, engine, monkeypatch) -> None:
 # STUB: AC11
 def test_oversized_record_refuses_without_raising(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=[])
-    (root / "docs/lifecycle/alpha.json").write_bytes(b" " * (65 * 1024))
+    # A valid record padded past the cap, not 65 KiB of whitespace. The latter
+    # is not JSON, so `parse_record_bytes` refused it regardless and removing
+    # `MAX_RECORD_BYTES` left the test green.
+    padded = json.dumps(_record()).encode("utf-8") + b" " * (65 * 1024)
+    (root / "docs/lifecycle/alpha.json").write_bytes(padded)
+    assert engine._resolve_cooled_state(root)[0] == frozenset()
     assert _emitted_codes(root, engine) == ["invalid_lifecycle_record"]
 
 
@@ -319,6 +369,48 @@ def test_membership_is_decided_on_the_real_file(tmp_path, engine) -> None:
     assert "docs/specs/alias-alpha/spec.md" in control_ready
 
 
+def _normalized(relative: str) -> str:
+    """Whitespace-normalized file text, the idiom these criteria name."""
+    return " ".join((ROOT / relative).read_text(encoding="utf-8").split())
+
+
+def test_prose_criteria_have_their_verification_artifact() -> None:
+    """AC49, AC50, AC51 and AC52 assert the strings and digest they name.
+
+    All four were declared covered while nothing asserted them: the literal
+    strings appeared only in the documents they describe and in the spec, and
+    AC52's digest existed only as spec prose, so an edit to a Frozen body was
+    undetectable. Prose cannot hold a pinned digest.
+    """
+    import hashlib
+
+    reference = _normalized("guides/core/reference/work-intake-routing-and-lifecycle.md")
+    assert "closeout blockers, cooling visibility" not in reference  # AC49
+    assert "never loads a cooled artifact body" in reference
+
+    skill = _normalized("packs/core/.apm/skills/workspace-status/SKILL.md")  # AC50
+    assert "remains visible because ordinary-context exclusion is not part of this wave" not in skill
+    assert "Cooling context is excluded from ordinary orientation" in skill
+
+    spec = (ROOT / "docs/specs/status-projection-and-context-exclusion/spec.md").read_text(
+        encoding="utf-8"
+    )
+    for slug in ("cooling-repair-migration-scope", "wave6-dependency-scoped-completion-receipts"):
+        assert f"| `{slug}` |" in spec, slug  # AC51
+    # Per criterion line, not per file: the Follow-ons prose names the token to
+    # explain why this spec does not use one, and a whole-file search cannot
+    # tell that mention apart from a use.
+    criteria = [line for line in spec.splitlines() if line.lstrip().startswith("- [ ] **AC")]
+    assert criteria, "no criterion lines found; the shape this asserts has changed"
+    assert not [line for line in criteria if "(deferred:" in line]
+
+    frozen = ROOT / "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
+    digest = hashlib.sha256(frozen.read_bytes()).hexdigest()  # AC52
+    assert digest == "4f1b98e7fdb53a4726a65432ef2993a7f0db1f65987c46bd00763a999915de8a", (
+        "Wave 4's frozen spec changed; AC52 pins its bytes"
+    )
+
+
 # STUB: AC37
 def test_packaged_runtime_carries_the_whole_closure() -> None:
     for name in PACKAGED_CLOSURE:
@@ -341,7 +433,16 @@ def test_packaged_runtime_carries_the_whole_closure() -> None:
 # STUB: AC38
 def test_every_resolution_route_failing_is_named(tmp_path, engine, monkeypatch) -> None:
     monkeypatch.setattr(engine, "_cooling_module_path", lambda: None)
-    monkeypatch.setattr(engine.importlib, "import_module", lambda name: (_ for _ in ()).throw(ImportError(name)))
+    # Patch a copy bound into the engine's namespace rather than the shared
+    # `importlib` module object: the previous form replaced a stdlib callable
+    # process-wide for the duration of the test, so any lazily imported
+    # dependency in the call path would have raised for an unrelated reason.
+    import types
+    stub = types.SimpleNamespace(
+        import_module=lambda name: (_ for _ in ()).throw(ImportError(name)),
+        util=engine.importlib.util,
+    )
+    monkeypatch.setattr(engine, "importlib", stub)
     assert _emitted_codes(_tree(tmp_path), engine) == ["cooling_state_unavailable"]
 
 
@@ -835,9 +936,12 @@ def test_cooling_never_satisfies_an_unclosed_defect_dependency(tmp_path, engine)
     ready = _reconcile_json(root, engine)["canonical"]["ready"]
     assert all(item["path"] != "docs/specs/beta/spec.md" for item in ready)
 
-    # The gate is the closed membership, not the kind. Deleting the defect
-    # branch's `cooled_dependency` refusal reddens this criterion and
-    # test_cooled_defect_dependency_does_not_read_its_body.
+    # The gate is the closed membership, not the kind. The mutation that kills
+    # this criterion is hoisting `if cooled_dependency: return True` above the
+    # defect branch. Deleting that branch's refusal does NOT kill it — the
+    # dependency falls through to the probe and still returns
+    # `unsatisfied_dependency`, so `beta` stays out of `ready`; only
+    # test_cooled_defect_dependency_does_not_read_its_body dies to that one.
 
 
 def _cross_repo_fixture(root: Path, *, cooled: bool, brief_on_disk: bool = True) -> Path:
@@ -959,20 +1063,38 @@ def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monke
 
 
 def test_alias_declared_dependency_does_not_read_its_body(tmp_path, engine) -> None:
-    """Mutation guard: dependency cooling compares resolved artifact paths."""
-    root = _tree(tmp_path, records=[_record(locator="docs/specs/alias-alpha/spec.md")], specs=())
-    _spec(root, "alpha", brief="COOLSENTINEL42")
-    (root / "docs/specs/alias-alpha").symlink_to(root / "docs/specs/alpha", target_is_directory=True)
-    _spec(root, "beta")
-    _workspace(
-        root,
-        queue=_entry(
-            "beta",
-            needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
-        ),
-    )
+    """Mutation guard: dependency cooling compares resolved artifact paths.
 
-    assert "COOLSENTINEL42" not in json.dumps(_reconcile_json(root, engine))
+    Carries the control half the Testing Strategy requires for this observable
+    class. Without it the absence assertion holds for any reason at all — a
+    `_spec()` signature change that stopped emitting the sentinel would leave
+    the guard green forever.
+    """
+    def build(base: Path, *, lifecycle: bool) -> Path:
+        root = _tree(
+            base,
+            records=[_record(locator="docs/specs/alias-alpha/spec.md")] if lifecycle else [],
+            specs=(),
+            lifecycle=lifecycle,
+        )
+        _spec(root, "alpha", brief="COOLSENTINEL42")
+        (root / "docs/specs/alias-alpha").symlink_to(
+            root / "docs/specs/alpha", target_is_directory=True
+        )
+        _spec(root, "beta")
+        _workspace(
+            root,
+            queue=_entry(
+                "beta",
+                needs='[{type = "local", kind = "spec", path = "docs/specs/alpha/spec.md"}]',
+            ),
+        )
+        return root
+
+    control = json.dumps(_reconcile_json(build(tmp_path / "control", lifecycle=False), engine))
+    cooled = json.dumps(_reconcile_json(build(tmp_path / "cooled", lifecycle=True), engine))
+    assert "COOLSENTINEL42" in control, "fixture never produced the sentinel"
+    assert "COOLSENTINEL42" not in cooled
 
 
 def test_due_reviews_are_counted_and_named(tmp_path, engine) -> None:
@@ -1019,10 +1141,12 @@ def test_retention_exceptions_and_retired_records_project_correctly(tmp_path, en
     exception_fields = {
         "owner_role": "maintainer", "reason": "audit-obligation", "review_on": "2026-02-01",
     }
-    assert cooling["exceptions"] == [
-        {"delivery_id": "advisory", "locator": "docs/specs/advisory/spec.md", **exception_fields},
-        {"delivery_id": "retained", "locator": "docs/specs/retained/spec.md", **exception_fields},
-    ]
+    # Keyed by delivery_id: the emitted order follows record filenames, which
+    # no criterion states, so pinning it would redden on a fixture rename.
+    assert {item["delivery_id"]: item for item in cooling["exceptions"]} == {
+        "advisory": {"delivery_id": "advisory", "locator": "docs/specs/advisory/spec.md", **exception_fields},
+        "retained": {"delivery_id": "retained", "locator": "docs/specs/retained/spec.md", **exception_fields},
+    }
     retired = next(item for item in cooling["records"] if item["delivery_id"] == "retired")
     assert retired["due"] is False
     assert all(item["delivery_id"] != "retired" for item in cooling["due"] + cooling["exceptions"])
@@ -1064,6 +1188,34 @@ def test_closeout_facts_are_projected(tmp_path, engine) -> None:
     assert "unshipped-specs" in _reconcile_json(queued, engine)["closeout"]["closeout_blockers"]
 
 
+def test_cooling_both_halves_of_a_duplicate_still_reports_it(tmp_path, engine) -> None:
+    """A duplicate workspace entry survives cooling both of its memberships.
+
+    `duplicate_membership` is a fact about the `workspace.toml` entries, which
+    AC20 settles is still owed whatever the artifact's state. Cooled
+    memberships are excluded from `evaluations`, and the emitted finding list is
+    built from those, so cooling both halves erased the finding entirely while
+    a live third membership would have kept it — which is why a single-cooled
+    fixture could not see this.
+    """
+    entry = _entry("alpha")
+    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
+    control = _tree(tmp_path / "control", lifecycle=False, specs=())
+    for root in (cooled, control):
+        _spec(root, "alpha")
+        _workspace(root, queue=entry, active=entry)
+
+    def duplicates(root):
+        return {
+            (f["code"], f["path"])
+            for f in _reconcile_json(root, engine)["canonical"]["findings"]
+            if f["code"] == "duplicate_membership"
+        }
+
+    assert duplicates(control) == {("duplicate_membership", "docs/specs/alpha/spec.md")}
+    assert duplicates(cooled) == {("duplicate_membership", "docs/specs/alpha/spec.md")}
+
+
 def test_a_fully_cooled_initiative_can_reach_closeout(tmp_path, engine) -> None:
     """Closeout agrees with every other surface about cooled queue entries.
 
@@ -1089,19 +1241,37 @@ def test_a_fully_cooled_initiative_can_reach_closeout(tmp_path, engine) -> None:
 
 
 @pytest.mark.parametrize("mode", ("status", "reconcile"))
-@pytest.mark.parametrize("failure", ("invalid", "unavailable"))
-def test_exclusion_claim_is_earned_not_declared(tmp_path, engine, mode, failure) -> None:
-    """AC33: lifecycle refusals fail closed on the exclusion claim."""
-    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
+@pytest.mark.parametrize("failure", ("invalid", "unavailable", "escaping", "no-route"))
+def test_exclusion_claim_is_earned_not_declared(
+    tmp_path, engine, monkeypatch, mode, failure
+) -> None:
+    """AC33: lifecycle refusals fail closed on the exclusion claim.
+
+    All four fixtures the criterion names. `escaping` and `no-route` reach the
+    flag through directory confinement and module resolution rather than
+    through one bad record, so omitting them left half the refusal classes
+    unverified at this surface.
+    """
+    root = _tree(tmp_path / failure, records=[_record()], specs=("alpha",))
     _workspace(root, queue="")
     if failure == "invalid":
         (root / "docs/lifecycle/alpha.json").write_text(
             '{"schema":"delivery-lifecycle-record.v1"}', encoding="utf-8"
         )
-    else:
-        root = _tree(tmp_path / "unavailable", lifecycle=False, specs=("alpha",))
+    elif failure == "unavailable":
+        root = _tree(tmp_path / "unavailable-root", lifecycle=False, specs=("alpha",))
         _workspace(root, queue="")
         (root / "docs/lifecycle").write_text("unavailable", encoding="utf-8")
+    elif failure == "escaping":
+        outside = _tree(tmp_path / "outside", records=[_record()], specs=("alpha",))
+        root = _tree(tmp_path / "escaping-root", lifecycle=False, specs=("alpha",))
+        _workspace(root, queue="")
+        (root / "docs").mkdir(parents=True, exist_ok=True)
+        (root / "docs/lifecycle").symlink_to(outside / "docs/lifecycle", target_is_directory=True)
+    else:
+        monkeypatch.setattr(
+            engine, "_load_cooling_module", lambda: (_ for _ in ()).throw(RuntimeError())
+        )
     status = _load_status_module(engine)
     result = engine.analyze_bounded(root) if mode == "status" else engine.analyze(root)
     assert status._build_json(root, result, mode)["closeout"]["cooling_context_visible"] is True
@@ -1195,6 +1365,36 @@ def test_no_live_initiative_means_no_closeout_block(tmp_path, engine) -> None:
     _spec(active, "alpha")
     _workspace(active, queue=_entry("alpha"))
     assert "closeout" in status._build_json(active, engine.analyze(active), "reconcile")
+
+
+def test_generic_failure_names_its_exception_type_and_nothing_else(
+    tmp_path, engine, monkeypatch, capsys
+) -> None:
+    """The `configuration_mismatch` fallback is diagnosable without disclosure.
+
+    This branch swallows genuine programming errors, so it is the only signal an
+    operator gets. Its whole justification is a disclosure boundary — the
+    exception type, never `str(exc)`, which routinely carries an absolute host
+    path into agent context — and nothing asserted either half.
+    """
+    root = _tree(tmp_path, records=[], specs=())
+    _spec(root, "alpha")
+    _workspace(root, queue=_entry("alpha"))
+    secret = str(root / "docs" / "specs" / "alpha")
+
+    status = _load_status_module(engine)
+
+    def explode(*args, **kwargs):
+        raise RuntimeError(f"host path leak: {secret}")
+
+    monkeypatch.setattr(status, "analyze", explode)
+    assert status.main(["reconcile", "--root", str(root)]) == 2
+    captured = capsys.readouterr()
+
+    assert captured.err.strip() == "workspace-status: configuration_mismatch: RuntimeError"
+    assert secret not in captured.err
+    assert "Traceback" not in captured.err
+    assert json.loads(captured.out)["canonical"]["findings"][0]["code"] == "configuration_mismatch"
 
 
 def test_repair_plan_keeps_its_pre_wave6_cooling_posture(tmp_path, engine, capsys) -> None:

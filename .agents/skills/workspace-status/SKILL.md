@@ -258,7 +258,8 @@ remove an entry, or delete. A paused item remains visible as paused.
 
 Cooling context is excluded from ordinary orientation. `status` and `reconcile`
 carry a `cooling` block — `due_count`, the named due list, every loaded record,
-and the retention exceptions — and a `closeout` block; `explain` and
+and the retention exceptions — and a `closeout` block whenever an initiative is active or paused; with
+every initiative closed the `closeout` key is absent rather than empty. `explain` and
 `repair-plan` carry neither. An artifact named by a `Cooling` or `Retired`
 lifecycle record is neither scanned nor dispatchable, and its body is never
 opened; `Retained` and `ExternalAdvisory` artifacts stay visible because someone

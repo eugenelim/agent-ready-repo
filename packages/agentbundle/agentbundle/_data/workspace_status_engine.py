@@ -3254,6 +3254,7 @@ def run_canonical_reconciliation(
         *parse_only_duplicate_paths,
         *parse_blocked_paths,
     }
+    cooled_membership_findings: list[RoutingFinding] = []
     for membership in local_memberships:
         membership_cooled = _membership_is_cooled(membership, root, cooled)
         metadata = (
@@ -3264,7 +3265,7 @@ def run_canonical_reconciliation(
                 or _metadata_from_membership(membership)
             )
         )
-        if _structural_findings(
+        member_findings = _structural_findings(
             membership,
             metadata,
             duplicate_paths,
@@ -3274,8 +3275,20 @@ def run_canonical_reconciliation(
             root,
             cooled=membership_cooled,
             brief_scope_unevaluable=brief_scope_unevaluable,
-        ):
+        )
+        if member_findings:
             structurally_blocked_paths.add(membership.entry.path)
+            if membership_cooled:
+                # A cooled membership is excluded from `evaluations`, and the
+                # emitted finding list is built from those, so everything raised
+                # here reached no output — cooling both halves of a duplicate
+                # pair erased `duplicate_membership` entirely. These findings are
+                # membership-derived by construction (the cooled branch of
+                # `_structural_findings` returns before any body-dependent
+                # predicate), so they are facts about `workspace.toml` entries,
+                # which AC20 settles are still owed whatever the artifact's
+                # state.
+                cooled_membership_findings.extend(member_findings)
     evaluations = [
         evaluate_dispatch(
             membership,
@@ -3301,6 +3314,7 @@ def run_canonical_reconciliation(
     findings = [
         *parse_findings,
         *legacy_only_duplicate_findings,
+        *cooled_membership_findings,
         *(finding for evaluation in evaluations for finding in evaluation.findings),
     ]
     return CanonicalWorkspaceResult(
