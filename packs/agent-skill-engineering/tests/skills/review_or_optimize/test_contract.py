@@ -315,12 +315,13 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # `actual_findings`, the mode marker in `actual_markers`. Bind the
         # union, so no declared element can go unattested by living in
         # whichever field the check does not read.
-        # Containment, not equality. `expect.output_contains` is graded by the
-        # runner as a substring check, so it declares a floor; asserting
-        # equality here made the record stricter than the check it records and
-        # turned a review finding a real defect beyond the seeded set into a
-        # failure. An independent blind run sustained five findings against
-        # four declared, and nine against six.
+        # Containment, not equality, *for the findings half only*. The runner
+        # grades `expect.output_contains` as a substring check, so the checklist
+        # ids declare a floor; asserting equality over them made the record
+        # stricter than the check it records and turned a review finding a real
+        # defect beyond the seeded set into a failure. An independent blind run
+        # sustained five findings against four declared, and nine against six.
+        # The mode marker below has no such floor and is bound by equality.
         declared_findings = {value for value in declared if value.startswith("ASE-")}
         assert declared_findings <= set(result["actual_findings"])
         # The non-identifier half of the declaration, bound by value rather than
@@ -329,9 +330,12 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # by nothing but a hand-set flag -- the comment above claimed the union
         # was bound while the code read only one field of it.
         #
-        # These values are lifted from the captured responses, not derived from
-        # `declared`: deriving them would be the circular derivation this pack has
-        # already removed twice.
+        # The recorded values were lifted from the captured responses when this
+        # record was written, and this assertion then ties them to the
+        # declaration -- which is what makes a wrong or padded record fail. Do
+        # not read that as evidence the values were *derived* from `declared`;
+        # deriving them would be the circular derivation this pack has removed
+        # twice, and the guard cannot tell the two apart.
         #
         # Equality, not containment. The findings floor above is a floor for a
         # real reason -- a review may sustain more defects than the case seeds --
@@ -362,7 +366,7 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # exit and cleanup contract `ASE-DET-01` requires. The run named the
         # first two -- prescribing injected-input determinism and distinct exit
         # classes -- and never returned to cleanup, neither prescribing a path
-        # nor disposing of it as vacuous. Naming the exact (case, index) means a
+        # nor disposing of it as vacuous. Naming the exact (case, assertion text) means a
         # *different* miss still reddens while the known one does not read as a
         # pass.
         failing = {

@@ -520,7 +520,12 @@ def test_language_extension_families_are_distinct_and_unpopulated() -> None:
         "future extension families",
     )
     for label, path in shipped.items():
-        body = path.read_text(encoding="utf-8")
+        # Collapsed, not raw. These are absence assertions over hard-wrapped
+        # prose, so a claim spanning a line break can never match and the check
+        # becomes evadable by reflowing: the same forbidden sentence reddens on
+        # one line and passes across two. Two of the six members were already
+        # dead this way. Matching the slice's own precedent for wrapped prose.
+        body = " ".join(path.read_text(encoding="utf-8").split())
         for claim in absence_claims:
             assert claim not in body, (label, claim)
 

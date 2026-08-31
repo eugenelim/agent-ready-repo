@@ -232,7 +232,7 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         "detect-activation-failure",
         "detect-script-contract-failure",
     }
-    # Each exemption names an exact (case, index) so a *different* miss still
+    # Each exemption names an exact (case, assertion text) so a *different* miss still
     # reddens while the known one does not read as a pass.
     #
     # ("cross-session-resumption", 1) is inherited: the case asks for a durable
@@ -252,7 +252,9 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     # shape the review side already uses. An index-keyed exemption migrates onto
     # a different assertion when one is inserted or reworded above it, and the
     # length pin below only catches that until a legitimate re-record restores
-    # the count. It also lets an exemption outlive the miss it was granted for.
+    # the count. Text keying does not by itself stop an exemption outliving its
+    # miss -- the liveness check asserts the assertion is still declared, not that
+    # it is still failing -- so the exemptions are also asserted to be used.
     known_misses = {
         ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
         (
@@ -277,11 +279,15 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
         }
         for index, verdict in enumerate(result["assertions"]):
             assert verdict or index in exempt, (eval_id, index, case["assertions"][index])
-        assert {
+        failing = {
             index
             for index, verdict in enumerate(result["assertions"])
             if not verdict
-        } <= exempt
+        }
+        assert failing <= exempt
+        # And the other direction: an exemption whose miss has since been repaired
+        # must be removed, not left standing to excuse the next regression there.
+        assert exempt <= failing, (eval_id, sorted(exempt - failing))
         # Bind the record to what the eval declares, not merely to truthiness.
         # Without this a recorded run could claim any markers at all -- the
         # negation of the frame mode's read-only contract included -- and stay

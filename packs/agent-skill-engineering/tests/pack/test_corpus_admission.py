@@ -684,10 +684,38 @@ def test_doctrine_parity_rejects_a_repository_internal_source_identity() -> None
 def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
     """AC3: recorded and authored evidence reject structural host identifiers."""
 
-    scanned = [ADMISSION, *CONCEPTS.rglob("*.md")]
-    assert len(scanned) >= 6
-    for path in scanned:
-        _assert_no_patterns(path.read_text(encoding="utf-8"), HOST_IDENTIFYING_PATTERNS)
+    # Every root the plan extends this test over, each with its own floor. One
+    # combined floor let a whole root contribute zero files without failing, and
+    # the eval declarations and their payloads were reached by no host scan at
+    # all -- clean today, so the gap was prospective rather than a live leak.
+    roots = {
+        "admission record": [ADMISSION],
+        "authored concepts": sorted(CONCEPTS.rglob("*.md")),
+        "compiled concepts": sorted(COMPILED_CONCEPTS.rglob("*.md")),
+        "recorded fixtures": sorted(
+            path for path in FIXTURES.rglob("*") if path.is_file()
+        ),
+        "eval declarations and payloads": sorted(
+            path
+            for path in (PACK / ".apm" / "skills").rglob("evals/**/*")
+            if path.is_file()
+        ),
+    }
+    FLOORS = {
+        "admission record": 1,
+        "authored concepts": 12,
+        "compiled concepts": 12,
+        "recorded fixtures": 8,
+        "eval declarations and payloads": 8,
+    }
+    assert set(roots) == set(FLOORS)
+    for name, paths in roots.items():
+        assert len(paths) >= FLOORS[name], (name, len(paths))
+        for path in paths:
+            _assert_no_patterns(
+                path.read_text(encoding="utf-8", errors="strict"),
+                HOST_IDENTIFYING_PATTERNS,
+            )
     for seeded in (
         "/opt/foreign-user/project",
         "/var/folders/foreign-id/T/work",
@@ -772,6 +800,81 @@ def test_admitted_topics_are_measurably_distinguishable() -> None:
     for topic in sorted(admitted):
         exclusive = [r for r in results if r["actual_topics"] == [topic]]
         assert len(exclusive) >= 2, (topic, len(exclusive))
+
+
+# Class-isolating positive controls. The negative scans above pass because both
+# trees are clean, and without these that same green would follow from a pattern
+# that matches nothing -- which was true of every member of
+# REPOSITORY_REFERENCE_PATTERN_STRINGS: substituting an empty tuple reddened
+# nothing.
+#
+# Isolating matters as much as seeding. `_assert_no_patterns` raises on the first
+# member that matches, so a control asserting "the tuple as a whole fires" is
+# satisfied by one broad member and says nothing about the rest -- which is how
+# `/var/folders/...` sat fully shadowed by `RE_ABS_PATH`'s `/var/` branch, and
+# how the `<placeholder>` alternative had no control at all. Each case below
+# names the member it exercises and asserts *that* pattern fires.
+REPOSITORY_REFERENCE_CONTROLS = (
+    (r"\bdocs/(?:specs|rfc|adr)/", "see docs/specs/some-other-slice/spec.md"),
+    (r"\bAC\d+\b", "this follows from AC7 of another spec"),
+    (r"\bworkspace\.toml\b", "registered in workspace.toml elsewhere"),
+    (r"\b[0-9a-f]{7,40}\b", "introduced in 4f2c9ab"),
+    (r"\b(?:ADR|RFC)-\d{2,4}\b", "governed by RFC-0097"),
+)
+HOST_IDENTIFYING_CONTROLS = (
+    # Deliberately not under /var/, /Users/, /home/ and so on, so this case can
+    # only pass on the pattern it names.
+    (r"/var/folders/[A-Za-z0-9_/-]+", "/var/folders/zz9foreign/T/scratch"),
+    (r"@[A-Za-z0-9-]+|\b[A-Za-z0-9-]+\.local\b", "someone@example-host"),
+    (r"\b\"?(?:username|user|login)\"?\s*[:=]\s*\"?[^\s,]+", "username: not-a-real-person"),
+    (r"\b\"?(?:hostname|host)\"?\s*[:=]\s*\"?[^\s,]+", "hostname: not-a-real-box"),
+    (r"\b\"?worktree(?:\s+name)?\"?\s*[:=]\s*\"?[^\s,]+", "worktree: some-other-tree"),
+)
+
+
+@pytest.mark.parametrize("pattern_string, seeded", REPOSITORY_REFERENCE_CONTROLS)
+def test_each_repository_reference_pattern_matches_a_foreign_example(
+    pattern_string: str, seeded: str
+) -> None:
+    """Each projected-reference pattern fires on its own seeded example.
+
+    Exercised through the compiled tuple the scan actually consumes, not through
+    the source strings. Compiling the string here would leave the consumed tuple
+    free to be emptied while these cases still passed -- the first version of this
+    control did exactly that.
+    """
+    assert pattern_string in REPOSITORY_REFERENCE_PATTERN_STRINGS, pattern_string
+    compiled = {pattern.pattern: pattern for pattern in PROJECTED_REFERENCE_PATTERNS}
+    assert set(compiled) == set(REPOSITORY_REFERENCE_PATTERN_STRINGS), sorted(compiled)
+    assert compiled[pattern_string].search(seeded), (pattern_string, seeded)
+
+
+@pytest.mark.parametrize("pattern_string, seeded", HOST_IDENTIFYING_CONTROLS)
+def test_each_host_identifying_pattern_matches_a_foreign_example(
+    pattern_string: str, seeded: str
+) -> None:
+    """Each host pattern fires on an example only it can match.
+
+    `RE_ABS_PATH` is excluded: its own seeded control lives with the boundary
+    scan that owns it, and a string reaching it here would shadow the pattern
+    this case is meant to isolate.
+    """
+    assert pattern_string in HOST_IDENTIFYING_PATTERN_STRINGS, pattern_string
+    compiled = {pattern.pattern: pattern for pattern in HOST_IDENTIFYING_PATTERNS}
+    assert set(compiled) == set(HOST_IDENTIFYING_PATTERN_STRINGS), sorted(compiled)
+    assert compiled[pattern_string].search(seeded), (pattern_string, seeded)
+
+
+@pytest.mark.parametrize(
+    "seeded", ("<placeholder-reviewer>", "<some-role>", "<redacted>")
+)
+def test_the_placeholder_alternative_matches_a_bracketed_token(seeded: str) -> None:
+    """The `<...>` branch of the reviewer matcher has its own control.
+
+    Both existing reviewer controls are absorbed by the role-token branch, so
+    this alternative was carried by nothing and could have been deleted silently.
+    """
+    assert ROLE_OR_PLACEHOLDER_ANYWHERE.search(seeded), seeded
 
 
 def test_every_leaf_is_in_exactly_one_set() -> None:

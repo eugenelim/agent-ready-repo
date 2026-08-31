@@ -168,7 +168,11 @@ def test_typescript_node_topic_covers_its_seven_assigned_subjects() -> None:
         "runner workers",
         "browser workers",
         "cache keys",
-        "javascript and typescript",
+        # Names the subject, not the language pair. AC2's seventh subject is
+        # JavaScript/TypeScript *security scanning*, and the topic carries the
+        # bare language pair independently of any scanner content, so asserting
+        # the pair left the subject removable while this stayed green.
+        "security scan",
     ):
         assert subject in text, subject
 
