@@ -335,6 +335,138 @@ def test_prefix_ban_does_not_flag_the_grammars_that_share_these_modules():
         assert direct_module_findings(benign, "direct_source.py") == [], benign
 
 
+# Names that denote a filesystem location in these modules. `/` is also
+# division, and nothing in an AST distinguishes the two without types, so the
+# join control keys on the operand's name. Under-inclusive by design: a missed
+# join is a control that says nothing, while a false positive would be a rule
+# authors learn to work around.
+# Functions whose joins are confined UPSTREAM, which this seam cannot see.
+# Named individually with the reason, exactly as AC17 names its probe carve-out,
+# so widening the exemption is a deliberate edit and not a silent one. Anything
+# not listed here must reach a mechanism in its own body.
+JOIN_EXEMPTIONS = {
+    # Joins a closed literal set — ("skills", ".claude/skills") — onto the root.
+    ("direct_source.py", "_select_collection_root"),
+    # Joins components returned by `_enumerate`'s confined traversal, and
+    # candidate names already probed through the marker primitive.
+    ("direct_source.py", "_inventory_collection"),
+}
+
+_PATH_OPERAND_HINTS = (
+    "path", "root", "dir", "envelope", "target", "source",
+    "spool", "destination", "parent", "folder",
+)
+
+
+def _looks_like_path_operand(node: ast.AST) -> bool:
+    """True when a `/` operand denotes a filesystem location."""
+
+    if _is_path_expression(node):
+        return True
+    name = None
+    if isinstance(node, ast.Name):
+        name = node.id
+    elif isinstance(node, ast.Attribute):
+        name = node.attr
+    return bool(name) and any(hint in name.lower() for hint in _PATH_OPERAND_HINTS)
+
+
+def joins_without_confinement(source: str, filename: str) -> list[str]:
+    """Report path joins in a function that reaches no admitted mechanism.
+
+    AC39 says every join in a direct module is confined by one of five named
+    mechanisms. Proving that needs dominance analysis, which the plan
+    deliberately keeps out of scope — this control stays at the node-kind seam.
+
+    What it does instead: find joins whose right operand is a *variable* — a
+    literal `root / "SKILL.md"` cannot escape — and require the enclosing
+    function to reference an admitted mechanism. That is weaker than dominance
+    and this docstring says so, but unlike a name-shape check it fails when a
+    join is added to a function that confines nothing, which is the actual
+    AC39 violation.
+    """
+
+    tree = ast.parse(source)
+    findings: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        if (filename, node.name) in JOIN_EXEMPTIONS:
+            continue
+        body = ast.dump(node)
+        confined = any(call in body for call in CONFINEMENT_CALLS)
+        for inner in ast.walk(node):
+            joined = (
+                isinstance(inner, ast.BinOp)
+                and isinstance(inner.op, ast.Div)
+                and _looks_like_path_operand(inner.left)
+                and not isinstance(inner.right, ast.Constant)
+            ) or (
+                isinstance(inner, ast.Call)
+                and isinstance(inner.func, ast.Attribute)
+                and inner.func.attr == "join"
+                and _looks_like_path_operand(inner.func.value)
+            )
+            if joined and not confined:
+                findings.append(
+                    f"{filename}:{inner.lineno}: join in {node.name}() reaches no "
+                    f"admitted confinement mechanism"
+                )
+    return findings
+
+
+def test_a_join_in_an_unconfined_function_is_reported():
+    # The mutation fixture the plan required and that was missing: "an unlisted
+    # confinement call". The previous control collected call names containing
+    # `confined`/`jailed`/`_probe` and asserted that set was a subset of the
+    # allowlist, which can only fire if someone invents a DIFFERENTLY NAMED
+    # helper. Deleting every confinement call left it green, and a join with no
+    # confinement at all — the actual AC39 violation — was invisible.
+    unconfined = (
+        "from pathlib import Path\n"
+        "def f(root, name):\n"
+        "    return (root / name).read_bytes()\n"
+    )
+    assert joins_without_confinement(unconfined, "direct_source.py"), (
+        "a join in a function that confines nothing must be reported"
+    )
+
+    confined = (
+        "from pathlib import Path\n"
+        "def f(root, name):\n"
+        "    return read_confined_regular_file(root, root / name)\n"
+    )
+    assert joins_without_confinement(confined, "direct_source.py") == []
+
+    # A literal join cannot escape, so it is not the thing being policed.
+    literal = (
+        "from pathlib import Path\n"
+        "def f(root):\n"
+        '    return (root / "SKILL.md").exists()\n'
+    )
+    assert joins_without_confinement(literal, "direct_source.py") == []
+
+
+def test_the_join_exemption_list_does_not_grow_silently():
+    # An exemption is a hole in the control, so the set is asserted whole. A
+    # new entry has to be added here as well as claimed, which is what makes
+    # the carve-out reviewable rather than a quiet widening.
+    assert {
+        ("direct_source.py", "_select_collection_root"),
+        ("direct_source.py", "_inventory_collection"),
+    } == JOIN_EXEMPTIONS
+
+
+def test_direct_modules_confine_their_joins():
+    # AC39 over the real modules, at the seam described above.
+    for module in DIRECT_MODULES:
+        path = Path(module.__file__)
+        findings = joins_without_confinement(
+            path.read_text(encoding="utf-8"), path.name
+        )
+        assert findings == [], "\n".join(findings)
+
+
 def test_confinement_calls_are_the_admitted_mechanisms():
     # AC39 — every confinement call reached by a direct module is one of the
     # admitted named mechanisms. A join confined by anything else is the

@@ -320,3 +320,99 @@ def test_dry_run_consistent_with_write_for_state_tracked_skill(tmp_path: Path) -
             "project_packs in the shadow deleted a state-tracked skill; "
             "--check would have reported false drift"
         )
+
+
+# ---------------------------------------------------------------------------
+# AC28 across all seven sweeps — behaviour, not source text
+# ---------------------------------------------------------------------------
+
+# Each adapter with its contract-declared skill target. Driven through the real
+# `project_packs` rather than grepped, because the previous guard asserted
+# `"_sweep_guard" in source` and `"except ConfigError:\n        return set()"
+# not in source` — a comment mentioning the guard passes the first, and a revert
+# re-indented by one level passes the second. Only claude_code had a
+# behavioural arm; the plan promised one per call site.
+SWEEP_ADAPTERS = (
+    ("claude_code", "claude-code", ".claude/skills/"),
+    ("codex", "codex", ".agents/skills/"),
+    ("copilot", "copilot", ".github/skills/"),
+    ("kiro", "kiro", ".kiro/skills/"),
+    ("cursor", "cursor", ".agents/skills/"),
+    ("gemini", "gemini", ".agents/skills/"),
+    ("kiro_ide", "kiro-ide", ".kiro/skills/"),
+)
+
+
+@pytest.mark.parametrize(("module_name", "adapter_key", "target"), SWEEP_ADAPTERS)
+def test_every_sweep_refuses_on_unreadable_state(
+    tmp_path: Path, module_name: str, adapter_key: str, target: str
+) -> None:
+    """An unreadable state file stops every sweep, and leaves the tree alone."""
+    import importlib
+
+    from agentbundle.build.adapters._sweep_guard import OrphanSweepRefused
+
+    module = importlib.import_module(f"agentbundle.build.adapters.{module_name}")
+    skill_dir = tmp_path / target.rstrip("/") / "installed-skill"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text("# installed\n", encoding="utf-8", newline="\n")
+
+    # State 0.5 is the ordinary case that makes this reachable: a reader pinned
+    # to 0.4 raises on every file written after the first direct install.
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        'schema-version = "0.6"\n', encoding="utf-8", newline="\n"
+    )
+
+    contract = _minimal_contract(adapter_key, target)
+    with pytest.raises(OrphanSweepRefused):
+        module.project_packs([], contract, tmp_path)
+
+    assert (skill_dir / "SKILL.md").exists(), (
+        f"{module_name} deleted an installed skill it could not prove was unowned"
+    )
+
+
+@pytest.mark.parametrize(("module_name", "adapter_key", "target"), SWEEP_ADAPTERS)
+def test_every_sweep_protects_a_recorded_row(
+    tmp_path: Path, module_name: str, adapter_key: str, target: str
+) -> None:
+    """A skill recorded in readable state survives a sweep that removes orphans.
+
+    The positive control. Without it, a guard that always refused would satisfy
+    the test above while protecting nothing — and three of these adapters built
+    no protected set at all, so a sweep removed everything `agentbundle install`
+    had placed in their directory.
+    """
+    import importlib
+
+    module = importlib.import_module(f"agentbundle.build.adapters.{module_name}")
+    root = tmp_path / target.rstrip("/")
+    owned = root / "owned-skill"
+    orphan = root / "orphan-skill"
+    for directory in (owned, orphan):
+        directory.mkdir(parents=True)
+        (directory / "SKILL.md").write_text("# s\n", encoding="utf-8", newline="\n")
+
+    relpath = f"{target.rstrip('/')}/owned-skill/SKILL.md"
+    (tmp_path / ".agentbundle-state.toml").write_text(
+        f'schema-version = "0.5"\n'
+        f"[pack.owned-skill.adapters.{adapter_key}]\n"
+        f'installed-version = "0.0.0"\n'
+        f'scope = "repo"\n'
+        f'install-route = "cli"\n'
+        f'user-root = "~/.agentbundle"\n'
+        f'[pack.owned-skill.adapters.{adapter_key}.files."{relpath}"]\n'
+        f'sha = "x"\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    module.project_packs([], _minimal_contract(adapter_key, target), tmp_path)
+
+    assert (owned / "SKILL.md").exists(), (
+        f"{module_name} swept a skill recorded in state as installed"
+    )
+    assert not orphan.exists(), (
+        f"{module_name} did not sweep a genuine orphan — the guard must not "
+        f"disable the sweep it protects"
+    )
