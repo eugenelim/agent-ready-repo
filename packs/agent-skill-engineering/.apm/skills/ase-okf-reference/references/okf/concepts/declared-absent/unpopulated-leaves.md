@@ -87,41 +87,6 @@ establish it, and no promotion class is evidenced.
 **What would admit it.** Two packs whose fixture isolation is chosen for
 execution cost, evidenced as one practice.
 
-## python-and-pytest
-
-**Why absent.** Reserved for the successor slice that covers language and
-execution depth.
-
-**What would admit it.** That slice's admission run.
-
-## typescript-node-and-javascript-test-runners
-
-**Why absent.** Reserved for the successor slice that covers language and
-execution depth.
-
-**What would admit it.** That slice's admission run.
-
-## process-and-filesystem-cost
-
-**Why absent.** Reserved for the successor slice that covers language and
-execution depth.
-
-**What would admit it.** That slice's admission run.
-
-## pack-and-ci-critical-paths
-
-**Why absent.** Reserved for the successor slice that covers language and
-execution depth.
-
-**What would admit it.** That slice's admission run.
-
-## worktrees-state-locks-and-shared-host-admission
-
-**Why absent.** Reserved for the successor slice that covers language and
-execution depth.
-
-**What would admit it.** That slice's admission run.
-
 ## skills-and-subagents-common-floor
 
 **Why absent.** Reserved for the later slice that covers runtime composition.
@@ -231,4 +196,3 @@ as a practice at a second pack.
 
 **What would admit it.** Two packs that retire guidance on a stated
 measurement trigger.
-
