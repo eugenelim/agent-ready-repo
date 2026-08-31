@@ -100,10 +100,19 @@ def test_reviewers_preserve_specialized_independent_judgment() -> None:
 
 def test_reviewers_self_test_against_adjudicator_predicates() -> None:
     """Require findings to expose the evidence gap rather than disappear."""
-    heading = "### Predicate self-check before emission"
+    heading = "## Predicate self-check before emission"
     for name, (path, _gate) in AGENTS.items():
         text = _text(path)
         assert heading in text, name
+        # The rule is universal, so it must be a top-level section, not nested
+        # under a mode. Review found it as "###" under "## Testability audit
+        # mode" in quality-engineer and under "## Honest about your limits" in
+        # security-reviewer, where a reader can read it as mode-scoped. A
+        # heading-contents check cannot see placement, so assert placement.
+        assert f"\n{heading}\n" in text, name
+        assert f"\n#{heading}\n" not in text, (name, "nested under a mode")
+        report = "\n## Report numbered findings"
+        assert text.index(heading) < text.index(report), (name, "after report")
         # Scope the predicate list to its own section. "authority",
         # "existing handling", and "reachability" all occur in unrelated
         # reviewer prose, so a whole-file search would still pass with the
