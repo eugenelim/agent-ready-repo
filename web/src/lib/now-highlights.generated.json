@@ -4,6 +4,32 @@
     {
       "packages": [
         {
+          "name": "core",
+          "version": "2.17.2"
+        }
+      ],
+      "date": "2026-08-31",
+      "heading": "[core][2.17.2] — 2026-08-31",
+      "changelogAnchor": "core2172--2026-08-31",
+      "highlights": [
+        {
+          "source": "**When saving project knowledge runs out of time, it now says so and tells you to try again.** It used to report a storage-capacity problem and advise fixing the request, and on the save path it could even claim another writer was mid-migration — so a run that simply needed more time looked like a request you had to rewrite, and the step that records lessons could not finish for anyone who did not read the exit code.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "When saving project knowledge runs out of time, it now says so and tells you to try again."
+            },
+            {
+              "type": "text",
+              "value": " It used to report a storage-capacity problem and advise fixing the request, and on the save path it could even claim another writer was mid-migration — so a run that simply needed more time looked like a request you had to rewrite, and the step that records lessons could not finish for anyone who did not read the exit code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "agent-skill-engineering",
           "version": "0.3.0"
         }
