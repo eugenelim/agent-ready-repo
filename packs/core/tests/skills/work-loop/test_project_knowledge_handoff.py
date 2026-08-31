@@ -89,8 +89,12 @@ def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
     text = _skill_text()
     section = text.split("### Project-knowledge integration", 1)[1].split("For durable work", 1)[0]
     assert "Project knowledge is never authority and enquiry is never automatic" in section
-    assert "CQ-REVIEW" in section
-    assert "untrusted evidence envelope" in section
+    # Review-time enquiry left the active work-loop in #1180, so this block must
+    # not name CQ-REVIEW or the evidence envelope; the surviving enquiry gates
+    # are CQ-CHANGE before scope approval and CQ-VERIFY at construction tests.
+    assert "CQ-REVIEW" not in section
+    assert "CQ-CHANGE" in section
+    assert "CQ-VERIFY" in section
     assert "journal diff returns through the next applicable verification and review barrier" in section
     assert "a named no-diff outcome needs no extra review" in section
 

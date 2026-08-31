@@ -379,7 +379,6 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
     - After `plan-locked`, admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
     - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
-    - Before the first REVIEW dispatch, an explicitly declared `CQ-REVIEW` enquiry may run once after the target and scope are fixed. Reuse its untrusted evidence envelope until the target or scope changes.
     - At each capture gate, admit only generalizable practice; discard incident-only notes.
 
     Invoke the public `project-knowledge` producer profile. It owns request shape, confinement, privacy refusal, freshness, receipts, storage, and the enquiry envelope. If unavailable, record `project-knowledge unavailable`; create no fallback file.
