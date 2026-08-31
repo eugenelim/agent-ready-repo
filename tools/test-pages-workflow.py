@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Posture test for `.github/workflows/pages.yml`'s deploy-blocking gates.
 
-# STUB: AC7 — red stub materialised at PLAN per CONVENTIONS § Stub → EXECUTE handoff.
+# STUB: AC7 — planned before code, then materialized during CODE-IMPLEMENTATION.
 
 Why a SECOND workflow parser, when `tools/test-build-check-workflow.py` exists and
 its own plan said to reuse it: that file is `build-check.yml`-shaped end to end — a

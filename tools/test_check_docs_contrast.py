@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Behavioural coverage for `tools/check-docs-contrast.py`.
 
-# STUB: AC3 — red stub materialised at PLAN per CONVENTIONS § Stub → EXECUTE handoff.
+# STUB: AC3 — planned before code, then materialized during CODE-IMPLEMENTATION.
 
 Two seams, deliberately separated:
 

@@ -91,7 +91,7 @@ And a depth skill the loop reaches for by surface: **`frontend-engineering`** is
 A feature lifecycle, end to end, with the parts named:
 
 1. **User asks for X.** "Add webhook retries with exponential backoff."
-2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`.
+2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Boundaries (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, the exact code in that `Tests:` section is a planning proof: PLAN compiles and exercises it from disposable scratch without adding a repository test file.
 3. **`shaping-reviewer`** reads the draft contract cold before plan approval;
    then `adversarial-reviewer` reads the complete spec + plan for construction
    risk. Every completed spec-review report, including a clean claim, passes
@@ -101,7 +101,7 @@ A feature lifecycle, end to end, with the parts named:
    what it proves and a relevant blind spot. Two passes is normal; three means a
    structural problem and the agent surfaces.
 4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
-5. **EXECUTE.** The agent implements task by task. For TDD tasks: red, green, refactor. For goal-based: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
+5. **EXECUTE.** After the engine enters `CODE-IMPLEMENTATION`, the agent materializes each approved TDD block unchanged at its real test path, verifies byte identity, and then runs red, green, refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Boundaries section + the PLAN-step's declined-pattern register keep new abstractions from sneaking in.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
    `CONVENTIONS.md` + `spec.md`. `finding-adjudicator` independently sustains,

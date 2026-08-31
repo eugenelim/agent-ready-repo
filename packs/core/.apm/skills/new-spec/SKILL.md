@@ -283,11 +283,12 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
 
    While writing Testing Strategy, sanity-check that each TDD-mode AC is
    concrete enough to *stub* — see `work-loop`'s
-   [`references/tdd-stubs.md`](../work-loop/references/tdd-stubs.md). This
-   is a **self-check only**: do **not** commit stubs at spec-authoring time —
-   the stack and `Contract:` may not be settled yet, so committed stubs are
-   generated later, in `work-loop` PLAN. An AC you can't imagine typing a test
-   against is the signal to sharpen it now.
+   [`references/tdd-stubs.md`](../work-loop/references/tdd-stubs.md). This is a
+   **pointer/self-check only**: do **not** create a repository test file or
+   author the plan's test here. `work-loop PLAN owns exact stub authoring` as
+   exact stub code in `plan.md`; `work-loop PLAN owns disposable red validation`
+   from disposable scratch. An AC you cannot imagine typing a test against is
+   the signal to sharpen it now. In this skill, do not create a repository test file.
 
 4b. **Author the interface contract — only if this feature exposes an interface
    surface.** This conditional step sits between the spec body and the plan, and

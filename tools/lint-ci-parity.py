@@ -456,6 +456,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest TDD stub lifecycle contract (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)":
         LOCAL("test-after-build-check"),
     "converters source-attribution scrub (AC2)":

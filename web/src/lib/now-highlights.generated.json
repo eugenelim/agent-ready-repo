@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.16.3"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[core][2.16.3] — 2026-08-30",
+      "changelogAnchor": "core2163--2026-08-30",
+      "highlights": [
+        {
+          "source": "**Planning-only sessions can now prove TDD acceptance criteria without leaving failing tests in the repository.** The approved plan carries the executable stub, and implementation sessions materialize it only when code work begins.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Planning-only sessions can now prove TDD acceptance criteria without leaving failing tests in the repository."
+            },
+            {
+              "type": "text",
+              "value": " The approved plan carries the executable stub, and implementation sessions materialize it only when code work begins."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.16.2"
         }
       ],

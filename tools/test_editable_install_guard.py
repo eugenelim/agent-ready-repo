@@ -1,7 +1,7 @@
 """Contract tests for the editable-install guard.
 
-# STUB: AC5, AC6, AC7 — materialised at PLAN per CONVENTIONS § Stub → EXECUTE
-# handoff, then expanded. The load-bearing cases are the two negatives: a
+# STUB: AC5, AC6, AC7 — planned before code, materialized during
+# CODE-IMPLEMENTATION, then expanded. The load-bearing cases are the two negatives: a
 # regular install and an editable install pointing at THIS worktree must both
 # stay silent, because firing on either would make the guard a false alarm on a
 # legitimate setup.
