@@ -52,6 +52,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.4] — 2026-08-30
+
+### Changed
+
+- The `work-loop` skill body is 798 lines, down from 950. Four procedures that
+  only some runs need moved into the skill's `references/`: the
+  project-knowledge approval gates, the review-planning enquiry protocol, the
+  parallel-dispatch and supervisor-wave rules, and unattended-loop eligibility.
+  Each is reached from a pointer at the step where it applies and from the
+  conditional-reference routing table, which now carries 14 predicates instead
+  of 11.
+- A duplicated finding-adjudication pointer in the REVIEW step is gone. The
+  copy that remains is the stronger of the two: it also covers an invalid
+  report structure and an indeterminate adjudication.
+
+No rule, gate, transition, refusal, or ordering constraint changed. Every line
+removed from the skill body is accounted for as moved, deduplicated, or
+reworded, and the tests that assert those rules now prove both that the skill
+routes to the reference and that the reference still carries the rule.
 ## [core][2.16.3] — 2026-08-30
 
 ### Highlights
