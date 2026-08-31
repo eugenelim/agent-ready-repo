@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "evaluated_at": "2026-08-31",
+  "required_capabilities": {
+    "source_ref": "docs/rfc/0097-agent-skill-engineering.md:D3",
+    "expected_count": 7,
+    "claude-code": [
+      "skill-preloading-versus-invocation",
+      "isolated-subagent-context",
+      "worktree-isolation",
+      "nesting-limits",
+      "component-scoped-hooks",
+      "plugin-agent-restrictions",
+      "managed-hook-policy"
+    ]
+  },
+  "profiles": [
+    {
+      "runtime": "claude-code",
+      "topic": "claude-code-skills-subagents-hooks-and-plugins",
+      "declared_window_days": 90,
+      "roll_up": "incomplete",
+      "capabilities": [
+        {
+          "capability": "skill-preloading-versus-invocation",
+          "state": "verified",
+          "scope": "Skill discovery and body loading in an interactive session.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing how skill metadata or bodies enter context.",
+          "sources": [
+            {
+              "title": "Extend Claude with skills",
+              "url": "https://code.claude.com/docs/en/skills",
+              "retrieved_at": "2026-08-31",
+              "source_version": "none exposed"
+            }
+          ],
+          "probe": {
+            "gesture": "Invoked a named skill in a live session and compared the roster available before invocation with the content available after it.",
+            "outcome": "Before invocation the roster carried each skill's name and one-line description only. The full body arrived only on invocation.",
+            "passed": true
+          }
+        },
+        {
+          "capability": "isolated-subagent-context",
+          "state": "verified",
+          "scope": "Context a non-fork subagent receives at dispatch.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing what a subagent's initial context contains.",
+          "sources": [
+            {
+              "title": "Subagents",
+              "url": "https://code.claude.com/docs/en/sub-agents",
+              "retrieved_at": "2026-08-31",
+              "source_version": "2.1.251"
+            }
+          ],
+          "probe": {
+            "gesture": "Dispatched a subagent and required it to report facts that existed only in the parent conversation.",
+            "outcome": "The subagent reported no access to parent conversation content and re-derived every fact from files it opened itself.",
+            "passed": true
+          }
+        },
+        {
+          "capability": "nesting-limits",
+          "state": "experimental",
+          "scope": "Whether a subagent may dispatch a subagent, and to what depth.",
+          "surface": "CLI",
+          "os": "macOS",
+          "last_verified": "2026-08-31",
+          "revalidation_trigger": "A release changing the default spawn depth or its environment override.",
+          "sources": [
+            {
+              "title": "Subagents",
+              "url": "https://code.claude.com/docs/en/sub-agents",
+              "retrieved_at": "2026-08-31",
+              "source_version": "2.1.251"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
