@@ -671,17 +671,34 @@ attribution, and who attributed it. Nothing observed is dropped.
 
 ## Gates
 
+All figures below were measured on the shipping tree at base `613739e65`, after
+every edit this slice makes. They are written last on purpose: earlier versions of
+this table went stale twice, because a figure recorded mid-work stops describing
+the tree the moment the next commit lands, and this record's opening claim is that
+every figure came from the invocation beside it.
+
 | Gate | Invocation | Result |
 | --- | --- | --- |
-| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 143 passed |
-| Repository suites | `python3 -m pytest tests/ -q` | 1040 passed, 6 skipped |
-| Tooling suite | `python3 -m pytest tools/ -q` | 1207 passed, 2 skipped, 85 subtests; 2 failures attributed `owned-elsewhere` above |
-| Packaging suite | `python3 -m pytest packages/agentbundle/tests -q` | see below |
+| Pack suite | `python3 -m pytest packs/agent-skill-engineering/tests -q` | 162 passed |
+| Repository suites | `python3 -m pytest tests/ -q` | 1044 passed, 6 skipped, 46 subtests — 1050 collected, internally consistent. An earlier measurement in this session read 1051 collected; the difference is upstream, which changed three files under `tests/` across the rebases (+21/−63). This branch touches one file there and adds or removes no test definitions |
+| Roster suite | `python3 -m pytest tests/roster/ -q` | 993 passed, 6 skipped, 46 subtests |
+| Tooling suite | `python3 -m pytest tools/ -q` | 1208 passed, 2 skipped, 85 subtests; 2 failed, both attributed `owned-elsewhere` above |
+| Packaging suite | `python3 -m pytest packages/agentbundle/tests -q` | exit 0 over 4176 collected. The count comes from `--collect-only`, because the summary line does not survive this suite's output pipe; exit 0 is the pass evidence, and the collected count is stated separately rather than reported as a pass count it was not measured as |
 | Lint | `make lint-ruff` | All checks passed |
-| Pack-test boundary | `python3 tools/lint-pack-test-boundary.py` | passed, 8 cases; 63 destinations, 8 declared unrun |
+| Pack-test boundary | `python3 tools/lint-pack-test-boundary.py` | passed, 8 cases |
 | Spec metadata | `lint-spec-status.py --root .` | spec metadata clean |
 | Brief coverage | `lint-brief-coverage.py --root .` | 3 briefs checked |
 | Plugin roster and membership | `lint-plugin-roster.py`, `lint-plugin-membership.py` | ok — 15 published, 7 withheld; ok |
+| Site build | `make site-build` | 233 pages built, complete |
+| Web suite | `npm test --prefix web` | 18 files, 129 tests passed |
+
+The site build and the web suite are the two gates this slice had no coverage for
+until the ship gate. They run after the build rather than against a stale one,
+because a stale `build/` fails the rendered-output tests on anchors the current
+changelog does not have — and the changelog moved on every rebase.
+
+The `getComputedStyle` pseudo-element notices in the web output are jsdom
+limitations, not failures; all 129 tests passed.
 
 ### Measured evidence
 
