@@ -642,9 +642,19 @@ def test_ac35_recorded_measurements_respect_the_bounds_they_were_measured_agains
     # lowered below something the corpus already admits.
     fixture = _corpus_fixture()
     bounds = fixture["bounds"]
+    assert "relative to each skill envelope" in fixture["depth_basis"], (
+        "the depth column must be measured on E15's basis to be comparable"
+    )
     for row in fixture["repositories"]:
         if row["verdict"] != "admitted":
             continue
+        # Depth is asserted too. It was previously recorded relative to the
+        # collection root, which E15 forbids — "never relative to the
+        # enumeration root, so category grouping and the choice of collection
+        # root cannot change it" — making the column incomparable to the bound.
+        # It was also the one column no assertion touched, so the wrong basis
+        # and the missing check hid each other.
+        assert row["depth"] <= bounds["depth"], row["repository"]
         assert row["admitted_entries"] <= bounds["entries"], row["repository"]
         assert row["admitted_files"] <= bounds["files"], row["repository"]
         assert row["admitted_total_bytes"] <= bounds["total_bytes"], row["repository"]
@@ -795,3 +805,30 @@ def test_the_two_frontmatter_parsers_have_not_drifted():
         ) == okf_discovery.parse_frontmatter_subset(raw, "SKILL.md", discovery_limits), raw
 
     assert inspect.getmodule(bounded_metadata) is not inspect.getmodule(okf_discovery)
+
+
+def test_a_dot_claude_collection_root_is_not_a_hidden_entry(tmp_path: Path):
+    # `.claude/skills/` is one of E14's two recognised collection roots, so the
+    # leading dot in the ROOT is not a hidden entry inside an envelope. Hoisting
+    # the hidden-entry check without keeping it envelope-relative measured from
+    # the source root and refused every `.claude/skills/` repository outright —
+    # a whole recognised shape, caught by regenerating the corpus rather than by
+    # the unit suite, whose collection fixtures all use plain `skills/`.
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "dotclaude"
+    _write_skill(root / ".claude" / "skills" / "alpha", "alpha")
+    result = direct_source.validate_direct_source(root)
+    assert result.ok, result.diagnostics
+    assert result.classification is not None
+    assert [s.name for s in result.classification.skills] == ["alpha"]
+
+    # A hidden entry INSIDE the envelope still refuses, in both roots.
+    for collection_root in (".claude/skills", "skills"):
+        hostile = tmp_path / f"hostile-{collection_root.replace('/', '-')}"
+        envelope = hostile / collection_root / "alpha"
+        _write_skill(envelope, "alpha")
+        (envelope / ".secret").write_text("instructions")
+        refused = direct_source.validate_direct_source(hostile)
+        assert refused.ok is False, collection_root
+        assert "hidden entry" in refused.diagnostics[0].message

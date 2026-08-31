@@ -54,9 +54,16 @@ def _build_reference_source(root: Path) -> None:
     admission cost.
     """
 
-    per_file = DIRECT_MAX_TOTAL_BYTES // DIRECT_MAX_FILES
-    payload = "x" * per_file
+    # Sized against the files that CARRY payload, not against every file. Half
+    # the 1,000 are tiny `SKILL.md` envelopes, so dividing the budget by 1,000
+    # left the reference configuration at 50.05% of the total-bytes bound while
+    # AC36 asks for the budgets "at their limits". The harness asserted only the
+    # file count, so nothing noticed.
     files_per_skill = DIRECT_MAX_FILES // DIRECT_MAX_SELECTED_SKILLS
+    payload_files = DIRECT_MAX_FILES - DIRECT_MAX_SELECTED_SKILLS
+    envelope_overhead = DIRECT_MAX_SELECTED_SKILLS * 32
+    per_file = (DIRECT_MAX_TOTAL_BYTES - envelope_overhead) // payload_files
+    payload = "x" * per_file
 
     for index in range(DIRECT_MAX_SELECTED_SKILLS):
         envelope = root / "skills" / f"s{index:04d}"
@@ -120,6 +127,14 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
 
     assert classification.files == DIRECT_MAX_FILES, (
         "the reference configuration must sit at the file budget, not below it"
+    )
+    # AC36 measures "with the mutually satisfiable Family-2 budgets at their
+    # limits", so the byte budget has to be near its bound too — not just the
+    # file count.
+    assert classification.total_bytes >= DIRECT_MAX_TOTAL_BYTES * 0.95, (
+        f"the reference configuration sits at "
+        f"{classification.total_bytes / DIRECT_MAX_TOTAL_BYTES:.0%} of the "
+        f"total-bytes budget; AC36 measures at the limits"
     )
     # CPU time is asserted unconditionally: it is the cost this code actually
     # incurs, and no amount of contention inflates it.

@@ -501,30 +501,14 @@ def _build_envelopes(
     # all be read before the cross-envelope total was ever computed.
     running_total = 0
     for envelope in sorted(envelope_set, key=lambda candidate: candidate.as_posix()):
+        # The envelope is a subtree, not an allowlist of four directories: the
+        # Agent Skills spec's own example puts `reference.md` and `examples.md`
+        # at the envelope root. Hidden entries still refuse, enforced inside
+        # `_read_bounded` so the root-single shape gets the same rule.
         payload_paths = sorted(buckets[envelope], key=lambda item: item.as_posix())
-        for path in payload_paths:
-            relative = path.relative_to(envelope)
-            # The envelope is a subtree, not an allowlist of four directories:
-            # the Agent Skills spec's own example puts `reference.md` and
-            # `examples.md` at the envelope root. Hidden entries still refuse.
-            hidden = [part for part in relative.parts if part.startswith(".")]
-            # `.gitkeep` and `.keep` exist only to make Git track an otherwise
-            # empty directory. The hidden-entry rule guards against a dotfile
-            # carrying instructions, which an empty placeholder cannot; refusing
-            # a whole repository over one was rejecting real sources for a file
-            # with no content. Emptiness is enforced after the read, so a
-            # placeholder that carries anything is still refused.
-            if hidden and not (
-                len(hidden) == 1
-                and hidden[0] == relative.parts[-1]
-                and hidden[0] in _PERMITTED_PLACEHOLDERS
-            ):
-                raise _refusal(
-                    DiagnosticCode.CAT_D009,
-                    f"hidden entry in skill envelope: {relative}",
-                    path=path.relative_to(root).as_posix(),
-                )
-        files = _read_bounded(root, payload_paths, carried=running_total)
+        files = _read_bounded(
+            root, payload_paths, carried=running_total, envelope=envelope
+        )
         running_total += sum(len(measured.data) for measured in files)
         skills.append(_make_skill(root, envelope, files))
     assigned = {file.path for skill in skills for file in skill.files}
@@ -680,10 +664,15 @@ def _enforce_total_bytes(files: tuple[MeasuredFile, ...] | list[MeasuredFile]) -
         raise _budget_refusal("total-bytes", DIRECT_MAX_TOTAL_BYTES, observed)
 
 
-def _enforce_hidden_entries(root: Path, path: Path) -> None:
-    """Refuse a hidden entry, admitting only an empty Git placeholder by name."""
+def _enforce_hidden_entries(base: Path, path: Path) -> None:
+    """Refuse a hidden entry, admitting only an empty Git placeholder by name.
 
-    relative = path.relative_to(root)
+    Measured from the ENVELOPE, not the source root. Measuring from the root
+    made `.claude` itself read as a hidden entry, so every `.claude/skills/`
+    collection — one of E14's two recognised roots — refused outright.
+    """
+
+    relative = path.relative_to(base)
     hidden = [part for part in relative.parts if part.startswith(".")]
     if not hidden:
         return
@@ -700,7 +689,9 @@ def _enforce_hidden_entries(root: Path, path: Path) -> None:
         )
 
 
-def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[MeasuredFile]:
+def _read_bounded(
+    root: Path, paths: list[Path], carried: int = 0, *, envelope: Path | None = None
+) -> list[MeasuredFile]:
     """Read files, refusing as soon as the running total breaks the budget.
 
     The budget is checked *inside* the loop rather than over the finished list.
@@ -719,7 +710,7 @@ def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[Measu
         # the byte-identical file inside a collection envelope refused. Only
         # the placeholder-emptiness half ran for root-single, because that
         # happened to sit in this function.
-        _enforce_hidden_entries(root, path)
+        _enforce_hidden_entries(envelope or root, path)
         measured = _read_named(root, path)
         # The hidden-entry rule admits `.gitkeep`/`.keep` on the strength of
         # their being placeholders. That only holds while they are empty: a
