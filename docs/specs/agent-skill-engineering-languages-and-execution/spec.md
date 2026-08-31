@@ -355,10 +355,10 @@ incidental fix.
   `test_shipped_body_keeps_the_two_clauses_measurement_forced` on four
   conjuncts: the pinned heading occurs exactly once, exactly one paragraph
   carries the clause's anchor, that paragraph sits under the pinned heading, and
-  its whitespace-collapsed text hashes to the recorded sha256. Twelve defeating
-  mutations each redden it and a legitimate re-wrap does not; every probe was
-  restored by rewriting the file rather than by checkout, with the body verified
-  byte-identical afterwards.
+  its whitespace-collapsed text hashes to the recorded sha256. Eleven defeating
+  mutations each redden it and a twelfth, a legitimate re-wrap, does not; every
+  probe was restored by rewriting the file rather than by checkout, with the body
+  verified byte-identical afterwards.
 
   A second guard asserts the two anchors resolve to different paragraphs, which
   the conjuncts do not reach: merging the paragraphs *and* refreshing both
@@ -373,8 +373,13 @@ incidental fix.
   those spans
   was rejected on adjudication as enumerating span kinds, already incomplete when
   proposed, and a real CommonMark parse is a dependency needing its own decision
-  record. Nor does it cover a contradicting sentence elsewhere, which is judgment
-  rather than form. The graded authoring assertions are
+  record. It likewise does not cover a clause relocated under a heading the
+  guard's line pattern does not recognize — a setext underline, an indented ATX
+  heading, a raw `<h2>`, or an ATX heading inside a container block — which is the
+  same class and the one whose apparent closability cost a round: heading syntax
+  is enumerable, but the nearest heading in the rendered document is not. Nor
+  does it cover a contradicting sentence anywhere, including under the pinned
+  heading, which is judgment rather than form. The graded authoring assertions are
   corroborating evidence only: they were written in the same change as the
   behavior they assert, so alone they would be a mirror rather than a
   contract.

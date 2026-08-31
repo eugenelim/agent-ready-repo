@@ -310,7 +310,7 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
 # clause: exactly one paragraph carries the anchor, it sits under the pinned
 # heading, and its whitespace-collapsed text hashes to the recorded digest.
 #
-# The predicate reached this shape after four review rounds each defeated the
+# The predicate reached this shape after five review rounds each defeated the
 # previous one:
 #
 #   1. eval assertions only -- authored in the same change as the behavior they
@@ -327,25 +327,35 @@ def test_authoring_behavior_evidence_matches_its_source_digest(
 #      under a `## Superseded guidance (not normative)` heading, or a flipped
 #      duplicate added below the original where first-match never reached it.
 #
-# What the conjuncts close, stated at the width they actually hold:
-#   - the match count closes duplication;
-#   - the heading pin closes relocation to another section, and the uniqueness
-#     assertion closes relocation under a second copy of the same heading, which
-#     the heading pin alone did not -- round 4's probe varied the heading's text
-#     and never varied how many headings carried it;
+# Four conjuncts, stated at the width they actually hold:
+#   - the pinned heading occurs exactly once, which closes relocation under a
+#     second copy of the same heading -- round 4's probe varied the heading's
+#     text and never varied how many headings carried it;
+#   - exactly one paragraph carries the anchor, which closes duplication;
+#   - that paragraph's nearest preceding heading is the pinned one, which closes
+#     relocation *only when the replacement heading is a column-0 ATX heading*;
 #   - the digest closes rewording, including markup-only edits, within a
 #     normative block.
 # Re-wrapping the same words changes none of them.
 #
-# NOT closed, because this reads the raw file rather than the rendered document:
-# a clause whose bytes are preserved inside a non-normative block -- a fence, a
-# four-space indent, an HTML comment, or an `<div hidden>` wrapper -- satisfies
-# every conjunct while being absent from what a reader sees. Stripping those
-# spans here was considered and rejected: it enumerates span kinds, and the
-# enumeration is already incomplete (a four-space indent collapses identically,
-# since whitespace collapsing discards leading indentation). Making the predicate
-# categorical needs a real CommonMark parse, which is a new dependency to defend
-# two prose sentences and would need its own decision record.
+# NOT closed, all one class: this reads raw lines, not the rendered document.
+#   - a clause whose bytes survive inside a non-normative block -- a fence, a
+#     four-space indent, an HTML comment, a `<div hidden>` wrapper;
+#   - a clause relocated under a heading this file's line pattern does not
+#     recognize -- a setext underline, a 1-3-space-indented ATX heading, a raw
+#     `<h2>`, or an ATX heading inside a container block such as
+#     `- ## Superseded guidance`, after which the tracked nearest heading is
+#     still the pinned one while a renderer shows the clause under the new h2.
+#
+# Two enumerations were proposed for these and both were rejected on
+# adjudication, for the same reason each time: they enumerate members of an open
+# class. A fence-and-comment stripper misses the four-space indent. A
+# heading-form check over setext, indented ATX and raw HTML misses
+# `- ## heading`, because heading *syntax* is a closed set but "the nearest
+# heading preceding this paragraph in the rendered document" is not -- container
+# blocks compose with heading syntax. Making the predicate categorical needs a
+# real CommonMark parse: a new dependency to defend two prose sentences, which
+# the cut-before-adding ladder routes through a decision record, not a test file.
 #
 # Also not closed, and not closable here: a contradicting sentence elsewhere.
 # That is a judgment about meaning, not a property of form, and it stays with
@@ -424,10 +434,13 @@ def test_shipped_body_keeps_the_two_clauses_measurement_forced() -> None:
 
     for name, (anchor, heading, expected) in MEASUREMENT_FORCED_CLAUSES.items():
         assert headings.count(heading) == 1, (
-            f"{name}: {headings.count(heading)} headings read {heading!r}, "
-            "expected exactly 1. With two, the clause can be gutted where it is "
-            "normative and re-appended verbatim under the duplicate, and the "
-            "heading conjunct below cannot tell the copies apart."
+            f"{name}: {headings.count(heading)} column-0 ATX headings read "
+            f"{heading!r}, expected exactly 1. None means the pinned heading was "
+            "renamed, its level changed, or its form changed to one this "
+            "line pattern does not recognize -- re-pin it deliberately. Two or "
+            "more means the clause can be gutted where it is normative and "
+            "re-appended verbatim under the duplicate, which the heading "
+            "conjunct below cannot tell apart."
         )
         matches = _clause_paragraphs(body, anchor)
         assert len(matches) == 1, (

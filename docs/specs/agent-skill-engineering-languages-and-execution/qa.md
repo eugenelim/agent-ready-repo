@@ -231,8 +231,9 @@ adversarial review sustained exactly that. A guard was added at the ship gate:
 matching on collapsed whitespace so a re-wrap of hard-wrapped prose does not read
 as a reverted clause.
 
-Four review rounds each defeated this guard a different way, so the fifth change
-was to the predicate's **category** rather than its pattern.
+Five review rounds each defeated this guard a different way. The fourth change
+was to the predicate's **category** rather than its pattern; the sixth stopped
+changing the predicate and wrote the boundary down instead.
 
 | Round | Guard | How it was defeated |
 | --- | --- | --- |
@@ -240,6 +241,7 @@ was to the predicate's **category** rather than its pattern.
 | 2 | five `substring in body` checks | one asserted a truncated prefix, `"…resolved but the"`, stopping before `*requested change* is not`; swapping that subject removed the disposition and stayed green |
 | 3 | six `substring in body` checks | `Remain in \`frame\`` was pinned by nothing; flipping it to `Enter \`update\`` inverted the contract and stayed green |
 | 4 | one digest per clause paragraph | the digest answered "some paragraph somewhere collapses to this hash", not "this clause is in force" — so the normative paragraph could be replaced with an advisory sentence and the original re-appended verbatim under a `## Superseded guidance (not normative)` heading, or a reversed duplicate added below the original where first-match never reached it |
+| 5 | three conjuncts: match count, heading text, digest | the heading conjunct pinned the heading's *text* and never how many headings carried it, so gutting the clause in place and re-appending it verbatim under a **second `## Modes`** satisfied all three |
 
 Rounds 2 and 3 were the same mistake twice. The adjudication named why adding a
 seventh assertion could not work: positive substring containment is **monotone
@@ -260,8 +262,9 @@ heading's *text* and never varied how many headings carried it. Gutting the
 clause where it is normative and re-appending it verbatim under a second
 `## Modes` satisfies a heading-text pin exactly.
 
-Eleven probes, each restored by rewriting the file rather than by checkout, body
-verified byte-identical afterwards:
+Twelve probes, each restored by rewriting the file rather than by checkout,
+body verified byte-identical afterwards — eleven redden, and the twelfth is the
+legitimate re-wrap that must not:
 
 | Probe | Guard | Closed by |
 | --- | --- | --- |
@@ -281,7 +284,7 @@ verified byte-identical afterwards:
 ### What the guard does not cover, enumerated
 
 Five rounds produced five defeats, so the useful thing to record is not another
-conjunct but where the boundary now sits. These four all satisfy every conjunct
+conjunct but where the boundary now sits. These five all satisfy every conjunct
 and were verified green:
 
 | Uncovered | Why |
@@ -289,25 +292,41 @@ and were verified green:
 | clause fenced in a ```` ```text ```` block | the guard reads the raw file, not the rendered document |
 | clause wrapped in an HTML comment | same — its bytes survive while a reader never sees it |
 | clause indented four spaces into a code block | same, and this is the one a span stripper misses, since collapsing whitespace discards leading indentation |
+| clause relocated under a heading the line pattern does not recognize — a setext underline, a 1–3-space-indented ATX heading, a raw `<h2>`, or an ATX heading inside a container block such as `- ## Superseded guidance` | same class: the tracked nearest heading stays the pinned one while a renderer shows the clause under the new h2 |
 | a contradicting paragraph appended under the same heading | a claim about meaning, not about form |
 
-The first three are one class: **the predicate reads bytes, not the rendered
-document.** Stripping fenced and comment spans was proposed and rejected on
-adjudication, and the reason is worth keeping — it enumerates span kinds, and the
-enumeration was already incomplete when proposed, because the four-space-indent
-case defeats it. Enumerating span kinds is the same mistake as enumerating
-sentences, one level up. Making the predicate categorical needs a real CommonMark
-parse: a new dependency to defend two prose sentences, which the repository's
-cut-before-adding ladder routes through a decision record rather than a test file.
+The first four are one class: **the predicate reads raw lines, not the rendered
+document.** Two enumerations were proposed to close parts of it and both were
+rejected on adjudication, for the same reason each time.
 
-The fourth is a different kind and is not closable by any predicate over prose.
+A fence-and-comment span stripper was already incomplete when proposed: the
+four-space-indent case defeats it, because collapsing whitespace discards leading
+indentation.
+
+A heading-form check over setext, indented ATX and raw HTML looked different — I
+argued heading syntax is a closed set, so the check would be complete, and
+validated it against those three forms. The counterexample is
+`- ## Superseded guidance` with the clause as indented list continuation: no line
+pattern matches it, no `<h[1-6]>` scan sees it, it renders as an h2, and the
+collapsed digest is unchanged. Heading *syntax* is closed; "the nearest heading
+preceding this paragraph in the rendered document" is not, because container
+blocks compose with heading syntax. Verified — all four conjuncts and the proposed
+well-formedness check both pass on it.
+
+That is the same mistake twice at two levels: enumerating sentences, then
+enumerating the syntactic forms in which a sentence can be hidden or displaced.
+Making the predicate categorical needs a real CommonMark parse: a new dependency
+to defend two prose sentences, which the repository's cut-before-adding ladder
+routes through a decision record rather than a test file.
+
+The last is a different kind and is not closable by any predicate over prose.
 Whether a later sentence contradicts an earlier one is judgment, and it stays
 with review. Naming it here is the point: **the guard owns form, review owns
 meaning**, and five rounds of trying to make one predicate own both is what
 produced five defeats.
 
 A second test asserts the two anchors resolve to *different* paragraphs, and it
-owns a catching set none of the three conjuncts reach. An earlier version of this
+owns a catching set none of the four conjuncts reach. An earlier version of this
 record justified it wrongly — claiming a merged paragraph would leave both digests
 matching, which is impossible, since one paragraph cannot hash to two different
 recorded values. The real case is a merge **combined with refreshing both recorded
@@ -474,7 +493,7 @@ attribution, and who attributed it. Nothing observed is dropped.
 | `test_build_site_routing.py::test_the_committed_now_projection_matches_the_changelog_source` | `python3 -m pytest tools/test_build_site_routing.py -q` → 93 passed, 1 skipped | `caused-here`, **fixed**. Adding the release entry restaled the committed `/now/` projection, which the marketing build reads. Regenerated with `python3 tools/build-site.py --journeys-only`, the command the failure message names. Re-running it a second time changes nothing, so the committed bytes are what the command produces. | Claude, this session |
 | Ruff `I001` on an unsorted import block in the T2 test module | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Caught locally this time; the identical defect reached CI in slice 2a because `make lint-ruff` was in the documented command set but not in the per-edit loop. | Claude, this session |
 | Two blind authoring executions wrote to one output directory concurrently; four files were overwritten mid-run and five were removed under a live writer | Both runs pointed at one `responses/` path; the second was dispatched while the first was working, and the supervisor then moved the first run's files aside while the second was writing | `caused-here`, **contained**. Not a worker defect. The supervisor reused one output path for a discarded run and its replacement, then mutated that directory under an active writer. The executing context detected the interference, restored its own text, re-verified, and reported the collision unprompted — the only reason the evidence survived. Later runs write to a path unique per run, so provenance is structural rather than inferred. | Claude, this session |
-| A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four review rounds, appearing in evidence tooling rather than in prose. | Claude, this session |
+| A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four of this slice's spec-amendment review rounds — a different sequence from the guard rounds above — appearing in evidence tooling rather than in prose. | Claude, this session |
 | Three subagents and one Codex worker returned no verdict | re-dispatched; each replacement completed | `environmental`, **not carried**. Three were killed by the host sleeping mid-response (`API Error: Your computer went to sleep`); one Codex run was load-shed with the 1-minute load average at 184.76. A run that reached no verdict is not a measurement, so each was discarded and re-taken rather than recorded as partial. Re-dispatch after a host kill is recovery, not an additional attempt. | Claude, this session |
 | Codex worker T3 first run produced zero changes | re-dispatched with the discharge stated at the top of the brief → task completed | `caused-here`, **fixed**. A briefing gap, not a worker defect: the worker's own workflow requires a base-freshness check, and the brief never said that check was already discharged or that its refusal is not a stop condition. | Claude, this session |
 
