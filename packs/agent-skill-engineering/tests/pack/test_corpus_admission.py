@@ -712,8 +712,8 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
     }
     FLOORS = {
         "admission record": 1,
-        "authored concepts": 12,
-        "compiled concepts": 12,
+        "authored concepts": 16,
+        "compiled concepts": 16,
         "recorded fixtures": 8,
         "eval declarations and payloads": 8,
     }
@@ -991,6 +991,33 @@ def _fixture_resolves(fixture: str, declared: set[str], graded: set[str]) -> boo
     which is the normal healthy state.
     """
     return fixture in declared and fixture in graded
+
+
+REGISTER_TRANSCRIPTION = FIXTURES / "declared-absent-register.json"
+
+
+def test_the_absence_register_matches_its_declared_count() -> None:
+    """The register's size is asserted, not inferred.
+
+    The partition elsewhere is a set XOR with no count, and the register's own
+    frontmatter is a closed five-key set, so the declared count lives in this
+    transcription instead. Without it, a leaf silently vanishing from the
+    register is caught only if it also fails to appear in the admitted set.
+    """
+    record = json.loads(REGISTER_TRANSCRIPTION.read_text(encoding="utf-8"))
+    leaves = sorted(_unpopulated_leaves_from_compiled_record())
+    assert record["expected_count"] == len(record["leaves"])
+    assert record["expected_count"] == len(leaves)
+    assert sorted(record["leaves"]) == leaves
+    assert record["source_ref"].endswith("unpopulated-leaves.md")
+
+
+def test_the_register_transcription_can_disagree_with_the_register() -> None:
+    """Control: the comparison above is only evidence if a drifted
+    transcription would fail it."""
+    record = json.loads(REGISTER_TRANSCRIPTION.read_text(encoding="utf-8"))
+    drifted = list(record["leaves"])[:-1]
+    assert sorted(drifted) != sorted(_unpopulated_leaves_from_compiled_record())
 
 
 def _probe_fixture_resolves(fixture: str, ledger: dict) -> bool:

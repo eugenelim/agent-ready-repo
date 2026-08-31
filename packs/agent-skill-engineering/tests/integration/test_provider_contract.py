@@ -530,9 +530,25 @@ def test_language_extension_families_are_distinct_and_populated() -> None:
             assert claim not in body, (label, claim)
 
     # The README's count is stated in words and must equal the admitted set.
-    words = {7: "Seven", 12: "Twelve", 13: "Thirteen"}
+    # Looked up with a default rather than indexed: an unmapped count is drift,
+    # and drift should name the observed and expected numbers rather than raise
+    # a KeyError whose traceback says nothing about what moved.
+    words = {
+        7: "Seven", 12: "Twelve", 13: "Thirteen", 14: "Fourteen",
+        15: "Fifteen", 16: "Sixteen", 17: "Seventeen", 18: "Eighteen",
+    }
     readme = shipped["pack README"].read_text(encoding="utf-8")
-    assert f"{words[len(admitted)]} governed topics" in readme, len(admitted)
+    expected = words.get(len(admitted))
+    assert expected is not None, (
+        f"admitted topic count {len(admitted)} has no word form; "
+        f"extend the mapping when the corpus grows past {max(words)}"
+    )
+    stated = re.search(r"(\w+) governed topics", readme)
+    assert stated is not None, "the README states no governed-topic count"
+    assert stated.group(1) == expected, (
+        f"README says {stated.group(1)!r} governed topics; "
+        f"the admitted set has {len(admitted)} ({expected})"
+    )
 
     # Each language family's boundary reaches the reader of the seam reference.
     seam = shipped["seam reference"].read_text(encoding="utf-8")
