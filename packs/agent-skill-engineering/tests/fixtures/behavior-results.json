@@ -1,6 +1,6 @@
 {
   "evaluation_mode": "independent-read-only-subcontext",
-  "evaluated_at": "2026-08-30",
+  "evaluated_at": "2026-08-31",
   "candidate_execution": false,
   "results": [
     {
@@ -16,14 +16,14 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
       "eval_id": "update-existing-skill",
       "actual_markers": [
-        "Mode: update",
-        "Write status: awaiting explicit authorization"
+        "Mode: frame",
+        "Write status: not authorized"
       ],
       "assertions": [
         true,
@@ -32,7 +32,7 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
@@ -49,13 +49,13 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
       "eval_id": "cross-session-resumption",
       "actual_markers": [
-        "Mode: update",
+        "Mode: frame",
         "Write status: awaiting explicit authorization"
       ],
       "assertions": [
@@ -65,7 +65,7 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c",
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
         "evals/files/update-existing-SKILL.md": "sha256:9a8825b06485c1f4543eae484eb2d951d7fa483851b4261de57032c21cef7358"
       }
     },
@@ -78,11 +78,11 @@
       "assertions": [
         true,
         true,
-        true,
+        false,
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
       }
     },
     {
@@ -98,7 +98,41 @@
         true
       ],
       "source_files": {
-        "evals/evals.json": "sha256:3768ace688fa510c84c4df7dbb3d7ef3ac9877f9a5aaf0cbce1016f2c6b70f6c"
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc"
+      }
+    },
+    {
+      "eval_id": "pytest-suite",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/files/pytest-suite-SKILL.md": "sha256:a6faa2a53786059ea24d06f9e72255ebfa514d61877e78969165db4f7d89bdf1"
+      }
+    },
+    {
+      "eval_id": "node-browser-suite",
+      "actual_markers": [
+        "Mode: frame",
+        "Write status: not authorized"
+      ],
+      "assertions": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "source_files": {
+        "evals/evals.json": "sha256:ac547e3abfe522c673596edba433639d33dd5950222a0c2a216b34f1eb3559cc",
+        "evals/files/node-browser-suite-SKILL.md": "sha256:6a4d24f394ceb0c4e5fae58ebc2f7766bf52ba48ae5b2e4bf6fb1fbce42ba8b1"
       }
     },
     {
@@ -167,7 +201,7 @@
     "tier": "B-lite",
     "fidelity": "observed+attested",
     "provenance": "operator-attested",
-    "author_iteration": 2,
+    "author_iteration": 3,
     "review_iteration": 5
   }
 }
