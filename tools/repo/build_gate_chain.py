@@ -453,6 +453,16 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-nosec-form",
             "tools", "lint-nosec-form.py",
         ),
+        # Semgrep suppression comments are checked separately because Semgrep's
+        # rule registry is unavailable to a stdlib-only local form lint.
+        _script_step(
+            "test-lint-nosemgrep-form",
+            "tools", "test-lint-nosemgrep-form.py",
+        ),
+        _script_step(
+            "lint-nosemgrep-form",
+            "tools", "lint-nosemgrep-form.py",
+        ),
         # The standing check that the repo-lint steps above do not become stale
         # again: lint-ci-parity fails when build-check.yml gains a gate with no
         # local counterpart and no declared exemption.

@@ -858,6 +858,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-npm-allow-scripts.py",
     "tools/test-lint-nosec-form.py",
     "tools/lint-nosec-form.py",
+    "tools/test-lint-nosemgrep-form.py",
+    "tools/lint-nosemgrep-form.py",
     "tools/test-lint-ci-parity.py",
     "tools/test-build-check-windows-workflow.py",
     "tools/test-build-check-workflow.py",

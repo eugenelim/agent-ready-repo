@@ -83,9 +83,10 @@ RULE_ID = "argv-path-without-boundary-validator"
 # set. That is a property of the target set, NOT general coverage — a non-Python
 # target added to paths.include would need this widened. Whether a
 # repository-wide form-lint should span comment syntaxes is the open half of the
-# `sast-nosemgrep-has-no-form-lint` backlog entry, which records the one live
-# `//` instance in the tree.
-NOSEMGREP_COMMENT = re.compile(r"#.*\bnosem(?:grep)?\b")
+# repository-wide form lint at tools/lint-nosemgrep-form.py. Its marker set
+# covers `#`, `//`, `<!-- -->`, and `/* */`; the backlog entry remains open for
+# the ADR-shape decision recorded in its summary.
+SUPPRESSION_COMMENT_RE = re.compile(r"#.*\bnosem(?:grep)?\b")
 
 
 # Semgrep 1.166 reads a leading `/` in `paths.include` as "anchored at the scan
@@ -409,11 +410,11 @@ def test_targets_have_no_nosemgrep_comments(targets: list[Path]) -> None:
     below that guard would silently skip the control on machines without
     semgrep—the same indistinguishable-from-clean failure this check prevents.
     """
-    name = "no scan target contains a nosemgrep/nosem comment"
+    name = "no scan target contains a `nosemgrep`/`nosem` comment"
     suppressions: list[str] = []
     for target in targets:
         for line_number, line in enumerate(target.read_text(encoding="utf-8").splitlines(), 1):
-            if NOSEMGREP_COMMENT.search(line):
+            if SUPPRESSION_COMMENT_RE.search(line):
                 suppressions.append(f"{_key(target)}:{line_number}")
     if suppressions:
         fail(name, f"suppression comment found at: {', '.join(suppressions)}")
