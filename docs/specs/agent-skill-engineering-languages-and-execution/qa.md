@@ -325,6 +325,17 @@ applied — emptying, and narrowing where the set scopes a sweep — to these se
 | `REQUIRED_SECTIONS` | **vacuous** | not applied | recorded here; owned by the foundation suite, not this slice |
 | `HOST_IDENTIFYING_PATTERNS` | fails closed | not applied | seeded controls |
 | `KNOWN_REVIEW_MISSES`, `REVIEW_EVAL_IDS` | fail closed | not applied | set-equality asserted |
+
+One further hole was found by applying that criterion to a relation rather than a
+set. The review record's mode marker was bound by containment, `declared -
+findings <= actual_markers`, which demands a positive result and so looked safe —
+but containment admits *padding*: a result could record `Mode: review` and
+`Mode: optimize` together and stay green, asserting that a read-only workflow
+entered a writing mode. The findings floor beside it is a genuine floor, because
+a real review may sustain more defects than a case seeds; the mode marker is
+exactly one value and has no floor to justify. Tightened to equality, and four
+mutations now redden: padded with a second mode, padded with junk, dropped, and
+falsified.
 | `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | not applied | parametrized and set-equality asserted |
 | `LANGUAGE_SPECIFIC_TOPICS`, `DOCTRINE_CLASSES` | fail closed | not applied | filter inside a positive assertion |
 

@@ -332,7 +332,13 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # These values are lifted from the captured responses, not derived from
         # `declared`: deriving them would be the circular derivation this pack has
         # already removed twice.
-        assert declared - declared_findings <= set(result["actual_markers"])
+        #
+        # Equality, not containment. The findings floor above is a floor for a
+        # real reason -- a review may sustain more defects than the case seeds --
+        # but the mode marker is exactly one value, and `<=` let a result record
+        # `Mode: review` *and* `Mode: optimize` and stay green, which asserts a
+        # read-only workflow entered a writing mode.
+        assert set(result["actual_markers"]) == declared - declared_findings
         # The floor cannot be padded into meaninglessness: every extra has to
         # be a checklist identifier the skill actually defines, so a result
         # cannot inflate its count with invented ids.
