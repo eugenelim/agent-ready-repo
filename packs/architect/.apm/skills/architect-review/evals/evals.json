@@ -107,6 +107,17 @@
         "Does not walk the rubric or decide a verdict",
         "Does not claim the stable completion gate"
       ]
+    },
+    {
+      "id": "design-doc-reduction",
+      "prompt": "Review this finished design doc. It has no unresolved choice, proposes a custom queue despite an existing provider capability, and claims future scale needs without a named quality attribute or credible constraint.",
+      "expected_output": "architect-review applies its design-doc reduction pass and returns severity-tagged findings for the wrong design depth, unnecessary custom mechanism, ignored provider capability, and unsupported speculative scale. It recommends removing unsupported complexity or claims rather than expanding the document to defend them.",
+      "assertions": [
+        "Challenges a full design that has no real choice or where a Stage-0 concept would suffice",
+        "Flags the unnecessary custom mechanism and the ignored existing provider capability",
+        "Flags speculative scale unsupported by a named quality attribute and credible constraint",
+        "Recommends removal of unsupported complexity or claims rather than expanding the design"
+      ]
     }
   ]
 }

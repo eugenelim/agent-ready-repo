@@ -14,17 +14,43 @@ map and findings here.
 
 **Use this when:** You have a product feature or strategy and a real technical choice to make, and you want the architecture shape agreed cheaply before committing to a full design doc.
 **Prerequisites:** The `architect` pack installed; a clear product bet or feature brief; optionally a `reference.md` golden path.
-**Result:** An agreed ≤½-page concept naming the problem, constraints, candidate shapes, provider, and key tradeoff — optionally converged into a full design doc.
+**Result:** An adequate prior design reused when it resolves the question; otherwise
+an agreed ≤½-page concept naming the problem, constraints, candidate shapes,
+provider, and key tradeoff, with a full design doc only when needed.
 
 :::note
-Get a ≤½-page architecture concept agreed before you commit to a full design doc. Assumes you know roughly what you're building; if the product bet itself is still unsettled, shape that first with [`product-engineering`](../../product-engineering/).
+Get a ≤½-page architecture concept agreed before you commit to a full design
+doc. Assumes you know roughly what you're building; if the product bet itself is
+still unsettled, shape that first with
+[`product-engineering`](../../product-engineering/). Check for an adequate prior
+design first — when one already resolves the question, you need no new artifact
+at all.
 :::
 
-You have a product to build — a strategy, a brief, or a clear feature — and a real technical choice to make. Before writing a multi-page design doc, `architect-design` shapes a **Stage-0 concept**: the elevator-pitch version of the architecture that gets the shape agreed cheaply, while changing it still costs a sentence. Install the `architect` pack, then work the steps below.
+You have a product to build — a strategy, a brief, or a clear feature — and a
+real technical choice to make. First, `architect-design` looks for an adequate
+prior design or existing capability. Reuse it when it answers the question. If
+no real choice remains, stop without creating a new artifact. Otherwise, the
+skill shapes a **Stage-0 concept**: the elevator-pitch version of the
+architecture that gets the shape agreed cheaply, while changing it still costs
+a sentence.
 
-## 1. Invoke architect-design and frame the problem
+## 1. Check for reuse, then frame the problem
 
-Run `architect-design`. It asks only what's genuinely missing — what you're building, who's affected, why now, what counts as success — three to five questions at most. Anything you've already said, it skips; anything you can't answer becomes an open question rather than a blocker.
+Ask `architect-design` to check the prior design or capability before creating
+anything:
+
+```
+Use architect-design to decide whether our existing design for account
+notifications answers this new delivery-channel question before creating a new
+architecture artifact.
+```
+
+If the existing design resolves the question, reuse it and stop. If a real
+choice remains, the skill asks only what's genuinely missing — what you're
+building, who's affected, why now, what counts as success — three to five
+questions at most. Anything you've already said, it skips; anything you can't
+answer becomes an open question rather than a blocker.
 
 The skill **steers off your `reference.md`** and is **knowledge-surface aware**. If your repo has a [`reference.md` golden path](establish-reference-architecture.md), the concept measures against it, so establish that first if you haven't. When an internal knowledge surface is reachable, `architect-design` consults it before proposing and names what it drew from.
 
@@ -43,9 +69,15 @@ This is *shaping* — context, constraints, and the choice — not a stripped-do
 
 Ground any load-bearing platform claim. For every managed service on a critical path, `architect-design` grounds its *binding* contract — non-configurable limits, scaling floors, cold-start behaviour, network and identity needs — in an authoritative source, and lowers the confidence on anything it couldn't ground. A limit recalled wrong is the miss that surfaces two days into the build, not at review.
 
-## 3. Converge into the design doc
+## 3. Stop at Stage 0, or continue only for unresolved trade-offs
 
-Once you agree the concept, `architect-design` offers to draft the full Google-style design doc — TL;DR, context, goals and non-goals, proposal, alternatives, risks, rollout, open questions — and converges it against review, auto-resolving mechanical findings and surfacing judgment calls as explicit decisions. If the concept is all you need right now, stop there: it's a real artifact, not a draft of something else.
+Once you agree the concept, it is a valid final artifact. Save it or keep it in
+chat, then stop if it resolves the decision. A full Google-style design doc is
+needed only when unresolved trade-offs still require it. In that case,
+`architect-design` offers the full doc — TL;DR, context, goals and non-goals,
+proposal, alternatives, risks, rollout, open questions — and converges it
+against review, auto-resolving mechanical findings and surfacing judgment calls
+as explicit decisions.
 
 When the doc captures discrete decisions — a technology choice, a structural commitment, an interface contract — `architect-design` ends by flagging them as ADR-worthy. Capture them with your ADR skill.
 

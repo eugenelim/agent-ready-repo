@@ -71,11 +71,8 @@ Throughout this procedure, **"task-id order" means numeric where IDs
 look like `T1`, `T2`, … ; lexicographic otherwise.** The `loop-cohort`
 tool sorts by the same rule when merging.
 
-The parallel-dispatch discipline (one-message-one-Agent-call-per-target,
-barrier-wait, treat harness-level non-returns as failures, merge results
-in your own context) is the same as for REVIEW fan-out and lives in
-the parent `SKILL.md` body. References to "the parallel-dispatch
-discipline" below mean that section.
+The [parallel-dispatch discipline](#parallel-dispatch-discipline) is the same
+as for REVIEW fan-out. References to it below mean that section.
 
 Every state mutation — worktree creation, report persistence, status
 updates, merges, cleanup — is owned by the `loop-cohort` tool at
@@ -115,8 +112,9 @@ not edit `state.json` or invoke `git worktree` directly.
    `{task_id, branch, path, status: "in-progress", report_path: null}`
    entry to `state.json.worktrees`, atomically.
 
-2. **Dispatch implementers in parallel** per the parallel-dispatch
-   discipline (see parent SKILL body). Each brief includes: the task
+2. **Dispatch implementers in parallel** per the
+   [parallel-dispatch discipline](#parallel-dispatch-discipline) below.
+   Each brief includes: the task
    ID, the plan-task body, the worktree path, paths to the spec +
    plan, and an explicit **bundled-fixes authorization line** —
    "Bundled fixes authorized per the carve-out in `work-loop/SKILL.md`
@@ -204,6 +202,36 @@ not edit `state.json` or invoke `git worktree` directly.
 7. **Run gates yourself** (next phase in the parent SKILL). The
    implementers' gate results were advisory; the gates of record run
    in the primary against the merged state.
+
+## Parallel-dispatch discipline
+
+Both EXECUTE fan-out (supervisor mode) and REVIEW fan-out share these rules:
+
+- Issue all subagent invocations in a single message (one Agent use per target).
+  Do not call sequentially.
+- Barrier-wait: don't issue follow-on Agent calls until every subagent in the
+  round has returned.
+- Timeout, tool error, or missing report = `failed` for that target. Same as
+  substantive failure; don't retry silently.
+- EXECUTE fan-out: merge implementer results in your own context. REVIEW
+  fan-out: persist each raw report, adjudicate it by path, and merge only the
+  sustained main-loop results; never read N raw reviewer reports into the
+  controller to aggregate them.
+
+## Phase 1 supervisor procedure
+
+Read `loop-cohort status docs/specs/<feature> --json` for
+`current_wave_index` and `schedule_waves[current_wave_index]` to get the active
+task set. (`schedule` runs once during the G-plan sequence and persists the
+wave list; re-calling it resets `current_wave_index` to 0, erasing prior `wave
+advance` progress.) Execute sequentially — **parallel fan-out
+(`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1**;
+those verbs exit non-zero. After all wave tasks are done, fire `wave-complete`
+before proceeding to GATES:
+
+```
+python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> wave-complete
+```
 
 ## Single-agent fallback
 

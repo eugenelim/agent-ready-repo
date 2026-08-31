@@ -4,6 +4,112 @@
     {
       "packages": [
         {
+          "name": "architect",
+          "version": "0.15.5"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[architect][0.15.5] — 2026-08-30",
+      "changelogAnchor": "architect0155--2026-08-30",
+      "highlights": [
+        {
+          "source": "**Architecture work reuses before it creates.** `architect-design` looks for an adequate prior design or existing capability first and creates no new artifact when no real choice remains. A Stage-0 concept is a valid final answer, not a waypoint to a full design.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Architecture work reuses before it creates."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "architect-design"
+            },
+            {
+              "type": "text",
+              "value": " looks for an adequate prior design or existing capability first and creates no new artifact when no real choice remains. A Stage-0 concept is a valid final answer, not a waypoint to a full design."
+            }
+          ]
+        },
+        {
+          "source": "**Architecture reviews challenge unnecessary surface.** `architect-review` gained a design-doc reduction pass covering unnecessary components, services, dependencies, boundaries and custom mechanisms; ignored standard, native or provider capabilities; speculative scale and configurability; and complexity no named quality attribute supports.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Architecture reviews challenge unnecessary surface."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "architect-review"
+            },
+            {
+              "type": "text",
+              "value": " gained a design-doc reduction pass covering unnecessary components, services, dependencies, boundaries and custom mechanisms; ignored standard, native or provider capabilities; speculative scale and configurability; and complexity no named quality attribute supports."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
+          "version": "2.16.5"
+        },
+        {
+          "name": "governance-extras",
+          "version": "0.10.3"
+        }
+      ],
+      "date": "2026-08-30",
+      "heading": "[core][2.16.5] / [governance-extras][0.10.3] — 2026-08-30",
+      "changelogAnchor": "core2165--governance-extras0103--2026-08-30",
+      "highlights": [
+        {
+          "source": "**An RFC that should not exist no longer costs you an identifier and a file.** `new-rfc` now decides what artifact the work actually needs before it resolves an ordinal or writes anything. When the answer is \"skip\", \"an existing decision already covers this\", or \"an ADR, a spec, a PR, an issue, an architecture design, or a reversible trial fits better\", it names the route and stops, leaving nothing behind.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "An RFC that should not exist no longer costs you an identifier and a file."
+            },
+            {
+              "type": "text",
+              "value": " "
+            },
+            {
+              "type": "code",
+              "value": "new-rfc"
+            },
+            {
+              "type": "text",
+              "value": " now decides what artifact the work actually needs before it resolves an ordinal or writes anything. When the answer is \"skip\", \"an existing decision already covers this\", or \"an ADR, a spec, a PR, an issue, an architecture design, or a reversible trial fits better\", it names the route and stops, leaving nothing behind."
+            }
+          ]
+        },
+        {
+          "source": "**RFCs get a review mode built for prose.** The adversarial reviewer now has an RFC mode that needs no code diff, and treats the draft under review as untrusted data that cannot change its scope, severity, verdict, or routing.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "RFCs get a review mode built for prose."
+            },
+            {
+              "type": "text",
+              "value": " The adversarial reviewer now has an RFC mode that needs no code diff, and treats the draft under review as untrusted data that cannot change its scope, severity, verdict, or routing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
           "name": "core",
           "version": "2.16.3"
         }

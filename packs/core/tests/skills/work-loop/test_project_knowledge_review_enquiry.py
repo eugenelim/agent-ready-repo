@@ -6,17 +6,21 @@ from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP_SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
+REVIEW_ENQUIRY_REFERENCE = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "work-loop"
+    / "references"
+    / "review-planning-enquiry.md"
+)
 EVALS = PACK_ROOT / ".apm" / "skills" / "work-loop" / "evals" / "evals.json"
 
 
 def _review_enquiry_section() -> str:
     text = WORK_LOOP_SKILL.read_text(encoding="utf-8")
-    start = text.index("### Review-planning project-knowledge enquiry")
-    # End boundary: the sentence that closes the enquiry branch and hands off to
-    # reviewer dispatch. The previous anchor ("**Record findings after each
-    # pass") was the block the finding-adjudication gateway replaced.
-    end = text.index("After that branch, select a subagent matching", start)
-    return text[start:end]
+    assert "[its protocol](references/review-planning-enquiry.md)" in text
+    return REVIEW_ENQUIRY_REFERENCE.read_text(encoding="utf-8")
 
 
 def _flat(text: str) -> str:
@@ -27,7 +31,7 @@ def test_review_enquiry_precedes_first_dispatch_and_reuses_one_envelope() -> Non
     text = WORK_LOOP_SKILL.read_text(encoding="utf-8")
     section = _flat(_review_enquiry_section())
 
-    assert text.index("### Review-planning project-knowledge enquiry") < text.index(
+    assert text.index("[its protocol](references/review-planning-enquiry.md)") < text.index(
         "select a subagent matching `adversarial-reviewer`"
     )
     assert '"caller":"skill"' in section

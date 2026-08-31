@@ -7,6 +7,14 @@ import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP_SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
+APPROVAL_GATES_REFERENCE = (
+    PACK_ROOT
+    / ".apm"
+    / "skills"
+    / "work-loop"
+    / "references"
+    / "project-knowledge-approval-gates.md"
+)
 PROJECT_KNOWLEDGE_SKILL = (
     PACK_ROOT / ".apm" / "skills" / "project-knowledge" / "SKILL.md"
 )
@@ -21,6 +29,16 @@ CORE_2_5_9_QUESTION_BYTES = (
 
 def _skill_text() -> str:
     return WORK_LOOP_SKILL.read_text(encoding="utf-8")
+
+
+def _approval_gates_text() -> str:
+    skill = _skill_text()
+    step_one = skill[skill.index("## Step 1. PLAN") : skill.index("## Step 2. EXECUTE")]
+    assert (
+        "[`references/project-knowledge-approval-gates.md`]"
+        "(references/project-knowledge-approval-gates.md)" in step_one
+    )
+    return APPROVAL_GATES_REFERENCE.read_text(encoding="utf-8")
 
 
 def closeout_question_bytes() -> bytes:
@@ -66,13 +84,17 @@ def test_project_knowledge_skill_is_the_public_handoff_target() -> None:
 
 
 def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
-    text = _skill_text()
-    spec_gate = text.index("### Project-knowledge gate: `spec-approved`")
-    plan_gate = text.index("### Project-knowledge gate: `plan-locked`")
+    text = _approval_gates_text()
+    spec_gate = text.index("## `spec-approved`")
+    plan_gate = text.index("## `plan-locked`")
 
     assert spec_gate < plan_gate
     spec_section = text[spec_gate:plan_gate]
-    plan_section = text[plan_gate:text.index("For durable work", plan_gate)]
+    # Bound the plan slice at the next top-level heading rather than running to
+    # end-of-file: an unbounded slice would keep passing if the `plan-locked`
+    # gate lost a phrase that a later section happened to carry.
+    next_heading = text.find("\n## ", plan_gate)
+    plan_section = text[plan_gate:] if next_heading == -1 else text[plan_gate:next_heading]
     assert "capture only" in spec_section
     assert "must not transfer" in spec_section
     assert "workflow-receipts" in plan_section
@@ -82,9 +104,7 @@ def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
 
 
 def test_approval_gate_requests_use_public_typed_capture_only() -> None:
-    text = _skill_text()
-    section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
-    section = section.split("For durable work", 1)[0]
+    section = _approval_gates_text()
 
     for field in (
         "contract_version",
@@ -126,9 +146,7 @@ def test_work_loop_declares_its_file_boundaries() -> None:
 
 
 def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
-    text = _skill_text()
-    section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
-    section = section.split("For durable work", 1)[0]
+    section = _approval_gates_text()
 
     assert "objective, boundaries, testing strategy, or acceptance criteria" in section
     assert re.search(

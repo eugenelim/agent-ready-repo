@@ -12,6 +12,12 @@ CATALOGUE_ROOT = Path(__file__).resolve().parents[2]
 WORK_LOOP_SKILL = (
     CATALOGUE_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "SKILL.md"
 )
+# The enquiry protocol is disclosed progressively: SKILL.md routes to the
+# reference, which carries the CQ-REVIEW query. Assert both halves so an
+# extraction that orphans the reference still fails here.
+REVIEW_ENQUIRY_REFERENCE = (
+    WORK_LOOP_SKILL.parent / "references" / "review-planning-enquiry.md"
+)
 PROJECT_KNOWLEDGE = (
     CATALOGUE_ROOT
     / "packs"
@@ -25,9 +31,15 @@ PROJECT_KNOWLEDGE = (
 
 
 def test_documented_review_query_reaches_the_public_parser() -> None:
+    # Match the Markdown link, not the bare path: a plain-text mention of the
+    # filename would satisfy a substring check while the route is broken.
+    assert re.search(
+        r"\]\(references/review-planning-enquiry\.md\)",
+        WORK_LOOP_SKILL.read_text(encoding="utf-8"),
+    ), "SKILL.md no longer links the review-planning enquiry reference"
     match = re.search(
         r'^\{"task_summary":"work-loop review:.*\}$',
-        WORK_LOOP_SKILL.read_text(encoding="utf-8"),
+        REVIEW_ENQUIRY_REFERENCE.read_text(encoding="utf-8"),
         re.MULTILINE,
     )
     assert match is not None
