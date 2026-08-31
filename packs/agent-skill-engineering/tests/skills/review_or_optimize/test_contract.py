@@ -375,6 +375,15 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
             if not verdict
         }
         assert failing <= known_missing, (result["eval_id"], sorted(failing))
+        # And the other direction, matching the authoring side: an exemption
+        # whose miss has since been repaired must be removed. Liveness above
+        # asserts the assertion is still *declared*, not that it is still
+        # failing, so without this a re-record flipping it to true leaves the
+        # exemption standing to excuse the next regression at that assertion.
+        assert known_missing <= failing, (
+            result["eval_id"],
+            sorted(known_missing - failing),
+        )
         # AC14: the values the graded runner emits, so a failure can be
         # attributed. Without these a re-record could drop them silently, and
         # `Mode: review` would again be attested by nothing the fixture holds.

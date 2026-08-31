@@ -708,9 +708,25 @@ def test_recorded_evidence_fields_carry_no_host_identifying_data() -> None:
         "recorded fixtures": 8,
         "eval declarations and payloads": 8,
     }
-    assert set(roots) == set(FLOORS)
+    # Each root's expected parent, so a floor cannot be satisfied by files from
+    # somewhere else. A count alone cannot see a repointed root: aiming the eval
+    # walk at the concepts tree met its floor while the declared root went
+    # unscanned.
+    PARENTS = {
+        "admission record": FIXTURES,
+        "authored concepts": CONCEPTS,
+        "compiled concepts": COMPILED_CONCEPTS,
+        "recorded fixtures": FIXTURES,
+        "eval declarations and payloads": PACK / ".apm" / "skills",
+    }
+    assert set(roots) == set(FLOORS) == set(PARENTS)
     for name, paths in roots.items():
         assert len(paths) >= FLOORS[name], (name, len(paths))
+        for path in paths:
+            assert PARENTS[name] in path.parents or PARENTS[name] == path.parent, (
+                name,
+                str(path),
+            )
         for path in paths:
             _assert_no_patterns(
                 path.read_text(encoding="utf-8", errors="strict"),
