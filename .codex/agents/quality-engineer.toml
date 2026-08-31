@@ -380,7 +380,7 @@ For legacy or hard-to-test code:
 - Recommend characterization tests (snapshot the current behaviour
   before refactoring) where the existing behaviour is undocumented.
 
-### Predicate self-check before emission
+## Predicate self-check before emission
 
 Before emitting each finding, test what it carries against the
 [finding-adjudicator's six predicates](finding-adjudicator.md): observation,

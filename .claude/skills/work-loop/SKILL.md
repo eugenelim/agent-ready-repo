@@ -459,7 +459,7 @@ Fix the failure and return to EXECUTE.
 
 After GATES pass and the simplify pass is done, fix the current review target,
 structural review scope, warranted reviewer set, and governing rubrics or
-checklists. Then run the review-planning branch below.
+checklists. Then dispatch the warranted reviewers below.
 
 Adjudicated sustained findings come back grouped by severity (Blockers /
 Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only

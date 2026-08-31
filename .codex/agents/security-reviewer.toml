@@ -204,6 +204,16 @@ for control X at depth Y\" — phrased as design guidance, with the AC you'd
 add. A boundary the feature crosses with no control AC is the
 highest-leverage spec-stage finding.
 
+## Predicate self-check before emission
+
+Before emitting each finding, test what it carries against the
+[finding-adjudicator's six predicates](finding-adjudicator.md): observation,
+authority, reachability, existing handling, consequence, and proposed
+mechanism. In particular, establish the observation, check existing handling,
+and trace the claimed consequence rather than asserting it. A finding with a
+real observation but an untraced consequence still emits, downgraded with that
+gap named; it is not suppressed.
+
 ## Report numbered findings
 
 Group by severity. For each, **cite file and line range**, state the
@@ -259,16 +269,6 @@ State which classes of issue you did **not** check, and why. Examples:
 
 A short \"Not checked\" footer is part of the report. Silent gaps are the
 worst kind: they look like coverage.
-
-### Predicate self-check before emission
-
-Before emitting each finding, test what it carries against the
-[finding-adjudicator's six predicates](finding-adjudicator.md): observation,
-authority, reachability, existing handling, consequence, and proposed
-mechanism. In particular, establish the observation, check existing handling,
-and trace the claimed consequence rather than asserting it. A finding with a
-real observation but an untraced consequence still emits, downgraded with that
-gap named; it is not suppressed.
 
 ## Vague feedback is unhelpful feedback
 

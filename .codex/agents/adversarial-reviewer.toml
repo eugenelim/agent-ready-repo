@@ -288,7 +288,7 @@ When evaluating verification artifacts, classify each:
 If a test asserts what the compiler already proves, or where the test
 assertion math is identical to the production math, flag it.
 
-### Predicate self-check before emission
+## Predicate self-check before emission
 
 Before emitting each finding, test what it carries against the
 [finding-adjudicator's six predicates](finding-adjudicator.md): observation,
