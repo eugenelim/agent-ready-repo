@@ -160,7 +160,13 @@ def test_security_report_always_includes_not_checked_footer() -> None:
     assert "<issue class not checked and why>" in report
     # Flatten before matching: pinning the prose at its current line wrap
     # would redden on any reflow of a paragraph this test does not own.
-    assert "followed in either case by the `## Not checked` footer" in _flat(report)
+    flat = _flat(report)
+    assert "followed in either case by the `## Not checked` footer" in flat
+    # The footer makes a clean security report non-byte-equal to the bare
+    # sentinel, which costs it any exact-equality fast path. Keep the stated
+    # reason next to the footer: without it, the cheap "fix" is deletion.
+    assert "never byte-identical to the bare sentinel" in flat
+    assert "Do not drop the footer" in flat
 
 
 def test_active_work_loop_has_no_reviewer_knowledge_enquiry() -> None:

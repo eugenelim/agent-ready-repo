@@ -235,6 +235,14 @@ scope summary, or process narration. The orchestrator records this report to
 disk and re-reads it across iterations, so this distilled shape is the contract,
 not a courtesy. Do the full reading; print only the report.
 
+Because the footer accompanies the clean line too, a clean security report is
+never byte-identical to the bare sentinel, so any orchestrator fast path keyed
+on exact equality with `Clean — ready to commit.` will not match a security
+review — it takes the ordinary adjudication path instead. That is deliberate and
+costs one pass. **Do not drop the footer to make a security review match such a
+path**: disclosing the classes you did not check is the control, and a clean
+report is exactly where a silent gap is most expensive.
+
 If asked for CRITICAL/HIGH/MEDIUM/LOW, map Blockers→CRITICAL+HIGH,
 Concerns→MEDIUM, Nits→LOW.
 
