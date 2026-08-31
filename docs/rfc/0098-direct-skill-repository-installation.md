@@ -448,3 +448,43 @@ No corpus verdict changes. Depth was not the binding constraint for any admitted
 **2026-08-28 — Approver: eugenelim.** The measured-envelope entry budget is reduced from 5,000 to **2,500**. With the mutually satisfiable Family-2 budgets at their limits (entries, depth, files, selected skills, and total bytes; per-file bytes measured at total bytes ÷ files), the superseded 5,000-entry budget measured 4.72–4.97 s wall-clock; the 2,500-entry budget measured 1.92–2.12 s wall-clock and 26 MiB resident, so wall-clock binds and memory does not. The recorded corpus maximum is 572 entries, so the reduced limit retains substantial observed headroom while restoring AC36’s single-traversal cost basis. This erratum owns the entry figure; E11 refers to it rather than silently rewriting its approved dated decision.
 
 **2026-08-29 — Approver: eugenelim.** The AC36 CI reference measurement on `ubuntu-latest` provisionally confirms the 5 s / 256 MiB ceiling with the mutually satisfiable Family-2 budgets at their limits; wall-clock, rather than memory, is binding, and the admission-region `tracemalloc` peak is 1.9 MiB, pending T3's direct-admission-entry-point rerun.
+
+### E17 — Skill identity is the envelope directory name
+
+**2026-08-31 — Approver: eugenelim.** E14 says a skill's leaf directory name "must equal the frontmatter name", and D5 treats a mismatch as a refusal. That does not survive contact with the ecosystem. Across a 2,545-skill corpus the frontmatter `name` disagrees with the directory for 6% of skills, and the Agent Skills specification defines `name` as a **display** name that *defaults to* the directory — it is not an identifier and every field including `name` is optional. Requiring equality refuses skills that the reference implementation loads without complaint.
+
+Identity is therefore the envelope directory name and nothing else, and the frontmatter `name` is a display string that never decides identity. This applies uniformly to root-single, collection, and direct-pack shapes; the earlier split, where root-single took its identity from the frontmatter, is withdrawn because one source having two identity rules is the ambiguity this decision exists to remove.
+
+One consequence is load-bearing and is handled rather than accepted. A GitHub source archive extracts under a `<repo>-<ref>/` wrapper, so for a **remote root-single** the enclosing directory name encodes the commit and would change on every upgrade, making the installed identity unstable — the exact failure D5 cited when it preferred the frontmatter name. Acquisition therefore supplies the repository name as the identity for a remote root-single, rather than the wrapper directory it happened to extract into. A local root-single continues to use its own directory name, which the adopter chose and controls.
+
+### E18 — An unrecognised top-level frontmatter key is ignored, not refused
+
+**2026-08-31 — Approver: eugenelim.** D5 lists "an unknown top-level key" among the mandatory refusals. Measured against the same corpus, that rejects most real skills: `requires` alone appears 832 times, followed by `version`, `author`, and `tags`. The specification's field set also grows by release, so a fixed allowlist refuses skills written against a newer version of the very specification this route implements, and Claude Code itself tolerates unknown keys. Refusing is unsustainable in both directions.
+
+An unrecognised top-level key is therefore dropped during parsing regardless of its value type, and never projected as instruction bytes. The recognised set is the specification's own eighteen fields. This is a parsing rule, not a security control: the keys are discarded, so nothing downstream reads them.
+
+### E19 — The measured envelope is the whole subtree
+
+**2026-08-31 — Approver: eugenelim.** D5 defines a skill envelope as `SKILL.md` plus four allowed payload directories (`scripts/`, `references/`, `assets/`, `evals/`), and refuses anything else inside it. The specification defines a skill folder as "a directory for supporting files" with no allowlist, and its own published example places `reference.md` and `examples.md` at the envelope root. In the corpus, 11% of envelopes carry a file the four-directory rule refuses — most often `README.md` or `LICENSE.txt` — which refuses roughly 90% of surveyed repositories over files that are not instructions at all.
+
+The measured envelope is therefore the envelope's whole subtree. The bounds that matter are the Family-2 budgets, which apply to the subtree as measured; a directory allowlist adds no safety the budgets do not already provide. Hidden entries continue to refuse, because a dotfile inside a skill envelope is not supporting material.
+
+### E20 — Block scalars are admitted for skills and refused for agents
+
+**2026-08-31 — Approver: eugenelim.** The bounded frontmatter parser did not support YAML block scalars, and `CAT-L027` reserved a "multiline metadata form not supported" refusal that was never wired to anything. 549 of 2,545 corpus skills — 22% — write `description` as a block scalar, overwhelmingly the folded `>` form.
+
+Block scalars are therefore admitted for skills, in the literal (`|`) and folded (`>`) styles with clip, strip, and keep chomping, verified against a reference YAML parser across every corpus skill that uses one. An explicit indentation indicator is refused rather than guessed at, because mis-reading the indent silently changes the parsed value.
+
+The restriction survives for **agents**, and `CAT-L027` now carries that meaning. The distinction is mechanical rather than stylistic: every adapter copies a skill directory byte-for-byte, so a block scalar in `SKILL.md` reaches each target unchanged, whereas adapters rewrite *agent* frontmatter key by key with a line-based parser that reads `description: >` as the literal string `">"` and drops the folded text. An agent so written reached Cursor, Gemini, and Kiro with no description at all. The previous refusal was incidental — it fired only when an agent also declared `metadata:` — and is now unconditional.
+
+### E21 — The AC36 cost ceiling stands; the measurement that appeared to falsify it was measuring a defect
+
+**2026-08-31 — Approver: eugenelim.** The 2026-08-29 note under E16 records the AC36 ceiling as *provisionally* confirmed pending the direct-admission-entry-point rerun. That rerun measured a 44.2 s median against the 5 s ceiling, and the criterion was retired on the reasoning that source cost is not ours to bound. Both the measurement and the retirement were wrong, in a way worth recording because the shape recurs.
+
+The measurement was real but it was measuring the implementation, not the bound. Two passes in `direct_source.py` re-scanned every enumerated path for every envelope — envelope-to-file assignment and E15 depth enforcement — which at the 500-envelope and 1,000-file limits is 500,000 exception-driven `relative_to` calls. Reproduced at 27.7 s; bucketing paths to their owning envelope in one pass brought it to 12.7 s; linearising the depth pass the same way brought it to under 3 s CPU on the reference configuration, with an admission-region allocation peak of 14.9 MiB against the 256 MiB half of the ceiling.
+
+The ceiling is therefore upheld unchanged at 5 s wall-clock and 256 MiB, AC36 and its harness are restored, and E15's depth-12 and E16's 2,500-entry budgets keep the cost basis they were decided on — no bound moves. The retirement is withdrawn.
+
+Two corrections to how the ceiling is measured follow from this. First, a wall-clock figure on a contended developer machine measures the machine: the same shape measured 5.34 s at a load average of 88 on ten cores and 1.23 s at a load of 4. The harness therefore asserts CPU time unconditionally, records wall-clock always, and asserts wall-clock only when load per core is below 2 — CI's `ubuntu-latest` run remains the reproducible reference AC36 already names. Second, the harness previously filled its fixture with `os.urandom`, which made `SKILL.md` invalid UTF-8, so it measured a refusal and reported it as an admission cost; the filler is now ASCII and the harness asserts it reached the file budget.
+
+Separately, the total-bytes budget was enforced over the finished file list rather than during the read, so a source at the 1,000-file and 1 MiB-per-file limits was fully materialised — roughly 1 GiB resident — before a 25 MiB budget could refuse it. The running total is now checked inside the read loop and carried across envelopes, so that source refuses at the twenty-sixth file.

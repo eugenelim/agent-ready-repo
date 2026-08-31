@@ -37,10 +37,9 @@ def test_classification_contract(tmp_path: Path):
     assert root_result.shape == "root-single"
     assert root_result.files == 1
     assert root_result.entries == 1
-    # Identity is the directory name, per the Agent Skills spec: frontmatter
-    # `name` is a display string that defaults to the directory and never
-    # decides the installed identity. The envelope here is `root-single` while
-    # the frontmatter says `root-skill`, so this asserts which one wins.
+    # AC1/E17: identity is the envelope directory name for every shape, so one
+    # source cannot carry two identity rules. The envelope here is `root-single`
+    # while the frontmatter says `root-skill`, so this asserts which one wins.
     assert root_result.skills[0].name == "root-single"
 
     collection = tmp_path / "collection"
@@ -503,3 +502,23 @@ def test_block_scalar_frontmatter_matches_a_real_yaml_parser():
     assert bounded_metadata.parse_bounded_metadata(
         b"---\ndescription: >\n  folded across\n  two lines\nmodel: opus\n---\n# Demo\n"
     ) == {"description": "folded across two lines\n", "model": "opus"}
+
+
+def test_a_remote_root_single_takes_the_repository_name(tmp_path: Path):
+    # AC1/E17 — a GitHub archive extracts under a `<repo>-<ref>/` wrapper, so
+    # the enclosing directory encodes the commit. Using it would change the
+    # installed identity on every upgrade, which is the instability that argued
+    # for the frontmatter name before the corpus ruled that out.
+    import agentbundle.direct_source as direct_source
+
+    wrapper = tmp_path / "skills-3b3fad96af16a10759d930941b4520ba0c40edae"
+    _write_skill(wrapper, "anything")
+
+    # Without the declaration, identity is the wrapper — commit and all.
+    assert direct_source.admit_direct_source(wrapper).skills[0].name == wrapper.name
+
+    direct_source.declare_remote_root_identity(wrapper, "skills")
+    try:
+        assert direct_source.admit_direct_source(wrapper).skills[0].name == "skills"
+    finally:
+        direct_source._REMOTE_ROOT_IDENTITY.pop(wrapper, None)

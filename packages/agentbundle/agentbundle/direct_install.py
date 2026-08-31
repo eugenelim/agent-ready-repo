@@ -547,8 +547,17 @@ def run_direct_install(args, source: Path | str) -> int:
             if exc.diagnostic.remediation:
                 print(f"  → {exc.diagnostic.remediation}", file=sys.stderr)
             return 1
+        from agentbundle.direct_source import declare_remote_root_identity
+        from agentbundle.direct_source_acquisition import parse_direct_source
+
         source = acquired.root
         revision = acquired.revision
+        # A remote root-single would otherwise take its identity from the
+        # archive's `<repo>-<ref>` wrapper directory, which changes on every
+        # upgrade. The repository name is what stays the same.
+        declare_remote_root_identity(
+            acquired.root, parse_direct_source(source_string).repository
+        )
         # The acquisition tree is ours to remove; nothing else owns it.
         acquired_root = acquired.working
 

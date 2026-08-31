@@ -238,6 +238,20 @@ def classify_direct_source(root: Path) -> DirectClassification:
     raise _refusal(DiagnosticCode.CAT_D009, "direct source has no supported shape")
 
 
+# Set by acquisition for a remote source, so a root-single takes the repository
+# name rather than the archive's `<repo>-<ref>` wrapper directory. AC1/E17: the
+# wrapper encodes the commit, so using it would change the installed identity on
+# every upgrade — the instability that argued for the frontmatter name before
+# the corpus ruled that out.
+_REMOTE_ROOT_IDENTITY: dict[Path, str] = {}
+
+
+def declare_remote_root_identity(root: Path, identity: str) -> None:
+    """Record the stable identity for an acquired remote root-single."""
+
+    _REMOTE_ROOT_IDENTITY[root] = identity
+
+
 def admit_direct_source(root: Path) -> DirectClassification:
     """Run the shared direct admission entry point used by validate and install."""
 
@@ -338,7 +352,7 @@ def _inventory_root_skill(root: Path) -> DirectClassification:
         paths.extend(found)
     _enforce_files(len(paths) + 1)
     _enforce_root_skill_depths(root, paths)
-    files = [named] + [_read_named(root, path) for path in paths]
+    files = [named] + _read_bounded(root, paths, carried=len(named.data))
     skill = _make_skill(root, root, files)
     _enforce_total_bytes(files)
     return DirectClassification(
@@ -379,13 +393,26 @@ def _build_envelopes(
 ) -> tuple[DirectSkill, ...]:
     """Attach only legal measured files to each collection envelope."""
 
+    # Bucket every path to its owning envelope in ONE pass, by walking each
+    # path's own parents. Re-scanning all paths per envelope is quadratic:
+    # at the 500-skill and 1,000-file limits that is 500,000 exception-driven
+    # `relative_to` calls, which measured 27.7s. Walking parents is bounded by
+    # the depth budget instead, and measures 0.05s on the same shape.
+    envelope_set = set(by_envelope)
+    buckets: dict[Path, list[Path]] = {envelope: [] for envelope in envelope_set}
+    for path in paths:
+        for parent in path.parents:
+            if parent in envelope_set:
+                buckets[parent].append(path)
+                break
+
     skills: list[DirectSkill] = []
-    for envelope in sorted(by_envelope, key=lambda candidate: candidate.as_posix()):
-        payload_paths = [
-            path
-            for path in paths
-            if path == envelope / "SKILL.md" or _within_envelope(path, envelope)
-        ]
+    # Carried across envelopes, not reset per envelope: the budget is a
+    # whole-source bound, so 500 envelopes each just under it would otherwise
+    # all be read before the cross-envelope total was ever computed.
+    running_total = 0
+    for envelope in sorted(envelope_set, key=lambda candidate: candidate.as_posix()):
+        payload_paths = sorted(buckets[envelope], key=lambda item: item.as_posix())
         for path in payload_paths:
             relative = path.relative_to(envelope)
             # The envelope is a subtree, not an allowlist of four directories:
@@ -397,7 +424,8 @@ def _build_envelopes(
                     f"hidden entry in skill envelope: {relative}",
                     path=path.relative_to(root).as_posix(),
                 )
-        files = [_read_named(root, path) for path in payload_paths]
+        files = _read_bounded(root, payload_paths, carried=running_total)
+        running_total += sum(len(measured.data) for measured in files)
         skills.append(_make_skill(root, envelope, files))
     assigned = {file.path for skill in skills for file in skill.files}
     for path in paths:
@@ -415,18 +443,22 @@ def _enforce_envelope_depths(
 ) -> None:
     """Apply E15 before any payload file is read."""
 
-    for envelope in by_envelope:
-        for path in paths:
-            if not _within_envelope(path, envelope):
-                continue
-            observed = len(path.relative_to(envelope).parts)
-            if observed > DIRECT_MAX_DEPTH:
-                raise _budget_refusal(
-                    "depth",
-                    DIRECT_MAX_DEPTH,
-                    observed,
-                    path.relative_to(root).as_posix(),
-                )
+    # One pass over paths, walking each path's own parents to find its owning
+    # envelope, rather than re-scanning every path for every envelope. E15
+    # measures depth from the envelope, so the owning envelope is the only one
+    # that can produce a verdict for a given path.
+    envelope_set = set(by_envelope)
+    for path in paths:
+        for depth, parent in enumerate(path.parents, start=1):
+            if parent in envelope_set:
+                if depth > DIRECT_MAX_DEPTH:
+                    raise _budget_refusal(
+                        "depth",
+                        DIRECT_MAX_DEPTH,
+                        depth,
+                        path.relative_to(root).as_posix(),
+                    )
+                break
 
 
 def _enforce_root_skill_depths(root: Path, paths: list[Path]) -> None:
@@ -468,7 +500,11 @@ def _make_skill(root: Path, envelope: Path, files: list[MeasuredFile]) -> Direct
     # the directory name, so it is optional and may legitimately differ or carry
     # spaces and capitals ("Eventbrite Automation"). Holding it to the slug
     # grammar refused 6% of a 2,545-skill corpus over a label.
-    identity = envelope.name if envelope != root else root.name
+    identity = (
+        envelope.name
+        if envelope != root
+        else _REMOTE_ROOT_IDENTITY.get(root, root.name)
+    )
     if not _is_direct_identity(identity):
         raise _refusal(
             DiagnosticCode.CAT_D011,
@@ -543,6 +579,27 @@ def _enforce_total_bytes(files: tuple[MeasuredFile, ...] | list[MeasuredFile]) -
     observed = _total_bytes(files)
     if observed > DIRECT_MAX_TOTAL_BYTES:
         raise _budget_refusal("total-bytes", DIRECT_MAX_TOTAL_BYTES, observed)
+
+
+def _read_bounded(root: Path, paths: list[Path], carried: int = 0) -> list[MeasuredFile]:
+    """Read files, refusing as soon as the running total breaks the budget.
+
+    The budget is checked *inside* the loop rather than over the finished list.
+    Checked afterwards, a source of 1,000 files at the 1 MiB per-file limit is
+    fully materialised — roughly 1 GiB resident — before a 25 MiB budget can
+    refuse it, so the bound that exists to cap the cost is paid in full before
+    it applies. Checked here, the same source refuses at the 26th file.
+    """
+
+    files: list[MeasuredFile] = []
+    total = carried
+    for path in paths:
+        measured = _read_named(root, path)
+        total += len(measured.data)
+        if total > DIRECT_MAX_TOTAL_BYTES:
+            raise _budget_refusal("total-bytes", DIRECT_MAX_TOTAL_BYTES, total)
+        files.append(measured)
+    return files
 
 
 def _total_bytes(files: tuple[MeasuredFile, ...] | list[MeasuredFile]) -> int:
