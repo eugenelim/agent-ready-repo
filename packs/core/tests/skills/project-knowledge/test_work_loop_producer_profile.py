@@ -99,7 +99,7 @@ def _capture_args(repo: Path, gate: str, artifact: str) -> list[str]:
     ]
 
 
-def test_profile_capture_uses_real_bytes_and_pinned_release_version(
+def test_profile_capture_uses_real_bytes_and_producer_contract_version(
     repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     module = load_project_knowledge_module()
@@ -111,15 +111,35 @@ def test_profile_capture_uses_real_bytes_and_pinned_release_version(
     ) == 0
 
     event = _events(repo)[0]
-    manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     assert event["request"]["producer"] == {
         "workflow": "work-loop",
-        "workflow_version": manifest["pack"]["version"],
+        "workflow_version": module.PRODUCER_WORKFLOW_VERSION,
     }
     assert event["request"]["freshness_anchor"]["digest"] == module.digest_bytes(
         (repo / "docs/specs/example/spec.md").read_bytes()
     )
     assert json.loads(capsys.readouterr().out)["capture_id"] == event["capture_id"]
+
+
+def test_producer_version_is_decoupled_from_the_pack_release() -> None:
+    """The recorded producer version must not track `pack.toml`.
+
+    Mirroring the release number made every core bump a two-file edit enforced
+    by a red test, for a field the schema validates as free text and no
+    consumer reads for a decision. This asserts the decoupling directly, so
+    re-introducing the mirror fails here rather than being discovered by the
+    next person who bumps the pack.
+    """
+    module = load_project_knowledge_module()
+    recorded = module.PRODUCER_WORKFLOW_VERSION
+    manifest = tomllib.loads((PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
+    assert recorded != manifest["pack"]["version"], (
+        "producer version is mirroring pack.toml again; it names a contract, "
+        "not a release"
+    )
+    # Names the contract whose shape it versions, so a reader can tell what a
+    # change to it would mean.
+    assert recorded == "work-loop-producer-profile.v1"
 
 
 @pytest.mark.parametrize("artifact", ["../outside.md", "docs/specs/example/spec.md"])

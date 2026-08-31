@@ -24,7 +24,8 @@ Verb surface
     loop-cohort wave advance <spec-dir> --from-index <n> --expect-run-id <uuid>
     loop-cohort review classify --report <path> [--json]
     loop-cohort review inspect <spec-dir> --report <path> [--adjudication] [--json]
-    loop-cohort review record <spec-dir> (--report <path> [--adjudication]
+    loop-cohort review record <spec-dir> (--direct-clean-file <raw-report-path>
+                               | --report <adjudication-report-path> --adjudication
                                | --fingerprint <hex> ...) --expect-run-id <uuid>
     loop-cohort status <spec-dir> [--json]
     loop-cohort reset <spec-dir>
@@ -1955,29 +1956,77 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         )
         return 0
 
-    # Clean branch: --report <path>
-    if not args.report:
-        return stop("review record: one of --report or --fingerprint is required")
-    report_path = _resolved_report(args.report)
-    result = _classify_report(
-        report_path,
-        state,
-        require_adjudication=args.adjudication,
-    )
-    if result["classification"] != "clean":
-        cls = result["classification"]
-        return stop(
-            f"review record --report: report classified as {cls!r}; "
-            "use --fingerprint for a findings round"
+    # Clean branches: a persisted byte-equal reviewer return, or a validated
+    # adjudication report. Both rest on bytes read back from disk, so a
+    # recorded clean round is never the caller's own assertion about what a
+    # reviewer said.
+    direct_clean_file = getattr(args, "direct_clean_file", None)
+    if direct_clean_file is not None:
+        if args.adjudication:
+            return stop(
+                "review record: --direct-clean-file and --adjudication name two "
+                "different recording forms; use --report <path> --adjudication "
+                "for an adjudicated clean"
+            )
+        artifact_path = _resolved_report(direct_clean_file)
+        try:
+            raw = artifact_path.read_bytes()
+        except OSError:
+            return stop(
+                "review record: --direct-clean-file is unreadable; persist the "
+                "reviewer's complete return before recording"
+            )
+        # Byte comparison, not a decode-then-compare: an encoding that merely
+        # round-trips to the sentinel is not the sentinel.
+        if raw != CLEAN_SUBSTRING.encode("utf-8"):
+            return stop(
+                "review record: --direct-clean-file requires the exact clean sentinel"
+            )
+        clean_source = "direct-clean"
+        clean_digest = hashlib.sha256(raw).hexdigest()
+    else:
+        if not args.report:
+            return stop(
+                "review record: one of --direct-clean-file, --report, or "
+                "--fingerprint is required"
+            )
+        if not args.adjudication:
+            return stop(
+                "review record: --report requires --adjudication; use "
+                "--direct-clean-file for a persisted exact raw clean return"
+            )
+        report_path = _resolved_report(args.report)
+        result = _classify_report(
+            report_path,
+            state,
+            require_adjudication=True,
         )
+        if result["classification"] != "clean":
+            cls = result["classification"]
+            return stop(
+                f"review record --report: report classified as {cls!r}; "
+                "use --fingerprint for a findings round"
+            )
+        clean_source = "report"
+        try:
+            clean_digest = hashlib.sha256(report_path.read_bytes()).hexdigest()
+        except OSError:
+            # _classify_report already read it; a race here loses provenance
+            # but must not undo a classification that succeeded.
+            clean_digest = None
 
     state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
     state["finding_fingerprints"] = []
     state["review_round_count"] = int(state.get("review_round_count", 0)) + 1
+    # Provenance: which recording form closed this round, and the digest of the
+    # artifact it rested on. Session resumption reads these to replay the form
+    # instead of inferring it from an artifact whose absence is ambiguous.
+    state["last_review_clean_source"] = clean_source
+    state["last_review_clean_digest"] = clean_digest
     # review_retry_count unchanged on clean review
     write_state_atomic(spec_dir, state)
     print(
-        f"loop-cohort: review record (clean) "
+        f"loop-cohort: review record (clean:{clean_source}) "
         f"round={state['review_round_count']} "
         f"retry={state['review_retry_count']} for {spec_dir.name}"
     )
@@ -2174,8 +2223,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sp.add_argument("spec_dir")
     _rr_grp = sp.add_mutually_exclusive_group(required=True)
-    _rr_grp.add_argument("--report", default=None,
-                         help="path to a clean reviewer report")
+    _rr_grp.add_argument(
+        "--direct-clean-file",
+        default=None,
+        help=(
+            "path to the persisted complete reviewer return; its bytes must "
+            "equal the exact clean sentinel"
+        ),
+    )
+    _rr_grp.add_argument(
+        "--report",
+        default=None,
+        help="path to a clean adjudication report; requires --adjudication",
+    )
     _rr_grp.add_argument(
         "--fingerprint",
         action="append",

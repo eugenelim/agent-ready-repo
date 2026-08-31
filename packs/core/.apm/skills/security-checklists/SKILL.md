@@ -119,8 +119,8 @@ copy. Match the trust boundary the change crosses to its module(s); the
 | [`supply-chain`](references/supply-chain.md) | dependency / lockfile / manifest change, build-artifact fetch (build trust) | **OWASP A03:2025 (new)** |
 | [`config-misconfig`](references/config-misconfig.md) | CORS, IAM, IaC, server / framework / deploy config | OWASP A02:2025 |
 | [`exceptional-conditions`](references/exceptional-conditions.md) | error handling, retries, fallbacks, fail-open paths | **OWASP A10:2025 (new)** (+ A09 logging) |
-| [`llm-agent`](references/llm-agent.md) | prompts, model / tool exposure, MCP, model-output handling, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
-| [`agentic-skills`](references/agentic-skills.md) | skill-file authoring / modification, skill metadata parsing, skill distribution packaging, skill execution sandbox config | OWASP Agentic Skills Top 10 v1.0 (AST01–AST10) |
+| [`llm-agent`](references/llm-agent.md) | changed prompt trust boundary, model/tool authority, permissions, MCP, sandboxing, model-output/data handling, agentic action | OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026 |
+| [`agentic-skills`](references/agentic-skills.md) | skill changes to authority, untrusted-input handling, tools, permissions, sandboxing, metadata parsing, security-metadata declarations (`metadata.boundaries`, `metadata.credentialed`), distribution security, or data handling | OWASP Agentic Skills Top 10 v1.0 (AST01–AST10) |
 
 Threat modeling (STRIDE + LINDDUN for privacy) and design-time Insecure
 Design (A06 / Proactive Controls 2024) are **not** runtime modules: STRIDE +

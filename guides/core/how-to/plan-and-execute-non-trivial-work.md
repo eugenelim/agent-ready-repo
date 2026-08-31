@@ -78,7 +78,10 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
 4. Spec body fills in: Objective, Boundaries (including at least one structural `Never do`), Testing Strategy with a verification mode per outcome, Acceptance Criteria.
 5. Plan body fills in: tasks with `Tests:` before `Approach:`, explicit `Depends on:`, verification mode per task.
 6. `shaping-reviewer` first reads the draft contract cold for scope and observability. `adversarial-reviewer` then reads the complete spec and plan for construction risk; `security-reviewer` and `quality-engineer` remain later code-review lenses.
-7. Every completed `adversarial-reviewer` report, including a clean claim, goes through
+7. Every `adversarial-reviewer` report is persisted first. An
+   `adversarial-reviewer` report whose persisted bytes are exactly
+   `Clean — ready to commit.` closes the round without an adjudicator call.
+   Every other completed report goes through
    `finding-adjudicator` before the author classifies it or edits either
    artifact. Only sustained findings can change the spec or plan; refuted
    findings stay in the audit, and an indeterminate result stops for your
@@ -89,7 +92,7 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
    disposition, the author also states what that gate proves and one relevant
    blind spot; the spec-status lint's own module contract remains the source for
    its scope.
-9. Review iterates to adjudicated clean — usually one to two passes. If it
+9. Review iterates to direct or adjudicated clean — usually one to two passes. If it
    cannot reach clean in three, the skill stops and asks for human direction;
    the spec likely has a structural problem, not a wording one.
 10. The skill updates `docs/specs/README.md` and reminds you that spec drift is a

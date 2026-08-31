@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Threat-model and secure-design reviewer for changes that cross a security boundary — auth, data handling, dependencies, deserialization, file/network I/O, secrets, or LLM/agent code. Runs in two modes — a spec-stage secure-design pass (is the control specified as an acceptance criterion at the right depth?) and an implementation pass on the diff. Reads AGENTS.md, CONVENTIONS.md, any docs/architecture/security.md, the diff, and the spec if one exists; reasons along a current multi-framework stack (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25) plus a STRIDE + LINDDUN open pass, with boundary-scoped depth inlined into its brief by the orchestrator from the security-checklists skill. Tags every check tool / hybrid / reason. Complements -- does not replace -- SAST/SCA scanners and adversarial-reviewer. Use at spec stage on security-boundary work, and after adversarial-reviewer is clean before merging. Re-run iteratively until the agent reports `Clean — ready to commit.`
+description: Threat-model and secure-design reviewer for changes that alter a security boundary, data flow, or guarding control — auth, data handling, dependency trust, deserialization, file/network controls, secrets, or LLM/agent authority and tool surfaces. Ordinary prompt wording with no authority, untrusted-input, tool, permission, sandbox, or data-handling effect does not trigger it. Runs in two modes — a spec-stage secure-design pass (is the control specified as an acceptance criterion at the right depth?) and an implementation pass on the diff. Reads AGENTS.md, CONVENTIONS.md, any docs/architecture/security.md, the diff, and the spec if one exists; reasons along a current multi-framework stack (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25) plus a STRIDE + LINDDUN open pass, with boundary-scoped depth inlined into its brief by the orchestrator from the security-checklists skill. Tags every check tool / hybrid / reason. Complements -- does not replace -- SAST/SCA scanners and adversarial-reviewer. Use at spec stage on security-boundary work, and after adversarial-reviewer is clean before merging. Re-run iteratively until the agent reports `Clean — ready to commit.`
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -70,10 +70,15 @@ Invoke security-reviewer for diffs that touch:
 - User input from any boundary (HTTP, queue, file upload, deserialization).
 - SQL, command, shell, template, or LDAP construction.
 - Crypto, signing, hashing, randomness, key/secret handling.
-- File system or network I/O (especially outbound — SSRF risk).
+- File system or network trust boundaries, data flows, or guarding controls,
+  including validation, confinement, redirect handling, timeout/resource
+  limits, and metadata/internal-range blocking.
 - Dependency or container-image changes; build/CI configuration.
-- LLM- or agent-related code: prompt construction, tool/function exposure,
-  MCP servers, sandboxing, model output handling.
+- LLM- or agent-related authority, untrusted-input handling, tool/function
+  exposure, permissions, MCP servers, sandboxing, or model/data-output handling.
+
+Merely touching unchanged existing I/O does not fire this reviewer. Neither does
+ordinary prompt wording that changes none of the LLM/agent surfaces above.
 
 For diffs that don't touch any of the above, the adversarial-reviewer's
 implementation-stage "Security and privacy" check is sufficient — don't

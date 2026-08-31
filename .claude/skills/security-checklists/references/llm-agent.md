@@ -1,8 +1,9 @@
 # llm-agent — prompts, tool exposure, MCP, model output
 
-> **Loaded when:** the change constructs prompts, exposes tools/functions to a
-> model, runs an MCP server/client, sandboxes agent actions, or consumes model
-> output.
+> **Loaded when:** the change alters a prompt trust boundary, exposes or changes
+> model tools/functions or permissions, runs an MCP server/client, changes agent
+> sandboxing, or changes model-output/data handling. Ordinary prompt wording
+> with none of those effects does not load this module.
 > **Standards:** OWASP Top 10 for LLM Applications:2025 (LLM01 Prompt
 > Injection, LLM02 Sensitive Information Disclosure, LLM04 Data & Model
 > Poisoning, LLM05 Improper Output Handling, LLM06 Excessive Agency, LLM03

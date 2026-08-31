@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Cross-platform CLI self-test for the Phase-1 loop-cohort contract.
 
-The 46 native cases from the former ``test-loop-cohort.sh`` suite each
+The native cases from the former ``test-loop-cohort.sh`` suite each
 construct the state they need, so failures do not cascade through a shared
-counter or a mutable fixture.  The five suites that the shell wrapper invoked
-recursively are independent CI/test-all gates, preserving all 51 checks while
-making their failures and durations visible.  This module uses only the Python
-standard library.
+counter or a mutable fixture. The suites that the shell wrapper invoked
+recursively remain independent CI/test-all gates. This module uses only the
+Python standard library.
 """
 
 from __future__ import annotations
@@ -46,6 +45,11 @@ EXPECTED_STATE_KEYS = {
     "max_review_retries",
     "finding_fingerprints",
     "previous_finding_fingerprints",
+    # Clean-round provenance: which recording form closed the round, and the
+    # digest of the artifact it rested on. Resumption reads these instead of
+    # inferring the form from an artifact whose absence is ambiguous.
+    "last_review_clean_source",
+    "last_review_clean_digest",
     "auto_parallel",
     "last_commit_sha",
     "worktrees",
@@ -102,6 +106,32 @@ FINDINGS_REPORT = """## Blockers
 **2. Typo.** `src/bar.py:10`. Spelling error. Fix: fix it.
 """
 CLEAN_REPORT = "Review complete.\n\nClean — ready to commit.\n"
+CLEAN_ADJUDICATION = """## Main-loop result
+Clean — ready to commit.
+
+## Refuted audit
+None.
+
+## Indeterminate audit
+None.
+"""
+# A well-formed adjudication envelope that sustains findings. Distinct from
+# FINDINGS_REPORT, which is a heading-free legacy body: this one satisfies the
+# envelope check, so it reaches the classification guard rather than being
+# turned away as `legacy-report` before classification runs.
+FINDINGS_ADJUDICATION = """## Main-loop result
+
+**1. [Blocker] Missing null check.** `src/foo.py:42`. Sustained: the value is not validated on the untrusted path. Proposed mechanism: adequate. Fix: add a guard.
+
+## Refuted audit
+None.
+
+## Indeterminate audit
+None.
+"""
+# The exact sentinel and nothing else. Written as bytes so the fixture cannot
+# acquire a trailing newline from an editor or a text-mode write.
+DIRECT_CLEAN_BYTES = "Clean — ready to commit.".encode()
 
 
 class LoopCohortCliTest(unittest.TestCase):
@@ -185,6 +215,21 @@ class LoopCohortCliTest(unittest.TestCase):
         findings.write_text(FINDINGS_REPORT, encoding="utf-8")
         clean.write_text(CLEAN_REPORT, encoding="utf-8")
         return findings, clean
+
+    def _clean_adjudication(self, spec_dir: Path) -> Path:
+        report = spec_dir.parent / "clean-adjudication.md"
+        report.write_text(CLEAN_ADJUDICATION, encoding="utf-8")
+        return report
+
+    def _findings_adjudication(self, spec_dir: Path) -> Path:
+        report = spec_dir.parent / "findings-adjudication.md"
+        report.write_text(FINDINGS_ADJUDICATION, encoding="utf-8")
+        return report
+
+    def _direct_clean_file(self, spec_dir: Path, body: bytes = DIRECT_CLEAN_BYTES) -> Path:
+        artifact = spec_dir.parent / "raw-clean.md"
+        artifact.write_bytes(body)
+        return artifact
 
     @staticmethod
     def _state(spec_dir: Path) -> dict[str, object]:
@@ -458,14 +503,29 @@ class LoopCohortCliTest(unittest.TestCase):
 
     def test_40_review_record_clean_report_succeeds(self) -> None:
         spec_dir, run_id = self._scheduled()
-        _, clean = self._reports(spec_dir)
-        self._assert_cli(
-            0, "review", "record", str(spec_dir), "--report", str(clean), "--expect-run-id", run_id
+        clean = self._clean_adjudication(spec_dir)
+        result = self._assert_cli(
+            0,
+            "review",
+            "record",
+            str(spec_dir),
+            "--report",
+            str(clean),
+            "--adjudication",
+            "--expect-run-id",
+            run_id,
+        )
+        self.assertIn("review record (clean:report)", result.stdout)
+        state = self._state(spec_dir)
+        self.assertEqual(state["last_review_clean_source"], "report")
+        self.assertEqual(
+            state["last_review_clean_digest"],
+            hashlib.sha256(clean.read_bytes()).hexdigest(),
         )
 
     def test_41_review_record_clean_report_only_increments_round(self) -> None:
         spec_dir, run_id = self._scheduled()
-        _, clean = self._reports(spec_dir)
+        clean = self._clean_adjudication(spec_dir)
         self._assert_cli(
             0,
             "review",
@@ -477,7 +537,15 @@ class LoopCohortCliTest(unittest.TestCase):
             run_id,
         )
         self._assert_cli(
-            0, "review", "record", str(spec_dir), "--report", str(clean), "--expect-run-id", run_id
+            0,
+            "review",
+            "record",
+            str(spec_dir),
+            "--report",
+            str(clean),
+            "--adjudication",
+            "--expect-run-id",
+            run_id,
         )
         state = self._state(spec_dir)
         self.assertEqual((state["review_round_count"], state["review_retry_count"]), (2, 1))
@@ -485,6 +553,9 @@ class LoopCohortCliTest(unittest.TestCase):
     def test_42_review_record_rejects_nonclean_report(self) -> None:
         spec_dir, run_id = self._scheduled()
         findings, _ = self._reports(spec_dir)
+        # `--adjudication` is required for the call to reach classification at
+        # all; without it the precondition turns it away first and this case
+        # would silently guard a different branch.
         self._assert_cli(
             1,
             "review",
@@ -492,9 +563,133 @@ class LoopCohortCliTest(unittest.TestCase):
             str(spec_dir),
             "--report",
             str(findings),
+            "--adjudication",
+            "--expect-run-id",
+            run_id,
+            stderr_contains="classified as",
+        )
+
+    def test_42d_review_record_rejects_findings_bearing_adjudication(self) -> None:
+        """A well-formed envelope carrying findings must not close the round.
+
+        This is the case the classification guard exists for. `test_42` reaches
+        the same guard through `legacy-report`/`invalid`; only a valid envelope
+        whose findings parse reaches it through the `findings` classification.
+        """
+        spec_dir, run_id = self._scheduled()
+        findings = self._findings_adjudication(spec_dir)
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--report",
+            str(findings),
+            "--adjudication",
+            "--expect-run-id",
+            run_id,
+            stderr_contains="classified as 'findings'",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
+
+    def test_42a_review_record_accepts_exact_direct_clean_file(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        artifact = self._direct_clean_file(spec_dir)
+        result = self._assert_cli(
+            0,
+            "review",
+            "record",
+            str(spec_dir),
+            "--direct-clean-file",
+            str(artifact),
             "--expect-run-id",
             run_id,
         )
+        self.assertIn("review record (clean:direct-clean)", result.stdout)
+        state = self._state(spec_dir)
+        self.assertEqual((state["review_round_count"], state["review_retry_count"]), (1, 0))
+        self.assertEqual(state["last_review_clean_source"], "direct-clean")
+        self.assertEqual(
+            state["last_review_clean_digest"],
+            hashlib.sha256(DIRECT_CLEAN_BYTES).hexdigest(),
+        )
+
+    def test_42b_review_record_rejects_near_miss_without_state_change(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        artifact = self._direct_clean_file(spec_dir, DIRECT_CLEAN_BYTES + b"\n")
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        result = self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--direct-clean-file",
+            str(artifact),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="--direct-clean-file requires the exact clean sentinel",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
+        # Kept alongside the positive assertion: the refusal must name the rule
+        # without echoing the caller's near-miss value back into the log.
+        self.assertNotIn("Clean — ready to commit.", result.stderr)
+
+    def test_42c_review_record_rejects_raw_wrapped_clean_without_state_change(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        _, clean = self._reports(spec_dir)
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--report",
+            str(clean),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="--report requires --adjudication",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
+
+    def test_42e_review_record_rejects_direct_clean_file_with_adjudication(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        artifact = self._direct_clean_file(spec_dir)
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--direct-clean-file",
+            str(artifact),
+            "--adjudication",
+            "--expect-run-id",
+            run_id,
+            stderr_contains="two different recording forms",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
+
+    def test_42f_review_record_rejects_unreadable_direct_clean_file(self) -> None:
+        spec_dir, run_id = self._scheduled()
+        state_path = spec_dir / "state.json"
+        before = state_path.read_bytes()
+        self._assert_cli(
+            1,
+            "review",
+            "record",
+            str(spec_dir),
+            "--direct-clean-file",
+            str(spec_dir.parent / "never-written.md"),
+            "--expect-run-id",
+            run_id,
+            stderr_contains="--direct-clean-file is unreadable",
+        )
+        self.assertEqual(state_path.read_bytes(), before)
 
     def test_43_status_is_read_only(self) -> None:
         spec_dir, _ = self._scheduled()

@@ -30,12 +30,12 @@ MODULES = [
 ]
 ROUTES = {
     "access-control": ("authz / object- & function-level access; a new or changed endpoint, handler, RPC", "OWASP A01:2025 + API Security Top 10:2023 (BOLA/BFLA)"),
-    "agentic-skills": ("skill-file authoring / modification, skill metadata parsing, skill distribution packaging, skill execution sandbox config", "OWASP Agentic Skills Top 10 v1.0 (AST01–AST10)"),
+    "agentic-skills": ("skill changes to authority, untrusted-input handling, tools, permissions, sandboxing, metadata parsing, security-metadata declarations (`metadata.boundaries`, `metadata.credentialed`), distribution security, or data handling", "OWASP Agentic Skills Top 10 v1.0 (AST01–AST10)"),
     "authn-session": ("authentication, session, login, password, MFA, tokens (JWT / API key)", "OWASP A07:2025 + ASVS 5.0 V6/V7"),
     "config-misconfig": ("CORS, IAM, IaC, server / framework / deploy config", "OWASP A02:2025"),
     "exceptional-conditions": ("error handling, retries, fallbacks, fail-open paths", "**OWASP A10:2025 (new)** (+ A09 logging)"),
     "injection": ("untrusted input → interpreter / deserializer (SQL / shell / template / LDAP / HTML; deserialization)", "OWASP A05:2025 (+ A08 deserialization)"),
-    "llm-agent": ("prompts, model / tool exposure, MCP, model-output handling, agentic action", "OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026"),
+    "llm-agent": ("changed prompt trust boundary, model/tool authority, permissions, MCP, sandboxing, model-output/data handling, agentic action", "OWASP LLM Top 10:2025 + OWASP Top 10 for Agentic Applications:2026"),
     "outbound-ssrf": ("outbound HTTP / DNS / URL fetch, webhooks", "OWASP A01:2025 (SSRF) + ASVS 5.0 V13"),
     "path-and-file": ("filesystem path from input, file upload, archive extraction", "CWE-22 / CWE-73 + ASVS 5.0 V12"),
     "secrets-and-crypto": ("secrets, keys, hashing, signing, crypto, randomness", "OWASP A04:2025 + ASVS 5.0 V11"),

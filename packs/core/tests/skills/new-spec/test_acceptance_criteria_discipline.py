@@ -219,16 +219,17 @@ def test_corpus_absence_rule_precedes_the_sign_off_gate() -> None:
     )
 
 
-def test_spec_review_adjudicates_every_report_before_action() -> None:
-    """A raw finding or clean claim must never drive the authoring loop."""
+def test_spec_review_accepts_only_exact_clean_before_adjudication() -> None:
+    """Exact clean closes directly; every other report uses the gateway."""
     body = flattened(SKILL)
-    report = "Every completed reviewer report, including one that claims clean"
-    gateway = "passes through `finding-adjudicator` before the author classifies or acts on it"
+    direct = "entire returned text value is exactly `Clean — ready to commit.`"
+    no_artifacts = "Do not persist, validate, or adjudicate that exact value"
+    gateway = "Every non-exact report passes through `finding-adjudicator`"
     repair = "Before repairing each sustained finding"
-    assert report in body
-    assert gateway in body
-    assert repair in body
-    assert body.index(report) < body.index(gateway) < body.index(repair)
+    for phrase in (direct, no_artifacts, gateway, repair):
+        assert phrase in body
+    assert body.index(direct) < body.index(no_artifacts) < body.index(gateway)
+    assert body.index(gateway) < body.index(repair)
     assert "Revise the spec or plan only from sustained findings" in body
     assert "Reuse its reachability predicate; do not restate or reimplement it here" in body
 
@@ -244,7 +245,7 @@ def test_spec_review_adjudication_has_an_executable_artifact_path() -> None:
         "(../work-loop/references/pre-execute-review.md)"
     )
     ignored = "prove `.context/reviews/` is ignored"
-    persist = "persist the complete raw report"
+    persist = "persist the complete non-exact raw report"
     validate = "validate that artifact before dispatch"
     dispatch = "dispatch `finding-adjudicator` by the validated path"
     context = (

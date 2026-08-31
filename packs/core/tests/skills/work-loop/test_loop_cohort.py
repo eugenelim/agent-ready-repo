@@ -1338,6 +1338,10 @@ SAMPLE_FINDINGS_REPORT = """\
 """
 
 CLEAN_REPORT = f"Review complete.\n\n{CLEAN_SUBSTRING}\n"
+CLEAN_ADJUDICATION = (
+    f"## Main-loop result\n{CLEAN_SUBSTRING}\n\n"
+    "## Refuted audit\nNone.\n\n## Indeterminate audit\nNone.\n"
+)
 
 EMPTY_REPORT = "No findings reported here."
 
@@ -1521,8 +1525,9 @@ def test_review_record_report_increments_only_round(tmp: Path) -> None:
         "finding_fingerprints": [], "previous_finding_fingerprints": [],
     })
     report = tmp / "clean3.md"
-    report.write_text(CLEAN_REPORT, encoding="utf-8")
+    report.write_text(CLEAN_ADJUDICATION, encoding="utf-8")
     rc, _, _ = run_cohort("review", "record", str(spec_dir), "--report", str(report),
+                          "--adjudication",
                           "--expect-run-id", run_id)
     if rc != 0:
         fail(name, f"expected exit 0; got {rc}")
@@ -1684,9 +1689,10 @@ def test_review_record_clean_resets_fingerprint_baseline(tmp: Path) -> None:
     })
     # Clean review resets baseline to []
     report = tmp / "clean4.md"
-    report.write_text(CLEAN_REPORT, encoding="utf-8")
+    report.write_text(CLEAN_ADJUDICATION, encoding="utf-8")
     run_cohort(
-        "review", "record", str(spec_dir), "--report", str(report), "--expect-run-id", run_id
+        "review", "record", str(spec_dir), "--report", str(report), "--adjudication",
+        "--expect-run-id", run_id
     )
     # Now inspect the same findings report
     findings_report = tmp / "findings3.md"

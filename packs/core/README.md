@@ -118,8 +118,9 @@ work-loop execute spec/data-export
   ● Review        1 blocker → sustained → fixed → clean
 ```
 
-Every completed reviewer report passes through an independent, read-only
-adjudicator before it can trigger a repair. Evidence-supported findings
+Every completed reviewer report is persisted, and every report except a raw
+return whose bytes are exactly `Clean — ready to commit.` passes through an
+independent, read-only adjudicator before it can trigger a repair. Evidence-supported findings
 continue into the loop, false positives remain in the audit, and a missing
 machine-checkable fact can be supplied through one bounded, predeclared
 read-only gate without giving the adjudicator execution tools. Other missing

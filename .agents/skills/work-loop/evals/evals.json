@@ -84,14 +84,15 @@
       ]
     },
     {
-      "id": "phase1-explicit-auth-clean-report-replay",
-      "prompt": "The adversarial reviewer returned `Clean \u2014 ready to commit.`. You need to run `loop-cohort review record --report <report-path> --expect-run-id $run_id`. The same clean report was already recorded in the previous round. What must you do before replaying it?",
-      "expected_output": "Before replaying a `review record --report` for an already-recorded clean report, obtain and record explicit human authorization. Replaying distorts the audit history by incrementing `review_round_count` a second time for the same clean signal and may overwrite one level of fingerprint audit history. Surface the situation: state that the clean report was already recorded, explain both the double-increment of `review_round_count` and the fingerprint audit history overwrite risk, and require explicit confirmation before issuing the second `review record --report` call. Name the minimum viable recovery rung: steer (redirect this session once the human grants authorization).",
+      "id": "phase1-explicit-auth-clean-record-replay",
+      "prompt": "The adversarial reviewer returned exactly `Clean \u2014 ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
+      "expected_output": "Before replaying an already-recorded clean signal, obtain and record explicit human authorization. Replay the original form only: exact raw clean uses `review record --direct-clean-file <raw-report-path>`, replayed against the same persisted artifact and identified by `last_review_clean_source` in `state.json`; clean produced by adjudication uses `review record --report <adjudication-report-path> --adjudication`. Replaying either form distorts audit history by incrementing `review_round_count` a second time for the same signal and may overwrite one level of fingerprint audit history. Surface the situation, explain both impacts, require explicit confirmation, and name the minimum viable recovery rung: steer.",
       "assertions": [
         "Response requires explicit human authorization before the replay",
-        "Response explains the audit-history impact of a duplicate `review record --report`",
+        "Response preserves `--direct-clean-file` for exact raw clean and `--report --adjudication` for adjudicated clean, and resolves which form to replay from `last_review_clean_source` rather than from artifact presence",
+        "Response explains the audit-history impact of a duplicate clean record",
         "Response mentions the fingerprint audit history overwrite risk",
-        "Response does not silently re-issue `review record --report` without authorization",
+        "Response does not silently re-issue either clean record form without authorization",
         "Response surfaces the situation to the human with a clear description",
         "Response names the minimum viable recovery rung (steer)"
       ]
@@ -464,13 +465,13 @@
     },
     {
       "id": "review-verdict-missing-adjudicator-blocks",
-      "prompt": "A reviewer report is ready for classification, but no finding-adjudicator subagent is available. Can work-loop treat the absence as a named skip or proceed with the raw report?",
-      "expected_output": "No. A missing finding-adjudicator is a loud stop that produces BLOCKED. Work-loop never treats it as a named skip, trusts the raw report directly, or continues through the existing explicit disposition path. The mandatory gateway cannot be waived.",
+      "prompt": "A non-exact, finding-bearing reviewer report is ready for classification, but no finding-adjudicator subagent is available. Can work-loop treat the absence as a named skip or proceed with the raw report?",
+      "expected_output": "No. For a non-exact report, a missing finding-adjudicator is a loud stop that produces BLOCKED. Work-loop never treats it as a named skip, trusts the raw report directly, or continues through the existing explicit disposition path. The mandatory gateway for non-exact reports cannot be waived.",
       "assertions": [
         "Emits BLOCKED",
         "Does not allow a named skip for the missing adjudicator",
         "Does not trust the raw report directly",
-        "The mandatory gateway cannot be waived"
+        "The mandatory gateway for non-exact reports cannot be waived"
       ]
     },
     {
@@ -566,6 +567,30 @@
         "Reruns normal reviews and human approval on the amended fingerprint",
         "Schedules only unfinished tasks",
         "Rejects automatic amendment from time, retry, stasis, or model judgment"
+      ]
+    },
+    {
+      "id": "exact-clean-bypasses-adjudication",
+      "prompt": "A reviewer returns exactly `Clean — ready to commit.`. Contrast the required handling with a return that has the same text plus one trailing newline, and state the reviewer-model call impact for direct-light and ordinary full review.",
+      "expected_output": "Compare the entire returned text value before persistence. The exact sentinel is direct clean: do not persist or validate it, dispatch finding-adjudicator, create paired artifacts, or run an adjudication classifier. The trailing-newline variant is non-exact and must enter the fail-closed adjudication gateway. Direct-light clean review therefore uses one reviewer-model call instead of two; an ordinary full review with adversarial and quality reviewers uses two model calls instead of four when both return the exact sentinel.",
+      "assertions": [
+        "Requires whole-value exact equality before persistence",
+        "Skips persistence, validation, adjudicator dispatch, paired artifacts, and classification for exact clean",
+        "Routes the trailing-newline near miss through adjudication",
+        "States one rather than two model calls for direct-light clean review",
+        "States two rather than four model calls for ordinary full clean review"
+      ]
+    },
+    {
+      "id": "light-mode-trigger-boundaries",
+      "prompt": "Classify these work-loop routing cases: (1) one implementer plus mandatory automated reviewers, (2) wording changed near unchanged existing file I/O, (3) a changed path-confinement control, (4) ordinary agent prompt wording, and (5) an agent tool-permission change.",
+      "expected_output": "Mandatory automated reviewers do not make one-implementer work multi-person, so case 1 does not fire that full-mode trigger. Merely touching unchanged existing file/network I/O does not fire the security-boundary trigger, so case 2 does not fire it. A changed path-confinement control guards a trust boundary and does fire it in case 3. Ordinary prompt wording with no authority, input, tool, permission, sandbox, or data-handling effect does not fire security review in case 4. The tool-permission change alters agent authority and permissions, so case 5 requires security review.",
+      "assertions": [
+        "Excludes mandatory automated reviewers from multi-person",
+        "Excludes unchanged existing file or network I/O",
+        "Includes a changed boundary-guarding control",
+        "Excludes ordinary prompt wording without security effects",
+        "Includes agent tool or permission changes"
       ]
     },
     {

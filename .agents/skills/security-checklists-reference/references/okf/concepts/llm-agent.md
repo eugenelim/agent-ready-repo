@@ -9,9 +9,10 @@ boundaries:
 ---
 # llm-agent
 
-Use when the change constructs prompts, exposes tools/functions to a model,
-runs MCP, sandboxes agent actions, delegates agents, persists memory, or
-consumes model output.
+Use when the change alters a prompt trust boundary, model/tool authority,
+permissions, MCP, sandboxing, agent delegation, persisted memory, or
+model-output/data handling. Ordinary prompt wording with none of those effects
+does not load this module.
 
 ## Spec-stage
 

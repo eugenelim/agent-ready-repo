@@ -2774,10 +2774,10 @@ def test_findings_remain_skill_prose_present(tmp: Path) -> None:
 
 
 def test_reviewers_clean_record_forms_present(tmp: Path) -> None:
-    """--report and --all-skipped exist in cohort review record --help."""
+    """All clean record forms exist in cohort review record --help."""
     rc, out, err = run_cohort("review", "record", "--help")
     combined = out + err
-    if "--report" not in combined or "--all-skipped" not in combined:
+    if any(flag not in combined for flag in ("--direct-clean", "--report", "--all-skipped")):
         fail("reviewers-clean-record-forms-present",
              f"missing flags in help: {combined!r}")
     else:

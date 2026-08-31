@@ -83,8 +83,8 @@ Each is closed on the same terms as the top level.
 
 Apply in order, without compensation:
 
-1. `BLOCKED` — an unresolved blocker, a failed required gate, a missing
-   `finding-adjudicator`, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
+1. `BLOCKED` — an unresolved blocker, a failed required gate, a missing required
+   `finding-adjudicator` for a non-exact report, an `ADJUDICATION-INDETERMINATE` stop, an invalid,
    missing, or named-skipped mandatory review, or prohibited silent suppression.
 2. `CHANGES_REQUIRED` — a finding still requires action.
 3. `READY_WITH_RESIDUAL_RISK` — every mandatory control passed and at least one
@@ -98,7 +98,7 @@ state blocked.
 
 Closed. Only a named skip for a warranted non-mandatory reviewer, an explicitly
 accepted deferral, or an explicitly accepted analysis blind spot qualifies. A
-missing `finding-adjudicator`, a failed gate, an invalid or missing mandatory
+missing required `finding-adjudicator` for a non-exact report, a failed gate, an invalid or missing mandatory
 review (including a named skip), an unresolved blocker, and silent suppression
 never qualify.
 

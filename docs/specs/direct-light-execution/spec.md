@@ -1,6 +1,6 @@
 # Spec: direct-light execution
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [`[core][2.17.1]`](../../product/changelog.md) — AC5's durability-trigger enumeration item "multi-person or parallel execution" is renamed "Multi-implementer, external-collaborator, or parallel execution" and narrowed: mandatory automated reviewers no longer make work multi-person; every other decision stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0094 and ADR-0092 (both authored by this spec).

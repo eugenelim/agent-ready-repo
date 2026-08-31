@@ -99,9 +99,9 @@ Throughout this skill, **surface** means: stop the current loop, emit a short de
 **Risk triggers — any one routes to full mode:**
 
 - **Unfamiliar** — territory the agent doesn't know well.
-- **Multi-person** — more than one person builds or reviews it.
+- **Multi-person** — multiple implementers or external collaborators participate; mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature brief, or its tasks depend on one another.
-- **Compliance, governance, or security boundary** — auth, secrets, user input, deserialization, file/network I/O.
+- **Compliance, governance, or security boundary** — auth, secrets, untrusted input, deserialization, or a changed file/network trust boundary, data flow, or guarding control.
 - **Structural or public-interface change** — new module, layer, or boundary; or a public/published interface.
 - **Destructive or irreversible operation** — deletes data, force-pushes, drops tables.
 - **New dependency** — adds a dependency.
@@ -216,13 +216,13 @@ A cold read reliably catches things the build-session agent systematically misse
 | `security-reviewer` | When the diff crosses a security boundary | OWASP Top 10:2025, ASVS 5.0, STRIDE + LINDDUN; boundary-keyed module loading |
 | `quality-engineer` | Full mode, end-of-session checklist | Testability, observability, reliability, maintainability; drafts tests on request |
 
-**Default selection:** `adversarial-reviewer` runs on every diff. The other two fire on risk — security when the change touches auth, secrets, user input, deserialization, file/network I/O, dependencies, or LLM/agent code; quality-engineer in full mode, not light.
+**Default selection:** `adversarial-reviewer` runs on every diff. The other two fire on risk — security when the change alters auth, secrets, untrusted input, deserialization, dependency trust, a file/network trust boundary, data flow, or guarding control, or an LLM/agent authority, tool, permission, sandbox, or data-handling boundary; quality-engineer in full mode, not light. Merely touching unchanged I/O or ordinary prompt wording does not fire security review.
 
 ### Depth modules: security-checklists and operational-safety
 
 Two skills extend the reviewer pair with boundary-keyed content loaded inline — they are not entry points and are never invoked directly:
 
-- **`security-checklists`** — loaded by `security-reviewer` when the diff crosses a named security boundary (auth, secrets, user input, deserialization, file/network I/O, LLM/agent code). Provides the matching boundary module's checklist items, drawn from OWASP 2025, ASVS 5.0, and CWE Top 25.
+- **`security-checklists`** — loaded by `security-reviewer` when the diff changes a named security boundary or a control guarding one. For agent code, that means authority, untrusted-input, tool, permission, sandbox, or data-handling behavior—not ordinary prompt wording. Provides the matching boundary module's checklist items, drawn from OWASP 2025, ASVS 5.0, and CWE Top 25.
 - **`operational-safety`** — loaded by `quality-engineer` when the change is infra-touching or involves a destructive operation (migrations, force-pushes, table drops, infra config). Provides failure-mode-keyed checklists for pre/post conditions, rollback procedures, and observability requirements.
 
 Both skills degrade gracefully — if neither trigger fires, neither loads. The reviewer skill works at its baseline checklist depth; the depth module only adds when the boundary matches.
