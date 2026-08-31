@@ -135,7 +135,12 @@ the work rather than an incidental fix.
   payloads, the four re-measured result records, and both the authored and the
   compiled concept roots, whose bodies paraphrase internal incident records they
   may not cite. The host-identifying forms are part of the same shared pattern
-  definition the repository-only scan uses, so the two cannot drift apart.
+  definition the repository-only scan uses, so the two cannot drift apart, and
+  all four are matched by fixed structural patterns — the repository already
+  defines an importable one for absolute paths — never by comparison against the
+  running environment's identity. Evidence is authored on a maintainer's machine
+  and gated in CI, so an environment-derived matcher would look for the runner
+  and pass over the author, giving a control that cannot fire where it is gated.
 - [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
   pinned foundation result. Both the retrieval record and the generic-negative
@@ -200,8 +205,9 @@ the work rather than an incidental fix.
   paragraph and the topic-count sentence in the pack README. Because two of them
   are digest-pinned, activation is re-observed rather than reconciled by editing.
 - [ ] **AC8 — Records and published surfaces are current.** The initiative's
-  milestone string names the slice actually in flight; this spec is registered
-  as active work while in flight and moved to shipped work at close, in the same
+  milestone string is set to name this slice when the slice enters flight; this
+  spec is registered as active work while in flight and moved to shipped work at
+  close, in the same
   commit that sets its status; the brief's derived Spec map and both workspace
   registrations that pin its digest agree; the pack version bump, its changelog
   entry, and the architecture and index records land with the change; and the
@@ -218,8 +224,9 @@ the work rather than an incidental fix.
   `packs/*/.apm/skills/`; the strongest candidate, state locking, has both
   implementations inside `packs/core`.)
 - Of the four inherited promotion classes, one is unreachable for these leaves,
-  one is unused, and two are used. `controlled-measurement` is unreachable because every row of
-  the governing archaeology note is a single dated decision with no repetition
+  one is unused, and two are used. `controlled-measurement` is unreachable
+  because every row of the governing archaeology note is a single dated
+  decision with no repetition
   count, and the class requires at least two repetitions. `severe-safety-failure`
   is unused because no leaf rests on a safety failure with a reproduction.
   The two language topics use `single-ecosystem-contract`;

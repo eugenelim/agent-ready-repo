@@ -20,10 +20,9 @@
    trips a ratchet that is already at its ceiling.
 2. Close the doctrine-side parity gap the corpus slice left as a deliberate loud
    failure, before any doctrine group exists to trip it.
-3. Assemble doctrine evidence per claim group — three groups on documented
-   public contracts, three on paired internal failures — and author the topic
-   bodies and admission record together, so no body ships a doctrinal claim its
-   record does not carry.
+3. Assemble doctrine evidence per claim group, per the class tables below, and
+   author the topic bodies and admission record together, so no body ships a
+   doctrinal claim its record does not carry.
 4. Reconcile every shipped statement about language-family availability and
    topic count.
 5. Regenerate the governed projections through the owning compiler.
@@ -86,8 +85,9 @@ subject with no shared contract behind it must not be dressed as one. Descriptiv
 coverage still needs provenance, so every source the body relies on is recorded
 in the group even when it does not carry the group's clause; the group's clause
 is what the class licenses, and the wider source list is what the body may cite
-without tripping the converse parity limb. Playwright's documented default of 50% of logical cores and
-npm's frozen-install behaviour are body material of exactly this kind.
+without tripping the converse parity limb. Playwright's documented default of
+50% of logical cores and npm's frozen-install behaviour are body material of
+exactly this kind.
 
 Version ranges are evidence-backed, not conventional: pytest's changelog states
 Semantic Versioning at 9.1.1 (2026-06-19), Playwright's release notes give 1.62
@@ -204,11 +204,13 @@ de-identification check would fire it on the admission record, which is the
 sanctioned home for exactly the commit hashes and governance tokens those
 patterns match — a recorded fixture already carries a `docs/rfc/` reference the
 inherited pattern matches — and the cheapest in-flight repair would be to weaken
-the pattern set for all three consumers at once. Confirm before adopting that the
-widened set passes over both the already-shipped tree and the recorded fixtures. Confirm the already-shipped tree passes under the widened set before
-adopting it. The two repeated-failure leaves take their whole basis from records
-whose native identifiers are commit hashes and governance tokens, so this is the
-form most likely to leak.
+the pattern set for all three consumers at once. Confirm before adopting that
+the full widened set passes over the already-shipped tree, and that the
+host-identifying forms alone pass
+over the recorded fixtures — the reference forms must not be run against the
+fixtures, for the reason just given. The two repeated-failure leaves take their
+whole basis from records whose native identifiers are commit hashes and
+governance tokens, so this is the form most likely to leak.
 
 Add `single-ecosystem-contract` to the inherited `DOCTRINE_CLASSES` vocabulary in
 this task. Its required-field tuple is the field list defined under
@@ -217,8 +219,9 @@ assertions this task adds are: the version range carries an explicit lower and
 upper bound; and the declaring topic is one the governing RFC classifies as
 language-specific. Eligibility is asserted **against the topic**, never recorded
 as a field — a group that declared its own eligibility would be attesting to its
-own admissibility, which is vacuous. No other task owns this, and T3 declares a group in the
-class, so without it T3's first doctrine-arm execution fails on an unknown class
+own admissibility, which is vacuous. No other task owns this, and T3 declares a
+group in the class, so without it T3's first doctrine-arm execution fails on an
+unknown class
 and the governing RFC's three conditions go unenforced.
 
 Drive the predicate from constructed inputs as well as the shipped record, so the
@@ -297,13 +300,14 @@ crosses two artifacts and can still fail.
 - `test_every_leaf_is_in_exactly_one_set` (AC1)
 - `test_admitted_topics_are_topology_leaves` (AC1)
 - `test_foundation_corpus_is_exactly_the_admitted_inert_governed_topics` (AC1)
-- `test_every_agent_read_concept_is_inert` (AC1)
+- `test_every_agent_read_concept_is_inert` — regression guard for concept-body
+  inertness, not an AC1 falsifier
 - `test_every_claim_group_declares_a_basis_and_its_fields` (AC6) — first
   execution of its `doctrine` arm against real input
 - `test_each_foundation_topic_carries_its_required_sections`, enumerated over the
   admitted set rather than a parallel literal (AC2) — stub: true
 - `test_typescript_node_topic_covers_its_seven_assigned_subjects` (AC2) — stub: true
-- `test_python_pytest_topic_covers_its_four_assigned_subjects` (AC2) — the
+- `test_python_pytest_topic_covers_its_four_required_subjects` (AC2) — the
   symmetric falsifier for AC2's Python conjunct: collection, fixtures,
   process boundaries, and temporary paths — stub: true
 - `test_typescript_node_maturity_limit_appears_in_both_projections` (AC2) — stub: true
@@ -314,14 +318,15 @@ crosses two artifacts and can still fail.
 - `test_recorded_evidence_fields_carry_no_host_identifying_data`, over the
   admission record **and the authored concept root** this task writes (AC3)
   — stub: true. This check is assembled across five tasks, so it carries its own
-  anti-vacuity anchor: its scanned set comes from one named constant asserted
-  equal to AC3's enumeration, in the closed-enumeration equality form this pack
-  already uses, so an artifact a later task adds and forgets to scan reddens
-  instead of being passed over silently. Only the eval fixture payloads are
-  walked rather than enumerated, since they are the one class that grows, and
-  they carry the suffix-and-floor shape AC5 already mandates. Each pattern class
-  carries one seeded positive control, so a check that matches nothing is
-  distinguishable from a tree that contains nothing.
+  anti-vacuity anchor. The anchor is a derived walk with a pinned file floor per
+  scanned root, in the shape this pack already runs for the export-boundary scan,
+  **not** an equality against the criterion's prose enumeration: a pack test
+  cannot read `docs/`, so both sides of such an equality would be in-pack
+  literals and a later task adding an artifact would leave them agreeing and the
+  walk green — the silent skip this anchor exists to close. Each pattern class
+  carries one seeded positive control whose identifier is foreign to the running
+  environment, so an implementation that resolved identity from the environment
+  fails the control instead of passing everything.
 
 **Done when:** the pack suite is green with twelve admitted topics and
 twenty-four register entries, and each new test fails when its subject is removed.
