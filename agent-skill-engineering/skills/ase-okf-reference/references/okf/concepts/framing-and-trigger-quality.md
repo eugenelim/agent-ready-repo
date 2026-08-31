@@ -53,10 +53,16 @@ the operation and preserve the user's selected scope.
 
 For file layout and progressive loading, consult
 `instruction-density-and-progressive-disclosure`. For deterministic helpers and
-exit behavior, consult `resources-scripts-and-exit-contracts`.
+exit behavior, consult `resources-scripts-and-exit-contracts`. Activation
+boundaries and the authority a trigger does not grant stay here, for a skill of
+any shape; consult `activation-discoverability-and-mode-wayfinding` only when
+the question is how a reader chooses between two or more user-visible modes.
 
 ## Provenance and lifecycle
 
 Foundation reference for the portable agent-skill-engineering pack. Maintain as
 governed OKF source; generated router copies are not authoring surfaces.
 
+**Applicability limit:** This guidance is an observed practice from the 137
+authored agent skills in the catalogue that developed this pack, censused on
+2026-08-28. It is not established beyond that population.

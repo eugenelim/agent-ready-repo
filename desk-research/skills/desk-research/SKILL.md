@@ -398,8 +398,11 @@ admitted observation, construct the published typed request with
 `destination_hint`, `producer`, `semantic_gate`, `provenance`,
 `freshness_anchor`, `observed_at`, and `privacy_attestation`; include optional
 fields only when their contract facts exist. Set `producer.workflow` to
-`desk-research` and `producer.workflow_version` to the current pack version.
-Invoke only the public `project-knowledge --capture` seam.
+`desk-research` and `producer.workflow_version` to
+`desk-research-producer-profile.v1` — the producer contract this section
+defines, never the pack's shipped release. The identifier changes only when
+this contract's emitted shape changes. Invoke only the public
+`project-knowledge --capture` seam.
 
 The producer must not locate journals, must not import the private writer, must
 not invent capture IDs, must not select partitions, and must not create storage.

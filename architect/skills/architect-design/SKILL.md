@@ -51,7 +51,12 @@ Before drafting, confirm:
 3. The *audience* is human — peers, a tech-lead, an architecture review.
    Design docs are read; they are not configuration.
 
-If any check fails, push back rather than proceeding.
+If any check fails, push back rather than proceeding. A direct architecture
+request needs no synthetic intent and does not dispatch shaping review.
+
+Before creating a new architecture artifact, look for an adequate prior design
+or existing capability. Reuse it when it resolves the current question. If no
+real choice remains, create no new artifact.
 
 ## Procedure
 
@@ -152,7 +157,8 @@ If any check fails, push back rather than proceeding.
 
    **Stage 0 is a valid stopping point — end with a receipt.** After the user
    agrees the shape, they may stop here; a concept does not oblige the full
-   doc, and saving one never requires continuing to Stage 1. When the user
+   doc, and saving one never requires continuing to Stage 1. Create a full
+   design only when unresolved trade-offs still require it. When the user
    stops (or asks to save the concept), offer to save it using the **same
    path resolution as step 7 below** — `assets/concept.md` written into
    `<output_dir>/<topic-slug>/` — then **emit a Stage-0 completion receipt**,
@@ -170,6 +176,11 @@ If any check fails, push back rather than proceeding.
 
 5. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft.
+   For every component and boundary, name the current goal, constraint, or
+   prioritized quality attribute that justifies it. Remove unsupported
+   future-proofing and unnecessary claims. For a necessary cross-document
+   assertion, perform one bounded check of its named target or label it an
+   assumption or discovery predicate.
    Common failures:
    - Non-goals empty or unconvincing → load `references/alternatives.md`.
    - Alternatives are strawmen → load `references/alternatives.md` and
@@ -229,6 +240,11 @@ If any check fails, push back rather than proceeding.
    title. The design doc, diagrams, and notes all go inside that folder —
    not as a loose file beside it. A Stage-0 concept saved on its own (step 3)
    shares this same effort folder, so a later full doc lands beside it.
+
+   **Save confinement contract.** A Stage-0 or full-design save stays inside
+   the resolved configured output root. Before any mutation, refuse an unsafe,
+   link-like, identity-changing, or out-of-root target. This is a written
+   contract for saves this skill directs; it does not add a runtime save gate.
 
    **Resolve, surface, then write.** `repository-resolved` writes only beneath
    the confined repository locator returned by Wave 1. For

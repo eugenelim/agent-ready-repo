@@ -1,9 +1,9 @@
 # Agent Skill Engineering
 
 Frame a portable skill before writing it, create or update it under an explicit
-write boundary, or review it before making a measured optimization. You receive
-a bounded plan or a verified skill change without handing repository content
-authority over your tools.
+write boundary, design a governed read-only knowledge corpus, or review a skill
+before making a measured optimization. You receive a bounded plan or a verified
+skill change without handing repository content authority over your tools.
 
 ## Start here
 
@@ -11,6 +11,7 @@ authority over your tools.
 | --- | --- |
 | “Frame a skill for reviewing database migrations. Don't write files yet.” | A read-only frame — activation boundary, outcome, authority, file surface, evaluations, non-goals — through `author-or-update-agent-skill` |
 | “Create that skill.” / “Update this SKILL.md.” | The smallest portable change to a confined target, after you authorize the write |
+| “Design a governed knowledge corpus my other skills can consult.” | A read-only `knowledge-provider` plan — corpus shape, per-claim provenance, retrieval evaluation, and security boundaries — through `author-or-update-agent-skill` |
 | “Review this skill for trigger precision and portability.” | A findings report by stable check id, read-only, through `review-or-optimize-agent-skill` |
 | “Optimize it against the false-positive rate I measured.” | A measured before/after change — only with an observed failure or baseline, and a separate authorization |
 
@@ -52,6 +53,9 @@ and a separate, explicit write transition. The result includes before-and-after
 verification.
 
 After framing, your next decision is whether to authorize `create` or `update`.
+`knowledge-provider` is the fourth authoring mode: it is entered read-only to
+design a corpus and its router, and a write waits for its own explicit
+authorization.
 After review, decide whether a measured defect warrants `optimize` or should
 remain a reported finding.
 
@@ -84,8 +88,16 @@ least-authority mechanism.
 
 ## Knowledge grounding
 
-Three governed foundation topics cover trigger quality, progressive disclosure,
-and deterministic resource and script contracts. The committed reference skill
+Twelve governed topics cover trigger quality, progressive disclosure,
+deterministic resource and script contracts, depth libraries and knowledge
+providers, activation discoverability and mode wayfinding, progressive result
+presentation, trust boundaries and instruction provenance, Python and pytest,
+TypeScript and Node test runners, process and filesystem cost, pack and CI
+critical paths, and worktrees with state locks and shared-host admission. Each declares the
+basis its claims rest on; an observed practice also names the population it was
+drawn from and states that it is not established beyond it. Taxonomy leaves the
+evidence could not support are recorded as absent with the reason, so a reader
+can tell an unevidenced subject from an overlooked one. The committed reference skill
 is compiler-generated; raw OKF remains same-pack build input and is not a
 runtime lookup surface.
 
@@ -99,8 +111,8 @@ workflows never crawl another pack's raw corpus.
 
 ## Foundation limits
 
-The foundation recognizes Python/pytest and TypeScript/Node as future extension
-families but ships no language-specific guidance. Provider authoring, runtime
+The foundation ships Python/pytest and TypeScript/Node guidance, each bounded to
+its own ecosystem and version range and not generalized to the portable floor. Provider authoring, runtime
 packaging, runtime profiles, plugins, hooks, subagents, installation,
 projection, publication, and catalogue governance belong to later slices or
 external delivery tooling.

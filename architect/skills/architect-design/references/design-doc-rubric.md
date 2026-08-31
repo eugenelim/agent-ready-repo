@@ -41,6 +41,10 @@ answer "yes" to all of them with the draft as it stands, fix the draft.
       residency, blast radius).
 - [ ] Where structure needs a picture, embeds a Mermaid diagram, and
       the prose actually references it.
+- [ ] Every component and boundary names the current goal, constraint, or
+      prioritized quality attribute that justifies it.
+- [ ] Removes unsupported future-proofing. Reuses an existing capability unless
+      a current need justifies adding a new mechanism.
 
 ## Alternatives Considered
 
@@ -83,3 +87,6 @@ answer "yes" to all of them with the draft as it stands, fix the draft.
 - [ ] Data-handling and privacy obligations named.
 - [ ] Failure modes and observability hooks named.
 - [ ] Cost shape named (when material).
+- [ ] Deletes unnecessary claims. Each necessary cross-document assertion has
+      one bounded check of its named target or is labelled as an assumption or
+      discovery predicate.

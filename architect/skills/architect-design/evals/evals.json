@@ -85,6 +85,17 @@
       ]
     },
     {
+      "id": 8,
+      "prompt": "We need to decide whether to create a new architecture artifact for a notification-delivery change. An existing approved design already covers the same constraints and selects the delivery mechanism. Check it first; do not create a new design if it answers the question.",
+      "expected_output": "architect-design examines the adequate prior design or existing capability first, reuses it because it resolves the current question, and stops with no new architecture artifact. It does not force Stage 0 or a full design where no real choice remains.",
+      "assertions": [
+        "Checks for an adequate prior design or existing capability before creating a new architecture artifact",
+        "Reuses the existing design when it resolves the current question",
+        "Creates no new architecture artifact when no real choice remains",
+        "Does not require Stage 0 or a full design after reuse resolves the question"
+      ]
+    },
+    {
       "id": "cognitive-load-output-quality",
       "prompt": "Complete a representative task that produces a user-facing architecture recommendation. Use routine tool calls where needed, then hand back the result. Keep all requested depth, evidence, constraints, warnings, and exact errors.",
       "expected_output": "The architecture recommendation leads with the useful outcome or decision and is easy to scan. It uses plain, non-blaming language and short sections without removing needed depth, evidence, constraints, warnings, or exact errors. Routine tool calls have no optional narration between them. The final handoff states verification or current state and names a next action only when one remains.",
