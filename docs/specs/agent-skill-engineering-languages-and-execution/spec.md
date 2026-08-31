@@ -1,6 +1,6 @@
 # Spec: Agent Skill Engineering Languages and Execution
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`RFC-0097`](../../rfc/0097-agent-skill-engineering.md);
@@ -126,14 +126,14 @@ incidental fix.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — The five named leaves are admitted.** `python-and-pytest`,
+- [x] **AC1 — The five named leaves are admitted.** `python-and-pytest`,
   `typescript-node-and-javascript-test-runners`, `process-and-filesystem-cost`,
   `pack-and-ci-critical-paths`, and
   `worktrees-state-locks-and-shared-host-admission` are admitted topics
   carrying the `doctrine` basis, and none of them remains in the
   declared-unpopulated register. Every taxonomy leaf stays in exactly one set,
   and neither set names a leaf the taxonomy does not have.
-- [ ] **AC2 — Language depth remains specific and complete.** The
+- [x] **AC2 — Language depth remains specific and complete.** The
   TypeScript/Node topic separately covers each of the seven subjects RFC-0097
   assigns it: package and module contracts, lockfile-respecting clean installs,
   child-process behavior, test-runner worker models, browser-worker economics,
@@ -143,7 +143,7 @@ incidental fix.
   topic or into a lowest-common-denominator topic. The TypeScript/Node topic
   states, in portable terms, the maturity limit its governing evidence note
   records.
-- [ ] **AC3 — Execution economics is bounded.** Process, filesystem, pack/CI
+- [x] **AC3 — Execution economics is bounded.** Process, filesystem, pack/CI
   critical-path, worktree, lock, shared-host, and machine-load guidance stays
   limited to skill scripts, evaluations, packs, and their execution
   environments, and is supported by measured retrieval evidence. No free-text
@@ -160,7 +160,7 @@ incidental fix.
   maintainer's machine and gated in CI, so an environment-derived matcher would
   look for the runner and pass over the author, giving a control that cannot
   fire where it is gated.
-- [ ] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
+- [x] **AC4 — Retrieval and baseline safety hold.** New retrieval cases are
   predeclared and measured, meet the corpus thresholds, and preserve every
   pinned foundation result — except a pin re-taken under the owner authority the
   Boundaries admit, which this slice's `qa.md` names individually with its prior
@@ -179,14 +179,14 @@ incidental fix.
   record and the generic-negative record are re-measured against the tree they
   describe, since both are bound to the same digest triple that admitting a
   topic moves.
-- [ ] **AC5 — Behavior evidence expands.** The pytest-suite and Node/browser
+- [x] **AC5 — Behavior evidence expands.** The pytest-suite and Node/browser
   behavior fixtures are declared and recorded through the established observed
   evaluation process, and every graded result whose pinned source digest this
   slice moves is re-measured rather than re-stamped. Every declared fixture
   payload ships as inert review material and falls inside the export-boundary
   content scan, whose covered suffixes and file floor are extended to include
   each payload this slice adds.
-- [ ] **AC6 — Doctrine-side source parity is enforced, not deferred.** For
+- [x] **AC6 — Doctrine-side source parity is enforced, not deferred.** For
   every doctrine claim group, the group's shipped fields appear under that
   group's own labelled block inside the topic's `## Provenance and lifecycle`
   section and equal the admission record field-for-field: its clause, its
@@ -231,7 +231,7 @@ incidental fix.
   concept root, staying in the non-projected admission fixture. The check
   replaces the corpus slice's unconditional failure, and each predicate limb
   the doctrine arm newly exercises carries a recorded mutation proof.
-- [ ] **AC7 — Shipped language-availability statements match what shipped.**
+- [x] **AC7 — Shipped language-availability statements match what shipped.**
   Every shipped statement that today describes the corpus as lacking these
   language families, or states a topic count that admission changes, agrees
   with the admitted topic set: the two workflow `SKILL.md` bodies, the
@@ -239,7 +239,7 @@ incidental fix.
   paragraph and the topic-count sentence in the pack README. Because two of
   them are digest-pinned, activation is re-observed rather than reconciled by
   editing.
-- [ ] **AC8 — Records and published surfaces are current.** The initiative's
+- [x] **AC8 — Records and published surfaces are current.** The initiative's
   milestone string is set to name this slice when the slice enters flight; this
   spec is registered as active work while in flight and moved to shipped work
   at close, in the same commit that sets its status; the brief's derived Spec
