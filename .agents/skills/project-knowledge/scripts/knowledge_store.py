@@ -125,11 +125,12 @@ def set_deadline(seconds: int) -> None:
 
 
 def _remaining_timeout() -> float:
+    """Return the remaining script deadline or refuse a retryable deadline breach."""
     if _DEADLINE is None:
         return float(budget_contract()["script_seconds"])
     remaining = _DEADLINE - time.monotonic()
     if remaining <= 0:
-        _refuse("journal_capacity")
+        _refuse("deadline_exceeded", retryable=True)
     return remaining
 
 
@@ -1107,6 +1108,7 @@ def _git_blob_digest(raw: bytes, *, algorithm: str = "sha1") -> dict[str, Any]:
 
 
 def _git_read(repo_root: Path | str, args: Sequence[str]) -> bytes:
+    """Read a Git result, distinguishing timeouts from incoherent snapshots."""
     try:
         return subprocess.check_output(
             ["git", *args],
@@ -1115,7 +1117,9 @@ def _git_read(repo_root: Path | str, args: Sequence[str]) -> bytes:
             env=_git_environment(),
             timeout=_remaining_timeout(),
         )
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except subprocess.TimeoutExpired:
+        _refuse("deadline_exceeded", retryable=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
         _refuse("map_mismatch")
     raise AssertionError("unreachable")
 
@@ -1126,6 +1130,7 @@ def _git_read_bounded(
     *,
     max_bytes: int,
 ) -> bytes:
+    """Read a bounded Git result without conflating deadlines and byte limits."""
     try:
         with tempfile.TemporaryFile() as output:
             completed = subprocess.run(
@@ -1141,7 +1146,9 @@ def _git_read_bounded(
                 _refuse("journal_capacity" if output.tell() > max_bytes else "map_mismatch")
             output.seek(0)
             raw = output.read(max_bytes + 1)
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except subprocess.TimeoutExpired:
+        _refuse("deadline_exceeded", retryable=True)
+    except (FileNotFoundError, OSError):
         _refuse("map_mismatch")
     if len(raw) > max_bytes:
         _refuse("journal_capacity")
