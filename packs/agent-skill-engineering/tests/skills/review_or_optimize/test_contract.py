@@ -323,6 +323,16 @@ def test_independent_behavior_results_report_every_seeded_defect() -> None:
         # four declared, and nine against six.
         declared_findings = {value for value in declared if value.startswith("ASE-")}
         assert declared_findings <= set(result["actual_findings"])
+        # The non-identifier half of the declaration, bound by value rather than
+        # by the record's own `output_ok` boolean. Without this the mode marker
+        # was declared, counted in the slice record's marker figure, and attested
+        # by nothing but a hand-set flag -- the comment above claimed the union
+        # was bound while the code read only one field of it.
+        #
+        # These values are lifted from the captured responses, not derived from
+        # `declared`: deriving them would be the circular derivation this pack has
+        # already removed twice.
+        assert declared - declared_findings <= set(result["actual_markers"])
         # The floor cannot be padded into meaninglessness: every extra has to
         # be a checklist identifier the skill actually defines, so a result
         # cannot inflate its count with invented ids.

@@ -290,31 +290,53 @@ legitimate re-wrap that must not:
 | clause demoted to a blockquote | red | digest — markup counts |
 | the same words re-wrapped across lines | **green** | a legitimate reflow must not fire |
 
-### Which subject sets need pinning, and why only one did
+### Which subject sets need pinning — and how the first answer was wrong
 
-Round 7's defeat was a *subject set*, not a predicate, so the lesson generalizes
-past this guard. Every subject set the slice's guards use was emptied and its
-suite re-run:
+Round 7's defeat was a *subject set*, not a predicate, so the lesson looked
+general. The first version of this section stated it as a rule and labelled it
+"measured, not reasoned". A later round refuted it, and the way it was wrong is
+more useful than the rule was.
 
-| Subject set | Emptied | Used as |
-| --- | --- | --- |
-| `MEASUREMENT_FORCED_CLAUSES` | **was vacuous**, now pinned | drives iteration |
-| `AUTHORING_EVAL_IDS` | fails closed | filter inside a positive assertion |
-| `KNOWN_REVIEW_MISSES` | fails closed | filter inside a positive assertion |
-| `LANGUAGE_SPECIFIC_TOPICS` | fails closed | filter inside a positive assertion |
-| `DOCTRINE_CLASSES` | fails closed | filter inside a positive assertion |
-| `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | parametrized, and set-equality asserted |
-| `REVIEW_EVAL_IDS` | fails closed | set-equality asserted |
+**What the first attempt measured.** Emptying eight named sets. Result: one
+vacuous, seven fail closed. Rule inferred: *a set that drives iteration needs a
+pin; a set used as a filter inside a positive assertion already fails closed.*
 
-The rule the measurement gives: **a set that drives iteration needs its own pin; a
-set used as a filter inside an assertion that demands a positive result already
-fails closed.** Emptying a filter empties the result and the assertion notices.
-Emptying an iteration driver empties the loop and nothing notices, because a loop
-that runs zero times raises nothing.
+**Why that was wrong, three ways.**
 
-Only one set in this slice drove iteration, which is why only one was vacuous.
-That is a cheaper check than reasoning about each guard: ask what the set is *for*
-before asking whether it is pinned.
+| Wrong how | Evidence |
+| --- | --- |
+| The mutation was too weak | `AUTHORING_EVAL_IDS` fails closed when *emptied* and is vacuous when *narrowed*: drop one id, forge that result's digest, whole suite green. Narrowing is the mutation that matters for a scoping set, and it was not applied |
+| The corpus was incomplete | `REQUIRED_SECTIONS` in `test_foundation_corpus.py` is an iteration driver, vacuous when emptied, and was never in the list. "Every subject set the slice's guards use" was false |
+| The criterion was misnamed | `HOST_IDENTIFYING_PATTERNS` is an iteration driver that fails closed — because it has seeded `pytest.raises` controls. Driver-versus-filter does not separate the classes; **seeded-control coverage** does |
+
+Worse, this document already contained the refutation. The narrowing defect and
+its forged-digest proof are recorded in the failure-attribution table below, a
+few hundred lines from where the rule said that set "fails closed". The rule
+contradicted its own record in the same file.
+
+**The corrected statement, scoped to what was actually done.** Two mutations were
+applied — emptying, and narrowing where the set scopes a sweep — to these sets:
+
+| Subject set | Emptied | Narrowed | Disposition |
+| --- | --- | --- | --- |
+| `MEASUREMENT_FORCED_CLAUSES` | was vacuous | n/a | pinned by its own test |
+| `AUTHORING_EVAL_IDS` | fails closed | **was vacuous** | pinned against the declared case set |
+| `REQUIRED_SECTIONS` | **vacuous** | not applied | recorded here; owned by the foundation suite, not this slice |
+| `HOST_IDENTIFYING_PATTERNS` | fails closed | not applied | seeded controls |
+| `KNOWN_REVIEW_MISSES`, `REVIEW_EVAL_IDS` | fail closed | not applied | set-equality asserted |
+| `AUTHOR_EVIDENCE_SOURCES`, `REVIEW_EVAL_FILES` | fail closed | not applied | parametrized and set-equality asserted |
+| `LANGUAGE_SPECIFIC_TOPICS`, `DOCTRINE_CLASSES` | fail closed | not applied | filter inside a positive assertion |
+
+What separates a vacuous set from a safe one is whether **some assertion demands
+a positive result from its members** — a seeded control, a set equality, or a
+comparison that an empty or narrowed set cannot satisfy. Nothing about "driver"
+or "filter" predicts it.
+
+**The transferable lesson is about the word "measured".** Labelling a claim
+measured makes it harder to question, not easier, and it was doing that work here
+while resting on one mutation shape over a corpus assembled from memory. A
+measured claim has to say *which mutation* was applied to *which set*, so a reader
+can see the gap. The table above does; the rule it replaced did not.
 
 ### What the guard does not cover, enumerated
 
@@ -415,11 +437,15 @@ Both halves are now closed:
   review body. Editing either body reddens that side's digest test; dropping the
   key reddens the coverage test. Both proven by mutation and restored by editing
   rather than by checkout.
-- `AUTHORING_EVAL_IDS` widens from four ids to all eight. All eight authoring
-  results record an `evals/evals.json` digest, so a set naming four left four
-  free to carry a stale one that the parametrized sweep never read. Proven with
-  a forged digest on `progressive-result-presentation`, a result the old narrow
-  set did not cover.
+- `AUTHORING_EVAL_IDS` widens to all eight authoring ids. At the merge base it
+  held **two**, and all eight authoring results record an `evals/evals.json`
+  digest, so six were free to carry a stale one the parametrized sweep never
+  read. An earlier version of this line said "four ids… left four free", which
+  understated the exposure by half; the merge-base set is
+  `{"frame-new-skill", "update-existing-skill"}`. Proven with a forged digest on
+  `progressive-result-presentation`, a result the old narrow set did not cover.
+  Widening alone was not enough: the set is now pinned against the declared case
+  set, because narrowing it again would have been silent.
 
 The re-take was executed in one read-only subcontext and graded in a separate
 one, with the expected identifiers and assertions withheld from the executing
@@ -531,6 +557,7 @@ attribution, and who attributed it. Nothing observed is dropped.
 | Ruff `I001` on an unsorted import block in the T2 test module | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Caught locally this time; the identical defect reached CI in slice 2a because `make lint-ruff` was in the documented command set but not in the per-edit loop. | Claude, this session |
 | Two blind authoring executions wrote to one output directory concurrently; four files were overwritten mid-run and five were removed under a live writer | Both runs pointed at one `responses/` path; the second was dispatched while the first was working, and the supervisor then moved the first run's files aside while the second was writing | `caused-here`, **contained**. Not a worker defect. The supervisor reused one output path for a discarded run and its replacement, then mutated that directory under an active writer. The executing context detected the interference, restored its own text, re-verified, and reported the collision unprompted — the only reason the evidence survived. Later runs write to a path unique per run, so provenance is structural rather than inferred. | Claude, this session |
 | A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four of this slice's spec-amendment review rounds — a different sequence from the guard rounds above — appearing in evidence tooling rather than in prose. | Claude, this session |
+| Both status tokens rolled back inside a feature commit with no mention in its message | `git show 6e4551b7f -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
 | Three subagents and one Codex worker returned no verdict | re-dispatched; each replacement completed | `environmental`, **not carried**. Three were killed by the host sleeping mid-response (`API Error: Your computer went to sleep`); one Codex run was load-shed with the 1-minute load average at 184.76. A run that reached no verdict is not a measurement, so each was discarded and re-taken rather than recorded as partial. Re-dispatch after a host kill is recovery, not an additional attempt. | Claude, this session |
 | Codex worker T3 first run produced zero changes | re-dispatched with the discharge stated at the top of the brief → task completed | `caused-here`, **fixed**. A briefing gap, not a worker defect: the worker's own workflow requires a base-freshness check, and the brief never said that check was already discharged or that its refusal is not a stop condition. | Claude, this session |
 

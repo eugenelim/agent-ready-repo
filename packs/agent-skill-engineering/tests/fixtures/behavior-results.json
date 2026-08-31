@@ -169,7 +169,10 @@
       "output_ok": true,
       "assertions_ok": true,
       "errored": false,
-      "passed": true
+      "passed": true,
+      "actual_markers": [
+        "Mode: review"
+      ]
     },
     {
       "eval_id": "detect-script-contract-failure",
@@ -203,7 +206,10 @@
       "output_ok": true,
       "assertions_ok": false,
       "errored": false,
-      "passed": false
+      "passed": false,
+      "actual_markers": [
+        "Mode: review"
+      ]
     }
   ],
   "graded_run": {

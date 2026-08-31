@@ -165,10 +165,18 @@ at the moment it stops being so. Rolling the status while the entry stays in
 ceiling of 2.
 
 **The pair is split during a contract amendment, deliberately, and this records
-the condition that closes it.** A `contract-amendment` returns the spec to
-drafting and resets both status tokens, so between firing it and completing
-re-approval the spec reads `Draft` while its registration stays in `.active` and
-the implementation stays in the tree. That is the half-rolled state this task
+the condition that closes it.** A `contract-amendment` returns the engine to
+drafting and clears its schedule baseline; the two status *tokens* are rolled
+back by hand to match, because the engine does not write `spec.md`. So between
+firing the amendment and completing re-approval the spec reads `Draft` while its
+registration stays in `.active` and the implementation stays in the tree.
+
+That hand rollback was made inside the T6/T7 commit and its message did not
+mention it, which is the defect worth naming here: the only place a status
+rollback is visible is the commit that makes it, and a contract change riding
+silently inside a feature commit is indistinguishable from an accident. An
+earlier version of this paragraph attributed the rollback to the engine, which
+was wrong in a way that would have sent a reader looking in the wrong place. That is the half-rolled state this task
 otherwise exists to prevent, and it is invisible to the gate cited above, which
 only detects the opposite direction. Leaving the entry in `.active` is the
 correct half to keep: moving it back to `queue` would advertise blocked work as

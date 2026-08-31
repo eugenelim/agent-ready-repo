@@ -28,8 +28,13 @@ AUTHOR_ROUTES = (
     "references/update.md",
 )
 # Every authoring case, not only those declaring a payload. All eight record an
-# `evals/evals.json` digest, so a set naming four left four free to carry a
-# stale digest that the parametrized sweep below would never read.
+# `evals/evals.json` digest, so the two-id set at the merge base left six free to
+# carry a stale digest the parametrized sweep below would never read.
+#
+# Pinned by its own test. Emptying this set fails closed -- the sweep's
+# `recorded == {digest}` sees an empty set -- but *narrowing* it does not: drop one
+# id, forge that result's digest, and the whole suite stays green. That is the
+# mutation that matters here and the one an incomplete audit missed.
 AUTHORING_EVAL_IDS = frozenset(
     {
         "frame-new-skill",
@@ -243,20 +248,40 @@ def test_independent_behavior_results_cover_both_authoring_cases() -> None:
     # rather than reworded. Nothing in the skill's contract governs how
     # exhaustively a framing response enumerates states, so unlike the two
     # contract gaps this slice fixed, there is no wording defect behind it.
+    # Keyed by assertion *text*, not by index, and checked for liveness -- the
+    # shape the review side already uses. An index-keyed exemption migrates onto
+    # a different assertion when one is inserted or reworded above it, and the
+    # length pin below only catches that until a legitimate re-record restores
+    # the count. It also lets an exemption outlive the miss it was granted for.
     known_misses = {
-        ("cross-session-resumption", 1),
-        ("progressive-result-presentation", 2),
+        ("cross-session-resumption", "Adds a durable record a later session can read to resume"),
+        (
+            "progressive-result-presentation",
+            "Pairs each incomplete state with the next action it hands the user",
+        ),
     }
+    # Every exemption still describes a declared assertion. Without this, a
+    # reworded assertion silently drops its exemption's subject and the exemption
+    # goes on excusing whatever now sits at that position.
+    for eval_id, text in known_misses:
+        assert eval_id in cases, eval_id
+        assert text in cases[eval_id]["assertions"], (eval_id, text)
+
     for eval_id in cases:
         result = results[eval_id]
         case = cases[eval_id]
+        exempt = {
+            index
+            for index, text in enumerate(case["assertions"])
+            if (eval_id, text) in known_misses
+        }
         for index, verdict in enumerate(result["assertions"]):
-            assert verdict or (eval_id, index) in known_misses, (eval_id, index)
+            assert verdict or index in exempt, (eval_id, index, case["assertions"][index])
         assert {
-            (eval_id, index)
+            index
             for index, verdict in enumerate(result["assertions"])
             if not verdict
-        } <= known_misses
+        } <= exempt
         # Bind the record to what the eval declares, not merely to truthiness.
         # Without this a recorded run could claim any markers at all -- the
         # negation of the frame mode's read-only contract included -- and stay
@@ -433,6 +458,32 @@ def _clause_paragraphs(body: str, anchor: str) -> list[tuple[str | None, str]]:
         buffer.append(line)
     flush()
     return found
+
+
+def test_the_authoring_eval_id_set_covers_every_declared_case() -> None:
+    """`AUTHORING_EVAL_IDS` is derived-checked, not merely declared.
+
+    The set scopes which recorded results the digest sweep reads, so narrowing it
+    silently drops a result from coverage while every assertion still passes.
+    Emptying it fails closed; narrowing it does not, which is why it needs a pin
+    of its own rather than the protection its use site appears to give it.
+
+    Checked against the authoring skill's own declared cases, which are
+    themselves pinned by set equality elsewhere in this file, so the two cannot
+    drift apart without one of them reddening.
+    """
+    declared = {
+        case["id"]
+        for case in json.loads(
+            (AUTHOR_ROOT / "evals" / "evals.json").read_text(encoding="utf-8")
+        )["evals"]
+    }
+    assert declared == AUTHORING_EVAL_IDS, (
+        f"AUTHORING_EVAL_IDS is {sorted(AUTHORING_EVAL_IDS)} against declared "
+        f"{sorted(declared)}. Narrowing this set removes a graded result from "
+        "the digest sweep without failing anything else."
+    )
+    assert len(AUTHORING_EVAL_IDS) == 8
 
 
 def test_the_pinned_clause_set_is_exactly_the_two_measured_clauses() -> None:
