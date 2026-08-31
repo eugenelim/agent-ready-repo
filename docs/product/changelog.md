@@ -52,6 +52,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.16.2] — 2026-08-30
+
+### Highlights
+
+- **Spec review now separates original defects from faults introduced by a
+  prior repair before another edit begins.** Every completed report is
+  independently adjudicated, and a green gate is used only for the behavior it
+  actually proves.
+
+### Changed
+
+- `new-spec` sends every completed spec-review report, including a clean claim,
+  through `finding-adjudicator` before classification or repair. Only sustained
+  findings can change the spec or plan; each repair-authorizing finding is
+  marked `draft-origin` or `prior-round-repair`, while unresolved origin stops
+  for owner direction.
+- A green gate used in spec-review triage now carries its proven scope and one
+  relevant blind spot. The spec-status lint's module contract remains the
+  single owner of its invariant list.
+- The Core planning how-to and system explanation now show the same
+  adjudication-first review sequence.
+
 ## [agent-skill-engineering][0.2.0] — 2026-08-30
 
 ### Highlights

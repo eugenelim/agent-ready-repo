@@ -1,56 +1,95 @@
 # Review-and-validation guidance for spec authoring
 
+- **Slug:** `spec-review-validation-guidance`
 - **Status:** Draft
 - **Level:** feature
+- **Scale:** app
+- **Maturity:** brownfield
 
 ## Outcome
 
-`new-spec`'s review guidance names four disciplines that currently exist only as
-session practice, so a reviewer's output is triaged rather than absorbed: cheap
-measurement is preferred to another review round when the claim is about what
-code does or what inputs exist; each finding carries its origin; a spec gate
-states what it does not check; and a finding is tested for reachability in the
-feature's scope before it is acted on.
+- **Input (steerable):** Before each repair, the author marks where each finding
+  came from. The author says what each gate proves. The author sends each
+  finding through the review check that is already in place.
+- **Outcome (lagging):** Spec reviews reach a clean result with fewer repeat
+  rounds. Authors do not act on findings that cannot occur in the feature.
+- **Guardrail:** Keep the current rule to test facts before review. Reuse the
+  current reachability check. Add no lint or review-count limit.
 
 ## Opportunity
 
-Four disciplines were distilled from a spec review that ran roughly sixteen
-rounds, and none is written down in any shipped skill, `docs/CONVENTIONS.md`, or
-any ADR or RFC:
+An author needs to know what changed, what a green gate proves, and which
+findings need a fix before the next round starts.
 
-- **Measurement over review rounds.** Sixteen rounds found sentence-level
-  defects; two spikes found an unimplementable mechanism, a wrong bound origin,
-  and a corpus shape gap. One of them took thirty seconds to prove. Eight rounds
-  ran against prose describing work nobody had started — zero gates, zero
-  compiles, zero measurements.
-- **Origin attribution.** Asking whether each finding comes from the artifact or
-  from the previous round's fix is what surfaced one round introducing six of its
-  own blockers, which was the signal to stop editing prose and spike.
-- **Gate-scope disclosure.** A traceability lint passed on acceptance-criterion
-  numbering of `1 2 3 4 5 4 5 … 23 25 24` — duplicated and misordered. A green
-  gate is evidence about the gate.
-- **Finding reachability.** A threat finding real for one install route was inert
-  for another; relaying it without checking applicability nearly drove an
-  unnecessary RFC amendment.
+- **Functional job:** Check each finding against the current repo. Apply only
+  the fixes that the feature needs.
+- **Emotional job:** Trust that a clean review means the work is sound. Do not
+  just move faults from one round to the next.
+- **Social job:** Give the approver a clear reason to apply or reject each
+  finding.
+- **Struggling moment:** A repair adds new faults. A green gate is treated as
+  proof of more than it checks. A finding from one route is passed to a route
+  where the harm cannot occur.
 
-The same session that distilled these confirmed all four in practice: origin
-attribution produced the round-3 stop signal, and reachability checking refuted
-five of twelve findings including one whose prescribed remedy would have
-contradicted the template's own output-channel rule.
+## Current-state evidence
+
+The first premise claimed four new rules. The repo shows a smaller gap:
+
+- **The fact check exists.** `new-spec` step 5a asks for the cheapest check that
+  could prove the plan wrong. This intent will point to that rule.
+- **The reachability check exists.** Full-mode spec review sends each report to
+  `finding-adjudicator`. It checks whether the claimed state can occur. The
+  standalone `new-spec` path does not name this route.
+- **The gate scope exists.** `lint-spec-status.py` lists its six checks and their
+  limits. Authors need a pointer to that list when they read a green result.
+- **The finding source is the new rule.** Current guidance does not ask if a
+  finding was in the first draft or came from the last repair.
+
+Other review logs show the same need:
+
+- `credential-broker-contract` reached round 2 with drift left by round-1 fixes.
+- `local-ci-orchestration` had a test stay green when the required route moved.
+- `direct-skill-repository-installation` rejected a finding because its claimed
+  harm could not occur.
 
 ## Assumptions
 
-- These are review-guidance rules for `new-spec` step 6 and its neighbours, not
-  criterion-shape rules; the criterion-shape work ships separately in
-  `docs/specs/spec-authoring-discipline/`.
-- Gate-scope disclosure concerns what `lint-spec-status.py` does and does not
-  check; it adds no new lint and ships no lint to an adopter repository.
-- No numeric threshold is introduced. Two were proposed by peer sessions during
-  the parent work and both were rejected on measurement as calibrated to one
-  document.
+- Marking a finding's source will change repair choices, not just add a note.
+- Standalone `new-spec` review can use the current review check without taking
+  on the work-loop state machine.
+- A short link to `lint-spec-status.py` is enough. Copying its list would make a
+  second source of truth.
+- One fixed review-count limit will not fit all specs. Keep the current
+  three-pass stop rule.
+- **Knowledge surface:** repo skills, scripts, and review notes checked on
+  2026-08-29. This is one source. The change in user behavior is still unsure
+  until the test below runs.
+
+## De-risking
+
+- **Reversibility:** two-way door. The team can change this guide without a
+  runtime or stored-data change.
+- **Prototype approach:** prototype-led. Use old review rounds as the test.
+- **Verdict:** Kill the four-new-rules premise. Keep the smaller intent. Repo
+  facts support it, but it is still `to-validate`. Desk work is not a user test.
+
+```yaml
+validation_hook:
+  assumption: The missing origin, gate-scope, and adjudication cues materially improve review triage.
+  kill_condition: Kill if fewer than 4 of 6 blinded historical replays avoid the seeded mis-triage, or if any cue causes an unnecessary scope-widening remedy.
+  activity: Run six paired review replays without and with the revised guidance, then compare finding dispositions.
+```
 
 ## Source
 
 - Mode: repo-origin
-- Locator: docs/specs/spec-authoring-discipline/spec.md
-- Revision: local-2026-08-28
+- Locator: `docs/specs/spec-authoring-discipline/spec.md`
+- Revision: `local-2026-08-28`
+- Validation evidence:
+  - `packs/core/.apm/skills/new-spec/SKILL.md`
+  - `packs/core/.apm/skills/work-loop/SKILL.md`
+  - `packs/core/.apm/agents/finding-adjudicator.md`
+  - `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
+  - `docs/specs/credential-broker-contract/notes/review-round-5.md`
+  - `docs/specs/local-ci-orchestration/review-round-4.md`
+  - `docs/specs/direct-skill-repository-installation/notes/reviews/preexecute-adversarial-adjudication.md`
