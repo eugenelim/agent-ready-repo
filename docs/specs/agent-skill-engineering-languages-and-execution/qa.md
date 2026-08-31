@@ -1,6 +1,6 @@
 # QA record — agent-skill-engineering languages and execution (INI-009 slice 2b)
 
-Base for every measurement below: `origin/main` at `4c089ba7e`. Every figure here
+Base for every measurement below: `origin/main` at `613739e65`. Every figure here
 was produced by the invocation named beside it.
 
 This branch has been rebased repeatedly, and the base named above is the
@@ -12,7 +12,7 @@ every figure came from a named invocation.
 The measurements are carried forward rather than re-taken, on one premise stated
 so it can be re-run:
 
-    git diff 74f9a4ac9 4c089ba7e -- packs/agent-skill-engineering/
+    git diff 74f9a4ac9 613739e65 -- packs/agent-skill-engineering/
 
 That is empty, so upstream has not touched the measured tree anywhere in the
 range this record spans, and the artifacts are byte-identical across every base
@@ -89,7 +89,7 @@ The prompt names both ecosystems and both topics carry a parallelism clause, so
 returning both is the defensible reading and the predeclaration was wrong.
 
 **This record is the only place the original declaration exists.** The case was
-authored and corrected inside one commit (`f65876bef`); it is absent at that
+authored and corrected inside one commit (`0c42d706a`); it is absent at that
 commit's parent, where the fixture held 40 cases against 61 now. A reader
 checking whether the declaration was tuned cannot recover the prior value from
 history, which is precisely the failure mode the amended Boundary names when it
@@ -615,7 +615,7 @@ reproduced only in one local clone. They were re-pinned — and the re-pinned ha
 was then orphaned by the *next* rebase, so the fix for stale hashes went stale in
 the same way. Re-pinning mid-work is futile; only re-pinning last is not.
 
-All citations now name `f65876bef`, verified reachable, and both claims re-checked
+All citations now name `0c42d706a`, verified reachable, and both claims re-checked
 against it rather than assumed to have survived: its parent's `router-cases.json`
 holds 40 cases with no `nm-python-vs-node`, and it carries both status rollbacks.
 
@@ -665,7 +665,7 @@ attribution, and who attributed it. Nothing observed is dropped.
 | Ruff `I001` on an unsorted import block in the T2 test module | `make lint-ruff` → `All checks passed!` | `caused-here`, **fixed**. Caught locally this time; the identical defect reached CI in slice 2a because `make lint-ruff` was in the documented command set but not in the per-edit loop. | Claude, this session |
 | Two blind authoring executions wrote to one output directory concurrently; four files were overwritten mid-run and five were removed under a live writer | Both runs pointed at one `responses/` path; the second was dispatched while the first was working, and the supervisor then moved the first run's files aside while the second was writing | `caused-here`, **contained**. Not a worker defect. The supervisor reused one output path for a discarded run and its replacement, then mutated that directory under an active writer. The executing context detected the interference, restored its own text, re-verified, and reported the collision unprompted — the only reason the evidence survived. Later runs write to a path unique per run, so provenance is structural rather than inferred. | Claude, this session |
 | A grading sheet reported two false marker mismatches | regenerated from the current declarations → mismatches resolved | `caused-here`, **fixed**. The sheet was built before the declarations were corrected, so it compared against declarations that no longer existed. Derived artifacts must be rebuilt after their source changes — the same propagation defect that dominated four of this slice's spec-amendment review rounds — a different sequence from the guard rounds above — appearing in evidence tooling rather than in prose. | Claude, this session |
-| Both status tokens rolled back inside a feature commit with no mention in its message | `git show f65876bef -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
+| Both status tokens rolled back inside a feature commit with no mention in its message | `git show 0c42d706a -- docs/specs/agent-skill-engineering-languages-and-execution/` → spec `Implementing` → `Draft`, plan `Approved` → `Drafting` | `caused-here`, **recorded**. The rollback was correct — the amendment had returned the work to drafting — but it rode inside the T6/T7 commit and the message never named it, so the one place it was visible did not show it. Found by a review round reading the commit rather than the tree. The token pair stays `Draft`/`Drafting` until re-approval completes, which T1 now records as the releasing condition. | Claude, this session |
 | Three subagents and one Codex worker returned no verdict | re-dispatched; each replacement completed | `environmental`, **not carried**. Three were killed by the host sleeping mid-response (`API Error: Your computer went to sleep`); one Codex run was load-shed with the 1-minute load average at 184.76. A run that reached no verdict is not a measurement, so each was discarded and re-taken rather than recorded as partial. Re-dispatch after a host kill is recovery, not an additional attempt. | Claude, this session |
 | Codex worker T3 first run produced zero changes | re-dispatched with the discharge stated at the top of the brief → task completed | `caused-here`, **fixed**. A briefing gap, not a worker defect: the worker's own workflow requires a base-freshness check, and the brief never said that check was already discharged or that its refusal is not a stop condition. | Claude, this session |
 
