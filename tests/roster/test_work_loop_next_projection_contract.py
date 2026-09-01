@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "docs/specs/work-loop-next-projection/spec.md"
 PLAN = ROOT / "docs/specs/work-loop-next-projection/plan.md"
 ENGINE = ROOT / "packs/core/.apm/skills/work-loop/scripts/loop-engine.py"
+SKILL = ROOT / "packs/core/.apm/skills/work-loop/SKILL.md"
 
 pytestmark = pytest.mark.skipif(
     not SPEC.is_file(), reason="work-loop-next-projection contract not present"
@@ -283,3 +284,56 @@ def test_every_load_identifier_resolves_to_a_shipped_reference() -> None:
     }
     cited = {tok for attrs in action_rows().values() for tok in attrs["load"]}
     assert cited <= available, f"unresolvable load identifiers: {sorted(cited - available)}"
+
+
+# ── AC27: the two review references are conditionally loaded ───────────────
+
+REVIEW_REFS = {"ref:finding-adjudication", "ref:review-verdict-record"}
+DISPATCH_ACTIONS = ("run-review", "spec.review")
+
+
+def test_ac27_no_reviewer_dispatch_action_loads_a_review_reference() -> None:
+    """Both are needed only after a raw report exists, which is after dispatch.
+
+    Naming them in `load` would pull ~3,000 words onto every dispatch, most of
+    them on turns that never adjudicate and never aggregate — and it would
+    contradict the shipped conditional-reference table, which already predicates
+    both correctly.
+    """
+    attrs = action_rows()
+    offenders = {
+        action: sorted(attrs[action]["load"] & REVIEW_REFS)
+        for action in DISPATCH_ACTIONS
+        if action in attrs and attrs[action]["load"] & REVIEW_REFS
+    }
+    assert not offenders, f"review references loaded at dispatch time: {offenders}"
+
+
+def test_ac27_the_shipped_surface_still_owns_the_conditional_routing() -> None:
+    """The saving is only real if the shipped surface routes what `load` stopped naming.
+
+    Deleting a `load` cell without this is not conditional loading, it is a
+    reference nobody loads at all.
+    """
+    skill = SKILL.read_text()
+    required = {
+        "adjudication reference predicated on a dispatch":
+            "Before every `finding-adjudicator` dispatch",
+        "verdict reference predicated on emit/validate":
+            "Emitting or validating the verdict record",
+        "classification gates adjudication":
+            "raw-classify",
+        "the Not checked footer is never fast-pathed":
+            "## Not checked",
+    }
+    missing = [name for name, needle in required.items() if needle not in skill]
+    assert not missing, f"shipped surface no longer states: {missing}"
+
+
+def test_ac27_the_footer_carve_out_is_not_weakened() -> None:
+    """A `## Not checked` footer must keep a clean-looking report off the fast path."""
+    skill = SKILL.read_text()
+    assert "never fast-pathed" in skill, (
+        "the `## Not checked` carve-out no longer states that such a report "
+        "cannot take the clean fast path"
+    )

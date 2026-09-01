@@ -299,10 +299,10 @@ authorises.
 | `spec.draft` | `agent` | — | `ref:pre-execute-review` | false |
 | `spec.reset-and-revise` | `agent` | — | `ref:delivery-contract-lifecycle` | false |
 | `spec.amend` | `agent` | — | `ref:delivery-contract-lifecycle` | false |
-| `spec.review` | `agent` | — | `ref:pre-execute-review`, `ref:finding-adjudication` | false |
+| `spec.review` | `agent` | — | `ref:pre-execute-review` | false |
 | `implement` | `agent` | — | `ref:verification-modes` | false |
 | `run-gates` | `agent` | — | `ref:pre-flight-failures` | false |
-| `run-review` | `agent` | — | `ref:finding-adjudication`, `ref:review-verdict-record` | false |
+| `run-review` | `agent` | — | — | false |
 | `engine.spec-approved` | `command` | — | — | false |
 | `engine.plan-approved` | `command` | — | — | false |
 | `engine.plan-locked` | `command` | — | — | false |
@@ -325,6 +325,25 @@ human gate whose approver has already written the decision — R8 and R11 — th
 engine still reports `pending_human_wait: true` while the record reports
 `human_wait: false`, because nothing is left to wait for: the action is firing the
 event the approver's write authorised.
+
+**Why the two review references are absent from `load`.** A reviewer-dispatch
+action needs neither of them *at dispatch*. The adjudication reference is needed
+only once a persisted raw report has been classified and that classification
+requires adjudication; the verdict reference only when the verdict record for the
+unit is emitted or validated. Both conditions are decided after the report exists,
+which is after the record was handed over — so naming them in `load` would load
+roughly 3,000 words on every dispatch, most of them on turns that never adjudicate
+and never aggregate.
+
+Keeping them out costs the contract nothing, because the shipped surface already
+owns this routing: its conditional-reference table already predicates the
+adjudication reference on a `finding-adjudicator` dispatch and the verdict
+reference on emitting or validating the record. `load` was contradicting a
+control that already existed. The projection therefore adds no field, action,
+state, or discriminator for conditional loading, and — critically — never
+inspects a raw report, never derives a discriminator from report prose, and never
+infers a reviewer roster. Post-report routing stays with the work-loop, after
+classification. AC27 fixes the four paths.
 
 **What `complete_with` does not carry.** It names *events*, not invocations. Two
 of them take required transition arguments the record does not supply:
@@ -566,6 +585,19 @@ the command could not compute a record at all, and emits none.
   diagnostic and never authority — a `wait`-kind record authorises no act this
   turn, and the continuations its reason names are choices to put to the human,
   not steps to take. Deleting any one of the five fails this criterion.
+- [ ] **AC27.** The shipped work-loop surface states the conditional load of the
+  two review references, and a grep finds each of the four paths. `run-review` and
+  `spec.review` name neither reference in `load`, so nothing is loaded at
+  dispatch; a raw report classified `clean` with no `## Not checked` footer loads
+  neither; a finding-bearing report loads the adjudication reference; a security
+  report that is otherwise clean but carries the mandatory `## Not checked` footer
+  also loads it, because the footer is prose and prose is what the adjudicator
+  reads, so that report is never fast-pathed; and the verdict reference loads only
+  when the review unit's verdict record is emitted or validated, never at
+  dispatch and never on a repair-verification pass. The footer rule is a control
+  and is not weakened here: footer content stays adjudicated unless some later
+  change moves it into a genuinely machine-separated contract.
+
 - [ ] **AC21.** `loop-engine --help` lists `next` alongside `init`, `transition`,
   `status`, and `reset`.
 - [ ] **AC22.** The entrypoint section of
