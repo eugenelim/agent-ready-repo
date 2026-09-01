@@ -36,6 +36,12 @@ executing = [
 shipped = [
   { path = "docs/product/briefs/shipped-routing.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Shipped routing brief.", needs = [] },
 ]
+withdrawn = [
+  { path = "docs/product/briefs/withdrawn-routing.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Routing brief withdrawn before execution.", needs = [] },
+]
+cancelled = [
+  { path = "docs/product/briefs/cancelled-routing.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Routing brief cancelled after execution began.", needs = [] },
+]
 
 ["ini-001".work]
 queue = [

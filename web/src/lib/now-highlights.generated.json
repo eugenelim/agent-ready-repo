@@ -5,6 +5,32 @@
       "packages": [
         {
           "name": "core",
+          "version": "2.19.0"
+        }
+      ],
+      "date": "2026-09-01",
+      "heading": "[core][2.19.0] — 2026-09-01",
+      "changelogAnchor": "core2190--2026-09-01",
+      "highlights": [
+        {
+          "source": "**Delivery briefs now distinguish withdrawal before execution from cancellation after execution starts.** Open programmes remain Executing when their current slices have shipped but later slices are not materialized, and successful closure still needs an explicit Shipped decision.",
+          "segments": [
+            {
+              "type": "strong",
+              "value": "Delivery briefs now distinguish withdrawal before execution from cancellation after execution starts."
+            },
+            {
+              "type": "text",
+              "value": " Open programmes remain Executing when their current slices have shipped but later slices are not materialized, and successful closure still needs an explicit Shipped decision."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "packages": [
+        {
+          "name": "core",
           "version": "2.18.2"
         }
       ],

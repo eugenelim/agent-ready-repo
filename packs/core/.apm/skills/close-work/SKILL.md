@@ -66,6 +66,13 @@ passing test, ownership, writability, or a prior approval.
 1. Project the lifecycle without mutation. Completed, abandoned, and superseded
    work enters Closeout-pending. A pause remains an overlay on Ready or
    Implementing and is not closeout.
+   For a delivery brief, recommend `Shipped` only after a non-empty materialized
+   Spec map is fully Shipped and the human confirms the outcome is complete.
+   Recommend `Withdrawn` when work stops before any child reaches Implementing
+   or Shipped, and `Cancelled` when work stops after that execution evidence
+   exists. Preserve every child status. Updating the brief and moving its exact
+   workspace entry to the matching terminal collection is one separately
+   confirmed effect.
 2. Resolve every applicable durable-output destination with the installed sibling
    semantic-surface resolver. Use its explicit → policy/configuration → established
    repository convention → established external destination → confirmation-required

@@ -102,6 +102,23 @@
         "output_contains": ["close-work"],
         "output_excludes": ["deleted", "compacted", "Traceback", "workspace-status error:"]
       }
+    },
+    {
+      "id": 7,
+      "prompt": "Show the brief queue and explain whether a shipped child makes an open brief Ready, Executing, or Shipped.",
+      "expected_output": "Use the backend brief_queue projection. Preserve executing as a scalar path and treat ready, draft, shipped, withdrawn, and cancelled as lists. A Shipped child is execution evidence, so an open brief is Executing; the child does not automatically ship the brief.",
+      "assertions": [
+        "Uses the backend brief_queue projection",
+        "Preserves the scalar executing compatibility field",
+        "Names shipped, withdrawn, and cancelled terminal collections",
+        "Treats a Shipped child as execution evidence without automatic brief closure"
+      ],
+      "files": ["evals/files/workspace.toml"],
+      "expect": {
+        "produces": [],
+        "output_contains": ["Executing"],
+        "output_excludes": ["Traceback", "workspace-status error:"]
+      }
     }
   ]
 }

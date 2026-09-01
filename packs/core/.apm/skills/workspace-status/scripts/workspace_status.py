@@ -647,6 +647,9 @@ def _brief_queue_dict(bq) -> dict | None:
         "executing": _public_brief_queue_path(bq.executing, allow_empty=True),
         "ready": _public_brief_queue_paths(bq.ready),
         "draft": _public_brief_queue_paths(bq.draft),
+        "shipped": _public_brief_queue_paths(bq.shipped),
+        "withdrawn": _public_brief_queue_paths(bq.withdrawn),
+        "cancelled": _public_brief_queue_paths(bq.cancelled),
     }
 
 

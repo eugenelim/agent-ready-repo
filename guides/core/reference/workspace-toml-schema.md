@@ -247,10 +247,12 @@ collection.
 | `[backlog].closed` | Retained captures and closed defect contexts | Closed defect resolution is `fixed`, `declined`, or `superseded`. |
 | `["ini-NNN".shaping_queue].backlog` | `intent`, `research`, `design` | Waiting for shaping, research, or design processing. |
 | `["ini-NNN".shaping_queue].active` | `intent`, `research`, `design` | Currently being processed outside implementation work. |
-| `["ini-NNN".brief_queue].draft` | `brief` | Draft brief. |
-| `["ini-NNN".brief_queue].ready` | `brief` | Passed the Ready gate and has no Implementing child. May have zero child specs. |
-| `["ini-NNN".brief_queue].executing` | `brief` | Has at least one Implementing child spec. |
-| `["ini-NNN".brief_queue].shipped` | `brief` | Explicitly closed; materialized children are Shipped. |
+| `["ini-NNN".brief_queue].draft` | `brief` | Draft brief; no child is `Implementing` or `Shipped`. |
+| `["ini-NNN".brief_queue].ready` | `brief` | Passed the Ready gate; no child is `Implementing` or `Shipped`. May have zero child specs. |
+| `["ini-NNN".brief_queue].executing` | `brief` | Open brief with at least one `Implementing` or `Shipped` child. |
+| `["ini-NNN".brief_queue].shipped` | `brief` | Explicitly closed successfully; the map is non-empty and every materialized child is `Shipped`. |
+| `["ini-NNN".brief_queue].withdrawn` | `brief` | Explicitly stopped before any child reached `Implementing` or `Shipped`. |
+| `["ini-NNN".brief_queue].cancelled` | `brief` | Explicitly stopped after at least one child reached `Implementing` or `Shipped`. |
 | `["ini-NNN".work].queue` | `spec` | Approved spec with an existing sibling plan, waiting to be claimed. |
 | `["ini-NNN".work].active` | `spec` | Implementing spec claimed by the build loop. |
 | `["ini-NNN".work].shipped` | `spec` | Shipped spec retained for dependency and history. |
@@ -291,6 +293,8 @@ ready = [
 ]
 executing = []
 shipped = []
+withdrawn = []
+cancelled = []
 
 ["ini-001".work]
 queue = [
@@ -310,6 +314,19 @@ A Ready brief with zero child specs is valid and useful planning state. It is
 visible in `workspace-status`, but it is not dispatchable. Implementation begins
 only when a selected slice has a spec, its sibling plan, Approved status, and a
 target entry in `work.queue`.
+
+Once a child reaches `Implementing` or `Shipped`, move the open brief to
+`executing`. This includes programmes whose currently materialized children are
+all Shipped while the next slice has not been materialized. Shipping every
+current row does not move the brief automatically. `Shipped`, `Withdrawn`, and
+`Cancelled` require explicit closeout, preserve child statuses, and use their
+matching collections.
+
+Legacy four-state files need no immediate rewrite. Add empty `withdrawn` and
+`cancelled` lists when you next normalize the table, or add the relevant list
+when the first terminated brief is recorded. The historical scalar form of
+`executing` remains accepted; `workspace-status` keeps projecting it as a
+scalar while the other five states are lists.
 
 ## Canonical Findings
 

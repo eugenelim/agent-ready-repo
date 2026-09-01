@@ -1,7 +1,7 @@
 # Plan: guide typed asides test gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done (the register anchor `guide-blockquote-ledger-has-no-regenerator` named below was closed by [`guide-callout-inventory`](../guide-callout-inventory/spec.md); not a supersession — every decision here stands) <!-- Drafting | Approved | Executing | Done -->
 
 ## Approach
 

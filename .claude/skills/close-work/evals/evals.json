@@ -48,6 +48,12 @@
       "prompt": "All work in this initiative is shipped. Clean up workspace.toml but keep the RFC wave specs together.",
       "expected_output": "The agent first settles both workspace rooms and all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
       "assertions": ["Separates workspace cleanup from artifact retention", "Requires exact compaction confirmation", "Creates no third room or lifecycle schema"]
+    },
+    {
+      "id": 9,
+      "prompt": "Close this delivery brief: it stopped before execution began. A different brief was cancelled after one child shipped, and a third completed successfully.",
+      "expected_output": "The agent proposes Withdrawn for the pre-execution stop, Cancelled for the brief with execution evidence, and Shipped for the successfully completed brief. It preserves every child status, treats each brief transition as an explicit closeout decision, and separately confirms the exact workspace and brief updates.",
+      "assertions": ["Distinguishes Withdrawn from Cancelled by execution evidence", "Does not rewrite child statuses", "Does not infer Shipped from child rollup alone"]
     }
   ]
 }

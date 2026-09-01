@@ -31,6 +31,8 @@ LIFECYCLE_EXPECTATIONS = {
     "Implementing": "refused",
     "Executing": "refused",
     "Shipped": "refused",
+    "Withdrawn": "refused",
+    "Cancelled": "refused",
 }
 
 

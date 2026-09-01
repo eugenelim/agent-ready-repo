@@ -186,6 +186,7 @@ FINAL_TOOL_BATCH = (
     "tools/test_contract_parity.py",
     "tools/test_marketplace_envelope_parity.py",
     "tools/test_guide_authoring_standard.py",
+    "tools/test_guide_ledger_integrity.py",
     "tools/test_release_check.py",
     "tools/test_check_release_impact.py",
     "tools/test_scaffold_projection.py",
@@ -449,11 +450,22 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 #          Makefile-only registration never gates a PR.
 #
 # No other command in either plan changed.
+#
+# Re-pinned again 2026-09-01 for `tools/test_guide_ledger_integrity.py`, which
+# joins the final tools batch, MERGED on top of the direct-skill-repository
+# re-pin above. Both line counts are unchanged by this second edit — that batch
+# is one continued command, so the module lengthens an existing line rather than
+# adding one. Dispositioned by running the same `_effective_composition_errors`
+# path against the merged Makefile with and without this change's Makefile line:
+# the without-case reproduces the two digests the direct-skill re-pin recorded,
+# so that pin was current and this change is the sole cause of the move. Exactly
+# one line shifts in each plan, gaining one token, and that token is the new
+# module; no other line moves, is reordered, or is dropped.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "e032e5504800a92b1217da972f02219f2aa7cf511f4975e7bfc43f8530409545"
+    "30a6d639613ad403de92fa92c8e051b754f7d77dadcd254bbbed6b35ff281741"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "287e955e544c6ac8445a4ad95485265e90a1d8cbfab80bf3575bb9a76a5af033"
+    "5da61f5455bad0cabd23d548ecba774fc01dcd6a3a2aa9cd76f41b53fd679982"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

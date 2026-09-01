@@ -260,7 +260,11 @@ def test_integrated_matrix_runs_byte_identically_in_two_clean_roots(
     assert projection["contract_version"] == (
         "work-intake-routing-evaluation-result.v1"
     )
-    assert len(results) == 63
+    # 63 -> 71: the six-state brief lifecycle added a Withdrawn and a Cancelled
+    # refresh case to each of the four tracker profiles. `core` contributes 11
+    # and each tracker profile 15 (its own 9 plus the 6 fanned-out
+    # `all-supported` cases).
+    assert len(results) == 71
     assert all(
         set(result)
         == {

@@ -97,6 +97,27 @@ requirements store. Target entries contain exactly `path`, `kind`, `source`,
 `summary`, and `needs`; comments, summaries, order, labels, and hints cannot
 select a route, satisfy a dependency, or authorize dispatch.
 
+### Delivery-brief lifecycle
+
+The brief artifact and its `brief_queue` membership carry the same state. Child
+specs constrain that state but never change automatically and are never
+rewritten during brief closeout.
+
+| State | Child-scope invariant | Transition owner |
+| --- | --- | --- |
+| `Draft` | No child is `Implementing` or `Shipped` | `author-delivery-brief create`, or `continue` after a material Ready-review invalidation |
+| `Ready` | The Ready gate passed; no child is `Implementing` or `Shipped` | `author-delivery-brief continue` after revision-bound review and human confirmation |
+| `Executing` | At least one child is `Implementing` or `Shipped` | The reviewed coordination update accompanying child execution |
+| `Shipped` | The Spec map is non-empty and every materialized child is `Shipped` | `close-work`, after explicit human confirmation that the brief outcome is complete |
+| `Withdrawn` | No child reached `Implementing` or `Shipped` | `close-work`, after explicit termination confirmation |
+| `Cancelled` | At least one child reached `Implementing` or `Shipped` | `close-work`, after explicit termination confirmation |
+
+All currently materialized children being `Shipped` does not prove that the
+brief is complete; a later slice may not exist yet. Such an open brief remains
+`Executing`. Terminal status and artifact retention are independent: cooling
+or deletion policy never substitutes for `Shipped`, `Withdrawn`, or
+`Cancelled`, and those states do not start a retention clock by themselves.
+
 Durable product intent, rationale, user promises, current architecture,
 interfaces, operations, maintainer procedure, release history, and reusable
 learning remain in their established semantic owners. Specs and plans coordinate
@@ -194,6 +215,9 @@ invocation already supplies bounded content at the matching pinned revision.
     accepted outcome, implemented scope, gates, durable-output status, stable
     references, obligations, dependencies, completion event, and independent
     authority facts. It does not close or disposition the work.
+    When a brief-backed child first reaches `Implementing`, or when a shipped
+    child proves execution has occurred, the brief must be `Executing` in both
+    the artifact and `brief_queue`; reconciliation fails closed on a mismatch.
 11. `close-work` reacquires evidence, inventories the plan's Design/LLD and
     implementation findings, and requires human whole-surface freshness review.
     Unowned non-inferable truth, a stale surface, or a live obligation blocks.

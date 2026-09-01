@@ -41,6 +41,8 @@ MEMBERSHIPS = {
     "ini-001.brief_queue.ready",
     "ini-001.brief_queue.executing",
     "ini-001.brief_queue.shipped",
+    "ini-001.brief_queue.withdrawn",
+    "ini-001.brief_queue.cancelled",
     "ini-001.work.queue",
     "ini-001.work.active",
     "ini-001.work.shipped",

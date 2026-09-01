@@ -95,14 +95,30 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
     cpu_durations: list[float] = []
     peak_mib = 0.0
     classification = None
+    # TIMED runs carry no instrumentation. `tracemalloc` traces every allocation,
+    # and this admission path is allocation-heavy, so leaving it running across
+    # the timed region measured the tracer rather than the code: 3.8x on
+    # wall-clock and 3.1x on CPU, measured on 3.13 by running this same shape
+    # both ways. That overhead is also interpreter-sensitive, which is the whole
+    # of the 3.2x gap between the ubuntu-latest py3.11 and py3.12 jobs — 1.56s
+    # against 4.99s for identical work — and it pushed the reported figure onto
+    # AC36's 5s ceiling and failed the release gate. The ceiling was never
+    # actually exceeded; the harness was timing itself.
     for _ in range(RUNS):
-        tracemalloc.start()
         cpu_started = time.process_time()
         started = time.monotonic()
         classification = admit_direct_source(root)
         durations.append(time.monotonic() - started)
         cpu_durations.append(time.process_time() - cpu_started)
-        peak_mib = max(peak_mib, tracemalloc.get_traced_memory()[1] / (1024 * 1024))
+
+    # Memory gets its own run, because AC36 asks for both numbers and each one
+    # is only honest when the other is not being collected. This run is never
+    # timed.
+    tracemalloc.start()
+    try:
+        classification = admit_direct_source(root)
+        peak_mib = tracemalloc.get_traced_memory()[1] / (1024 * 1024)
+    finally:
         tracemalloc.stop()
 
     assert classification is not None
@@ -119,7 +135,8 @@ def test_family2_budget_cost_stays_inside_the_ac36_ceiling(tmp_path: Path):
         f"total={DIRECT_MAX_TOTAL_BYTES} | collected={classification.files} "
         f"bytes={classification.total_bytes} | wall-clock median {median:.2f}s "
         f"range {min(durations):.2f}-{max(durations):.2f}s over {RUNS} runs | "
-        f"cpu median {cpu_median:.2f}s | admission peak {peak_mib:.1f} MiB | "
+        f"cpu median {cpu_median:.2f}s (untraced) | admission peak {peak_mib:.1f} MiB "
+        f"(separate traced run) | "
         f"load/core {load_per_core:.1f} | ceiling {CEILING_SECONDS}s / {CEILING_MIB} MiB",
         UserWarning,
         stacklevel=2,
