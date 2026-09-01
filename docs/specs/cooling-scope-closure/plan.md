@@ -90,16 +90,36 @@ rather than on a fixture error. The observed verdicts:
 | AC14 | RED | the exclusion sentence is absent |
 | AC15 | RED | the rationale sentence is present |
 | AC16 | RED | the withholding sentence is absent |
+| AC17 | GREEN | preservation — `repair-plan` calls `analyze(..., cooling_enabled=False)` |
+| AC18 | GREEN | preservation |
+| AC19 | GREEN | preservation |
+| AC20 | GREEN | preservation |
+| AC21 | GREEN | preservation |
+| AC22 | GREEN | preservation |
+| AC23 | GREEN | preservation — all six digests match |
+| AC24 | GREEN | preservation — exactly two single-argument calls |
 | AC25 | GREEN | preservation |
-| AC26 | RED | `assert 'Wave 7a-i' in ...` |
+| AC26 | RED | `assert 'Wave 7a-i closes' in ...` |
 | AC27 | RED | the guide sentence is absent |
+| AC28 | GREEN | preservation — the §9 range digest matches |
+| AC29 | RED | no erratum entry exists |
+| AC30 | RED | no erratum entry exists |
+| AC32 | GREEN | preservation — both conditions present today |
+| AC33 | RED | the closure sentence is absent |
 
-13 red, 14 preservation (the six green above plus AC17-AC24), 4 `no stub (mode)`.
+17 red, 15 preservation, 1 `no stub (mode)` — 33. AC13 and AC32 were predicted
+the other way round and corrected from the run; AC17-AC24 and AC28 carried no
+recorded verdict in the previous draft and were classified by inference, which
+this table replaces.
 
-**Integration tests:** one CLI-level run per emitting subcommand (`status` and
-`reconcile`) over the AC1 fixture — the spec measures every derivation criterion
-on both, because the engine-level suites cannot catch a derivation changed in
-one builder and not the other, which is the exact defect Wave 6 reverted.
+**Both invocations, per criterion.** The spec measures every derivation criterion
+on `status` **and** `reconcile`, so AC1-AC11's tests are parametrized over the
+pair rather than covered by one integration run each. The two differ materially:
+`status` uses `analyze_bounded` with no Type 1 scan while `reconcile` uses
+`analyze`, and `_closeout_projection` draws its blockers from
+`result.reconciliation`. Wave 6's suite parametrizes the same way. The verdict
+table above records the `status` result; the `reconcile` result is recorded
+alongside it when the tests are authored.
 
 **Manual verification:** T8.
 
@@ -211,14 +231,22 @@ Traces to: AC9, AC11.
 - For AC19-AC22, reuse the authorization/legacy-entry/selection/confirmation
   builder at
   `packs/core/tests/skills/workspace-status/test_work_intake_migration_effects.py`
-  rather than authoring a second one. Assert the fixture is real before using
-  it: a `status` run over the same tree must exclude the cooled artifact from
-  `canonical.ready`, so a record pointing at a nonexistent path cannot produce a
-  vacuously identical pair.
+  rather than authoring a second one. Assert the fixture is real with a
+  **pair**, not a single run: the cooled artifact is present in
+  `canonical.ready` with `docs/lifecycle/` removed and absent with it present. A
+  single absence assertion passes when the artifact was never dispatchable, and
+  `_cooled_locators` requires `member.exists()` — so a record naming a
+  nonexistent path yields an *empty* cooled set and a byte-identical pair while a
+  one-sided guard still passes.
+- For AC17 and AC18 the queued spec's `Status` is `Shipped`, so a Type-2
+  automatic operation exists and `repair-apply` actually writes. AC18 asserts
+  `workspace.toml` changes in **both** runs before comparing them; otherwise a
+  fixture with nothing to repair makes the pair identical for the wrong reason
+  and the cooled-filter mutation cannot redden it.
 
 **Done when:** each fixture's `status` run parses, the cooled and uncooled
-variants differ only by `docs/lifecycle/`, and the migration fixture's realness
-assertion passes.
+variants differ only by `docs/lifecycle/`, the migration fixture's realness pair
+holds, and the AC17 fixture produces a non-empty `repair-plan`.
 
 ### T2: The two closeout consumers read one cooled-exclusion helper
 
@@ -357,17 +385,20 @@ AC16, AC26, AC27 red; AC25 preservation.
 
 **Approach:**
 - Rewrite the closeout-check paragraph in
-  `packs/core/.apm/skills/workspace-status/SKILL.md`: state that the queue
-  emptiness flag excludes entries named by a lifecycle record, remove the
-  sentence calling raw queue emptiness authoritative, and state that the
-  affirmative is not offered while `closeout_blockers` is non-empty.
+  `packs/core/.apm/skills/workspace-status/SKILL.md`. Conditions (3) and (4) and
+  the rationale are **one sentence**, so deleting it deletes condition (3) and
+  the only check that catches a path in both `queue` and `shipped`. Edit the
+  clause instead: drop "raw" and the "authoritative" claim, say the flag
+  excludes entries named by a lifecycle record, keep both conditions verbatim,
+  and add that the affirmative is not offered while `closeout_blockers` is
+  non-empty. AC32 pins the two retained conditions.
 - Add the literal AC27 requires to
   `guides/core/reference/work-intake-routing-and-lifecycle.md`.
 - Add the four slices and what each owns to
   `docs/architecture/work-intake-and-artifact-routing.md`, without touching the
   three pinned statements or introducing the negated string.
 
-**Done when:** AC14, AC15, AC16, AC25, AC26, AC27 pass and
+**Done when:** AC14, AC15, AC16, AC25, AC26, AC27 and AC32 pass and
 `tests/roster/test_wave4_durable_outputs_and_release.py` still passes.
 
 ### T6: The repair and migration paths are pinned as unaffected
@@ -401,18 +432,23 @@ red recorded in the table.
 
 **Depends on:** T5
 
-**Verification mode:** goal-based check. `no stub (mode)` for AC29 and AC30;
-AC23 and AC28 are preservation digests.
+**Verification mode:** TDD for AC29, AC30 and AC33 — each is a literal search
+over the RFC and each was observed red. AC23 and AC28 are preservation digests
+with mutation rows.
 
 **Approach:**
-- Append one dated, signed erratum to RFC-0096 § Errata carrying the four-slice
-  split with the objective each slice owns, the three open follow-on slugs with
-  their owning slices, and the corrected `cooling-brief-child-scope` basis. Do
-  not touch §9.
+- Append one dated, signed erratum to RFC-0096 § Errata carrying: the four-slice
+  split with the objective each slice owns; the three open follow-on slugs with
+  their owning slices; the corrected `cooling-brief-child-scope` basis; that
+  `cooling-closeout-eligibility` and `cooling-repair-migration-scope` were closed
+  by `cooling-scope-closure`; and that Wave 6's
+  `wave6-dependency-scoped-completion-receipts` is registered here as
+  `rfc0096-wave7a-ii-completion-receipts`. Do not touch §9.
 - Edit neither frozen dependency: the erratum is the durable record of closure,
-  and AC23 pins all four frozen files byte-for-byte.
+  and AC23 pins all six files in its table byte-for-byte, including both frozen
+  plans.
 
-**Done when:** AC23, AC28, AC29, AC30 pass and
+**Done when:** AC23, AC28, AC29, AC30 and AC33 pass and
 `python 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py' --root .`
 exits 0.
 

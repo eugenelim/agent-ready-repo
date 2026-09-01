@@ -56,12 +56,12 @@ initiatives[] entries: []
 
 So a paused projection has a `closeout` block and **no** `queue_empty` value
 anywhere in the response. AC3's agreement criterion is therefore measurable only
-where the projected initiative is `active`, and AC8 pins the paused case
+where the projected initiative is `active`, and AC11 pins the paused case
 separately. Writing one criterion over both would have been unsatisfiable for
 the paused input — the residual round-1 review named and the first repair made
 explicit without closing.
 
-## Probe 3 — the two closeout derivations, and why AC3 compares direction
+## Probe 3 — the two closeout derivations, and why AC3 compares direction and AC5 pins the shapes
 
 ```
 all_specs_shipped = not (initiative.work.queue or initiative.work.active)
@@ -72,37 +72,42 @@ Different predicates over different lists. An initiative with an empty queue and
 one active entry reports `all_specs_shipped` `false` with `queue_empty` `true`,
 legitimately and today. Wave 6's follow-on requires that "the two must agree"
 about the **cooled set**, not that they hold the same value, so AC3 asserts they
-move together between the cooled fixture and the same fixture with
+move together, AC4 repeats that for an alias-named entry, and AC5 pins that
+neither derivation's shape widened between the cooled fixture and the same fixture with
 `docs/lifecycle/` removed. An equality assertion would fail on correct code, and
 two separate assertions would both pass against the defect Wave 6 reverted.
 
-## Probe 4 — the frozen-body digest region
+## Probe 4 — the pinned digests, and why no frozen file is edited
 
-A per-line filter that drops only lines beginning `- **Status:**` is not enough:
-the convention's non-supersession pointer wraps, and its continuation lines are
-indented and begin with neither marker, so this delivery's own edit to Wave 6's
-Status would redden a per-line digest.
+An earlier draft annotated Wave 6's frozen `**Status:**` line and needed a
+digest rule that excluded that region. The annotation was dropped: the
+convention's non-supersession pointer is licensed for a deleted
+`workspace.toml [backlog].open` anchor, and Wave 6 registered these follow-ons in
+RFC-0096 §9, so no anchor disappears and no licence applies. The erratum is the
+record of closure instead, and this delivery edits no frozen file — which makes
+every pinned digest a plain whole-file comparison.
 
-The region AC27 excludes is the whole block — the `- **Status:**` line plus every
-following line up to but excluding the next line beginning `- **`:
-
-```
-dropped 1 line(s)
-first kept line after the block: '- **Owner:** eugenelim\n'
-sha256: 1ab7c01e349f4c2d3e4ba37ec6314371e8eb1a889352d87c5fc771b7a28d3cf3
-```
-
-The value equals the per-line result today, because Wave 6's Status is currently
-one line. The block definition is what keeps it valid after the pointer is
-written.
-
-The other pinned digests, computed the same session:
+Computed this session:
 
 | Criterion | Target | SHA-256 |
 | --- | --- | --- |
-| AC24 | RFC-0096 §9 byte range (2 861 bytes) | `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e` |
-| AC29 | `thirty-day-cooling-and-retirement/spec.md` | `3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f` |
-| AC20 | `delivery-lifecycle-record.schema.json` | `557e3d60b8fd5647a06fbc2225de51a52cfff1b8777fd3d917e91bcebbe27878` |
+| AC28 | RFC-0096 §9 byte range (2 861 bytes) | `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e` |
+| AC23 | `close-work/scripts/cooling.py` | `d6bd7c6e47d5a23e45a9f5ee5a8d5506d3435b1da00facde96f1fbfba5bf061c` |
+| AC23 | `delivery-lifecycle-record.schema.json` | `557e3d60b8fd5647a06fbc2225de51a52cfff1b8777fd3d917e91bcebbe27878` |
+| AC23 | `status-projection-and-context-exclusion/spec.md` | `2cac21ca5f84e0f4e477a6bab432429a55034f6851dc152cfcd93611e9e3523d` |
+| AC23 | `status-projection-and-context-exclusion/plan.md` | `93958585c454ab761a79f2e358e546f5d0cc7e7c8e722a8cf42114ab22a7c487` |
+| AC23 | `thirty-day-cooling-and-retirement/spec.md` | `3255b1a8b12e2cfaeccc5e6c97a7047467e8ca8e001467fdefc6757318d4c95f` |
+| AC23 | `thirty-day-cooling-and-retirement/plan.md` | `2c416277c607b9f7b2b617e06a79a58f6059f43bd2d6c2ebef35ea6af810e3e7` |
+
+AC13 pins a seventh value that is not a file digest: the SHA-256 of the
+`test_`-prefixed function names in Wave 6's roster file, sorted and newline
+joined, is `660b7204a2fe32f5d75ab03f43828934ad42c8b06b572b99292585bf13bbf8e6`
+over the 67 names present today. A name set rather than a count, because a count
+survives deleting an assertion from an unrelated function.
+
+Wave 5's directory meets the convention's freeze predicate — its `plan.md` is
+`Status: Done`. Wave 6's `plan.md` is still `Status: Approved`, so that
+directory does not literally meet it; AC23 pins both plans regardless.
 
 ## Probe 5 — the cardinality and identifier bounds this delivery does not need
 
