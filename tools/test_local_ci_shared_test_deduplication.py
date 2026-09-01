@@ -85,9 +85,27 @@ CORE_COLLECTIONS = {
         85,
         "72b3433894c9eb06912b0c98f437490aed4cb8cf6c111af6ee92ae9224f64675",
     ),
+    # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
+    # from cancellation") added the six-state lifecycle coverage without
+    # re-pinning this contract, and its two new parametrized tests carried no
+    # `ids=`, so the ID requirement below fired before the count ever could —
+    # this check has been red on main since that commit. Dispositioned rather
+    # than taken from either side: recomputing the static node set at
+    # `20c0ba50e` reproduces 16 (digest `9eb2121531`, the value replaced here);
+    # against that base the delta is one rename, test_all_shipped_delivered ->
+    # test_explicitly_shipped_all_shipped_map_is_delivered (same body, now
+    # writing the brief's explicit `Shipped` status, because an all-shipped Spec
+    # map alone no longer closes a brief), plus three unparametrized additions —
+    # test_all_shipped_map_requires_explicit_shipped_status,
+    # test_statusless_all_shipped_map_fails_closed, and
+    # test_shipped_requires_nonempty_all_shipped_map — and two parametrized
+    # ones: test_untracked_backlink_contributes_execution_evidence (2 arms) and
+    # test_terminated_brief_child_scope (6 arms, one per Withdrawn/Cancelled
+    # crossing with a child's Approved/Implementing/Shipped state). Nothing else
+    # was removed, and the surviving 15 keep their original relative order.
     SHARED_TESTS[1]: (
-        16,
-        "9eb21215317b77e1b24e1433a4219c87aa09ee9220462850475b0431fe1b8bcd",
+        27,
+        "fccaac7b6628f5848f29f22c64bd613f7bfcb688433aadee39fbcd90d1448821",
     ),
     SHARED_TESTS[2]: (
         45,
