@@ -31,7 +31,8 @@ determinism, closure, and each row's observable), so adding a state or an action
 changes a table row rather than a criterion.
 
 Reducing the always-loaded instruction surface is the separate contract this one
-enables; no criterion here changes `SKILL.md`'s size.
+enables. This contract makes no *reduction* claim about that surface; AC20 adds
+five statements to it.
 
 ## Durable Outputs
 
@@ -110,7 +111,10 @@ to `halt`:
   not `pending` or `approved`, and any `schedule_waves` that is not a list.
 - **D5 `malformed`** — any of its four fields that is not what it must be: a
   counter that is not a non-negative integer, or a fingerprint field that is not a
-  list. This mirrors the shared guard module, whose integer helper refuses a
+  list **of strings**. The element type is load-bearing: `[{"a": 1}]` and
+  `[1, "a"]` are both lists, and the sorted-unique comparison below raises on
+  each, so a catch-all that checked only "is a list" would let a hand-edited
+  `state.json` crash the verb where the contract promises a `halt`. This mirrors the shared guard module, whose integer helper refuses a
   boolean, a negative, and a non-integer by name, and whose phase check returns a
   refusal rather than an under-cap or at-cap answer when a counter is malformed.
   The cap must be derived through that helper, not through raw arithmetic.
@@ -121,8 +125,24 @@ to `halt`:
 compared in the same sorted-unique canonical form the shipped detector uses — the
 non-empty qualifier is load-bearing, because both fields are empty on a fresh run
 and after two consecutive clean or all-skipped rounds, and comparing them raw
-would classify a brand-new loop as spent on its very first call. `cap-reached`
-is evaluated first; a run that is both is reported as `cap-reached`.
+would classify a brand-new loop as spent on its very first call. The three
+spent-or-broken values are evaluated in a fixed order: **`malformed` first, then
+`cap-reached`, then `stasis`.** A state satisfying more than one is reported as
+the earliest, so two conforming implementations cannot disagree.
+
+**A review state ignores counters written in a different review phase.** A
+contract amendment resets the plan-approval cycle but deliberately preserves the
+review counters and fingerprints, so an amended contract would otherwise re-enter
+`SPEC-PLAN-REVIEW` already reading `cap-reached` or `stasis` and could never reach
+`spec.review`. The signal is `amendment_pending`: the amendment sets it and only
+the re-approval of the amended plan clears it, so it is non-null for exactly the
+window in which the surviving counters belong to the previous cycle. While it is
+non-null, D5 at a review state evaluates `within-budget` unless the fields are
+`malformed`. The accepted consequence is that a spec-stage evidence-retry cap
+reached *inside* an amendment window is not reported by this projection, because
+the two are written to the same fields and nothing distinguishes them; the engine
+still enforces that cap itself by refusing `findings-remain`, so the projection
+stops mis-advising without removing the guard.
 
 D3 lists the full cross product of its two recognised fields rather than the
 reachable subset. Including `pending+scheduled` costs one row's worth of coverage
@@ -254,8 +274,11 @@ conditions have different legal continuations, so the stderr reason differs:
   it, pass `--allow-retry-cap-override` to both the `findings-remain` transition
   and the matching `review record`, since either half alone desynchronises the
   engine and the cohort.
-- **`stasis` below the cap** — `findings-remain` is still accepted, so the
-  continuation is a repaired round rather than an escape.
+- **`stasis`** — the loop stops for human replanning. The lifecycle reference this
+  row loads is explicit that a repeated finding fingerprint "stops immediately for
+  human replanning; it is not another review round", so the engine still accepting
+  `findings-remain` below the cap is legality, not permission. The reason names no
+  continuation of its own.
 
 Neither reason may offer narrowing the accepted intent or splitting the contract
 into separate specs. The lifecycle reference this row loads forbids both on this
@@ -410,14 +433,18 @@ the command could not compute a record at all, and emits none.
   against a state that also matches a later row, produces that row's exit and
   record, and its stderr names what the row's last column requires. P1 is
   exercised in the state that makes ordering load-bearing — a temporary file with
-  no `engine-state.json` beside it — and must win over P2 and P3. P2's marker
+  no `engine-state.json` beside it — and must win over P2, P3, and P4. P2 is
+  exercised with an unreadable `spec.md` and must win over P4. **P3's** marker
   match is exercised against every spelling in the plan's fixture set, against a
   body-zone mention, and against `Modelight` and `light-weight`, none of which may
-  match. P2 through P5 return four distinct exit codes, asserted as distinct from
-  each other and from both 1 and 2, which the engine's generic refusal and
-  argparse already occupy. P2 is exercised with an unreadable `spec.md` and must
-  win over P4, and D5's spent branch is exercised on a fresh run and after two
-  consecutive clean rounds, both of which must yield `within-budget`.
+  match. Every non-zero row returns the distinct code the Preconditions preamble
+  allocates, each distinct from the others and from 1 and 2, which the engine's
+  generic refusal and argparse already occupy — that preamble is the single home
+  of both the row count and the code count, and this criterion asserts against it
+  rather than restating either. D5's spent branch is exercised on a fresh run,
+  after two consecutive clean rounds, and immediately after `contract-amendment`,
+  all three of which must yield `within-budget`; and on a state satisfying both
+  `cap-reached` and `malformed`, which must yield `malformed`.
 
 ### The record
 
@@ -431,7 +458,7 @@ the command could not compute a record at all, and emits none.
   on any exit path; every one of them is written to stderr.
 - [ ] **AC9.** `schema_version` is the literal string `work-loop-next.v1`; `run_id`
   equals the `run_id` in `engine-state.json` and matches the canonical lowercase
-  UUID form P4 requires; and `sequence` equals its `transition_sequence`. Pinning
+  UUID form P6 requires; and `sequence` equals its `transition_sequence`. Pinning
   either derived field to a constant fails this criterion, and so does emitting a
   record for state whose `run_id` does not match that form.
 - [ ] **AC10.** `complete_with` lists exactly the events legal from the record's
@@ -440,9 +467,10 @@ the command could not compute a record at all, and emits none.
   constant fails this criterion. It carries **one declared exception**: when D5 is
   `cap-reached`, `reviewers-clean` is omitted. That event is the only one the
   engine still accepts at the cap, and advertising it in the field an agent parses
-  to choose its next move is the false-clean pressure R5 and R25 exist to remove —
-  the general "the guard refuses an illegal choice anyway" argument does not hold
-  here, because nothing guards it. Emitting `reviewers-clean` in a `cap-reached`
+  to choose its next move is the false-clean pressure R5 and R25 exist to remove.
+  The general "the guard refuses an illegal choice anyway" argument does not hold
+  on this edge: its guard checks the spec's Status token, not whether the review
+  was actually clean, and in spec-plan mode the edge has no guard at all. Emitting `reviewers-clean` in a `cap-reached`
   record fails this criterion.
 - [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$` or is an
   integer. No `parameters` value is ever a boolean: the Action attributes table
@@ -452,8 +480,13 @@ the command could not compute a record at all, and emits none.
   rather than a record, and an integer is resolved through the shared guard
   module's non-negative-integer helper, so a boolean, a negative, or a
   non-integer is refused rather than silently coerced. `from_index` is the case
-  that requires it: it is the only `parameters` value taken from a state field no
-  Precondition form-checks, and it reaches a command line. `cycle_id` is derived
+  that requires it: it is the only `parameters` value taken from a field no
+  Precondition form-checks, and it reaches a command line. Its source is
+  `engine-state.json`'s `last_event_context.completed_wave_index`, which the
+  shipped instruction for the same act already uses — **not** `state.json`'s
+  `current_wave_index`, which the advance itself increments, so a record built
+  from that field on a resume where the advance already landed would pass an index
+  one too high and silently skip a wave. `cycle_id` is derived
   from two fields P6 already checks.
   Every `load` entry resolves to a file shipped under the skill's `references/`
   tree, with the resolution built by globbing that tree rather than transcribed.
@@ -478,8 +511,10 @@ the command could not compute a record at all, and emits none.
 
 ### Reads
 
-- [ ] **AC15.** The verb opens exactly four files — both state files and both
-  artifact Status files. Each is read through the shared guard module's readers,
+- [ ] **AC15.** The verb opens no file outside a set of four — both state files
+  and both artifact Status files — and reads each artifact Status file only at the
+  state whose Discriminator consumes it, so a run that needs neither opens
+  neither. Each is read through the shared guard module's readers,
   with no direct `open` or `read_text` anywhere in the verb's path; a symlink, a
   non-regular file, and an oversized file at each of the four is refused rather
   than followed, read, or blocked on.
@@ -553,8 +588,10 @@ the command could not compute a record at all, and emits none.
   state, and per-command exit codes, and states what it does not exercise. Both
   carry repository-relative paths only: the verb's own stderr interpolates
   absolute ones, and the privacy convention bans a user-specific filesystem path
-  from every committed artifact, so the check is a grep for the absolute-path
-  prefix returning nothing.
+  from every committed artifact. The check searches for `/Users/`, `/home/`,
+  `~/`, the committing account's username, and the machine hostname, and passes
+  only when none is present — a transcript carries the worktree path, the prompt
+  hostname, and the account name, and no repository-wide lint backstops this.
 - [ ] **AC25.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
   `[Unreleased]`, containing a `### Highlights` block; and `packs/core/pack.toml`
@@ -617,7 +654,10 @@ contract that depends on this one; they are not deferred work from this checklis
   `spec.md` still reads `Approved` when the run re-reaches `SPEC-HUMAN-GATE`; D1
   returns `Approved`, R8 answers `engine.spec-approved` with `human_wait: false`,
   and the engine's spec-approved guard passes on the status token alone with no
-  hash comparison, so the human never re-reviews the revised spec. The shipped
+  hash comparison, so the human never re-reviews the revised spec. The plan gate
+  has the identical shape — its guard is also a lone status-token check — so an
+  unreset `plan.md` makes R11 auto-fire `plan-approved` too, and a single
+  resumption can skip both human gates. The shipped
   resumption row prescribes exactly this today, so the projection is faithful; the
   residual is recorded rather than closed, because closing it needs a freshness
   signal the state files do not carry (source: `references/session-resumption.md`

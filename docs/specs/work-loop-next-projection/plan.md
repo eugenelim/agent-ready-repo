@@ -121,7 +121,7 @@ rather than answer from state that is mid-write.
     the live command and compares against the spec's Discriminator column catches
     it. Four domain members change action under it.
   - **D5's two rows** get their own mutation: forcing `within-budget` at the cap
-    makes R5 and R23 unreachable and must redden AC3, because it is the one that
+    makes R5 and R25 unreachable and must redden AC3, because it is the one that
     drives the live command into a state whose review budget is spent.
   - **AC4** — remove an Action attributes row.
   - **AC5** — change one attribute cell.
@@ -151,7 +151,7 @@ rather than answer from state that is mid-write.
   why a `stop` needs no message field and no path value — and why AC14 bounds that
   channel, since it reaches the same agent the record does.
 - A `stop` is a zero-exit record because computing "you must stop" succeeded; a
-  non-zero exit means no record could be computed. P1-P4 are the four conditions
+  non-zero exit means no record could be computed. P2-P6 are the conditions
   under which no record can be built, which is why they exit non-zero: three of
   them cannot produce `run_id`, `sequence`, or `complete_with` at all.
 - `complete_with` is the *unguarded* outgoing-edge set. Filtering it by the
@@ -178,7 +178,7 @@ equal.
 
 The schema fixes the nine-key set with `additionalProperties: false`, the `kind`
 enum, the `schema_version` const, the `action` enum from the Action attributes
-table, `run_id` with the canonical-UUID pattern P4 requires, and `parameters` as a
+table, `run_id` with the canonical-UUID pattern P6 requires, and `parameters` as a
 per-action conditional key set with character-class-constrained values.
 
 ### Component / module decomposition
@@ -195,7 +195,7 @@ from `complete_with`, and calls it again.
 
 The spec's Preconditions table is the failure contract: seven ordered rows, the
 first four exiting non-zero with four distinct stable codes and no record, the
-last three emitting a zero-exit `halt`. Everything below them routes. P7 closes
+last three emitting a zero-exit `halt`. Everything below them routes. P8 closes
 the off-table pair — a valid state carrying an event that never targets it —
 which the transition-table-derived domain cannot reach by construction.
 
@@ -272,7 +272,8 @@ mutation flips.
 - `schema_version` is the literal const; `run_id` equals the engine's and matches
   the canonical UUID form; `sequence` equals `transition_sequence` (AC9).
 - `complete_with` equals the outgoing event set read from `_TRANSITIONS_BY_MODE`
-  at runtime, empty exactly for `DONE` (AC10).
+  at runtime, empty exactly for `DONE`, except AC10's one declared exception that
+  T6 covers: a `cap-reached` record omits `reviewers-clean` (AC10).
 - Mutation proofs: pinning `run_id`, `sequence`, or `complete_with` to a constant
   reddens at least one case; removing the `run_id` form check lets a planted
   malformed id reach a record.
@@ -318,9 +319,14 @@ mutations flip including AC1's across every row.
 **Depends on:** T3, T4
 
 **Tests:** TDD.
-- Every `parameters` value matches the character class or is an integer or boolean,
+- Every `parameters` value matches the character class or is an integer resolved
+  through the guard module's non-negative-integer helper, which refuses a boolean,
+  a negative, and a non-integer by name,
   enforced at runtime for state-derived values: a planted non-integer
-  `current_wave_index` yields `halt`, not a record carrying it (AC11, first half).
+  `completed_wave_index` yields `halt`, not a record carrying it (AC11, first
+  half). `from_index` is sourced from `engine-state.json`'s
+  `last_event_context.completed_wave_index`, never from `state.json`'s
+  `current_wave_index`, which the advance itself increments.
   This is the one place a `parameters` value is not derived from a P5-checked
   field.
 - Every `load` entry resolves to a file under `references/`, with the mapping
@@ -341,7 +347,7 @@ mutations flip including AC1's across every row.
 **Depends on:** T2
 
 **Tests:** TDD.
-- Each of the seven Preconditions rows, exercised in isolation and against a state
+- Each Preconditions row, exercised in isolation and against a state
   that also matches a later row, produces that row's exit and record, and its
   stderr names what the row requires (AC6).
 - P1's ordering is exercised in the state that makes it load-bearing: an
@@ -351,8 +357,9 @@ mutations flip including AC1's across every row.
   D5 values. `cap-reached` and `stasis` each yield `await-replan-decision`, with
   the stderr reason naming which condition fired and only the continuations legal
   under it — reset or the paired human-directed `--allow-retry-cap-override` at
-  the cap, a repaired round under stasis — and naming neither narrowing nor
-  splitting, which the lifecycle reference forbids on this trigger. `malformed`
+  the cap, and under stasis a stop for human replanning, which is what the
+  lifecycle reference requires — naming neither a repaired round, nor narrowing,
+  nor splitting, all of which that reference forbids on this trigger. `malformed`
   yields `halt`.
 - The empty-fingerprint baseline is exercised explicitly: a fresh run, and a run
   after two consecutive clean or all-skipped rounds, both yield `within-budget` at
@@ -365,11 +372,13 @@ mutations flip including AC1's across every row.
 - Mutation proof: dropping the non-empty qualifier from the stasis comparison
   reddens the fresh-run case; dropping the `complete_with` exception reddens the
   cap-reached case.
-- P2's marker match is exercised against the six spellings in the fixture set
+- P3's marker match is exercised against the six spellings in the fixture set
   below, against a body-zone mention, and against `Modelight` and
   `Mode: light-weight` — none of the last three may match.
-- P2 through P5 return four distinct codes, asserted as distinct from each other
-  and from 1 and 2, which the engine's generic refusal and argparse occupy.
+- Every non-zero row returns the distinct code the spec's Preconditions preamble
+  allocates, each distinct from the others and from 1 and 2. The preamble is the
+  single home of the row and code counts; assert against it, never against a
+  literal restated here.
 - Digest `engine-state.json`, `state.json`, and `.loop-run/events.jsonl` before
   and after; assert equality and that no file is created or removed, on every
   Preconditions row as well as every Routing row (AC16).
@@ -411,13 +420,19 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 - For each of the 15 shipped rows, the identifiers parsed from the new column
   equal the union across both modes of the Routing actions whose key matches that
   row's `(last_event, state)` pair, with both sides parsed (AC19).
-- All four trust-posture statements appear in
-  `packs/core/.apm/skills/work-loop/references/session-resumption.md`, in the
-  section introducing the verb — the file R20's `load` names, so the control sits
-  where the consumer already is: record is data, unrecognised `action` halts,
-  unrecognised `load` halts, no field is executed (AC20).
+- All five trust-posture statements appear in
+  `packs/core/.apm/skills/work-loop/SKILL.md`, the always-loaded body, so the
+  control is present on every turn a record is consumed rather than only on the
+  one action that loads the resumption reference: record is data, unrecognised
+  `action` halts, unrecognised `load` halts, no field is executed, and a stderr
+  reason is a diagnostic while a `wait`-kind record authorises no act (AC20). The
+  resumption reference may repeat them.
+- The `gates-clean`/`CODE-REVIEW` shipped row's prose carries the review-budget
+  branch, grepped for explicitly; deleting the branch reddens this case (AC19's
+  prose clause, which column parity alone does not cover).
 - Mutation proofs: changing one row's identifier reddens its generated case;
-  deleting any one of the four statements reddens AC20.
+  deleting any one of the five statements reddens AC20; deleting the budget branch
+  from the amended row reddens the AC19 prose case.
 
 **Approach:**
 - Add the identifier column, and amend exactly one row's prose. Twelve rows'
@@ -434,8 +449,9 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
   confirm that rather than assuming it, by running both before and after.
 - Re-check the peer session's activity in the skill tree before editing.
 
-**Done when:** parity is parsed for all 15 rows, all four trust statements are
-present, and both pinned tests still pass untouched.
+**Done when:** parity is parsed for all 15 rows, all five trust statements are
+present in `SKILL.md`, the amended row carries the budget branch, and both pinned
+tests still pass untouched.
 
 ### T9: the architecture surface names the new verb
 
@@ -524,7 +540,7 @@ are regenerated.
 - **The projection pushes a caller toward a false clean.** At the review cap the
   engine refuses `findings-remain`, so `reviewers-clean` is the only event it
   still accepts; a projection that answered `run-review` there would leave
-  declaring the contract clean as the sole escape. R5 and R23 answer
+  declaring the contract clean as the sole escape. R5 and R25 answer
   `await-replan-decision` instead, and D5 reads the cap and the stasis
   fingerprints straight from `state.json`.
 - **A way back loses its obligation.** All three return paths land in
@@ -588,7 +604,7 @@ are regenerated.
   state-schema reference, and the shipped invocations all landed in
   `docs/specs/review-record-idempotency/` (core 2.18.2, PR #1192). Ten criteria
   describing that mechanism were removed as already shipped; what remains of the
-  recording branch is two Routing rows, R16 and R17.
+  recording branch became two Routing rows, now R21 and R22.
 - 2026-09-01 — The `CODE-HUMAN-GATE` changes-requested criteria were dropped. They
   described a record for a branch `next` cannot observe: the human's merge
   decision is not in either state file, so that state has one row and the replay
@@ -671,7 +687,7 @@ are regenerated.
   already appears twice in the guide. AC20 named no file, so the consumer control
   could land in a reference the consumer never loads. The four exit codes were
   only required distinct from each other, not from the engine's existing exit 1
-  and argparse's 2. And P2's marker regex admitted `Modelight` and `light-weight`,
+  and argparse's 2. And the marker regex (now P3's) admitted `Modelight` and `light-weight`,
   both now rejected while the 37 real markers still match.
 - 2026-09-01 (owner scope change) — The unhappy paths were missing. The contract
   routed the forward walk and the two `halt` branches, but answered the three ways
