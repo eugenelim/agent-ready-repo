@@ -126,6 +126,19 @@ def _parse_frontmatter(
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise BoundedMetadataError(f"{label}: invalid UTF-8") from exc
+    # Line endings are normalised for the PARSE ONLY. `data` is the byte string
+    # AC15 says is written to the normalized tree and fed to the digest, and it
+    # is untouched here — this rebinds `text`, never `data`.
+    #
+    # Without this, a `SKILL.md` saved with CRLF — the default of most Windows
+    # editors, and common in real repositories — began `---\r\n`, failed the
+    # `startswith` below, and was treated as carrying NO frontmatter at all.
+    # Nothing refused: the identity comes from the directory name and
+    # unrecognised keys are ignored, so the skill installed with its declared
+    # `allowed-tools` and `metadata.credentialed` rendered as "undeclared
+    # (unrestricted)". The consent surface understated what the publisher
+    # actually declared, which is the one thing it exists to state.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     if not text.startswith("---\n"):
         return {}
     end = text.find("\n---\n", 4)

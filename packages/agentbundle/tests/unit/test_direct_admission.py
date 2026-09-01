@@ -971,3 +971,56 @@ def test_the_case_fold_payload_rule_holds_on_a_case_insensitive_host(tmp_path: P
         envelope,
         [envelope / "SKILL.md", envelope / "references" / "notes.md"],
     )
+
+
+def test_crlf_frontmatter_is_parsed_not_silently_ignored(tmp_path: Path):
+    # A `SKILL.md` saved with CRLF — the default of most Windows editors, and
+    # common in real repositories — began `---\r\n`, failed the `startswith`
+    # check, and was treated as carrying NO frontmatter. Nothing refused:
+    # identity comes from the directory name and unrecognised keys are ignored,
+    # so the skill installed with its declared `allowed-tools` and
+    # `metadata.credentialed` rendered as "undeclared (unrestricted)". The
+    # consent surface understated what the publisher declared.
+    #
+    # Written as BYTES, so the fixture carries real CRLF on every platform
+    # rather than depending on what `write_text` does on the host.
+    import agentbundle.direct_source as direct_source
+
+    root = tmp_path / "crlf"
+    root.mkdir()
+    (root / "SKILL.md").write_bytes(
+        b"---\r\n"
+        b"name: crlf\r\n"
+        b"description: A skill whose frontmatter uses CRLF line endings.\r\n"
+        b"allowed-tools: Read, Grep, Read\r\n"
+        b"metadata:\r\n"
+        b"  credentialed: true\r\n"
+        b"---\r\n"
+        b"\r\n"
+        b"# crlf\r\n"
+    )
+
+    from agentbundle.direct_install import skill_metadata
+
+    skill = direct_source.admit_direct_source(root).skills[0]
+    metadata = skill_metadata(skill)
+    assert metadata.get("name") == "crlf", (
+        "CRLF frontmatter was read as absent, so nothing the publisher "
+        "declared reached the consent surface"
+    )
+    assert metadata.get("allowed-tools") == "Read, Grep, Read"
+    assert metadata.get("metadata", {}).get("credentialed") is True
+
+    # The digest is over the ORIGINAL bytes: normalisation is for the parse
+    # only, so a CRLF source and an LF source are different content and must
+    # not collide.
+    lf = tmp_path / "lf"
+    lf.mkdir()
+    (lf / "SKILL.md").write_bytes(
+        (root / "SKILL.md").read_bytes().replace(b"\r\n", b"\n")
+    )
+    lf_skill = direct_source.admit_direct_source(lf).skills[0]
+    assert skill_metadata(lf_skill) == metadata
+    assert lf_skill.files[0].data != skill.files[0].data, (
+        "the parse was normalised, but the measured bytes must not be"
+    )

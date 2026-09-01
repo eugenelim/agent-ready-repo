@@ -50,6 +50,8 @@ class StateLockUnusable(OSError):
 # enough, because ext4 and tmpfs reuse inode numbers aggressively, so a
 # successor's lockfile can land on the freed inode of the one being checked.
 _RECORD_TAG = b"agentbundle-statelock"
+# `O_BINARY` exists only on Windows; on POSIX the flags are unchanged.
+_LOCK_OPEN_FLAGS = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
 _RECORD_RE = re.compile(r"^agentbundle-statelock ([0-9a-f]{32}) (\d+)$")
 
 
@@ -160,7 +162,15 @@ def state_lock(
     fd: int | None = None
     while True:
         try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            # `O_BINARY` matters on Windows and is absent elsewhere. Without
+            # it the CRT opens in TEXT mode and translates the `\n` ending the
+            # ownership record into `\r\n` on write, while `_read_record`
+            # reads binary — so `_is_ours` compared `...\r\n` against
+            # `...\n`, judged the lockfile to be someone else's, and skipped
+            # the unlink. Every hold leaked its lockfile, and the next state
+            # write in the same 10-second window timed out waiting for a lock
+            # nobody held.
+            fd = os.open(lock_path, _LOCK_OPEN_FLAGS, 0o600)
             break
         except FileExistsError:
             try:

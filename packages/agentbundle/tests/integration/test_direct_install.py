@@ -583,23 +583,18 @@ def test_a_refused_projection_leaves_nothing_behind(tmp_path: Path, capsys):
     # written on disk with no state row and no receipt: the adopter was told the
     # install failed while an unreviewed SKILL.md was live in their skills
     # directory. Destinations are validated before the first write now.
-    import os
-
     from agentbundle.direct_install import run_direct_install
 
     source = tmp_path / "reserved"
     envelope = source / "skills" / "alpha"
     envelope.mkdir(parents=True)
     (envelope / "SKILL.md").write_text("---\nname: alpha\n---\n# alpha\n")
-    if os.name == "nt":
-        # `NUL` is a reserved device in every Windows directory: the write goes
-        # to the null device, the name never appears in `iterdir`, and the
-        # install therefore succeeds. The reserved-name refusal is a Windows
-        # rule being asserted on a source that cannot carry the name, so pin
-        # the platform fact rather than the refusal.
-        (envelope / "nul.md").write_text("payload\n")
-        assert "nul.md" not in {entry.name for entry in envelope.iterdir()}
-        return
+    # No Windows arm. An earlier one asserted that `nul.md` goes to the null
+    # device and never appears in `iterdir`, so the refusal was unreachable
+    # there — CI disproved it: the runner created the file and listed it, and
+    # the arm failed on `assert 'nul.md' not in {'SKILL.md', 'nul.md'}`. The
+    # reserved-name rule is what `assert_portable_name` refuses, and it refuses
+    # identically on both platforms, so the POSIX path is the whole test.
     (envelope / "nul.md").write_text("payload\n")
     target = tmp_path / "target"
     target.mkdir()

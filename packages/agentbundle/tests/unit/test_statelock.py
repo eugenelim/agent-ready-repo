@@ -109,3 +109,42 @@ def test_persist_state_locked_merges_concurrent_rows(tmp_path: Path) -> None:
     reloaded = config.load_state(state_path)
     assert reloaded.has_pack("research")
     assert reloaded.adapters_for_pack("research") == ["claude-code", "codex"]
+
+
+def test_a_released_hold_leaves_no_lockfile_behind(tmp_path):
+    # The ownership record ends in `\n`. On Windows `os.open` without
+    # `O_BINARY` opens in TEXT mode, so the CRT wrote `\r\n` while
+    # `_read_record` reads binary — `_is_ours` then compared `...\r\n` against
+    # `...\n`, judged the lockfile to be someone else's, and skipped the
+    # unlink. Every hold leaked its lockfile, and the NEXT state write in the
+    # same 10-second window timed out waiting on a lock nobody held.
+    from agentbundle import statelock
+
+    state_path = tmp_path / ".agentbundle-state.toml"
+    lock_path = state_path.with_name(state_path.name + ".lock")
+
+    with statelock.state_lock(state_path):
+        assert lock_path.exists(), "the lock is not held"
+        # The record on disk must round-trip through the binary reader, which
+        # is what ownership is decided by.
+        assert statelock._read_record(lock_path).endswith(b"\n")
+        assert b"\r" not in statelock._read_record(lock_path), (
+            "the ownership record was written through a text-mode translation"
+        )
+    assert not lock_path.exists(), "the hold leaked its lockfile"
+
+    # The consequence, asserted directly: a second hold must not have to wait.
+    with statelock.state_lock(state_path, timeout=1.0):
+        assert lock_path.exists()
+    assert not lock_path.exists()
+
+
+def test_two_sequential_state_writes_both_land(tmp_path):
+    # The end-to-end shape the leak broke: back-to-back writes inside one
+    # process, which is what a reinstall does.
+    from agentbundle import statelock
+
+    state_path = tmp_path / ".agentbundle-state.toml"
+    for _ in range(3):
+        statelock.persist_state_locked(state_path, lambda state: None, timeout=2.0)
+    assert state_path.exists()
