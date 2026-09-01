@@ -35,7 +35,7 @@ The brief template is a **guide, not a schema**. Create mode records a Draft and
 | `Spec map` | section required for Ready; rows optional | The coverage table. One row per materialized spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. A Ready brief may have zero rows. |
 | `Rabbit holes` | optional | Named design traps, constraints, or out-of-bounds explorations to avoid. |
 | `Source` | optional until Ready | Durable source provenance. Tracker-origin work also records the reviewed source revision. |
-| `Status` | set by skill | Lifecycle marker. `author-delivery-brief create` sets `Draft`; `continue` may set `Ready` after the human Ready gate. Ready does not imply that a slice or spec exists. |
+| `Status` | set by the owning workflow | One of `Draft`, `Ready`, `Executing`, `Shipped`, `Withdrawn`, or `Cancelled`. `create` sets Draft; `continue` may set Ready; terminal transitions go through `close-work`. |
 
 ## DoR gate
 
@@ -57,6 +57,22 @@ not certify readiness. `author-delivery-brief continue` owns this gate and is th
 sets `Status: Ready`, after human confirmation. A Ready brief may have zero
 materialized specs and remains non-executable until the user confirms a slice.
 
+## Lifecycle states
+
+| Status | Child-scope rule |
+| --- | --- |
+| `Draft` | The Ready gate has not passed; no child is `Implementing` or `Shipped`. |
+| `Ready` | The Ready gate passed; no child is `Implementing` or `Shipped`. |
+| `Executing` | The outcome remains open and at least one child is `Implementing` or `Shipped`. |
+| `Shipped` | Explicit successful closeout; the map is non-empty and every mapped child is `Shipped`. |
+| `Withdrawn` | Explicit closeout before any child reaches `Implementing` or `Shipped`. |
+| `Cancelled` | Explicit closeout after at least one child reaches `Implementing` or `Shipped`. |
+
+All currently mapped children being Shipped does not close the brief. Keep it
+`Executing` when a later slice is still expected or has not been materialized.
+Closeout changes the brief and its matching workspace collection together; it
+does not rewrite child specs.
+
 ## The Spec map
 
 A markdown table whose rows the coverage lint reconciles against the specs:
@@ -73,7 +89,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 - The **first** column is the spec slug (`docs/specs/<slug>/`).
 - The **last** column is the auto-derived status — leave it to the lint.
-- A brief is **delivered** only when its map is non-empty *and* every mapped spec is `Shipped`. A Ready brief with an empty map is valid but not delivered.
+- A brief is **delivered** only when its own status is explicitly `Shipped`, its map is non-empty, and every mapped spec is `Shipped`. A Ready brief with an empty map is valid but not delivered; an Executing brief with an all-shipped current map is also not delivered.
 
 ## Linkage fields on derived specs
 
@@ -88,7 +104,8 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 `scripts/lint-brief-coverage.py` (bundled with `author-delivery-brief`) reads every spec's `Status:` field, follows the `Brief:` back-links, and rolls each brief's Spec map up from its children. Behavior:
 
-- Reports each brief as **delivered** or **not delivered**.
+- Reports each brief as **delivered** only for explicit `Shipped` closeout with a non-empty all-shipped map; every other state reports **not delivered**.
+- Fails when the brief status is absent, unknown, or contradicts child execution evidence. `Draft`, `Ready`, and `Withdrawn` permit no `Implementing` or `Shipped` child; `Executing` and `Cancelled` require at least one; `Shipped` requires only Shipped children and a non-empty map.
 - A spec that back-links a brief but isn't in that brief's map is reported **untracked** (informational) — add the row; it's not an error.
 - A brief's Spec-map Status cell that *contradicts* the spec's real status (a hand-edited, stale cell) is a **failure** (exit 1) — the column is auto-derived and must not be hand-maintained.
 - It **no-ops** (exit 0, silent) when no brief exists.

@@ -52,6 +52,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [core][2.19.0] — 2026-09-01
+
+### Highlights
+
+- **Delivery briefs now distinguish withdrawal before execution from
+  cancellation after execution starts.** Open programmes remain Executing when
+  their current slices have shipped but later slices are not materialized, and
+  successful closure still needs an explicit Shipped decision.
+
+### Changed
+
+- Core's brief template, authoring and closeout workflows, workspace schema,
+  status projection, legacy migration routes, and coverage lint share the six
+  states Draft, Ready, Executing, Shipped, Withdrawn, and Cancelled.
+- A Shipped child now counts as execution evidence. Ready and Withdrawn reject
+  that evidence; Executing and Cancelled require it; Shipped requires a
+  non-empty all-shipped Spec map.
+- Tracker refresh locks Withdrawn and Cancelled requirements with the stable
+  result codes `withdrawn_requirements_locked` and
+  `cancelled_requirements_locked` across every supported profile.
+
 ## [core][2.18.2] — 2026-09-01
 
 ### Highlights

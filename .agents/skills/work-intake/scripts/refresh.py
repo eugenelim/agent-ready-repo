@@ -31,6 +31,7 @@ RESULT_CODES = frozenset(
     {
         "accepted_field_not_local",
         "authority_revision_mismatch",
+        "cancelled_requirements_locked",
         "comparison_failed",
         "decision_required",
         "executing_requirements_locked",
@@ -51,6 +52,7 @@ RESULT_CODES = frozenset(
         "unauthorized_approver",
         "unsupported_artifact_kind",
         "unsupported_lifecycle",
+        "withdrawn_requirements_locked",
     }
 )
 
@@ -971,6 +973,14 @@ def evaluate_refresh(
     if comparison.lifecycle == "Executing":
         return RefreshResult(
             "executing_requirements_locked", "completed", local_mutation="refused"
+        )
+    if comparison.lifecycle == "Withdrawn":
+        return RefreshResult(
+            "withdrawn_requirements_locked", "completed", local_mutation="refused"
+        )
+    if comparison.lifecycle == "Cancelled":
+        return RefreshResult(
+            "cancelled_requirements_locked", "completed", local_mutation="refused"
         )
     if comparison.lifecycle in _DRAFT_LIFECYCLES | _ACCEPTED_LIFECYCLES:
         lifecycle_code = "ready"

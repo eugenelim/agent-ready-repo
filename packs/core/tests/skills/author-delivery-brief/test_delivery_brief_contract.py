@@ -94,6 +94,33 @@ def test_only_confirmed_slices_materialize() -> None:
     assert "ask" in body.lower() or "confirm" in body.lower()
 
 
+def test_brief_lifecycle_distinguishes_progress_and_termination() -> None:
+    body = " ".join(_BODIES["author-delivery-brief"].split())
+    template = (
+        _SKILLS.parent.parent
+        / "seeds"
+        / "docs"
+        / "product"
+        / "briefs"
+        / "_template.md"
+    ).read_text(encoding="utf-8")
+
+    for status in (
+        "Draft",
+        "Ready",
+        "Executing",
+        "Shipped",
+        "Withdrawn",
+        "Cancelled",
+    ):
+        assert status in body
+        assert status in template
+    normalized = body.lower()
+    assert "all-shipped map is eligible for closeout but does not close the brief" in normalized
+    assert "before any child reaches" in normalized
+    assert "after at least one child reaches" in normalized
+
+
 def test_processor_boundary_metadata() -> None:
     for name in ("author-delivery-brief", "new-spec"):
         body = _BODIES[name]

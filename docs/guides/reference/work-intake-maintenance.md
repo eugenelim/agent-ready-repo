@@ -12,7 +12,7 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | Upstream shaping producer | Bounded handoff content after its confirmed delivery gate; capability-negotiated portable fallback | Core imports, destination self-certification, lifecycle or delivery approval |
 | `work-intake` | Neutral classification, artifact-before-registration sequencing, processor selection | Intent or brief authoring, tracker vocabulary, source credentials, legacy conversion |
 | `intake-intent` | Minimum repository-intent creation and admission | Product-level shaping, brief lifecycle, downstream implementation |
-| `author-delivery-brief` | Draft creation and existing-brief continuation through Ready and confirmed spec slices | Neutral classification, implementation, governance-reference rollups |
+| `author-delivery-brief` | Draft creation, Ready review, confirmed spec slices, and the six-state brief lifecycle contract | Neutral classification, implementation, governance-reference rollups, terminal closeout |
 | Handoff admission | Closed-field validation, source/revision consistency, exact resolver-result reuse, stable zero-effect disposition | Raw source storage, external acquisition, new artifact/lifecycle kinds |
 | Semantic-surface resolver | Six-step destination precedence, mandatory-policy rejection, locator confinement, complete read-only result | Candidate acquisition, artifact applicability, authoring method, lifecycle effects |
 | Architect / governance owner | Role selection and the existing architecture or ADR method after resolution | Reimplementing precedence, coercing external locators, routing architecture into product prose |
@@ -21,6 +21,7 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | Processor | The artifact-specific workflow selected by the route | Reclassifying the source from tracker object names |
 | Refresh processor | Exact-profile acquire/map/compare and declared local or remote coordination capability | Reusing intake authorization or bypassing lifecycle locks |
 | `workspace-status` | Read-only status, reconciliation, migration planning, authorized ledger/apply/rollback | Authoring artifacts or human route/authorization inputs |
+| `close-work` | Explicit `Shipped`, `Withdrawn`, or `Cancelled` brief closeout after durable-context verification | Inferring completion from child rollup or rewriting child statuses |
 
 Target workspace entries conform to
 `contracts/jsonschema/workspace-entry.schema.json` and contain exactly `path`,
@@ -28,6 +29,29 @@ Target workspace entries conform to
 labels, and profile hints are non-semantic. Only a uniquely registered Approved
 spec with an existing sibling plan can enter `canonical.ready`; only a valid
 registered active spec can enter `canonical.active`.
+
+## Maintaining brief lifecycle state
+
+Keep the brief header and its `brief_queue` collection identical. Reconcile
+child progress with this closed matrix:
+
+| Brief state | Required child evidence |
+| --- | --- |
+| `Draft`, `Ready`, `Withdrawn` | No child is `Implementing` or `Shipped` |
+| `Executing`, `Cancelled` | At least one child is `Implementing` or `Shipped` |
+| `Shipped` | The map is non-empty and every mapped child is `Shipped` |
+
+`Withdrawn` is the pre-execution terminal state. `Cancelled` is the
+post-execution terminal state. Do not collapse either into `Shipped`, and do not
+move an open brief back to `Ready` after a child ships. An all-shipped current
+map remains `Executing` until the outcome owner confirms there are no remaining
+unmaterialized slices and `close-work` performs the terminal update.
+
+For a repair, change the brief header and move the complete structured workspace
+entry in one reviewed change. Preserve the entry fields, child spec statuses,
+and source authority. Rerun canonical reconciliation and
+`lint-brief-coverage.py`; never edit Spec-map status cells to make the checks
+pass.
 
 ## Adapter contract
 
@@ -85,9 +109,10 @@ compared/accepted revisions, decisions, conflicts, and receipts make changes
 auditable. Repository-origin work remains locally authoritative.
 
 Lifecycle locks are enforced by the refresh processor, not inferred by an
-adapter. Draft, Accepted, Ready, Approved, Implementing, Executing, and Shipped
-must each remain represented in the versioned evaluation matrix. Local field
-decisions and remote coordination are separate effects and separate evidence.
+adapter. Draft, Accepted, Ready, Approved, Implementing, Executing, Shipped,
+Withdrawn, and Cancelled must each remain represented in the versioned
+evaluation matrix. Local field decisions and remote coordination are separate
+effects and separate evidence.
 
 ## Reconciliation findings
 
@@ -139,8 +164,11 @@ artifact or migration evidence.
 When any component changes:
 
 1. Update the shared routing matrix and the affected profile matrix.
-2. Preserve acquisition → normalization → routing → authority/refresh coverage
-   and all seven lifecycle states for every supported profile.
+2. Preserve acquisition → normalization → routing → authority/refresh coverage.
+   Refresh remains writable for Draft/Accepted/Ready/Approved, locked for
+   Implementing/Executing/Shipped, and returns the stable locked codes
+   `withdrawn_requirements_locked` or `cancelled_requirements_locked` for the
+   two terminated brief states.
 3. Run the integrated evaluator in two independent clean roots and require
    byte-identical normalized results and next actions.
 4. Run workspace-status migration planning/effect/CLI tests, including rollback

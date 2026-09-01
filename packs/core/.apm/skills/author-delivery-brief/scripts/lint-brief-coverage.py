@@ -8,15 +8,17 @@ the work-loop's `lint-spec-status.py` does. The agent runs it after a slice's
 status changes; it can also run as a **fail-closed CI gate** where a PR event
 and Python both exist. It no-ops gracefully where Python is absent.
 
-What it does: reads every `docs/specs/*/spec.md` `Status:` field, follows the
-`Brief:` back-links, and rolls each brief's Spec map up from its child specs —
-so "is this brief delivered?" stays answerable with no hand-maintenance. It
-reads only existing `Status:` fields and the brief's Spec map; it introduces no
-new state.
+What it does: reads every brief and mapped spec `Status:` field, follows the
+`Brief:` back-links, and checks the brief lifecycle against its child specs.
+It reports delivery only after the brief is explicitly `Shipped`; it introduces
+no new state and never mutates a status.
 
 Rollup rules:
-  - A brief is *delivered* only when its Spec map is non-empty AND every mapped
-    spec is `Shipped`. An empty map is never vacuously delivered.
+  - A brief is *delivered* only when its own status is `Shipped`, its Spec map
+    is non-empty, and every mapped spec is `Shipped`.
+  - `Draft`, `Ready`, and `Withdrawn` have no `Implementing` or `Shipped`
+    child. `Executing` and `Cancelled` have at least one. `Shipped` has only
+    `Shipped` children and cannot have an empty map.
   - A spec that back-links a brief but is absent from that brief's Spec map is
     reported **untracked** — informational, never an error. The canonical
     back-link is the path form pinned by `docs/CONVENTIONS.md` § Spec metadata
@@ -56,6 +58,9 @@ _GOVERNANCE_REFERENCE_RE = re.compile(
 )
 _GOVERNANCE_PATH_RE = re.compile(r"(?i)(?:^|/)(?:rfc|adr)/")
 _MARKDOWN_LINK_RE = re.compile(r"^\[([^\]]+)\]\(([^)]+)\)$")
+_BRIEF_STATUSES = frozenset(
+    {"Draft", "Ready", "Executing", "Shipped", "Withdrawn", "Cancelled"}
+)
 
 
 def _is_placeholder(value: str) -> bool:
@@ -137,6 +142,31 @@ def parse_brief_slug(brief_text: str, fallback: str) -> str:
     return fallback
 
 
+def parse_brief_status(brief_text: str) -> str | None:
+    """Return the brief lifecycle token, or None when it is absent."""
+
+    for line in brief_text.splitlines():
+        match = _STATUS_RE.search(line)
+        if match:
+            status = extract_token(match.group(1))
+            return status if status else None
+    return None
+
+
+def _brief_lifecycle_is_valid(status: str, child_states: set[str]) -> bool:
+    """Return whether mapped child progress is compatible with the brief."""
+
+    normalized = {state.lower() for state in child_states}
+    execution_evidence = bool(normalized & {"implementing", "shipped"})
+    if status in {"Draft", "Ready", "Withdrawn"}:
+        return not execution_evidence
+    if status in {"Executing", "Cancelled"}:
+        return execution_evidence
+    if status == "Shipped":
+        return bool(normalized) and normalized == {"shipped"}
+    return False
+
+
 def parse_spec_map(brief_text: str) -> list[tuple[int, str, str]]:
     """Return (lineno, spec-slug, recorded-status) for each Spec map row.
 
@@ -214,6 +244,7 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # The slug (from the `Slug:` field), not the filename stem, is the
         # identity a spec's `Brief:` back-link names — see parse_brief_slug.
         brief_slug = parse_brief_slug(text, brief_path.stem)
+        brief_status = parse_brief_status(text)
         rel = brief_path.relative_to(root).as_posix()
         rows = parse_spec_map(text)
 
@@ -243,9 +274,37 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                     f"(auto-derived; do not hand-edit the Status column)"
                 )
 
-        # Case-insensitive so a lowercase `shipped` token agrees with the drift
-        # check (which is also case-insensitive) on the delivered verdict.
-        delivered = bool(mapped) and all(s.lower() == "shipped" for s in derived)
+        # A back-link makes a spec a child even when the Spec map has not yet
+        # been reconciled. Keep the coverage omission informational, but do not
+        # let it hide execution evidence from lifecycle validation.
+        untracked = sorted(
+            slug for slug, (_, back) in specs.items()
+            if back in (brief_slug, rel) and slug not in mapped
+        )
+        child_states = set(derived)
+        child_states.update(
+            status if status else "missing"
+            for slug in untracked
+            for status in (specs[slug][0],)
+        )
+        lifecycle_valid = (
+            brief_status in _BRIEF_STATUSES
+            and _brief_lifecycle_is_valid(brief_status, child_states)
+        )
+        if not lifecycle_valid:
+            rendered_status = brief_status if brief_status is not None else "missing"
+            hard.append(
+                f"{rel}: brief lifecycle '{rendered_status}' contradicts its "
+                "child scope"
+            )
+
+        # Case-insensitive so lowercase spec status tokens agree with drift.
+        delivered = (
+            brief_status == "Shipped"
+            and lifecycle_valid
+            and bool(mapped)
+            and all(state.lower() == "shipped" for state in derived)
+        )
         out.append(
             f"lint-brief-coverage: brief '{brief_slug}': "
             f"{'delivered' if delivered else 'not delivered'}"
@@ -260,10 +319,6 @@ def check(root: Path) -> tuple[list[str], list[str]]:
         # canonical repository-relative path (the form the spec template,
         # `docs/CONVENTIONS.md`, and workspace-status provenance all specify);
         # both resolve to this brief, so either spelling is recognised here.
-        untracked = sorted(
-            slug for slug, (_, back) in specs.items()
-            if back in (brief_slug, rel) and slug not in mapped
-        )
         for slug in untracked:
             out.append(
                 f"  - {slug}: untracked (back-links this brief, not in Spec map)"

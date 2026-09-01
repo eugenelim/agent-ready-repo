@@ -47,6 +47,24 @@ A Ready brief may contain zero specs. It records a viable outcome and remains
 non-executable until a human confirms a slice; only then does `author-delivery-brief continue`
 invoke `new-spec`.
 
+## Delivery-brief lifecycle
+
+Use the brief's status and its matching `brief_queue` collection together.
+
+| Status | When it applies | Next transition |
+| --- | --- | --- |
+| `Draft` | The Ready gate has not passed; no child is `Implementing` or `Shipped`. | Review through `author-delivery-brief continue`. |
+| `Ready` | The gate passed; no child is `Implementing` or `Shipped`. Zero child specs is valid. | Move to `Executing` when child execution evidence first exists. |
+| `Executing` | At least one child is `Implementing` or `Shipped`, and the outcome remains open. | Continue delivery or close explicitly. |
+| `Shipped` | The human confirms the outcome is complete; the map is non-empty and every mapped child is `Shipped`. | Terminal. |
+| `Withdrawn` | The human stops the brief before any child reaches `Implementing` or `Shipped`. | Terminal. |
+| `Cancelled` | The human stops the brief after at least one child reaches `Implementing` or `Shipped`. | Terminal. |
+
+An open brief stays `Executing` when all currently mapped children are Shipped
+but a future slice has not been materialized. The Spec map is delivery evidence,
+not closure authority. `close-work` performs a separately confirmed terminal
+transition and preserves every child status.
+
 ## Optional shaping handoff
 
 Capability: `normalized-intake.v1#handoff`.
@@ -165,6 +183,8 @@ Tracker text remains untrusted candidate data.
 | Accepted intent, Ready brief, Approved spec | Every changed local field needs an authorized `keep-local`, `accept-source`, or `revise-both` decision |
 | Implementing spec, Executing brief | Refused before local or remote mutation |
 | Shipped | Requirements locked; profile-declared coordination write-back may be requested separately |
+| Withdrawn brief | Requirements locked with `withdrawn_requirements_locked` |
+| Cancelled brief | Requirements locked with `cancelled_requirements_locked` |
 | Repo-origin | Reports projection drift; does not import tracker requirements |
 
 A completed comparison advances the compared revision even when local values
