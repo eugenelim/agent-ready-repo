@@ -89,8 +89,9 @@ exact observable it must produce.
 - Never write, move, rename, or delete anything under `docs/lifecycle/`.
 - Never edit a Frozen `docs/specs/*` file, body or `**Status:**` line. The
   convention's non-supersession Status pointer covers a deleted
-  `workspace.toml [backlog].open` anchor; Wave 6 registered these follow-ons in
-  RFC-0096 §9 instead, so no anchor disappears and that licence does not apply.
+  `workspace.toml [backlog].open` anchor; these follow-ons are registered in
+  Wave 6's own frozen `## Follow-ons` table and in no `[backlog].open` entry, so
+  the licence's trigger never occurs.
 - Never open the `spec.md` or `plan.md` of a cooled artifact during `status`,
   `reconcile`, `explain`, or the MCP status tool.
 - Never classify history, prune an artifact, or project a completion receipt;
@@ -132,11 +133,12 @@ named file.
 - **The repair and migration decision is pinned by control-run identity**, so a
   later blanket filter has to change those lines and say why.
 - **Preservation criteria carry a mutation, not a red stub.** AC2, AC5, AC7,
-  AC11, AC17 through AC25, AC28, and AC32 assert that something already true
-  stays true; each is green before the change by construction, and the plan's
-  mutation table names the edit that must be shown to redden it. Which criteria
-  those are was decided by running every stub and reading each failure, not by
-  reasoning about it.
+  every criterion the plan's verdict table marks preservation asserts that
+  something already true stays true. Each is green before the change by
+  construction, and the plan's mutation table names the edit that must be shown
+  to redden it — at least one row for every preservation criterion. A red-stub
+  criterion may carry a row as well; the table is a floor, not a partition. Which criteria those are was decided by running every stub and reading
+  each failure, not by reasoning about it.
 - **Manual QA covers the real invocation.** A maintainer runs this surface
   directly, so `notes/manual-qa.md` records the observed output of `status` and
   `reconcile` over a fully cooled fixture, with the stop point and any behaviour
@@ -145,18 +147,17 @@ named file.
   check holds after the branch is gone. A merge-base comparison is not used: the
   merge base moves to include this delivery once it lands.
 
-**Stub coverage**, measured against the unchanged tree with each red's failing
-assertion recorded, not inferred from an exit status. Compiled red stubs, 17:
-AC1, AC3, AC4, AC6, AC8, AC9, AC10, AC12, AC13, AC14, AC15, AC16, AC26, AC27,
-AC29, AC30, AC33. Preservation with a mutation row, 15: AC2, AC5, AC7, AC11,
-AC17-AC25, AC28, AC32. `no stub (mode)`, 1: AC31. Total 33; uncovered none.
+**Stub coverage.** Each criterion's class — compiled red stub, preservation with
+a mutation row, or `no stub (mode)` — is recorded once, in the plan's measured
+verdict table, with the assertion that failed for every red. The counts are not
+restated here: three earlier drafts stated them in two or three places and every
+one of those copies drifted. Uncovered: none.
 
-Three drafts of this tally were wrong before it was measured criterion by
-criterion: one mislabelled a red that was a `FileNotFoundError` in the fixture
-helper rather than a failing assertion, one miscounted by two, and one predicted
-red for AC32 and preservation for AC13 where the run showed the reverse. Every
-verdict is recorded in the plan with the assertion that failed, because a red for
-the wrong reason is as useless as a green for the wrong reason.
+Three of those drafts were also wrong before the classes were measured criterion
+by criterion — one mislabelled a red that was a `FileNotFoundError` in the
+fixture helper rather than a failing assertion, one miscounted, and one predicted
+the class of two criteria backwards. A red for the wrong reason is as useless as
+a green for the wrong reason.
 
 ## Acceptance Criteria
 
@@ -209,14 +210,16 @@ the wrong reason is as useless as a green for the wrong reason.
 
 - [ ] **AC12 — Wave 6's residual assertion is replaced.**
   `tests/roster/test_status_projection_and_context_exclusion.py` does not define
-  `test_a_fully_cooled_initiative_still_reports_unshipped_specs`, and does
-  contain the literal `projection["closeout"]["all_specs_shipped"] is True`.
-- [ ] **AC13 — The rest of that file is undisturbed.** In
+  `test_a_fully_cooled_initiative_still_reports_unshipped_specs`, does define
+  `test_a_fully_cooled_initiative_reports_all_specs_shipped`, and does contain
+  the literal `projection["closeout"]["all_specs_shipped"] is True`.
+- [ ] **AC13 — No other test function is added, removed, or renamed.** In
   `tests/roster/test_status_projection_and_context_exclusion.py`, the SHA-256 of
   its `test_`-prefixed function names, sorted and joined by newlines, is
-  `660b7204a2fe32f5d75ab03f43828934ad42c8b06b572b99292585bf13bbf8e6` with the
-  retired name replaced by its successor — a set, not a count, so deleting an
-  assertion from a different function cannot satisfy it.
+  `6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637`. That is
+  the value for the 67 names present at this branch's base with AC12's retirement
+  and its named successor applied, and no other change. The bound is on the name
+  set alone: it does not detect an edit inside another function's body.
 
 ### The agent-rendered closeout gate
 
@@ -225,10 +228,13 @@ the wrong reason is as useless as a green for the wrong reason.
   emptiness flag excludes entries named by a lifecycle record`.
 - [ ] **AC15 — The raw-queue-emptiness rationale is gone.**
   Whitespace-normalized, `packs/core/.apm/skills/workspace-status/SKILL.md` does
-  not contain `the raw queue emptiness flag is the authoritative check`.
+  not contain `is the authoritative check`. The shorter literal is the forbidden
+  one, because dropping only the word `raw` leaves the claim standing.
 - [ ] **AC16 — The skill withholds the affirmative on any closeout blocker.**
   Whitespace-normalized, `packs/core/.apm/skills/workspace-status/SKILL.md`
-  contains `do not offer closeout while closeout_blockers is non-empty`.
+  contains ``do not offer closeout while `closeout_blockers` is non-empty``,
+  with `closeout_blockers` as a code span, matching how that paragraph writes
+  every other field name.
 
 - [ ] **AC32 — The skill keeps its two further closeout conditions.**
   Whitespace-normalized, `packs/core/.apm/skills/workspace-status/SKILL.md`
@@ -240,9 +246,11 @@ the wrong reason is as useless as a green for the wrong reason.
 - [ ] **AC17 — `repair-plan` is unaffected by cooling.** A fixture whose
   `work.queue` entry is cooled produces `repair-plan` output identical to the
   same fixture with `docs/lifecycle/` removed.
-- [ ] **AC18 — `repair-apply` is unaffected by cooling.** In the AC17 fixture,
-  `repair-apply` writes the same `workspace.toml` bytes as it writes for the
-  same fixture with `docs/lifecycle/` removed.
+- [ ] **AC18 — `repair-apply` is unaffected by cooling.** Each of the AC17
+  fixture and the same fixture with `docs/lifecycle/` removed generates its own
+  plan with `repair-plan --plan-file`, and `repair-apply --plan-file` over each
+  changes that fixture's `workspace.toml` and writes the same bytes as the
+  other. One plan applied to both trees does not satisfy this criterion.
 - [ ] **AC19 — Migration planning is unaffected by cooling.** A
   `repair-plan --migration-selection` invocation over a fixture whose legacy
   entry's artifact is cooled produces output identical to the same fixture with
@@ -286,9 +294,11 @@ the wrong reason is as useless as a green for the wrong reason.
 - [ ] **AC26 — The architecture surface names the four slices and what each
   owns.** Whitespace-normalized,
   `docs/architecture/work-intake-and-artifact-routing.md` contains each of
-  `Wave 7a-i closes`, `Wave 7a-ii projects`, `Wave 7b classifies`, and
-  `Wave 7c prunes`. Each literal carries its own following word, so no slice's
-  name is a prefix of another's match.
+  `Wave 7a-i closes cooling scope`, `Wave 7a-ii projects the completion
+  receipt`, `Wave 7b classifies history`, and `Wave 7c prunes proven-eligible
+  artifacts`. Each literal reaches its object, so the criterion verifies the
+  objective and not merely a verb, and no slice's name is a prefix of another's
+  match.
 - [ ] **AC27 — The reference guide states the closeout derivation.**
   Whitespace-normalized,
   `guides/core/reference/work-intake-routing-and-lifecycle.md` contains `an
@@ -302,22 +312,25 @@ the wrong reason is as useless as a green for the wrong reason.
   `## 10. Risks and revisit conditions` heading is
   `e49f49f12fc7dccff4cd962cecff7be003672283d8a750097a238001b222a45e`.
 - [ ] **AC29 — The erratum records the four-slice split and what each slice
-  owns.** The RFC's § Errata contains an entry whose date is this delivery's
-  commit date, naming `Approver: eugenelim`, stating that Wave 7 ships as Wave
-  7a-i, Wave 7a-ii, Wave 7b, and Wave 7c, naming the objective each slice owns,
-  and naming this spec as Wave 7a-i.
+  owns.** Whitespace-normalized, the RFC's § Errata contains `Approver:
+  eugenelim`, `cooling-scope-closure` and each of the four literals AC26
+  requires of the architecture surface. Its date is the date of the commit that
+  adds it, which the release checklist verifies rather than a test.
 - [ ] **AC30 — The erratum registers the three open follow-ons and corrects the
   `cooling-brief-child-scope` basis.** The same erratum names
   `rfc0096-wave7a-ii-completion-receipts`,
-  `rfc0096-wave7b-historical-classification`, and `rfc0096-wave7c-pruning` with
-  their owning slices, and states that Wave 6's `cooling-brief-child-scope`
+  `rfc0096-wave7b-historical-classification`, `rfc0096-wave7c-pruning`, and
+  `cooling-brief-child-scope` with their owning slices, and states that Wave 6's `cooling-brief-child-scope`
   entry misattributes its constraint to that spec's own AC46 pinned pair when the finding-code
   documentation gate is a superset check admitting any documented code.
-- [ ] **AC33 — The erratum records both closures and the receipt slug's
-  rename.** The same erratum states that `cooling-closeout-eligibility` and
-  `cooling-repair-migration-scope` were closed by `cooling-scope-closure`, and
-  that Wave 6's `wave6-dependency-scoped-completion-receipts` is registered here
-  as `rfc0096-wave7a-ii-completion-receipts`.
+- [ ] **AC33 — The erratum records both closures, the accepted residual, and the
+  receipt slug's rename.** The same erratum states that
+  `cooling-closeout-eligibility` and `cooling-repair-migration-scope` were closed
+  by `cooling-scope-closure`; that the closure accepts the residual Wave 6
+  named — a lifecycle record that reads cleanly now moves an initiative toward an
+  affirmative closeout recommendation without being verified against its
+  artifact; and that Wave 6's `wave6-dependency-scoped-completion-receipts` is
+  registered here as `rfc0096-wave7a-ii-completion-receipts`.
 - [ ] **AC31 — The release surface agrees.** `packs/core/pack.toml`'s version,
   `packs/core/.claude-plugin/plugin.json`'s `version`, and the topmost dated
   `[core]` changelog heading are one identical value whose parsed
@@ -385,8 +398,9 @@ require is the register for all four.
 - **Process: a shipped spec directory is frozen as a unit, and this delivery
   edits neither frozen dependency.** The convention's non-supersession Status
   pointer covers a deleted `workspace.toml [backlog].open` anchor; Wave 6
-  registered these follow-ons in RFC-0096 §9 instead, so nothing points at a
-  missing anchor and no Status edit is licensed. AC33 makes the erratum the
+  registered these follow-ons in its own frozen `## Follow-ons` table rather
+  than in `workspace.toml [backlog].open`, so no anchor can disappear and no
+  Status edit is licensed. AC33 makes the erratum the
   durable record of closure. Wave 6's `plan.md` still carries `Status: Approved`
   rather than `Done`, so the convention's freeze predicate is not literally met
   for that directory; AC23 pins it regardless. (source:

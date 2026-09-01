@@ -86,7 +86,7 @@ rather than on a fixture error. The observed verdicts:
 | AC10 | RED | `assert 'settle-closeout-blockers' == 'invoke-close-work'` |
 | AC11 | GREEN | preservation |
 | AC12 | RED | the retired function name is still defined |
-| AC13 | GREEN | preservation — 67 `test_` functions today |
+| AC13 | RED | the post-rename name-set digest differs from today's |
 | AC14 | RED | the exclusion sentence is absent |
 | AC15 | RED | the rationale sentence is present |
 | AC16 | RED | the withholding sentence is absent |
@@ -107,10 +107,14 @@ rather than on a fixture error. The observed verdicts:
 | AC32 | GREEN | preservation — both conditions present today |
 | AC33 | RED | the closure sentence is absent |
 
-17 red, 15 preservation, 1 `no stub (mode)` — 33. AC13 and AC32 were predicted
-the other way round and corrected from the run; AC17-AC24 and AC28 carried no
-recorded verdict in the previous draft and were classified by inference, which
-this table replaces.
+**This table is the single source for every criterion's class.** The spec's
+Testing Strategy points here and states no counts, because three earlier drafts
+stated them in two or three places and each copy drifted. Totals: 17 red, 15
+preservation, 1 `no stub (mode)` — 33.
+
+AC13 and AC32 were each predicted the wrong way round and corrected from the run;
+AC17-AC24 and AC28 carried no recorded verdict at all in an earlier draft and
+were classified by inference, which this table replaces.
 
 **Both invocations, per criterion.** The spec measures every derivation criterion
 on `status` **and** `reconcile`, so AC1-AC11's tests are parametrized over the
@@ -137,29 +141,30 @@ digest is re-asserted after restore. None is verified yet.
 | exclude every queue entry, cooled or not | AC2, AC7 |
 | build the cooled membership test from `record.locator` alone | AC4 |
 | project a paused initiative into `initiatives[]` | AC11 |
-| delete or add one `test_`-prefixed function in Wave 6's roster file | AC13 |
+| delete, add, or rename one `test_`-prefixed function in Wave 6's roster file beyond AC12's | AC13 |
 | delete any one of the three wave statements, or add the negated string | AC25 |
 | add a cooled filter to `repair-plan`'s reconciliation | AC17 |
-| add a cooled filter to `repair-apply`'s revalidation | AC18 |
+| resolve a cooled set inside `repair-apply` and skip operations whose `spec_path` is cooled — no existing filter can be flipped there, so discharging this row means adding the read | AC18 |
 | add a cooled filter to migration planning | AC19 |
 | add a cooled filter to the migration apply path | AC20 |
 | add a cooled filter to the migration recovery branch | AC21 |
 | add a cooled filter to the migration rollback path | AC22 |
-| change one byte of any file in AC23's digest table | AC23 |
+| change one byte of `packs/core/.apm/skills/close-work/scripts/cooling.py` | AC23 |
 | pass any second argument to either single-argument call site | AC24 |
-| change one byte inside RFC-0096 §9's body | AC28 |
+| delete condition (3) or condition (4) from the closeout-check sentence | AC32 |
+| change one byte inside RFC-0096 §9's body, applied to a scratch copy outside the repository tree — the Boundaries forbid editing the RFC body and both frozen directories, so no mutation is applied to them in place | AC28 |
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | `runtime-coordination` derivation | T2, T3 | AC1-AC11 | Both consumers read one helper; AC5 shows neither widened |
-| Wave 6 roster assertion | T4 | AC12, AC13 | Replaced in place; 67 functions still |
-| `user-documentation` / workspace-status SKILL.md | T5 | AC14, AC15, AC16 | Gate matches the projection |
+| Wave 6 roster assertion | T4 | AC12, AC13 | Replaced in place; the name set changed by exactly that rename |
+| `user-documentation` / workspace-status SKILL.md | T5 | AC14, AC15, AC16, AC32 | Gate matches the projection and keeps its two further conditions |
 | `user-documentation` / work-intake reference | T5 | AC27 | Literal present |
 | `current-architecture` / work-intake routing | T5 | AC25, AC26 | Three strings, absent string, four slices |
 | Repair and migration decision | T6 | AC17-AC24 | Control-run identity, no production diff in T6's file set |
-| `decision-record` / RFC-0096 Errata | T7 | AC28, AC29, AC30 | Both corrections and the three slugs recorded; §9 digest holds |
+| `decision-record` / RFC-0096 Errata | T7 | AC29, AC30, AC33 | Both closures, the accepted residual, the rename and the four slugs recorded; AC28's §9 digest holds |
 | `capability-evidence` / frozen dependencies | T7 | AC23 | Every listed digest holds |
 | `release-history` / changelog | T8 | AC31 | Three surfaces agree |
 | `project-knowledge` | T8 | Gate receipt or not-applicable finding | One of the two |
@@ -353,11 +358,14 @@ def test_ac12_wave6_residual_assertion_is_replaced():
     assert 'projection["closeout"]["all_specs_shipped"] is True' in text
 
 
-# STUB: AC13 — the rest of that file is undisturbed.  [observed GREEN: 67 today]
-def test_ac13_wave6_roster_file_function_count_is_unchanged():
+# STUB: AC13 — no other test function is added, removed, or renamed.
+# [observed RED: the post-rename digest differs from today's name set]
+def test_ac13_wave6_roster_name_set_is_unchanged():
     text = _read("tests/roster/test_status_projection_and_context_exclusion.py")
-    assert sum(1 for line in text.splitlines()
-               if line.startswith("def test_")) == 67
+    names = sorted(m.group(1) for m in
+                   re.finditer(r"^def (test_\w+)", text, re.M))
+    assert hashlib.sha256("\n".join(names).encode()).hexdigest() == \
+        "6fff3ededf8da2f1899dd9ea7560867abdec728dc4e139b861559097f103b637"
 ```
 
 `stub: true` for AC12. The pinned literal is the one the in-place inversion
@@ -367,11 +375,13 @@ actually produces — that file's idiom is
 which the intended edit would never contain.
 
 **Approach:**
-- Rename `test_a_fully_cooled_initiative_still_reports_unshipped_specs` and
-  invert its two assertions in place, keeping its third
+- Rename `test_a_fully_cooled_initiative_still_reports_unshipped_specs` to
+  `test_a_fully_cooled_initiative_reports_all_specs_shipped` — the successor AC12
+  names and AC13's digest is computed over — and invert its two assertions in
+  place, keeping its third
   (`canonical.ready == []`) and adding a docstring line naming this spec as the
-  delivery that retired the residual. Change no other function, so the count
-  stays 67.
+  delivery that retired the residual. Add, remove or rename no other function, so
+  the name set differs from its base by exactly this one substitution.
 
 **Done when:** AC12 and AC13 pass and that file's full suite passes.
 
@@ -416,7 +426,7 @@ mutation row.
   `_migration_rollback_workspace_bytes` only in its recovery branch — an
   ordinary first apply takes `legacy_workspace_bytes = workspace_bytes` and
   never calls it — so AC20 alone does not exercise the single-argument sites.
-- AC23 is one predicate over an enumerated five-file table; AC24 parses the CLI
+- AC23 is one predicate over an enumerated six-file table; AC24 parses the CLI
   module and counts single-argument calls.
 
 **Approach:**
@@ -445,7 +455,7 @@ with mutation rows.
   `wave6-dependency-scoped-completion-receipts` is registered here as
   `rfc0096-wave7a-ii-completion-receipts`. Do not touch §9.
 - Edit neither frozen dependency: the erratum is the durable record of closure,
-  and AC23 pins all six files in its table byte-for-byte, including both frozen
+  and AC23 pins the six files in its table byte-for-byte, including both frozen
   plans.
 
 **Done when:** AC23, AC28, AC29, AC30 and AC33 pass and
