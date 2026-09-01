@@ -1057,13 +1057,9 @@ def test_ac31_release_surfaces_agree_above_the_floor() -> None:
     the remote would depend on fetch state.
     """
     pack = (ROOT / "packs/core/pack.toml").read_text(encoding="utf-8")
-    plugin = json.loads(
-        (ROOT / "packs/core/.claude-plugin/plugin.json").read_text(encoding="utf-8")
-    )
     changelog = (ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
 
     pack_version = re.search(r'^version = "([^"]+)"', pack, re.M).group(1)
-    plugin_version = plugin["version"]
     heading = re.search(r"^## \[core\]\[([^\]]+)\] — \d{4}-\d{2}-\d{2}", changelog, re.M)
 
     # pack<->plugin agreement is already pinned by
