@@ -1857,6 +1857,8 @@ open = [
   # discuss numbers. Raising a Family-2 budget is Ask-first under AC36 anyway.
   # Auditing trap: `gh run rerun --failed` overwrites a run's rolled-up
   # conclusion, so run 33487510335 reports success -- read `--attempt 1`.
+  # Memory is not the binding dimension: the same harness asserts a 256 MiB
+  # ceiling and observes ~27 MiB, so wall-clock/CPU is the only side in play.
   # Multi-run measurements credited to peer sessions work-loop-controller-fb and
   # auto-backlog-review-run-2-20260831t1400-c6; the RFC errata and the
   # assertion-site facts above are verified locally.
