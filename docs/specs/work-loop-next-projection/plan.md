@@ -53,7 +53,7 @@ elsewhere. The canonical status reader has no vocabulary check — it returns
 `draft`, `Frobnicate`, an empty string, or nothing at all — so D1 and D2 name two
 values and fold every other outcome into `other`. Because the value sets no longer
 come from the Routing table, deleting a routing row shrinks coverage without
-shrinking the domain, and AC1's mutation reddens for all 22 rows.
+shrinking the domain, and AC1's mutation reddens for every Routing row in the spec's table.
 
 Four record fields carry the loop rather than describe it, and each is derived
 rather than authored: `run_id` and `sequence` from the engine's state,
@@ -111,11 +111,11 @@ rather than answer from state that is mid-write.
   at least one case.
 - The five table properties each get a mutation that must redden them:
   - **AC1** — delete any Routing row; at least one domain member must go
-    uncovered. This must redden for every row without exception. A run in which
+    uncovered. This must redden for every Routing row in the spec's table, without exception. A run in which
     the discriminator-bearing rows survive deletion means the domain is still
     being sourced from the Routing table, which is the round-1 defect.
   - **AC2** — widen one row's match so it overlaps another.
-  - **AC3** — exchange R6's and R7's Discriminator cells in the implementation's
+  - **AC3** — exchange R7's and R8's Discriminator cells in the implementation's
     resolver. This is the mutation that distinguishes AC3 from AC1 and AC2: it
     changes no row's action and no row's coverage, so only a criterion that drives
     the live command and compares against the spec's Discriminator column catches
@@ -162,7 +162,7 @@ rather than answer from state that is mid-write.
   `complete_with` names events, not invocations, and two of them take required
   transition arguments the record does not supply.
 - `SPEC-PLAN-APPROVED` needs three commands with no engine transition between
-  them. R9-R12 discriminate on `plan_review_status` and `schedule_waves` so each
+  them. R13-R17 discriminate on `plan_review_status` and `schedule_waves` so each
   call advances, rather than returning `cohort.approve-plan` three times.
 
 ### Data & schema
@@ -299,15 +299,15 @@ mutation flips.
 - Assert closure in both directions between the tables (AC4).
 - Assert `kind`, the `parameters` key set, `load`, and `human_wait` against the
   Action attributes row for each emitted record's action (AC5), including
-  `human_wait: false` at R4 and R7 while the engine reports
-  `pending_human_wait: true`, and `human_wait: true` at R22.
+  `human_wait: false` at R8 and R11 while the engine reports
+  `pending_human_wait: true`, and `human_wait: true` at R5 and R25, which are `wait`-kind.
 - Mutation proofs, one per property, exactly as listed under Construction tests.
-  AC1's must redden for all 22 rows.
+  AC1's must redden for every Routing row in the spec's table.
 
 **Approach:** implement routing as a dictionary keyed on
 `(mode, state, last_event)` with a discriminator resolver per state. The resolver
 is the part the roster equality test cannot reach — it has no dictionary cell — so
-AC3's live-drive case is its only coverage and the R3/R4 exchange is its only
+AC3's live-drive case is its only coverage and the R7/R8 exchange is its only
 mutation. Neither may source its expectation from the resolver.
 
 **Done when:** all five properties are green over the full domain, and all five
@@ -347,10 +347,24 @@ mutations flip including AC1's across every row.
 - P1's ordering is exercised in the state that makes it load-bearing: an
   engine-state temporary with no `engine-state.json` beside it must yield P1's
   `halt`, not P2's or P3's non-zero refusal.
-- The review-budget branch is exercised from both review states: at the cap, and
-  with two identical fingerprint rounds, each yielding `await-replan-decision`
-  rather than another review action, with the stderr reason naming which condition
-  fired and the replanning options (narrow, split, re-ground, abandon).
+- The review-budget branch is exercised from both review states across all four
+  D5 values. `cap-reached` and `stasis` each yield `await-replan-decision`, with
+  the stderr reason naming which condition fired and only the continuations legal
+  under it — reset or the paired human-directed `--allow-retry-cap-override` at
+  the cap, a repaired round under stasis — and naming neither narrowing nor
+  splitting, which the lifecycle reference forbids on this trigger. `malformed`
+  yields `halt`.
+- The empty-fingerprint baseline is exercised explicitly: a fresh run, and a run
+  after two consecutive clean or all-skipped rounds, both yield `within-budget` at
+  both review states. Without the non-empty qualifier both lists are equal and
+  every first call would read as stasis, so this is the case that proves the
+  qualifier is present.
+- A `cap-reached` record omits `reviewers-clean` from `complete_with`; a
+  `within-budget` record at the same state includes it (AC10's declared
+  exception).
+- Mutation proof: dropping the non-empty qualifier from the stasis comparison
+  reddens the fresh-run case; dropping the `complete_with` exception reddens the
+  cap-reached case.
 - P2's marker match is exercised against the six spellings in the fixture set
   below, against a body-zone mention, and against `Modelight` and
   `Mode: light-weight` — none of the last three may match.
@@ -406,8 +420,13 @@ bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
   deleting any one of the four statements reddens AC20.
 
 **Approach:**
-- Add the identifier column only; no row's prose changes. Thirteen rows'
-  prescribed actions already agree with the Routing table. The two spec-plan
+- Add the identifier column, and amend exactly one row's prose. Twelve rows'
+  prescribed actions already agree with the Routing table. The
+  `gates-clean`/`CODE-REVIEW` row does not: its prose tells a resuming agent to
+  re-run the reviewer fan-out, which is what R25 suppresses once the budget is
+  spent, so that row gains the budget branch. Leaving it as-is would satisfy
+  AC19's column parity while the shipped surface still pushed a capped agent
+  toward another round. The two spec-plan
   `DONE` rows carry `complete` in the identifier column while their prose keeps
   describing the conditional reset, because that reset is a human-initiated path
   the projection cannot observe. The diff stays additive and the two prose-pinned
@@ -511,16 +530,16 @@ are regenerated.
 - **A way back loses its obligation.** All three return paths land in
   `SPEC-PLAN-DRAFTING`, and two carry duties a plain redraft skips — status reset
   after a rejected gate, and authority plus pin preservation plus reapproval and
-  rescheduling after a contract amendment. R1-R3 separate them and each carries
+  rescheduling after a contract amendment. R2 and R3 separate them and each carries
   `ref:delivery-contract-lifecycle` where the duty is written down.
 - **Totality passes over a domain narrower than the live input.** Rounds 1 and 2
   each found a version of this. The fix is not a citation but closure: each
   discriminator's value set is total over what its source can return, with `other`
   absorbing every unrecognised, empty, absent, and unreadable outcome, and AC1's
-  mutation must redden for all 22 rows.
+  mutation must redden for every Routing row in the spec's table.
 - **The discriminator resolver ships untested.** The roster equality test cannot
   reach it. AC3 drives the live command with expectations parsed from the spec,
-  and the R3/R4 exchange is its named mutation.
+  and the R7/R8 exchange is its named mutation.
 - **The emitter satisfies the contract with constants.** Each of the four derived
   fields and each of the five table properties carries a mutation proof.
 - **A planted state file floods the agent's context.** AC14 caps and delimits
@@ -584,7 +603,7 @@ are regenerated.
   each value set from a source outside Routing — the Status vocabularies
   `lint-spec-status.py` enforces, the `state.json` field domains, and a boolean —
   and the domain is a derivable 54 members with the count stated once. Re-checked
-  after the repair: 0 uncovered, 0 ambiguous, and all 22 rows reddening.
+  after the repair: 0 uncovered, 0 ambiguous, and every Routing row in the spec's table reddening.
 - 2026-09-01 (round 1 repair) — Three ways the contract could be satisfied while
   still handing an agent attacker-controlled text. Stderr was unbounded while the
   record was tightly bounded, and the guard module had already been through this:
@@ -608,7 +627,7 @@ are regenerated.
 - 2026-09-01 (round 1 repair) — AC3 could not be distinguished from the roster
   equality test, leaving the discriminator resolver — 12 of 22 rows — with no
   coverage. AC3 now sources its expectation from the spec's Discriminator column
-  and names the R3/R4 exchange as its mutation; that mutation changes four domain
+  and names the R7/R8 exchange as its mutation; that mutation changes four domain
   members' actions while changing no row's action or coverage.
 - 2026-09-01 (round 1 repair) — Three smaller gaps closed: `complete_with` now
   states that it names events rather than invocations and that `wave-passed` and
@@ -627,7 +646,7 @@ are regenerated.
   totality was again passing over a restricted domain. Independence now comes from
   closure, not citation: D1 and D2 name two values each and fold every other
   possible reader outcome into `other`. The domain fell from 54 to 44 and needs no
-  external source. Re-verified: 0 uncovered, 0 ambiguous, all 22 rows caught by
+  external source. Re-verified: 0 uncovered, 0 ambiguous, every Routing row in the spec's table caught by
   the deletion mutation.
 - 2026-09-01 (round 2 repair) — Three defects in round 1's own repairs. AC15
   required the crash artifacts to be read through guard readers while P5 forbade
@@ -673,6 +692,56 @@ are regenerated.
   action vocabulary 17 became 20. Re-verified: 0 uncovered, 0 ambiguous, all 26
   rows caught by the deletion mutation. No acceptance criterion changed shape,
   which is the property the table restructure was for.
+- 2026-09-01 (round 3 repair) — Round 3 sustained 22 findings across both lanes,
+  and three of the five blockers were defects in the unhappy-path work added
+  hours earlier. The worst: D5's stasis test compared the two fingerprint fields
+  without the non-empty qualifier the shipped detector carries, and both default
+  to `[]`, so a fresh run compared equal and **every loop's first `next` call
+  would have answered `await-replan-decision`** — worse at the spec stage, where
+  ordinary pre-EXECUTE rounds never call `review record`, so both lists stay empty
+  for the whole spec-plan loop and `spec.review` was unreachable. Reproduced
+  against this run's own `state.json`. Fixed by reusing the shipped predicate,
+  non-empty-and-equal over the sorted-unique canonical form, with a criterion that
+  drives the fresh-run and two-consecutive-clean-round cases.
+- 2026-09-01 (round 3 repair) — Two more of the same shape: reusing a control's
+  inputs instead of its semantics. D5 declared two values where the blessed cap
+  path is three-outcome — its integer helper returns a refusal, not a boolean, for
+  a malformed counter — so a planted `"5"` resolved to `within-budget` and routed
+  straight into the false-clean funnel R5 and R25 exist to close. And AC11 admitted
+  "or is a boolean", which in Python admits `True` as an integer, on the one
+  `parameters` value taken from an unchecked state field. Both now resolve through
+  the guard module's helper. D3 gained the `malformed` catch-all D1 and D2 already
+  had, so every discriminator is now total over what its source can produce.
+- 2026-09-01 (round 3 repair) — The replanning options were not just incomplete,
+  they were prohibited. The lifecycle reference this row loads states that an
+  outcome is not narrowed because a retry budget or review round ended, and that a
+  retry cap or stasis never invokes the amendment or creates a follow-on — so
+  "narrow" and "split" contradicted the file `await-replan-decision` points at.
+  Meanwhile the two continuations the engine's own refusal names were absent.
+  `exhausted` split into `cap-reached` and `stasis` because their legal
+  continuations differ: at the cap only reset or the paired human-directed
+  `--allow-retry-cap-override`, under stasis a repaired round. Splitting a contract
+  is a scope-owner decision outside this loop, not something a spent budget
+  authorises.
+- 2026-09-01 (round 3 repair) — `complete_with` was half-fixed. AC10 emits the
+  unguarded edge set, so a `cap-reached` record still advertised `reviewers-clean`
+  — the one event the engine accepts at the cap, and nothing guards it. AC10 now
+  carries one declared exception. Also closed: a Precondition for an unreadable
+  `spec.md` before the marker test (it previously fell through and was reported as
+  an ambiguous mode); AC20 repointed to the always-loaded skill body after the row
+  insert falsified its placement argument, plus a fifth statement that stderr is
+  diagnostic and a `wait` authorises nothing; AC24 given a redaction check; AC19
+  corrected to twelve of fifteen with T8 amending the one shipped row whose prose
+  contradicts its new identifier; and the unreset-`Approved` auto-fire recorded as
+  an accepted, pre-existing residual.
+- 2026-09-01 (round 3 repair) — Row references across both documents were
+  renumbered against the 29-row table. Two were load-bearing rather than
+  editorial: AC3's mutation and AC1's deletion proof are specified *by row number*,
+  and the plan named a pair that no longer carries a discriminator, so an
+  implementer would have mutated the wrong rows and shipped the resolver with a
+  proof that could not fail. 26 rows became 29, the domain 47 members became 55.
+  Re-verified: 0 uncovered, 0 ambiguous, all 29 rows caught by the deletion
+  mutation, closure over 20 actions.
 - 2026-09-01 (round 2, refuted) — Nine findings were tested and not sustained.
   Notably: `halt` carrying no `load` is a deliberate table cell, not a gap; the
   duplicated row counts cannot drift silently because both documents are hashed

@@ -65,14 +65,14 @@ which reach the verb anyway.
 
 | Mode | `last_event` | Engine state | Origin |
 | --- | --- | --- | --- |
-| both | `null` | `SPEC-PLAN-DRAFTING` | A freshly initialised run, before its first transition |
+| both | `null` | `SPEC-PLAN-DRAFTING` | A freshly initialised run, after the init pair has completed |
 | code | `plan-approved` | `CODE-IMPLEMENTATION` | A pre-split persisted run |
 | spec-plan | `plan-approved` | `DONE` | A pre-split persisted run |
 
 That yields 19 base keys in `code` mode and 10 in `spec-plan`, 29 in all.
 
 Each base key is crossed with the values of whichever Discriminator applies to
-it, giving **29 domain members in `code` mode and 18 in `spec-plan`, 47 in all**.
+it, giving **34 domain members in `code` mode and 21 in `spec-plan`, 55 in all**.
 A base key no Discriminator applies to contributes exactly one member. This
 document is the sole home of that figure; the plan references it rather than
 restating it.
@@ -91,56 +91,74 @@ Routing row removes coverage without removing a domain member.
 | --- | --- | --- | --- |
 | D1 | `SPEC-HUMAN-GATE` | `spec.md`'s Status line, via the canonical reader | `Draft`, `Approved`, `other` |
 | D2 | `PLAN-HUMAN-GATE` | `plan.md`'s Status line, via the canonical reader | `Drafting`, `Approved`, `other` |
-| D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled` |
+| D3 | `SPEC-PLAN-APPROVED` | `plan_review_status` and whether `schedule_waves` is empty, in `state.json` | `pending+unscheduled`, `pending+scheduled`, `approved+unscheduled`, `approved+scheduled`, `malformed` |
 | D4 | `CODE-IMPLEMENTATION` with `last_event: findings-remain` | `last_review_record_operation_id` in `state.json`, compared with `<run_id>:<transition_sequence>` | `matches`, `does-not-match` |
-| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count` against `max_review_retries`, and `finding_fingerprints` against `previous_finding_fingerprints`, in `state.json` | `within-budget`, `exhausted` |
+| D5 | `SPEC-PLAN-REVIEW` and `CODE-REVIEW` | `review_retry_count`, `max_review_retries`, `finding_fingerprints`, and `previous_finding_fingerprints`, in `state.json` | `within-budget`, `cap-reached`, `stasis`, `malformed` |
 
-**`other` is a catch-all, and it is why D1 and D2 are closed.** The canonical
-reader applies no vocabulary check: it returns whatever leading token the Status
-line carries, an empty string for a comment-only value, nothing at all for a file
-with no Status line, and raises for a file it cannot read. `other` is every one
-of those outcomes except the two named values — an unrecognised token, a
-differently-cased one, an empty value, an absent line, and an unreadable file.
-The repository's Status vocabularies are enforced by a finish-time lint over this
-repository's own specs, not at read time, and this verb runs against arbitrary
-spec directories; a value set that assumed the lint had run would be narrower than
-the live input space, and totality over it would prove nothing.
+**Every value set ends in a catch-all, and that is what makes it closed.**
+`state.json` and the Status files are read without schema validation and no
+Precondition form-checks any of these fields, so each Discriminator names its
+recognised values and folds everything else into one terminal value that routes
+to `halt`:
 
-**D5 is why the loop can say "stop reviewing".** `exhausted` is either condition:
-the review retry count has reached its cap, or the last two findings rounds carry
-identical fingerprints, which is stasis. Both are readable from `state.json`, and
-both mean the next useful act is replanning rather than another round. The
-distinction between them is a stderr reason, not a different action, so D5 carries
-two values rather than three.
+- **D1 / D2 `other`** — the canonical reader applies no vocabulary check. It
+  returns whatever leading token the Status line carries, an empty string for a
+  comment-only value, nothing at all for a file with no Status line, and raises
+  for a file it cannot read. `other` is every one of those except the two named
+  values, including a differently-cased token.
+- **D3 `malformed`** — `plan_review_status` is a free JSON value; anything that is
+  not `pending` or `approved`, and any `schedule_waves` that is not a list.
+- **D5 `malformed`** — any of its four fields that is not what it must be: a
+  counter that is not a non-negative integer, or a fingerprint field that is not a
+  list. This mirrors the shared guard module, whose integer helper refuses a
+  boolean, a negative, and a non-integer by name, and whose phase check returns a
+  refusal rather than an under-cap or at-cap answer when a counter is malformed.
+  The cap must be derived through that helper, not through raw arithmetic.
 
-D3 is the full cross product of its two fields rather than the reachable subset.
-Including `pending+scheduled` costs one row's worth of coverage and removes a
-reachability argument the criteria would otherwise depend on.
+**D5's two spent values are distinct because their legal continuations differ.**
+`cap-reached` is `review_retry_count >= max_review_retries`. `stasis` is
+`finding_fingerprints` **non-empty and equal to** `previous_finding_fingerprints`,
+compared in the same sorted-unique canonical form the shipped detector uses — the
+non-empty qualifier is load-bearing, because both fields are empty on a fresh run
+and after two consecutive clean or all-skipped rounds, and comparing them raw
+would classify a brand-new loop as spent on its very first call. `cap-reached`
+is evaluated first; a run that is both is reported as `cap-reached`.
+
+D3 lists the full cross product of its two recognised fields rather than the
+reachable subset. Including `pending+scheduled` costs one row's worth of coverage
+and removes a reachability argument the criteria would otherwise depend on.
 
 ### Preconditions
 
 Evaluated in order; the first matching row decides, and Routing runs only when
-none matches. P2 through P5 carry four distinct non-zero exit codes, allocated
+none matches. P2 through P6 carry five distinct non-zero exit codes, allocated
 from 3 upward so that none collides with the engine's existing exit 1 (its
 generic refusal, including an unloadable guard module) or argparse's exit 2.
 
 | # | Condition | Exit | Record | stderr names |
 | --- | --- | --- | --- | --- |
 | P1 | An unpromoted engine-state temporary file, or an unreplayed pending-events file, is present | zero | `halt` | which artifact class was found, and that recovery is a writing verb's job |
-| P2 | No `engine-state.json`, and `spec.md` carries the light-mode marker defined below | non-zero | none | the legacy light-mode resumption table as the surface that answers instead |
-| P3 | No `engine-state.json`, and no light-mode marker | non-zero | none | the ambiguity, without pointing at the light-mode table |
-| P4 | `engine-state.json` is unreadable, or its `schema_version` is not `1` | non-zero | none | which of the two it was |
-| P5 | `engine-state.json` lacks a well-formed `run_id`, `transition_sequence`, or `mode` | non-zero | none | which field failed, and the offending value under the bound AC14 sets |
-| P6 | `state.json` is missing, is unreadable, carries no `run_id`, or carries one differing from `engine-state.json`'s | zero | `halt` | which of the four it was |
-| P7 | The `(engine state, last_event)` pair is not a base key for the run's mode | zero | `halt` | the offending pair |
+| P2 | No `engine-state.json`, and `spec.md` cannot be read | non-zero | none | that the light-mode marker could not be read, and why the read failed |
+| P3 | No `engine-state.json`, and `spec.md` carries the light-mode marker defined below | non-zero | none | the legacy light-mode resumption table as the surface that answers instead |
+| P4 | No `engine-state.json`, `spec.md` readable, and no light-mode marker | non-zero | none | the ambiguity, without pointing at the light-mode table |
+| P5 | `engine-state.json` is unreadable, or its `schema_version` is not `1` | non-zero | none | which of the two it was |
+| P6 | `engine-state.json` lacks a well-formed `run_id`, `transition_sequence`, or `mode` | non-zero | none | which field failed, and the offending value under the bound AC14 sets |
+| P7 | `state.json` is missing, is unreadable, carries no `run_id`, or carries one differing from `engine-state.json`'s | zero | `halt` | which of the four it was |
+| P8 | The `(engine state, last_event)` pair is not a base key for the run's mode | zero | `halt` | the offending pair |
 
 **Why P1 is first.** The engine writes state by creating a temporary file and
 then renaming it, so an interrupted `init` leaves a temporary behind with *no*
 `engine-state.json` at all — and an interrupted `transition` can leave one beside
-a stale or unreadable file. Ordered any lower, P1 would be shadowed by P2, P3, or
-P4 in exactly the cases it exists to catch, and the run would be told "no engine
-state, this is ambiguous" when the truth is "a write was interrupted and a
-writing verb must finish it."
+a stale or unreadable file. Ordered any lower, P1 would be shadowed by P2 through
+P5 in exactly the cases it exists to catch, and the run would be told "no engine
+state, this is ambiguous" when the truth is "a write was interrupted and a writing
+verb must finish it."
+
+**Why P2 precedes P3 and P4.** The marker test is a file read, and that read can
+fail — a symlink, a non-regular file, an oversized file. Without P2 such a failure
+would fall through to P4 and be reported as an ambiguous mode, which is the wrong
+diagnosis and contradicts AC15's requirement that the same file be refused rather
+than followed or read.
 
 **P1's detection.** Presence only, of either artifact class: a confined glob for
 the engine-state temporary, whose name is random, and a single stat for the
@@ -151,20 +169,22 @@ halts every run in the repository, not only this one — the artifact records an
 interrupted write whose replay is a writing verb's job, and a read-only verb
 cannot tell whose.
 
-**P5's well-formedness.** `run_id` is a canonical lowercase UUID,
+**P6's well-formedness.** `run_id` is a canonical lowercase UUID,
 `transition_sequence` a non-negative integer, and `mode` one of `code` or
 `spec-plan`. All three fail before any record is built rather than routing to a
 `halt`, because the record cannot be constructed without them: `run_id` and
 `transition_sequence` are two of its nine keys, and `mode` selects the transition
 table `complete_with` is derived from.
 
-**P2's light-mode marker.** With HTML comments removed, a line in `spec.md`
+**P3's light-mode marker.** With HTML comments removed, a line in `spec.md`
 *before its first `##` heading* matching
 `^[\s>*_`-]*Mode[\s*_`]*:[\s*_`]+light(?![\w-])`, case-insensitively. The
 colon and at least one following separator are both required, and the trailing
 guard rejects a hyphen, so neither `Modelight` nor `light-weight` matches. The
 zone restriction is load-bearing: the marker is discussed in the body of specs
-that are about it, and those mentions must not route a run to P2.
+that are about it, and those mentions must not route a run to P3. A spelling
+outside this form is not a marker; P4 then surfaces the ambiguity rather than
+guessing, which is the shipped fail-safe.
 
 ### Routing
 
@@ -177,63 +197,73 @@ in the Mode column matches either mode.
 | R2 | both | `SPEC-PLAN-DRAFTING` | `spec-rejected`, `plan-rejected` | — | `spec.reset-and-revise` |
 | R3 | code | `SPEC-PLAN-DRAFTING` | `contract-amendment` | — | `spec.amend` |
 | R4 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `within-budget` | `spec.review` |
-| R5 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `exhausted` | `await-replan-decision` |
-| R6 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Draft` | `await-spec-approval` |
-| R7 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Approved` | `engine.spec-approved` |
-| R8 | both | `SPEC-HUMAN-GATE` | `*` | D1 `other` | `halt` |
-| R9 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Drafting` | `await-plan-approval` |
-| R10 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Approved` | `engine.plan-approved` |
-| R11 | both | `PLAN-HUMAN-GATE` | `*` | D2 `other` | `halt` |
-| R12 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `pending+unscheduled`, `pending+scheduled` | `cohort.approve-plan` |
-| R13 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled` | `cohort.schedule` |
-| R14 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+scheduled` | `engine.plan-locked` |
-| R15 | spec-plan | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled`, `approved+scheduled` | `engine.plan-locked` |
-| R16 | code | `CODE-IMPLEMENTATION` | `plan-locked`, `plan-approved`, `blocker-applied` | — | `implement` |
-| R17 | code | `CODE-IMPLEMENTATION` | `wave-passed` | — | `cohort.wave-advance` |
-| R18 | code | `CODE-IMPLEMENTATION` | `gates-failed` | — | `cohort.record-attempt` |
-| R19 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `matches` | `implement` |
-| R20 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `does-not-match` | `halt` |
-| R21 | code | `CODE-VERIFICATION` | `wave-complete` | — | `run-gates` |
-| R22 | code | `CODE-REVIEW` | `*` | D5 `within-budget` | `run-review` |
-| R23 | code | `CODE-REVIEW` | `*` | D5 `exhausted` | `await-replan-decision` |
-| R24 | code | `CODE-HUMAN-GATE` | `reviewers-clean` | — | `await-merge-decision` |
-| R25 | code | `DONE` | `done` | — | `complete` |
-| R26 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `complete` |
+| R5 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `cap-reached`, `stasis` | `await-replan-decision` |
+| R6 | both | `SPEC-PLAN-REVIEW` | `*` | D5 `malformed` | `halt` |
+| R7 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Draft` | `await-spec-approval` |
+| R8 | both | `SPEC-HUMAN-GATE` | `*` | D1 `Approved` | `engine.spec-approved` |
+| R9 | both | `SPEC-HUMAN-GATE` | `*` | D1 `other` | `halt` |
+| R10 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Drafting` | `await-plan-approval` |
+| R11 | both | `PLAN-HUMAN-GATE` | `*` | D2 `Approved` | `engine.plan-approved` |
+| R12 | both | `PLAN-HUMAN-GATE` | `*` | D2 `other` | `halt` |
+| R13 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `pending+unscheduled`, `pending+scheduled` | `cohort.approve-plan` |
+| R14 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled` | `cohort.schedule` |
+| R15 | code | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+scheduled` | `engine.plan-locked` |
+| R16 | spec-plan | `SPEC-PLAN-APPROVED` | `*` | D3 `approved+unscheduled`, `approved+scheduled` | `engine.plan-locked` |
+| R17 | both | `SPEC-PLAN-APPROVED` | `*` | D3 `malformed` | `halt` |
+| R18 | code | `CODE-IMPLEMENTATION` | `plan-locked`, `plan-approved`, `blocker-applied` | — | `implement` |
+| R19 | code | `CODE-IMPLEMENTATION` | `wave-passed` | — | `cohort.wave-advance` |
+| R20 | code | `CODE-IMPLEMENTATION` | `gates-failed` | — | `cohort.record-attempt` |
+| R21 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `matches` | `implement` |
+| R22 | code | `CODE-IMPLEMENTATION` | `findings-remain` | D4 `does-not-match` | `halt` |
+| R23 | code | `CODE-VERIFICATION` | `wave-complete` | — | `run-gates` |
+| R24 | code | `CODE-REVIEW` | `*` | D5 `within-budget` | `run-review` |
+| R25 | code | `CODE-REVIEW` | `*` | D5 `cap-reached`, `stasis` | `await-replan-decision` |
+| R26 | code | `CODE-REVIEW` | `*` | D5 `malformed` | `halt` |
+| R27 | code | `CODE-HUMAN-GATE` | `reviewers-clean` | — | `await-merge-decision` |
+| R28 | code | `DONE` | `done` | — | `complete` |
+| R29 | spec-plan | `DONE` | `plan-locked`, `plan-approved` | — | `complete` |
 
 **The three ways back are not the same act, which is why R1-R3 are separate
 rows.** All three land in `SPEC-PLAN-DRAFTING`, and an agent told only "draft the
-spec" would drop an obligation in two of them. A rejected gate (R2) requires
-resetting `spec.md` to `Draft` and `plan.md` to `Drafting` before `spec-ready`
-will be fired again. A contract amendment (R3) requires scope-owner authority,
-preservation of the completed-task pins and evidence, reapproval, and
-rescheduling — none of which a fresh draft performs. Only R1, a new run or an
-ordinary findings round, is the plain drafting act.
+spec" would drop an obligation in two of them.
 
-**Why R5 and R23 exist.** When the review budget is spent or two rounds return
-identical fingerprints, the loop must not review again — and the engine will not
-let it, because the `findings-remain` guard refuses at the cap. Without these
-rows the projection would answer `spec.review` or `run-review` at exactly the
-moment another round is the wrong move, and the only event the engine still
-accepts from those states is `reviewers-clean`, so a caller following the record
-would be pushed toward declaring a contract clean in order to escape. Instead the
-record waits, and the stderr reason names the replanning options the owner
-chooses between: narrow the accepted intent, split the contract into separate
-specs, re-ground it against evidence the review surfaced, or abandon the run.
+- **R2, a rejected gate.** Reset `spec.md` to `Draft` and `plan.md` to `Drafting`,
+  then revise and fire `spec-ready`. Nothing in the engine enforces this — there
+  is no `spec-ready` guard — so it is an agent obligation, and the consequence of
+  skipping it is recorded in the Assumptions.
+- **R3, a contract amendment.** Authority and the completed-task pins are already
+  discharged by the transition that produced this state, so they are not owed
+  here. What is owed is the same `Draft`/`Drafting` reset, an amendment confined
+  to the bounded outcome and the unfinished tasks, and leaving every completed
+  task section untouched.
+- **R1** is the plain drafting act: a new run, or an ordinary findings round.
 
-**Splitting a spec is a human decision, not a routed action.** Which of those
-options applies is not in either state file, so the projection surfaces the
-decision and stops rather than naming one. That is the same rule R24 and R26
-follow. No unhappy path here needs a new engine transition: two already have
-edges — `spec-rejected`/`plan-rejected` and `contract-amendment` — and the rest
-resolve to a human decision, which is why this contract stays read-only.
+**Why R5 and R25 exist.** When the review budget is spent or two rounds return
+identical fingerprints, the loop must not review again — and at the cap the engine
+will not let it, because the `findings-remain` guard refuses. Without these rows
+the projection would answer `spec.review` or `run-review` at exactly the moment
+another round is the wrong move, and at the cap the only event the engine still
+accepts is `reviewers-clean`, so a caller following the record would be pushed
+toward declaring a contract clean in order to escape.
 
-**Why R26 is `complete` and not a reset.** The shipped resumption rows for those
-two keys prescribe a destructive reset, but only *if implementation is later
-requested* — a human decision neither state file records. That is the same
-unobservability that collapsed `CODE-HUMAN-GATE` to one row: a projection that
-reads only state cannot see it. So a finished spec-plan run is answered as
-finished, the reset stays a human-initiated path described in the shipped row's
-prose, and no action in this contract is destructive.
+**What the wait's reason may name, and what it may not.** The two spent
+conditions have different legal continuations, so the stderr reason differs:
+
+- **`cap-reached`** — the only continuations are the two the engine's own refusal
+  names: reset and start a new run, or, if a human directing the run authorises
+  it, pass `--allow-retry-cap-override` to both the `findings-remain` transition
+  and the matching `review record`, since either half alone desynchronises the
+  engine and the cohort.
+- **`stasis` below the cap** — `findings-remain` is still accepted, so the
+  continuation is a repaired round rather than an escape.
+
+Neither reason may offer narrowing the accepted intent or splitting the contract
+into separate specs. The lifecycle reference this row loads forbids both on this
+trigger: it states that an outcome is not narrowed because a retry budget or
+review round ended, and that a retry cap or stasis never invokes the amendment
+transition or creates a follow-on. Splitting a contract remains a scope-owner
+decision taken outside this loop, not a replanning option a spent review budget
+authorises.
 
 ### Action attributes
 
@@ -268,7 +298,7 @@ prose, and no action in this contract is destructive.
 table is destructive, so there is no second source of it.
 
 `human_wait` describes the record, not the engine's `pending_human_wait`. At a
-human gate whose approver has already written the decision — R4 and R7 — the
+human gate whose approver has already written the decision — R8 and R11 — the
 engine still reports `pending_human_wait: true` while the record reports
 `human_wait: false`, because nothing is left to wait for: the action is firing the
 event the approver's write authorised.
@@ -367,7 +397,7 @@ the command could not compute a record at all, and emits none.
   state, `last_event`, and Discriminator columns — never obtained from the
   implementation's own routing data or discriminator resolver. Both a changed row
   action and a swapped discriminator branch fail this criterion; the second is the
-  mutation that distinguishes it from AC1 and AC2, so exchanging R6's and R7's
+  mutation that distinguishes it from AC1 and AC2, so exchanging R7's and R8's
   Discriminator cells in the implementation must redden it.
 - [ ] **AC4 — closure.** Every action named in a Routing row has exactly one Action
   attributes row, and every Action attributes row is named by at least one Routing
@@ -385,7 +415,9 @@ the command could not compute a record at all, and emits none.
   body-zone mention, and against `Modelight` and `light-weight`, none of which may
   match. P2 through P5 return four distinct exit codes, asserted as distinct from
   each other and from both 1 and 2, which the engine's generic refusal and
-  argparse already occupy.
+  argparse already occupy. P2 is exercised with an unreadable `spec.md` and must
+  win over P4, and D5's spent branch is exercised on a fresh run and after two
+  consecutive clean rounds, both of which must yield `within-budget`.
 
 ### The record
 
@@ -405,17 +437,28 @@ the command could not compute a record at all, and emits none.
 - [ ] **AC10.** `complete_with` lists exactly the events legal from the record's
   state in the engine's transition table for the run's mode, read at runtime, and
   is empty exactly when that state has no outgoing transition. Pinning it to a
-  constant fails this criterion.
-- [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$`, or is an
-  integer, or is a boolean. For a value read from either state file this is a
-  **runtime refusal, not a suite assertion**: a value that fails yields `halt`
-  rather than a record. `from_index` is the case that requires it — it is the only
-  `parameters` value taken from a state field no Precondition form-checks, and it
-  reaches a command line. `cycle_id` is derived from two fields P5 already checks.
+  constant fails this criterion. It carries **one declared exception**: when D5 is
+  `cap-reached`, `reviewers-clean` is omitted. That event is the only one the
+  engine still accepts at the cap, and advertising it in the field an agent parses
+  to choose its next move is the false-clean pressure R5 and R25 exist to remove —
+  the general "the guard refuses an illegal choice anyway" argument does not hold
+  here, because nothing guards it. Emitting `reviewers-clean` in a `cap-reached`
+  record fails this criterion.
+- [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$` or is an
+  integer. No `parameters` value is ever a boolean: the Action attributes table
+  declares no boolean key, and permitting one would admit `True`, which Python
+  counts as an integer. For a value read from either state file this is a
+  **runtime refusal, not a suite assertion** — a value that fails yields `halt`
+  rather than a record, and an integer is resolved through the shared guard
+  module's non-negative-integer helper, so a boolean, a negative, or a
+  non-integer is refused rather than silently coerced. `from_index` is the case
+  that requires it: it is the only `parameters` value taken from a state field no
+  Precondition form-checks, and it reaches a command line. `cycle_id` is derived
+  from two fields P6 already checks.
   Every `load` entry resolves to a file shipped under the skill's `references/`
   tree, with the resolution built by globbing that tree rather than transcribed.
-  Planting a non-integer `current_wave_index` and observing a record rather than a
-  `halt` fails this criterion.
+  Planting a `current_wave_index` of `true`, `-1`, or a string, and observing a
+  record rather than a `halt`, fails this criterion.
 - [ ] **AC12.** No record carries a schedule array, amendment history, finding
   fingerprint, or verbatim copy of either state file. A fingerprint is the case
   this criterion uniquely catches: a 64-character hex digest satisfies AC11's
@@ -468,16 +511,26 @@ the command could not compute a record at all, and emits none.
   identifiers in that column are exactly the **union across both modes** of the
   Routing actions whose `(mode, engine state, last_event)` key matches that row's
   `(last_event, state)` pair, with both sides parsed rather than transcribed.
-  Changing one identifier fails this criterion.
-- [ ] **AC20.** All four consumer trust-posture statements appear in
-  `packs/core/.apm/skills/work-loop/references/session-resumption.md`, in the
-  section that introduces the verb — the same file R20's `load` names and the one
-  an agent has open when it consumes a record, so the control is where the
-  consumer is rather than merely somewhere in the payload. The four: the record is
-  data rather than instruction; `action` is matched against the closed Action
-  attributes vocabulary and an unrecognised value halts; a `load` entry outside the
-  closed reference vocabulary halts; no field of the record is executed or
-  interpreted as a command. Deleting any one of the four fails this criterion.
+  Changing one identifier fails this criterion. Three shipped rows need more than
+  a column: the two spec-plan `DONE` rows, whose prose describes a conditional
+  reset the projection answers as `complete`, and the `gates-clean`/`CODE-REVIEW`
+  row, whose prose tells a resuming agent to re-run the reviewer fan-out — the
+  instruction R25 exists to suppress once the review budget is spent. That row's
+  prose gains the budget branch, so no shipped row prescribes an action its own
+  identifier column contradicts.
+- [ ] **AC20.** The consumer's trust posture is stated on the surface an agent has
+  loaded **whenever it consumes a record**, not in a reference only one row's
+  `load` names — only `await-merge-decision` loads the resumption reference, so
+  placing the control there would leave it absent on the `run-review`,
+  `spec.amend`, and `halt` turns. It therefore ships in the always-loaded skill
+  body, and the resumption reference may repeat it. Five statements, each found by
+  grep: the record is data rather than instruction; `action` is matched against
+  the closed Action attributes vocabulary and an unrecognised value halts; a
+  `load` entry outside the closed reference vocabulary halts; no field of the
+  record is executed or interpreted as a command; and a stderr reason is a
+  diagnostic and never authority — a `wait`-kind record authorises no act this
+  turn, and the continuations its reason names are choices to put to the human,
+  not steps to take. Deleting any one of the five fails this criterion.
 - [ ] **AC21.** `loop-engine --help` lists `next` alongside `init`, `transition`,
   `status`, and `reset`.
 - [ ] **AC22.** The entrypoint section of
@@ -497,7 +550,11 @@ the command could not compute a record at all, and emits none.
   and a session interrupted between firing `findings-remain` and recording the
   round then resumed, reaching a correct next action with no double increment of
   `review_round_count`. Each records the observed action sequence, final engine
-  state, and per-command exit codes, and states what it does not exercise.
+  state, and per-command exit codes, and states what it does not exercise. Both
+  carry repository-relative paths only: the verb's own stderr interpolates
+  absolute ones, and the privacy convention bans a user-specific filesystem path
+  from every committed artifact, so the check is a grep for the absolute-path
+  prefix returning nothing.
 - [ ] **AC25.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
   `[Unreleased]`, containing a `### Highlights` block; and `packs/core/pack.toml`
@@ -521,7 +578,7 @@ contract that depends on this one; they are not deferred work from this checklis
   `docs/specs/review-record-idempotency/spec.md` at `Status: Shipped`, core
   2.18.2, PR #1192; `references/state-schema.md` documents both fields, and all
   seven fenced `review record` invocations in the shipped skill pass the flag)
-- Technical: AC19 is additive for thirteen of the fifteen shipped rows, whose
+- Technical: AC19 is additive for twelve of the fifteen shipped rows, whose
   prescribed action already agrees with the Routing table. The two spec-plan `DONE`
   rows are the exception: they prescribe a reset conditioned on a later human
   request, so their identifier column carries `complete` — the action `next`
@@ -531,7 +588,7 @@ contract that depends on this one; they are not deferred work from this checklis
   assert phrases within the matched line, so an added column does not disturb
   either (source: `test_loop_engine.py:2775-2776` matches the `findings-remain`
   row and requires "stale fingerprint baseline", "under-count", and "do NOT
-  auto-reissue", all of which R16 and R17 preserve; `:2846`
+  auto-reissue", all of which R21 and R22 preserve; `:2846`
   `test_reviewers_clean_skill_prose_obligations` matches the same way)
 - Technical: the stderr bound AC14 requires already exists and is already
   calibrated — the shared guard module caps one interpolated external scalar at
@@ -554,13 +611,24 @@ contract that depends on this one; they are not deferred work from this checklis
   `.state-*.json.tmp` is deliberately not a halting condition, because no recovery
   routine exists for it and halting would wedge the loop permanently (source:
   `_statelock.py:122-124`; `loop-cohort.py:177`)
+- Technical: an unreset `Approved` after a rejected plan gate auto-fires the spec
+  gate, and this contract mirrors that rather than introducing it. Nothing guards
+  `spec-ready`, so if R2's status reset is skipped after `plan-rejected`,
+  `spec.md` still reads `Approved` when the run re-reaches `SPEC-HUMAN-GATE`; D1
+  returns `Approved`, R8 answers `engine.spec-approved` with `human_wait: false`,
+  and the engine's spec-approved guard passes on the status token alone with no
+  hash comparison, so the human never re-reviews the revised spec. The shipped
+  resumption row prescribes exactly this today, so the projection is faithful; the
+  residual is recorded rather than closed, because closing it needs a freshness
+  signal the state files do not carry (source: `references/session-resumption.md`
+  step 4's `SPEC-HUMAN-GATE` rule; `loop-engine.py` `_guard_spec_approved`)
 - Technical: the two state files keep their owners, so the projection reads engine
   state through the engine's own reader and cohort state through the shared guard
   API (source: `_loop_guards.py` names `engine-state` only in two comments;
   `loop-cohort.py` in two, at `:94` and `:1920`)
 - Technical: the canonical Markdown status reader raises for a file it cannot read
   and returns nothing for a file with no recognised Status line, which is why D1
-  and D2 collapse both outcomes into one `unreadable` value (source:
+  and D2 collapse every other outcome into one `other` value (source:
   `_loop_guards.py` `read_md_status` at `:891-923`)
 - Technical: the light-mode marker regex P1 names was validated against the live
   corpus before this contract was opened: over `docs/specs/*/spec.md` with HTML
@@ -585,7 +653,7 @@ contract that depends on this one; they are not deferred work from this checklis
   `references/`, 2026-09-01)
 - Technical: `plan_review_status` and `schedule_waves` make the three commands
   `SPEC-PLAN-APPROVED` requires — `approve-plan`, `schedule`, `plan-locked` —
-  distinguishable without an engine transition between them, which is why R9-R12
+  distinguishable without an engine transition between them, which is why R13-R17
   discriminate on cohort state rather than returning the same action three times
   (source: `references/state-schema.md` field table)
 - Technical: the widest record the tables can produce measures 331 bytes
@@ -599,10 +667,10 @@ contract that depends on this one; they are not deferred work from this checklis
   carries one row rather than a changes-requested branch. What the agent does on
   changes-requested — replay the recorded clean form under its operation id, then
   fire `blocker-applied` — is already stated in the shipped resumption row that
-  R20's `load` points at, and needs no record field (source:
+  R27's `load` points at, and needs no record field (source:
   `references/session-resumption.md` `reviewers-clean`/`CODE-HUMAN-GATE` row)
 - Technical: `next` cannot determine a round's warranted reviewer roster, because
-  no state field records it and the warrant is a judgment over the diff; so R17
+  no state field records it and the warrant is a judgment over the diff; so R22
   stops on a non-matching operation id rather than naming a recording action, and
   this contract claims decidability rather than automatic recovery on that row
   (source: the `state.json` field table records no roster)

@@ -1839,17 +1839,28 @@ open = [
   {path = "docs/product/intents/spec-review-validation-guidance.md", kind = "intent", source = {mode = "repo-origin", ref = "docs/specs/spec-authoring-discipline/spec.md", revision = "local-2026-08-28"}, summary = "Align standalone new-spec review with existing measurement and adjudication controls, add finding-origin attribution, and surface lint gate scope", needs = []},
   {path = "docs/product/intents/credbroker-socket-budget-float-tolerance.md", kind = "intent", source = {mode = "repo-origin", ref = "packages/credbroker/tests/unit/test_sso_derivation.py", revision = "local-2026-08-29"}, summary = "Give the credbroker socket-budget assertion a float tolerance so Windows timer precision cannot red the suite", needs = []},
 
-  # AC36's CPU assertion is `cpu_median <= 5.0`, deliberately unconditional --
-  # unlike the wall-clock assertion beside it, which is skipped above
-  # LOAD_PER_CORE_CEILING. On ubuntu-latest that is now roughly a coin flip on
-  # one interpreter and never close on the other, so the gate reports the
-  # Python version and not the code. Both halves of the evidence come from the
-  # same workflow run, 33487510335: the original attempt and its rerun. Fixing
-  # it means either raising the ceiling with a re-measured, per-version
-  # justification, or finding the 2.8x -- neither is a threshold nudge, so this
-  # is an entry rather than a ride-along. Pre-existing on main; PR #1192 did not
-  # touch `packages/agentbundle/`.
-  {slug = "agentbundle-ac36-cpu-ceiling-flaky-on-py312", source = "ci/33487510335 (2026-09-01)", summary = "packages/agentbundle/tests/performance/test_direct_family2_budget_cost.py asserts a 5.0s CPU-time ceiling that ubuntu-latest py3.12 measures at 4.78-5.08s across the run and its rerun, with tight ranges inside each measurement, against 1.69s on py3.11 -- a ~2.8x interpreter gap that leaves the gate passing or failing on which side of 5.0s the py3.12 median lands, independent of the diff under test"},
+  # Framing matters here and my first draft got it wrong: this is not flake and
+  # not a coin flip. `load/core` is 0.2 on every run and the failing ranges are
+  # tight (0.19s, 0.06s, 0.42s), so these are stable measurements sitting on the
+  # bound -- you do not raise a bound to absorb variance that is not there. The
+  # ceiling was derived on py3.11 (RFC-0098 E16 records 1.92-2.12s when 5s was
+  # set, ~60% headroom) and is enforced on a 3.11/3.12 matrix where 3.12 has
+  # 0-4%. The load skip cannot protect it: the failing assertion is `cpu_median`
+  # at :166, unconditional; only the wall-clock assertion at :185 sits behind
+  # `load_per_core > 2.0`. Two cautions before anyone moves a number. (i) The
+  # open question is unprofiled and should stay a question -- py3.12 is normally
+  # faster than 3.11, so a ~2.8x slowdown is backwards from expectation and may
+  # be a real regression in the admission path rather than a mis-derived
+  # ceiling; if so the ceiling is only the messenger. (ii) RFC-0098 E21 records
+  # this exact ceiling being retired once on a 44.2s measurement, with both the
+  # measurement and the retirement later judged wrong. Profile first, then
+  # discuss numbers. Raising a Family-2 budget is Ask-first under AC36 anyway.
+  # Auditing trap: `gh run rerun --failed` overwrites a run's rolled-up
+  # conclusion, so run 33487510335 reports success -- read `--attempt 1`.
+  # Multi-run measurements credited to peer sessions work-loop-controller-fb and
+  # auto-backlog-review-run-2-20260831t1400-c6; the RFC errata and the
+  # assertion-site facts above are verified locally.
+  {slug = "agentbundle-ac36-cpu-ceiling-derived-on-wrong-interpreter", source = "ci/33487510335 att.1, 33520586244, 33479283513 (2026-09-01)", summary = "packages/agentbundle/tests/performance/test_direct_family2_budget_cost.py enforces a 5.0s CPU-time ceiling that RFC-0098 E16 derived from a 1.92-2.12s py3.11 measurement, against a CI matrix that also runs py3.12 where the same shape measures 4.78-5.08s -- three failures across three branches at load/core 0.2 with tight ranges, so the gate is decided by interpreter version rather than by the diff. Whether py3.12 is genuinely ~2.8x slower here (backwards from expectation, possibly a real admission-path regression) is unprofiled and must be settled before any bound moves; E21 records this ceiling already being retired once on a bad measurement"},
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
