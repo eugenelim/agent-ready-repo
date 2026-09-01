@@ -133,8 +133,12 @@ def test_normalization_projection_parity(tmp_path: Path):
     (flat / "skills" / "alpha" / "scripts" / "run.py").write_text("x = 1\n")
 
     def _tree(root: Path) -> dict[str, bytes]:
+        # `as_posix()`, not `str()`: on Windows `str()` yields backslashes, so
+        # the literal comparison below failed while the two trees still agreed
+        # with each other. Every relpath production stores or renders is POSIX,
+        # so this is also the spelling the assertion should be making.
         return {
-            str(path.relative_to(root)): path.read_bytes()
+            path.relative_to(root).as_posix(): path.read_bytes()
             for path in sorted(root.rglob("*"))
             if path.is_file()
         }

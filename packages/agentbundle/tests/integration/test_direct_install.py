@@ -509,15 +509,28 @@ def test_the_publisher_allowlist_refuses_invisible_code_points():
 
     assert sanitise_publisher_value("ordinary text", "description", source="s")
 
-    # The embedded table is pinned to the UCD that generated it, so a CPython
-    # bump lands as a failure with a regeneration instruction rather than drift.
+    # The embedded table is deliberately static: admission and the digest must
+    # not change with the interpreter that happens to be running. So the
+    # assertion is DIRECTIONAL, not an equality.
+    #
+    # Equality could only ever hold on CPython 3.13. `RUNTIME_FLOOR` admits
+    # 3.11 through 3.14, which ship UCD 14.0.0, 15.0.0, 15.1.0 and 16.0.0
+    # respectively, so an equality check failed on three of the four supported
+    # interpreters — and it did, on every CI job below 3.13, while passing
+    # locally on 3.13. An interpreter OLDER than the table is safe: the table
+    # is then a superset and refuses more, never fewer, code points. An
+    # interpreter NEWER knows Default_Ignorable code points the table does not,
+    # which is the gap worth failing for.
     import unicodedata
 
-    assert unicodedata.unidata_version == UNIDATA_VERSION_AT_GENERATION, (
+    def _ucd(version: str) -> tuple[int, ...]:
+        return tuple(int(part) for part in version.split("."))
+
+    assert _ucd(unicodedata.unidata_version) <= _ucd(UNIDATA_VERSION_AT_GENERATION), (
         "the embedded Default_Ignorable set was generated against UCD "
-        f"{UNIDATA_VERSION_AT_GENERATION} and this interpreter ships "
-        f"{unicodedata.unidata_version}; regenerate it from "
-        "DerivedCoreProperties.txt"
+        f"{UNIDATA_VERSION_AT_GENERATION} and this interpreter ships the newer "
+        f"{unicodedata.unidata_version}, so it may define ignorable code points "
+        "the table does not carry; regenerate it from DerivedCoreProperties.txt"
     )
 
 
