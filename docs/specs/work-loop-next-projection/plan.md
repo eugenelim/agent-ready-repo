@@ -254,18 +254,30 @@ and `--help` lists the verb.
 **Depends on:** T1
 
 **Tests:** TDD.
-- The verb opens exactly four files — both state files, both artifact Status
-  files — each through the guard module's readers, with no direct `open` or
-  `read_text` in the verb's path (AC15).
-- A symlink, a non-regular file, and an oversized file at each of those four are
-  each refused rather than followed, read, or blocked on.
+- The verb opens no file outside AC15's declared set of five — both state files,
+  both artifact Status files, and `scripts/lint-spec-status.py`, which the
+  canonical status reader executes. The instrument is an open-tracer over the
+  whole invocation with those five allow-listed, so a sixth open of any kind
+  fails, including the bundled state template the phase check would reach (AC15).
+- The set is a bound, not a count: each artifact Status file is read **only at
+  the state whose Discriminator consumes it**, so a run needing neither Status
+  opens neither and a run that always opens four fails the criterion (AC15).
+- AC15's carve-out is exercised: at P2 through P4 there is no `engine-state.json`
+  and therefore no Discriminator state, and `spec.md` is read anyway for the
+  light-mode marker, through the same guard readers and against the declared set
+  (AC15).
+- A symlink, a non-regular file, and an oversized file at each of the four data
+  files are each refused rather than followed, read, or blocked on.
 - The two crash artifacts are never opened: a symlink, a directory, and a FIFO at
-  either location are each detected as present and yield P1's `halt`, with no
+  either location are each detected as present and yield P1's refusal, with no
   read, parse, or repair (AC15a).
 - `<spec-dir>` is resolved and repo-confined through the engine's existing
-  resolver **before any filesystem access**, including P1's glob and stat: an
-  out-of-repository argument and one escaping through a symlink are each refused
-  at the engine's generic exit with no record and no probe performed (AC15b).
+  resolver **before any filesystem access under that argument**, which is P1's
+  glob and every subsequent read: an out-of-repository argument and one escaping
+  through a symlink are each refused at the engine's generic exit with no record
+  and no probe under the argument performed. The claim is scoped to accesses
+  under the argument because the resolver itself calls `Path.resolve()` and
+  shells to `git rev-parse` (AC15b).
 - Mutation proof: replacing one guard read with `Path.read_text` makes the symlink
   case at that target pass; adding any `open` of a crash artifact reddens AC15a;
   removing the resolver call, or ordering it after P1, reddens AC15b.
@@ -286,13 +298,13 @@ mutation flips.
   the canonical UUID form; `sequence` equals `transition_sequence` (AC9).
 - `complete_with` equals the outgoing event set read from `_TRANSITIONS_BY_MODE`
   at runtime, empty exactly for `DONE`, except AC10's one declared exception that
-  T6 covers: a record at either spent D5 value — `cap-reached` or `stasis` —
-  omits `reviewers-clean` (AC10).
+  T6 covers: a record whose D5 value is anything other than `within-budget` —
+  `cap-reached`, `stasis`, or `malformed` — omits `reviewers-clean` (AC10).
 - Mutation proofs: pinning `run_id`, `sequence`, or `complete_with` to a constant
   reddens at least one case; removing the `run_id` form check lets a planted
   malformed id reach a record.
 
-**Done when:** the assertions are green and all four mutations flip.
+**Done when:** the assertions are green and every mutation this task names flips.
 
 ### T4: the four contract tables, and the five properties that hold of them
 
@@ -330,8 +342,9 @@ is the part the roster equality test cannot reach — it has no dictionary cell 
 AC3's live-drive case is its only coverage and the R7/R8 exchange is its only
 mutation. Neither may source its expectation from the resolver.
 
-**Done when:** all five properties are green over the full domain, and all five
-mutations flip including AC1's across every row.
+**Done when:** all five properties are green over the full domain, and every
+mutation this task and its Construction tests enumerate flips — including AC1's
+across every row and the D5 forced-`within-budget` proof.
 
 ### T5: values, references, and the size bound are constrained
 
@@ -345,9 +358,14 @@ mutations flip including AC1's across every row.
   `completed_wave_index` yields `halt`, not a record carrying it (AC11, first
   half). `from_index` is sourced from `engine-state.json`'s
   `last_event_context.completed_wave_index`, never from `state.json`'s
-  `current_wave_index`, which the advance itself increments.
+  `current_wave_index`, which the advance itself increments. The mutation plants
+  `completed_wave_index` — the field the verb reads — because planting the field
+  AC11 rules out would demand a `halt` from a read no conforming verb performs.
   This is the one place a `parameters` value is not derived from a P5-checked
   field.
+- `completed_wave_index` **absent** from `last_event_context` also yields `halt`,
+  never an invented index: the engine writes a null context for every event but
+  two, so a legacy state at R19's key can carry no such field (AC11).
 - Every `load` entry resolves to a file under `references/`, with the mapping
   built by globbing rather than copied (AC11, second half).
 - No record carries a schedule array, amendment history, fingerprint, or verbatim
@@ -364,7 +382,14 @@ mutations flip including AC1's across every row.
 
 ### T6: the preconditions fire in order, and nothing is written
 
-**Depends on:** T2
+**Depends on:** T3, T4
+
+**Why not T2:** T6 drives all four D5 values through to `await-replan-decision`
+and `halt`, asserts AC10's `complete_with` exception, and digests AC16 on every
+Routing row. The routing dictionary and the per-state discriminator resolver are
+T4's; the derived `complete_with` is T3's. Declaring only T2 would let T6 be
+scheduled into the same wave as its own prerequisites — T3 and T4 also depend
+only on T2 — and a `Depends on:` edge cannot be added once the plan is hashed.
 
 **Tests:** TDD.
 - Each Preconditions row, exercised in isolation and against a state
@@ -392,11 +417,20 @@ mutations flip including AC1's across every row.
   other spent budget. No carve-out is exercised because none exists: D5 reports
   what it reads at every state. Mutation proof: adding any suppression of
   `cap-reached` reddens this case.
-- A record at either spent D5 value omits `reviewers-clean` from `complete_with`
-  — `cap-reached` and `stasis` both — while a `within-budget` record at the same
-  state includes it (AC10's declared exception). Mutation proof: dropping the
-  omission on the **stasis** branch alone reddens, which the cap-only form of this
-  assertion would not catch; stasis is the branch with no engine guard behind it.
+- A record at any D5 value other than `within-budget` omits `reviewers-clean`
+  from `complete_with` — `cap-reached`, `stasis`, and `malformed` all three —
+  while a `within-budget` record at the same state includes it (AC10's declared
+  exception). Mutation proofs: dropping the omission on the **stasis** branch
+  alone reddens, which the cap-only form of this assertion would not catch, and
+  stasis is the branch with no engine guard behind it; dropping it on the
+  **malformed** branch alone also reddens, which is the branch reached by any
+  `state.json` with a counter absent or non-integer, where the verb could not
+  read the budget at all.
+- D5 with `max_review_retries` **absent from `state.json`** yields `malformed`,
+  not `cap-reached`: the integer helper is called with a sentinel it rejects,
+  never with `0` and never with the defaults table (AC6). Mutation proofs:
+  passing `0` reddens this case by routing to a replan wait; passing the defaults
+  table reddens T2's open-tracer by opening a sixth file.
 - Mutation proof: dropping the non-empty qualifier from the stasis comparison
   reddens the fresh-run case; dropping the `complete_with` exception reddens the
   cap-reached case.
@@ -424,8 +458,11 @@ pending-events file as halting for every run in the repository, per the spec's P
 scope note. The marker fixture set is the six spellings observed in the corpus:
 bare, `**Mode:**`, list-prefixed, blockquoted, backticked, and fully bolded.
 
-**Done when:** every Preconditions row in the spec's table is green and all four
-mutations flip.
+**Done when:** every Preconditions row in the spec's table is green and every
+mutation this task's bullets name flips — the cap-suppression, stasis-omission,
+malformed-omission, sentinel, non-empty-qualifier, `complete_with`-exception, and
+per-row precondition-removal proofs, counted from the bullets rather than from a
+literal here.
 
 ### T7: the published schema validates live output and is inventoried
 
@@ -484,16 +521,24 @@ mutations flip.
   toward another round. The two spec-plan
   `DONE` rows carry `complete` in the identifier column while their prose keeps
   describing the conditional reset, because that reset is a human-initiated path
-  the projection cannot observe. The diff stays additive and all three
-  prose-pinned tests keep passing unchanged — `test_loop_engine.py:2775-2776`,
-  `:2846`, and `test_loop_cohort.py:1843-1867`, which pins the same
-  `reviewers-clean` row and requires exactly one matching line. Confirm rather
-  than assume: run all three before and after.
+  the projection cannot observe. The diff is additive for every row but the
+  amended one, and the prose-pinned tests the spec's Assumption enumerates keep
+  passing unchanged. Confirm rather than assume: run each of them before and
+  after, taking the set from that enumeration rather than from a count restated
+  here.
 - Re-check the peer session's activity in the skill tree before editing.
+- Reconciling the always-loaded body makes AC27 path 2 true, which turns its
+  `strict=True` xfail into an XPASS failure. Removing that marker is this task's
+  obligation, not a later cleanup, and its replacement predicate asserts the
+  reconciled state — every mention of the adjudication reference sits under a
+  classification-conditioned trigger — rather than the absence of today's
+  phrasing, which an inverted sentence would clear while leaving the
+  unconditional instruction intact.
 
-**Done when:** parity is parsed for every shipped row, all five trust statements are
-present in `SKILL.md`, the amended row carries the budget branch, and both pinned
-tests still pass untouched.
+**Done when:** parity is parsed for every shipped row, all five trust statements
+are present in `SKILL.md`, the amended row carries the budget branch, every
+prose-pinned test in the spec's enumeration still passes untouched, and AC27
+path 2's xfail marker is gone with a reconciled-state predicate in its place.
 
 ### T9: the architecture surface names the new verb
 
@@ -540,12 +585,26 @@ user-specific filesystem paths, and the verb's own stderr interpolates absolute
 ones. Scope boundary: spec-plan mode, contract amendment, and the supervisor
 fan-out paths are covered by unit cases and are not exercised here.
 
-- The literal needle set AC24 names is recorded in each transcript's own header,
-  and the check runs against that recorded set rather than against values resolved
-  from the executing host. The observed result is written into the transcript.
+- **Half A of AC24's scan.** The transcript header records only AC24's
+  non-identifying needles as literals — `/Users/`, `/home/`, `~/`,
+  `/var/folders/`, and an email-address pattern — and the check runs over the
+  transcript **below that header**, so the needle list is not scanned against
+  itself. Recorded literals rather than host-derived values are what make this
+  half re-runnable by anyone; a needle computed at check time passes vacuously
+  everywhere but the authoring machine.
+- **Half B of AC24's scan.** The authoring OS account name, machine hostname, and
+  organisation domain are read from the authoring environment at check time and
+  are **never written into the transcript, the header included** — committing
+  them is the exact violation this control exists to prevent. The transcript
+  records only the outcome line: how many host-derived needles were scanned and
+  how many matched, which must be zero.
+- Mutation proof: planting a `/Users/<name>/` path in a transcript body reddens
+  Half A; an outcome line reporting a non-zero match count, or a transcript with
+  no outcome line, fails Half B.
 
 **Done when:** both transcripts are committed with their scope boundary stated,
-each carrying its recorded needle set and the observed redaction result.
+each carrying Half A's recorded needle set and Half B's outcome line, and neither
+carrying an account name, hostname, or organisation domain anywhere.
 
 ### T12: the release surface is consistent
 

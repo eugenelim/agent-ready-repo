@@ -142,6 +142,8 @@ def discriminators() -> list[dict]:
             "event": event,
             "values": sorted(_ticks(values)),
             "reads": sorted(_ticks(read_from)),
+            # The raw cell, so a checker can see what the tick parser could not.
+            "reads_raw": read_from,
         })
     return out
 
@@ -292,10 +294,36 @@ def test_every_row_and_precondition_reference_resolves() -> None:
 
 
 def test_the_plan_cites_exactly_the_criteria_the_spec_defines() -> None:
-    spec_acs = set(re.findall(r"\*\*(AC\d+a?)", SPEC.read_text()))
-    plan_acs = set(re.findall(r"\b(AC\d+a?)\b", PLAN.read_text()))
+    """Parity over criterion identifiers, INCLUDING their letter suffixes.
+
+    The suffix class was `a?` for one round, which silently truncated `AC15b` to
+    `AC15` on the spec side and matched nothing on the plan side. Both sets then
+    agreed on a token neither document contained, so the criterion added that
+    round was outside this control entirely and deleting its only plan bullet
+    left the module green. `[a-z]*` is greedy and covers every suffix the spec
+    can define, so a new `AC15c` is inside the check the day it is written.
+    """
+    spec_acs = set(re.findall(r"\*\*(AC\d+[a-z]*)", SPEC.read_text()))
+    plan_acs = set(re.findall(r"\b(AC\d+[a-z]*)\b", PLAN.read_text()))
     assert not (plan_acs - spec_acs), f"plan cites undefined criteria: {sorted(plan_acs - spec_acs)}"
     assert not (spec_acs - plan_acs), f"criteria no task covers: {sorted(spec_acs - plan_acs)}"
+
+
+def test_the_parity_check_can_see_a_lettered_criterion() -> None:
+    """Prove the control above can fail for a suffixed identifier.
+
+    Asserting parity is green proves nothing about whether a suffixed criterion
+    is inside the check — that was exactly the round-8 defect. This drives the
+    same two patterns over a synthetic pair where a lettered criterion is
+    spec-only, and requires it to surface.
+    """
+    spec_pat, plan_pat = r"\*\*(AC\d+[a-z]*)", r"\b(AC\d+[a-z]*)\b"
+    spec_acs = set(re.findall(spec_pat, "**AC15.** body\n**AC15b.** body\n"))
+    plan_acs = set(re.findall(plan_pat, "covers AC15 only\n"))
+    assert spec_acs == {"AC15", "AC15b"}, f"spec-side pattern lost a suffix: {spec_acs}"
+    assert spec_acs - plan_acs == {"AC15b"}, (
+        f"a spec-only lettered criterion did not surface as a gap: {spec_acs - plan_acs}"
+    )
 
 
 def test_the_plan_does_not_readmit_the_exact_boolean_phrase_ac11_removed() -> None:
@@ -392,36 +420,74 @@ def test_every_state_field_a_discriminator_reads_is_covered_by_its_catch_all() -
     Round 6 found a fifth field added to D5's Read-from while the closure bullet
     still said "any of its four fields", so an unrecognised value of the new
     field fell through the catch-all into a routing branch instead of `halt`.
-    The instance is gone. This closes the class: the parser previously discarded
-    this column entirely, so nothing could have caught a sixth.
+
+    Round 8 found that binding the *count* was not enough. `fields` is parsed
+    from backticked tokens, so a fifth field written WITHOUT backticks was
+    invisible to the parser and left the count at four, and swapping one field
+    for another kept the count at four as well. Both mutations passed. The guard
+    therefore binds three things now:
+
+    1. every snake_case identifier in the Read-from cell is backticked, so a
+       field cannot hide from the parser by dropping its ticks;
+    2. the closure bullet NAMES each field, and that set equals the Read-from
+       set, so a substitution cannot survive on an unchanged count;
+    3. the count word still agrees, which keeps the prose honest for a reader.
+
+    Fails closed: a multi-field discriminator with no parsable closure bullet is
+    a missing binding, not an exemption.
     """
     words = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7}
     prose = SPEC.read_text()
     problems = []
     for d in discriminators():
         # state.json / spec.md / plan.md name the *file*; the fields are the rest
-        fields = [f for f in d["reads"] if "." not in f and "<" not in f]
+        fields = {f for f in d["reads"] if "." not in f and "<" not in f}
+        # (1) nothing that looks like a field may sit in the cell unticked.
+        #     `<...>` spans are placeholders for a composed value, not reads --
+        #     D4 compares against `<run_id>:<transition_sequence>` -- so they are
+        #     removed before the scan rather than reported as hidden fields.
+        cell = re.sub(r"<[^>]*>", "", d["reads_raw"])
+        bare = set(
+            re.findall(r"(?<![`\w])([a-z][a-z0-9]*(?:_[a-z0-9]+)+)(?![`\w])", cell)
+        )
+        if bare:
+            problems.append(
+                f"{d['id']}: Read-from carries un-backticked identifier(s) {sorted(bare)}, "
+                f"which the field parser cannot see"
+            )
         m = re.search(
-            rf"\*\*{d['id']} `malformed`\*\*.{{0,40}}?any of its \*{{0,2}}(\w+)\*{{0,2}} fields",
+            rf"\*\*{d['id']} `malformed`\*\*.{{0,80}}?any of its \*{{0,2}}(\w+)\*{{0,2}} fields",
             prose,
+            re.S,
         )
         if not m:
-            # Fail closed. Skipping here is what let round 6's instance through and
-            # what made the "closes the class" claim false for D1-D4: a discriminator
-            # reading several fields must have its count bound, and a reworded or
-            # absent bullet is a missing binding, not an exemption.
             if len(fields) > 1:
                 problems.append(
-                    f"{d['id']}: Read-from names {len(fields)} fields {fields} but no "
+                    f"{d['id']}: Read-from names {len(fields)} fields {sorted(fields)} but no "
                     f"'any of its <N> fields' closure bullet binds that count"
                 )
             continue
+        # (3) the count word agrees.
         stated = words.get(m.group(1))
         assert stated is not None, f"{d['id']}: unrecognised count word {m.group(1)!r}"
         if stated != len(fields):
             problems.append(
-                f"{d['id']}: Read-from names {len(fields)} fields {fields} "
+                f"{d['id']}: Read-from names {len(fields)} fields {sorted(fields)} "
                 f"but the malformed bullet says '{m.group(1)}'"
+            )
+        # (2) the bullet names the same fields the cell does. A list item ends at
+        #     the next blank line or the next top-level bullet, whichever comes
+        #     first -- slicing to the next "\n- " alone swallowed the rest of the
+        #     document, which made this comparison meaningless.
+        tail = prose[m.start():]
+        bullet = min(
+            (tail.split(sep)[0] for sep in ("\n\n", "\n- ")), key=len
+        )
+        named = {t for t in _ticks(bullet) if "_" in t}
+        if named != fields:
+            problems.append(
+                f"{d['id']}: the malformed bullet names {sorted(named)} but Read-from "
+                f"names {sorted(fields)}; a same-count substitution would go unseen"
             )
     assert not problems, "\n".join(problems)
 

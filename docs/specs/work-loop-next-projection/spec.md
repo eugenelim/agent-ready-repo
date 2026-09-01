@@ -107,23 +107,29 @@ to `halt`:
   comment-only value, nothing at all for a file with no Status line, and raises
   for a file it cannot read. `other` is every one of those except the two named
   values, including a differently-cased token.
-- **D3 `malformed`** — any of its two fields that is not what it must be:
-  `plan_review_status` is a free JSON value, so anything that is not `pending` or
-  `approved`, and any `schedule_waves` that is not a list.
-- **D5 `malformed`** — any of its four fields that is not what it must be: a
-  counter that is not a non-negative integer, or a fingerprint field that is not a
-  list **of strings**. The element type is load-bearing: `[{"a": 1}]` and
+- **D3 `malformed`** — any of its two fields that is not what it must be, both
+  named: `plan_review_status` is a free JSON value, so anything that is not
+  `pending` or `approved`, and any `schedule_waves` that is not a list.
+- **D5 `malformed`** — any of its four fields that is not what it must be, named
+  so the closure is checkable against the Read-from column rather than only
+  counted: `review_retry_count` or `max_review_retries` that is not a
+  non-negative integer, or `finding_fingerprints` or
+  `previous_finding_fingerprints` that is not a list **of strings**. The element type is load-bearing: `[{"a": 1}]` and
   `[1, "a"]` are both lists, and the sorted-unique comparison below raises on
   each, so a catch-all that checked only "is a list" would let a hand-edited
   `state.json` crash the verb where the contract promises a `halt`. Both counters
   are resolved through the shared guard module's **non-negative-integer helper**,
   read directly from `state.json` with no fallback default. That helper is named
   deliberately and the phase check is not: the phase check is an enforcement API
-  returning a refusal, and it reaches an eagerly evaluated defaults table that
-  opens a fifth file — the bundled state template — which AC15 says this verb
-  never opens. The integer helper performs no I/O. Reading directly also means an
-  absent `max_review_retries` is `malformed` rather than silently inheriting a
-  template default, so the catch-all stays total over what `state.json` presents.
+  returning a refusal, and it reaches a defaults table that is eagerly bound and
+  lazily populated, so its first lookup — at the phase check, not at import —
+  opens the bundled state template, a file outside AC15's declared set. The
+  integer helper performs no I/O. Its third argument is a required fallback fed
+  straight to `state.get`, so "no fallback default" is expressed by passing a
+  sentinel the helper itself rejects — `None`: an absent `max_review_retries` then
+  fails the integer check and is `malformed`, where passing `0` would read as
+  `cap-reached` and passing the defaults table would open that sixth file. The
+  catch-all therefore stays total over what `state.json` actually presents.
 
 **D5's two spent values are distinct because their legal continuations differ.**
 `cap-reached` is `review_retry_count >= max_review_retries`. `stasis` is
@@ -154,18 +160,21 @@ and removes a reachability argument the criteria would otherwise depend on.
 
 **Before any row is evaluated**, `<spec-dir>` is resolved and proved inside the
 repository through the engine's existing resolver — the same step every other
-engine verb takes first. P1 globs and stats a path derived from that argument, so
-confinement precedes it rather than following it. A rejection returns through the
-engine's existing generic refusal at exit 1 and needs no new code.
+engine verb takes first. P1 probes under two roots: a glob under a path derived
+from that argument, and a stat in the repository-shared run directory. The
+resolver establishes confinement for the first; the second is under a root the
+argument does not reach, and AC15a is what bounds it. Confinement precedes both
+rather than following them. A rejection returns through the engine's existing
+generic refusal at exit 1 and needs no new code.
 
 Evaluated in order; the first matching row decides, and Routing runs only when
-none matches. P2 through P6 carry five distinct non-zero exit codes, allocated
+none matches. P1 through P6 carry six distinct non-zero exit codes, allocated
 from 3 upward so that none collides with the engine's existing exit 1 (its
 generic refusal, including an unloadable guard module) or argparse's exit 2.
 
 | # | Condition | Exit | Record | stderr names |
 | --- | --- | --- | --- | --- |
-| P1 | An unpromoted engine-state temporary file, or an unreplayed pending-events file, is present | zero | `halt` | which artifact class was found, and that recovery is a writing verb's job |
+| P1 | An unpromoted engine-state temporary file, or an unreplayed pending-events file, is present | non-zero | none | which artifact class was found, and that recovery is a writing verb's job |
 | P2 | No `engine-state.json`, and `spec.md` cannot be read | non-zero | none | that the light-mode marker could not be read, and why the read failed |
 | P3 | No `engine-state.json`, and `spec.md` carries the light-mode marker defined below | non-zero | none | the legacy light-mode resumption table as the surface that answers instead |
 | P4 | No `engine-state.json`, `spec.md` readable, and no light-mode marker | non-zero | none | the ambiguity, without pointing at the light-mode table |
@@ -181,6 +190,15 @@ a stale or unreadable file. Ordered any lower, P1 would be shadowed by P2 throug
 P5 in exactly the cases it exists to catch, and the run would be told "no engine
 state, this is ambiguous" when the truth is "a write was interrupted and a writing
 verb must finish it."
+
+**Why P1 refuses rather than emitting a record.** P1's own trigger case is an
+interrupted `init`, which leaves no `engine-state.json` — and P6's note below
+explains why no record can be built without one. An earlier draft had P1 exit
+zero with a `halt` record, which was unconstructible in exactly the state the row
+exists to catch. Refusing keeps every zero-exit row downstream of P6's
+well-formedness proof, so AC7's and AC9's "on a zero exit" clauses are total. A
+crash artifact is also not a routed action: the answer is "run a writing verb",
+which stderr states and no `next` field could carry.
 
 **Why P2 precedes P3 and P4.** The marker test is a file read, and that read can
 fail — a symlink, a non-regular file, an oversized file. Without P2 such a failure
@@ -198,8 +216,16 @@ interrupted write whose replay is a writing verb's job, and a read-only verb
 cannot tell whose.
 
 **P6's well-formedness.** `run_id` is a canonical lowercase UUID,
-`transition_sequence` a non-negative integer, and `mode` one of `code` or
-`spec-plan`. All three fail before any record is built rather than routing to a
+`transition_sequence` a non-negative integer **below 10^9**, and `mode` one of
+`code` or `spec-plan`. The magnitude bound is not decoration: `sequence` is that
+value and `cycle_id` is derived from it, and nothing else in the record varies in
+size with state, so a planted `transition_sequence` is the one lever an attacker
+has on record length. Without a bound the only ceiling is the interpreter's
+int-to-string limit at 4,300 digits, which yields two ~4.3 KB values and a record
+several times AC13's bound, delivered on stdout into the agent's context — the
+flood AC14 closes on stderr and nothing closed on stdout. 10^9 is chosen against
+the run it has to admit: at one transition per second without pause, it is over
+31 years. All three fail before any record is built rather than routing to a
 `halt`, because the record cannot be constructed without them: `run_id` and
 `transition_sequence` are two of its nine keys, and `mode` selects the transition
 table `complete_with` is derived from.
@@ -490,7 +516,12 @@ the command could not compute a record at all, and emits none.
   yields `cap-reached` and a surviving equal non-empty fingerprint pair yields
   `stasis` — the same answers as anywhere else, because no carve-out exists; and
   on a state satisfying both `cap-reached` and `malformed`, which must yield
-  `malformed`.
+  `malformed`. D5 is additionally exercised on a `state.json` with
+  `max_review_retries` **absent entirely**, which must yield `malformed`: that is
+  the shape of any legacy or hand-trimmed state file, and it is the case that
+  distinguishes the sentinel decision from its two wrong implementations —
+  passing `0` reads as `cap-reached` and routes to a replan wait, passing the
+  defaults table opens a file outside AC15's set.
 
 ### The record
 
@@ -511,21 +542,27 @@ the command could not compute a record at all, and emits none.
   state in the engine's transition table for the run's mode, read at runtime, and
   is empty exactly when that state has no outgoing transition. Pinning it to a
   constant fails this criterion. It carries **one declared exception**: at a review
-  state whose D5 value is `cap-reached` or `stasis`, `reviewers-clean` is omitted.
-  It covers **both** spent values, and stasis needs it more: the cap is
-  independently refused by the engine's phase guard, while nothing anywhere reads
-  the fingerprint pair, so on the stasis branch this projection is the only thing
-  between two rounds of identical findings and a declared clean. Keying on D5's
-  value is safe now that no carve-out can make D5 report `within-budget` at a
-  spent budget; when either counter fails the integer helper D5 is `malformed`,
-  the record is the contracted `halt`, and `reviewers-clean` is omitted there too.
-  The retained `findings-remain` is the only one the
+  state whose D5 value is **anything other than `within-budget`**,
+  `reviewers-clean` is omitted. The key is stated as the complement deliberately,
+  so the exception covers all three of `cap-reached`, `stasis`, and `malformed`,
+  and so any value added to D5 later omits the clean event until someone decides
+  otherwise. Stasis needs it more than the cap does: the cap is independently
+  refused by the engine's phase guard, while nothing anywhere reads the
+  fingerprint pair, so on the stasis branch this projection is the only thing
+  between two rounds of identical findings and a declared clean. `malformed`
+  needs it for the reason the complement makes obvious — the verb could not read
+  the budget at all, so it cannot know the review is unspent, and its record is
+  the contracted `halt`. Keying on D5's value is safe now that no carve-out can
+  make D5 report `within-budget` at a spent budget. The retained
+  `findings-remain` is the only one the
   engine still accepts at the cap, and advertising it in the field an agent parses
   to choose its next move is the false-clean pressure R5 and R25 exist to remove.
   The general "the guard refuses an illegal choice anyway" argument does not hold
   on this edge: its guard checks the spec's Status token, not whether the review
-  was actually clean, and in spec-plan mode the edge has no guard at all. Emitting `reviewers-clean` in a `cap-reached`
-  record fails this criterion.
+  was actually clean, and in spec-plan mode the edge has no guard at all.
+  Emitting `reviewers-clean` in a record whose D5 value is `cap-reached`,
+  `stasis`, or `malformed` fails this criterion — three failing observables, one
+  per non-`within-budget` value.
 - [ ] **AC11.** Every `parameters` value matches `^[A-Za-z0-9:._-]+$` or is an
   integer. No `parameters` value is ever a boolean: the Action attributes table
   declares no boolean key, and permitting one would admit `True`, which Python
@@ -544,8 +581,10 @@ the command could not compute a record at all, and emits none.
   from two fields P6 already checks.
   Every `load` entry resolves to a file shipped under the skill's `references/`
   tree, with the resolution built by globbing that tree rather than transcribed.
-  Planting a `current_wave_index` of `true`, `-1`, or a string, and observing a
-  record rather than a `halt`, fails this criterion. **Absence** resolves the same
+  Planting a `last_event_context.completed_wave_index` of `true`, `-1`, or a
+  string, and observing a record rather than a `halt`, fails this criterion —
+  that is the field this criterion names as the source, and planting the field it
+  rules out would demand a `halt` from a read no conforming verb performs. **Absence** resolves the same
   way: the engine writes a null `last_event_context` for every event but two, so a
   legacy or hand-edited state at R19's key can carry no `completed_wave_index` at
   all, and with no fallback default that is `halt`, never an invented index.
@@ -558,7 +597,13 @@ the command could not compute a record at all, and emits none.
   byte length of the JSON object written to stdout, excluding any trailing
   newline. This criterion is the single home of that figure; the Assumptions and
   the plan reference it rather than restating the literal. The test also pins the
-  observed maximum, so growth is visible before it reaches the bound.
+  observed maximum, so growth is visible before it reaches the bound. The domain
+  is a cross product of `(mode, engine state, last_event, discriminator)` and
+  varies no scalar's magnitude, so traversing it cannot by itself establish the
+  bound against a planted state file; what makes the bound enforceable is P6's
+  magnitude check on `transition_sequence`, the only state-derived scalar whose
+  length is attacker-influenced. This criterion asserts the bound over the domain;
+  P6 asserts it against a hostile input, and the two together are what hold.
 - [ ] **AC14.** Every value the verb interpolates into a stderr reason from a state
   file or from `argv` is length-capped at the bound the shared guard module
   already applies to one external scalar, and is delimited so a reader can see
@@ -570,36 +615,65 @@ the command could not compute a record at all, and emits none.
   control. A whole reason is capped at that module's
   reason bound. A planted oversized `run_id` therefore reaches stderr truncated
   and quoted, not verbatim; removing either the cap or the delimiters fails this
-  criterion.
+  criterion. **The `argv` clause binds this verb's own new code and has no
+  instance today.** The only argv-derived refusal is AC15b's, and AC15b routes it
+  through the pre-existing shared resolver, whose message interpolates the raw
+  argument uncapped through the engine's generic stop path — recorded as a
+  standing Assumption, not closed here. Changing that message would edit a line
+  `init`, `transition`, `status`, and `reset` also emit, which Boundaries puts
+  behind *Ask first*, and no such decision has been taken. The clause is stated
+  so that any argv value this verb interpolates itself is capped from the first
+  line written.
 
 ### Reads
 
-- [ ] **AC15.** The verb opens no file outside a set of four — both state files
-  and both artifact Status files — and reads each artifact Status file only at the
-  state whose Discriminator consumes it, so a run that needs neither opens neither.
+- [ ] **AC15.** The verb opens no file outside a declared set of **five**: both
+  state files, both artifact Status files, and `scripts/lint-spec-status.py`. The
+  fifth is not a data read and not optional — the canonical status reader this
+  criterion mandates loads and executes that module to parse a Status line, so any
+  conforming implementation opens it on any run that reads one. It is enumerated
+  rather than excused: a criterion bounding the verb at four would be false of the
+  blessed reader, and an instrument narrowed enough to make four true would stop
+  detecting a real extra read. The parser module's own accepted residual — a
+  pre-existing poisoned `.pyc`, which its loader documents and suppresses writing
+  but cannot un-write — is inherited unchanged and recorded in the Assumptions.
+  The verb reads each artifact Status file only at the state whose Discriminator
+  consumes it, so a run that needs neither opens neither.
   **One carve-out:** P2 through P4 read `spec.md` for the light-mode marker when
   there is no `engine-state.json`, and therefore at no Discriminator's state. That
   read is mandatory, goes through the same guard readers, and counts against the
-  four-file set; the per-state clause governs the Status reads only. Each is read through the shared guard module's readers,
+  declared set; the per-state clause governs the Status reads only. Each data file is read through the shared guard module's readers,
   with no direct `open` or `read_text` anywhere in the verb's path; a symlink, a
-  non-regular file, and an oversized file at each of the four is refused rather
-  than followed, read, or blocked on.
+  non-regular file, and an oversized file at each of the four data files is
+  refused rather than followed, read, or blocked on. The instrument is an
+  open-tracer over the whole invocation with the five paths allow-listed, so a
+  sixth open of any kind — including the bundled state template the phase check
+  would reach — fails this criterion.
 - [ ] **AC15a.** The two crash artifacts are never opened. P1 detects them by
   presence alone, under two different roots: the engine-state temporary by a
   confined glob within the spec directory, the pending-events file by a single
   stat in the repository-shared run directory. A symlink, a directory, or a FIFO
-  at either location is detected as present and yields P1's `halt`, and no read,
-  parse, or repair occurs at either.
+  at either location is detected as present and yields P1's refusal, and no read,
+  parse, or repair occurs at either. The run-directory stat is under a root
+  `<spec-dir>` does not reach, so AC15b's confinement does not bound it and this
+  criterion is what does.
 - [ ] **AC15b.** `<spec-dir>` is resolved and proved inside the repository
-  through the engine's existing resolver before any filesystem access, including
-  P1's glob and stat. An argument resolving outside the repository, and one
-  escaping through a symlink, are each refused at the engine's existing generic
-  exit with no record and no probe performed. Removing the resolver call, or
-  ordering it after P1, fails this criterion.
+  through the engine's existing resolver before **any filesystem access under
+  that argument**, which is P1's glob and every subsequent read. The claim is
+  scoped to accesses under the argument because the resolver itself calls
+  `Path.resolve()` and shells to `git rev-parse` to find the repository root: an
+  instrument mechanizing "before any filesystem access" without that scope would
+  redden on the control it is verifying. An argument resolving outside the
+  repository, and one escaping through a symlink, are each refused at the
+  engine's existing generic exit with no record and no probe under the argument
+  performed. Removing the resolver call, or ordering it after P1, fails this
+  criterion.
 - [ ] **AC16.** Running `next` leaves `engine-state.json`, `state.json`, and
   `.loop-run/events.jsonl` byte-identical, and creates and deletes no file
   anywhere under the spec directory or the loop run directory. This holds on every
-  Preconditions row too, including the two that detect a mid-write crash artifact.
+  Preconditions row too, including P1 on each of the two crash-artifact classes it
+  detects — the unpromoted engine-state temporary and the unreplayed
+  pending-events file — which are one row, not two.
 
 ### The published schema
 
@@ -663,6 +737,18 @@ the command could not compute a record at all, and emits none.
   table. Reconciling those two is this contract's work, not a pre-existing
   control it inherits, and the task that edits that surface owns it.
 
+  **Path 2's evidence asserts the reconciled state, not the absence of one
+  phrasing.** Every instruction in the always-loaded body that names the
+  adjudication reference must sit under a trigger conditioned on the report's
+  classification — the classifier's `findings` result, or the mandatory footer of
+  path 4. An artifact that only pins the absence of today's sentence can be
+  cleared by inverting the sentence and leaving the unconditional instruction
+  intact, which turns the suite green on an unreconciled surface; that is why the
+  evidence form is "every mention is under a conditioned trigger" rather than
+  "this string is gone." The companion positive check for paths 3 through 5
+  passes today alongside the contradiction, so it cannot distinguish the two
+  outcomes and is not evidence for path 2.
+
 - [ ] **AC21.** `loop-engine --help` lists `next` alongside `init`, `transition`,
   `status`, and `reset`.
 - [ ] **AC22.** The entrypoint section of
@@ -685,16 +771,33 @@ the command could not compute a record at all, and emits none.
   state, and per-command exit codes, and states what it does not exercise. Both
   carry repository-relative paths only: the verb's own stderr interpolates
   absolute ones, and the privacy convention bans a user-specific filesystem path
-  from every committed artifact. The check's needles are **recorded in the transcript's own header as literal
-  values, not resolved from the executing host** — a needle computed at check
-  time searches for the runner's account and hostname and passes vacuously
-  everywhere except the machine that wrote the transcript. The recorded set is
-  `/Users/`, `/home/`, `~/`, `/var/folders/`, the authoring OS account name, the
-  authoring machine hostname, an email-address pattern, and the organisation
-  domain token; the GitHub handle used for authorship fields is carved out,
-  because the privacy convention rules it is not personal data. The check passes
-  only when none of the recorded needles is present — a transcript carries the worktree path, the prompt
-  hostname, and the account name, and no repository-wide lint backstops this.
+  from every committed artifact. The scan is **split in two, because the needles
+  divide into ones that are safe to commit and ones that are the very data being
+  excluded.**
+
+  **Half A — recorded, and re-runnable by anyone.** The transcript's header
+  records a fixed set of *non-identifying* needles as literals: `/Users/`,
+  `/home/`, `~/`, `/var/folders/`, and an email-address *pattern* (a shape, not an
+  address). The check scans the transcript **below its header** — the header is
+  where the needle list lives, so scanning it would make the check false by
+  construction. Recording these as literals rather than deriving them is what
+  makes the check reproducible: a needle computed at check time passes vacuously
+  on every machine but the one that wrote the transcript.
+
+  **Half B — host-derived, and never written down.** The authoring OS account
+  name, the authoring machine hostname, and the organisation domain token are
+  read from the authoring environment at check time and are **never written into
+  any committed artifact, the header included.** The privacy convention bans
+  usernames, account identifiers, device names, and org domains from every git
+  artifact, so a needle list carrying them would be the violation the control
+  exists to prevent. The transcript records only the *outcome*: the count of
+  host-derived needles scanned and the number of matches, which must be zero. The
+  GitHub handle used for authorship fields is carved out of both halves, because
+  the privacy convention rules it is not personal data.
+
+  Half A's failing observable is a planted `/Users/<name>/` path in the transcript
+  body. Half B's is that T11 records a non-zero match count, or records no outcome
+  line at all. No repository-wide lint backstops either half.
 - [ ] **AC25.** `docs/product/changelog.md` carries a free-standing
   `## [core][<version>] — YYYY-MM-DD` entry at top level rather than nested under
   `[Unreleased]`, containing a `### Highlights` block; and `packs/core/pack.toml`
@@ -723,8 +826,12 @@ contract that depends on this one; they are not deferred work from this checklis
   rows are the exception: they prescribe a reset conditioned on a later human
   request, so their identifier column carries `complete` — the action `next`
   returns — while their prose keeps describing the conditional reset as a human
-  path. No row's prose is rewritten, and the two tests that pin row prose keep
-  passing. They locate their row by substring and
+  path. Exactly one row's prose is rewritten — the `gates-clean`/`CODE-REVIEW`
+  row, which AC19 requires to gain the budget branch; every other row's prose is
+  untouched, and the additive-diff argument is made for those. The **three** tests
+  that pin row prose keep passing, and this is the site that enumerates them, so
+  AC19's task and T8's Done-when refer to this enumeration rather than restating a
+  count. They locate their row by substring and
   assert phrases within the matched line, so an added column does not disturb
   either (source: `test_loop_engine.py:2775-2776` matches the `findings-remain`
   row and requires "stale fingerprint baseline", "under-count", and "do NOT
@@ -742,6 +849,18 @@ contract that depends on this one; they are not deferred work from this checklis
   (source: `_loop_guards.py` `_MAX_SCALAR_CHARS` and `_MAX_REASON_CHARS` at
   `:109-123`, the chokepoint comment at `:264-270`; `loop-engine.py:135-137`,
   `:964-966`)
+- Technical: reading a Status through the canonical reader loads and executes
+  `scripts/lint-spec-status.py`, which is why AC15 declares five files rather than
+  four. Two residuals come with it and neither is closed here. The loader `lstat`s
+  the module path and refuses a non-regular file, saves and restores
+  `sys.dont_write_bytecode` so it writes no bytecode of its own, and requires the
+  symbols the guard path uses so a truncated module fails to load rather than
+  loading half-parsed — but a **pre-existing poisoned `.pyc`** would still be
+  executed, which the loader's own docstring records as accepted. Separately, the
+  resolver shells to `git rev-parse --show-toplevel`, so the verb is not
+  subprocess-free even though it is write-free. Both are inherited from controls
+  this contract reuses rather than introduced by it (source:
+  `_loop_guards.py:600-686` and `:891-923`; `loop-engine.py:140-157`)
 - Technical: `next` runs unlocked by construction. `_statelock` guards a path by
   creating a sibling lock file, which AC16 forbids, so the two state files are
   sampled at different instants and a concurrent writing verb can produce a torn
@@ -750,7 +869,7 @@ contract that depends on this one; they are not deferred work from this checklis
   `schedule_waves`, or `transition_sequence` value captured mid-write. This is
   accepted: the verb is advisory, the agent re-reads before acting, and every
   writing verb it names re-validates under the lock. Two atomic-write temporaries
-  are detectable from disk, and P1 halts on only one of them: the cohort's
+  are detectable from disk, and P1 refuses on only one of them: the cohort's
   `.state-*.json.tmp` is deliberately not a halting condition, because no recovery
   routine exists for it and halting would wedge the loop permanently (source:
   `_statelock.py:122-124`; `loop-cohort.py:177`)
@@ -813,8 +932,9 @@ contract that depends on this one; they are not deferred work from this checklis
   (source: `references/state-schema.md` field table)
 - Technical: the widest record the tables can produce measures 331 bytes
   serialized compact, comfortably inside the bound AC13 states — `cohort.record-attempt` at `CODE-IMPLEMENTATION`, carrying a
-  UUID `cycle_id` and one `load` entry — so the 1024-byte bound leaves 209%
-  headroom while still detecting an embedded state dump. The bound is asserted in
+  UUID `cycle_id` and one `load` entry — so the bound AC13 states leaves 209%
+  headroom while still detecting an embedded state dump. AC13 declares itself the
+  single home of that figure, so the literal is not repeated here. The bound is asserted in
   the suite rather than enforced as a runtime refusal, because a refusal would
   leave the loop with no next action (source: a serialization measurement over
   every Routing row, 2026-09-01)
