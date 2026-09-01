@@ -260,8 +260,8 @@ transition carries the review-retry cap guard; `review record --fingerprint`
 carries none and increments unconditionally. Issue them ungated and a refused
 transition still records, leaving the engine parked in `CODE-REVIEW` with the
 cohort a round ahead — a desync only a forbidden `state.json` hand-edit
-reconciles. Chain them where the shell supports it; otherwise read the
-transition's exit status before recording:
+reconciles. Run the transition, confirm it exited zero and read the `(seq=N)` it
+prints, then record with that N:
 
 ```bash
 # The transition prints `(seq=N)`. Record only if it succeeded, and pass that

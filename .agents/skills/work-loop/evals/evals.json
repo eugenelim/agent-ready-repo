@@ -63,7 +63,7 @@
     {
       "id": "phase1-last-event-routing",
       "prompt": "You resume a work-loop session and `loop-engine status` shows `last_event: 'wave-passed'` and `state: 'CODE-IMPLEMENTATION'`. What does this tell you and what is the correct next action?",
-      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` — this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
+      "expected_output": "The `last_event` of `wave-passed` in state `CODE-IMPLEMENTATION` means the engine transitioned into this state after a wave completion. The correct action is: (1) read `last_event_context.completed_wave_index`; (2) re-issue `loop-cohort wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` \u2014 this call is idempotent and safe to replay; (3) then proceed to implement the tasks in the current (next) wave.",
       "assertions": [
         "Response reads `last_event_context.completed_wave_index` to determine the completed wave",
         "Response re-issues `wave advance --from-index <completed_wave_index> --expect-run-id <run_id>` before proceeding",
@@ -85,7 +85,7 @@
     },
     {
       "id": "phase1-explicit-auth-clean-record-replay",
-      "prompt": "The adversarial reviewer returned exactly `Clean — ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
+      "prompt": "The adversarial reviewer returned exactly `Clean \u2014 ready to commit.` and you recorded it with `loop-cohort review record --direct-clean-file <raw-report-path> --expect-run-id $run_id`. The same clean signal was already recorded in the previous round. What must you do before replaying it, and how would the record form differ if clean came from adjudication?",
       "expected_output": "Before replaying an already-recorded clean signal, obtain and record explicit human authorization. Replay the original form only: exact raw clean uses `review record --direct-clean-file <raw-report-path>`, replayed against the same persisted artifact and identified by `last_review_clean_source` in `state.json`; clean produced by adjudication uses `review record --report <adjudication-report-path> --adjudication`. Replaying either form distorts audit history by incrementing `review_round_count` a second time for the same signal and may overwrite one level of fingerprint audit history. Surface the situation, explain both impacts, require explicit confirmation, and name the minimum viable recovery rung: steer.",
       "assertions": [
         "Response requires explicit human authorization before the replay",
@@ -110,9 +110,9 @@
     {
       "id": "step0-branch2-zero-active-specs",
       "prompt": "You are starting work-loop with no arguments. workspace.toml shows zero active spec paths across all initiatives. What should you say?",
-      "expected_output": "Surface: 'No active spec found — run `workspace-status` to see what's ready to start.' Stop without proceeding to PLAN.",
+      "expected_output": "Surface: 'No active spec found \u2014 run `workspace-status` to see what's ready to start.' Stop without proceeding to PLAN.",
       "assertions": [
-        "Response surfaces the exact message 'No active spec found — run `workspace-status` to see what's ready to start.'",
+        "Response surfaces the exact message 'No active spec found \u2014 run `workspace-status` to see what's ready to start.'",
         "Response does NOT proceed to PLAN",
         "Response does NOT pick or ask about a spec"
       ]
@@ -142,7 +142,7 @@
     {
       "id": "reconcile-stale-routes-to-workspace-status",
       "prompt": "Several specs in workspace.toml are showing Status: Shipped but are still listed in the queue. How do I find and fix all stale queue entries?",
-      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan — reconcile is the canonical tool for portfolio-wide stale detection.",
+      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan \u2014 reconcile is the canonical tool for portfolio-wide stale detection.",
       "assertions": [
         "Response recommends `workspace-status reconcile` as the correct tool",
         "Response does NOT say to use work-loop for this",
@@ -153,7 +153,7 @@
     {
       "id": "find-untracked-specs-routes-to-reconcile",
       "prompt": "I want to find spec files that exist on disk but are not declared in workspace.toml and are actively in progress (Approved or Implementing). What command should I run?",
-      "expected_output": "Run `workspace-status reconcile` — it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
+      "expected_output": "Run `workspace-status reconcile` \u2014 it performs a Type 1 scan that detects untracked live specs (specs on disk with status Approved or Implementing that are not referenced in workspace.toml). Specs with status Draft, Shipped, or Archived are not reported as Type 1 findings. Work-loop does not perform portfolio-wide file discovery.",
       "assertions": [
         "Response recommends `workspace-status reconcile`",
         "Response mentions Type 1 findings or untracked spec detection",
@@ -163,7 +163,7 @@
     {
       "id": "two-gate-resumption-spec-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `last_event: reviewers-clean`, `pending_human_wait: true`. You read spec.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `spec-approved` immediately — this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
+      "expected_output": "Fire `spec-approved` immediately \u2014 this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
       "assertions": [
         "Response fires `spec-approved` immediately without waiting for a new human signal",
         "Response identifies this as crash-recovery for the approval window",
@@ -174,7 +174,7 @@
     {
       "id": "two-gate-resumption-plan-human-gate-auto-fire",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: PLAN-HUMAN-GATE`, `last_event: spec-approved`, `pending_human_wait: true`. You read plan.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `plan-approved` immediately — crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
+      "expected_output": "Fire `plan-approved` immediately \u2014 crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
       "assertions": [
         "Response fires `plan-approved` immediately without waiting",
         "Response identifies this as crash-recovery",
@@ -185,7 +185,7 @@
     {
       "id": "two-gate-resumption-incompatible-spec-status",
       "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `pending_human_wait: true`. spec.md shows `Status: Implementing`. What should you do?",
-      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible — it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
+      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible \u2014 it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
       "assertions": [
         "Response surfaces the incompatible state to the human",
         "Response does NOT fire any transition automatically",
@@ -206,7 +206,7 @@
     {
       "id": "explain-query-routes-to-explain",
       "prompt": "Why is spec/foo still blocked? Its upstream dependencies look resolved to me.",
-      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec — it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
+      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec \u2014 it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
       "assertions": [
         "Response recommends `workspace-status explain --item spec/foo`",
         "Response does NOT describe a work-loop mechanism for explaining blocked specs",
@@ -237,6 +237,7 @@
         "Performs no capture or distillation after stale or failed sealing, rejection, abandonment, or incomplete approval"
       ]
     },
+    
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
@@ -325,7 +326,7 @@
       "id": "durability-source-authority-and-refresh-state"
     },
     {
-      "prompt": "Do these three changes in order — the second depends on the first landing, and the third on the second.",
+      "prompt": "Do these three changes in order \u2014 the second depends on the first landing, and the third on the second.",
       "expected_output": "The agent refuses direct-light: dependent delivery tasks needing durable sequencing are not one bounded logical change, and the order must outlive the session that chose it. It routes to the durable spec-and-plan path.",
       "assertions": [
         "Treats dependent sequencing as a durability trigger",
@@ -455,7 +456,7 @@
     {
       "id": "adjudication-self-supplied-provider-unavailable",
       "prompt": "The current review unit adds the repository's only `finding-adjudicator` agent. May work-loop use it to adjudicate findings about this same diff?",
-      "expected_output": "No. A self-supplied `finding-adjudicator` is a loud stop because its pre-existing approved provenance cannot be established — the primitive is added by the review unit it would adjudicate. The gateway blocks; work-loop does not fall back to a named-skip or named-unavailable branch.",
+      "expected_output": "No. A self-supplied `finding-adjudicator` is a loud stop because its pre-existing approved provenance cannot be established \u2014 the primitive is added by the review unit it would adjudicate. The gateway blocks; work-loop does not fall back to a named-skip or named-unavailable branch.",
       "assertions": [
         "Treats the self-supplied adjudicator as a loud stop",
         "Requires pre-existing approved provenance untouched by the diff",
@@ -627,7 +628,7 @@
     {
       "id": "review-record-operation-id-crash-window",
       "prompt": "You fired `findings-remain`, then ran `loop-cohort review record --fingerprint <fp1> --fingerprint <fp2> --expect-run-id <run-id> --operation-id <run-id>:12`. The session died before you saw the result, so you do not know whether the write landed. You resume: `loop-engine status --json` reports `transition_sequence: 12` and `last_event: findings-remain`. What do you do?",
-      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded — continue without recording again. If it is absent or different, the write did not land: re-issue the identical recording with the same `--operation-id`. Repeating the identical payload under that id is a no-op, so the round cannot be counted twice; supplying a different payload under it is refused rather than silently accepted. Do not mint a fresh operation id for the same round — that would record a second round.",
+      "expected_output": "Read `last_review_record_operation_id` from `loop-cohort status --json` and compare it with the id you would compute now, `<run-id>:12`. If they match, the round is already recorded \u2014 continue without recording again. If it is absent or different, the write did not land: re-issue the identical recording with the same `--operation-id`. Repeating the identical payload under that id is a no-op, so the round cannot be counted twice; supplying a different payload under it is refused rather than silently accepted. Do not mint a fresh operation id for the same round \u2014 that would record a second round.",
       "assertions": [
         "Response compares `last_review_record_operation_id` with the id recomputed from `transition_sequence`",
         "Response treats a matching id as a completed write and does not record again",

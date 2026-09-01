@@ -216,8 +216,10 @@ class ReviewRecordIdempotency(unittest.TestCase):
         self.assertIn("different payload", conflict.stderr)
 
     def test_r4_a_different_form_under_the_same_id_is_a_conflict(self) -> None:
-        # The form prefix in the digest preimage is what makes this detectable:
-        # without it, two forms could hash to the same value.
+        # Pins cross-form conflict detection. It does NOT pin the digest's form
+        # prefix: `--all-skipped` and `--fingerprint` carry different payload
+        # bytes, so their digests differ with or without it. The prefix's mutation
+        # proof is `test_the_digest_preimage_carries_its_form`.
         spec_dir, run_id = self._initialized()
         op = f"{run_id}:5"
         self._record(spec_dir, run_id, "--all-skipped", operation_id=op)
@@ -262,7 +264,11 @@ class ReviewRecordIdempotency(unittest.TestCase):
     def test_r6_malformed_ids_refuse_and_mutate_nothing(self) -> None:
         spec_dir, run_id = self._initialized()
         before = (spec_dir / "state.json").read_bytes()
-        for bad in ("no-colon", f"{run_id}:", f"{run_id}:abc", "wrong-run:1", f":{1}"):
+        for bad in ("no-colon", f"{run_id}:", f"{run_id}:abc", "wrong-run:1", f":{1}",
+                    # Accepted by the original `^...$`/`\d` pattern and unequal to
+                    # the canonical spelling, so each recorded the same round again.
+                    f"{run_id}:1\n", f"{run_id}:\u0661", f"{run_id}:01",
+                    f"{run_id}:{'9' * 19}"):
             with self.subTest(operation_id=bad):
                 result = self._record(spec_dir, run_id, "--fingerprint", FP_A,
                                       operation_id=bad)
@@ -272,16 +278,35 @@ class ReviewRecordIdempotency(unittest.TestCase):
     # ── cross-row: the refusals are tellable apart ────────────────────────
 
     def test_the_three_refusal_reasons_are_distinct(self) -> None:
+        """All three outcomes AC7 names, not two.
+
+        The uncomputable-digest reason is only reachable through the gate, so it
+        is captured there; comparing two of three would let that message be made
+        identical to the conflict message without reddening anything.
+        """
+        import contextlib
+        import io
+
         spec_dir, run_id = self._initialized()
         op = f"{run_id}:6"
         self._record(spec_dir, run_id, "--fingerprint", FP_A, operation_id=op)
 
         malformed = self._record(spec_dir, run_id, "--fingerprint", FP_A,
-                                 operation_id="nope").stderr
+                                 operation_id="nope").stderr.strip()
         conflict = self._record(spec_dir, run_id, "--fingerprint", FP_C,
-                                operation_id=op).stderr
-        self.assertNotEqual(malformed.strip(), conflict.strip())
-        self.assertTrue(malformed.strip() and conflict.strip())
+                                operation_id=op).stderr.strip()
+        # Load before redirecting: the module reconfigures the real streams at
+        # import time and a StringIO has no `reconfigure`.
+        gate = _load_gate()
+        buffer = io.StringIO()
+        with contextlib.redirect_stderr(buffer):
+            gate({}, f"{run_id}:1", None,
+                 expect_run_id=run_id, spec_name=spec_dir.name)
+        undecidable = buffer.getvalue().strip()
+
+        reasons = [malformed, conflict, undecidable]
+        self.assertTrue(all(reasons), f"an empty refusal reason: {reasons}")
+        self.assertEqual(len(set(reasons)), 3, f"reasons not pairwise distinct: {reasons}")
 
     # ── the persisted schema ──────────────────────────────────────────────
 

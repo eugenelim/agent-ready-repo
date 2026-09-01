@@ -145,7 +145,23 @@ def capture(form_name: str, extra_argv: list[str], files: dict[str, str]) -> dic
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    """Default is `--verify`; `--capture` is the only mode that writes.
+
+    Writing by default would let anyone "regenerate the baseline" and silently
+    replace the pre-change oracle with post-change output, which is the one thing
+    this artifact exists to prevent.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--verify", action="store_true", default=True,
+                      help="compare the current writer against the committed baseline")
+    mode.add_argument("--capture", action="store_true",
+                      help="overwrite the baseline; only valid before the writer changes")
+    args = parser.parse_args(argv)
+
     SCRATCH.mkdir(parents=True, exist_ok=True)
     forms = {
         "fingerprint": (["--fingerprint", FP_A, "--fingerprint", FP_B], {}),
@@ -170,13 +186,25 @@ def main() -> int:
                   for name, (argv, files) in forms.items()},
     }
     out = Path(__file__).resolve().parent / "flagless-baseline.json"
-    out.write_text(json.dumps(baseline, indent=2, ensure_ascii=False) + "\n",
-                   encoding="utf-8")
+    rendered = json.dumps(baseline, indent=2, ensure_ascii=False) + "\n"
     shutil.rmtree(SCRATCH, ignore_errors=True)
-    print(f"wrote {out.relative_to(ROOT)}")
+
+    if args.capture:
+        out.write_text(rendered, encoding="utf-8")
+        print(f"captured {out.relative_to(ROOT)}")
+        return 0
+
+    committed = json.loads(out.read_text(encoding="utf-8"))
+    drift = [name for name, rec in baseline["forms"].items()
+             if committed["forms"].get(name) != rec]
     for name, rec in baseline["forms"].items():
-        print(f"  {name:22s} exit={rec['exit_code']} "
+        mark = "DRIFT" if name in drift else "ok   "
+        print(f"  {mark} {name:22s} exit={rec['exit_code']} "
               f"changed={sorted(rec['delta'])}")
+    if drift:
+        print(f"\nflagless behaviour changed for: {', '.join(drift)}")
+        return 1
+    print("\nflagless behaviour matches the committed baseline")
     return 0
 
 

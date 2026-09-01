@@ -133,7 +133,7 @@ and derive fresh paths:
 
 After the shared non-executing eligibility, artifact-excluding read-allowlist,
 fresh-path, containment, capture-cap, and exclusive-create preflight succeeds,
-chain the retry-cap transition and record the validated first-adjudication
+run the retry-cap transition, confirm it succeeded, and record the validated first-adjudication
 digest; a refused transition records and executes nothing:
 
 ```bash

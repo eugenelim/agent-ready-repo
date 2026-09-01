@@ -1150,6 +1150,8 @@ def cmd_status(args: argparse.Namespace) -> int:
         "amendment_pending": state.get("amendment_pending"),
         "implementation_retry_count": state.get("implementation_retry_count", 0),
         "review_round_count": state.get("review_round_count", 0),
+        "last_review_record_operation_id": state.get("last_review_record_operation_id"),
+        "last_review_record_payload_digest": state.get("last_review_record_payload_digest"),
         "review_retry_count": state.get("review_retry_count", 0),
         "finding_fingerprints": state.get("finding_fingerprints", []),
         "previous_finding_fingerprints": state.get("previous_finding_fingerprints", []),
@@ -1921,11 +1923,16 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
 # field records which form closed a round — so `state.json` stops describing a
 # round's payload as soon as the next round lands.
 
-_REVIEW_OP_ID_RE = re.compile(r"^(?P<run>[^:]+):(?P<seq>\d+)$")
+# `\A`/`\Z`, not `^`/`$`: Python's `$` also matches before a trailing newline,
+# so `"<run>:1\n"` would pass and then compare unequal to `"<run>:1"` -- two
+# spellings of one round, each recording separately. `[0-9]` rather than `\d`
+# for the same reason: `\d` accepts Unicode decimal digits.
+_REVIEW_OP_ID_RE = re.compile(r"\A(?P<run>[^:\n]+):(?P<seq>[0-9]{1,18})\Z")
+_REVIEW_OP_ID_MAX = 200
 
 
 def _review_payload_digest(form: str, payload: str) -> str:
-    """`sha256(form + "\n" + payload)`. The form prefix stops two forms colliding."""
+    r"""`sha256(form + "\n" + payload)`. The form prefix stops two forms colliding."""
     return hashlib.sha256(f"{form}\n{payload}".encode()).hexdigest()
 
 
@@ -1951,11 +1958,24 @@ def _review_operation_gate(
     if operation_id is None:
         return "unflagged", None
 
-    matched = _REVIEW_OP_ID_RE.match(operation_id)
-    if matched is None or matched.group("run") != expect_run_id:
+    matched = (_REVIEW_OP_ID_RE.match(operation_id)
+               if len(operation_id) <= _REVIEW_OP_ID_MAX else None)
+    # A leading zero is a second spelling of the same sequence, and the recorded
+    # id is compared by exact string equality, so `:01` and `:1` would each
+    # record the round once.
+    canonical = matched is not None and (
+        matched.group("seq") == "0" or not matched.group("seq").startswith("0")
+    )
+    if not canonical:
         return "refuse", stop(
             f"review record: --operation-id must be "
-            f"'<expect-run-id>:<decimal-sequence>' (got {operation_id!r})"
+            f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
+            f"(got {operation_id!r}) for {spec_name}"
+        )
+    if matched.group("run") != expect_run_id:
+        return "refuse", stop(
+            f"review record: --operation-id names run {matched.group('run')!r} "
+            f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
         )
     if payload_digest is None:
         # Refusing here is what keeps a later repeat decidable: an id recorded
@@ -1963,20 +1983,21 @@ def _review_operation_gate(
         return "refuse", stop(
             "review record: this round's payload digest could not be computed, "
             "so recording it under an operation id would leave a later repeat "
-            "undecidable; re-run once the payload is readable"
+            f"undecidable; re-run once the payload is readable, for {spec_name}"
         )
 
     recorded_id = state.get("last_review_record_operation_id")
     if recorded_id == operation_id:
         if state.get("last_review_record_payload_digest") == payload_digest:
-            print(
+            _emit(
                 f"loop-cohort: review record already recorded for operation "
-                f"{operation_id!r} (idempotent no-op) for {spec_name}"
+                f"{_diag(operation_id)} (idempotent no-op) for {spec_name}"
             )
             return "already", 0
         return "refuse", stop(
             f"review record: operation {operation_id!r} is already recorded with "
-            f"a different payload; a replay must carry the payload it recorded"
+            f"a different payload; a replay must carry the payload it recorded, "
+            f"for {spec_name}"
         )
     return "record", None
 
@@ -1996,6 +2017,20 @@ def cmd_review_record(args: argparse.Namespace) -> int:
         return err
 
     operation_id = getattr(args, "operation_id", None)
+
+    # The retry cap used to be enforced only by the `&&` chaining the transition
+    # to this command in the shipped instructions -- shell syntax an agent may
+    # not reproduce. `check --phase review` refuses at the cap while this verb
+    # happily wrote past it, so a findings round could loop unbounded. The guard
+    # belongs here, where it cannot be dropped by reformatting an instruction.
+    retries = int(state.get("review_retry_count", 0) or 0)
+    max_retries = int(state.get("max_review_retries", 5) or 5)
+    if args.fingerprint and retries >= max_retries:
+        return stop(
+            f"review record: review_retry_count {retries} has reached "
+            f"max_review_retries {max_retries}; a findings round past the cap is "
+            f"the runaway the cap exists to stop, for {spec_dir.name}"
+        )
 
     if getattr(args, "all_skipped", False):
         # All-skipped branch: every warranted reviewer was a named skip

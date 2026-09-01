@@ -77,30 +77,43 @@ class ShippedRecordingStatements(unittest.TestCase):
     def test_every_recording_is_guarded_against_a_refused_transition(self) -> None:
         """A recording must not be reachable after a transition that refused.
 
-        Satisfied either by a shell `&&` chaining it to its transition, or by a
-        stated obligation in the preceding lines of the same fenced block. The
-        operator matters less than the guarantee; pinning the operator would
-        forbid reading the sequence the id needs, which only exists after the
+        Keyed on the nearest preceding transition anywhere in the enclosing fenced
+        block, not a fixed line window. A window is the wrong shape here: adding
+        an explanatory comment above a statement pushes its transition out of
+        range and turns the check green without changing what it checks, which is
+        exactly how an earlier version of this test came to exempt three of the
+        four statements in `SKILL.md`.
+
+        The guarantee is what is asserted, not the syntax. A shell `&&` and a
+        stated obligation both satisfy it; requiring `&&` would forbid reading
+        the sequence the operation id needs, which exists only after the
         transition returns.
         """
-        unguarded = []
+        examined, unguarded = [], []
         for path in _sources():
             lines = path.read_text(encoding="utf-8").splitlines()
+            fences = [n for n, line in enumerate(lines) if line.lstrip().startswith("```")]
             for line, statement in _statements(path):
                 index = line - 1
+                block_start = max((f for f in fences if f < index), default=0)
+                preceding = lines[block_start:index]
+                if not any(TRANSITION_RE.search(item) for item in preceding):
+                    continue  # no transition in this block: nothing to guard against
+                examined.append(f"{path.relative_to(SKILL_DIR)}:{line}")
                 if statement.lstrip().startswith("&&"):
                     continue
-                window = "\n".join(lines[max(0, index - 6):index]).lower()
-                if TRANSITION_RE.search("\n".join(lines[max(0, index - 6):index])) and (
-                    "must succeed" in window
-                    or "only if it succeeded" in window
-                    or "never record when the transition is refused" in window
-                ):
+                prose = "\n".join(preceding).lower()
+                if ("must succeed" in prose
+                        or "only if it succeeded" in prose
+                        or "never record when the transition is refused" in prose):
                     continue
-                if not TRANSITION_RE.search("\n".join(lines[max(0, index - 6):index])):
-                    continue  # not preceded by a transition at all
                 unguarded.append(f"{path.relative_to(SKILL_DIR)}:{line}")
         self.assertEqual(unguarded, [], "recordings reachable after a refused transition")
+        # Non-vacuity: the four statements that follow a transition in their block
+        # must all have been examined, so the check cannot pass by skipping them.
+        self.assertGreaterEqual(
+            len(examined), 4,
+            f"guard check examined too few statements: {examined}")
 
     def test_the_eval_corpus_covers_the_id_carrying_crash_window(self) -> None:
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
@@ -114,11 +127,29 @@ class ShippedRecordingStatements(unittest.TestCase):
         self.assertTrue(carrying, "no eval exercises a recording that carries an operation id")
 
     def test_the_two_pre_existing_crash_window_cases_survive(self) -> None:
+        """Presence is not enough: their expectations are what the rail fences.
+
+        Pinning the id alone would let both `expected_output` blocks be rewritten
+        wholesale while the check stayed green, which is how the retained replay
+        policy would drift away from what the rows still promise.
+        """
+        evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
+        cases = {case["id"]: case for case in evals["evals"]}
+        for case_id, required in (
+            ("phase1-surface-ambiguous-review-record",
+             ("Surface", "loop-cohort status --json")),
+            ("phase1-explicit-auth-clean-record-replay",
+             ("explicit human authorization", "--direct-clean-file", "--adjudication")),
+        ):
+            self.assertIn(case_id, cases)
+            body = cases[case_id]["expected_output"] + " ".join(cases[case_id]["assertions"])
+            for phrase in required:
+                self.assertIn(phrase, body, f"{case_id} lost {phrase!r}")
+
+    def test_the_added_case_is_pinned_by_id(self) -> None:
         evals = json.loads((SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
         ids = {case["id"] for case in evals["evals"]}
-        for case_id in ("phase1-surface-ambiguous-review-record",
-                        "phase1-explicit-auth-clean-record-replay"):
-            self.assertIn(case_id, ids)
+        self.assertIn("review-record-operation-id-crash-window", ids)
 
 
 if __name__ == "__main__":

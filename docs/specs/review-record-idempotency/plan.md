@@ -128,7 +128,7 @@ assertions on the files this change touches.
 
 | Anchor | Assertion | Owner |
 | --- | --- | --- |
-| `test_loop_cohort_cli.py` `EXPECTED_STATE_KEYS` | exact set equality on the bundled template | T4 |
+| `test_loop_cohort_cli.py` `EXPECTED_STATE_KEYS` | exact set equality on the bundled template | T3 |
 | `test_loop_cohort.py` Phase-1 field check | subset, so unaffected | none |
 | `fixtures/golden_cli_streams.json` | pins no `review record` output | none |
 | `test_loop_engine.py` two prose tests | require seven phrases be *present* — three in the `findings-remain` row, four in the `reviewers-clean` row; adding a flag or a qualifying clause keeps them | T4 |
@@ -151,7 +151,7 @@ assertions on the files this change touches.
 | Current product truth — the skill payload | T2, T4, T5, T8 | `make build-self-dry-run` clean | Source edited, projections regenerated |
 | Interface compatibility — the persisted schema | T3 | Field table and template carry both fields; the reference states the per-form digest preimage | Reference, template, and writer agree |
 | Verification evidence — the QA transcript | T7 | Recorded counters, id, and exit codes | Transcript committed at `notes/qa-transcript.md` |
-| User-facing promise — the two core guides | T6 | Both name the flag | Guides describe shipped behavior |
+| User-facing promise — the two core guides | T5 | Both name the flag | Guides describe shipped behavior |
 | Decision rationale — the governing decision's disposition | T8 | The Assumptions statement carried to the approval gate | Approver accepts or directs a superseding record |
 | Release history — the changelog | T8 | Free-standing dated entry with `### Highlights` | Entry at top level; highlights projection regenerated |
 | Reusable learning | T8 | `project-knowledge` receipt or recorded unavailability | Receipt recorded or unavailability named |
@@ -421,22 +421,15 @@ regenerated.
 
 ## Open findings
 
-- **Review has not returned clean.** Two lanes across two rounds produced 36 then
-  13 findings. This draft applies all of them, plus the outcome table the second
-  round asked for and two owner decisions taken afterwards, and has not been
-  re-reviewed since. The spec-stage gate is unmet; approval should follow a clean
-  round, not this note.
-- **The per-form digest preimage is stated in two places** — this plan's table and
-  the shipped state-schema reference AC11 requires. The plan's table is canonical;
-  the reference should agree with it rather than restate it independently.
-- **The flagless baseline artifact may duplicate existing coverage.**
-  `test_loop_cohort_cli.py` already pins per-form exit codes and counter deltas;
-  the only dimension it misses is the stdout line. Adding those four assertions to
-  the existing tests would remove T1, its artifact, and its normalization harness.
-- **The replay-policy retention is stated in several places.** The Never-do rail,
-  the Follow-on deferral, and the governing-decision disposition each need it; the
-  remaining paraphrases are redundant and were left rather than risk another
-  renumbering pass. Worth one consolidation before approval.
+- **Only the most recent operation id is remembered.** Re-issuing an id that is
+  not the latest records a new round rather than being recognised. The shipped
+  resumption protocol always recomputes a current sequence, so no shipped path
+  produces a stale id, but the single-slot memory is a real bound on the
+  guarantee and is stated in the state-schema reference.
+- **The two artifact-bearing forms are not replay-tested end to end.** Their
+  behaviour differs from `--fingerprint` only in which payload the digest covers,
+  and an evicted artifact refuses before the comparison — which the resumption
+  row now says explicitly.
 
 ## Changelog
 
